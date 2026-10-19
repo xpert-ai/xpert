@@ -118,6 +118,30 @@ connections:
 `
 
 describe('PluginTemplateInstallHandler', () => {
+    it('carries the selected speech model into the imported draft before publication', async () => {
+        const { handler, commandBus } = createHandler({ templateDsl: TEMPLATE_DSL })
+        const speechToTextModel = {
+            copilotId: 'speech-provider',
+            model: 'speech-model',
+            modelType: AiModelTypeEnum.SPEECH2TEXT
+        }
+        await handler.execute(
+            new PluginTemplateInstallCommand(
+                'office-ops',
+                'workspace-1',
+                LanguagesEnum.English,
+                { speechToTextModel },
+                true
+            )
+        )
+        const imported = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof XpertImportCommand)
+        expect(imported).toBeInstanceOf(XpertImportCommand)
+        if (!(imported instanceof XpertImportCommand)) throw new Error('Missing import')
+        expect(imported.draft.team.features.speechToText).toEqual({ enabled: true, copilotModel: speechToTextModel })
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof XpertPublishCommand)).toBe(true)
+    })
     it('creates distinct template instances without reusing the source internal name', async () => {
         const { handler, commandBus } = createHandler({ templateDsl: TEMPLATE_DSL })
         const command = new PluginTemplateInstallCommand('office-ops', 'workspace-1', LanguagesEnum.English, {

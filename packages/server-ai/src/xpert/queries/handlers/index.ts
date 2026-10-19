@@ -1,5 +1,6 @@
 import { GetXpertAgentHandler } from './get-xpert-agent.handler'
 import { FindXpertHandler } from './get-one.handler'
+import { ResolveSpeechAssistantHandler } from './resolve-speech-assistant.handler'
 import { GetXpertChatModelQueryHandler } from './get-xpert-chat-model.handler'
 import { SearchXpertMemoryHandler } from './search-memory.handler'
 import { GetXpertMemoryEmbeddingsHandler } from './get-memory-embedding.handler'
@@ -13,6 +14,7 @@ import { IsPublishedXpertInFamilyHandler } from './is-published-xpert-in-family.
 
 export const QueryHandlers = [
     FindXpertHandler,
+    ResolveSpeechAssistantHandler,
     GetXpertAgentHandler,
     GetXpertChatModelQueryHandler,
     SearchXpertMemoryHandler,

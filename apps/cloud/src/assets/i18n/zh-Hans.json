@@ -260,6 +260,44 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "Sharing": {
+      "Title": "分享与访问",
+      "Subtitle": "管理谁可以使用 {{name}}。",
+      "Personal": "个人分享",
+      "Groups": "用户组授权",
+      "Inherited": "继承访问",
+      "ShareMembers": "分享给组织成员",
+      "OrganizationOnly": "仅限 {{name}} 的有效成员。",
+      "SearchMembers": "搜索姓名或邮箱，添加成员",
+      "CanUse": "可使用",
+      "Share": "分享",
+      "UseOnly": "分享仅授予使用权限，不开放编辑和再次分享。",
+      "SharedCount": "已分享给 {{count}} 位成员",
+      "Remove": "移除",
+      "NoShares": "尚未单独分享。选择组织成员，即可授予使用权限。",
+      "RemoveHint": "移除个人分享后，成员仍可能通过用户组或工作空间获得访问权限。",
+      "GroupHint": "所选用户组的有效成员可以使用此智能体。组内成员由组织设置统一管理。",
+      "ManageGroups": "管理用户组",
+      "SelectedGroups": "已授权用户组",
+      "SearchGroups": "搜索用户组",
+      "NoGroups": "没有匹配的用户组。你仍可通过个人分享授权给组织成员。",
+      "More": "加载更多",
+      "MoreMembers": "加载更多成员",
+      "Reset": "重置",
+      "Save": "保存",
+      "Creator": "智能体创建者 · 已有访问权限",
+      "OrganizationWorkspace": "此工作空间已向组织共享，有效组织成员保留访问权限。",
+      "WorkspaceMembers": "工作空间所有者及协作成员保留已有访问权限，共 {{count}} 人。",
+      "InheritedHint": "继承权限在此只读，请在来源处管理。分享不会授予工作空间成员身份。",
+      "WorkspaceAccess": "已有访问权限",
+      "WorkspaceHint": "智能体创建者、工作空间所有者和协作成员保留已有访问权限。",
+      "ViewInherited": "查看继承访问",
+      "Loading": "加载中…",
+      "Retry": "重试",
+      "ReadOnly": "你可以查看当前授权。修改分享需要此智能体的授权管理权限。",
+      "Saved": "分享已更新",
+      "SelectOrganization": "请选择组织后管理分享。"
+    },
     "PersonalApiKeys": {
       "Title": "个人 API 密钥",
       "AccessHint": "个人密钥与其他 API Key 使用相同的开放接口，以你的本人身份访问，遵循你的现有权限。请妥善保管。",
@@ -589,6 +627,10 @@
       "CleanupOldVersions": "清理未引用旧版本（{{count}}）"
     },
     "XpertSettings": {
+      "Retry": "重试",
+      "NetworkError": "无法连接服务器，请检查网络连接后重试。",
+      "LoadingConfiguration": "正在加载助理配置…",
+      "LoadFailed": "加载助理配置失败，请重试。",
       "RealtimeVoice": {
         "Title": "实时语音通话",
         "Description": "使用独立的实时语音模型进行通话并交办任务。",
@@ -1058,6 +1100,16 @@
     },
     "Title": "XpertAI 云",
     "McpPublication": {
+      "Delete": "删除",
+      "DeleteTitle": "删除 MCP 服务",
+      "DeleteConfirm": "确认删除“{{name}}”？服务入口、API 密钥、任务及调用记录将被删除，无法恢复。来源插件和工具会保留。",
+      "DeleteSharedConfirm": "确认从当前组织删除“{{name}}”？本组织的 API 密钥、任务及调用记录将被删除，无法恢复。其他组织不受影响。",
+      "Deleted": "MCP 服务已删除",
+      "ReloadConfiguration": "重新加载配置",
+      "ConfigurationSaved": "连接配置已保存",
+      "ConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
+      "ConfigurationSecretsHint": "已保存的密码以掩码显示；保持不变会保留原密码，替换内容可更新密码。",
+      "RetryPluginTabs": "重新加载插件页签",
       "Title": "MCP 服务",
       "Description": "将当前租户或组织范围内的能力发布为经过认证的 MCP 2026-07-28 Streamable HTTP 服务。",
       "NoProviderRequired": "能力来源于当前管理范围内兼容的工具集，无需指定提供商或安装 Cut。",
@@ -2585,6 +2637,7 @@
         "ScreenshotAlt": "{{app}} 的应用截图",
         "EnableApp": "启用 {{app}}",
         "EmbeddingModel": "Embedding 模型",
+        "SpeechToTextModel": "语音转写模型",
         "VisionModel": "视觉理解模型",
         "GoToModelSettings": "前往模型配置",
         "DetailsUnavailable": "应用详情不可用",
@@ -2614,6 +2667,7 @@
           "PrimaryModelRequired": "当前组织还没有可用的主语言模型，请先完成模型配置。",
           "EmbeddingModelRequired": "当前组织还没有可用的 Embedding 模型，请先完成模型配置。",
           "VisionModelRequired": "当前组织还没有支持视觉理解的模型，请先完成模型配置。",
+          "SpeechToTextModelRequired": "当前组织没有可用的语音转写模型，请先配置模型。",
           "ScopeNotSupported": "此作用域的应用初始化尚未开放。"
         },
         "Status": {
@@ -6174,6 +6228,20 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "测试模型或接入点 ID",
+        "ModelType": "模型类型",
+        "ModelPlaceholder": "选择模型或输入接入点 ID",
+        "ModelHint": "此提供商不支持使用当前凭据拉取模型列表。请选择有权限的模型；候选项仅为参考，不代表已获授权。测试会发送一次最小推理请求。",
+        "FetchAndVerify": "获取模型并验证",
+        "Test": "测试连接",
+        "Retry": "重试",
+        "ListVerified": "模型列表接口验证通过，共返回 {{count}} 个模型。",
+        "Empty": "当前凭据暂无可见模型。",
+        "ListHint": "此处仅预览，保存提供商后可在模型列表中导入。列表验证不代表推理权限已验证。",
+        "ModelVerified": "模型 {{model}} 测试通过。",
+        "Verified": "凭据验证通过。"
+      },
       "Discovery": {
         "Title": "拉取模型",
         "Description": "从当前提供商增量同步模型，保留已有参数。确认同步后仅使用已配置模型；本次未返回的接口模型保留配置并停用。",
@@ -12700,5 +12768,9 @@
     "TargetSource": "目标模板来源",
     "CurrentSource": "当前模板来源",
     "SourceMigration": "模板来源迁移"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "正式版本或访问权限可能已变化，请重新打开以检查。",
+    "Reopen": "重新打开分享页"
   }
 }

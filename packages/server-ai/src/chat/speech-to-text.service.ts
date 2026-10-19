@@ -8,7 +8,7 @@ import { FileStorage } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { CopilotGetOneQuery } from '../copilot'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
-import { FindXpertQuery } from '../xpert'
+import { ResolveSpeechAssistantQuery } from '../xpert/queries/resolve-speech-assistant.query'
 
 export interface SpeechToTextServiceOptions {
     xpertId?: string
@@ -41,9 +41,7 @@ export class SpeechToTextService {
             throw new BadRequestException('speech_to_text_file_url_required')
         }
 
-        const xpert = await this.queryBus.execute(
-            new FindXpertQuery({ id: xpertId, tenantId }, { isDraft: options.isDraft })
-        )
+        const xpert = await this.queryBus.execute(new ResolveSpeechAssistantQuery(xpertId, { ...options, tenantId }))
         if (!xpert) {
             throw new BadRequestException('speech_to_text_xpert_not_found')
         }
@@ -99,6 +97,9 @@ export class SpeechToTextService {
         if (!buffer.length) {
             throw new BadRequestException('speech_to_text_file_empty')
         }
+
+        // Authorize before staging bytes; the uploaded-file entry revalidates before using the model.
+        await this.queryBus.execute(new ResolveSpeechAssistantQuery(input.xpertId, input))
 
         const originalName = normalizeSpeechToTextFileName(input.file.originalName || 'speech', input.file.mimeType)
         const relativePath = [

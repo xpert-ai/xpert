@@ -1,9 +1,12 @@
+import { AiModelTypeEnum, type ProviderCredentialValidationTarget } from '@xpert-ai/contracts'
+
 jest.mock('../../../ai-model', () => ({
     AIProvidersService: class AIProvidersService {},
     AiProviderCredentialsValidateCommand: class AiProviderCredentialsValidateCommand {
         constructor(
             public readonly provider: string,
-            public readonly credentials: Record<string, any>
+            public readonly credentials: Record<string, any>,
+            public readonly validationTarget?: ProviderCredentialValidationTarget
         ) {}
     }
 }))
@@ -69,6 +72,23 @@ describe('CopilotProviderUpsertHandler', () => {
 
         expect(service.create).not.toHaveBeenCalled()
         expect(service.update).not.toHaveBeenCalled()
+    })
+
+    it('passes the user-selected target to the save-time check without persisting it', async () => {
+        const credentials = { ark_api_key: 'test-key' }
+        const entity = { providerName: 'volcengine', credentials }
+        const target = { modelType: AiModelTypeEnum.LLM, model: 'ep-private' }
+        commandBus.execute.mockResolvedValue(credentials)
+        await handler.execute(new CopilotProviderUpsertCommand(entity, target))
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                provider: 'volcengine',
+                credentials,
+                validationTarget: target
+            })
+        )
+        expect(service.create).toHaveBeenCalledWith(entity)
+        expect(service.create.mock.calls[0][0]).not.toHaveProperty('validationTarget')
     })
 
     it.each([undefined, 'provider-id'])('does not save invalid credentials for id %p', async (id) => {

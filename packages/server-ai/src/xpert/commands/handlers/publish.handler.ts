@@ -14,7 +14,14 @@ import {
 } from '@xpert-ai/contracts'
 import { omit, pick } from '@xpert-ai/server-common'
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException, forwardRef, HttpException, Inject, Logger, NotFoundException } from '@nestjs/common'
+import {
+    BadRequestException,
+    ConflictException,
+    HttpException,
+    Logger,
+    NotFoundException,
+    ServiceUnavailableException
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -25,12 +32,13 @@ import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
-import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
 import { EventName_XpertPublished } from '../../types'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
 import { t } from 'i18next'
 import { normalizeAssistantAllowedModels } from '../../assistant-model-selection.util'
+import { PublicationStore, XpertPublicationPersistence } from '../../publication/publication-persistence'
+import { createSpeechModelRepairDraft, hasApplicationSpeechModel } from '../../publication/speech-model-repair'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -39,23 +47,23 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
     constructor(
         private readonly xpertService: XpertService,
-        // The Xpert/agent import cycle can leave the emitted parameter type as Object during bootstrap.
-        @Inject(forwardRef(() => XpertAgentService))
-        private readonly xpertAgentService: XpertAgentService,
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
         private readonly eventEmitter: EventEmitter2,
         @InjectRepository(BusinessArea)
         private readonly businessAreaRepository: Repository<BusinessArea>,
         private readonly promptWorkflowService?: PromptWorkflowService,
-        private readonly xpertPrincipalService?: XpertPrincipalService
+        private readonly xpertPrincipalService?: XpertPrincipalService,
+        private readonly publicationPersistence?: XpertPublicationPersistence
     ) {}
 
     public async execute(command: XpertPublishCommand): Promise<Xpert> {
         const { id, newVersion, environmentId, notes, marketplace, businessAreaId } = command
+        await this.xpertService.assertCanAuthorById(id)
         const xpert = await this.xpertService.findOne(id, {
             relations: [
                 'agent',
+                'agent.copilotModel',
                 'copilotModel',
                 'agents',
                 'agents.copilotModel',
@@ -66,11 +74,24 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             ]
         })
 
-        if (command.resumePublished && xpert.publishAt) {
-            await this.finishPublication(xpert)
+        if (command.resumePublished) {
+            if (
+                !xpert.publishAt ||
+                (command.expectedPublishedVersion !== undefined && xpert.version !== command.expectedPublishedVersion)
+            ) {
+                throw new ConflictException(t('server-ai:Error.XpertPublicationStale'))
+            }
+            if (command.expectedPublishedVersion !== undefined && !xpert.options?.pendingPublication) return xpert
+            await this.finishPublication(xpert, xpert.options?.pendingPublication?.previousGraph)
             return xpert
         }
-        if (!xpert.draft) {
+        if (xpert.options?.pendingPublication)
+            throw new ConflictException(t('server-ai:Error.XpertPublicationActivationPending'))
+        if (command.speechToTextModel && hasApplicationSpeechModel(xpert)) return xpert
+        const sourceDraft = command.speechToTextModel
+            ? createSpeechModelRepairDraft(xpert, command.speechToTextModel)
+            : xpert.draft
+        if (!sourceDraft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
 
@@ -92,11 +113,6 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                     defaultValue: 'The selected business area is not available in this Xpert scope.'
                 })
             )
-        }
-
-        const currentUserId = RequestContext.currentUserId()
-        if (!xpert.userGroups?.length && xpert.createdById !== currentUserId) {
-            throw new BadRequestException('Published xperts must be assigned to at least one user group.')
         }
 
         this.logger.verbose(`Draft of xpert '${xpert.name}':\n${JSON.stringify(xpert.draft, null, 2)}`)
@@ -129,12 +145,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         }
 
         // Check
-        const draft = {
-            ...xpert.draft,
-            team: {
-                ...(xpert.draft.team ?? {})
-            }
-        } as TXpertTeamDraft
+        const draft = structuredClone(sourceDraft)
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
@@ -157,28 +168,32 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             await this.xpertService.validateTagAssociations({ ...xpert, tags: draft.team.tags })
         }
 
-        // Back up the current version
-        if (newVersion && currentVersion) {
-            await this.saveTeamVersion(xpert, version)
+        // Principal provisioning writes through its own service before the publication row is locked.
+        await this.ensurePrincipalUser(xpert)
+        const previousGraph = xpert.graph
+        const published = await this.publicationPersistence.run(xpert, async (store) => {
+            const next = { ...xpert }
+            if (newVersion && currentVersion) await this.saveTeamVersion(next, version, store)
+            next.releaseNotes = newVersion ? '' : (next.releaseNotes ?? '')
+            next.releaseNotes += (next.releaseNotes ? '\n\n' : '') + notes
+            next.environmentId =
+                environmentId === undefined ? (xpert.environmentId ?? null) : normalizeEnvironmentId(environmentId)
+            if (businessArea !== undefined) {
+                next.businessAreaId = businessArea?.id ?? null
+                next.businessArea = businessArea
+            }
+            return this.publish(next, version, draft, marketplace, store)
+        })
+        try {
+            await this.finishPublication(published, previousGraph)
+        } catch {
+            throw new ServiceUnavailableException({
+                code: 'XPERT_PUBLICATION_ACTIVATION_PENDING',
+                message: t('server-ai:Error.XpertPublicationActivationPending'),
+                version: published.version
+            })
         }
-
-        // Release notes
-        if (newVersion) {
-            xpert.releaseNotes = ''
-        }
-        xpert.releaseNotes ??= ''
-        xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
-
-        // An environment binding is optional. Normalize legacy blank values so
-        // nullable UUID columns never receive an empty string.
-        xpert.environmentId = normalizeEnvironmentId(environmentId)
-
-        if (businessArea !== undefined) {
-            xpert.businessAreaId = businessArea?.id ?? null
-            xpert.businessArea = businessArea
-        }
-
-        return await this.publish(xpert, version, draft, marketplace)
+        return published
     }
 
     /**
@@ -187,7 +202,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
      * @param team Team (leader)
      * @param version New version
      */
-    async saveTeamVersion(team: Xpert, version: string) {
+    async saveTeamVersion(team: Xpert, version: string, store: PublicationStore) {
         const oldTeam: IXpert = {
             ...omit(team, 'id', 'copilotModelId'),
             latest: false,
@@ -199,19 +214,19 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
         // Update to new version, leaving space for the old version as a backup
         team.version = version
-        await this.xpertService.save(team)
+        await store.saveTeam(team)
         // backup old version
-        const newTeam = await this.xpertService.createVersionBackup(oldTeam, team.id)
+        const newTeam = await store.createBackup(oldTeam)
 
         // Copy all agents
         for await (const agent of team.agents) {
-            await this.xpertAgentService.create({
+            await store.createAgent({
                 ...omit(agent, 'id', 'copilotModelId'),
                 teamId: newTeam.id,
                 copilotModel: agent.copilotModel ? omit(agent.copilotModel, 'id') : null
             })
         }
-        await this.xpertAgentService.create({
+        await store.createAgent({
             ...omit(team.agent, 'id', 'copilotModelId'),
             xpertId: newTeam.id,
             copilotModel: team.agent.copilotModel ? omit(team.agent.copilotModel, 'id') : null
@@ -229,12 +244,26 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert: Xpert,
         version: string,
         draft: TXpertTeamDraft,
-        marketplace?: XpertPublishCommand['marketplace']
+        marketplace?: XpertPublishCommand['marketplace'],
+        store?: PublicationStore
     ) {
+        if (!store) {
+            await this.xpertService.assertCanAuthorById(xpert.id)
+            await this.ensurePrincipalUser(xpert)
+            const previousGraph = xpert.graph
+            const result = await this.publicationPersistence.run(xpert, (transaction) =>
+                this.publish(xpert, version, draft, marketplace, transaction)
+            )
+            await this.finishPublication(result, previousGraph)
+            return result
+        }
         this.logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
-        const previousGraph = xpert.graph
+        const writes = store
 
-        const xpertOptions = draft.team?.options ?? xpert.options ?? {}
+        const xpertOptions = {
+            ...(draft.team?.options ?? xpert.options ?? {}),
+            pendingPublication: { version, previousGraph: xpert.graph }
+        }
         if (xpertOptions.modelSelection) {
             const primaryModel = resolveDraftPrimaryCopilotModel(xpert, draft)
             xpertOptions.modelSelection.allowedModels = normalizeAssistantAllowedModels(
@@ -303,7 +332,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                         this.logger.verbose(
                             `Update xpert team agent (name/key='${oldAgent.name || oldAgent.key}', id='${oldAgent.id}') with value:\n${JSON.stringify(entity, null, 2)}`
                         )
-                        const _entity = await this.xpertAgentService.update(oldAgent.id, entity)
+                        const _entity = await writes.updateAgent(oldAgent.id, entity)
                         node.entity = _entity
                         newAgents.push(_entity)
                     }
@@ -319,7 +348,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                         )
                     }
                     // Update primary agent (save the relation updates in agent) before update xpert
-                    xpert.agent = await this.xpertAgentService.update(xpert.agent.id, {
+                    xpert.agent = await writes.updateAgent(xpert.agent.id, {
                         ...xpert.agent,
                         ...pickXpertAgent(node.entity),
                         toolsetIds,
@@ -329,7 +358,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                     node.entity = xpert.agent
                 } else {
                     // Create new xpert agent
-                    const newAgent = await this.xpertAgentService.create({
+                    const newAgent = await writes.createAgent({
                         key: node.key,
                         ...pickXpertAgent(node.entity),
                         tenantId: xpert.tenantId,
@@ -346,7 +375,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
             // Hidden primary agent
             if (!xpert.agent.options?.hidden && !agentNodes.some((_) => _.key === xpert.agent.key)) {
-                xpert.agent = await this.xpertAgentService.update(xpert.agent.id, {
+                xpert.agent = await writes.updateAgent(xpert.agent.id, {
                     options: {
                         ...(xpert.agent.options ?? {}),
                         hidden: true
@@ -357,7 +386,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             // Delete unused agents
             for await (const agent of oldAgents) {
                 if (!newAgents.some((_) => _.id === agent.id)) {
-                    await this.xpertAgentService.delete(agent.id)
+                    await writes.deleteAgent(agent.id)
                 }
             }
 
@@ -413,8 +442,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.active = true
         xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
-        const _xpert = await this.xpertService.save(xpert)
-        await this.finishPublication(_xpert, previousGraph)
+        const _xpert = await writes.saveTeam(xpert)
         return _xpert
     }
 
@@ -432,6 +460,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         )
 
         await this.eventEmitter.emitAsync(EventName_XpertPublished, xpert)
+        await this.publicationPersistence.completeActivation(xpert)
     }
 
     private async ensurePrincipalUser(xpert: Xpert) {

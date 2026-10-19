@@ -1,12 +1,74 @@
 import {
     AI_BROWSER_RUNTIME_PROFILE,
+    COMPUTE_RUNTIME_PROFILE,
     DEFAULT_BROWSER_RUNTIME_PROFILE,
     DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE,
     SandboxRuntimeDefinitionRegistry
 } from './sandbox-runtime-definition.registry'
+import computeDefinition from './runtime-definitions/compute-node-python-v1.json'
 
 describe('SandboxRuntimeDefinitionRegistry', () => {
+    it.each(['document/python-3.12/v1', 'document/libreoffice-v1'])(
+        'uses immutable inputs and provider-owned writable output for %s',
+        (profile) => {
+            const definition = new SandboxRuntimeDefinitionRegistry().require(profile)
+            expect(definition.security.readOnlyWorkspace).toBe(true)
+            expect(definition.requirements.readOnlyWorkspace).toBe(true)
+        }
+    )
+    it('loads an offline compute profile with enforced input immutability and bounded resources', () => {
+        const definition = new SandboxRuntimeDefinitionRegistry().require(COMPUTE_RUNTIME_PROFILE)
+        expect(definition.networkPolicy).toEqual({ mode: 'none' })
+        expect(definition.security).toMatchObject({
+            runAsNonRoot: true,
+            readOnlyRootFilesystem: true,
+            readOnlyWorkspace: true,
+            noNewPrivileges: true,
+            dropCapabilities: 'all'
+        })
+        expect(definition.requirements).toMatchObject({
+            isolation: 'hardened',
+            resourceLimits: true,
+            networkPolicy: true,
+            readOnlyWorkspace: true
+        })
+        expect(definition.timeoutMs).toBeLessThanOrEqual(definition.hardDeadlineMs)
+        expect(definition.resources).toMatchObject({ cpu: 1, memoryMb: 256, tempDiskMb: 64 })
+        expect(definition).not.toHaveProperty('provider')
+        expect(definition).not.toHaveProperty('image')
+    })
+
+    it.each(['true', 1, null])(
+        'rejects invalid readOnlyWorkspace values (%s) instead of weakening security',
+        (value) => {
+            for (const field of ['security', 'requirements'] as const) {
+                const original = { ...computeDefinition[field] }
+                try {
+                    Object.assign(computeDefinition[field], { readOnlyWorkspace: value })
+                    expect(() => new SandboxRuntimeDefinitionRegistry()).toThrow('readOnlyWorkspace must be a boolean')
+                } finally {
+                    Object.assign(computeDefinition[field], original)
+                }
+            }
+        }
+    )
+
+    it.each(['security', 'requirements'] as const)(
+        'rejects a read-only policy that disagrees with its provider requirements (%s)',
+        (field) => {
+            const original = { ...computeDefinition[field] }
+            try {
+                Object.assign(computeDefinition[field], { readOnlyWorkspace: false })
+                expect(() => new SandboxRuntimeDefinitionRegistry()).toThrow(
+                    'must match requirements.readOnlyWorkspace'
+                )
+            } finally {
+                Object.assign(computeDefinition[field], original)
+            }
+        }
+    )
+
     it.each(['document/node-20/v1', 'document/java-17/v1'])(
         'declares %s with locked offline dependencies',
         (profile) => {

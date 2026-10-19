@@ -1,4 +1,5 @@
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
+import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
 import i18next from 'i18next'
 import { GroupProjectService } from './group-project/group-project.service'
 import { XpertProjectService } from '../xpert-project/project.service'
@@ -265,6 +266,15 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         e,
         a,
         access: access as unknown as GroupAccessService
+    }))
+    groupDeliveryStatusCases(() => ({
+        db,
+        messages,
+        group,
+        a,
+        c,
+        e,
+        prepare: (receipt, queue) => runtime.prepare(job(receipt, queue))
     }))
     afterAll(async () => {
         if (db) {

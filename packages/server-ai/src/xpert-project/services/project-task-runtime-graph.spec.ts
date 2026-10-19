@@ -31,7 +31,8 @@ describe('task timeline execution timestamps', () => {
         const service = new ProjectTaskGraphService(
             { manager, find: async () => [{ id: 'task', status: 'in_progress', revision: 1 }] } as never,
             { listReadable: async () => [{ role: 'editor', archived: false }] } as never,
-            { list: () => [] } as never
+            { list: () => [] } as never,
+            { diagnostics: async () => [] } as never
         )
         const context = { projectId: 'project', actor: { tenantId: 'tenant', organizationId: 'org', userId: 'user' } }
         const running = await service.graph(context)

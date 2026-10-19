@@ -1,3 +1,4 @@
+import { GrantAssistantAccessCommand } from '../xpert/sharing/grant-assistant-access.command'
 jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
@@ -190,13 +191,15 @@ function createService(options?: {
             )
     }
 
+    const publishedAccess = { countAccessiblePublishedXperts: jest.fn().mockResolvedValue(0) }
+    const commandBus = { execute: jest.fn().mockResolvedValue({ groupId: options?.managedGroup?.id ?? 'group-1' }) }
     const service = new XpertMarketplaceService(
         asRepository<Xpert>(xpertRepository),
         asRepository<XpertAccessRequest>(requestRepository),
-        asRepository<UserGroup>(userGroupRepository),
-        asRepository<User>(userRepository),
         workspaceAccessService,
-        xpertTemplateService as never
+        xpertTemplateService as never,
+        commandBus as never,
+        publishedAccess as never
     )
 
     return {
@@ -209,7 +212,9 @@ function createService(options?: {
         userRepository,
         workspaceAccessService,
         xpertTemplateService,
-        createdGroup
+        createdGroup,
+        commandBus,
+        publishedAccess
     }
 }
 
@@ -478,7 +483,7 @@ describe('XpertMarketplaceService', () => {
             requesterId: 'user-1',
             xpert
         })
-        const { service, xpertRepository, requestRepository, userGroupRepository } = createService({
+        const { service, xpertRepository, requestRepository, userGroupRepository, commandBus } = createService({
             decisionRequest
         })
 
@@ -486,37 +491,9 @@ describe('XpertMarketplaceService', () => {
             response: 'Approved'
         })
 
-        expect(userGroupRepository.findOne).toHaveBeenCalledWith({
-            where: {
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                managedBy: UserGroupManagedByEnum.XPERT_MARKETPLACE,
-                managedEntityType: UserGroupManagedEntityTypeEnum.XPERT,
-                managedEntityId: 'xpert-1'
-            },
-            relations: ['members']
-        })
-        expect(userGroupRepository.create).toHaveBeenCalledWith(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                managedBy: UserGroupManagedByEnum.XPERT_MARKETPLACE,
-                managedEntityType: UserGroupManagedEntityTypeEnum.XPERT,
-                managedEntityId: 'xpert-1',
-                members: []
-            })
-        )
-        expect(userGroupRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'group-1',
-                members: [expect.objectContaining({ id: 'user-1' })]
-            })
-        )
-        expect(xpertRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                userGroups: [expect.objectContaining({ id: 'group-1' })]
-            })
-        )
+        expect(commandBus.execute).toHaveBeenCalledWith(new GrantAssistantAccessCommand('xpert-1', 'user-1'))
+        expect(userGroupRepository.save).not.toHaveBeenCalled()
+        expect(xpertRepository.save).not.toHaveBeenCalled()
         expect(requestRepository.save).toHaveBeenCalledWith(
             expect.objectContaining({
                 status: XpertAccessRequestStatusEnum.APPROVED,
@@ -561,25 +538,16 @@ describe('XpertMarketplaceService', () => {
             requesterId: 'user-1',
             xpert
         })
-        const { service, xpertRepository, requestRepository, userGroupRepository } = createService({
+        const { service, xpertRepository, requestRepository, userGroupRepository, commandBus } = createService({
             decisionRequest,
             managedGroup: existingGroup
         })
 
         const result = await service.approveRequest('request-1')
 
-        expect(userGroupRepository.create).not.toHaveBeenCalled()
-        expect(userGroupRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'group-existing',
-                members: [expect.objectContaining({ id: 'user-1' })]
-            })
-        )
-        expect(xpertRepository.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                userGroups: [expect.objectContaining({ id: 'group-existing' })]
-            })
-        )
+        expect(commandBus.execute).toHaveBeenCalledWith(new GrantAssistantAccessCommand('xpert-1', 'user-1'))
+        expect(userGroupRepository.save).not.toHaveBeenCalled()
+        expect(xpertRepository.save).not.toHaveBeenCalled()
         expect(requestRepository.save).toHaveBeenCalledWith(
             expect.objectContaining({
                 status: XpertAccessRequestStatusEnum.APPROVED,
@@ -591,6 +559,24 @@ describe('XpertMarketplaceService', () => {
             accessGroupId: 'group-existing'
         })
     })
+    it('uses the runtime policy to classify access rather than trusting stored group membership', async () => {
+        const { service, publishedAccess } = createService()
+        publishedAccess.countAccessiblePublishedXperts.mockResolvedValueOnce(1).mockResolvedValueOnce(0)
+        expect((await service.getMarketplaceItem('xpert-1')).accessStatus).toBe('accessible')
+        expect((await service.getMarketplaceItem('xpert-1')).accessStatus).toBe('not_requested')
+        expect(publishedAccess.countAccessiblePublishedXperts).toHaveBeenCalledWith({ id: 'xpert-1' })
+    })
+
+    it('does not mark an approval successful if the shared recipient policy rejects it', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-1')
+        const { service, commandBus, requestRepository } = createService({
+            decisionRequest: createRequest({ xpert: createDiscoverableXpert() })
+        })
+        commandBus.execute.mockRejectedValue(new ForbiddenException())
+        await expect(service.approveRequest('request-1')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(requestRepository.save).not.toHaveBeenCalled()
+    })
+
     it('lists and reads shared tenant experts without any organization request or approval lookup', async () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         const xpert = createDiscoverableXpert({

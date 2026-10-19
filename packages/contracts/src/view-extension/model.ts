@@ -646,6 +646,13 @@ export interface XpertRemoteViewContextChangedEvent extends XpertRemoteViewHostE
   }
 }
 
+/** Credential-free activation signal from the top-level shell to its embedded views. */
+export interface XpertHostLifecycleMessage {
+  channel: 'xpertai.host_lifecycle'
+  protocolVersion: 1
+  type: 'activated'
+}
+
 /**
  * Host-internal event message. `hostType` and `hostId` are routing fields and
  * must be stripped before forwarding to remote components.

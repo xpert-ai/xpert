@@ -1,4 +1,5 @@
 import type { I18nObject, IconDefinition, XpertProjectTypeDefinition } from '@xpert-ai/contracts'
+import { t } from 'i18next'
 
 export interface ProjectApplicationDefinition {
     name: string
@@ -37,6 +38,20 @@ function projectTypeIcon(value: unknown): IconDefinition | undefined {
         throw new Error('Invalid Project type icon')
     }
     return value as IconDefinition
+}
+
+function projectTaskConcurrency(value: unknown): XpertProjectTypeDefinition['taskConcurrency'] {
+    if (value === undefined) return undefined
+    if (
+        !value ||
+        typeof value !== 'object' ||
+        !('maxConcurrentTasks' in value) ||
+        typeof value.maxConcurrentTasks !== 'number' ||
+        !Number.isSafeInteger(value.maxConcurrentTasks) ||
+        value.maxConcurrentTasks < 1
+    )
+        throw new Error(t('server-ai:Error.ProjectTypeInvalid'))
+    return { maxConcurrentTasks: value.maxConcurrentTasks }
 }
 
 /** Parse only the current platform's trusted loaded App metadata, once at the boundary. */
@@ -79,8 +94,9 @@ export function projectApplicationDefinitions(value: unknown): ProjectApplicatio
                 throw new Error('Invalid Project type definition')
             }
             const icon = projectTypeIcon('icon' in type ? type.icon : undefined)
+            const taskConcurrency = projectTaskConcurrency('taskConcurrency' in type ? type.taskConcurrency : undefined)
             if (type.binding.kind === 'project')
-                types.push({ key: type.key, title: type.title, icon, binding: { kind: 'project' } })
+                types.push({ key: type.key, title: type.title, icon, taskConcurrency, binding: { kind: 'project' } })
             else if (
                 type.binding.kind === 'entity' &&
                 'providerKey' in type.binding &&
@@ -91,6 +107,7 @@ export function projectApplicationDefinitions(value: unknown): ProjectApplicatio
                     key: type.key,
                     title: type.title,
                     icon,
+                    taskConcurrency,
                     binding: { kind: 'entity', providerKey: type.binding.providerKey }
                 })
             } else throw new Error('Invalid Project type binding')

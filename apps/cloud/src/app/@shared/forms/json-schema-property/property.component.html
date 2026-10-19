@@ -36,7 +36,7 @@
       </div>
 
       @if (type() === 'array' && !enum() && !hasCustomWidget()) {
-        <button class="btn btn-small justify-center w-6 h-6" [disabled]="readonly()" (click)="addArray()">
+        <button type="button" class="btn btn-small justify-center w-6 h-6" [disabled]="readonly()" (click)="addArray()">
           <i class="ri-add-line"></i>
         </button>
       }

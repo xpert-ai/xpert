@@ -1,6 +1,6 @@
-import { PluginMarketplaceAppConfig } from '@xpert-ai/contracts'
+import { PluginMarketplaceAppConfig, PluginTargetAppMarketplaceMetadata } from '@xpert-ai/contracts'
 import { LoadedPluginRecord, readPluginBundleManifest, resolveLoadedPluginBundleRoot } from '@xpert-ai/server-core'
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync, realpathSync, statSync } from 'node:fs'
 import { extname, isAbsolute, relative, resolve } from 'node:path'
 
 const MAX_INLINE_SCREENSHOT_BYTES = 5 * 1024 * 1024
@@ -23,17 +23,19 @@ type CachedScreenshot = {
 const screenshotCache = new Map<string, CachedScreenshot>()
 
 /**
- * Resolve plugin-declared local screenshots to browser-safe data URLs.
+ * App screenshots override marketplace screenshots; an explicit [] hides them.
+ * Resolve both sources through the same bundle asset boundary.
  *
  * Only files listed in the portable plugin manifest are read. Remote URLs,
  * root-relative host URLs and existing data URLs pass through unchanged.
  */
 export function resolvePluginApplicationConfigAssets(
     plugin: LoadedPluginRecord,
-    config: PluginMarketplaceAppConfig
+    config: PluginMarketplaceAppConfig,
+    marketplace?: Pick<PluginTargetAppMarketplaceMetadata, 'screenshots'>
 ): PluginMarketplaceAppConfig {
-    const screenshots = config.presentation?.screenshots
-    if (!screenshots?.length) {
+    const screenshots = config.presentation?.screenshots ?? marketplace?.screenshots
+    if (!screenshots) {
         return config
     }
 
@@ -54,14 +56,15 @@ export function resolvePluginApplicationConfigAssets(
 function resolvePluginScreenshot(plugin: LoadedPluginRecord, screenshot: string): string {
     const value = screenshot?.trim()
     if (!value || /^(?:data:|https?:\/\/|\/)/i.test(value)) {
-        return screenshot
+        return value
     }
 
     try {
-        const rootDir = resolveLoadedPluginBundleRoot(plugin)
-        if (!rootDir) {
+        const bundleRoot = resolveLoadedPluginBundleRoot(plugin)
+        if (!bundleRoot) {
             return screenshot
         }
+        const rootDir = realpathSync(bundleRoot)
         const manifest = readPluginBundleManifest(rootDir)?.manifest
         const declaredScreenshots = manifest?.assets?.screenshots ?? []
         const screenshotPath = resolve(rootDir, value)
@@ -76,17 +79,21 @@ function resolvePluginScreenshot(plugin: LoadedPluginRecord, screenshot: string)
         if (!mimeType) {
             return screenshot
         }
-        const stat = statSync(screenshotPath)
+        const realScreenshotPath = realpathSync(screenshotPath)
+        if (!isPathWithinRoot(rootDir, realScreenshotPath)) {
+            return screenshot
+        }
+        const stat = statSync(realScreenshotPath)
         if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_INLINE_SCREENSHOT_BYTES) {
             return screenshot
         }
 
-        const cached = screenshotCache.get(screenshotPath)
+        const cached = screenshotCache.get(realScreenshotPath)
         if (cached?.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
             return cached.dataUrl
         }
-        const dataUrl = `data:${mimeType};base64,${readFileSync(screenshotPath).toString('base64')}`
-        cacheScreenshot(screenshotPath, { mtimeMs: stat.mtimeMs, size: stat.size, dataUrl })
+        const dataUrl = `data:${mimeType};base64,${readFileSync(realScreenshotPath).toString('base64')}`
+        cacheScreenshot(realScreenshotPath, { mtimeMs: stat.mtimeMs, size: stat.size, dataUrl })
         return dataUrl
     } catch {
         return screenshot

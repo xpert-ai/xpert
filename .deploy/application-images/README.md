@@ -12,6 +12,19 @@ dependency workflows are reusable prerequisites, rather than parallel independen
 image builds. Existing NsJail source/sandbox validation remains separate; its image
 is built here without claiming to exercise privileged sandbox execution.
 
+The shared `build-application-images.yml` workflow keeps the same build and health
+checks for both event types. Trusted `develop` / `main` pushes can read and write
+GHCR BuildKit caches under `ghcr.io/<owner>/<repository>-buildcache`, with separate
+tags for each image, architecture and branch. Both branch caches are imported;
+only the current branch's tag is exported with `mode=max` to retain intermediate
+stages. Cache tags are separate from application release tags. The first run
+populates the cache and incurs an additional export cost.
+
+PR callers have only `contents: read`, disable registry caches and do not log in.
+They cannot write caches, including for same-repository PRs. Only the trusted
+push caller grants `packages: write`; application publication credentials and
+the production environment remain confined to the publication job.
+
 ## Select images explicitly
 
 | Changeset package         | Version source                        | Image                 |

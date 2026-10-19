@@ -358,6 +358,8 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Server-owned activation checkpoint; excluded from reusable template exports/imports. */
+  pendingPublication?: { version: string; previousGraph?: TXpertGraph }
   operationPolicy?: import('./assistant-template-setup.model').AssistantOperationPolicy
   templateDefinition?: import('./assistant-template.model').AssistantTemplateMetadata
   templateDependencyLocks?: import('./template-installation.model').TemplateDependencyLock[]

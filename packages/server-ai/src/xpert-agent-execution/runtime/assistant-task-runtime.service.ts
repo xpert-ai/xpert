@@ -57,6 +57,8 @@ import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
 
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
+import { ResolvePublishedAgentQuery } from '../../xpert/published-agent/resolve-published-agent.query'
+import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
 
 @Injectable()
 @RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
@@ -68,6 +70,20 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         private readonly queryBus: QueryBus,
         private readonly moduleRef: ModuleRef
     ) {}
+
+    resolvePublishedAgent(input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0]) {
+        return this.queryBus.execute(new ResolvePublishedAgentQuery(input))
+    }
+
+    async withPublishedAgent<T>(
+        input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0],
+        operation: (
+            target: Awaited<ReturnType<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>>
+        ) => Promise<T>
+    ) {
+        const target = await this.resolvePublishedAgent(input)
+        return runWithPublishedAgent(input.requesterXpertId, target, operation)
+    }
 
     async getModels(xpertId: string) {
         const access = this.moduleRef.get(PublishedXpertAccessService, { strict: false })

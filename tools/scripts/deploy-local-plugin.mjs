@@ -338,6 +338,11 @@ async function main() {
   }
 
   const descriptor = firstVerifiedDescriptor(verifyResponse.body)
+  const restartRequired =
+    deployment.result?.restartRequired === true ||
+    descriptor?.restartRequired === true ||
+    descriptor?.pendingRestart === true ||
+    descriptor?.loadStatus === 'pending_restart'
   const manifestFile = args.manifestFile || process.env.XPERT_PLUGIN_DEPLOY_MANIFEST
   writeDeploymentManifest(manifestFile, {
     schemaVersion: 'xpert-local-plugin-deployment@1',
@@ -358,12 +363,12 @@ async function main() {
     },
     deployment: {
       action: deployment.action,
-      restartRequired: deployment.result?.restartRequired === true,
+      restartRequired,
       descriptor: summarizePluginResponse(descriptor)
     }
   })
 
-  if (deployment.result?.restartRequired === true) {
+  if (restartRequired) {
     console.log(
       `[plugin:deploy:local] ${pluginName} ${deployment.action} and staged successfully. API restart required before activation.`
     )

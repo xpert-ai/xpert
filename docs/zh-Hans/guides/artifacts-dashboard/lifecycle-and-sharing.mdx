@@ -1,0 +1,71 @@
+---
+title: '编辑生命周期、资源卡片与分享'
+description: '同一 Artifact 的草稿、人工定稿、ChatKit 导航和团队只读展示。'
+---
+
+## 创建与保存回执
+
+Agent 先通过 `dashboard_list_sources`、`dashboard_discover` 发现当前可用来源，再用 `dashboard_preview` 或 `dashboard_preview_binding` 取得真实预览回执。适用的分类筛选还需非默认值验证。创建时只能引用本次运行的有效预览回执；服务端再次验证访问和数据。
+
+标准页面使用 `dashboard_create`。HTML 页面用平台 SandboxFile 写入 Workspace 后调用 `dashboard_create_html`。脚本使用同一套文件工具编写，再由 `workspace_dataset_register` 登记定义。`dashboard_write_html` 和 `workspace_dataset_write_file` 已由通用文件工具替代。
+
+文件写入成功不等于看板保存成功。平台 `createMutationEvidence` 跟踪待保存修改，插件按领域回执认定成功。Agent 必须取得含 Artifact ID、`status: draft` 和 `draftRevision` 的保存回执；失败或耗尽工具轮次时不能宣称保存、发布或产生新正式版本。
+
+## 减少生成与编辑重试
+
+平台 SDK 的 `validateAnalyticsPayload` 根据已发现的 Provider `payloadSchema` 提供结构校验，不改写参数，不补默认值，也不替代服务端授权和 Provider 验证。仅支持同步 Schema；无效、无法解析引用或异步 Schema 会明确报错。结构错误会指出路径和约束类型，例如摘要长度错误；应从发现结果精确复制不透明 ID 和契约摘要，不能反复提交相同错误值。
+
+预览返回 `validation.checks`：适用的空默认值分类筛选会带出待验证控件，样例值仅来自本次真实预览行。Agent 应先执行其中的 `dashboard_test_filter` 建议调用，再编写页面或保存。建议不是验证回执；未验证仍拒绝保存，修改 Binding 后也不能复用旧证据。
+
+`dashboard_open` 的 HTML 副本已经存在，`editingFile` 明确给出读取步骤和 `edit_existing` 模式。应读取后使用通用编辑工具，不能把只允许新建的 `sandbox_write_file` 当作覆盖写入。批量文件编辑按顺序保存，不保证回滚；失败后读取当前文件，只补尚未完成的修改。平台文件工具提供错误后的读取建议；采用基础 Sandbox 实现的批量编辑另返回已应用数量和失败序号。
+
+Agent 工具要求每次显式提交 `title`，不改名时复制当前标题；平台通用部分更新接口仍允许省略未修改字段。同时改标题与页面时，在一次 `dashboard_update` 中提交新的 `title` 和 `htmlPath`。页面标题不能替代 Artifact 元数据；成功回执才表示草稿已保存。以上提示减少可避免的错误，不放宽参数校验、并发保护、权限或 Binding 查询边界。
+
+## 草稿与正式版本
+
+| 操作              | 行为                                               |
+| ----------------- | -------------------------------------------------- |
+| 新建或 Agent 修改 | 保存当前工作草稿，增加修订号，保留 Artifact 身份   |
+| 只改样式          | 保留省略的字段和原 Binding，仍执行数据与 HTML 预检 |
+| 修改来源或指标    | 重新发现、预览，提交完整目标 Binding 集合的回执    |
+| 人工发布          | 确认冻结的草稿修订，事务内创建不可变正式版本       |
+| 查看历史          | 读取旧版定义和依赖，按当前权限重新查询数据         |
+
+`dashboard_open` 读取选中看板并提供稳定 `editId`、`expectedRevision`、`expectedCurrentVersionId`。HTML 编辑得到独立工作副本及 `saveArguments`；正式基准为空时应提交实际 JSON `null`，不能使用字符串 `None`。修正某个参数错误时须保留其他意图字段，包括新标题。用 SandboxFile 读取、编辑后调用 `dashboard_update`。历史正式版本只读，不准备编辑副本。未选中时使用 `dashboard_list` 明确目标，不根据最近更新时间猜测。
+
+平台 `artifact_draft` 保存最新草稿内容引用、摘要、修订号和正式基准。保存与发布共用 Artifact 行锁及 CAS。并发基准变化会返回冲突；不能自动覆盖、静默变基或另建同名作品。相同确认发布的重试复用版本。
+
+Agent 没有正式发布工具。发布确认期间草稿若变化，操作失败而不是发布用户未确认的内容。中间草稿修订不构成可浏览历史，当前也没有一键回滚、版本差异或多人合并界面。
+
+## Chat 资源卡片与 Workbench
+
+创建、更新或读取成功后，插件通过平台 `emitResourceCard` 发出资源引用。卡片含名称、图标、草稿修订或正式版本信息，不携带 HTML、SQL、结果行或凭据。卡片发送失败不回滚已完成保存，也不重试创建作品。
+
+点击卡片在 **ChatKit 自己的 Workbench** 打开 `live-dashboard__live-dashboard`，以 `selectionId` 选中 Artifact；历史目标使用 `parameters.versionId`。多张卡片切换同一看板 View，重复初始化保留本地编辑，过期响应不能覆盖新目标。
+
+草稿卡片显示当轮保存状态，打开时读取当前已保存草稿；指定历史版本的卡片固定该正式版本。重开对话恢复消息卡片，整页刷新恢复 Workbench 目标。加载历史消息本身不自动打开看板。
+
+这与普通生成文件预览不同：无需把定义 JSON 当文件打开，也不需要宿主导航模式开关。选中目标通过 `assistant.context.set` 提供给 Agent，仅用于定位，不替代授权。
+
+## 团队只读展示
+
+创建者在 Workbench 开启团队分享，选择跟随最新正式版本或固定版本。只有草稿时不能分享；分享本身也不会发布。
+
+平台返回 `presentationUrl`，路由为 `/artifacts/view/:slug`。独立页需要登录和组织成员权限，草稿、编辑、发布及分享管理仍由创建者持有。每次查询使用访问者权限，不使用创建者身份代查。
+
+平台 `ArtifactPresentationRegistry` 按插件和资源类型选择展示 Provider。插件负责解释版本包和只读 `query` / `query-binding`；平台负责链接、正式目标、身份和隔离宿主。
+
+- `GET /api/artifacts/shared-links/:slug/presentation` 返回已授权正式目标、展示入口和允许操作。
+- `POST /api/artifacts/shared-links/:slug/presentation/query` 接受 `{ target, operation, input }`；请求前后重新检查权限和版本。
+- 跟随最新的页面遇到正式版本变化时返回冲突，需重新打开，避免旧 HTML 混用新 Binding。
+- 改变分享目标会替换链接；撤销后访问和查询失败，已看到的数据无法追溯收回。
+
+独立页工具栏为半透明浮层按钮，悬停展开、点击固定，可通过 Escape、关闭按钮或画布点击收起，不占画布高度。
+
+## 受控打开命令
+
+作者 View 声明并调用 `artifact.presentation.open`，由平台打开同源 `/artifacts/view/:slug` 页面，清除 opener，并报告弹窗被阻止。这样避免新窗口继承插件 iframe 沙箱而无法启动登录应用。
+
+注册位于 Artifact 功能 provider，由 AppModule 显式启用并在销毁时清理；`ViewClientCommandRegistry` 保持通用。该命令用于分享独立页，资源卡片仍使用 ChatKit Workbench 导航。只读展示桥不提供客户端命令、文件或写入通道。
+
+Workspace 脚本 Provider 当前声明 `owner_only`，私有定义和输入不能随看板自动共享。SQL 与本体来源继续逐次检查访问者的来源权限。匿名分享、团队编辑不属于此看板功能。

@@ -11,7 +11,7 @@ import type { IXpertAgent } from '@xpert-ai/contracts'
 import type { ModelRequest } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { z } from 'zod'
-import { prepareMessagesForModel } from '../../copilot-model/model-capabilities'
+import { getModelVisionSupport, prepareMessagesForModel } from '../../copilot-model/model-capabilities'
 import { ToolSchemaParser } from '../tools/utils'
 import { createParameters } from './parameter'
 import { FakeStreamingChatModel } from './fake-streaming-chat-model'
@@ -35,13 +35,23 @@ export interface ModelCallOptions {
  * middleware. This does not wrap the model or hide bindTools/withStructuredOutput.
  */
 export function exposeModelProfile<T extends LanguageModelLike>(model: T): T {
-    if ('profile' in model && model.profile) {
-        return model
-    }
     const metadata = 'metadata' in model ? model.metadata : undefined
-    const profile = metadata && typeof metadata === 'object' && 'profile' in metadata ? metadata.profile : undefined
-    if (profile && typeof profile === 'object') {
-        Object.defineProperty(model, 'profile', { configurable: true, enumerable: true, value: profile })
+    const profile =
+        'profile' in model && model.profile
+            ? model.profile
+            : metadata && typeof metadata === 'object' && 'profile' in metadata
+              ? metadata.profile
+              : undefined
+    const supportsVision = getModelVisionSupport(model)
+    if (supportsVision !== undefined || (profile && typeof profile === 'object')) {
+        Object.defineProperty(model, 'profile', {
+            configurable: true,
+            enumerable: true,
+            value: {
+                ...(profile && typeof profile === 'object' ? profile : {}),
+                ...(supportsVision !== undefined ? { imageInputs: supportsVision } : {})
+            }
+        })
     }
     return model
 }

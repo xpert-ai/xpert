@@ -15,15 +15,19 @@ import type { TAvatar } from '../types'
  * routes back to its sender; `message` publishes information without waking addressed Assistants.
  */
 export type ChatGroupIntent = 'request' | 'reply' | 'message'
-/** Per-recipient delivery progress, not a read receipt or the overall Assistant run status. */
+/** Per-recipient delivery progress, independent of the overall Assistant run status. */
 export type ChatGroupDeliveryStatus =
   /** Accepted for delivery; dispatch may still be pending. */
   | 'pending'
-  /** Starting an Assistant run for this message. */
+  /** Runtime reserved; acceptance of this specific input has not yet been confirmed. */
   | 'starting'
   /** Submitted to an active run through the existing steer/follow-up mechanism. */
   | 'steering'
-  /** Consumed by the runtime; does not by itself mean a reply has been published. */
+  /**
+   * Consumed by the runtime; an Assistant delivery linked to an execution can display this as "read".
+   * Non-waking deliveries also use this terminal state, without asserting that a human has read them.
+   * Does not mean a reply has been published or the run has finished.
+   */
   | 'consumed'
   /** Delivery cannot proceed under the current authorization or runtime state. */
   | 'blocked'

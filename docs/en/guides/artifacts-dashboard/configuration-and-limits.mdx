@@ -1,0 +1,71 @@
+---
+title: 'Configuration and limits'
+description: 'Configure existing dashboard capabilities and understand runtime requirements and verification scope.'
+---
+
+## Assistant and runtime setup
+
+1. Use matching platform, contracts and SDK builds with Analytics, Artifact drafts, document hosting and presentation providers. Backend and frontend support must be present together; upgrading only the plugin cannot add the viewer route.
+2. Install Live Dashboard and required source plugins. SQL sources also need their platform driver; MySQL/Doris share the MySQL driver plugin.
+3. Connect `LiveDashboard` middleware and activate `live_dashboard`. A dedicated dashboard Assistant can require this connection. General Assistants retain explicit optional-tool selection. A visible View does not prove that Agent tools are enabled.
+4. Configure a usable model and skill-reading capability, and install the packaged `live-dashboard` skill. Use platform `SandboxFile` for authoring. Scripts also require `WorkspaceScriptDataset` and the `workspace-script-dataset` skill.
+5. HTML save preflight requires Browser Runtime and the `sandbox-browser` queue. Python/JavaScript queries additionally need a restricted `compute/node-python/v1` runtime and matching Runtime Binding. Standard charts do not require HTML browser preflight.
+6. After a plugin update, refresh the installed `live-dashboard` skill in the Assistant workspace and verify its content. Refreshing a plugin alone does not update existing skill copies.
+7. Externally managed schemas must apply `packages/server-ai/src/artifacts/drafts/migrations/20261017-artifact-drafts.sql`. Existing Artifacts start a draft against their current formal version on first edit; no historical-draft backfill is required.
+
+Data-xpert sources also need the correct service URL, audience, Assistant/Workspace configuration, published resources and viewer policy. The platform supplies identity; generated pages do not carry credentials.
+
+## Current limits
+
+| Scope                                 | Limit                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| One platform Analytics query          | 30 seconds, 1,000 rows; up to 2 MB of UTF-8 JSON for normalized `rows`                                                          |
+| Dashboard definition                  | 8 Bindings, 24 controls; standard mode allows 20 charts and 20 tables                                                           |
+| HTML and dependencies                 | 300 KB HTML; up to 8 platform dependencies, 4 MB each and 8 MB total; 9 MB dashboard package                                    |
+| Document query bridge                 | 8 concurrent requests, 60 requests per minute; this does not grant source capacity                                              |
+| Declarative file input (`file.table`) | The file plugin limits input to 8 MB and 50,000 rows; oversized inputs fail, while output still follows platform Dataset limits |
+| Workspace script                      | One 64 KB file, standard libraries, UTF-8 inputs; 8 file aliases and 4 source aliases                                           |
+| Script execution                      | 1 MB per input file, 16 calls, 8 MB cumulative invocation data, 4,000 source input rows; bounded by the parent deadline         |
+
+KB and MB above use decimal byte units. The dashboard plugin currently offers only ECharts and Three.js; an Agent can select either or both. The platform limit does not mean the plugin offers eight libraries.
+
+Limits describe current behavior, not performance guarantees. Script output also follows Dataset limits. Cancellation and deadlines propagate upstream. Multi-source reads do not provide a transactional snapshot.
+
+## Diagnostics
+
+| Symptom                                                 | Action                                                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| View is visible but the Agent cannot create a dashboard | Check middleware, ChatKit tool selection and model configuration                                        |
+| HTML file exists but no draft was saved                 | Inspect the create/update save receipt and preflight result                                             |
+| Preflight fails or the chart is empty                   | Check Browser Runtime, saved Bindings, library locks, field mappings and container size                 |
+| Save or publication conflicts                           | Preserve edited files, reread the current draft/base and reconcile changes                              |
+| Sharing fails                                           | Confirm a formal version exists, then inspect source access, membership and private script dependencies |
+| Standalone page cannot open                             | Check command declaration, platform support, popup settings and normal login return                     |
+| Latest-following page reports a new version             | Reopen to load a consistent definition and Binding set                                                  |
+| Filter changes only part of a page                      | Give data selects explicit control IDs and query every affected Binding; do not filter only cached rows |
+| Fetch time changes but values do not                    | Check source data and cache semantics; fetch time is not data-change time                               |
+
+## Verification scope and unavailable capabilities
+
+Current sources include PostgreSQL, MySQL, Doris, data-xpert, Workspace scripts, MCP, REST/JSON and CSV/JSON/XLSX files. Each has scoped local query and page evidence. Coverage for generation, edits, filtering, refresh, reopening, ECharts, draft publication, member viewing and ChatKit navigation must be read from the individual reports; not every source has passed every combination. Reports have different dates and environments. A source review does not rerun model, SSO or multi-user acceptance.
+
+Three.js core objects and packaging have been checked, but a full real-SSO GPU/WebGL page has not. Workspace script team sharing is explicitly blocked. The latest sharing regression did not verify a newly provisioned data-xpert SSO team account.
+
+There is no unified background refresh job, server change-stream push, browsable draft history, collaborative editing, version-diff/one-click rollback UI, anonymous dashboard sharing or general result cache. HTML may implement polling; MySQL/Doris scenarios exercised this path. Available ontology adapters depend on data-xpert's published resources and Actions, not a new direct REST or semantic-model provider.
+
+Local evidence does not establish npm release compatibility, production images/deployment or multi-tenant load performance. Maintain feature descriptions from source contracts and explicitly scoped acceptance reports.
+
+## Maintenance references
+
+- Platform SDK: `packages/plugin-sdk/docs/analytics.md`, `artifact-documents.md`, `artifact-drafts.md`, `artifact-presentations.md`.
+- Dashboard implementation and skills: `xpert-plugins/community/apps/live-dashboard/src/` and `skills/`.
+- Historical evidence: plugin `docs/*acceptance*`; source constraints live in each `analytics-*` plugin.
+- Product instructions: the separate docs repository's `en/ai/live-dashboard/` pages under AI → Live Dashboard do not require users to know internal APIs.
+
+Update behavior and limitations together. Keep development batches, local machine paths, accounts, private receipts and proposed milestones out of current feature documentation.
+
+## Reusable local regression
+
+The dashboard plugin's `tests/acceptance/README.md` documents real Chat regression for CSV/JSON/XLSX: one-prompt generation, two continuing edits, rendered filters, refresh after source updates, resource-card reopening and full-page restoration. It uses an independent synthetic-data oracle, preserves tool errors and save receipts per turn, and records tool retries separately from business acceptance. Save evidence must match an actual successful mutation tool reply; ordinary messages containing JSON do not count. Original source bytes must be restored and verified. The complete regression requires the source-update refresh sequence and every frame-boundary check; `read-only` refresh is diagnostic only. Separate checks cover source-view permission revocation with the same token, replacement-query attacks on saved Bindings, and iframe network/cross-frame boundaries.
+
+Business assertions and page workflows belong to the plugin. Generic files, authentication, authorization and persistence remain platform capabilities. Keep private run configuration and receipts outside Git. Historical reports do not replace a fresh runtime check or establish compatibility across all models and release environments.

@@ -149,6 +149,10 @@ export interface HostMethods {
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: undefined; output: PluginLibrary }
 
+  preparePluginConnection: {
+    input: { assistantId: string; provider: string }
+    output: { success: true; data: { assistantId: string; bindingId: string } } | { success: false; code: string }
+  }
   pluginConnection: {
     input: { assistantId: string; bindingId: string }
     output: {

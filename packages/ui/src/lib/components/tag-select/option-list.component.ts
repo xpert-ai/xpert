@@ -26,7 +26,7 @@ export class ZardTagSelectOptionListComponent {
   readonly optionSelected = output<ZardTagSelectOption<unknown>>()
   readonly activeIndexChange = output<number>()
 
-  protected readonly listClasses = mergeClasses(commandListVariants(), 'max-h-64')
+  protected readonly listClasses = mergeClasses(commandListVariants(), 'max-h-64 space-y-0.5 p-1.5')
   protected readonly emptyClasses = mergeClasses(commandEmptyVariants())
 
   constructor() {
@@ -46,6 +46,7 @@ export class ZardTagSelectOptionListComponent {
   protected optionClasses(index: number, disabled: boolean): string {
     return mergeClasses(
       commandItemVariants(),
+      'min-h-9 cursor-pointer rounded-md px-2.5 py-2 transition-colors pointer-coarse:min-h-[44px]',
       disabled ? 'pointer-events-none opacity-50' : '',
       this.activeIndex() === index ? 'bg-accent text-accent-foreground' : ''
     )

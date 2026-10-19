@@ -11,10 +11,17 @@ export const GENERAL_PROJECT_TYPE: XpertProjectTypeRef = {
   projectTypeKey: 'general'
 }
 
+/** Business-task capacity owned by the Project type's dispatcher, never the Agent runtime. */
+export interface XpertProjectTaskConcurrency {
+  maxConcurrentTasks: number
+}
+
 export interface XpertProjectTypeDefinition {
   key: string
   title: string | I18nObject
   icon?: IconDefinition
+  /** Entity-backed applications enforce this policy in their business preparation/claim services. */
+  taskConcurrency?: XpertProjectTaskConcurrency
   /** Entity types delegate creation and lifecycle to their registered provider. */
   binding: { kind: 'project' } | { kind: 'entity'; providerKey: string }
 }
@@ -24,6 +31,7 @@ export interface XpertProjectTypeSummary extends XpertProjectTypeRef {
   title: string | I18nObject
   icon?: IconDefinition
   binding: XpertProjectTypeDefinition['binding']
+  taskConcurrency?: XpertProjectTaskConcurrency
   available: boolean
 }
 

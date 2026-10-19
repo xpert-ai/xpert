@@ -38,6 +38,15 @@
                 ]
               },
               {
+                "group": "Artifacts Dashboard",
+                "pages": [
+                  "en/guides/artifacts-dashboard/overview",
+                  "en/guides/artifacts-dashboard/data-and-rendering",
+                  "en/guides/artifacts-dashboard/lifecycle-and-sharing",
+                  "en/guides/artifacts-dashboard/configuration-and-limits"
+                ]
+              },
+              {
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
@@ -110,6 +119,15 @@
                   "zh-Hans/architecture/assistant-template-lifecycle",
                   "zh-Hans/architecture/file-lifecycle-data-flow",
                   "zh-Hans/architecture/file-access-preview-architecture"
+                ]
+              },
+              {
+                "group": "Artifacts 实时看板",
+                "pages": [
+                  "zh-Hans/guides/artifacts-dashboard/overview",
+                  "zh-Hans/guides/artifacts-dashboard/data-and-rendering",
+                  "zh-Hans/guides/artifacts-dashboard/lifecycle-and-sharing",
+                  "zh-Hans/guides/artifacts-dashboard/configuration-and-limits"
                 ]
               },
               {

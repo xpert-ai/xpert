@@ -2,6 +2,7 @@ import type { DynamicStructuredTool } from '@langchain/core/tools'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { MCP_APP_RESOURCE_MIME_TYPE } from '@xpert-ai/contracts'
 import { z } from 'zod'
+import i18next from 'i18next'
 
 const mockInterrupt = jest.fn()
 
@@ -158,6 +159,24 @@ function createSdkClient(): FakeSdkClient {
 }
 
 describe('McpConsumer', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en', resources: {} })
+    })
+    it('bounds discovery pages and rejects repeated cursors before more requests', async () => {
+        const client = createSdkClient()
+        client.listTools.mockResolvedValue({ tools: [], nextCursor: 'same' })
+        const consumer = new McpConsumer(new FakeConnection(client))
+        await expect(consumer.tools.list(undefined, { maxPages: 10 })).rejects.toThrow('repeated a cursor')
+        expect(client.listTools).toHaveBeenCalledTimes(2)
+        client.listTools.mockClear()
+        await expect(consumer.tools.list(undefined, { maxPages: 1 })).rejects.toThrow('limit')
+        expect(client.listTools).toHaveBeenCalledTimes(1)
+        const controller = new AbortController()
+        controller.abort()
+        client.listTools.mockClear()
+        await expect(consumer.tools.list(undefined, { signal: controller.signal })).rejects.toThrow()
+        expect(client.listTools).not.toHaveBeenCalled()
+    })
     it('exposes all standard capabilities independently of LangChain and Cut', async () => {
         const connection = new FakeConnection(createSdkClient())
         const consumer = new McpConsumer(connection)

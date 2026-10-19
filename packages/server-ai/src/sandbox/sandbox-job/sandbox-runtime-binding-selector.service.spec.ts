@@ -68,6 +68,54 @@ describe('SandboxRuntimeBindingSelector', () => {
         })
     })
 
+    it('requires a read-only workspace even for a development-only binding', async () => {
+        process.env.NODE_ENV = 'development'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const localBinding = {
+            ...binding('compute', 'compute-runtime', 0),
+            runtimeProfile: compute.name,
+            developmentOnly: true as const
+        }
+        const runtime = provider('compute-runtime', [localBinding])
+        await expect(createSelector([runtime]).inspect(compute)).resolves.toMatchObject({ available: false })
+        runtime.capabilities = { ...runtime.capabilities, readOnlyWorkspace: true }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({ binding: { id: 'compute' } })
+    })
+
+    it.each(['isolation', 'resourceLimits', 'networkPolicy', 'readOnlyRootFilesystem'] as const)(
+        'does not let a development compute binding bypass its %s requirement',
+        async (field) => {
+            process.env.NODE_ENV = 'development'
+            const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+            const runtime = provider('compute-runtime', [
+                { ...binding('compute', 'compute-runtime', 0), runtimeProfile: compute.name, developmentOnly: true }
+            ])
+            runtime.capabilities = {
+                ...runtime.capabilities,
+                readOnlyWorkspace: true,
+                ...(field === 'isolation' ? { isolation: 'process' as const } : { [field]: false })
+            }
+            await expect(createSelector([runtime]).inspect(compute)).resolves.toMatchObject({ available: false })
+        }
+    )
+
+    it('selects a compatible compute Provider in production only with an immutable artifact', async () => {
+        process.env.NODE_ENV = 'production'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const computeBinding = {
+            ...binding('compute', 'compute-runtime', 0),
+            runtimeProfile: compute.name,
+            artifact: {
+                kind: 'oci-image' as const,
+                reference: `example/compute@sha256:${'a'.repeat(64)}`,
+                digest: `sha256:${'a'.repeat(64)}`
+            }
+        }
+        const runtime = provider('compute-runtime', [computeBinding])
+        runtime.capabilities = { ...runtime.capabilities, readOnlyWorkspace: true }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({ binding: { id: 'compute' } })
+    })
+
     it('filters Providers that cannot guarantee the Definition security requirements', async () => {
         const unsafe = provider('process-provider', [binding('unsafe', 'process-provider', 0)])
         unsafe.capabilities = { ...unsafe.capabilities, isolation: 'process', readOnlyRootFilesystem: false }

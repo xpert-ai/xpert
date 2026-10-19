@@ -1,3 +1,4 @@
+import type { AssistantSharingState, AssistantSharingUser, AssistantSharingGroup } from '@xpert-ai/contracts'
 import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
@@ -341,6 +342,31 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   chat(id: string, request: TChatRequest, options: { messageId?: string; isDraft: boolean }) {
     return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, JSON.stringify({ request, options }))
+  }
+
+  getSharing(id: string) {
+    return this.httpClient.get<AssistantSharingState>(`${this.apiBaseUrl}/${id}/sharing`)
+  }
+  getShareCandidates(id: string, search = '', skip = 0) {
+    return this.httpClient.get<{ items: AssistantSharingUser[]; total: number }>(
+      `${this.apiBaseUrl}/${id}/sharing/users`,
+      { params: { search, skip } }
+    )
+  }
+  getShareGroupCandidates(id: string, search = '', skip = 0) {
+    return this.httpClient.get<{ items: AssistantSharingGroup[]; total: number }>(
+      `${this.apiBaseUrl}/${id}/sharing/groups`,
+      { params: { search, skip } }
+    )
+  }
+  shareUsers(id: string, userIds: string[]) {
+    return this.httpClient.post<AssistantSharingState>(`${this.apiBaseUrl}/${id}/sharing/users`, { userIds })
+  }
+  revokeShare(id: string, userId: string) {
+    return this.httpClient.delete<AssistantSharingState>(`${this.apiBaseUrl}/${id}/sharing/users/${userId}`)
+  }
+  saveShareGroups(id: string, groupIds: string[], revision: string) {
+    return this.httpClient.put<AssistantSharingState>(`${this.apiBaseUrl}/${id}/sharing/groups`, { groupIds, revision })
   }
 
   getXpertUserGroups(id: string, organizationId?: string) {

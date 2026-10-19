@@ -173,7 +173,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         const [templatesData, pluginTemplates, publications, agentTemplates] = await Promise.all([
             this.readTemplatesFile(),
             this.getPluginTemplates(language, query),
-            this.publications?.list() ?? [],
+            (summaryOnly ? this.publications?.listSummaries() : this.publications?.list()) ?? [],
             this.commands.execute(new AgentPluginTemplatesCommand(undefined, language, summaryOnly))
         ])
         const group = templatesData.templates[language]?.recommendedApps?.length
@@ -219,7 +219,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         if (id.startsWith('agent-plugin/')) {
             ;[template] = await this.commands.execute(new AgentPluginTemplatesCommand(id, language, true))
         } else {
-            template = (await this.getPluginTemplates(language)).find((item) => item.id === id)
+            template = await this.getPluginCatalogEntry(id, language)
             if (!template) {
                 const data = await this.readTemplatesFile()
                 template = findTemplateDescriptorById(data, id, language) ?? undefined
@@ -664,6 +664,28 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         )
         if (contribution.key !== key) throw new Error('Resolved template key does not match its catalog entry')
         return this.toPluginTemplateDescriptor(plugin, contribution, language)
+    }
+
+    private async getPluginCatalogEntry(id: string, language: LanguagesEnum) {
+        const separator = id.indexOf(':')
+        if (separator < 0) return null
+        const pluginName = id.slice(0, separator)
+        const key = id.slice(separator + 1)
+        const plugin = this.getEffectivePluginRecords().find(
+            (record) => normalizePluginPackageName(record.packageName ?? record.name) === pluginName
+        )
+        const source = plugin?.instance?.templates
+        if (!source) return null
+        try {
+            const contributions = Array.isArray(source) ? source : await source.listTemplates(plugin.ctx)
+            const contribution = contributions?.find((item) => (item.key ?? item.id)?.trim() === key)
+            return contribution
+                ? this.toPluginTemplateDescriptor(plugin, contribution, language, isTemplateCatalogProvider(source))
+                : null
+        } catch (error) {
+            this.#logger.warn(`Skipping xpert templates from plugin '${plugin.name}': ${getErrorMessage(error)}`)
+            return null
+        }
     }
 
     /** Selects the newest plugin record visible in the current request scope. */

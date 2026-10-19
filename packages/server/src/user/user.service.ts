@@ -515,6 +515,7 @@ export class UserService extends TenantAwareCrudService<User> {
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
 			.leftJoinAndSelect('user.role', 'role')
+			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne()
 	}

@@ -40,6 +40,44 @@
     "USERS": "用戶"
   },
   "XP": {
+    "Sharing": {
+      "Title": "分享與訪問",
+      "Subtitle": "管理誰可以使用 {{name}}。",
+      "Personal": "個人分享",
+      "Groups": "用戶組授權",
+      "Inherited": "繼承訪問",
+      "ShareMembers": "分享給組織成員",
+      "OrganizationOnly": "僅限 {{name}} 的有效成員。",
+      "SearchMembers": "搜索姓名或郵箱，添加成員",
+      "CanUse": "可使用",
+      "Share": "分享",
+      "UseOnly": "分享僅授予使用權限，不開放編輯和再次分享。",
+      "SharedCount": "已分享給 {{count}} 位成員",
+      "Remove": "移除",
+      "NoShares": "尚未單独分享。選择組織成員，即可授予使用權限。",
+      "RemoveHint": "移除個人分享后，成員仍可能通過用戶組或工作空間获得訪問權限。",
+      "GroupHint": "所選用戶組的有效成員可以使用此智能體。組內成員由組織設置統一管理。",
+      "ManageGroups": "管理用戶組",
+      "SelectedGroups": "已授權用戶組",
+      "SearchGroups": "搜索用戶組",
+      "NoGroups": "沒有匹配的用戶組。你仍可通過個人分享授權給組織成員。",
+      "More": "加載更多",
+      "MoreMembers": "加載更多成員",
+      "Reset": "重置",
+      "Save": "保存",
+      "Creator": "智能體創建者 · 已有訪問權限",
+      "OrganizationWorkspace": "此工作空間已向組織共享，有效組織成員保留訪問權限。",
+      "WorkspaceMembers": "工作空間所有者及協作成員保留已有訪問權限，共 {{count}} 人。",
+      "InheritedHint": "繼承權限在此只讀，請在來源處管理。分享不會授予工作空間成員身份。",
+      "WorkspaceAccess": "已有訪問權限",
+      "WorkspaceHint": "智能體創建者、工作空間所有者和協作成員保留已有訪問權限。",
+      "ViewInherited": "查看繼承訪問",
+      "Loading": "加載中…",
+      "Retry": "重試",
+      "ReadOnly": "你可以查看當前授權。修改分享需要此智能體的授權管理權限。",
+      "Saved": "分享已更新",
+      "SelectOrganization": "請選择組織后管理分享。"
+    },
     "PersonalApiKeys": {
       "Title": "個人 API 密鑰",
       "AccessHint": "個人密鑰與其他 API Key 使用相同的開放接口，以你的本人身份訪問，遵循你的現有權限。請妥善保管。",
@@ -134,6 +172,10 @@
       "CleanupOldVersions": "清理未引用舊版本（{{count}}）"
     },
     "XpertSettings": {
+      "Retry": "重試",
+      "NetworkError": "無法連線至伺服器，請檢查網路連線後重試。",
+      "LoadingConfiguration": "正在載入助理設定…",
+      "LoadFailed": "載入助理設定失敗，請重試。",
       "RealtimeVoice": {
         "Title": "即時語音通話",
         "Description": "使用獨立的即時語音模型進行通話並交辦任務。",
@@ -482,6 +524,7 @@
         "ScreenshotAlt": "{{app}} 的應用程式截圖",
         "EnableApp": "啟用 {{app}}",
         "EmbeddingModel": "Embedding 模型",
+        "SpeechToTextModel": "語音轉寫模型",
         "VisionModel": "視覺理解模型",
         "GoToModelSettings": "前往模型設定",
         "DetailsUnavailable": "應用程式詳情不可用",
@@ -511,6 +554,7 @@
           "PrimaryModelRequired": "目前組織還沒有可用的主要語言模型，請先完成模型設定。",
           "EmbeddingModelRequired": "目前組織還沒有可用的 Embedding 模型，請先完成模型設定。",
           "VisionModelRequired": "目前組織還沒有支援視覺理解的模型，請先完成模型設定。",
+          "SpeechToTextModelRequired": "目前組織沒有可用的語音轉寫模型，請先設定模型。",
           "ScopeNotSupported": "此作用域的應用程式初始化尚未開放。"
         },
         "Status": {
@@ -536,6 +580,16 @@
       }
     },
     "McpPublication": {
+      "ReloadConfiguration": "重新載入設定",
+      "ConfigurationSaved": "設定已儲存",
+      "ConfigurationOwnerScope": "請切換至所屬租戶範圍以設定此共用服務。",
+      "ConfigurationSecretsHint": "已儲存的密碼以遮罩顯示；保持不變會保留原密碼，替換內容可更新密碼。",
+      "RetryPluginTabs": "重試外掛頁籤",
+      "Delete": "刪除",
+      "DeleteTitle": "刪除 MCP 服務",
+      "DeleteConfirm": "確認刪除「{{name}}」？服務入口、API 金鑰、任務及呼叫記錄將被刪除，無法復原。來源外掛和工具會保留。",
+      "DeleteSharedConfirm": "確認從目前組織刪除「{{name}}」？本組織的 API 金鑰、任務及呼叫記錄將被刪除，無法復原。其他組織不受影響。",
+      "Deleted": "MCP 服務已刪除",
       "Title": "MCP 服務",
       "Description": "將目前租戶或組織範圍內的能力發佈為經過驗證的 MCP 2026-07-28 Streamable HTTP 服務。",
       "NoProviderRequired": "能力來自目前管理範圍內相容的工具集，無需指定提供者或安裝 Cut。",
@@ -9786,5 +9840,9 @@
     "TargetSource": "目標範本來源",
     "CurrentSource": "目前範本來源",
     "SourceMigration": "範本來源遷移"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "正式版本或存取權限可能已變更，請重新開啟以檢查。",
+    "Reopen": "重新開啟分享頁"
   }
 }

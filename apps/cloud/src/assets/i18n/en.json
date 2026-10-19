@@ -55,6 +55,44 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "Sharing": {
+      "Title": "Sharing & access",
+      "Subtitle": "Manage who can use {{name}}.",
+      "Personal": "Personal sharing",
+      "Groups": "User group access",
+      "Inherited": "Inherited access",
+      "ShareMembers": "Share with organization members",
+      "OrganizationOnly": "Only active members of {{name}}.",
+      "SearchMembers": "Search by name or email",
+      "CanUse": "Can use",
+      "Share": "Share",
+      "UseOnly": "Sharing grants use only, without editing or resharing.",
+      "SharedCount": "Shared with {{count}} members",
+      "Remove": "Remove",
+      "NoShares": "No personal shares yet. Choose members above to share.",
+      "RemoveHint": "Removing a personal share preserves any access from groups or the workspace.",
+      "GroupHint": "Selected groups can use this assistant. Their membership is managed in organization settings.",
+      "ManageGroups": "Manage user groups",
+      "SelectedGroups": "Authorized groups",
+      "SearchGroups": "Search user groups",
+      "NoGroups": "No matching user groups. You can still share with individual members.",
+      "More": "Load more",
+      "MoreMembers": "Load more members",
+      "Reset": "Reset",
+      "Save": "Save",
+      "Creator": "Assistant creator · existing access",
+      "OrganizationWorkspace": "Shared with the organization. Active organization members retain access.",
+      "WorkspaceMembers": "Workspace owner and {{count}} collaborators retain their existing access.",
+      "InheritedHint": "Inherited permissions are read-only here. Manage them at their source. Sharing never grants workspace membership.",
+      "WorkspaceAccess": "Existing access",
+      "WorkspaceHint": "The assistant creator, workspace owner and collaborators retain existing access.",
+      "ViewInherited": "View inherited access",
+      "Loading": "Loading…",
+      "Retry": "Retry",
+      "ReadOnly": "You can view access. Only an assistant access manager can change sharing.",
+      "Saved": "Sharing updated",
+      "SelectOrganization": "Select an organization to manage sharing."
+    },
     "PersonalApiKeys": {
       "Title": "Personal API keys",
       "AccessHint": "Personal keys use existing API-key-enabled endpoints as you, subject to your current permissions. Keep them private.",
@@ -384,6 +422,10 @@
       "CleanupOldVersions": "Clean unused versions ({{count}})"
     },
     "XpertSettings": {
+      "Retry": "Retry",
+      "NetworkError": "Unable to connect to the server. Check your connection and try again.",
+      "LoadingConfiguration": "Loading assistant configuration…",
+      "LoadFailed": "Could not load assistant configuration. Please try again.",
       "RealtimeVoice": {
         "Title": "Realtime voice calls",
         "Description": "Use a separate realtime model for live conversations and task handoff.",
@@ -877,6 +919,16 @@
     },
     "Title": "Metad Analytics Cloud",
     "McpPublication": {
+      "Delete": "Delete",
+      "DeleteTitle": "Delete MCP service",
+      "DeleteConfirm": "Delete \"{{name}}\"? Its endpoint, API keys, tasks and invocation records will be removed. This cannot be undone. Source plugins and tools are kept.",
+      "DeleteSharedConfirm": "Remove \"{{name}}\" from this organization? Its API keys, tasks and invocation records in this organization will be removed. Other organizations are not affected. This cannot be undone.",
+      "Deleted": "MCP service deleted",
+      "ReloadConfiguration": "Reload configuration",
+      "ConfigurationSaved": "Configuration saved",
+      "ConfigurationOwnerScope": "Open the owning tenant scope to configure this shared service.",
+      "ConfigurationSecretsHint": "Saved passwords are masked. Leave them unchanged to keep them, or replace the value to update them.",
+      "RetryPluginTabs": "Retry plugin tabs",
       "Title": "MCP services",
       "Description": "Publish capabilities in the current tenant or organization as authenticated MCP 2026-07-28 Streamable HTTP services.",
       "NoProviderRequired": "Capabilities come from compatible toolsets in the current management scope; no specific provider or Cut installation is required.",
@@ -4008,6 +4060,20 @@
       }
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "Model or Endpoint ID",
+        "ModelType": "Model type",
+        "ModelPlaceholder": "Select a model or enter an Endpoint ID",
+        "ModelHint": "This provider does not support fetching models with these credentials. Choose a model you can access. The suggestions are reference models, not verified permissions. Testing sends a minimal inference request.",
+        "FetchAndVerify": "Fetch models and verify",
+        "Test": "Test connection",
+        "Retry": "Retry",
+        "ListVerified": "Credentials accepted by the model-list API. {{count}} models returned.",
+        "Empty": "No models are visible to these credentials.",
+        "ListHint": "This is a preview. Save the provider, then import models from its model list. Listing does not verify inference access.",
+        "ModelVerified": "Test succeeded for {{model}}.",
+        "Verified": "Credential verification succeeded."
+      },
       "Discovery": {
         "Title": "Fetch models",
         "Description": "Sync models incrementally and preserve saved parameters. Confirming uses configured models only; imported models missing from this response keep their settings but become unavailable.",
@@ -8034,5 +8100,9 @@
     "TargetSource": "Target template source",
     "CurrentSource": "Current template source",
     "SourceMigration": "Template source migration"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "The published version or your access may have changed. Reopen to check again.",
+    "Reopen": "Reopen shared page"
   }
 }

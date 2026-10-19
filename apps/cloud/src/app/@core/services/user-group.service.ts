@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@cloud/app/@core/state'
-import { IUserGroup, PaginationParams } from '@xpert-ai/contracts'
+import { IUser, IUserGroup, PaginationParams } from '@xpert-ai/contracts'
 import { toParams } from '@xpert-ai/headless-ui'
 import { appendOrganizationIdQueryParam } from './query-params'
 
@@ -23,6 +23,12 @@ export class UserGroupService extends OrganizationBaseCrudService<IUserGroup> {
 
   override update(id: string, entity: Partial<IUserGroup>) {
     return this.httpClient.put<IUserGroup>(`${this.apiBaseUrl}/${id}`, entity)
+  }
+
+  getMemberCandidates(organizationId: string) {
+    return this.httpClient.get<IUser[]>(`${this.apiBaseUrl}/member-candidates`, {
+      params: { organizationId }
+    })
   }
 
   updateMembers(id: string, memberIds: string[], organizationId?: string) {

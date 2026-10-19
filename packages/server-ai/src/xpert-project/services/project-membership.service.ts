@@ -5,12 +5,13 @@ import {
     TXpertProjectMemberSummary,
     UserType
 } from '@xpert-ai/contracts'
-import { RequestContext, User, UserOrganization, UserPublicDTO } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { User, UserOrganization, UserPublicDTO } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { t } from 'i18next'
-import { IsNull, Repository } from 'typeorm'
+import { EntityManager, IsNull, Repository } from 'typeorm'
 import { XpertTask } from '../../xpert-task/xpert-task.entity'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectActivity } from '../entities/project-activity.entity'
@@ -57,6 +58,31 @@ export class XpertProjectMembershipService {
     async add(projectId: string, userId: string, role: TXpertProjectMemberRole = 'member') {
         const { project } = await this.accessService.assertCanManage(projectId)
         validateProjectMemberRole(role)
+        return this.saveMember(project, userId, role, 'add')
+    }
+
+    /** Join an authorized caller's transaction without changing an active member's role or join date. */
+    async ensureMember(projectId: string, userId: string, manager: EntityManager): Promise<void> {
+        const { project } = await this.accessService.assertCanManage(projectId)
+        const locked = await manager.getRepository(XpertProject).findOneOrFail({
+            where: { id: projectId, tenantId: project.tenantId, organizationId: project.organizationId ?? IsNull() },
+            lock: { mode: 'pessimistic_write' }
+        })
+        if (locked.ownerId === userId) return
+        await this.saveMember(locked, userId, 'member', 'ensure', manager)
+    }
+
+    private async saveMember(
+        project: XpertProject,
+        userId: string,
+        role: TXpertProjectMemberRole,
+        mode: 'add' | 'ensure',
+        manager?: EntityManager
+    ) {
+        const projectId = project.id
+        const membershipRepository = manager?.getRepository(XpertProjectMembership) ?? this.membershipRepository
+        const userRepository = manager?.getRepository(User) ?? this.userRepository
+        const userOrganizationRepository = manager?.getRepository(UserOrganization) ?? this.userOrganizationRepository
         if (project.ownerId === userId) {
             throw new BadRequestException(
                 t('server-ai:Error.ProjectOwnerAlreadyMember', {
@@ -64,7 +90,7 @@ export class XpertProjectMembershipService {
                 })
             )
         }
-        const user = await this.userRepository.findOne({
+        const user = await userRepository.findOne({
             where: { id: userId, tenantId: project.tenantId, type: UserType.USER }
         })
         if (!user) {
@@ -72,7 +98,7 @@ export class XpertProjectMembershipService {
                 t('server-ai:Error.ProjectMemberNotFound', { defaultValue: 'The requested user was not found' })
             )
         }
-        const organizationMembership = await this.userOrganizationRepository.findOne({
+        const organizationMembership = await userOrganizationRepository.findOne({
             where: {
                 tenantId: project.tenantId,
                 organizationId: project.organizationId ?? IsNull(),
@@ -88,18 +114,23 @@ export class XpertProjectMembershipService {
             )
         }
 
-        let membership = await this.membershipRepository.findOne({
+        let membership = await membershipRepository.findOne({
             where: { projectId, userId },
             withDeleted: true
         })
+        // Transactional ensure is idempotent; the explicit add API may still change a role.
+        if (mode === 'ensure' && membership && !membership.deletedAt) {
+            await this.addLegacyMember(project, user, manager)
+            return membership
+        }
         if (membership) {
-            if (membership.deletedAt) await this.membershipRepository.restore(membership.id)
+            if (membership.deletedAt) await membershipRepository.restore(membership.id)
             membership.role = role
             membership.joinedAt = new Date()
-            membership.removedAt = undefined
-            membership.deletedAt = undefined
+            membership.removedAt = null
+            membership.deletedAt = null
         } else {
-            membership = this.membershipRepository.create({
+            membership = membershipRepository.create({
                 projectId,
                 userId,
                 role,
@@ -110,8 +141,8 @@ export class XpertProjectMembershipService {
                 createdById: RequestContext.currentUserId()
             })
         }
-        const saved = await this.membershipRepository.save(membership)
-        await this.addLegacyMember(project, user)
+        const saved = await membershipRepository.save(membership)
+        await this.addLegacyMember(project, user, manager)
         return saved
     }
 
@@ -384,13 +415,14 @@ export class XpertProjectMembershipService {
         if (project && user) await this.addLegacyMember(project, user)
     }
 
-    private async addLegacyMember(project: XpertProject, user: User) {
-        const compatible = await this.projectRepository.findOne({ where: { id: project.id }, relations: ['members'] })
+    private async addLegacyMember(project: XpertProject, user: User, manager?: EntityManager) {
+        const projectRepository = manager?.getRepository(XpertProject) ?? this.projectRepository
+        const compatible = await projectRepository.findOne({ where: { id: project.id }, relations: ['members'] })
         if (!compatible) return
         compatible.members ??= []
         if (!compatible.members.some((member) => member.id === user.id)) {
             compatible.members.push(user)
-            await this.projectRepository.save(compatible)
+            await projectRepository.save(compatible)
         }
     }
 

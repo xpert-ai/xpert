@@ -17,6 +17,7 @@ import { z } from 'zod'
 import { groupCreateSchema, groupMemberSchema } from './group.schema'
 import { groupConflict } from './group.errors'
 import { groupUserName } from './group-user-name'
+import { EnsureXpertProjectMemberCommand } from '../xpert-project/commands/ensure-project-member.command'
 
 /** Public participant projection; runtime IDs and technical principals stay server-side. */
 export function publicMember(member: GroupParticipant): ChatGroupParticipant {
@@ -172,6 +173,9 @@ export class GroupMembersService {
             })
             const count = await manager.countBy(GroupParticipant, { groupId, active: true })
             if (count >= 32 && !existing?.active) throw groupConflict()
+            if (user && group.projectId) {
+                await this.commands.execute(new EnsureXpertProjectMemberCommand(group.projectId, user.id, manager))
+            }
             if (existing) {
                 existing.active = true
                 if (user) existing.name = groupUserName(user)

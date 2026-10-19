@@ -150,6 +150,8 @@ export interface MultiEditResult {
   filesUpdate?: Record<string, FileData> | null
   /** Results from each individual edit operation */
   results?: EditResult[]
+  /** Present when the backend reports sequential persistence. Indices are one-based. */
+  progress?: { mode: 'sequential'; appliedEdits: number; failedEdit?: number }
   /** Metadata for the multi-edit operation, attached to the ToolMessage */
   metadata?: Record<string, unknown>
 }
@@ -322,7 +324,7 @@ export interface BackendProtocol extends IBackendProtocol {
   /**
    * Perform multiple sequential edits on a single file.
    * All edits are applied sequentially, with each edit operating on the result of the previous edit.
-   * All edits must succeed for the operation to succeed (atomic).
+   * Earlier successful edits may persist when a later edit fails. Inspect progress and reread before retrying.
    *
    * @param filePath - Absolute file path
    * @param edits - Array of edit operations to perform sequentially

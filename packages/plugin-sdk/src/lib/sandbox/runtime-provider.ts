@@ -87,6 +87,8 @@ export type SandboxRuntimeSecurity = {
   readOnlyRootFilesystem: boolean
   noNewPrivileges: boolean
   dropCapabilities: 'all'
+  /** Mount job inputs/actions read-only; outputs must live on a bounded ephemeral filesystem. */
+  readOnlyWorkspace?: boolean
 }
 
 /** Isolation guarantees a Provider advertises before it can be selected. */
@@ -98,6 +100,8 @@ export type SandboxRuntimeProviderCapabilities = {
   readOnlyRootFilesystem: boolean
   /** Supports Job-scoped, read-only, seekable Workspace file mappings. */
   readOnlyFileMounts?: boolean
+  /** Enforces read-only job inputs and bounded ephemeral outputs. */
+  readOnlyWorkspace?: boolean
 }
 
 /** Minimum Provider guarantees required by a Runtime Definition. */

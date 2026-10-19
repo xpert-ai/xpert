@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { injectOrganization } from '@cloud/app/@core/state'
+import { injectOrganization, injectOrganizationId } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectConfirmDelete,
@@ -14,8 +14,8 @@ import {
   ZardSearchInputComponent,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
-import { combineLatest, firstValueFrom } from 'rxjs'
-import { map, take } from 'rxjs/operators'
+import { firstValueFrom } from 'rxjs'
+import { map } from 'rxjs/operators'
 import {
   getErrorMessage,
   injectToastr,
@@ -25,7 +25,6 @@ import {
   IXpert,
   OrderTypeEnum,
   routeAnimations,
-  UsersOrganizationsService,
   injectXpertAPI
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
@@ -61,13 +60,14 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   readonly #router = inject(Router)
   readonly #userGroupService = injectUserGroupAPI()
   readonly #xpertService = injectXpertAPI()
-  readonly #usersOrganizationsService = inject(UsersOrganizationsService)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
 
+  #dataRequestId = 0
   #xpertAuthorizationRequestId = 0
 
   readonly organization = injectOrganization()
+  readonly organizationId = injectOrganizationId()
   readonly loading = signal(false)
   readonly xpertsLoading = signal(false)
   readonly saving = signal(false)
@@ -128,23 +128,13 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     const selectedIds = new Set(this.selectedMemberIds())
     return this.sortUsers(this.organizationUsers().filter((user) => selectedIds.has(user.id)))
   })
-  readonly inactiveSelectedUsers = computed(() => {
-    const selectedIds = new Set(this.selectedMemberIds())
-    const activeIds = new Set(this.activeOrganizationUserIds())
-
-    return this.sortUsers(
-      this.organizationUsers().filter((user) => selectedIds.has(user.id) && !activeIds.has(user.id))
-    )
-  })
-  readonly hasInactiveSelectedUsers = computed(() => this.inactiveSelectedUsers().length > 0)
-
   readonly visibleUsers = computed(() => {
     const query = this.normalizeSearch(this.memberQuery())
     const selectedIds = new Set(this.selectedMemberIds())
     const activeIds = new Set(this.activeOrganizationUserIds())
 
     return [...this.organizationUsers()]
-      .filter((user) => activeIds.has(user.id) || selectedIds.has(user.id))
+      .filter((user) => activeIds.has(user.id))
       .filter((user) => this.matchesUser(user, query))
       .sort((a, b) => {
         const aRank = selectedIds.has(a.id) ? 0 : 1
@@ -192,16 +182,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     super()
 
     effect(() => {
-      const organizationId = this.organization()?.id
-      if (!organizationId) {
-        this.groups.set([])
-        this.organizationUsers.set([])
-        this.activeOrganizationUserIds.set([])
-        this.selectedMemberIds.set([])
-        return
-      }
-
-      this.loadData()
+      void this.loadData()
     })
 
     effect(() => {
@@ -210,7 +191,9 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
         this.preferCreateMode.set(false)
         this.name.setValue(group.name ?? '')
         this.description.setValue(group.description ?? '')
-        this.selectedMemberIds.set(group.members?.map((member) => member.id) ?? [])
+        this.selectedMemberIds.set(
+          (group.members ?? []).filter((member) => this.isActiveOrganizationUser(member.id)).map((member) => member.id)
+        )
         return
       }
 
@@ -220,7 +203,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     })
 
     effect(() => {
-      const organizationId = this.organization()?.id
+      const organizationId = this.organizationId()
       const groupId = this.selectedGroup()?.id ?? null
 
       if (!organizationId) {
@@ -235,67 +218,60 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     })
   }
 
-  loadData() {
-    this.loading.set(true)
+  async loadData() {
+    const organizationId = this.organizationId()
+    const requestId = ++this.#dataRequestId
+    this.groups.set([])
+    this.organizationUsers.set([])
+    this.activeOrganizationUserIds.set([])
+    this.selectedMemberIds.set([])
+    this.loading.set(!!organizationId)
+    if (!organizationId) return
 
-    combineLatest({
-      groups: this.#userGroupService
-        .getAllInOrg({
-          relations: ['members'],
-          order: {
-            updatedAt: OrderTypeEnum.DESC
-          }
-        })
-        .pipe(take(1)),
-      memberships: this.#usersOrganizationsService
-        .getAllInOrg(['user'], {
-          isActive: true
-        })
-        .pipe(take(1))
-    })
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: ({ groups, memberships }) => {
-          const nextGroups = groups.items ?? []
-          const usersById = new Map<string, IUser>()
-          const activeUserIds = new Set<string>()
-          ;(memberships.items ?? []).forEach((membership) => {
-            if (membership.user?.id && !usersById.has(membership.user.id)) {
-              usersById.set(membership.user.id, membership.user)
-            }
-
-            if (membership.user?.id) {
-              activeUserIds.add(membership.user.id)
-            }
+    try {
+      const [groups, users] = await Promise.all([
+        firstValueFrom(
+          this.#userGroupService.getAllByOrganization(organizationId, {
+            relations: ['members'],
+            order: { updatedAt: OrderTypeEnum.DESC }
           })
-          nextGroups.forEach((group) => {
-            group.members?.forEach((member) => {
-              if (member?.id && !usersById.has(member.id)) {
-                usersById.set(member.id, member)
-              }
-            })
-          })
+        ),
+        firstValueFrom(this.#userGroupService.getMemberCandidates(organizationId))
+      ])
+      if (this.#destroyRef.destroyed || requestId !== this.#dataRequestId || organizationId !== this.organizationId())
+        return
 
-          this.groups.set(nextGroups)
-          this.organizationUsers.set(this.sortUsers([...usersById.values()]))
-          this.activeOrganizationUserIds.set([...activeUserIds])
-          this.loading.set(false)
+      const usersById = new Map(users.map((user) => [user.id, user]))
+      const nextGroups = (groups.items ?? [])
+        .filter((group) => group.organizationId === organizationId)
+        .map((group) => ({ ...group, members: (group.members ?? []).filter((member) => usersById.has(member.id)) }))
+      this.organizationUsers.set(this.sortUsers([...usersById.values()]))
+      this.activeOrganizationUserIds.set([...usersById.keys()])
+      this.groups.set(nextGroups)
 
-          const selectedGroupId = this.selectedGroupId()
-          if (!selectedGroupId && nextGroups.length && !this.preferCreateMode() && !this.createMode()) {
-            this.openGroup(nextGroups[0].id)
-            return
-          }
-
-          if (selectedGroupId && !nextGroups.some((group) => group.id === selectedGroupId)) {
-            this.startCreate()
-          }
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+      const selectedGroupId = this.selectedGroupId()
+      if (!selectedGroupId && nextGroups.length && !this.preferCreateMode() && !this.createMode()) {
+        this.openGroup(nextGroups[0].id)
+      } else if (selectedGroupId && !nextGroups.some((group) => group.id === selectedGroupId)) {
+        this.startCreate()
+      }
+    } catch (error) {
+      if (
+        requestId === this.#dataRequestId &&
+        organizationId === this.organizationId() &&
+        !this.#destroyRef.destroyed
+      ) {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    } finally {
+      if (
+        requestId === this.#dataRequestId &&
+        organizationId === this.organizationId() &&
+        !this.#destroyRef.destroyed
+      ) {
+        this.loading.set(false)
+      }
+    }
   }
 
   openGroup(groupId: string) {
@@ -390,6 +366,8 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   }
 
   save() {
+    if (!this.organizationId() || this.isBusy()) return
+
     const trimmedName = this.name.getRawValue().trim()
     if (!trimmedName) {
       this.name.markAsTouched()
@@ -398,10 +376,11 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     }
 
     const selectedGroup = this.selectedGroup()
-    const organizationId = this.organization()?.id
+    const organizationId = this.organizationId()
     const payload = {
       name: trimmedName,
-      description: this.description.getRawValue().trim() || null
+      description: this.description.getRawValue().trim() || null,
+      members: this.selectedMemberIds().map((id) => ({ id }))
     }
     const invalidMemberIds = this.selectedMemberIds().filter((id) => !this.isActiveOrganizationUser(id))
     if (invalidMemberIds.length) {
@@ -421,17 +400,18 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     save$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
       next: async (group: IUserGroup) => {
         try {
-          await firstValueFrom(this.#userGroupService.updateMembers(group.id, this.selectedMemberIds(), organizationId))
-          await this.syncXpertAuthorizations(group.id)
-          this.saving.set(false)
+          if (organizationId !== this.organizationId()) return
+          await this.syncXpertAuthorizations(group.id, organizationId)
+          if (organizationId !== this.organizationId()) return
           this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
-          if (this.organization()?.id) {
+          if (this.organizationId()) {
             this.loadData()
           }
           this.#router.navigate(['/settings/groups', group.id])
         } catch (error) {
-          this.saving.set(false)
           this.#toastr.error(getErrorMessage(error))
+        } finally {
+          this.saving.set(false)
         }
       },
       error: (error) => {
@@ -463,7 +443,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
         this.deleting.set(false)
         this.#toastr.success('XP.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         this.startCreate()
-        if (this.organization()?.id) {
+        if (this.organizationId()) {
           this.loadData()
         }
       },
@@ -570,8 +550,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     }
   }
 
-  private async syncXpertAuthorizations(groupId: string) {
-    const organizationId = this.organization()?.id
+  private async syncXpertAuthorizations(groupId: string, organizationId: string) {
     if (!organizationId || !this.availableXperts().length || !this.hasXpertChanges()) {
       this.initialSelectedXpertIds.set([...this.selectedXpertIds()])
       return
@@ -580,6 +559,8 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     const result = await firstValueFrom(
       this.#xpertService.updateUserGroupAuthorizations(groupId, this.selectedXpertIds(), organizationId)
     )
+
+    if (organizationId !== this.organizationId()) return
 
     const availableXperts = result.items ?? []
     const availableXpertIds = new Set(availableXperts.map((xpert) => xpert.id))

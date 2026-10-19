@@ -22,12 +22,14 @@ import { parseGroupCommunication, GroupSendInput } from './group.schema'
 import { groupConflict, groupDenied, groupExecutionError } from './group.errors'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { consumedGroupReceipts } from './group-delivery-status'
 
 /** Public message projection; runtime links expose participant IDs rather than private thread identifiers. */
 export function publicMessage(
     message: ChatMessage,
     receipts: GroupMessageRecipient[],
-    failedExecutions: XpertAgentExecution[] = []
+    failedExecutions: XpertAgentExecution[] = [],
+    consumedReceipts: ReadonlySet<string> = new Set()
 ): ChatGroupMessage {
     return {
         id: message.id,
@@ -59,7 +61,11 @@ export function publicMessage(
                     )
                 return {
                     participantId: receipt.participantId,
-                    status: failure ? 'failed' : receipt.status,
+                    status: failure
+                        ? 'failed'
+                        : ['starting', 'steering'].includes(receipt.status) && consumedReceipts.has(receipt.id)
+                          ? 'consumed'
+                          : receipt.status,
                     ...(failure ? { error: groupExecutionError(failure.error) } : {})
                 }
             })
@@ -363,6 +369,7 @@ export class GroupMessagesService {
                   .findBy({ messageId: In(messages.map((message) => message.id)) })
             : []
         const runtimes = members.filter((member) => member.active && member.runtimeThreadId)
+        const consumedReceipts = await consumedGroupReceipts(this.db, group, receipts)
         // Include legacy finalized failures without mutating or retrying their receipts.
         const failureIds = receipts
             .filter(
@@ -402,7 +409,7 @@ export class GroupMessagesService {
                 status: item.status
             })),
             members: await publicMembers(this.db, group, members),
-            messages: messages.map((message) => publicMessage(message, receipts, failedExecutions)),
+            messages: messages.map((message) => publicMessage(message, receipts, failedExecutions, consumedReceipts)),
             hasMore: rows.length > limit,
             runs: threads
                 .filter((thread) => thread.runControl)

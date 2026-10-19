@@ -1,4 +1,5 @@
-import { User, UserGroup } from '@xpert-ai/server-core'
+import { AssistantSharingModule } from '../xpert/sharing/sharing.module'
+import { CqrsModule } from '@nestjs/cqrs'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Xpert } from '../xpert/xpert.entity'
@@ -10,7 +11,9 @@ import { XpertMarketplaceService } from './xpert-marketplace.service'
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Xpert, XpertAccessRequest, UserGroup, User]),
+        CqrsModule,
+        AssistantSharingModule,
+        TypeOrmModule.forFeature([Xpert, XpertAccessRequest]),
         XpertWorkspaceModule,
         XpertTemplateModule
     ],

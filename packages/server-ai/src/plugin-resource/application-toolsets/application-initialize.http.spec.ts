@@ -55,7 +55,13 @@ describe('application initialize HTTP validation', () => {
         expect((await request({ ...input, appName: ' example ' })).status).toBe(201)
         expect(service.initialize).toHaveBeenCalledWith(input)
     })
+    it('accepts and trims the speech model option ID through the route pipe', async () => {
+        expect((await request({ ...input, speechToTextModelId: ' speech-provider/model ' })).status).toBe(201)
+        expect(service.initialize).toHaveBeenCalledWith({ ...input, speechToTextModelId: 'speech-provider/model' })
+    })
     it.each([
+        { ...input, speechToTextModelId: '' },
+        { ...input, speechToTextModelId: { copilotId: 'injected' } },
         { ...input, workspaceId: 'injected' },
         { ...input, tenantId: 'injected' },
         { ...input, organizationId: 'injected' },

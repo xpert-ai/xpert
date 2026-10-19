@@ -37,7 +37,9 @@ export class McpPublicationAuthorizationService {
         }
         const user = await this.userRepository.findOne({
             where: { id: principal.userId, tenantId: publication.tenantId },
-            relations: ['organizations']
+            // Platform capabilities authorize against the caller's current role permissions.
+            // Load them on every request so permission revocation also applies to existing MCP keys.
+            relations: ['organizations', 'role', 'role.rolePermissions']
         })
         if (!user) {
             throw this.forbidden()

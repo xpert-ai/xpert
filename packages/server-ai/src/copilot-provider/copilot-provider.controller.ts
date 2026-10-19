@@ -5,7 +5,9 @@ import {
     ICopilotProvider,
     ICopilotProviderModel,
     ProviderModelCatalog,
-    RolesEnum
+    RolesEnum,
+    ProviderCredentialValidationTarget,
+    providerCredentialValidationTargetSchema
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -15,7 +17,8 @@ import {
     RequestContext,
     Permissions,
     TransformInterceptor,
-    UUIDValidationPipe
+    UUIDValidationPipe,
+    ZodValidationPipe
 } from '@xpert-ai/server-core'
 import {
     Body,
@@ -46,6 +49,13 @@ import { ConfigService } from '@xpert-ai/server-config'
 import { CopilotProviderModelParameterRulesQuery } from './queries/model-parameter-rules.query'
 import { AIProvidersService } from '../ai-model'
 import type { IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
+
+type ProviderWriteInput = Partial<ICopilotProvider> & { validationTarget?: ProviderCredentialValidationTarget }
+const validationTargetPipe = new ZodValidationPipe(
+    providerCredentialValidationTargetSchema.optional(),
+    () => new BadRequestException(t('server-ai:Error.ProviderCredentialCheckInvalid'))
+)
 
 @ApiTags('CopilotProvider')
 @ApiBearerAuth()
@@ -73,15 +83,24 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)
     @Post()
-    async create(@Body() entity: Partial<ICopilotProvider>) {
-        return await this.commandBus.execute(new CopilotProviderUpsertCommand(entity))
+    async create(
+        @Body() entity: ProviderWriteInput,
+        @Body('validationTarget', validationTargetPipe) validationTarget?: ProviderCredentialValidationTarget
+    ) {
+        const { validationTarget: _target, ...provider } = entity
+        return await this.commandBus.execute(new CopilotProviderUpsertCommand(provider, validationTarget))
     }
 
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)
     @Put(':id')
-    async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: Partial<ICopilotProvider>) {
-        return await this.commandBus.execute(new CopilotProviderUpsertCommand({ ...entity, id }))
+    async update(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body() entity: ProviderWriteInput,
+        @Body('validationTarget', validationTargetPipe) validationTarget?: ProviderCredentialValidationTarget
+    ) {
+        const { validationTarget: _target, ...provider } = entity
+        return await this.commandBus.execute(new CopilotProviderUpsertCommand({ ...provider, id }, validationTarget))
     }
 
     @Get(':id')

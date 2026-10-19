@@ -73,6 +73,7 @@ export class ApplicationDetailComponent {
   readonly setupOpen = signal(this.#route.snapshot.queryParamMap.get('setup') === '1')
   readonly embeddingModel = model<Partial<ICopilotModel> | null>(null)
   readonly visionModel = model<Partial<ICopilotModel> | null>(null)
+  readonly speechToTextModel = model<Partial<ICopilotModel> | null>(null)
   readonly toolsetSelections = signal<PluginApplicationToolsetSelection[]>([])
   readonly refreshingToolsets = signal(false)
   readonly configuringToolsets = signal(false)
@@ -88,11 +89,13 @@ export class ApplicationDetailComponent {
   readonly modelRequirements = computed(() => this.detail()?.preflight.modelRequirements ?? {})
   readonly embeddingModelId = computed(() => pluginApplicationModelId(this.embeddingModel()))
   readonly visionModelId = computed(() => pluginApplicationModelId(this.visionModel()))
+  readonly speechToTextModelId = computed(() => pluginApplicationModelId(this.speechToTextModel()))
   readonly canSubmit = computed(
     () =>
       !!this.detail()?.preflight.canInitialize &&
       (!this.modelRequirements().embedding || !!this.embeddingModelId()) &&
       (!this.modelRequirements().vision || !!this.visionModelId()) &&
+      (!this.modelRequirements().speechToText || !!this.speechToTextModelId()) &&
       applicationToolsetsSelected(this.toolsetRequirements(), this.toolsetSelections()) &&
       !this.refreshingToolsets() &&
       !this.configuringToolsets() &&
@@ -112,6 +115,7 @@ export class ApplicationDetailComponent {
         this.toolsetSelections.set([])
         this.embeddingModel.set(null)
         this.visionModel.set(null)
+        this.speechToTextModel.set(null)
         this.refreshingToolsets.set(false)
         this.initializing.set(false)
         this.discarding.set(false)
@@ -157,6 +161,13 @@ export class ApplicationDetailComponent {
           detail.preflight.visionModels,
           detail.preflight.defaultVisionModelId,
           AiModelTypeEnum.LLM
+        )
+      )
+      this.speechToTextModel.set(
+        pluginApplicationDefaultCopilotModel(
+          detail.preflight.speechToTextModels ?? [],
+          null,
+          AiModelTypeEnum.SPEECH2TEXT
         )
       )
       if (this.#resumeSetupFromScope !== null && this.#resumeSetupFromScope !== this.#scope.key()) {
@@ -333,6 +344,7 @@ export class ApplicationDetailComponent {
           appName: app.appName,
           embeddingModelId: this.embeddingModelId() ?? undefined,
           visionModelId: this.visionModelId() ?? undefined,
+          speechToTextModelId: this.speechToTextModelId() ?? undefined,
           toolsets: this.toolsetSelections(),
           operationId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
         })
@@ -386,6 +398,8 @@ export class ApplicationDetailComponent {
         return this.#translate.instant('XP.Explore.Application.Preflight.EmbeddingModelRequired', {
           Default: 'The current organization has no available embedding model. Configure a model first.'
         })
+      case 'speech_to_text_model_required':
+        return this.#translate.instant('XP.Explore.Application.Preflight.SpeechToTextModelRequired')
       case 'vision_model_required':
         return this.#translate.instant('XP.Explore.Application.Preflight.VisionModelRequired', {
           Default: 'The current organization has no model with vision support. Configure a model first.'

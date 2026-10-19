@@ -2,7 +2,7 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import { PluginApplicationDetail } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, PluginApplicationDetail } from '@xpert-ai/contracts'
 import { of, Subject } from 'rxjs'
 
 jest.mock('@cloud/app/@core', () => ({
@@ -106,6 +106,61 @@ describe('ApplicationDetail scope transitions', () => {
     await settle()
     return fixture
   }
+
+  it('requires a speech selection, submits its authorized ID, and clears it on an organization switch', async () => {
+    const speechDetail: PluginApplicationDetail = {
+      ...organizationDetail,
+      preflight: {
+        ...organizationDetail.preflight,
+        modelRequirements: { speechToText: true },
+        speechToTextModels: [
+          {
+            id: 'provider/speech%2Fmodel',
+            copilotId: 'provider',
+            model: 'speech/model',
+            label: 'Speech',
+            modelType: AiModelTypeEnum.SPEECH2TEXT
+          }
+        ]
+      }
+    }
+    applications.getDetail.mockReturnValue(of(speechDetail))
+    const fixture = await create()
+    const component = fixture.componentInstance
+    expect(component.speechToTextModelId()).toBe('provider/speech%2Fmodel')
+    component.speechToTextModel.set(null)
+    expect(component.canSubmit()).toBe(false)
+    await component.initialize()
+    expect(applications.initialize).not.toHaveBeenCalled()
+    component.speechToTextModel.set({
+      copilotId: 'provider',
+      model: 'speech/model',
+      modelType: AiModelTypeEnum.SPEECH2TEXT
+    })
+    expect(component.canSubmit()).toBe(true)
+    applications.initialize.mockReturnValue(of({ appId: 'plugin:app', status: 'initializing' }))
+    await component.initialize()
+    expect(applications.initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ speechToTextModelId: 'provider/speech%2Fmodel' })
+    )
+    applications.getDetail.mockReturnValue(
+      of({
+        ...speechDetail,
+        preflight: {
+          ...speechDetail.preflight,
+          canInitialize: false,
+          speechToTextModels: [],
+          reason: 'speech_to_text_model_required'
+        }
+      })
+    )
+    scope.key.set('other-organization')
+    fixture.detectChanges()
+    await settle()
+    expect(component.speechToTextModel()).toBeNull()
+    expect(component.canSubmit()).toBe(false)
+    expect(component.preflightMessage()).toBe('XP.Explore.Application.Preflight.SpeechToTextModelRequired')
+  })
 
   it('keeps tenant browsing unchanged when organization selection is cancelled', async () => {
     const fixture = await create()

@@ -1,5 +1,5 @@
 import { ScheduleTaskStatus, UserType } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { XpertProject } from '../entities/project.entity'

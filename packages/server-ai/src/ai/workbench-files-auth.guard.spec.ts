@@ -1,4 +1,5 @@
 import { ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { Reflector } from '@nestjs/core'
 import { ApiKeyBindingType, IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
@@ -34,7 +35,11 @@ describe('Workbench files route authorization', () => {
     }
     function setup(conversation: Partial<ChatConversation> | null) {
         const findOneBy = jest.fn().mockResolvedValue(conversation)
-        const guard = new TestGuard(new Reflector(), { findOneBy } as unknown as Repository<ChatConversation>)
+        const guard = new TestGuard(
+            new Reflector(),
+            { findOneBy } as unknown as Repository<ChatConversation>,
+            { execute: jest.fn() } as unknown as CommandBus
+        )
         return { guard, findOneBy }
     }
     it('loads the persisted conversation before allowing access', async () => {

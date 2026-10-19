@@ -1,3 +1,6 @@
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import { CommandBus } from '@nestjs/cqrs'
+import { GrantAssistantAccessCommand } from '../xpert/sharing/grant-assistant-access.command'
 import {
     IXpert,
     IXpertAccessRequest,
@@ -10,8 +13,6 @@ import {
     TXpertMarketplaceAccessStatus,
     TXpertMarketplaceQuery,
     TXpertMarketplaceProfile,
-    UserGroupManagedByEnum,
-    UserGroupManagedEntityTypeEnum,
     XpertAccessRequestStatusEnum,
     XpertTypeEnum,
     buildXpertMarketplaceProfileSnapshot,
@@ -20,7 +21,6 @@ import {
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { User, UserGroup } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { Brackets, Repository } from 'typeorm'
@@ -44,12 +44,10 @@ export class XpertMarketplaceService {
         private readonly xpertRepository: Repository<Xpert>,
         @InjectRepository(XpertAccessRequest)
         private readonly requestRepository: Repository<XpertAccessRequest>,
-        @InjectRepository(UserGroup)
-        private readonly userGroupRepository: Repository<UserGroup>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
         private readonly workspaceAccessService: XpertWorkspaceAccessService,
-        private readonly xpertTemplateService: XpertTemplateService
+        private readonly xpertTemplateService: XpertTemplateService,
+        private readonly commandBus: CommandBus,
+        private readonly publishedAccess: PublishedXpertAccessService
     ) {}
 
     async findMarketplace(
@@ -107,7 +105,7 @@ export class XpertMarketplaceService {
     async requestAccess(id: string, input?: TXpertAccessRequestCreateInput): Promise<IXpertAccessRequest> {
         const organizationId = this.currentOrganizationId()
         const xpert = await this.findDiscoverableXpert(id)
-        const accessStatus = this.resolveAccessStatus(xpert, null)
+        const accessStatus = await this.resolveAccessStatus(xpert, null)
         if (accessStatus === 'owned' || accessStatus === 'accessible') {
             throw new BadRequestException(
                 t('server-ai:Error.XpertMarketplaceAlreadyAccessible', {
@@ -210,36 +208,16 @@ export class XpertMarketplaceService {
         const request = await this.findRequestForDecision(id)
         const xpert = await this.assertCanReviewRequest(request)
 
-        const group = await this.ensureAccessGroup(xpert)
-        const requester = await this.userRepository.findOne({
-            where: {
-                id: request.requesterId,
-                tenantId: this.currentTenantId()
-            }
-        })
-        if (!requester) {
-            throw new NotFoundException(
-                t('server-ai:Error.XpertMarketplaceRequesterNotFound', {
-                    defaultValue: 'The request user was not found.'
-                })
-            )
-        }
-
-        if (!group.members?.some((member) => member.id === requester.id)) {
-            group.members = [...(group.members ?? []), requester]
-            await this.userGroupRepository.save(group)
-        }
-
-        if (!xpert.userGroups?.some((userGroup) => userGroup.id === group.id)) {
-            xpert.userGroups = [...(xpert.userGroups ?? []), group]
-            await this.xpertRepository.save(xpert)
-        }
+        const response = this.normalizeText(input?.response, MAX_RESPONSE_LENGTH, 'response')
+        const { groupId } = await this.commandBus.execute(
+            new GrantAssistantAccessCommand(xpert.id, request.requesterId)
+        )
 
         request.status = XpertAccessRequestStatusEnum.APPROVED
         request.reviewerId = this.currentUserId()
-        request.response = this.normalizeText(input?.response, MAX_RESPONSE_LENGTH, 'response')
+        request.response = response
         request.reviewedAt = new Date()
-        request.accessGroupId = group.id
+        request.accessGroupId = groupId
 
         return this.toPublicRequest(await this.requestRepository.save(request))
     }
@@ -382,47 +360,12 @@ export class XpertMarketplaceService {
         return request
     }
 
-    private async ensureAccessGroup(xpert: Xpert) {
-        const tenantId = this.currentTenantId()
-        const organizationId = this.currentOrganizationId()
-        const managedScope = {
-            tenantId,
-            organizationId,
-            managedBy: UserGroupManagedByEnum.XPERT_MARKETPLACE,
-            managedEntityType: UserGroupManagedEntityTypeEnum.XPERT,
-            managedEntityId: xpert.id
-        }
-        const existingGroup = await this.userGroupRepository.findOne({
-            where: managedScope,
-            relations: ['members']
-        })
-
-        if (existingGroup) {
-            return existingGroup
-        }
-
-        return this.userGroupRepository.save(
-            this.userGroupRepository.create({
-                ...managedScope,
-                name: this.buildAccessGroupName(xpert),
-                description: 'Automatically managed group for approved Xpert marketplace requests.',
-                members: []
-            })
-        )
-    }
-
-    private buildAccessGroupName(xpert: Xpert) {
-        const label = xpert.title || xpert.titleCN || xpert.name || xpert.slug
-        const name = `Xpert access - ${label}`
-        return name.length > 100 ? name.slice(0, 100) : name
-    }
-
     private async toMarketplaceItem(xpert: Xpert, request?: XpertAccessRequest | null): Promise<IXpertMarketplaceItem> {
         const marketplace = this.resolveMarketplaceProfile(xpert)
         return {
             xpert: this.toMarketplaceXpert(xpert, marketplace),
             marketplace,
-            accessStatus: this.resolveAccessStatus(xpert, request ?? null),
+            accessStatus: await this.resolveAccessStatus(xpert, request ?? null),
             request: request ? this.toPublicRequest(request) : null,
             canReview: !!RequestContext.getOrganizationId() && (await this.canReviewXpert(xpert))
         }
@@ -432,15 +375,15 @@ export class XpertMarketplaceService {
         return xpert.marketplace ?? buildXpertMarketplaceProfileSnapshot(null, null)
     }
 
-    private resolveAccessStatus(
+    private async resolveAccessStatus(
         xpert: Xpert,
         request?: Pick<XpertAccessRequest, 'status'> | null
-    ): TXpertMarketplaceAccessStatus {
+    ): Promise<TXpertMarketplaceAccessStatus> {
         const userId = this.currentUserId()
         if (xpert.createdById === userId) {
             return 'owned'
         }
-        if (this.hasRuntimeAccess(xpert, userId)) {
+        if (await this.hasRuntimeAccess(xpert)) {
             return 'accessible'
         }
         if (request?.status === XpertAccessRequestStatusEnum.REQUESTED) {
@@ -455,24 +398,11 @@ export class XpertMarketplaceService {
         return 'not_requested'
     }
 
-    private hasRuntimeAccess(xpert: Xpert, userId: string) {
-        const organizationId = RequestContext.getOrganizationId()
-        const tenantId = this.currentTenantId()
-
-        if (!xpert.organizationId && isTenantSharedXpertWorkspace(xpert.workspace)) {
-            return true
-        }
-        if (xpert.workspace?.ownerId === userId || xpert.workspace?.members?.some((member) => member.id === userId)) {
-            return true
-        }
-        return (
-            xpert.userGroups?.some(
-                (group) =>
-                    group.tenantId === tenantId &&
-                    group.organizationId === organizationId &&
-                    group.members?.some((member) => member.id === userId)
-            ) ?? false
-        )
+    private async hasRuntimeAccess(xpert: Xpert) {
+        // Tenant catalog browsing has no organization context; retain its existing shared-workspace rule.
+        if (!RequestContext.getOrganizationId())
+            return !xpert.organizationId && isTenantSharedXpertWorkspace(xpert.workspace)
+        return (await this.publishedAccess.countAccessiblePublishedXperts({ id: xpert.id })) > 0
     }
 
     private async assertCanReviewRequest(request: XpertAccessRequest) {
@@ -628,7 +558,7 @@ export class XpertMarketplaceService {
         }
     }
 
-    private toPublicUser(user?: User | IUser | null): IUser | undefined {
+    private toPublicUser(user?: IUser | null): IUser | undefined {
         if (!user?.id) {
             return undefined
         }

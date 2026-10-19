@@ -4,7 +4,7 @@ import { awaitPluginRestartApproval } from './plugin-convergence-capacity'
  * - Only live, ready boots join a rollout; historical members remain available for audit.
  * - A process already satisfying every runtime requirement acknowledges without restarting.
  * - One candidate drains at a time; the last healthy replica needs explicit operator outage consent.
- * - Admission uses the active generation's full manifest; queued changes run in a follow-up rollout.
+ * - Replacement admission and completion use the same published manifest; queued changes retain their follow-up rollout.
  */
 import {
 	REPLICA_RESTART_TIMEOUT_MS,
@@ -377,7 +377,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			const restartId = await this.redis.get(ACTIVE_RESTART_KEY)
 			let metadata = restartId ? await this.readMetadata(restartId) : null
 			let targets = metadata ? await this.targets.read(metadata.restartId) : []
-			await this.admission.refresh(
+			const admissionCheck = await this.admission.refresh(
 				this.generations,
 				replacementAdmission(metadata, targets, this.instanceRegistry.instanceId, this.instanceRegistry.bootId)
 			)
@@ -479,12 +479,19 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 					return
 				}
 				const result = evaluateRuntimeRequirements(
-					metadata.admissionRequirements ?? metadata.runtimeRequirements,
+					admissionCheck.manifest?.requirements ??
+						metadata.admissionRequirements ??
+						metadata.runtimeRequirements,
 					this.instanceRegistry.getPluginState()
 				)
 				if (result.status === 'waiting') return
 				if (result.status === 'failed') {
-					const failed = await this.failTarget(restartId, ownTarget, result.error)
+					const failed = await this.failTarget(
+						restartId,
+						ownTarget,
+						result.error,
+						admissionCheck.desiredGeneration
+					)
 					if (failed) await this.finishOperation(metadata, 'failed')
 					return
 				}
@@ -676,13 +683,13 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		void this.processActiveRestart()
 	}
 
-	private async failTarget(restartId: string, target: RestartTargetState, error: string): Promise<boolean> {
-		const updated = await this.targets.update(restartId, target, {
-			...target,
-			status: 'failed',
-			error,
-			updatedAt: new Date().toISOString()
-		})
+	private async failTarget(
+		restartId: string,
+		target: RestartTargetState,
+		error: string,
+		expectedGeneration?: number
+	): Promise<boolean> {
+		const updated = await this.targets.fail(restartId, target, error, expectedGeneration)
 		if (updated) await this.releaseTargetRestartSlot(restartId, target)
 		return updated
 	}
