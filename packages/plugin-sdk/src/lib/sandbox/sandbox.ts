@@ -29,6 +29,8 @@ import {
   SandboxExecutionOptions
 } from './execution'
 
+import { editCommandResult, sequentialFileEdits } from './file-edits'
+
 const MAX_LINE_LENGTH = 500
 const MAX_GREP_LINE_LENGTH = 2000
 const GREP_RESULT_LIMIT = 100
@@ -980,66 +982,18 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
     return { path: filePath, filesUpdate: null }
   }
 
-  /**
-   * Edit a file by replacing string occurrences.
-   */
+  /** Edit a file by replacing string occurrences. */
   async edit(filePath: string, oldString: string, newString: string, replaceAll: boolean = false): Promise<EditResult> {
     const command = buildEditCommand(filePath, oldString, newString, replaceAll)
     const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
-    switch (result.exitCode) {
-      case 0: {
-        const occurrences = parseInt(result.output.trim(), 10) || 1
-        return { path: filePath, filesUpdate: null, occurrences }
-      }
-      case 1:
-        return { error: `String not found in file '${filePath}'` }
-      case 2:
-        return {
-          error: `Multiple occurrences found in '${filePath}'. Use replaceAll=true to replace all.`
-        }
-      case 3:
-        return { error: `Error: File '${filePath}' not found` }
-      default:
-        return { error: `Unknown error editing file '${filePath}'` }
-    }
+    return editCommandResult(filePath, result)
   }
 
-  /**
-   * Perform multiple sequential edits on a single file.
-   * All edits are applied sequentially, with each edit operating on the result of the previous edit.
-   * All edits must succeed for the operation to succeed (atomic).
-   */
-  async multiEdit(filePath: string, edits: EditOperation[]): Promise<MultiEditResult> {
-    if (!edits || edits.length === 0) {
-      return {
-        error: 'No edits provided'
-      }
-    }
-
-    const results: EditResult[] = []
-
-    for (const edit of edits) {
-      const result = await this.edit(filePath, edit.oldString, edit.newString, edit.replaceAll ?? false)
-
-      results.push(result)
-
-      // If any edit fails, return immediately with error
-      if (result.error) {
-        return {
-          error: `Multi-edit failed at edit ${results.length}: ${result.error}`,
-          path: filePath,
-          filesUpdate: null,
-          results
-        }
-      }
-    }
-
-    // All edits succeeded
-    return {
-      path: filePath,
-      filesUpdate: null,
-      results
-    }
+  /** Earlier successful edits remain persisted if a later edit fails. */
+  multiEdit(filePath: string, edits: EditOperation[]): Promise<MultiEditResult> {
+    return sequentialFileEdits(filePath, edits, (edit) =>
+      this.edit(filePath, edit.oldString, edit.newString, edit.replaceAll ?? false)
+    )
   }
 }

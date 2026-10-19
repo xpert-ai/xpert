@@ -238,4 +238,33 @@ describe('SandboxFileMiddleware', () => {
             filesUpdate: null
         })
     })
+    it('keeps partial progress and returns a portable read step after a failed batch', async () => {
+        const created = await createFileTools()
+        const operation = created.tools.find((tool) => tool.name === 'sandbox_multi_edit_file')
+        const backend = {
+            workingDirectory: '/workspace',
+            multiEdit: jest.fn().mockResolvedValue({
+                error: 'second edit not found',
+                path: '/workspace/page.html',
+                progress: { mode: 'sequential', appliedEdits: 1, failedEdit: 2 }
+            })
+        }
+        const output = await operation?.invoke(
+            {
+                file_path: 'page.html',
+                edits: [
+                    { oldString: 'old', newString: 'new' },
+                    { oldString: 'missing', newString: 'new' }
+                ]
+            },
+            { configurable: { sandbox: { backend } }, metadata: { tool_call_id: 'failed-batch' } }
+        )
+        if (typeof output !== 'string') throw new Error('Expected JSON result')
+        const result = JSON.parse(output)
+        expect(result.error).toBe('second edit not found')
+        expect(result.progress).toEqual({ mode: 'sequential', appliedEdits: 1, failedEdit: 2 })
+        expect(result.recovery.read).toEqual({ tool: 'sandbox_read_file', arguments: { file_path: 'page.html' } })
+        expect(result.recovery.instruction).toContain('only changes still missing')
+        expect(backend.multiEdit).toHaveBeenCalledTimes(1)
+    })
 })

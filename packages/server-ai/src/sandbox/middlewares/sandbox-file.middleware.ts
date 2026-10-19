@@ -6,7 +6,6 @@ import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
     BaseSandbox,
-    EditOperation,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
     PromiseOrValue,
@@ -167,7 +166,21 @@ function resolveSandboxPath(config: any, fileOrDirPath?: string): string {
 
 function stringifyPortableFileResult(result: unknown, filePath: string) {
     const portableResult =
-        typeof result === 'object' && result !== null && !Array.isArray(result) ? { ...result, path: filePath } : result
+        typeof result === 'object' && result !== null && !Array.isArray(result)
+            ? {
+                  ...result,
+                  path: filePath,
+                  ...('error' in result && result.error
+                      ? {
+                            recovery: {
+                                read: { tool: 'sandbox_read_file', arguments: { file_path: filePath } },
+                                instruction:
+                                    'Read the current file before retrying. Use sandbox_edit_file for an existing file, with unique exact text from that read. A failed batch may have persisted earlier edits: apply only changes still missing; never replay the whole batch blindly.'
+                            }
+                        }
+                      : {})
+              }
+            : result
     return JSON.stringify(portableResult, null, 2)
 }
 
@@ -303,7 +316,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             },
             {
                 name: 'sandbox_write_file',
-                description: `Create a new file with the provided content. Fails if the file already exists.
+                description: `Create a new file with the provided content. Fails if the file already exists. Never use this to overwrite an opened editing copy: read it, then use sandbox_edit_file or sandbox_multi_edit_file.
 
 Write complete, continuous content in one call when possible; only if it is expected to exceed the output token limit, end at a natural paragraph or section boundary and use sandbox_append_file to continue.
 
@@ -376,7 +389,20 @@ CRITICAL FORMAT REQUIREMENTS:
                         backend,
                         toolCallId,
                         'sandbox_multi_edit_file',
-                        () => backend.multiEdit(resolvedFilePath, edits as EditOperation[]),
+                        () =>
+                            backend.multiEdit(
+                                resolvedFilePath,
+                                edits.map((edit) => {
+                                    if (typeof edit.oldString !== 'string' || typeof edit.newString !== 'string') {
+                                        throw new Error('Each edit requires oldString and newString')
+                                    }
+                                    return {
+                                        oldString: edit.oldString,
+                                        newString: edit.newString,
+                                        replaceAll: edit.replaceAll
+                                    }
+                                })
+                            ),
                         file_path
                     )
                     return stringifyPortableFileResult(result, file_path)
@@ -385,7 +411,7 @@ CRITICAL FORMAT REQUIREMENTS:
             {
                 name: 'sandbox_multi_edit_file',
                 description:
-                    'Perform multiple sequential edits on a single file in one operation. All edits are applied sequentially, with each edit operating on the result of the previous edit. All edits must succeed for the operation to succeed (atomic). Use this when you need to make multiple changes to the same file.',
+                    'Perform multiple sequential edits on a single file in one operation. All edits are applied sequentially, with each edit operating on the result of the previous edit. This is not atomic: earlier successful edits remain saved if a later edit fails. Read the current file after failure and apply only the remaining changes. Use unique exact text from a fresh read, and prefer a small focused batch.',
                 schema: multiEditToolSchema,
                 verboseParsingErrors: true,
                 metadata: workspaceFileMutationMetadata
