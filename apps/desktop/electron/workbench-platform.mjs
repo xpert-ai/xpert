@@ -7,7 +7,25 @@ export function platformCommandUrl(webUrl, payload) {
   let path
   const query = new URLSearchParams()
   if (payload.target === 'auth.register') path = 'auth/register'
-  else if (payload.target === 'assistant.studio' && id(payload.assistantId))
+  else if (payload.target === 'project.list') {
+    if (Object.keys(payload).some((key) => key !== 'target')) return null
+    path = 'project'
+  } else if (
+    (payload.target === 'project.application' || payload.target === 'project.pipelines') &&
+    id(payload.projectId)
+  ) {
+    path = `project/${segment(payload.projectId)}/${payload.target === 'project.application' ? 'application' : 'pipelines'}`
+    for (const key of ['pipelineNodeId', 'pipelineInstanceId', 'pipelineRoundId']) {
+      if (payload[key] === undefined) continue
+      if (
+        (payload.target === 'project.application' && key !== 'pipelineNodeId') ||
+        typeof payload[key] !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload[key])
+      )
+        return null
+      query.set(key, payload[key])
+    }
+  } else if (payload.target === 'assistant.studio' && id(payload.assistantId))
     path = `xpert/x/${segment(payload.assistantId)}/agents`
   else if (payload.target === 'workspace.connectors.manage' && id(payload.workspaceId) && id(payload.organizationId)) {
     path = `xpert/w/${segment(payload.workspaceId)}/connectors`

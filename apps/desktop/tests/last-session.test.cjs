@@ -13,6 +13,7 @@ function fixture(t) {
   const storage = createStorage(directory, { isEncryptionAvailable: () => false })
   const requests = []
   let status = 200
+  let projectId = null
   let deferred
   const profile = { user: { id: 'user', tenantId: 'tenant' }, organizationId: 'org', organizations: [] }
   const create = () => {
@@ -27,7 +28,7 @@ function fixture(t) {
             conversationId: 'delegated',
             xpertId: 'child',
             threadId: 'child-thread',
-            projectId: null
+            projectId
           })
         if (url.endsWith('/chatkit/sessions')) return Response.json({ client_secret: 'temporary-secret' })
         return Response.json({ id: 'conversation', xpertId: 'assistant', threadId: 'thread' })
@@ -49,6 +50,9 @@ function fixture(t) {
     create,
     scope,
     requests,
+    project: (value) => {
+      projectId = value
+    },
     status: (value) => {
       status = value
     },
@@ -158,4 +162,29 @@ test('delegated conversations revalidate access without persisting or returning 
     () => service.rememberSession({ scope: scope(service), session: { botId: 'assistant', threadId: '../invalid' } }),
     { status: 400 }
   )
+})
+
+test('restored Project scope comes from the authorized conversation, including older saved sessions', async (t) => {
+  const { create, scope, project } = fixture(t)
+  const service = create()
+  const session = {
+    botId: 'assistant',
+    threadId: 'child-thread',
+    conversation: { assistantId: 'child', conversationId: 'delegated' }
+  }
+  service.rememberSession({
+    scope: scope(service),
+    session: {
+      ...session,
+      conversation: { ...session.conversation, projectId: 'untrusted-local-project' }
+    }
+  })
+  project('canonical-project')
+  assert.deepEqual(await create().restoreSession(), {
+    ...session,
+    conversation: { ...session.conversation, projectId: 'canonical-project' }
+  })
+  assert.equal(service.sidebarState().lastSession.conversation.projectId, undefined)
+  project(null)
+  assert.deepEqual(await create().restoreSession(), session)
 })

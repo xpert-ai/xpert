@@ -4,7 +4,7 @@ export type BotActivity = IChatConversationUnreadXpertSummary
 export interface DesktopLastSession {
   botId: string
   threadId: string | null
-  conversation?: { assistantId: string; conversationId: string }
+  conversation?: { assistantId: string; conversationId: string; projectId?: string }
 }
 export interface SidebarPreference {
   botId: string

@@ -32,7 +32,7 @@ export function App() {
   const navigationVersion = useRef(0)
   const restorePending = useRef(true)
   const [navigationReady, setNavigationReady] = useState(false)
-  const [initialVoice, setInitialVoice] = useState<{ assistantId: string; conversationId: string } | null>(null)
+  const [initialVoice, setInitialVoice] = useState<DesktopLastSession['conversation'] | null>(null)
   const [initialThread, setInitialThread] = useState<string | null>(null)
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)

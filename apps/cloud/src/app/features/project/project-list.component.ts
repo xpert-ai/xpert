@@ -1,3 +1,4 @@
+import { XpertProjectPipelinePortfolioComponent } from './project-pipeline-portfolio.component'
 import { Dialog } from '@angular/cdk/dialog'
 import {
   GENERAL_PROJECT_TYPE,
@@ -7,6 +8,7 @@ import {
   type I18nObject
 } from '@xpert-ai/contracts'
 import { navigateProjectEntry } from './project-entry'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
@@ -23,7 +25,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { IXpertProject, IXpertProjectCreateInput } from '@xpert-ai/contracts'
-import { getErrorMessage, injectToastr } from '@cloud/app/@core'
+import { getErrorMessage, injectToastr, Store } from '@cloud/app/@core'
 import { XpertProjectCreateDialogComponent } from './project-create-dialog.component'
 import { XpertProjectFacade } from './project.facade'
 import { XpertProjectApiService } from './project-api.service'
@@ -33,6 +35,7 @@ import { XpertProjectApiService } from './project-api.service'
   selector: 'xp-project-list',
   imports: [
     CommonModule,
+    XpertProjectPipelinePortfolioComponent,
     RouterLink,
     TranslateModule,
     ZardBadgeComponent,
@@ -117,6 +120,20 @@ import { XpertProjectApiService } from './project-api.service'
           }
         </z-segmented>
       </section>
+      <div class="flex flex-wrap items-center gap-3 text-sm">
+        <button z-button zType="outline" (click)="comparisonOpen.set(!comparisonOpen())">
+          {{ 'XP.XProject.Portfolio.Compare' | translate }} ({{ selectedProjects().length }})
+        </button>
+        @if (selectedProjects().length) {
+          <button z-button zType="ghost" (click)="selectedProjects.set([])">
+            {{ 'XP.XProject.Portfolio.Clear' | translate }}
+          </button>
+        }
+        <span class="text-text-tertiary">{{ 'XP.XProject.Portfolio.SelectHint' | translate }}</span>
+      </div>
+      @if (comparisonOpen()) {
+        <xp-project-pipeline-portfolio [projects]="selectedProjects()" />
+      }
       @if (facade.loading()) {
         <div
           class="rounded-lg border border-divider-subtle bg-components-card-bg px-4 py-10 text-center text-sm text-text-secondary"
@@ -146,6 +163,9 @@ import { XpertProjectApiService } from './project-api.service'
               <table z-table zSize="compact" class="w-full min-w-[760px] text-sm">
                 <thead z-table-header>
                   <tr z-table-row class="bg-background-default-subtle">
+                    <th z-table-head>
+                      <span class="sr-only">{{ 'XP.XProject.Portfolio.Select' | translate }}</span>
+                    </th>
                     <th z-table-head>{{ 'XP.XProject.ProjectColumn' | translate }}</th>
                     <th z-table-head>{{ 'XP.XProject.StatusColumn' | translate }}</th>
                     <th z-table-head>{{ 'XP.XProject.UpdatedColumn' | translate }}</th>
@@ -155,6 +175,16 @@ import { XpertProjectApiService } from './project-api.service'
                 <tbody z-table-body>
                   @for (project of visibleProjects(); track project.id) {
                     <tr z-table-row class="hover:bg-background-default-subtle/70">
+                      <td z-table-cell>
+                        <input
+                          type="checkbox"
+                          class="size-4 accent-primary"
+                          [checked]="isSelected(project.id)"
+                          [disabled]="!isSelected(project.id) && selectedProjects().length >= 50"
+                          [attr.aria-label]="('XP.XProject.Portfolio.Select' | translate) + ' ' + project.name"
+                          (change)="toggleSelection(project)"
+                        />
+                      </td>
                       <td z-table-cell>
                         <button
                           class="mb-1 text-xs text-text-tertiary underline-offset-2 hover:underline"
@@ -213,7 +243,22 @@ import { XpertProjectApiService } from './project-api.service'
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectListComponent implements OnInit {
+  readonly selectedProjects = signal<IXpertProject[]>([])
+  readonly comparisonOpen = signal(false)
+  isSelected(id: string) {
+    return this.selectedProjects().some((project) => project.id === id)
+  }
+  toggleSelection(project: IXpertProject) {
+    this.selectedProjects.update((projects) =>
+      projects.some((row) => row.id === project.id)
+        ? projects.filter((row) => row.id !== project.id)
+        : projects.length < 50
+          ? [...projects, project]
+          : projects
+    )
+  }
   readonly facade = inject(XpertProjectFacade)
+  readonly #organizationId = toSignal(inject(Store).selectOrganizationId())
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
@@ -248,7 +293,13 @@ export class XpertProjectListComponent implements OnInit {
     unclassified: this.applicationKey() === '__unclassified'
   }))
   constructor() {
+    effect(() => {
+      this.#organizationId()
+      this.selectedProjects.set([])
+      this.comparisonOpen.set(false)
+    })
     effect((onCleanup) => {
+      this.#organizationId()
       const query = this.query()
       this.skip.set(0)
       const timer = setTimeout(() => void this.facade.loadProjects({ ...query, take: 50 }), 200)

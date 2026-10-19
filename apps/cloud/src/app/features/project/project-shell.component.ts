@@ -384,7 +384,6 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   #unregisterAssistantCommand: (() => void) | null = null
   readonly tabs = [
     { label: 'XP.XProject.Overview', path: '' },
-    { label: 'XP.XProject.Plan', path: 'plan' },
     { label: 'XP.XProject.TaskTimeline', path: 'timeline' },
     { label: 'XP.XProject.Conversations', path: 'tasks' },
     { label: 'XP.XProject.Assets', path: 'assets' },

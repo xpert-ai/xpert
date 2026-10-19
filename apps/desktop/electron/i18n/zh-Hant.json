@@ -1360,5 +1360,8 @@
   "Shared templates": "共用範本",
   "Other sources": "其他來源",
   "Agent Plugins": "智慧體外掛",
-  "Xpert Plugins": "Xpert 外掛"
+  "Xpert Plugins": "Xpert 外掛",
+  "Project pipelines": "專案流水線",
+  "Open Projects in platform": "在平台開啟專案",
+  "Could not open Projects. Please retry.": "無法開啟專案，請重試。"
 }

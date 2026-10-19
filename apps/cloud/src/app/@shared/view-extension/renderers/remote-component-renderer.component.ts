@@ -1,3 +1,4 @@
+import { remoteViewState } from './remote-view-state'
 import { createRemoteTheme, type RemoteComponentTheme, type RemoteComponentThemeMode } from './remote-component-theme'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import {
@@ -388,6 +389,9 @@ export class RemoteComponentRendererComponent {
       return
     }
     switch (message.type) {
+      case 'saveViewState':
+        this.viewState(message.state)
+        return
       case 'resize':
         this.requestedHeight.set(Math.max(Number(message.height) || 0, 520))
         this.viewportBound.set(message.viewportBound === true)
@@ -827,6 +831,13 @@ export class RemoteComponentRendererComponent {
     this.#viewportUpdateFrame = null
   }
 
+  private viewState(state?: unknown) {
+    return remoteViewState(
+      [this.hostType(), this.hostId(), this.manifest().key, this.runtimeUserId(), this.runtimeScope()],
+      state
+    )
+  }
+
   private sendInitToFrame() {
     if (!this.contextReady()) return
     this.#initializedRevision = this.#entryRequestId
@@ -834,6 +845,7 @@ export class RemoteComponentRendererComponent {
       manifest: this.manifest(),
       payload: {},
       initialQuery: this.query(),
+      viewState: this.viewState(),
       runtimeScope: {
         projectId: this.runtimeScope()?.projectId ?? null,
         conversationId: this.runtimeScope()?.conversationId ?? null

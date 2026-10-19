@@ -1,0 +1,62 @@
+import { TestBed } from '@angular/core/testing'
+import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
+
+export function registerViewStateTests(
+  manifest: XpertExtensionViewManifest,
+  flush: (fixture: { detectChanges(): void; whenStable(): Promise<unknown> }) => Promise<void>
+) {
+  it('restores UI state on a new frame and rejects unrelated or stale frame writes', async () => {
+    sessionStorage.clear()
+    const create = async () => {
+      const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+      fixture.componentRef.setInput('hostType', 'project')
+      fixture.componentRef.setInput('hostId', 'state-test-project')
+      fixture.componentRef.setInput('runtimeUserId', 'state-test-user')
+      fixture.componentRef.setInput('manifest', manifest)
+      await flush(fixture)
+      const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+      const frameWindow = frame.contentWindow as Window
+      const post = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+      return { fixture, frameWindow, post }
+    }
+    const first = await create()
+    const send = (source: Window, instanceId: string, scopeRevision?: number) =>
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          source,
+          data: {
+            channel: 'xpertai.remote_component',
+            protocolVersion: 1,
+            type: 'saveViewState',
+            instanceId,
+            scopeRevision,
+            state: { initialTab: 'pipeline', scrollLeft: 620 }
+          }
+        })
+      )
+    send(window, first.fixture.componentInstance.instanceId())
+    send(first.frameWindow, 'other-frame')
+    send(first.frameWindow, first.fixture.componentInstance.instanceId(), 99999)
+    expect(sessionStorage.length).toBe(0)
+    send(first.frameWindow, first.fixture.componentInstance.instanceId())
+    first.fixture.destroy()
+    const restored = await create()
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: restored.frameWindow,
+        data: {
+          channel: 'xpertai.remote_component',
+          protocolVersion: 1,
+          type: 'ready'
+        }
+      })
+    )
+    expect(restored.post).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'init', viewState: { initialTab: 'pipeline', scrollLeft: 620 } }),
+      '*'
+    )
+    restored.fixture.destroy()
+    sessionStorage.clear()
+  })
+}
