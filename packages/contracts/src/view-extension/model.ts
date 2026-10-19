@@ -423,6 +423,10 @@ export const WORKBENCH_ASSISTANT_EXECUTION_TARGET = 'assistant.execution'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
 export const WORKBENCH_ASSISTANT_PROJECT_TARGET = 'assistant.project'
 export const WORKBENCH_EXTENSION_VIEW_TARGET = 'workbench.view'
+/** Resolve the Project's application entry through its registered type and current access checks. */
+export const WORKBENCH_PROJECT_APPLICATION_TARGET = 'project.application'
+/** Open full Project pipeline management in the configured platform. */
+export const WORKBENCH_PROJECT_PIPELINES_TARGET = 'project.pipelines'
 export const XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE = 'invokeClientCommand'
 
 export interface WorkbenchOpenFileEvidenceBox {
@@ -472,6 +476,8 @@ export type WorkbenchNavigationOpenTarget =
   | typeof WORKBENCH_ASSISTANT_EXECUTION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
   | typeof WORKBENCH_EXTENSION_VIEW_TARGET
+  | typeof WORKBENCH_PROJECT_APPLICATION_TARGET
+  | typeof WORKBENCH_PROJECT_PIPELINES_TARGET
 
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
@@ -496,6 +502,11 @@ export interface WorkbenchNavigationOpenPayload {
   xpertId?: string
   /** Platform Chat Project selected for Project-scoped Assistant navigation. */
   projectId?: string
+  /** Untrusted identity hint; Project application entry reauthorizes the current persisted node. */
+  pipelineNodeId?: string
+  /** Read-only Project pipeline return focus, rechecked when the graph is read. */
+  pipelineInstanceId?: string
+  pipelineRoundId?: string
   viewKey?: string
   selectionId?: string
   parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>

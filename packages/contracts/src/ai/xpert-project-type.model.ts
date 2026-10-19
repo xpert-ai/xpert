@@ -1,4 +1,11 @@
 import type { I18nObject, IconDefinition } from '../types'
+import type { XpertViewScalar } from '../view-extension/model'
+
+export interface XpertProjectViewSelection {
+  viewKey: string
+  selectionId?: string
+  parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
+}
 
 /** Stable identity, independent of installation ids, labels and plugin versions. */
 export interface XpertProjectTypeRef {
@@ -53,7 +60,7 @@ export interface XpertProjectListFilter {
 /** Resolved by the host and a trusted provider, never an arbitrary URL. */
 export type XpertProjectEntry =
   | { kind: 'project'; projectId?: string; projectType: XpertProjectTypeRef }
-  | { kind: 'assistant'; xpertId: string; slug: string; projectId?: string; viewKey: string; selectionId?: string }
+  | ({ kind: 'assistant'; xpertId: string; slug: string; projectId?: string } & XpertProjectViewSelection)
 
 export interface XpertProjectTypeCatalog {
   items: XpertProjectTypeSummary[]
