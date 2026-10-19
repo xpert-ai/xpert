@@ -11,6 +11,16 @@ Standard pages use `dashboard_create`. HTML pages are written with platform Sand
 
 A file-write acknowledgement is not a dashboard save. Platform `createMutationEvidence` tracks pending changes; the plugin defines the successful domain receipt. The Agent needs an Artifact ID, `status: draft` and `draftRevision` before claiming a save. Failure or exhausted tool rounds cannot be reported as a save, publication or new formal version.
 
+## Reducing authoring retries
+
+The platform SDK's `validateAnalyticsPayload` provides structural validation against the discovered provider `payloadSchema`. It neither rewrites input nor adds defaults, and never substitutes for server authorization or provider validation. Structural failures identify the field path and constraint type. Only synchronous schemas are supported; malformed, unresolved or asynchronous schemas fail explicitly. Copy opaque IDs and contract hashes exactly from discovery instead of repeatedly submitting the same invalid value.
+
+Preview returns `validation.checks`. Applicable nullable dimension selectors identify pending checks and suggest values only from actual preview rows. The Agent should execute the suggested `dashboard_test_filter` calls before authoring or saving. A suggestion is not a verification receipt: missing checks still block saving, and a changed Binding requires fresh evidence.
+
+The HTML copy created by `dashboard_open` already exists. Its `editingFile` describes the read step and `edit_existing` mode. Read it and use generic edit tools; the create-only `sandbox_write_file` cannot overwrite it. Batch file edits persist sequentially and do not promise rollback. After failure, reread the current file and apply only missing changes. Platform file tools return a recovery read step; the base Sandbox batch implementation also reports applied-edit counts and the failed index.
+
+The Agent tool requires an explicit `title` on every update; copy the current title when unchanged. The platform partial-update API still preserves omitted fields. For a rename and page change, send the new `title` and `htmlPath` in one `dashboard_update`. An HTML heading does not change Artifact metadata; only a successful receipt confirms a saved draft. These hints reduce avoidable errors without relaxing schemas, concurrency protection, permissions or the Binding query boundary.
+
 ## Drafts and formal versions
 
 | Operation               | Behavior                                                                            |
@@ -21,7 +31,7 @@ A file-write acknowledgement is not a dashboard save. Platform `createMutationEv
 | Human publication       | Confirms a frozen draft revision and creates an immutable version transactionally   |
 | Historical viewing      | Reads the old definition and dependencies, then queries with current access         |
 
-`dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, use `dashboard_list` to resolve the target instead of guessing the most recent item.
+`dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy and `saveArguments`. Copy an absent formal-version base as actual JSON `null`, never a string such as `None`. When correcting an argument error, retain the other intended changes, including the new title. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, use `dashboard_list` to resolve the target instead of guessing the most recent item.
 
 Platform `artifact_draft` stores the latest content reference, checksum, revision and formal-version base. Save and publish share the Artifact row lock and compare-and-set checks. Changed bases cause conflicts, not silent overwrites, rebases or duplicate dashboards. An identical confirmed-publication retry reuses the version.
 

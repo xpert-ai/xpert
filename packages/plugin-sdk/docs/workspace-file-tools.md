@@ -58,3 +58,9 @@ chooses a default provider. Graph compilation and runtime workspace paths use th
 mapped work area; server-side file access retains the Volume path and scope.
 This does not add default-provider selection to hosts that require an explicit
 provider, or change workspace authorization and sandbox lifecycle ownership.
+
+## Recovering failed file edits
+
+`sandbox_write_file` creates a new file; it does not overwrite an existing editing copy. Read an existing file and use exact-text edit tools. Structured mutation results containing an error provide a portable `recovery.read` tool call and recovery guidance without converting the error into success.
+
+`BaseSandbox.multiEdit` persists operations sequentially, stops at the first error, and does not roll back earlier successful edits. Its optional `MultiEditResult.progress` reports `mode: "sequential"`, `appliedEdits`, and a one-based `failedEdit` on failure. Other backends may omit progress; consumers must not infer rollback or applied counts when it is absent. Transport exceptions propagate. Always reread current contents after a failed batch and apply only remaining changes.

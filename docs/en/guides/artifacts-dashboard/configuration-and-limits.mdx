@@ -63,3 +63,9 @@ Local evidence does not establish npm release compatibility, production images/d
 - Product instructions: the separate docs repository's `en/ai/live-dashboard/` pages under AI → Live Dashboard do not require users to know internal APIs.
 
 Update behavior and limitations together. Keep development batches, local machine paths, accounts, private receipts and proposed milestones out of current feature documentation.
+
+## Reusable local regression
+
+The dashboard plugin's `tests/acceptance/README.md` documents real Chat regression for CSV/JSON/XLSX: one-prompt generation, two continuing edits, rendered filters, refresh after source updates, resource-card reopening and full-page restoration. It uses an independent synthetic-data oracle, preserves tool errors and save receipts per turn, and records tool retries separately from business acceptance. Save evidence must match an actual successful mutation tool reply; ordinary messages containing JSON do not count. Original source bytes must be restored and verified. The complete regression requires the source-update refresh sequence and every frame-boundary check; `read-only` refresh is diagnostic only. Separate checks cover source-view permission revocation with the same token, replacement-query attacks on saved Bindings, and iframe network/cross-frame boundaries.
+
+Business assertions and page workflows belong to the plugin. Generic files, authentication, authorization and persistence remain platform capabilities. Keep private run configuration and receipts outside Git. Historical reports do not replace a fresh runtime check or establish compatibility across all models and release environments.

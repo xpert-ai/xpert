@@ -100,3 +100,9 @@ The `file.table` provider in `@xpert-ai/plugin-analytics-files` registers the `w
 The plugin reuses `WorkspaceFilesRuntimeCapability` for file access and `ProjectAccessRuntimeCapability` for human Project membership. Assistant files retain the exact published Assistant ACL, and private file references bind the current viewer. Parsing, format dependencies, decimal aggregation and Worker execution remain plugin-owned. No parser or file-query dialect is added to the platform.
 
 Each execution rereads the current source and records a content digest. Input limits fail closed before partial-input aggregation; output limits preserve Dataset completeness. Artifact history pins declarations, not file bytes. See the plugin's bilingual configuration and verification documentation for formula-cache, type and format limits.
+
+## Discovered payload feedback for Agent tools
+
+`validateAnalyticsPayload(payload, queryContract.payloadSchema)`, exported from `@xpert-ai/plugin-sdk`, is a synchronous server SDK helper for structural feedback before a preview call. It uses the provider's declared JSON Schema and reports a bounded field path and failing keyword without echoing payload values. It does not coerce values, remove properties, inject defaults, resolve remote references or validate JSON Schema `format` annotations. Malformed/unresolved schemas and asynchronous (`$async`) schemas fail explicitly. Provider semantic validation, current-actor authorization and bounded execution remain mandatory after this check. A successful structural check is not a preview receipt or permission grant.
+
+Live Dashboard uses this helper on both canonical and simplified preview tools. Keep provider-specific syntax in discovery; do not introduce SQL/file/MCP branches in the dashboard middleware to repair input.
