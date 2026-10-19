@@ -16,7 +16,12 @@ const definition = {
     type: 'app',
     name: 'cases',
     projectTypes: [
-        { key: 'case', title: 'Automotive Case', binding: { kind: 'entity', providerKey: 'automotive-case' } }
+        {
+            key: 'case',
+            title: 'Automotive Case',
+            binding: { kind: 'entity', providerKey: 'automotive-case' },
+            taskConcurrency: { maxConcurrentTasks: 4 }
+        }
     ]
 }
 const xpert = { id: 'assistant', organizationId: 'org', slug: 'automotive' } as IXpert
@@ -54,6 +59,13 @@ function fixture() {
 }
 
 describe('application Project types', () => {
+    it('publishes business capacity in the type catalog without configuring an Agent', () => {
+        expect(
+            fixture()
+                .service.catalog()
+                .find((type) => type.projectTypeKey === 'case')
+        ).toMatchObject({ taskConcurrency: { maxConcurrentTasks: 4 } })
+    })
     beforeEach(() => {
         jest.restoreAllMocks()
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'owner', tenantId: 'tenant' } as IUser)
