@@ -4,6 +4,7 @@ import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import { RuntimeProcessSignaler } from './runtime-process-signaler'
 import { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
 import type { RestartRegistry } from './runtime-plugin-admission'
+import type { PluginGenerationState } from './runtime-restart.types'
 
 type Listener = (message: string) => void
 
@@ -63,8 +64,16 @@ export class FakeRedis {
 			const desired = await this.hGetAll(options.keys[1])
 			const current = desired.generation === generation
 			if (current && desired.status === 'failed') return 0
+			const next: PluginGenerationState = JSON.parse(value)
+			if (next.status === 'awaiting_restart') {
+				if (await this.get(options.keys[2])) return 0
+				const previousValue = await this.get(options.keys[0])
+				if (!previousValue) return 0
+				const previous: PluginGenerationState = JSON.parse(previousValue)
+				if (previous.restartId || !['in_progress', 'awaiting_restart'].includes(previous.status)) return 0
+			}
 			await this.set(options.keys[0], value, { EX: Number(ttl) })
-			if (current) await this.hSet(options.keys[1], 'status', JSON.parse(value).status)
+			if (current) await this.hSet(options.keys[1], 'status', next.status)
 			return 1
 		}
 		if (script.includes('xpert-start-plugin-catch-up')) {
