@@ -25,6 +25,7 @@ import {
     AgentMiddlewareRuntimeScope,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
+    applyModelContextSize,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
@@ -148,7 +149,7 @@ export class AgentMiddlewareModelRuntimeService {
             copilotModel.options = resolveModelParameterOptions(copilotModel.options, rules)
         }
 
-        return modelProvider.getModelInstance(
+        const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
                 ...copilotModel,
@@ -226,7 +227,11 @@ export class AgentMiddlewareModelRuntimeService {
                     }
                 }
             }
-        ) as T
+        )
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            applyModelContextSize(model, copilotModel)
+        }
+        return model as T
     }
 
     async getModelProvider(
