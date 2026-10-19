@@ -43,8 +43,8 @@ export class DecoratedToolsetStrategy implements IToolsetStrategy<IXpertToolset>
     }
   }
 
-  validateConfig(): Promise<void> {
-    return Promise.resolve()
+  async validateConfig(config?: unknown): Promise<void> {
+    await this.instance.validateConfig?.(config)
   }
 
   async create(toolset: IXpertToolset, params?: TBuiltinToolsetParams): Promise<BuiltinToolset> {

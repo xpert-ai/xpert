@@ -268,6 +268,72 @@ describe('JSONSchemaPropertyComponent control rendering', () => {
     }).compileComponents()
   })
   afterEach(() => TestBed.resetTestingModule())
+
+  it('adds and removes array items without submitting the containing form', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    const stabilize = () => {
+      fixture.detectChanges()
+      tick()
+      fixture.detectChanges()
+      tick()
+      fixture.detectChanges()
+    }
+    fixture.componentRef.setInput('schema', {
+      type: 'array',
+      title: 'Allowed redirect hosts',
+      items: { type: 'string' }
+    })
+    fixture.componentInstance.value$.set([])
+    stabilize()
+
+    const root: HTMLElement = fixture.nativeElement
+    const form = document.createElement('form')
+    const submit = jest.fn((event: Event) => event.preventDefault())
+    form.addEventListener('submit', submit)
+    root.parentNode?.insertBefore(form, root)
+    form.appendChild(root)
+    const save = document.createElement('button')
+    save.type = 'submit'
+    form.appendChild(save)
+
+    try {
+      const add = root.querySelector('button')!
+      add.click()
+      stabilize()
+      expect(root.querySelectorAll('input')).toHaveLength(1)
+      expect(submit).not.toHaveBeenCalled()
+
+      const input = root.querySelector('input')!
+      input.value = 'be.internal'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      stabilize()
+      expect(fixture.componentInstance.value$()).toEqual(['be.internal'])
+
+      add.click()
+      stabilize()
+      expect(root.querySelectorAll('input')).toHaveLength(2)
+      expect(submit).not.toHaveBeenCalled()
+
+      const remove = root.querySelectorAll('.ri-delete-bin-line')[1].closest('button')!
+      remove.click()
+      stabilize()
+      expect(fixture.componentInstance.value$()).toEqual(['be.internal'])
+      expect(submit).not.toHaveBeenCalled()
+
+      save.click()
+      expect(submit).toHaveBeenCalledTimes(1)
+
+      fixture.componentRef.setInput('readonly', true)
+      fixture.detectChanges()
+      expect(add.disabled).toBe(true)
+      add.click()
+      expect(fixture.componentInstance.value$()).toEqual(['be.internal'])
+      expect(submit).toHaveBeenCalledTimes(1)
+    } finally {
+      form.remove()
+    }
+  }))
+
   it('renders a decimal slider, saves keyboard changes and respects bounds and readonly', fakeAsync(() => {
     const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
     fixture.componentRef.setInput('schema', {
