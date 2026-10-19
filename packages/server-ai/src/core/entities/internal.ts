@@ -88,3 +88,4 @@ export * from '../../agent-invocation/invocation.entity'
 export * from '../../desktop-shell/desktop-shell.entities'
 
 export * from '../../agent-invocation/activity/activity.entity'
+export * from '../../xpert-project/pipeline/persistence/pipeline.entity'

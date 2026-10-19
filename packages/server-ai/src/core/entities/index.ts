@@ -1,4 +1,5 @@
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
+import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistence/pipeline.entity'
 import { TemplateUpgradeEntity } from '../../xpert/template-lifecycle/template-upgrade.entity'
 import { TemplateInstallationEntity } from '../../plugin-resource/template-installation/template-installation.entity'
 import { McpAppHistory } from '../../mcp-app-runtime/mcp-app-history.entity'
@@ -136,6 +137,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ...ProjectPipelineEntities,
     TemplatePublicationEntity,
     TemplateUpgradeEntity,
     TemplateInstallationEntity,

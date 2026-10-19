@@ -64,6 +64,9 @@ const schemas = [
             providerKey: nullableText,
             sourceKey: nullableText,
             sourceRevision: nullableText,
+            controlKind: { type: 'varchar', default: 'ordinary' },
+            pipelineInstanceId: { ...uuid, nullable: true },
+            pipelineDisposition: nullableText,
             parentTaskId: { ...uuid, nullable: true },
             predecessorIds: json,
             diagnostic: nullableText,
@@ -242,7 +245,8 @@ integration('managed project task projection concurrency', () => {
             db.getRepository(XpertProjectTask),
             module.get(ProjectAccessRuntimeService),
             registry,
-            service
+            service,
+            { listForActor: () => [] } as never
         )
     })
 
