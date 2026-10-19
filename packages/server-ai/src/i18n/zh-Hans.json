@@ -53,11 +53,6 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
-        "McpSourceConfigurationInvalid": "插件配置无效，请检查表单字段和值。",
-        "McpSourceConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
-        "McpSourceConfigurationNotFound": "当前 MCP 服务未绑定此可配置的插件来源。",
-        "McpSourceConfigurationChanged": "配置已被更新，请重新加载后再保存。",
-        "McpPublicationDisableBeforeDelete": "请先停用 MCP 服务再删除。",
         "AssistantSharingForbidden": "你没有在当前组织管理此智能体分享的权限。",
         "AssistantSharingNotFound": "当前组织中未找到此智能体。",
         "AssistantSharingInvalidGroups": "请选择当前组织的用户组。",
@@ -491,6 +486,11 @@
         "WorkspaceFileAbsolutePathOutsideRoot": "Workspace 文件绝对路径必须位于运行时 Workspace 根目录内。",
         "WorkspaceFilePathBelowRootRequired": "Workspace 文件路径必须指向 Workspace 根目录下的文件。",
         "WorkspaceRuntimePathOutsideRoot": "运行时 Workspace 路径必须位于 Workspace 根目录内。",
+        "McpSourceConfigurationInvalid": "插件配置无效，请检查表单字段和值。",
+        "McpSourceConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
+        "McpSourceConfigurationNotFound": "当前 MCP 服务未绑定此可配置的插件来源。",
+        "McpSourceConfigurationChanged": "配置已被更新，请重新加载后再保存。",
+        "McpPublicationDisableBeforeDelete": "请先停用 MCP 服务再删除。",
         "McpPublicationNotFound": "未找到 MCP 服务，或该服务已停用。",
         "McpConsumerWorkspaceRequired": "外部 MCP 连接必须属于某个工作空间。",
         "McpPublicationInvalidName": "MCP 服务名称不能为空，且不能超过 191 个字符。",
