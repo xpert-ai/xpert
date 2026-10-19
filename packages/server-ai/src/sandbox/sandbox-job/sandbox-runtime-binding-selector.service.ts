@@ -150,13 +150,6 @@ function isBindingEligible(
     binding: SandboxRuntimeBinding,
     definition: SandboxRuntimeDefinition
 ): boolean {
-    // Legacy development fallbacks may relax isolation. Read-only-workspace profiles must
-    // enforce every declared guarantee even when a Binding is marked development-only.
-    if (definition.requirements.readOnlyWorkspace)
-        return (
-            satisfiesRequirements(provider, definition) &&
-            (!binding.developmentOnly || isDevelopmentSandboxRuntimeEnvironment())
-        )
     if (binding.developmentOnly) return isDevelopmentSandboxRuntimeEnvironment()
     return satisfiesRequirements(provider, definition)
 }
