@@ -1,4 +1,9 @@
 {
+    "AssistantDependency": {
+        "UpdateAvailable": "助理有可用更新",
+        "VersionOnly": "插件版本变化",
+        "UpdateRecommendation": "{{dependency}} 从 {{installedVersion}} 变为 {{currentVersion}}（{{resources}}）。本次执行可继续，可查看变更后按需更新助理。"
+    },
     "SpeechToText": {
         "TemporaryFileCleanupFailed": "语音转文字临时音频文件删除失败。"
     },
@@ -1076,6 +1081,15 @@
         "TemplateFileScopeConflict": "文件隔离策略必须与模板声明一致。",
         "TemplateDependencyBusy": "模板依赖正在由另一个安装更新，请稍后重试。",
         "TemplateDependencyChanged": "此助手绑定的插件或资源版本已变化，请恢复绑定版本后再运行。",
+        "AssistantDependency": {
+            "plugin-unavailable": "当前范围内未加载必需插件 {{dependency}}，请恢复该插件后运行。",
+            "version-required": "依赖 {{dependency}} 明确要求版本 {{expectedVersion}}，当前加载的是 {{actualVersion}}。请更新助理到兼容模板，或恢复要求的版本。",
+            "provider-owner-changed": "依赖 {{dependency}} 的提供方归属已变化，请恢复原提供方或更新助理绑定。",
+            "provider-not-ready": "依赖 {{dependency}} 注册版本为 {{actualVersion}}，与已加载插件 {{expectedVersion}} 不一致，请等待插件激活完成。",
+            "provider-unavailable": "必需提供方 {{dependency}} 当前不可用，请恢复提供方或更新助理所用能力。",
+            "resource-unavailable": "必需资源 {{dependency}} 当前不可用，请恢复资源或更新助理依赖。",
+            "resource-not-ready": "资源 {{dependency}} 版本为 {{actualVersion}}，与已加载插件 {{expectedVersion}} 不一致，请等待插件激活完成。"
+        },
         "TemplateSetupChanged": "助手配置已变化，请刷新后再保存。",
         "TemplateSetupInvalid": "请填写必要偏好并选择已授权的连接。",
         "TemplateRoutineInvalid": "请检查时间规则、时区、首次引导及必需连接后再启用例行任务。",

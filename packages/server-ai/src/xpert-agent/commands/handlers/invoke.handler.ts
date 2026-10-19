@@ -1,4 +1,5 @@
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
+import { dependencyUpdateEvent } from '../../../plugin-resource/template-installation/dependency-update-event'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
 import { isAIMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { Command, CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
@@ -155,13 +156,23 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             templateOptions?.templateDependencyLocks ?? templateOptions?.templateSource?.dependencyLocks
         const initialFiles =
             templateOptions?.templateDefinition?.manifest?.files ?? templateOptions?.templateSource?.manifest?.files
-        if (dependencyLocks?.length)
-            await this.commandBus.execute(
+        if (dependencyLocks?.length) {
+            const dependencies = await this.commandBus.execute(
                 new AssertAssistantTemplateDependenciesCommand(
                     workspaceXpertId,
                     options.isDraft ? 'authoring' : 'runtime'
                 )
             )
+            for (const update of dependencies?.updates ?? []) {
+                subscriber.next({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                        data: dependencyUpdateEvent(update, workspaceXpertId)
+                    }
+                } as MessageEvent)
+            }
+        }
         if (initialFiles && !options.projectId && !sandboxEnvironmentId)
             await this.commandBus.execute(
                 new InitializeAssistantTemplateFilesCommand(workspaceXpertId, options.isDraft ? 'authoring' : 'runtime')

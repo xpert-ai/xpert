@@ -87,7 +87,7 @@ import { XpertAgentInvokeHandler } from './invoke.handler'
 import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
-import type { TXpertOptions } from '@xpert-ai/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, type TXpertOptions } from '@xpert-ai/contracts'
 
 import { Test, TestingModule } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -171,7 +171,7 @@ describe('Assistant template runtime gate', () => {
     })
 
     it.each(['v1', 'v2'] as const)(
-        'blocks %s dependency drift before resolving a sandbox or compiling a graph',
+        'blocks unavailable %s dependencies before resolving a sandbox or compiling a graph',
         async (version) => {
             const locks = [{ pluginName: '@test/skill', version: '1', components: [] }]
             const templateOptions: TXpertOptions =
@@ -202,6 +202,72 @@ describe('Assistant template runtime gate', () => {
             expect(workAreaResolver.resolve).not.toHaveBeenCalled()
             expect(commandBus.execute).toHaveBeenCalledWith(
                 new AssertAssistantTemplateDependenciesCommand('assistant', 'runtime')
+            )
+        }
+    )
+
+    it.each(['v1', 'v2'] as const)(
+        'continues %s execution after an advisory without changing the published graph',
+        async (version) => {
+            const locks = [{ pluginName: '@xpert-ai/plugin-bid', version: '0.6.62', components: [] }]
+            const options: TXpertOptions = {
+                ...(version === 'v2'
+                    ? { templateDependencyLocks: locks }
+                    : { templateSource: { templateId: 'legacy', templateKey: 'legacy', dependencyLocks: locks } }),
+                templateDefinition: {
+                    schemaVersion: 2,
+                    manifest: { schemaVersion: 2, version: '1', files: { scope: 'user', entries: [] } }
+                }
+            }
+            const before = structuredClone(options)
+            const reached = new Error('continued to file initialization')
+            commandBus.execute.mockImplementation(async (command) => {
+                if (command instanceof AssertAssistantTemplateDependenciesCommand)
+                    return {
+                        updates: [
+                            {
+                                pluginName: '@xpert-ai/plugin-bid',
+                                installedVersion: '0.6.62',
+                                currentVersion: '0.6.63',
+                                changedComponents: []
+                            }
+                        ]
+                    }
+                if (command instanceof InitializeAssistantTemplateFilesCommand) throw reached
+                throw new Error('Unexpected command')
+            })
+            const next = jest.fn()
+            const subscriber = new Subscriber<MessageEvent>({ next, error: jest.fn(), complete: jest.fn() })
+            await expect(
+                handler.execute(
+                    new XpertAgentInvokeCommand(
+                        {},
+                        'primary',
+                        { id: 'assistant', options },
+                        {
+                            isDraft: false,
+                            rootExecutionId: 'execution',
+                            execution: null,
+                            subscriber,
+                            store: null
+                        }
+                    )
+                )
+            ).rejects.toBe(reached)
+            expect(next).toHaveBeenCalledTimes(1)
+            expect(next).toHaveBeenCalledWith({
+                data: {
+                    type: ChatMessageTypeEnum.EVENT,
+                    event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                    data: expect.objectContaining({
+                        type: 'assistant_dependency_update',
+                        id: 'assistant-dependency:assistant:@xpert-ai/plugin-bid'
+                    })
+                }
+            })
+            expect(options).toEqual(before)
+            expect(commandBus.execute).toHaveBeenLastCalledWith(
+                new InitializeAssistantTemplateFilesCommand('assistant', 'runtime')
             )
         }
     )

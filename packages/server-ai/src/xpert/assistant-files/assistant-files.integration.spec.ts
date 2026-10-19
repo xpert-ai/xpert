@@ -23,6 +23,7 @@ import { Xpert } from '../xpert.entity'
 import { XpertService } from '../xpert.service'
 import { XpertWorkspaceFilesService } from '../xpert-workspace-files.service'
 import { AssistantFileAccessService } from './assistant-file-access.service'
+import { ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
 import { AssistantFilesService } from './assistant-files.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
@@ -40,6 +41,9 @@ jest.mock('@xpert-ai/server-core', () => ({
 
 // Persistence is a fixture; published ACL, workspace ACL, Studio access, command dispatch,
 // file operations and filesystem containment use their production implementations.
+// Skill indexing is unrelated to file authority and is not bootstrapped by this fixture.
+jest.mock('../../skill-package/skill-package.service', () => ({ SkillPackageService: class {} }))
+
 describe('Assistant file authority integration', () => {
     let module: TestingModule
     let root: string
@@ -202,6 +206,44 @@ describe('Assistant file authority integration', () => {
         await runtime.uploadToFolder('', { originalname: 'private.txt', buffer: Buffer.from('B private') })
         actor = { ...actor, id: 'user-a' }
         await expect(runtime.read('private.txt')).resolves.toMatchObject({ contents: 'A private' })
+    })
+
+    it('preserves explicit requirements in old publications without promoting automatic pins or draft requirements', async () => {
+        const locks = [{ pluginName: '@test/dep', version: '1.0.0', components: [] }]
+        assistant.options = {
+            templateDependencyLocks: locks,
+            templateDefinition: {
+                schemaVersion: 2,
+                dependencies: { versions: [{ pluginName: '@test/dep', version: '1.0.0' }] }
+            }
+        }
+        const access = module.get(AssistantFileAccessService)
+        const result = await access.execute(
+            new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime')
+        )
+        expect(result.dependencyLocks).toEqual([{ ...locks[0], requiredVersion: '1.0.0' }])
+        expect(locks[0]).not.toHaveProperty('requiredVersion')
+        assistant.options = { templateDependencyLocks: locks }
+        assistant.draft = {
+            team: {
+                options: {
+                    templateDefinition: {
+                        schemaVersion: 2,
+                        dependencies: { versions: [{ pluginName: '@test/dep', version: '2.0.0' }] }
+                    }
+                }
+            },
+            nodes: [],
+            connections: []
+        }
+        expect(
+            (await access.execute(new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime')))
+                .dependencyLocks
+        ).toEqual(locks)
+        groupGrant = false
+        await expect(
+            access.execute(new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime'))
+        ).rejects.toThrow(ForbiddenException)
     })
 
     it.each(['shared', 'user'] as const)(

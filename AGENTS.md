@@ -123,6 +123,13 @@ Rationale: keep simple cases concise, and complex cases structured and maintaina
 - Run targeted tests when possible; otherwise state when not run.
 - Validate forms with Angular `Validators`, show errors via Toastr and `getErrorMessage`.
 
+### Assistant dependency compatibility
+
+- Installation and publication preparation use exact dependency snapshots to detect concurrent source changes. Keep this check separate from the published Assistant's runtime availability check.
+- Automatically recorded plugin versions and resource hashes are provenance, not compatibility requirements. Ordinary drift should recommend an update without stopping a run or rewriting the Assistant's graph, models, tools or resources. Do not infer breaking changes from version segments alone.
+- Preserve explicit template version requirements, actual resource/provider availability and ownership, scoped authorization, and verification of immutable agent-plugin artifacts. Report the specific dependency and reason when execution must stop; do not describe every failure as a version mismatch.
+- Plugin deployment, optional Assistant upgrades and fresh business acceptance are separate release facts. A compatible plugin update does not require republishing every Assistant, and API health alone does not establish business acceptance.
+
 ## UX Notes
 
 - Golden rule: do not nest Cards to structure a section. Use a Title/divider plus Accordion, Tabs, or Carousel for grouping, and reserve Cards for leaf content.

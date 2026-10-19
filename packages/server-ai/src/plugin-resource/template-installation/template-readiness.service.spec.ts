@@ -3,6 +3,7 @@ jest.mock('../../xpert/xpert.service', () => ({ XpertService: class {} }))
 jest.mock('../../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 import { Test } from '@nestjs/testing'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { LOADED_PLUGINS, LoadedPluginRecord } from '@xpert-ai/server-core'
@@ -13,12 +14,19 @@ import {
     RequestContext,
     SYSTEM_GLOBAL_SCOPE
 } from '@xpert-ai/plugin-sdk'
-import { TXpertTemplate, XpertTypeEnum, type TXpertSandboxFeature } from '@xpert-ai/contracts'
+import {
+    TXpertTemplate,
+    XpertTypeEnum,
+    type TXpertSandboxFeature,
+    type TemplateDependencyLock
+} from '@xpert-ai/contracts'
 import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
-import { TemplateReadinessService } from './template-readiness.service'
+import { TemplateReadinessService, AssertAssistantTemplateDependenciesHandler } from './template-readiness.service'
+import { AssertAssistantTemplateDependenciesCommand } from './template-readiness.command'
+import { AssertAgentPluginTemplateDependencyCommand } from '../../agent-plugin/templates/agent-plugin-template.command'
 import { InstallationSourceChangedError } from './template-installation-source'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
@@ -64,6 +72,7 @@ describe('scoped template dependency preparation', () => {
         const module = await Test.createTestingModule({
             providers: [
                 TemplateReadinessService,
+                AssertAssistantTemplateDependenciesHandler,
                 { provide: CommandBus, useValue: { execute: jest.fn() } },
                 ...[AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry].map((provide) => ({
                     provide,
@@ -231,7 +240,7 @@ describe('scoped template dependency preparation', () => {
         ).rejects.toThrow()
         await h.module.close()
     })
-    it('blocks recovery and runtime execution after version drift', async () => {
+    it('keeps exact installation/recovery checks while allowing ordinary runtime version drift', async () => {
         const h = await harness(),
             template = { ...base, dependencies: { plugins: ['@test/dep'] } }
         const result = await h.service.prepare(template, 'workspace')
@@ -241,8 +250,231 @@ describe('scoped template dependency preparation', () => {
             InstallationSourceChangedError
         )
         await expect(h.service.assertDependencies(result.readiness.dependencies)).rejects.toThrow()
+        await expect(h.service.inspectRuntimeDependencies(result.readiness.dependencies)).resolves.toEqual({
+            updates: [
+                { pluginName: '@test/dep', installedVersion: '2.0.0', currentVersion: '3.0.0', changedComponents: [] }
+            ]
+        })
         await h.module.close()
     })
+
+    it('runs the production Bid 0.6.62 publication on 0.6.63 and recommends the changed skill', async () => {
+        const h = await harness()
+        h.loaded.splice(0, h.loaded.length, { ...plugin('org', '0.6.63'), name: '@xpert-ai/plugin-bid' })
+        jest.spyOn(h.module.get(AgentMiddlewareRegistry), 'getSource').mockReturnValue({
+            kind: 'plugin',
+            pluginName: '@xpert-ai/plugin-bid',
+            pluginVersion: '0.6.63',
+            scopeKey: 'org'
+        })
+        h.installer.resolveRuntimeComponents.mockResolvedValueOnce([
+            {
+                pluginName: '@xpert-ai/plugin-bid',
+                pluginVersion: '0.6.63',
+                rootDir: '/private/plugin/root',
+                component: {
+                    componentType: 'skill',
+                    componentKey: 'bid-workflow-coordination',
+                    definitionHash: 'new-hash'
+                }
+            }
+        ])
+        const locks: TemplateDependencyLock[] = [
+            {
+                pluginName: '@xpert-ai/plugin-bid',
+                version: '0.6.62',
+                providers: [{ kind: 'middleware', key: 'BidStudio' }],
+                components: [{ type: 'skill', key: 'bid-workflow-coordination', hash: 'old-hash' }]
+            }
+        ]
+        const before = structuredClone(locks)
+        const result = await h.service.inspectRuntimeDependencies(locks)
+        expect(result).toEqual({
+            updates: [
+                {
+                    pluginName: '@xpert-ai/plugin-bid',
+                    installedVersion: '0.6.62',
+                    currentVersion: '0.6.63',
+                    changedComponents: [{ type: 'skill', key: 'bid-workflow-coordination' }]
+                }
+            ]
+        })
+        expect(locks).toEqual(before)
+        expect(JSON.stringify(result)).not.toContain('/private')
+        await h.module.close()
+    })
+
+    it('does not recommend updates for unchanged dependencies or inspect unrelated components', async () => {
+        const h = await harness()
+        const result = await h.service.inspectRuntimeDependencies([
+            {
+                pluginName: '@test/dep',
+                version: '2.0.0',
+                components: [{ type: 'skill', key: 'selected', hash: 'hash-a' }]
+            }
+        ])
+        expect(result).toEqual({ updates: [] })
+        expect(h.installer.resolveRuntimeComponents).toHaveBeenCalledTimes(1)
+        expect(h.installer.resolveRuntimeComponents).toHaveBeenCalledWith('@test/dep', [
+            { componentType: 'skill', componentKey: 'selected' }
+        ])
+        await h.module.close()
+    })
+
+    it('treats a changed resource hash as advice even when the package version is unchanged', async () => {
+        const h = await harness()
+        const locks: TemplateDependencyLock[] = [
+            { pluginName: '@test/dep', version: '2.0.0', components: [{ type: 'skill', key: 'selected', hash: 'old' }] }
+        ]
+        await expect(h.service.assertDependencies(locks)).rejects.toThrow()
+        await expect(h.service.inspectRuntimeDependencies(locks)).resolves.toMatchObject({
+            updates: [{ changedComponents: [{ type: 'skill', key: 'selected' }] }]
+        })
+        await h.module.close()
+    })
+
+    it('preserves explicit version requirements rather than silently downgrading them to recommendations', async () => {
+        const h = await harness()
+        const result = await h.service.prepare(
+            { ...base, dependencies: { versions: [{ pluginName: '@test/dep', version: '2.0.0' }] } },
+            'workspace'
+        )
+        expect(result.readiness.dependencies[0].requiredVersion).toBe('2.0.0')
+        await expect(h.service.inspectRuntimeDependencies(result.readiness.dependencies)).resolves.toEqual({
+            updates: []
+        })
+        h.loaded[1] = plugin('org', '2.0.1')
+        await expect(h.service.inspectRuntimeDependencies(result.readiness.dependencies)).rejects.toMatchObject({
+            response: {
+                code: 'ASSISTANT_DEPENDENCY_UNAVAILABLE',
+                reason: 'version-required',
+                dependency: '@test/dep',
+                expectedVersion: '2.0.0',
+                actualVersion: '2.0.1'
+            }
+        })
+        await h.module.close()
+    })
+
+    it.each(['middleware', 'sandbox', 'toolset'] as const)(
+        'checks actual %s availability, owner and loaded registration, not the old binding version',
+        async (kind) => {
+            const h = await harness()
+            const registry = h.module.get(
+                kind === 'middleware'
+                    ? AgentMiddlewareRegistry
+                    : kind === 'sandbox'
+                      ? SandboxProviderRegistry
+                      : ToolsetRegistry
+            )
+            const locks: TemplateDependencyLock[] = [
+                { pluginName: '@test/dep', version: '1.0.0', components: [], providers: [{ kind, key: 'used' }] }
+            ]
+            const getSource = jest
+                .spyOn(registry, 'getSource')
+                .mockReturnValue({ kind: 'plugin', pluginName: '@test/dep', pluginVersion: '2.0.0', scopeKey: 'org' })
+            await expect(h.service.inspectRuntimeDependencies(locks)).resolves.toMatchObject({
+                updates: [{ currentVersion: '2.0.0' }]
+            })
+            getSource.mockReturnValue({ kind: 'plugin', pluginName: '@other/dep', scopeKey: 'org' })
+            await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+                response: { reason: 'provider-owner-changed' }
+            })
+            getSource.mockReturnValue({
+                kind: 'plugin',
+                pluginName: '@test/dep',
+                pluginVersion: '1.0.0',
+                scopeKey: 'org'
+            })
+            await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+                response: { reason: 'provider-not-ready' }
+            })
+            jest.spyOn(registry, 'get').mockImplementation(() => {
+                throw new Error('missing')
+            })
+            await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+                response: { reason: 'provider-unavailable', dependency: `@test/dep/${kind}:used` }
+            })
+            await h.module.close()
+        }
+    )
+
+    it('still rejects missing dependencies in the authorized scope and partially activated resources', async () => {
+        const h = await harness()
+        const locks: TemplateDependencyLock[] = [
+            { pluginName: '@test/dep', version: '1.0.0', components: [{ type: 'skill', key: 'missing', hash: 'old' }] }
+        ]
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+            response: { reason: 'resource-unavailable', dependency: '@test/dep/skill:missing' }
+        })
+        h.installer.resolveRuntimeComponents.mockRejectedValueOnce(new NotFoundException('not found'))
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+            response: { reason: 'resource-unavailable' }
+        })
+        const denied = new ForbiddenException('denied')
+        h.installer.resolveRuntimeComponents.mockRejectedValueOnce(denied)
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toBe(denied)
+        const storage = new Error('storage unavailable')
+        h.installer.resolveRuntimeComponents.mockRejectedValueOnce(storage)
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toBe(storage)
+        h.loaded[1] = plugin('org', '3.0.0')
+        locks[0].components[0].key = 'selected'
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+            response: { reason: 'resource-not-ready' }
+        })
+        h.loaded.splice(0, h.loaded.length, plugin('another-org', '1.0.0'))
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toMatchObject({
+            response: { reason: 'plugin-unavailable' }
+        })
+        await h.module.close()
+    })
+
+    it('keeps immutable agent-plugin digest verification in runtime', async () => {
+        const h = await harness()
+        const commands = h.module.get(CommandBus)
+        const lock: TemplateDependencyLock = {
+            pluginName: 'agent-plugin:skills',
+            version: 'digest',
+            components: [],
+            source: {
+                kind: 'agent-plugin',
+                name: 'skills',
+                digest: 'digest',
+                bindingId: 'binding',
+                bindingVersion: '1'
+            }
+        }
+        await expect(h.service.inspectRuntimeDependencies([lock])).resolves.toEqual({ updates: [] })
+        expect(commands.execute).toHaveBeenCalledWith(new AssertAgentPluginTemplateDependencyCommand(lock))
+        const corrupt = new BadRequestException('integrity failure')
+        jest.mocked(commands.execute).mockRejectedValueOnce(corrupt)
+        await expect(h.service.inspectRuntimeDependencies([lock])).rejects.toBe(corrupt)
+        await h.module.close()
+    })
+
+    it.each(['runtime', 'authoring'] as const)(
+        'reauthorizes the exact Assistant before reporting %s recommendations',
+        async (entry) => {
+            const h = await harness()
+            const commands = h.module.get(CommandBus)
+            jest.mocked(commands.execute).mockResolvedValueOnce({
+                dependencyLocks: [{ pluginName: '@test/dep', version: '1.0.0', components: [] }]
+            })
+            const handler = h.module.get(AssertAssistantTemplateDependenciesHandler)
+            await expect(
+                handler.execute(new AssertAssistantTemplateDependenciesCommand('assistant', entry))
+            ).resolves.toMatchObject({ updates: [{ currentVersion: '2.0.0' }] })
+            expect(commands.execute).toHaveBeenCalledWith(
+                new ResolveAssistantFileAccessCommand('assistant', 'capabilities', entry)
+            )
+            const revoked = new ForbiddenException('revoked')
+            jest.mocked(commands.execute).mockRejectedValueOnce(revoked)
+            await expect(
+                handler.execute(new AssertAssistantTemplateDependenciesCommand('assistant', entry))
+            ).rejects.toBe(revoked)
+            await h.module.close()
+        }
+    )
     it('fails closed when an otherwise loaded prerequisite belongs to another organization', async () => {
         const h = await harness()
         h.loaded.splice(0, h.loaded.length, plugin('other-org', '2.0.0'))
