@@ -1,4 +1,5 @@
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
+import { agentInvocationStatusSchema } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { agentResultItemSchema } from '@xpert-ai/plugin-sdk/agent-results'
 
@@ -6,7 +7,7 @@ const response = z.object({
     item: z
         .object({
             id: z.string(),
-            status: z.string(),
+            status: agentInvocationStatusSchema,
             selectedItemId: z.string().nullable(),
             error: z.string().optional(),
             result: z
@@ -86,6 +87,27 @@ async function load(query: unknown) {
         root.replaceChildren()
         root.className = 'mx-auto max-w-4xl space-y-6 p-6'
         root.append(element('h1', zh ? '任务结果' : 'Task results', 'text-xl font-semibold'))
+        const labels = {
+            queued: '排队中',
+            running: '运行中',
+            waiting: '等待输入',
+            cancelling: '正在取消',
+            cancelled: '已取消',
+            succeeded: '已完成',
+            failed: '失败',
+            unknown: '结果待确认'
+        }
+        root.append(element('p', zh ? labels[item.status] : item.status, 'text-sm text-muted-foreground'))
+        if (!item.result && !item.error)
+            root.append(
+                element(
+                    'p',
+                    zh
+                        ? '暂无可展示的结果；执行状态和历史记录已保留。'
+                        : 'No result is available. Execution status and history are preserved.',
+                    'text-sm text-muted-foreground'
+                )
+            )
         if (item.result?.text) root.append(element('p', item.result.text, 'whitespace-pre-wrap text-sm leading-6'))
         if (item.error) root.append(element('p', item.error, 'text-sm text-destructive'))
         for (const entry of item.result?.items ?? []) {

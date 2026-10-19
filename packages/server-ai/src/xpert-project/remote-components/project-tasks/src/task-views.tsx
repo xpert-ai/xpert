@@ -146,7 +146,12 @@ export function TaskTable({
                             </div>
                             {fields.status && (
                                 <div role="cell" className="overflow-hidden px-3">
-                                    <Status value={row.task.status} progress={row.task.progress} t={t} />
+                                    <Status
+                                        value={row.task.status}
+                                        progress={row.task.progress}
+                                        disposition={row.task.pipelineDisposition}
+                                        t={t}
+                                    />
                                 </div>
                             )}
                             {fields.assignee && (
@@ -250,7 +255,15 @@ export function TaskBoard({
                                     onError={onError}
                                     className="px-0"
                                 />
-                                {task.progress != null && <Status value={task.status} progress={task.progress} t={t} />}
+                                {(task.progress != null ||
+                                    (task.pipelineDisposition && task.pipelineDisposition !== 'active')) && (
+                                    <Status
+                                        value={task.status}
+                                        progress={task.progress}
+                                        disposition={task.pipelineDisposition}
+                                        t={t}
+                                    />
+                                )}
                                 <div className="flex items-center gap-3 border-t pt-2 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <GitBranch className="size-3.5" />
