@@ -2,6 +2,8 @@ import { ChatConversationThreadService } from './conversation-thread.service'
 import { isRuntimeChatMessage } from '@xpert-ai/contracts'
 import type { IXpert, WorkbenchAssistantConversationResolution } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
+import { HasProjectTaskConversationQuery } from '../xpert-project/queries/has-project-task-conversation.query'
 import { ChatConversationService } from './conversation.service'
 import { directExternalAssistantIds } from '../xpert/external-assistant-binding'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
@@ -13,6 +15,7 @@ export class WorkbenchAssistantConversationNavigationService {
         private readonly conversationService: ChatConversationService,
         private readonly projectAccessService: XpertProjectAccessService,
         private readonly xpertBindingService: XpertProjectXpertBindingService,
+        private readonly queryBus: QueryBus,
         @Optional() private readonly threads?: ChatConversationThreadService
     ) {}
 
@@ -64,7 +67,17 @@ export class WorkbenchAssistantConversationNavigationService {
 
         const isExternalAssistant = !this.xpertBindingService.isSameXpert(requesterXpert, targetXpert)
         if (isExternalAssistant && !(await this.isConnectedExternalAssistant(requesterXpert, targetXpert, projectId))) {
-            throw navigationDenied()
+            const linkedTask =
+                projectId &&
+                (await this.queryBus.execute(
+                    new HasProjectTaskConversationQuery(
+                        projectId,
+                        conversation.id,
+                        normalizedRequesterXpertId,
+                        targetXpertId
+                    )
+                ))
+            if (!linkedTask) throw navigationDenied()
         }
 
         return {

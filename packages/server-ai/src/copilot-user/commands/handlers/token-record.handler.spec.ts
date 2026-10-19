@@ -39,6 +39,7 @@ describe('CopilotTokenRecordHandler', () => {
                 new CopilotTokenRecordCommand({
                     tenantId: 'tenant-1',
                     requestId: 'attempt-1',
+                    originExecutionId: 'native-execution-1',
                     organizationId: 'runtime-org',
                     userId: 'creator-user',
                     copilotId: copilot.id,
@@ -62,6 +63,7 @@ describe('CopilotTokenRecordHandler', () => {
             expect(copilotUsageService.recordTokenUsage).toHaveBeenCalledWith(
                 expect.objectContaining({
                     providerScopeId: 'original-provider',
+                    originExecutionId: 'native-execution-1',
                     provider: 'original',
                     copilotOrganizationId: providerOrganizationId
                 }),

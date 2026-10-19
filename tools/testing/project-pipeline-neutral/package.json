@@ -1,0 +1,24 @@
+{
+  "name": "@xpert-ai/plugin-pipeline-acceptance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "description": "Effect-free integration fixture for public Project Pipeline extensions",
+  "xpert": {
+    "plugin": {
+      "level": "system",
+      "artifactNamespace": "pipeline_acceptance"
+    }
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@xpert-ai/contracts": "^3.19.0",
+    "@xpert-ai/plugin-sdk": "^3.19.0",
+    "zod": "^3.25.67"
+  }
+}

@@ -52,6 +52,7 @@ describe('ModelUsageLedgerService', () => {
                     organizationId: 'org-1',
                     userId: 'user-1',
                     originId: 'thread-1',
+                    originExecutionId: 'execution-1',
                     xpertId: 'xpert-1',
                     copilotId: 'copilot-1',
                     providerScopeId: 'provider-scope-1',
@@ -88,6 +89,7 @@ describe('ModelUsageLedgerService', () => {
                 source: MembershipLedgerSourceEnum.ModelUsage,
                 pointsDelta: 0,
                 originType: 'model',
+                originExecutionId: 'execution-1',
                 modality: 'text',
                 operation: AiModelTypeEnum.LLM,
                 unit: 'token',
@@ -113,6 +115,8 @@ describe('ModelUsageLedgerService', () => {
                 sourceReference: 'model-usage-charge:usage-ledger-1'
             })
         )
+        // Native LLM tokens already increment execution.tokens; tool-only details must not add them again.
+        expect(await service.getUsages(['execution-1'], 'tenant-1')).toEqual([])
     })
 
     it('stores provider-reported credits without converting them into membership settlement', async () => {

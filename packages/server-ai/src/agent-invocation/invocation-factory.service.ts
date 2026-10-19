@@ -1,3 +1,4 @@
+import { AuthorizeProjectPipelineRuntimeCommand } from '../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 import { ClaimAgentRuntimeResultsCommand } from '../handoff/runtime-messaging/runtime-message.commands'
 import {
     GroupTaskTargetItem,
@@ -5,13 +6,20 @@ import {
     ResolveGroupTaskTargetCommand,
     ExecuteGroupTaskCommand
 } from '../chat-group/group-project/group-task.commands'
-import { agentRuntimeModelSourceSchema, assistantTaskGroupContext } from '@xpert-ai/contracts'
+import {
+    agentRuntimeModelSourceSchema,
+    assistantTaskGroupContext,
+    type ProjectPipelineCatalog
+} from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
+import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
+import { AgentInvocationError } from './invocation-errors'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     AgentInvocation,
+    projectPipelineInvocationScopeSchema,
     AgentInvocationApi,
     agentInvocationDispatchContextSchema,
     AgentExecutionRunnerCapability,
@@ -26,9 +34,10 @@ import {
     RuntimeIdentityScope,
     RuntimeCapabilityRegistry,
     XPERT_RUNTIME_CAPABILITIES_TOKEN,
-    ProjectAccessRuntimeCapability
+    ProjectAccessRuntimeCapability,
+    type ProjectAccessActor
 } from '@xpert-ai/plugin-sdk'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { resolveAgentExecutionScope } from '../shared/agent/middleware-runtime/execution-scope'
 import { AgentRuntimeBindingEntity, AgentInvocationEntity } from './invocation.entity'
@@ -72,6 +81,117 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         )
             throw invocationError('ModelSourceRequired')
         return target
+    }
+
+    /** Read-only preflight for a host Pipeline before its durable work is instantiated. */
+    async resolveProjectPipelineTarget(
+        actor: ProjectAccessActor,
+        projectId: string,
+        bindingId: string,
+        selectedWorkspaceId?: string
+    ) {
+        if (
+            ![actor.tenantId, actor.organizationId, actor.userId, projectId, bindingId].every(
+                (value) => z.string().uuid().safeParse(value).success
+            )
+        )
+            throw invocationError('InvalidScope')
+        await this.capabilities.require(ProjectAccessRuntimeCapability).assertEdit({ actor, projectId })
+        const project = await this.bindings.manager
+            .getRepository(XpertProject)
+            .findOneBy({ id: projectId, tenantId: actor.tenantId, organizationId: actor.organizationId })
+        const binding = await this.bindings.findOneBy({
+            id: bindingId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            enabled: true
+        })
+        const workspaceId =
+            selectedWorkspaceId ?? (binding?.workspaceIds.length === 1 ? binding.workspaceIds[0] : undefined)
+        if (
+            !project ||
+            !binding ||
+            !z.string().uuid().safeParse(workspaceId).success ||
+            !binding.workspaceIds.includes(workspaceId)
+        )
+            throw invocationError('InvalidScope')
+        const workspace = await this.bindings.manager.findOneBy(XpertWorkspace, {
+            id: workspaceId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId
+        })
+        if (!workspace || workspace.status === 'archived') throw invocationError('InvalidScope')
+        this.assertPipelineTarget(binding.target, actor.organizationId)
+        return { workspaceId, target: structuredClone(binding.target) }
+    }
+
+    /** Runtime grants expose selection metadata only, never credentials or authoring/file capabilities. */
+    async listProjectPipelineBindings(
+        actor: ProjectAccessActor,
+        projectId: string
+    ): Promise<NonNullable<ProjectPipelineCatalog['runtimeBindings']>> {
+        await this.capabilities.require(ProjectAccessRuntimeCapability).assertManage({ actor, projectId })
+        if (
+            ![actor.tenantId, actor.organizationId, actor.userId, projectId].every(
+                (value) => z.string().uuid().safeParse(value).success
+            )
+        )
+            throw invocationError('InvalidScope')
+        const scope = { tenantId: actor.tenantId, organizationId: actor.organizationId }
+        const bindings = await this.bindings.find({
+            where: { ...scope, enabled: true },
+            order: { title: 'ASC', id: 'ASC' }
+        })
+        const ids = [
+            ...new Set(
+                bindings
+                    .flatMap((binding) => binding.workspaceIds)
+                    .filter((id) => z.string().uuid().safeParse(id).success)
+            )
+        ]
+        const workspaces = ids.length
+            ? await this.bindings.manager.find(XpertWorkspace, {
+                  where: { ...scope, id: In(ids) },
+                  select: { id: true, name: true, status: true }
+              })
+            : []
+        return bindings.flatMap((binding) => {
+            try {
+                this.assertPipelineTarget(binding.target, actor.organizationId)
+            } catch (error) {
+                if (
+                    error instanceof AgentInvocationError &&
+                    ['Unsupported', 'ProviderUnavailable'].includes(error.code)
+                )
+                    return []
+                throw error
+            }
+            const permitted = workspaces
+                .filter((workspace) => workspace.status !== 'archived' && binding.workspaceIds.includes(workspace.id))
+                .map((workspace) => ({ id: workspace.id, name: workspace.name }))
+            return permitted.length
+                ? [
+                      {
+                          id: binding.id,
+                          title: binding.title,
+                          provider: binding.target.provider,
+                          revision: binding.target.revision,
+                          workspaces: permitted
+                      }
+                  ]
+                : []
+        })
+    }
+
+    private assertPipelineTarget(target: AgentTarget, organizationId: string) {
+        this.runtime.assertBackgroundTarget(target, organizationId)
+        if (
+            z
+                .object({ type: z.literal('computer') })
+                .passthrough()
+                .safeParse(target.configuration.executionEnvironment).success
+        )
+            throw invocationError('Unsupported')
     }
 
     async resolveGroupTarget(scope: AgentInvocationScope, participantId: string): Promise<AgentTarget> {
@@ -134,7 +254,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 !scope.tenantId ||
                 !scope.organizationId ||
                 !scope.userId ||
-                (scope.callerType !== 'project_agent' && !scope.callerXpertId)
+                (!['project_agent', 'project_pipeline'].includes(scope.callerType) && !scope.callerXpertId)
             ) {
                 throw invocationError('InvalidScope')
             }
@@ -143,7 +263,12 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                     actor: { userId: scope.userId, tenantId: scope.tenantId, organizationId: scope.organizationId },
                     projectId: scope.projectId
                 })
-            if (scope.callerType === 'project_agent') {
+            if (scope.pipelineOrigin && scope.callerType !== 'project_pipeline') throw invocationError('InvalidScope')
+            if (scope.callerType === 'project_pipeline') {
+                const parsed = projectPipelineInvocationScopeSchema.safeParse(scope)
+                if (!parsed.success || !this.commands) throw invocationError('InvalidScope')
+                await this.commands.execute(new AuthorizeProjectPipelineRuntimeCommand(parsed.data, bindingId))
+            } else if (scope.callerType === 'project_agent') {
                 if (!scope.projectId || scope.callerXpertId || scope.callerAgentKey !== 'general_agent')
                     throw invocationError('InvalidScope')
                 const project = await this.bindings.manager.getRepository(XpertProject).findOneBy({
@@ -171,6 +296,9 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 enabled: true
             })
             if (!binding || !binding.workspaceIds.includes(scope.workspaceId)) throw invocationError('NotFound')
+            if (scope.callerType === 'project_pipeline') {
+                this.assertPipelineTarget(binding.target, scope.organizationId)
+            }
             return structuredClone(binding.target)
         }
         const api = () => {
@@ -235,7 +363,23 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             return api()
         }
         const controls: AgentInvocationApi = {
-            start: (request) => api().start(request),
+            start: async (request) => {
+                const scope = currentScope()
+                if (scope.callerType === 'project_pipeline') {
+                    const parsed = projectPipelineInvocationScopeSchema.safeParse(scope)
+                    if (
+                        !parsed.success ||
+                        !this.commands ||
+                        request.dispatch ||
+                        request.callId !== parsed.data.pipelineOrigin.operationId
+                    )
+                        throw invocationError('InvalidRequest')
+                    await this.commands.execute(
+                        new AuthorizeProjectPipelineRuntimeCommand(parsed.data, request.target.bindingId, 'dispatch')
+                    )
+                }
+                return api().start(request)
+            },
             inspect: async (id) => (await existingApi(id)).inspect(id),
             cancel: async (id) => (await existingApi(id)).cancel(id),
             respond: async (id, interaction, response) => (await existingApi(id)).respond(id, interaction, response)

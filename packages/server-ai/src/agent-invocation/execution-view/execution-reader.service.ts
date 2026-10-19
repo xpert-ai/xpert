@@ -1,3 +1,5 @@
+import { projectPipelineInvocationScopeSchema } from '@xpert-ai/plugin-sdk'
+import { AuthorizeProjectPipelineRuntimeCommand } from '../../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ResolveGroupTaskTargetCommand } from '../../chat-group/group-project/group-task.commands'
@@ -43,6 +45,13 @@ export class ExecutionReaderService {
             (context.runtimeScope?.conversationId && scope.conversationId !== context.runtimeScope.conversationId)
         )
             throw invocationError('NotFound')
+        if (scope.callerType === 'project_pipeline') {
+            const parsed = projectPipelineInvocationScopeSchema.safeParse(scope)
+            if (!parsed.success) throw invocationError('NotFound')
+            await this.commands.execute(
+                new AuthorizeProjectPipelineRuntimeCommand(parsed.data, row.invocation.request.target.bindingId)
+            )
+        }
         if (assistantTaskGroupContext(row.invocation.request.target)) {
             await this.commands.execute(
                 new ResolveGroupTaskTargetCommand(scope, row.invocation.request.target.bindingId)

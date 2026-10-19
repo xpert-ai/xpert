@@ -28,6 +28,10 @@ import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { GetXpertWorkflowQuery } from '../../xpert/queries/get-xpert-workflow.query'
 import { XpertAgentExecutionUpsertCommand } from '../commands/upsert.command'
 import { AssistantTaskRuntimeService } from './assistant-task-runtime.service'
+import {
+    AuthorizePipelineNativeExecutionCommand,
+    PreparePipelineNativeExecutionCommand
+} from '../../xpert-project/pipeline/runtime/pipeline-native-grant.command'
 
 function fixture(external: boolean) {
     const callerId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -74,8 +78,12 @@ function fixture(external: boolean) {
             throw new Error(`Unexpected query: ${query?.constructor.name}`)
         })
     }
+    const nativeAuthorize = jest.fn(),
+        nativePrepare = jest.fn()
     const commands = {
         execute: jest.fn(async (command: unknown) => {
+            if (command instanceof AuthorizePipelineNativeExecutionCommand) return nativeAuthorize(command.input)
+            if (command instanceof PreparePipelineNativeExecutionCommand) return nativePrepare(command.input)
             if (command instanceof ChatConversationUpsertCommand) return { ...command.entity, threadId: 'thread' }
             if (command instanceof XpertAgentExecutionUpsertCommand) return command.execution
             if (command instanceof XpertChatCommand) return NEVER
@@ -119,7 +127,7 @@ function fixture(external: boolean) {
               }
             : {})
     }
-    return { service, reader, store, target, input, commands, queries, published }
+    return { service, reader, store, target, input, commands, queries, published, nativeAuthorize, nativePrepare }
 }
 
 describe('Assistant Task workspace scope', () => {
@@ -129,6 +137,92 @@ describe('Assistant Task workspace scope', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
     })
     afterEach(() => jest.restoreAllMocks())
+
+    const source = {
+        kind: 'provider_action' as const,
+        operationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        leaseOwner: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        leaseFence: 1,
+        callKey: 'primary'
+    }
+    it.each([false, true])(
+        'authorizes the exact Pipeline native identity before creating a conversation (external=%s)',
+        async (external) => {
+            const f = fixture(external)
+            const input = {
+                ...f.input,
+                projectId: 'project',
+                executionId: 'native-execution',
+                conversationId: 'conversation',
+                pipelineSource: source
+            }
+            await f.service.startTask(input)
+            expect(f.nativeAuthorize).toHaveBeenCalledWith({
+                actor: { tenantId: 'tenant', organizationId: 'organization', userId: 'user' },
+                projectId: 'project',
+                source,
+                executionId: 'native-execution',
+                conversationId: 'conversation',
+                xpertId: f.target.id,
+                workspaceId: 'executor-workspace',
+                publishedVersion: '1',
+                inputDigest: expect.stringMatching(/^[a-f0-9]{64}$/)
+            })
+            expect(f.commands.execute.mock.calls[0][0]).toBeInstanceOf(AuthorizePipelineNativeExecutionCommand)
+            await f.service.startTask(input)
+            expect(f.nativeAuthorize).toHaveBeenCalledTimes(1)
+            expect(
+                f.commands.execute.mock.calls.filter(([command]) => command instanceof XpertChatCommand)
+            ).toHaveLength(1)
+        }
+    )
+    it('never creates native rows or dispatches a model when Pipeline authorization fails', async () => {
+        const f = fixture(false)
+        f.nativeAuthorize.mockRejectedValue(new Error('Denied by durable lease'))
+        const result = await f.service
+            .startTask({
+                ...f.input,
+                projectId: 'project',
+                executionId: 'native-execution',
+                conversationId: 'conversation',
+                pipelineSource: source
+            })
+            .catch(() => null)
+        expect(result?.status).not.toBe('running')
+        expect(f.nativeAuthorize).toHaveBeenCalledTimes(1)
+        expect(
+            f.commands.execute.mock.calls.every(
+                ([command]) => command instanceof AuthorizePipelineNativeExecutionCommand
+            )
+        ).toBe(true)
+    })
+    it('prepares a pinned input without dispatch and preserves its canonical digest across persisted key ordering', async () => {
+        const f = fixture(true)
+        const prepared = await f.service.preparePipelineTask({
+            ...f.input,
+            projectId: 'project',
+            executionId: 'native-execution',
+            conversationId: 'conversation',
+            pipelineSource: source
+        })
+        expect(prepared.expectedPublishedVersion).toBe('1')
+        expect(f.store.rows.size).toBe(0)
+        expect(
+            f.commands.execute.mock.calls.every(([command]) => command instanceof PreparePipelineNativeExecutionCommand)
+        ).toBe(true)
+        const reordered = Object.fromEntries(Object.entries(prepared).reverse()) as typeof prepared
+        await f.service.startTask(reordered)
+        expect(f.nativeAuthorize.mock.calls[0][0].inputDigest).toBe(f.nativePrepare.mock.calls[0][0].inputDigest)
+    })
+
+    it('rejects a stale pinned publication before creating an invocation or dispatching a task', async () => {
+        const f = fixture(false)
+        await expect(
+            f.service.startTask({ ...f.input, expectedPublishedVersion: 'older-version' })
+        ).rejects.toMatchObject({ code: 'CallConflict' })
+        expect(f.store.rows.size).toBe(0)
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
 
     it('authorizes only the exact published native role binding without exposing its instance ID', async () => {
         const f = fixture(true)

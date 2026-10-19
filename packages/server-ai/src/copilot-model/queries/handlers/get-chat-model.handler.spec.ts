@@ -2,6 +2,7 @@ jest.mock('../../utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
 
+import { FakeStreamingChatModel } from '../../../shared/agent/fake-streaming-chat-model'
 import { HumanMessage } from '@langchain/core/messages'
 import {
     AiModelTypeEnum,
@@ -55,7 +56,7 @@ describe('CopilotModelGetChatModelHandler', () => {
                 return undefined
             })
         }
-        const model = { invoke: jest.fn() }
+        const model = new FakeStreamingChatModel({ sleep: 0 })
         const getModelInstance = jest.fn().mockReturnValue(model)
         const getProviderModels = jest.fn().mockReturnValue([
             {
@@ -225,6 +226,27 @@ describe('CopilotModelGetChatModelHandler', () => {
         expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
             false
         )
+    })
+
+    it('pins each call to the execution active before asynchronous usage persistence', async () => {
+        const { commandBus, getModelInstance, handler, query } = createFixture()
+        let executionId = 'execution-1'
+        query.options.resolveExecutionId = () => executionId
+        query.options.usageCallback = async () => {
+            executionId = 'execution-2'
+        }
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        for (const requestId of ['request-1', 'request-2']) {
+            await modelOptions.handleLLMTokens({ requestId, model: 'qwen3.6-plus', usage: { totalTokens: 120 } })
+        }
+        const records = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .filter((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
+        expect(records.map((record) => [record.input.requestId, record.input.originExecutionId])).toEqual([
+            ['request-1', 'execution-1'],
+            ['request-2', 'execution-2']
+        ])
     })
 
     it('records authoritative specialized-model usage through the unified model ledger', async () => {

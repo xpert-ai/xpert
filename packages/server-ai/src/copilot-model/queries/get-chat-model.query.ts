@@ -17,6 +17,7 @@ export class CopilotModelGetChatModelQuery implements IQuery {
             abortController?: AbortController
             // tokenCallback?: (tokens: number) => void
             usageCallback: (tokens: TLLMUsage) => void | Promise<void>
+            resolveExecutionId?: () => string | undefined
             modelUsageCallback?: (report: ModelUsageReport) => void | Promise<void>
             modelAccessCallback?: (modelAccess: IModelAccessResolution) => void
             xpertId?: string

@@ -1,6 +1,8 @@
 import { ChatConversationThreadService } from './conversation-thread.service'
 import type { IXpert } from '@xpert-ai/contracts'
 import { ForbiddenException } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
+import { HasProjectTaskConversationQuery } from '../xpert-project/queries/has-project-task-conversation.query'
 import { ChatConversationService } from './conversation.service'
 import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
@@ -24,6 +26,7 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
     let assertAccess: jest.Mock
     let assertCanReadXpert: jest.Mock
     let resolveCurrentById: jest.Mock
+    let taskProof: jest.Mock
 
     beforeEach(() => {
         assertAccess = jest.fn().mockResolvedValue({
@@ -55,10 +58,12 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
             findVisibleMessages: visible,
             requireByThreadId: requireThread
         })
+        taskProof = jest.fn().mockResolvedValue(false)
         service = new WorkbenchAssistantConversationNavigationService(
             conversationService,
             projectAccessService,
             xpertBindingService,
+            Object.assign(Object.create(QueryBus.prototype), { execute: taskProof }),
             threads
         )
     })
@@ -136,6 +141,33 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
         })
 
         await expect(service.resolve('conversation-1', requester.id)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('opens an independently bound Assistant only with exact persisted Project task evidence', async () => {
+        taskProof.mockResolvedValue(true)
+        await expect(service.resolve('conversation-1', unrelated.id)).resolves.toMatchObject({
+            xpertId: target.id,
+            projectId: 'project-1',
+            isExternalAssistant: true
+        })
+        expect(taskProof).toHaveBeenCalledWith(
+            new HasProjectTaskConversationQuery('project-1', 'conversation-1', unrelated.id, 'role-assistant-old')
+        )
+    })
+
+    it('rechecks current membership and binding before consulting task evidence', async () => {
+        taskProof.mockResolvedValue(true)
+        assertCanReadXpert.mockRejectedValue(new ForbiddenException())
+        await expect(service.resolve('conversation-1', unrelated.id)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(taskProof).not.toHaveBeenCalled()
+    })
+
+    it('does not use task evidence to navigate outside a Project', async () => {
+        const conversation = await assertAccess()
+        assertAccess.mockResolvedValue({ ...conversation, projectId: null })
+        taskProof.mockResolvedValue(true)
+        await expect(service.resolve('conversation-1', unrelated.id)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(taskProof).not.toHaveBeenCalled()
     })
 
     function useNestedChain() {
