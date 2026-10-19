@@ -1140,7 +1140,10 @@
         "ArtifactPresentationChanged": "The published version changed. Reopen the shared page to load it.",
         "ArtifactPresentationUnavailable": "The presentation plugin is unavailable.",
         "ArtifactPresentationAccessDenied": "An authenticated team share is required.",
-        "ArtifactPresentationInputInvalid": "Invalid presentation request."
+        "ArtifactPresentationInputInvalid": "Invalid presentation request.",
+        "ProviderCredentialSchemaMissing": "This provider has no credential schema.",
+        "ProviderCredentialTargetRequired": "Select an available model type and enter a model or Endpoint ID to verify these credentials.",
+        "ProviderCredentialCheckInvalid": "Invalid credential verification request."
     },
     "Mcp": {
         "Test": {

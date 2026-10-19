@@ -16,6 +16,7 @@ export * from './assistant-model.model'
 export * from './assistant-user-preference.model'
 export * from './ai-model.model'
 export * from './model-discovery.model'
+export * from './provider-credential-validation.model'
 export * from './ai.model'
 export * from './chat-event.model'
 export {

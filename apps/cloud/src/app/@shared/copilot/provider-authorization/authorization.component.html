@@ -24,8 +24,89 @@
         <xp-spin class="absolute inset-0" />
       }
     </div>
+    @if (modelCapabilities(); as config) {
+      <div class="mt-4 flex flex-col gap-2">
+        <label for="credential-test-model" class="font-medium">{{
+          'XP.Copilot.CredentialValidation.Model' | translate
+        }}</label>
+        @if (config.modelTypes.length > 1) {
+          <select
+            class="rounded-lg border border-input bg-background px-3 py-2"
+            [attr.aria-label]="'XP.Copilot.CredentialValidation.ModelType' | translate"
+            [ngModel]="modelType()"
+            (ngModelChange)="changeModelType($event)"
+            [disabled]="loading()"
+          >
+            @for (type of config.modelTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        }
+        <input
+          z-input
+          id="credential-test-model"
+          list="credential-test-models"
+          autocomplete="off"
+          [ngModel]="testModel()"
+          (ngModelChange)="testModel.set($event)"
+          [disabled]="loading()"
+          [placeholder]="'XP.Copilot.CredentialValidation.ModelPlaceholder' | translate"
+        />
+        <datalist id="credential-test-models">
+          @for (entry of suggestedModels(); track entry.model) {
+            <option [value]="entry.model"></option>
+          }
+        </datalist>
+        <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ModelHint' | translate }}</p>
+      </div>
+    }
+    <div class="mt-4 flex items-center gap-3">
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        [zDisabled]="credentialsForm.invalid || !canTest()"
+        [zLoading]="testing() || loadingCapabilities()"
+        (click)="testCredentials()"
+      >
+        {{
+          (capabilities()?.method === 'discovery'
+            ? 'XP.Copilot.CredentialValidation.FetchAndVerify'
+            : 'XP.Copilot.CredentialValidation.Test'
+          ) | translate
+        }}
+      </button>
+      @if (!capabilities() && !loadingCapabilities()) {
+        <button z-button zType="ghost" type="button" (click)="loadCapabilities()">
+          {{ 'XP.Copilot.CredentialValidation.Retry' | translate }}
+        </button>
+      }
+    </div>
+    @if (validationResult(); as result) {
+      <div role="status" class="mt-3 text-sm">
+        @if (result.method === 'discovery') {
+          <p>{{ 'XP.Copilot.CredentialValidation.ListVerified' | translate: { count: result.models.length } }}</p>
+          @if (result.models.length) {
+            <ul class="mt-2 max-h-40 overflow-auto rounded-lg border border-border p-3">
+              @for (entry of result.models; track entry.model) {
+                <li class="break-all py-1">
+                  {{ entry.label }} <span class="text-muted-foreground">{{ entry.model }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.Empty' | translate }}</p>
+          }
+          <p class="mt-2 text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ListHint' | translate }}</p>
+        } @else if (result.method === 'model') {
+          <p>{{ 'XP.Copilot.CredentialValidation.ModelVerified' | translate: { model: result.target.model } }}</p>
+        } @else {
+          <p>{{ 'XP.Copilot.CredentialValidation.Verified' | translate }}</p>
+        }
+      </div>
+    }
     @if (error()) {
-      <p role="alert" class="text-destructive">{{ error() }}</p>
+      <p role="alert" class="mt-3 break-words text-sm text-destructive">{{ error() }}</p>
     }
   </div>
   <footer xpDialogFooter>
@@ -44,7 +125,7 @@
       z-button
       zType="default"
       type="button"
-      [zDisabled]="credentialsForm.invalid || loading() || !dirty()"
+      [zDisabled]="credentialsForm.invalid || loading() || testing() || !dirty() || !validationResult()"
       [zLoading]="loading()"
       (click)="apply()"
     >

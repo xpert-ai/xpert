@@ -6218,6 +6218,20 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "测试模型或接入点 ID",
+        "ModelType": "模型类型",
+        "ModelPlaceholder": "选择模型或输入接入点 ID",
+        "ModelHint": "此提供商不支持使用当前凭据拉取模型列表。请选择有权限的模型；候选项仅为参考，不代表已获授权。测试会发送一次最小推理请求。",
+        "FetchAndVerify": "获取模型并验证",
+        "Test": "测试连接",
+        "Retry": "重试",
+        "ListVerified": "模型列表接口验证通过，共返回 {{count}} 个模型。",
+        "Empty": "当前凭据暂无可见模型。",
+        "ListHint": "此处仅预览，保存提供商后可在模型列表中导入。列表验证不代表推理权限已验证。",
+        "ModelVerified": "模型 {{model}} 测试通过。",
+        "Verified": "凭据验证通过。"
+      },
       "Discovery": {
         "Title": "拉取模型",
         "Description": "从当前提供商增量同步模型，保留已有参数。确认同步后仅使用已配置模型；本次未返回的接口模型保留配置并停用。",

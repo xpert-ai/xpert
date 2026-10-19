@@ -1140,7 +1140,10 @@
         "ArtifactPresentationChanged": "正式版本已变化，请重新打开分享页。",
         "ArtifactPresentationUnavailable": "展示插件不可用。",
         "ArtifactPresentationAccessDenied": "需要经过认证的团队分享权限。",
-        "ArtifactPresentationInputInvalid": "展示请求无效。"
+        "ArtifactPresentationInputInvalid": "展示请求无效。",
+        "ProviderCredentialSchemaMissing": "当前提供商未配置凭据表单。",
+        "ProviderCredentialTargetRequired": "请选择支持的模型类型，并填写模型或接入点 ID 以验证凭据。",
+        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。"
     },
     "Mcp": {
         "Test": {

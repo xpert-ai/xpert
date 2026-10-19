@@ -4050,6 +4050,20 @@
       }
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "Model or Endpoint ID",
+        "ModelType": "Model type",
+        "ModelPlaceholder": "Select a model or enter an Endpoint ID",
+        "ModelHint": "This provider does not support fetching models with these credentials. Choose a model you can access. The suggestions are reference models, not verified permissions. Testing sends a minimal inference request.",
+        "FetchAndVerify": "Fetch models and verify",
+        "Test": "Test connection",
+        "Retry": "Retry",
+        "ListVerified": "Credentials accepted by the model-list API. {{count}} models returned.",
+        "Empty": "No models are visible to these credentials.",
+        "ListHint": "This is a preview. Save the provider, then import models from its model list. Listing does not verify inference access.",
+        "ModelVerified": "Test succeeded for {{model}}.",
+        "Verified": "Credential verification succeeded."
+      },
       "Discovery": {
         "Title": "Fetch models",
         "Description": "Sync models incrementally and preserve saved parameters. Confirming uses configured models only; imported models missing from this response keep their settings but become unavailable.",
