@@ -78,6 +78,43 @@ describe('Project task invocation read projection', () => {
         })
         expect(attempt.status).toBe('queued')
     })
+    it('requires the exact stored Pipeline node-to-task link and operation identity', () => {
+        const id = '00000000-0000-4000-8000-000000000001'
+        const observed = invocation('succeeded')
+        observed.scope = {
+            tenantId: id,
+            organizationId: id,
+            userId: id,
+            workspaceId: id,
+            projectId: id,
+            callerType: 'project_pipeline',
+            callerAgentKey: 'pipeline_node',
+            parentExecutionId: `pipeline-operation:${id}`,
+            pipelineOrigin: {
+                instanceId: id,
+                runId: id,
+                roundId: id,
+                nodeInstanceId: id,
+                operationId: id,
+                generation: 1,
+                inputDigest: 'a'.repeat(64)
+            }
+        }
+        delete observed.request.dispatch
+        observed.request.callId = id
+        const source = { ...attempt, projectId: id, sourceKey: id },
+            link = { projectId: id, taskId: attempt.taskId, nodeInstanceId: id }
+        expect(projectTaskInvocationView(source, observed, link).invocationStatus).toBe('succeeded')
+        expect(projectTaskInvocationView(source, observed).invocationStatus).toBe('unknown')
+        expect(projectTaskInvocationView(source, observed, { ...link, taskId: 'another' }).invocationStatus).toBe(
+            'unknown'
+        )
+        expect(projectTaskInvocationView({ ...source, sourceKey: 'another' }, observed, link).invocationStatus).toBe(
+            'unknown'
+        )
+        observed.scope.pipelineOrigin.operationId = '00000000-0000-4000-8000-000000000002'
+        expect(projectTaskInvocationView(source, observed, link).invocationStatus).toBe('unknown')
+    })
     it('refuses unrelated observations and treats a missing submitted invocation as unknown', () => {
         const unrelated = invocation('succeeded')
         unrelated.request.dispatch.projectTask.taskExecutionId = 'other'

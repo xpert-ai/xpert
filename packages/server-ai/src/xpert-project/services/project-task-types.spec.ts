@@ -1,3 +1,4 @@
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { writeTaskProjection } from './task-projection/project-task-projection.writer'
 import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
@@ -56,7 +57,13 @@ describe('registered task business types', () => {
         })
         const rows: XpertProjectTask[] = [ordinary]
         const manager = {
-            find: jest.fn(async (entity) => (entity === XpertProjectTask ? rows.filter((row) => row.providerKey) : [])),
+            find: jest.fn(async (entity, options) =>
+                entity === XpertProjectTask
+                    ? options.where.providerKey
+                        ? rows.filter((row) => row.providerKey)
+                        : rows
+                    : []
+            ),
             findOne: jest.fn(async () => ({ id: 'project', name: 'Project' })),
             findOneOrFail: jest.fn(async () => Object.assign(new XpertProject(), { id: 'project' })),
             create: jest.fn((_entity, value) => Object.assign(new XpertProjectTask(), value)),
@@ -72,6 +79,7 @@ describe('registered task business types', () => {
         let diagnostics: Array<{ providerKey: string; message: string }> = []
         const module = await Test.createTestingModule({
             providers: [
+                { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
                 ProjectTaskGraphService,
                 {
                     provide: ProjectTaskProjectionService,

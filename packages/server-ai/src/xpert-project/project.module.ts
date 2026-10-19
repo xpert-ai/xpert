@@ -1,3 +1,14 @@
+import { ProjectPipelineRuntimeBridgeService } from './pipeline/runtime/pipeline-runtime-bridge.service'
+import { ProjectPipelineModelBudgetStore } from './pipeline/budget/pipeline-model-budget.store'
+import {
+    AuthorizePipelineNativeExecutionHandler,
+    PreparePipelineNativeExecutionHandler,
+    ProjectPipelineNativeGrantStore
+} from './pipeline/runtime/pipeline-native-grant.handler'
+import {
+    AdmitPipelineModelCallHandler,
+    SettlePipelineModelCallHandler
+} from './pipeline/budget/pipeline-model-budget.handler'
 import { ProjectTaskDispatchRecoveryService } from './runtime/project-task-dispatch-recovery.service'
 import { ProjectRuntimeObservationHandler } from './runtime/project-runtime-observation.handler'
 import { ProjectTaskCardProvider } from './runtime/project-task-card.provider'
@@ -89,6 +100,44 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
+import { ProjectPipelineContributionRegistry, ProjectPipelineRuntimeAdapterRegistry } from '@xpert-ai/plugin-sdk'
+import { ProjectPipelineEvidenceAccessService } from './pipeline/runtime/pipeline-evidence-access.service'
+import { ProjectPipelineConfigurationController } from './pipeline/configuration/project-pipeline-configuration.controller'
+import { ProjectPipelineConfigurationService } from './pipeline/configuration/project-pipeline-configuration.service'
+import { ProjectPipelineCatalogController } from './pipeline/configuration/pipeline-catalog.controller'
+import { ProjectPipelineCatalogService } from './pipeline/configuration/pipeline-catalog.service'
+import { ProjectPipelineBindingsService } from './pipeline/configuration/pipeline-bindings.service'
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { ProjectPipelineRefreshStore } from './pipeline/projection/pipeline-refresh.store'
+import { ProjectPipelineEntities } from './pipeline/persistence/pipeline.entity'
+import { ProjectPipelineSchemaService } from './pipeline/persistence/pipeline-schema.service'
+import { ProjectPipelineProjectionStore } from './pipeline/projection/pipeline-projection.store'
+import { ProjectPipelineProjectionService } from './pipeline/projection/pipeline-projection.service'
+import { ProjectPipelineQueryService } from './pipeline/queries/pipeline-query.service'
+import { ProjectPipelineAnalyticsService } from './pipeline/queries/pipeline-analytics.service'
+import { ProjectPipelinePortfolioController } from './pipeline/queries/pipeline-portfolio.controller'
+import { ProjectPipelinePortfolioService } from './pipeline/queries/pipeline-portfolio.service'
+import { ProjectPipelineAnalyticsController } from './pipeline/queries/pipeline-analytics.controller'
+import { ProjectPipelineController } from './pipeline/queries/pipeline.controller'
+import { ProjectPipelineCommandsController } from './pipeline/runtime/pipeline-commands.controller'
+import { ProjectPipelineCommandsService } from './pipeline/runtime/pipeline-commands.service'
+import { ProjectPipelineManagedStartService } from './pipeline/runtime/pipeline-managed-start.service'
+import { ProjectPipelineCoordinatorService } from './pipeline/runtime/pipeline-coordinator.service'
+import { ProjectPipelineOperationStore } from './pipeline/runtime/pipeline-operation.store'
+import { ProjectPipelineOperationRunnerService } from './pipeline/runtime/pipeline-operation-runner.service'
+import { ProjectPipelineOperationObserverService } from './pipeline/runtime/pipeline-operation-observer.service'
+import { ProjectPipelineOperationWorkerService } from './pipeline/runtime/pipeline-operation-worker.service'
+import { ProjectPipelineEvidenceService } from './pipeline/runtime/pipeline-evidence.service'
+import { ProjectPipelineDecisionService } from './pipeline/runtime/pipeline-decision.service'
+import { ProjectPipelineBuiltinAdapters } from './pipeline/runtime/pipeline-builtin-adapters'
+import { ProjectPipelineRoundService } from './pipeline/runtime/pipeline-round.service'
+import { ProjectPipelineLifecycleService } from './pipeline/runtime/pipeline-lifecycle.service'
+import { AuthorizeProjectPipelineRuntimeHandler } from './pipeline/runtime/pipeline-runtime-access.handler'
+import { ProjectPipelineAssistantBridgeService } from './pipeline/runtime/pipeline-assistant-bridge.service'
+import { ProjectPipelineProviderActionStore } from './pipeline/provider-actions/provider-action.store'
+import { ProjectPipelineProviderActionsService } from './pipeline/provider-actions/provider-actions.service'
+import { ProjectPipelineProviderActionWorkerService } from './pipeline/provider-actions/provider-action-worker.service'
+import { ProjectPipelineProviderActionsController } from './pipeline/provider-actions/provider-actions.controller'
 
 @Module({
     imports: [
@@ -96,6 +145,7 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         AgentInvocationModule,
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
+            ...ProjectPipelineEntities,
             PluginApplicationInstallation,
             FileAsset,
             XpertProject,
@@ -140,12 +190,57 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         forwardRef(() => XpertModule)
     ],
     controllers: [
+        ProjectPipelineCommandsController,
+        ProjectPipelineController,
+        ProjectPipelineAnalyticsController,
+        ProjectPipelinePortfolioController,
+        ProjectPipelineConfigurationController,
+        ProjectPipelineCatalogController,
+        ProjectPipelineProviderActionsController,
         XpertProjectController,
         XpertProjectInvitationController,
         XpertProjectAdminController,
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectPipelineSchemaService,
+        ProjectPipelineModelBudgetStore,
+        AuthorizePipelineNativeExecutionHandler,
+        PreparePipelineNativeExecutionHandler,
+        ProjectPipelineNativeGrantStore,
+        AdmitPipelineModelCallHandler,
+        SettlePipelineModelCallHandler,
+        ProjectPipelineProviderActionStore,
+        ProjectPipelineProviderActionsService,
+        ProjectPipelineProviderActionWorkerService,
+        ProjectPipelineAssistantBridgeService,
+        ProjectPipelineRuntimeBridgeService,
+        AuthorizeProjectPipelineRuntimeHandler,
+        ProjectPipelineRoundService,
+        ProjectPipelineLifecycleService,
+        ...ProjectPipelineBuiltinAdapters,
+        ProjectPipelineCommandsService,
+        ProjectPipelineManagedStartService,
+        ProjectPipelineCoordinatorService,
+        ProjectPipelineOperationStore,
+        ProjectPipelineOperationRunnerService,
+        ProjectPipelineOperationObserverService,
+        ProjectPipelineOperationWorkerService,
+        ProjectPipelineEvidenceService,
+        ProjectPipelineDecisionService,
+        ProjectPipelineRefreshStore,
+        ProjectPipelineProjectionProviderRegistry,
+        ProjectPipelineProjectionStore,
+        ProjectPipelineProjectionService,
+        ProjectPipelineQueryService,
+        ProjectPipelineAnalyticsService,
+        ProjectPipelinePortfolioService,
+        ProjectPipelineContributionRegistry,
+        ProjectPipelineRuntimeAdapterRegistry,
+        ProjectPipelineEvidenceAccessService,
+        ProjectPipelineConfigurationService,
+        ProjectPipelineCatalogService,
+        ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
         ProjectTaskDispatchRecoveryService,
         ProjectRuntimeObservationHandler,

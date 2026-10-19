@@ -1,6 +1,7 @@
 import { XpertAgentExecutionStatusEnum as Status } from '@xpert-ai/contracts'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
+import { XpertProjectTask } from '../entities/project-task.entity'
 import { ProjectTaskGraphService } from './project-task-graph.service'
 
 describe('task timeline execution timestamps', () => {
@@ -22,6 +23,7 @@ describe('task timeline execution timestamps', () => {
         }
         const manager = {
             find: jest.fn(async (entity: unknown) => {
+                if (entity === XpertProjectTask) return [{ id: 'task', status: 'in_progress', revision: 1 }]
                 if (entity === XpertProjectTaskExecution) return [attempt]
                 if (entity === XpertAgentExecution) return [runtime]
                 return []
@@ -32,7 +34,8 @@ describe('task timeline execution timestamps', () => {
             { manager, find: async () => [{ id: 'task', status: 'in_progress', revision: 1 }] } as never,
             { listReadable: async () => [{ role: 'editor', archived: false }] } as never,
             { list: () => [] } as never,
-            { diagnostics: async () => [] } as never
+            { diagnostics: async () => [] } as never,
+            { listForActor: () => [] } as never
         )
         const context = { projectId: 'project', actor: { tenantId: 'tenant', organizationId: 'org', userId: 'user' } }
         const running = await service.graph(context)
@@ -42,6 +45,7 @@ describe('task timeline execution timestamps', () => {
         const completed = await service.graph(context)
         expect(completed.tasks[0].actualEndAt).toBe('2026-10-07T14:05:00.000Z')
         expect(completed.executions[0].runtimeCompletedAt).toBe('2026-10-07T14:05:00.000Z')
+        expect(completed.executions[0].runtimeProvider).toBe('xpert-task')
         expect(completed.cursor).not.toBe(running.cursor)
         runtime.updatedAt = new Date('2026-10-08T00:00:00Z')
         expect((await service.graph(context)).cursor).toBe(completed.cursor)
