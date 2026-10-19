@@ -1,3 +1,5 @@
+import { RunStreamArchive, RunStreamArchivedEvent } from '../../shared/stream/run-stream-archive.entity'
+import { RunStreamSnapshot } from '../../shared/stream/run-stream-snapshot.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
 import { TemplateUpgradeEntity } from '../../xpert/template-lifecycle/template-upgrade.entity'
 import { TemplateInstallationEntity } from '../../plugin-resource/template-installation/template-installation.entity'
@@ -135,6 +137,9 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    RunStreamSnapshot,
+    RunStreamArchive,
+    RunStreamArchivedEvent,
     TemplatePublicationEntity,
     TemplateUpgradeEntity,
     TemplateInstallationEntity,

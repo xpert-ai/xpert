@@ -100,6 +100,7 @@
         "ApplicationToolsetConfigurationRequired": "Configure the required toolsets before enabling the application.",
         "ApplicationToolsetProviderRequired": "Install the required tool provider plugins before enabling the application.",
         "InvalidStreamCursor": "Invalid output stream cursor.",
+        "StreamPersistenceCapacity": "Progress persistence reached its capacity limit. The run was stopped and existing output was retained.",
         "AgentInvocationModelSourceRequired": "A Computer Runtime binding for the Project general agent must configure modelSource with a real Assistant for model authorization.",
         "ProjectTaskRuntimeInvalid": "Task delegation requires a valid task specification, explicit completion requirements and a valid request.",
         "ProjectTaskRuntimeScope": "The task delegation caller or project scope is not authorized.",

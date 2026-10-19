@@ -1,0 +1,23 @@
+# Run stream recovery
+
+`ChatMessage` remains the conversation history. `run_stream_snapshot` holds an immutable recovery image of those messages plus the exact Redis cursor, epoch and revision. It is not an LLM summary or an event archive. Keeping the image in the same transaction avoids combining a cursor with message rows that have already advanced beyond it.
+
+The producer captures message/block identities, reasoning, tool components, pending interrupts (including tool-call IDs) and agent states at an event boundary. It commits progress every two seconds and at tool/message/interruption boundaries. Final persistence completes before the transport completion marker. PostgreSQL fences older epochs, cursors and progress after a final snapshot; ordinary progress cannot replace terminal message rows.
+
+Readers explicitly request `recovery=snapshot-v1` through the SDK. A missing/trimmed cursor receives a `run_snapshot` followed only by newer events. Readers check the retained boundary again after fetching each batch, including while catching up. Same-run resumed segments cannot consume an earlier segment's completion snapshot. Snapshot application updates matching IDs in place, preserving interleaved user messages, earlier segments and other runs. Pending user questions are restored from the snapshot or the authoritative interrupted thread operation without resubmitting the original task.
+
+## Rollout
+
+1. Create the recovery tables through the platform's existing TypeORM schema synchronization. `RunStreamSnapshot`, `RunStreamArchive` and `RunStreamArchivedEvent` are registered in `ALL_AI_ENTITIES`. With `DB_SCHEMA_SYNC_MODE=external`, run the standalone `schema-sync` job using the new backend build before API instances start (both shared Xpert and Pro sources are updated). There is no separate SQL migration. Recovery rows are deleted with their execution.
+2. Publish the accompanying SDK recovery API and rebuild ChatKit with that SDK. Local verification links the modified SDK checkout into ChatKit's ignored `node_modules`; no packages have been published or dependency lockfile upgraded by this change.
+3. Release the backend, SDK and ChatKit together. Retire older stream consumers and drain incompatible active runs before switching to the new backend; all consumers must support `snapshot-v1` recovery.
+
+Successfully committed snapshots automatically trigger `XTRIM MINID`; no environment switch is required. The boundary event is retained, so a snapshot at event 9000 leaves that boundary plus the 3000 newer events. Failed or rejected saves never permit trimming. `AI_SSE_STREAM_MAXLEN` no longer controls retention.
+
+Active streams have no Redis expiry. A successfully committed final snapshot permits completed streams to use `AI_SSE_STREAM_TTL_SECONDS` (default one day). Failed final persistence retains the stream without expiry. If uncheckpointed output exceeds `AI_SSE_UNCHECKPOINTED_MAX_BYTES` (default 64 MiB), request execution cancellation with an explicit persistence-capacity error; retain existing events instead of truncating them. A producer that disappears is marked interrupted by the existing run-owner machinery. The stream archive worker then scans persistent SSE keys in bounded batches, skips live producer heartbeats and running executions, and copies remaining events to `run_stream_archived_event`. Only after the archive manifest commits does a Lua comparison of the exact tail and absent producer permit expiry. A PostgreSQL failure retains Redis for retry. Archived event inserts are idempotent, and archive rows cascade with the execution.
+
+Recovery reads the committed snapshot plus archived/live events in cursor order. Failed-run history rejoins this read-only stream and preserves its newer recovered output instead of replacing it with an older `ChatMessage` projection. An archived failure clears obsolete pending actions; it does not execute the failed task again. If Redis and its uncommitted tail are lost before archival, that tail cannot be recovered; configure Redis persistence separately.
+
+## Focused verification
+
+Run the stream Jest specs, the ordinary chat handler and thread controller specs. The integration spec additionally needs `RUN_STREAM_TEST_PG` and `RUN_STREAM_TEST_REDIS` pointing to disposable local services; it creates its own PostgreSQL schema and synchronizes the actual recovery entities with TypeORM. It checks ORM reads, transaction rollback, epoch/final fencing, 12000 events, and committed-prefix trimming. SDK tests cover negotiation; ChatKit tests cover stable block continuation and run/message completion.

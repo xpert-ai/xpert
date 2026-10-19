@@ -352,7 +352,15 @@ export interface BackendProtocol extends IBackendProtocol {
  * Sandboxed backends run in isolated environments (e.g., containers)
  * and communicate via defined interfaces.
  */
+export interface SandboxExecutionRetention {
+  executionId: string
+  signal: AbortSignal
+  onLost: (error: Error) => void
+}
+
 export interface SandboxBackendProtocol extends BackendProtocol {
+  /** Protect this container for the whole model execution, including time between tools. */
+  retainExecution?(options: SandboxExecutionRetention): Promise<() => Promise<void>>
   /** Optional host guarantees; do not infer missing facts from the backend ID. */
   readonly executionEnvironment?: import('./execution-environment').SandboxExecutionEnvironment
 
