@@ -64,6 +64,30 @@ describe('generic project task views', () => {
             buildRows([task('orphan', { parentTaskId: 'missing' })], initialFilters, 'hierarchy', new Set(), 'source')
         ).toHaveLength(1)
     })
+    it('hides explicitly retired pipeline tasks by default and retains their history on request', () => {
+        const entries = [
+            task('plain'),
+            task('current', { pipelineDisposition: 'active' }),
+            task('old-placeholder', { pipelineDisposition: 'removed' }),
+            task('old-round', { pipelineDisposition: 'superseded', status: 'done' }),
+            task('unselected', { pipelineDisposition: 'excluded' })
+        ]
+        expect(filteredTasks(entries, initialFilters, 'source').map((item) => item.id)).toEqual(['plain', 'current'])
+        expect(
+            buildRows(entries, { ...initialFilters, includeInactive: true }, 'hierarchy', new Set(), 'source')
+        ).toHaveLength(5)
+        expect(entries[2].status).toBe('todo')
+    })
+    it('retains retired ancestors only as context for matching current children', () => {
+        const entries = [
+            task('old-parent', { pipelineDisposition: 'superseded' }),
+            task('new-child', { parentTaskId: 'old-parent' })
+        ]
+        expect(buildRows(entries, initialFilters, 'hierarchy', new Set(), 'source')).toEqual([
+            expect.objectContaining({ task: entries[0], contextOnly: true }),
+            expect.objectContaining({ task: entries[1], contextOnly: false })
+        ])
+    })
     it('uses actual runtime timestamps, never lease timestamps, for linked attempts', () => {
         const attempt = {
             id: 'attempt',
@@ -86,6 +110,24 @@ describe('generic project task views', () => {
         expect(domain.start).toBeLessThanOrEqual(Date.parse('2020-01-01T00:00:00Z'))
         expect(domain.end).toBeGreaterThan(Date.parse('2030-01-01T00:00:00Z'))
         expect(timelineDomain([], 'hour', 0).ticks).toBeGreaterThanOrEqual(6)
+    })
+    it('uses service observations and preserves explicit unknown historical runtime facts', () => {
+        const attempt = {
+            id: 'service-attempt',
+            taskId: 'work',
+            attempt: 1,
+            status: 'running',
+            runtimeStatus: 'succeeded',
+            startedAt: '2026-10-19T00:00:00Z',
+            completedAt: '2026-10-19T00:10:00Z',
+            runtimeStartedAt: '2026-10-19T00:01:00Z',
+            runtimeCompletedAt: '2026-10-19T00:02:00Z'
+        }
+        expect(attemptTimes(attempt)).toEqual({ start: attempt.runtimeStartedAt, end: attempt.runtimeCompletedAt })
+        expect(isRunning(attempt)).toBe(false)
+        const historical = { ...attempt, runtimeStatus: 'unknown', runtimeStartedAt: null, runtimeCompletedAt: null }
+        expect(attemptTimes(historical)).toEqual({ start: null, end: null })
+        expect(isRunning(historical)).toBe(false)
     })
     it('uses Invocation status and actual timestamps for delegated attempts', () => {
         const attempt = {

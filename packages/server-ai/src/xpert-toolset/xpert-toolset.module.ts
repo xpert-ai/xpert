@@ -1,3 +1,5 @@
+import { RestClientRuntimeService } from './runtime/rest-client-runtime.service'
+import { RestClientTransport } from './runtime/rest-client.transport'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
 import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
@@ -84,6 +86,8 @@ import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runt
         McpConsumerOAuthService,
         McpConsumerCapabilitiesService,
         McpClientRuntimeService,
+        RestClientRuntimeService,
+        RestClientTransport,
         McpClientConnectionService,
         McpSubscriptionService,
         ToolRuntimeService,

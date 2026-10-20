@@ -95,3 +95,19 @@ Gantt offers separate hour/day/week granularity and zoom controls. Zoom changes
 the horizontal time scale while preserving the time at the viewport center when
 scroll bounds allow. **Fit all** resets the zoom and **Go to now** locates the current
 time. Zoom and pan only change presentation; they never reschedule or start tasks.
+
+### Refresh recovery and layout regression
+
+The remote view sends `saveViewState` with a small scalar `state` object. The Cloud
+renderer validates and stores it in tab-session storage, scoped to host, view,
+user and runtime context, and returns it as `viewState` during `init`. The remote
+bundle does not access browser storage. Explicit initial query destinations take
+precedence. Configuration dialogs and business actions are never restored.
+Project tasks remembers the selected view, pipeline instance, round, display mode,
+lane filter/highlight, blocked filter and stage viewport. This is per browser tab,
+not server-side or cross-device persistence.
+
+Use `TASKS_PREVIEW_SCENARIO=pipeline-layout` with the preview command above for an
+eight-assistant lane and long configured conditions; select the Pipeline tab.
+Assistant lists scroll inside their role region. Long/bypass conditions reserve
+separate tracks above cards; unrelated rows retain their compact height.

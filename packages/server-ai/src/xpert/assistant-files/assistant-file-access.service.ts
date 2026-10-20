@@ -1,4 +1,8 @@
-import { templateManifestSchema, templateDependencyLocksSchema } from '@xpert-ai/contracts'
+import {
+    templateManifestSchema,
+    templateDependencyLocksSchema,
+    templateDependencyVersionsSchema
+} from '@xpert-ai/contracts'
 // Invariants: Assistant files belong to a data volume, not an XpertWorkspace entity.
 // Runtime access checks the exact published Assistant and current user grant;
 // authoring access is explicit and never a fallback after runtime denial.
@@ -6,6 +10,7 @@ import { ForbiddenException, Inject } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { normalizePluginName } from '@xpert-ai/server-core'
 import { resolveXpertDataVolumeScope } from '../../shared/volume'
 import { PublishedXpertAccessService } from '../published-xpert-access.service'
 import { XpertService } from '../xpert.service'
@@ -47,12 +52,24 @@ export class AssistantFileAccessService implements ICommandHandler<ResolveAssist
         const declaredManifest = options?.templateDefinition?.manifest ?? source?.manifest
         const manifest = declaredManifest === undefined ? undefined : templateManifestSchema.parse(declaredManifest)
         const locks = options?.templateDependencyLocks ?? source?.dependencyLocks
+        // Older v2 publications stored explicit requirements only in the template metadata.
+        // Keep those requirements without treating every installation snapshot as a version constraint.
+        const versions = templateDependencyVersionsSchema.parse(
+            options?.templateDefinition?.dependencies?.versions ?? []
+        )
         if (manifest?.files && manifest.files.scope !== xpert.workspaceDataScope) throw this.denied()
         // Explicit file policy: authorized users collaborate with full CRUD in shared volumes;
         // user-isolated volumes grant the same operations only within the current user's root.
         return {
             scope,
-            dependencyLocks: locks ? templateDependencyLocksSchema.parse(locks) : undefined,
+            dependencyLocks: locks
+                ? templateDependencyLocksSchema.parse(locks).map((lock) => {
+                      const required = versions.find(
+                          (entry) => normalizePluginName(entry.pluginName) === lock.pluginName
+                      )
+                      return required && !lock.requiredVersion ? { ...lock, requiredVersion: required.version } : lock
+                  })
+                : undefined,
             initialFiles: manifest?.files,
             capabilities: { canList: true, canRead: true, canWrite: true, canDelete: true }
         }

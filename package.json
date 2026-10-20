@@ -63,6 +63,8 @@
     "changeset": "changeset",
     "check:application-changesets": "node .deploy/application-images/check-release.mjs --staged",
     "changeset:version": "changeset version && node packages/sandbox-runtime/scripts/sync-version.mjs && pnpm run lockfile:update",
+    "deps:update:chatkit": "node tools/release/update-chatkit.mjs",
+    "test:deps:update:chatkit": "node --test tools/release/update-chatkit.test.mjs",
     "lockfile:update": "pnpm install --lockfile-only --ignore-scripts && node .deploy/api/dependencies.cjs update && node .deploy/webapp/dependencies.cjs update && node .deploy/desktop/dependencies.cjs update",
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts && node .deploy/api/dependencies.cjs check && node .deploy/webapp/dependencies.cjs check && node .deploy/desktop/dependencies.cjs check",
     "api:image:check": "docker build --target production -f .deploy/api/Dockerfile -t xpert-api:health-check . && node .deploy/api/check-image.cjs",

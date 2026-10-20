@@ -79,6 +79,14 @@ function createAssistantListMethods(ClientError) {
           })
           if (restored.assistantId !== session.conversation.assistantId)
             throw new ClientError('This conversation does not belong to the assistant.', 403)
+          // Re-derive Project scope from the authorized conversation, never from local persistence.
+          return {
+            ...session,
+            conversation: {
+              ...session.conversation,
+              ...(restored.projectId ? { projectId: restored.projectId } : {})
+            }
+          }
         } else await conversation(this, session)
         return session
       } catch (error) {

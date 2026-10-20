@@ -5,14 +5,20 @@ import { t } from 'i18next'
 import { assertProjectTaskProgress } from './project-task-progress'
 
 /** Generic task mutation cannot overwrite facts owned by a business provider. */
-export function assertOrdinaryTask(task: Pick<IXpertProjectTask, 'providerKey'>): void {
-    if (task.providerKey) throw new BadRequestException(t('server-ai:Error.ProjectTaskProviderCommandRequired'))
+export function assertOrdinaryTask(
+    task: Pick<IXpertProjectTask, 'providerKey' | 'controlKind' | 'pipelineInstanceId'>
+): void {
+    if (task.providerKey || task.pipelineInstanceId || (task.controlKind && task.controlKind !== 'ordinary'))
+        throw new BadRequestException(t('server-ai:Error.ProjectTaskProviderCommandRequired'))
 }
 
 /** Task identity, relations and projection fields use their dedicated commands. */
 export function assertOrdinaryTaskInput(input: object): void {
     if ('progress' in input) assertProjectTaskProgress(input.progress)
     for (const key of [
+        'controlKind',
+        'pipelineInstanceId',
+        'pipelineDisposition',
         'providerKey',
         'sourceKey',
         'sourceRevision',
@@ -49,6 +55,7 @@ export function assertNativeExecutionInput(input: object): void {
         'dispatchRequestId',
         'dispatchState',
         'dispatchIntent',
+        'pipelineWorkContext',
         'purpose',
         'specificationSnapshot'
     ]) {

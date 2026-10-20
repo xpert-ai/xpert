@@ -33,6 +33,16 @@ Omitting `--environment-id` preserves each existing Assistant's environment. Sup
 
 Roles removed from a previous installation receipt are disconnected from the updated suite but their historical Assistants are retained. Unrelated instance bindings are preserved. This command does not install plugins or perform business execution acceptance; a successful release means the suite is ready for those tests.
 
+## Runtime compatibility after a plugin update
+
+An installed Assistant's dependency locks record the versions and resource hashes used at installation. These automatic snapshots are not a requirement to republish the Assistant on every plugin update. At runtime, package version changes and changed selected resource definitions produce an advisory chat event; the published graph and installed bindings are not rewritten. Unrelated plugin resources are not inspected. The advisory does not claim that arbitrary code or business semantics have been proven compatible.
+
+Runtime still rejects unavailable plugins/resources in the authorized scope, missing or reassigned providers, and partially activated registrations that disagree with the currently loaded plugin. Explicit `dependencies.versions` requirements remain exact constraints, recorded separately as `requiredVersion`; omit such a requirement when compatible plugin upgrades should be allowed. Old v2 publications retain their explicit constraints from template metadata. Immutable agent-plugin references continue to verify the pinned binding and artifact digest, rather than requiring the latest package.
+
+Installation, preparation and interrupted-release recovery retain exact source/version/hash checks to avoid publishing a different artifact from the one that was prepared. These checks must not be globally relaxed to implement runtime compatibility. Tool parameter validation and business permissions also remain in their existing execution paths; there is no automatic inference of semantic compatibility from a package version or resource hash.
+
+For example, an Assistant installed with Bid `0.6.62` can run with `0.6.63` when its dependencies remain available and it has no explicit conflicting version requirement. A template update can be recommended separately. Verify business behavior with a fresh execution; record plugin deployment, Assistant upgrade (if selected), and business acceptance separately.
+
 ## Resume a failed release
 
 ```sh

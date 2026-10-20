@@ -9,7 +9,12 @@ import {
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { AIModelProviderNotFoundException, IAIModelProviderStrategy, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    AIModelProviderNotFoundException,
+    applyModelContextSize,
+    IAIModelProviderStrategy,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { AIModelGetProviderQuery } from '../../../ai-model'
@@ -25,6 +30,7 @@ import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ensureCopilotModelContextSize } from '../../utils/context-size'
 import { resolveModelVisionSupport, setModelVisionSupport } from '../../model-capabilities'
 import { randomUUID } from 'node:crypto'
+import { createNativeModelBudgetGate } from '../../../shared/agent/native-model-budget'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -43,6 +49,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
+        const budgetGate = createNativeModelBudgetGate(
+            this.commandBus,
+            { tenantId, organizationId, userId },
+            command.options?.resolveExecutionId
+        )
 
         const copilotModel = command.copilotModel ?? copilot?.copilotModel
         if (!copilotModel) {
@@ -153,6 +164,9 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                               )
                           },
                 handleLLMTokens: async (input) => {
+                    // Capture before awaiting callbacks; resumptions may reuse the same model instance.
+                    const originExecutionId = command.options.resolveExecutionId?.()
+                    await budgetGate.record(input.requestId, input.usage)
                     if (usageCallback && input.usage) {
                         await usageCallback(input.usage)
                     }
@@ -175,6 +189,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
                         userId,
                         xpertId,
                         threadId,
+                        originExecutionId,
                         copilot,
                         model: input.model,
                         modelType: copilotModel.modelType,
@@ -193,6 +208,10 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             }
         )
 
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            applyModelContextSize(model, copilotModel)
+            budgetGate.attach(model)
+        }
         return setModelVisionSupport(
             model,
             resolveModelVisionSupport(modelName, customModels, modelProvider.getProviderModels(copilotModel.modelType))

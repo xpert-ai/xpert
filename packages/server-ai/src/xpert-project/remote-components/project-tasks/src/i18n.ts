@@ -8,6 +8,10 @@ const zh = {
     board: '状态看板',
     search: '搜索任务',
     filter: '筛选',
+    includeInactive: '包含已移除、已替代和未选路径任务',
+    removed: '已移除',
+    superseded: '已替代',
+    excluded: '未选路径',
     grouping: '分组',
     hierarchy: '任务层级',
     none: '不分组',
@@ -22,6 +26,7 @@ const zh = {
     live: '每 5 秒同步',
     name: '任务名称',
     unassigned: '未分配',
+    serviceExecutor: '服务操作',
     unnamedAssistant: '助手',
     task: '任务',
     summary: '汇总任务',
@@ -98,6 +103,9 @@ const zh = {
     independent: '每次执行独立记录，保留重试历史。',
     unavailable: '此记录尚未关联执行对话',
     pending: '待执行',
+    queued: '排队中',
+    waiting: '等待中',
+    cancelling: '取消中',
     running: '运行中',
     success: '运行成功',
     failed: '运行失败',
@@ -142,6 +150,10 @@ const en: Texts = {
     board: 'Status board',
     search: 'Search tasks',
     filter: 'Filter',
+    includeInactive: 'Include removed, superseded and excluded tasks',
+    removed: 'Removed',
+    superseded: 'Superseded',
+    excluded: 'Excluded path',
     grouping: 'Group by',
     hierarchy: 'Hierarchy',
     none: 'None',
@@ -156,6 +168,7 @@ const en: Texts = {
     live: 'Sync every 5 seconds',
     name: 'Task name',
     unassigned: 'Unassigned',
+    serviceExecutor: 'Service operation',
     unnamedAssistant: 'Assistant',
     task: 'Task',
     summary: 'Summary',
@@ -232,6 +245,9 @@ const en: Texts = {
     independent: 'Each attempt is recorded independently, preserving retry history.',
     unavailable: 'No execution conversation is linked yet',
     pending: 'Pending',
+    queued: 'Queued',
+    waiting: 'Waiting',
+    cancelling: 'Cancelling',
     running: 'Running',
     success: 'Runtime succeeded',
     failed: 'Runtime failed',
@@ -285,6 +301,12 @@ export function runtimeLabel(status: string | undefined, t: Texts) {
             return t.failed
         case 'running':
             return t.running
+        case 'queued':
+            return t.queued
+        case 'waiting':
+            return t.waiting
+        case 'cancelling':
+            return t.cancelling
         case 'pending':
             return t.pending
         case 'interrupted':

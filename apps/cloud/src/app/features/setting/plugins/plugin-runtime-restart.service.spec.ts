@@ -90,7 +90,7 @@ describe('PluginRuntimeRestartService', () => {
     expect(document.querySelector('[role="alertdialog"]')).toBeNull()
   })
 
-  it('stops polling while a single-instance installation awaits an explicit restart', async () => {
+  it('keeps polling while awaiting capacity and follows automatic resumption without requesting an outage', async () => {
     jest.useFakeTimers()
     runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'awaiting_restart' }))
     const service = TestBed.inject(PluginRuntimeRestartService)
@@ -99,10 +99,118 @@ describe('PluginRuntimeRestartService', () => {
     expect(service.isApplyingInBackground()).toBe(false)
     expect(service.requiresManualRestart()).toBe(true)
     expect(service.lastError()).toBeNull()
+    expect(service.convergence()).toMatchObject({ generation: 19, awaitingRestart: true })
+    expect(service.pendingPluginNames()).toEqual(['@xpert-ai/plugin-meetings'])
     const calls = runtimeControlAPI.pluginConvergenceStatus.mock.calls.length
     await jest.advanceTimersByTimeAsync(60_000)
-    expect(runtimeControlAPI.pluginConvergenceStatus).toHaveBeenCalledTimes(calls)
+    expect(runtimeControlAPI.pluginConvergenceStatus.mock.calls.length).toBeGreaterThan(calls)
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'in_progress' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.isApplyingInBackground()).toBe(true)
+    expect(service.requiresManualRestart()).toBe(false)
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'completed' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.convergence()).toBeNull()
+    expect(service.completedRevision()).toBe(1)
     expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+  })
+
+  it('resumes a stored waiting generation after reload without clearing an unrelated manual restart', async () => {
+    jest.useFakeTimers()
+    localStorage.setItem(
+      'xpert:plugins:runtime-convergence:v1',
+      JSON.stringify({
+        generation: 19,
+        awaitingRestart: true,
+        requestedAt: new Date().toISOString(),
+        pluginNames: ['@test/automatic'],
+        runtimeRequirements: []
+      })
+    )
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'awaiting_restart' }))
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.markRequired('@test/manual')
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.pendingPluginNames()).toEqual(['@test/manual', '@test/automatic'])
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'completed' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.convergence()).toBeNull()
+    expect(service.pending()).toMatchObject({ pluginNames: ['@test/manual'] })
+    expect(service.requiresManualRestart()).toBe(true)
+  })
+
+  it('continues polling a stored manual generation that is awaiting capacity', async () => {
+    jest.useFakeTimers()
+    localStorage.setItem(
+      'xpert:plugins:runtime-restart-required:v1',
+      JSON.stringify({
+        generation: 20,
+        awaitingRestart: true,
+        requestedAt: new Date().toISOString(),
+        pluginNames: ['@test/manual']
+      })
+    )
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 20, status: 'awaiting_restart' }))
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.requiresManualRestart()).toBe(true)
+    expect(service.pending()).toMatchObject({ generation: 20 })
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 20, status: 'in_progress' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.requiresManualRestart()).toBe(false)
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 20, status: 'completed' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.pending()).toBeNull()
+  })
+
+  it('submits waiting requirements only after explicit confirmation and tracks the newly approved generation', async () => {
+    jest.useFakeTimers()
+    alertDialog.confirm.mockReturnValue(of(true))
+    runtimeControlAPI.restart.mockReturnValue(of({ restartId: 'restart-21', pluginGeneration: 21 }))
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'awaiting_restart' }))
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.restartCapability.set({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
+    const requirements = [{ scopeKey: 'org-1', pluginName: '@test/automatic', state: 'loaded' as const }]
+    service.trackPluginConvergence({ generation: 19 }, '@test/automatic', requirements)
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+    await service.confirmAndRestart()
+    expect(runtimeControlAPI.restart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowDowntime: true,
+        runtimeRequirements: requirements
+      })
+    )
+    expect(service.pending()).toMatchObject({ generation: 21, pluginNames: ['@test/automatic'] })
+    expect(service.convergence()).toBeNull()
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 21, status: 'completed' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    const oldCalls = runtimeControlAPI.pluginConvergenceStatus.mock.calls.filter(
+      ([generation]) => generation === 19
+    ).length
+    await jest.advanceTimersByTimeAsync(5000)
+    expect(
+      runtimeControlAPI.pluginConvergenceStatus.mock.calls.filter(([generation]) => generation === 19)
+    ).toHaveLength(oldCalls)
+    expect(service.pending()).toBeNull()
+  })
+
+  it('does not request a restart if automatic convergence finishes while the confirmation is open', async () => {
+    jest.useFakeTimers()
+    const confirmation = new Subject<boolean>()
+    alertDialog.confirm.mockReturnValue(confirmation)
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'awaiting_restart' }))
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.restartCapability.set({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
+    service.trackPluginConvergence({ generation: 19 }, '@test/automatic')
+    await jest.advanceTimersByTimeAsync(1000)
+    const confirming = service.confirmAndRestart()
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'completed' }))
+    await jest.advanceTimersByTimeAsync(1000)
+    confirmation.next(true)
+    await confirming
+    expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+    expect(service.convergence()).toBeNull()
   })
 
   it('shows manual restart only to superadmins and keeps background progress visible to other roles', () => {

@@ -2,7 +2,7 @@ import * as _axios from 'axios'
 import { Readable } from 'stream'
 import type { DatabaseWorkbenchAdapter } from './workbench'
 import { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
-export { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
+export type { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
 const axios = _axios.default
 
 /**

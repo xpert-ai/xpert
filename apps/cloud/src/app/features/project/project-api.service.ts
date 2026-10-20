@@ -1,3 +1,4 @@
+import { projectPipelinePortfolioSchema, type ProjectPipelinePortfolioInput } from '@xpert-ai/contracts'
 import type {
   XpertProjectListFilter,
   XpertProjectTypeCatalog,
@@ -38,7 +39,7 @@ import type {
   TFileDirectory
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
-import { Subject, tap } from 'rxjs'
+import { Subject, tap, map } from 'rxjs'
 
 export interface XpertProjectOverview {
   project: IXpertProject
@@ -77,6 +78,12 @@ export class XpertProjectApiService {
   readonly #projectsChanged = new Subject<void>()
   readonly projectsChanged$ = this.#projectsChanged.asObservable()
 
+  pipelinePortfolio(input: ProjectPipelinePortfolioInput) {
+    return this.#http
+      .post<unknown>(`${API_XPERT_PROJECT}/pipelines/analytics/portfolio`, input)
+      .pipe(map((response) => projectPipelinePortfolioSchema.parse(response)))
+  }
+
   list(params: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
     const data = {
       // The workspace owns the status filter, including archived projects.
@@ -101,10 +108,14 @@ export class XpertProjectApiService {
     })
   }
 
-  typeEntry(type: XpertProjectTypeRef, options: { projectId?: string; xpertId?: string } = {}) {
+  typeEntry(
+    type: XpertProjectTypeRef,
+    options: { projectId?: string; xpertId?: string; pipelineNodeId?: string } = {}
+  ) {
     let params = new HttpParams().set('applicationKey', type.applicationKey).set('projectTypeKey', type.projectTypeKey)
     if (options.projectId) params = params.set('projectId', options.projectId)
     if (options.xpertId) params = params.set('xpertId', options.xpertId)
+    if (options.pipelineNodeId) params = params.set('pipelineNodeId', options.pipelineNodeId)
     return this.#http.get<XpertProjectEntry>(`${API_XPERT_PROJECT}/type-entry`, { params })
   }
 

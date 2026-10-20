@@ -44,7 +44,7 @@ export interface AssistantTemplateToolsetDependency {
 }
 
 export interface AssistantTemplateDependencies {
-  /** Exact compatible versions; the active version is pinned at installation. */
+  /** Explicit exact runtime requirements. Omit for dependencies that support compatible upgrades. */
   versions?: { pluginName: PluginName; version: string }[]
   plugins?: PluginName[]
   skills?: AssistantTemplateSkillDependency[]

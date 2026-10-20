@@ -35,7 +35,8 @@ import {
     TUserModelGrantRevokeInput,
     UserModelGrantStatusEnum,
     UserType,
-    readModelConfiguration
+    readModelConfiguration,
+    legacyModelFeatures
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -2110,7 +2111,7 @@ export class ModelAccessService {
             capabilities:
                 configuration?.modelType === AiModelTypeEnum.LLM
                     ? configuration.features
-                    : (predefined?.features ?? this.customCapabilities(custom?.modelProperties)),
+                    : (predefined?.features ?? legacyModelFeatures(custom?.modelProperties)),
             deprecated: predefined?.deprecated === true,
             enabled:
                 catalogModelExists &&
@@ -2126,17 +2127,6 @@ export class ModelAccessService {
                 providerSchema.model_credential_schema
             )
         }
-    }
-
-    private customCapabilities(modelProperties?: Record<string, unknown> | null) {
-        const features: ModelFeature[] = []
-        if (modelProperties?.vision_support === 'support') {
-            features.push(ModelFeature.VISION)
-        }
-        if (modelProperties?.function_calling_type === 'tool_call') {
-            features.push(ModelFeature.TOOL_CALL)
-        }
-        return features
     }
 
     private async ensureAutomaticPublications(targets: ModelTarget[], manager?: EntityManager, attempt = 0) {

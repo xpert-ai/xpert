@@ -25,6 +25,8 @@ export class CopilotTokenRecordCommand implements ICommand {
             userId: string
             xpertId?: string
             threadId?: string
+            /** Trusted native execution identity; never supplied by an HTTP usage body. */
+            originExecutionId?: string
             copilotId?: string
             copilot?: ICopilot
             model?: string

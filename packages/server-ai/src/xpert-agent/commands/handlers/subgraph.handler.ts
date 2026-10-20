@@ -331,6 +331,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     copilotModel: effectiveCopilotModel,
                     abortController: rootController,
                     usageCallback: modelUsageRecorder.usageCallback,
+                    resolveExecutionId,
                     threadId: thread_id
                 })
             )

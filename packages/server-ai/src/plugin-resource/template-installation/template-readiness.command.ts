@@ -22,8 +22,10 @@ export class InspectTemplateReadinessCommand extends Command<TemplateReadiness> 
     }
 }
 
-/** Revalidate installed dependency locks before execution, using the Assistant's file authority. */
-export class AssertAssistantTemplateDependenciesCommand extends Command<void> {
+/** Check runtime availability and explicit requirements; ordinary drift returns update recommendations. */
+export class AssertAssistantTemplateDependenciesCommand extends Command<
+    import('@xpert-ai/contracts').TemplateRuntimeDependencyReport
+> {
     constructor(
         readonly assistantId: string,
         readonly entry: 'runtime' | 'authoring'

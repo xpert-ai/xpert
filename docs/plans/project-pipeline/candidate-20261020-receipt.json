@@ -1,0 +1,888 @@
+{
+  "candidate": "pipeline-20261020-rc2",
+  "date": "2026-10-20",
+  "scope": "Local candidate build, package compatibility and cross-layer regression; no deployment or push",
+  "sourceCommit": "d82f91498f634f27042550d8b0867b72a3290bfa",
+  "buildManifestSha256": "5816f314b557a0a82515341caf01e1ddec4a43e494ab52d805b405e8b71eb757",
+  "platform": "darwin/arm64",
+  "nodeVersions": ["20.20.2", "22.17.1", "24.21.0 (Electron 44.4.5)"],
+  "packageVersion": "4.0.0-pipeline.0.d82f91498f63",
+  "artifacts": [
+    {
+      "file": "api.tar.gz",
+      "bytes": 9975605,
+      "sha256": "97c9efc84a9e81bb391d6590c3d5c21057f9b29f3997d376a1f1f439b5fc0471"
+    },
+    {
+      "file": "cloud.tar.gz",
+      "bytes": 105345789,
+      "sha256": "89bc9e6e65b8758676a77b2c0633da8944ec4d34fb14fefaaa7ffbfccf2eb205"
+    },
+    {
+      "file": "desktop-mac-arm64.tar.gz",
+      "bytes": 132069001,
+      "sha256": "6451bd2bfce1f293a973ef747ffb41ddf9503dbbcb3147b242f87ed78425fde2"
+    },
+    {
+      "file": "xpert-ai-contracts-4.0.0-pipeline.0.d82f91498f63.tgz",
+      "bytes": 462263,
+      "sha256": "3724c78fd895bce732c5e2da7697b676cb61e7fefc7640a9759323272102890c"
+    },
+    {
+      "file": "xpert-ai-plugin-sdk-4.0.0-pipeline.0.d82f91498f63.tgz",
+      "bytes": 555367,
+      "sha256": "def93b585708ff25c53731047a95a8d7cff8321f90d8e10817ae831a12146129"
+    }
+  ],
+  "runtimeLockSha256": "2ae737e8f7b3647701a7fe776b9b59da1f488553e974f72fe8280c0d4df42b97",
+  "sourceLockSha256": "209f994d674a30f4c31fadf32b1bcaab93971b5b237632d35f7588635599fff6",
+  "dependencies": {
+    "@xpert-ai/chatkit-ui": {
+      "version": "0.16.0",
+      "files": 901,
+      "sha256": "5acf5fb9f8276de3408a16719f56f0bab0be70277a938711887e248675681e3f"
+    },
+    "@xpert-ai/chatkit-types": {
+      "version": "0.16.0",
+      "files": 13,
+      "sha256": "392b628c305b140a93a619f3002f969d0d7ca5ff67e72cfb9f93dd8be4ca9c06"
+    },
+    "@xpert-ai/chatkit-web-component": {
+      "version": "0.16.0",
+      "files": 8,
+      "sha256": "75219209859c49a8378258778111f1c97de17002cc2dd7a7f78e2c8c3acf2c25"
+    }
+  },
+  "builtinPlugins": {
+    "@xpert-ai/cli-model-profiles": "0.2.0",
+    "@xpert-ai/plugin-draft": "12.1.0",
+    "@xpert-ai/plugin-vlm-default": "11.1.0"
+  },
+  "projectRemoteAssets": {
+    "app.js": "7be2d00c4427f31a2def97178487c7e2836c34b044298a5df797e997b9f23dba",
+    "app.css": "5690ace03093fe5b93eb7a47efa44d359f7905e0c6a2490d9b94e1a5307a0e58"
+  },
+  "compatibility": {
+    "publicEntryPoints": 10,
+    "cjs": "passed",
+    "nodeEsm": "passed",
+    "schemaImplementationIdentity": "passed",
+    "sdkExactContractsDependency": "passed",
+    "strictTypeResolution": ["node", "NodeNext", "bundler"],
+    "zodVersions": ["3.25.67", "4.2.0"],
+    "node20ApiDiLoad": "passed",
+    "packagedDesktopNodeLoad": "passed",
+    "deployedUI": "not run"
+  },
+  "regression": {
+    "contracts": {
+      "suites": 45,
+      "tests": 257,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "16f6598254ca7c5c584db71343e8be069a30362044ffc66aa1e17ca614da1da4",
+      "files": [
+        {
+          "file": "packages/contracts/src/agent/utils.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/queue-statistics.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/view-extension/model.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/configuration.spec.ts",
+          "tests": 15,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/configuration-form.spec.ts",
+          "tests": 15,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/analytics.spec.ts",
+          "tests": 10,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/statistics.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/portfolio.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/resources.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/agent-output-delivery.model.spec.ts",
+          "tests": 16,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/human-wait-statistics.spec.ts",
+          "tests": 14,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/compatibility.spec.ts",
+          "tests": 11,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/skill-install-command.model.spec.ts",
+          "tests": 12,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/record-boundaries.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/provider-actions.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/model-discovery.model.spec.ts",
+          "tests": 10,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/message-content.utils.spec.ts",
+          "tests": 16,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/execution-statistics.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/catalog.validation.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-task-runtime.model.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/resource-card-content.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/middleware.model.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/knowledge-parser.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/ai-model.model.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/agent/graph.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/native-source.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/knowledge-wiki.model.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/assistant-binding.model.spec.ts",
+          "tests": 6,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/stage-icon.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/runtime-operation.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/presentation.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/project-pipeline/model-usage-statistics.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/knowledge-parser-selection.spec.ts",
+          "tests": 6,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/xpert.utils.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/skill.model.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/mcp-publication.model.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/mcp-capability-policy.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/mcp-capability.model.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/knowledgebase.model.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/knowledge-doc-chunk.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/assistant-order.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/utils.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/plugin.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/ai/chat-event.model.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/contracts/src/integration.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        }
+      ]
+    },
+    "sdk": {
+      "suites": 56,
+      "tests": 369,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "8556f31eb1872813e3b6c12e7b572875e0a94c5b1f325d250e65852cb3381042",
+      "files": [
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/pricing.spec.ts",
+          "tests": 30,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/artifact-document/sha256.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/project-pipeline/registration-boundaries.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/utils/tokenizer.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/tool-provider/tool-provider.spec.ts",
+          "tests": 15,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/openai-compatible/completions.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/context/request-context.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/sso/strategy.registry.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/project-pipeline/registry.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/view-extension/provider.registry.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/connector/strategy.registry.spec.ts",
+          "tests": 18,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/tool-provider/mcp-methods.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/toolset/model-provider.spec.ts",
+          "tests": 11,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/project-pipeline/runtime-registry.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/llm.spec.ts",
+          "tests": 23,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/resource-card-provider/provider.registry.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/rag/analyzer/strategy.registry.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/strategy.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/context/request-context.permissions.spec.ts",
+          "tests": 10,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/evolution/provider.registry.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/sandbox/runtime-provider.registry.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/sandbox/workspace-mapper.registry.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/ai-model.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/abstract-provider.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/tool-provider/component.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/agent/handoff/agent-runtime-message.contract.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/managed-aigc-job.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/data/datasource/workbench-sql.spec.ts",
+          "tests": 41,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/model-discovery.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/agent/runtime/results.spec.ts",
+          "tests": 10,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/collaboration/collaboration.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/agent/runtime/pipeline-scope.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/webhook.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/agent/resource-card.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/runtime-capability.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/runtime/capabilities/sandbox-jobs.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/openai-compatible/rerank.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/data/analytics/analytics-result.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/artifact-document/dependencies.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/data/datasource/workbench-pagination.spec.ts",
+          "tests": 21,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/mcp/definitions.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/json-encoded-schema.spec.ts",
+          "tests": 13,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/token-usage.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/runtime/workspace-file-tools.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/core/file-system.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/tool-provider/prepared-result.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/model-provider-http-client.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/artifact-document/protocol.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/artifact-namespace.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/view-extension/remote-component-html.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/toolset/define-tool.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/sandbox/runtime-environment.spec.ts",
+          "tests": 6,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/data/datasource/workbench-describe.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/ai-model/native-model.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/sandbox/managed-service.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/plugin-sdk/src/lib/runtime/mutation-evidence.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        }
+      ]
+    },
+    "server": {
+      "suites": 31,
+      "tests": 413,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "21ed129f151b50375882dc55f44fd71b379df0f1ba4b615d51fa73857f1d10db",
+      "files": [
+        {
+          "file": "packages/server-ai/src/xpert-agent-execution/runtime/assistant-task-runtime.service.spec.ts",
+          "tests": 20,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-managed.postgres.spec.ts",
+          "tests": 57,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/projection/pipeline-projection.postgres.spec.ts",
+          "tests": 56,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/provider-actions/provider-actions.postgres.spec.ts",
+          "tests": 50,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/plugins/project-tasks/tools/runtime.spec.ts",
+          "tests": 13,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/services/task-projection/project-task-projection.integration.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-operation.postgres.spec.ts",
+          "tests": 25,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-commands.controller.spec.ts",
+          "tests": 15,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/budget/pipeline-model-budget.postgres.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/services/project-task-execution-target.spec.ts",
+          "tests": 6,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/agent-invocation/invocation-factory.spec.ts",
+          "tests": 16,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/provider-actions/provider-actions.controller.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/configuration/pipeline-catalog.controller.spec.ts",
+          "tests": 12,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-operation-worker.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline.controller.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-model-usage.postgres.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-analytics.controller.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/configuration/project-pipeline-configuration.controller.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/provider-actions/provider-node-details.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/services/task-projection/project-task-projection.service.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-portfolio.controller.spec.ts",
+          "tests": 12,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-admission.spec.ts",
+          "tests": 9,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/views/project-tasks.provider.spec.ts",
+          "tests": 6,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-history.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/services/project-task-runtime-graph.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-execution-owners.postgres.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-round-planner.spec.ts",
+          "tests": 16,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-dispatch-policy.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/services/project-task-graph.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-node-observations.spec.ts",
+          "tests": 10,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/pipeline/queries/pipeline-execution-attribution.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        }
+      ]
+    },
+    "ui": {
+      "suites": 11,
+      "tests": 35,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "70cfa0f32f0686982ab928a4e5d180fddee1cb5e1dc6aff250ea1919564c9e38",
+      "files": [
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/configuration-entry.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/view-dialog.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/swimlane-review.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/runtime-selection.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/execution-click.spec.ts",
+          "tests": 1,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/layout.spec.ts",
+          "tests": 8,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/execution-summary.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/selection.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/navigation.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline/executions.spec.ts",
+          "tests": 5,
+          "status": "passed"
+        },
+        {
+          "file": "packages/server-ai/src/xpert-project/remote-components/project-tasks/src/view-state.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        }
+      ]
+    },
+    "cloud": {
+      "suites": 8,
+      "tests": 70,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "6bc3ea0cdb227f3a282f74275c54271826df3513b136659418c122e88574df01",
+      "files": [
+        {
+          "file": "apps/cloud/src/app/features/project/project-view-host.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/@shared/view-extension/renderers/remote-component-renderer.component.spec.ts",
+          "tests": 31,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/features/project/project-pipeline-portfolio.component.spec.ts",
+          "tests": 3,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/features/project/project-task-management.component.spec.ts",
+          "tests": 4,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/features/project/project-application.component.spec.ts",
+          "tests": 7,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/features/assistant/workbench-navigation-open-client-command.spec.ts",
+          "tests": 19,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/@shared/view-extension/renderers/remote-view-state.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        },
+        {
+          "file": "apps/cloud/src/app/features/project/project-entry.spec.ts",
+          "tests": 2,
+          "status": "passed"
+        }
+      ]
+    },
+    "desktop": {
+      "files": 4,
+      "tests": 30,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "39e5a9061085aa3458468d942555615bfdc02eb627919f29c3c1bb60023b5109"
+    }
+  },
+  "totalTests": 1174,
+  "remainingGates": ["G3", "G5", "G6", "G7", "G8"]
+}

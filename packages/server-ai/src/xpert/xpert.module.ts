@@ -1,4 +1,5 @@
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
+import { PublishedAgentContextHandler } from './published-agent/published-agent-context.query'
 import { AssistantSharingModule } from './sharing/sharing.module'
 import { AssistantSharingController } from './sharing/sharing.controller'
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
@@ -142,6 +143,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
     ],
     providers: [
         ResolvePublishedAgentHandler,
+        PublishedAgentContextHandler,
         XpertPublicationPersistence,
         TemplateAuthoring,
         TemplatePublicationService,

@@ -64,6 +64,9 @@ const schemas = [
             providerKey: nullableText,
             sourceKey: nullableText,
             sourceRevision: nullableText,
+            controlKind: { type: 'varchar', default: 'ordinary' },
+            pipelineInstanceId: { ...uuid, nullable: true },
+            pipelineDisposition: nullableText,
             parentTaskId: { ...uuid, nullable: true },
             predecessorIds: json,
             diagnostic: nullableText,
@@ -138,7 +141,13 @@ integration('managed project task projection concurrency', () => {
     let schema: string
     const connection = () => {
         const url = new URL(process.env.XPERT_PROJECTION_TEST_REDIS_URL!)
-        return { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
+        // Queue and lock clients must observe the same logical Redis database.
+        return {
+            host: url.hostname,
+            port: Number(url.port),
+            db: Number(url.pathname.slice(1) || 0),
+            maxRetriesPerRequest: null
+        }
     }
 
     beforeAll(async () => {
@@ -242,7 +251,8 @@ integration('managed project task projection concurrency', () => {
             db.getRepository(XpertProjectTask),
             module.get(ProjectAccessRuntimeService),
             registry,
-            service
+            service,
+            { listForActor: () => [] } as never
         )
     })
 

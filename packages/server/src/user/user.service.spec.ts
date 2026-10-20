@@ -157,6 +157,20 @@ describe('UserService', () => {
 		expect(result).toBe(user)
 	})
 
+	it('loads third-party authentication with current database role permissions', async () => {
+		const user = { id: 'user-1' }
+		const query = {
+			where: jest.fn().mockReturnThis(),
+			leftJoinAndSelect: jest.fn().mockReturnThis(),
+			getOne: jest.fn().mockResolvedValue(user)
+		}
+		userRepository.createQueryBuilder.mockReturnValue(query)
+		expect(await service.getIfExistsThirdParty('sso-user')).toBe(user)
+		expect(query.where).toHaveBeenCalledWith('user.thirdPartyId = :thirdPartyId', { thirdPartyId: 'sso-user' })
+		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('user.role', 'role')
+		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('role.rolePermissions', 'rolePermissions')
+	})
+
 	it('loads current user with core relations by default', async () => {
 		const user = { id: 'user-1' }
 

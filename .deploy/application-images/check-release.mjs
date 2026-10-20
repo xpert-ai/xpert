@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { requiresImageRelease, services } from './services.mjs'
+import { releaseBaseline } from './release-baseline.mjs'
 
 const zeroSha = /^0{40}$/
 const git = (cwd, ...args) =>
@@ -27,6 +28,7 @@ function relevant(files) {
         /(^|\/)package\.json$/.test(file) ||
         [
           '.deploy/application-images/services.mjs',
+          '.deploy/application-images/release-policy.json',
           '.deploy/api/dependencies.cjs',
           '.deploy/webapp/dependencies.cjs'
         ].includes(file)
@@ -90,7 +92,8 @@ export async function checkStagedRelease({ cwd = process.cwd() } = {}) {
     after,
     event: releaseBranch ? 'push' : 'pull_request',
     ref: branch,
-    mainSha: resolveCommit(cwd, 'refs/remotes/origin/main') ?? resolveCommit(cwd, 'refs/heads/main')
+    mainSha: resolveCommit(cwd, 'refs/remotes/origin/main') ?? resolveCommit(cwd, 'refs/heads/main'),
+    ...releaseBaseline({ cwd, after })
   })
   return { skipped: false, plan }
 }
@@ -114,7 +117,8 @@ export async function checkPushReleases(input, { cwd = process.cwd(), remote = '
         after,
         event: 'push',
         ref,
-        mainSha: resolveCommit(cwd, `refs/remotes/${remote}/main`)
+        mainSha: resolveCommit(cwd, `refs/remotes/${remote}/main`),
+        ...releaseBaseline({ cwd, after })
       })
     )
   }

@@ -78,6 +78,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     userId: billableUserId,
                     execution: input.execution,
                     originId: threadId,
+                    originExecutionId: input.originExecutionId,
                     xpertId,
                     copilotId: usageSource.id,
                     providerScopeId: usageSource.modelProvider.id ?? usageSource.id,

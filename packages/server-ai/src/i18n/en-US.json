@@ -1,4 +1,9 @@
 {
+    "AssistantDependency": {
+        "UpdateAvailable": "Assistant update available",
+        "VersionOnly": "plugin version changed",
+        "UpdateRecommendation": "{{dependency}} changed from {{installedVersion}} to {{currentVersion}} ({{resources}}). This execution can continue. Review the changes and update the Assistant when appropriate."
+    },
     "SpeechToText": {
         "TemporaryFileCleanupFailed": "Failed to delete a temporary speech-to-text audio file."
     },
@@ -57,6 +62,9 @@
         "ProjectTaskProjectionUnavailable": "Task synchronization status is temporarily unavailable; saved tasks remain readable.",
         "ProjectTaskProjectionTimeout": "Task synchronization timed out; the saved tasks are preserved and synchronization will retry.",
         "McpToolDiscoveryLimit": "MCP tool discovery exceeded its limit or repeated a cursor",
+        "RestClientAccessDenied": "REST connection access denied.",
+        "ApiKeyCredentialsInvalid": "API key credentials are invalid.",
+        "RestClientUnavailable": "The REST operation is unavailable, changed, or returned an invalid result.",
         "McpClientAccessDenied": "MCP connection access denied.",
         "McpClientUnavailable": "The MCP operation is unavailable, changed, or returned an invalid result.",
         "SandboxJobCancelled": "Sandbox job was cancelled.",
@@ -176,6 +184,14 @@
         "ExternalAssistantCancelledByUser": "This external assistant execution was cancelled by the user. Do not retry without a new user request.",
         "ProjectTaskTypeInvalid": "Project task types must use unique provider-owned keys and registered presentation tokens.",
         "ProjectTaskProgressInvalid": "Task progress must be a number between 0 and 100, or null when unknown.",
+        "ProjectPipelineDispatchPaused": "New pipeline dispatch is paused. Existing executions can still be observed or cancelled.",
+        "ProjectPipelineModelGateUnsupported": "This model client does not support native model admission callbacks.",
+        "ProjectPipelineNativeModelBudgetExceeded": "The instance native model budget cannot admit another call. Existing usage and unknown reservations are retained.",
+        "ProjectPipelineProjectionConflict": "The pipeline projection conflicts with the saved version.",
+        "ProjectPipelineNotFound": "Project pipeline was not found.",
+        "ProjectPipelineConfigurationInvalid": "Invalid project pipeline configuration.",
+        "ProjectPipelineAnalyticsWindowInvalid": "Choose a valid time window of up to 93 days.",
+        "ProjectPipelinePortfolioInputInvalid": "Select 1–50 distinct Projects and a valid time window of at most 93 days",
         "ProjectTaskAccessDenied": "Project task access denied.",
         "ProjectTaskNotFound": "Project task not found.",
         "ProjectTaskRevisionConflict": "The task changed. Reload the latest task before editing.",
@@ -304,6 +320,7 @@
         "PausedGraphChanged": "The workflow has changed since this run started.",
         "PausedContextUnavailable": "The saved runtime context is unavailable.",
         "CheckpointUnavailable": "The saved checkpoint is unavailable.",
+        "ThreadStateNotFound": "No saved state was found for this thread.",
         "MessageCheckpointUnavailable": "This message has no saved input checkpoint and cannot be edited into a branch.",
         "ThreadIsPaused": "Resume or stop the paused workflow before sending a follow-up.",
         "PauseTokenRequired": "A pause token is required.",
@@ -482,6 +499,11 @@
         "WorkspaceFileAbsolutePathOutsideRoot": "Absolute workspace file path must be inside the runtime workspace root.",
         "WorkspaceFilePathBelowRootRequired": "Workspace file path must point to a file below the workspace root.",
         "WorkspaceRuntimePathOutsideRoot": "Runtime workspace path must be inside the workspace root.",
+        "McpSourceConfigurationInvalid": "The plugin configuration is invalid. Check the declared fields and values.",
+        "McpSourceConfigurationOwnerScope": "Configure this shared service from its owning tenant scope.",
+        "McpSourceConfigurationNotFound": "This configurable plugin source is not bound to the MCP service.",
+        "McpSourceConfigurationChanged": "The configuration changed. Reload it before saving again.",
+        "McpPublicationDisableBeforeDelete": "Disable the MCP service before deleting it.",
         "McpPublicationNotFound": "MCP Publication was not found or is disabled.",
         "McpConsumerWorkspaceRequired": "An external MCP connection must belong to a Workspace.",
         "McpPublicationInvalidName": "MCP Publication name is required and must not exceed 191 characters.",
@@ -1076,6 +1098,15 @@
         "TemplateFileScopeConflict": "File isolation must match the template declaration.",
         "TemplateDependencyBusy": "Template dependencies are being updated by another installation. Try again shortly.",
         "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running.",
+        "AssistantDependency": {
+            "plugin-unavailable": "Required plugin {{dependency}} is not loaded in the current scope. Restore the plugin before running this Assistant.",
+            "version-required": "Dependency {{dependency}} explicitly requires version {{expectedVersion}}, but {{actualVersion}} is loaded. Update the Assistant to a compatible template or restore the required version.",
+            "provider-owner-changed": "Dependency {{dependency}} is now registered by a different provider owner. Restore the original provider or update the Assistant binding.",
+            "provider-not-ready": "Dependency {{dependency}} is registered at {{actualVersion}}, but the loaded plugin is {{expectedVersion}}. Wait for plugin activation to complete.",
+            "provider-unavailable": "Required provider {{dependency}} is unavailable. Restore the provider or update this Assistant to an available provider.",
+            "resource-unavailable": "Required resource {{dependency}} is unavailable. Restore the resource or update the Assistant dependency.",
+            "resource-not-ready": "Resource {{dependency}} is at {{actualVersion}}, but the loaded plugin is {{expectedVersion}}. Wait for plugin activation to complete."
+        },
         "TemplateSetupChanged": "Assistant setup changed. Refresh before saving.",
         "TemplateSetupInvalid": "Complete the required preferences and select an authorized connection.",
         "TemplateRoutineInvalid": "Check the schedule, time zone, setup completion and required connections before enabling this routine.",
@@ -1137,7 +1168,10 @@
         "ArtifactPresentationChanged": "The published version changed. Reopen the shared page to load it.",
         "ArtifactPresentationUnavailable": "The presentation plugin is unavailable.",
         "ArtifactPresentationAccessDenied": "An authenticated team share is required.",
-        "ArtifactPresentationInputInvalid": "Invalid presentation request."
+        "ArtifactPresentationInputInvalid": "Invalid presentation request.",
+        "ProviderCredentialSchemaMissing": "This provider has no credential schema.",
+        "ProviderCredentialTargetRequired": "Select an available model type and enter a model or Endpoint ID to verify these credentials.",
+        "ProviderCredentialCheckInvalid": "Invalid credential verification request."
     },
     "Mcp": {
         "Test": {

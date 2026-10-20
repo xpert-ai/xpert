@@ -58,8 +58,18 @@ import {
   XpertToolsetService
 } from '../../../@core'
 import { McpPublicationAuthenticationComponent } from './mcp-publication-authentication'
+import { McpPublicationPluginTabsComponent } from './mcp-publication-plugin-tabs'
+import { McpPublicationActionsComponent } from './mcp-publication-actions'
 
-type PublicationSection = 'basic' | 'capabilities' | 'authentication' | 'policy' | 'instructions' | 'audit' | 'test'
+type PublicationSection =
+  | 'basic'
+  | 'capabilities'
+  | 'authentication'
+  | 'policy'
+  | 'instructions'
+  | 'audit'
+  | 'test'
+  | 'plugin'
 
 interface CapabilityDraft {
   catalog: IMcpCapabilityCatalog
@@ -105,6 +115,8 @@ const DEFAULT_MCP_API_KEY_SCOPES = [
   imports: [
     ...XpDialogFrameImports,
     McpPublicationAuthenticationComponent,
+    McpPublicationPluginTabsComponent,
+    McpPublicationActionsComponent,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -778,16 +790,36 @@ export class XpertMcpPublicationsComponent {
 
   async togglePublicationStatus() {
     const publication = this.publication()
-    if (!publication?.id || !this.canManageMcp()) return
+    if (!publication?.id || !this.canManageMcp() || this.saving()) return
     await this.runSaving(async () => {
       const updated = await firstValueFrom(
         publication.status === 'active'
           ? this.#publicationService.disable(publication.id)
           : this.#publicationService.enable(publication.id)
       )
-      this.publication.update((current) => (current ? { ...current, ...updated } : current))
+      this.publication.update((current) => (current?.id === updated.id ? { ...current, ...updated } : current))
       await this.refreshPublicationList()
     })
+  }
+
+  async deletePublication(id: string) {
+    if (
+      this.publication()?.id !== id ||
+      this.publication()?.status !== 'disabled' ||
+      !this.canManageMcp() ||
+      this.saving()
+    )
+      return
+    await this.runSaving(
+      async () => {
+        await firstValueFrom(this.#publicationService.remove(id))
+        this.publications.update((items) => items.filter((item) => item.id !== id))
+        if (this.selectedPublicationId() === id) this.clearSelectedPublication()
+        await this.loadScope()
+      },
+      'XP.McpPublication.Deleted',
+      'MCP service deleted'
+    )
   }
 
   async runTest() {

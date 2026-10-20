@@ -5,6 +5,8 @@ import {
   WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
+  WORKBENCH_PROJECT_APPLICATION_TARGET,
+  WORKBENCH_PROJECT_PIPELINES_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   type WorkbenchAssistantConversationOpenRequest,
@@ -52,6 +54,40 @@ export function registerWorkbenchNavigationOpenCommand(
         code: 'bad_request',
         message: 'Navigation target is required.'
       }
+    }
+
+    if (target === WORKBENCH_PROJECT_APPLICATION_TARGET || target === WORKBENCH_PROJECT_PIPELINES_TARGET) {
+      const projectId = getString(payload, 'projectId')
+      if (
+        !projectId ||
+        !/^[a-zA-Z0-9_.:-]{1,200}$/.test(projectId) ||
+        ['.', '..'].includes(projectId) ||
+        !options.navigate
+      )
+        return { success: false, code: 'bad_request', message: 'A valid Project and host navigation are required.' }
+      const focus: Record<string, string> = {}
+      for (const key of ['pipelineNodeId', 'pipelineInstanceId', 'pipelineRoundId']) {
+        if (!payload || typeof payload !== 'object' || !(key in payload)) continue
+        const value = getString(payload, key)
+        if (
+          !value ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ||
+          (target === WORKBENCH_PROJECT_APPLICATION_TARGET && key !== 'pipelineNodeId')
+        )
+          return { success: false, code: 'bad_request' }
+        focus[key] = value
+      }
+      const commands = [
+        '/project',
+        projectId,
+        target === WORKBENCH_PROJECT_APPLICATION_TARGET ? 'application' : 'pipelines'
+      ]
+      const opened = Object.keys(focus).length
+        ? await options.navigate(commands, { queryParams: focus })
+        : await options.navigate(commands)
+      return opened === false
+        ? { success: false, code: 'navigation_cancelled' }
+        : { success: true, status: 'opened', target, projectId }
     }
 
     const conversationTarget =

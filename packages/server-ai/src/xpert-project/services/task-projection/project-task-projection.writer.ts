@@ -20,13 +20,18 @@ export function projectionScope(context: ProjectTaskContext) {
 export async function writeTaskProjection(
     manager: EntityManager,
     context: ProjectTaskContext,
-    provider: IProjectTaskProvider,
-    snapshot: ProjectTaskSnapshot
+    provider: Pick<IProjectTaskProvider, 'key' | 'taskTypes'>,
+    snapshot: ProjectTaskSnapshot,
+    options?: { pipelineInstanceId: string }
 ) {
     const taskTypes = registeredProjectTaskTypes(provider)
     const identity = (key: string) => projectTaskIdentity(context.projectId, provider.key, key)
     const existing = await manager.find(XpertProjectTask, {
-        where: { ...projectionScope(context), providerKey: provider.key }
+        where: {
+            ...projectionScope(context),
+            providerKey: provider.key,
+            pipelineInstanceId: options?.pipelineInstanceId ?? IsNull()
+        }
     })
     const nodes: ProjectTaskNode[] = snapshot.tasks.map((item) => ({
         id: identity(item.key),
@@ -67,7 +72,7 @@ export async function writeTaskProjection(
         const node = nodes[index]
         const sourceRevision = createHash('sha256').update(JSON.stringify(item)).digest('hex')
         const old = existing.find((task) => task.id === node.id)
-        if (old?.sourceRevision === sourceRevision) continue
+        if (old?.sourceRevision === sourceRevision && (!options || old.pipelineDisposition === 'active')) continue
         const row =
             old ??
             manager.create(XpertProjectTask, {
@@ -86,6 +91,9 @@ export async function writeTaskProjection(
             kind: item.kind,
             ...(item.taskType !== undefined ? { type: item.taskType } : {}),
             providerKey: provider.key,
+            controlKind: 'provider',
+            pipelineInstanceId: options?.pipelineInstanceId ?? null,
+            pipelineDisposition: options ? 'active' : null,
             sourceKey: item.key,
             sourceRevision,
             parentTaskId: node.parentTaskId,
@@ -112,13 +120,24 @@ export async function writeTaskProjection(
                     tenantId: context.actor.tenantId,
                     organizationId: context.actor.organizationId,
                     createdById: context.actor.userId,
-                    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
-                    completedAt: execution.completedAt ? new Date(execution.completedAt) : null
+                    // Pipeline observations may omit timing; absence cannot erase an observed fact.
+                    // Keep the legacy Task provider's replacement semantics outside pipeline projection.
+                    startedAt: execution.startedAt
+                        ? new Date(execution.startedAt)
+                        : options
+                          ? (previous?.startedAt ?? null)
+                          : null,
+                    completedAt: execution.completedAt
+                        ? new Date(execution.completedAt)
+                        : options
+                          ? (previous?.completedAt ?? null)
+                          : null
                 })
             )
         }
     }
     for (const removed of existing.filter((row) => !nodes.some((node) => node.id === row.id))) {
+        if (options) continue
         if (removed.status === 'cancelled') continue
         removed.status = 'cancelled'
         removed.sourceRevision = null

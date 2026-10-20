@@ -1,0 +1,50 @@
+---
+title: 'Pipeline operations and acceptance'
+description: 'Configuration, execution authorization, troubleshooting, compatibility and deployment acceptance boundaries.'
+---
+
+Configuration validation, binding persistence, dispatch, business completion and delivery are separate outcomes. Saving does not start work; a visible catalog does not grant execution rights; model success does not prove business approval.
+
+## Access and recovery
+
+1. Resolve the authenticated user, tenant, organization and Project before reading catalogs, bindings or instances.
+2. Validate template version, definition digest, adapter references and host features; save only form-allowlisted fields.
+3. Before dispatch or decisions, recheck Project access, actual target, input versions, node and round state.
+4. Queries and polling read facts. Provider refresh updates projections without business advancement.
+5. Inspect an ambiguous original operation before creating replacement work. A cancellation request is distinct from confirmed cancellation.
+
+Project read access does not grant access to every member's conversation or execution details. Portfolio reauthorizes each explicitly selected Project. Preferences and navigation are user- and Project-scoped; stale requests must not reopen old context after switching organization, account or Project.
+
+## Diagnostics
+
+| Symptom                                          | Check                                                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Tasks exist but a node has no dots               | Persisted node, round and Task Execution ownership; never infer from Task or Assistant                 |
+| Execution succeeded but the node remains blocked | Execution outcome, business decision and historical snapshot separately                                |
+| Empty catalog or unavailable binding             | Actual plugin loading, contribution source, host protocol, Project permission and role candidates      |
+| Unavailable workbench entry                      | Provider presentation and authorization; historical nodes have no advancement entry                    |
+| Long wait or unknown outcome                     | Durable intent, lease, original execution receipt and inspection; avoid blind redispatch               |
+| Totals differ from instance sums                 | Deduplication, shared executions, current business scope and actual-start-time window                  |
+| 403 or missing workspace                         | Correct organization context first, then actual access; never bypass authorization with database edits |
+
+## Compatibility
+
+Build and verify Contracts and SDK together. Use explicit host protocols and feature declarations, not version-number or name heuristics. A shared package release version does not establish interface compatibility.
+
+`ProjectTaskExecutionTarget` is a union. Extend `ProjectTaskAssistantExecutionTarget` when an Assistant-specific target is required; narrow runtime variants with `kind`, not the presence of invocationId. External consumers must validate strict declarations and CJS, ESM and Bundler entry points.
+
+## Verification and remaining acceptance
+
+Local candidate RC2 at source `d82f91498` completed builds, package compatibility checks and 1,174 regression assertions. That evidence applies to those artifacts. Artifacts built after subsequent merges or version changes require fresh verification; old digests cannot establish release acceptance for new builds.
+
+The following remain tracked in the [acceptance record](../../../plans/project-pipeline/release-readiness-review.md). Promoting documentation does not mark them complete:
+
+- Target-database upgrade, recovery and rollback exercises.
+- Deployed multi-worker, restart, lease isolation and unknown-result recovery.
+- Core interaction and authorization in actual Cloud and native Desktop on one candidate.
+- Compatible BOM / Code Review plugin and Assistant artifacts with business acceptance.
+- BOM P0 and business-entry items 13–17; retire the old swimlane only after migration acceptance.
+
+Budget extensions, native execution continuation, Computer delegation, independent Runtime model authorization, Agent write isolation and other paused work are outside this documentation's confirmed delivery scope. A schema field or SDK type alone does not prove that a deployment enables or has accepted a feature. P1 SLA, zoom and template-preview enhancements are not promised as current capabilities.
+
+Historical candidates, receipts, staged reviews and follow-ups remain in `docs/plans/project-pipeline/`. These pages describe implemented behavior without rewriting historical evidence as fully accepted.

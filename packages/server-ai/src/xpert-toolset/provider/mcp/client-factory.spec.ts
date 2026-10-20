@@ -164,7 +164,11 @@ jest.mock('i18next', () => ({
 import { MultiServerMCPClient as MockedMultiServerMCPClient } from '@langchain/mcp-adapters'
 import { createMCPClient } from './types'
 import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
-import { configureMcpConsumerAuthProviderResolver } from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
+import {
+    configureMcpConnectorAuthProviderResolver,
+    configureMcpConsumerAuthProviderResolver,
+    type McpConsumerAuthProviderRequest
+} from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
 
 type McpClientConfig = {
     outputHandling?: {
@@ -263,6 +267,7 @@ describe('MCP client factories', () => {
         process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED = 'true'
         jest.clearAllMocks()
         configureMcpConsumerAuthProviderResolver(null)
+        configureMcpConnectorAuthProviderResolver(null)
         global.fetch = jest.fn().mockResolvedValue(
             new Response(
                 JSON.stringify({
@@ -276,6 +281,7 @@ describe('MCP client factories', () => {
     })
 
     afterEach(() => {
+        configureMcpConnectorAuthProviderResolver(null)
         delete process.env.XPERT_MCP_STDIO_RUNTIME_ENABLED
         global.fetch = originalFetch
         while (tempRoots.length) {
@@ -383,6 +389,85 @@ describe('MCP client factories', () => {
 
         expect(resolver).toHaveBeenCalledWith(expect.objectContaining({ serverName: 'default', userId: 'user-1' }))
         expect(getConfiguredMcpServer(getCreatedClient(), 'default').authProvider).toBe(provider)
+    })
+
+    it('passes execution identity to Connector authorization before attaching its provider', async () => {
+        const provider = {
+            redirectUrl: 'http://localhost/connector-runtime',
+            clientMetadata: { redirect_uris: [] },
+            clientInformation: () => undefined,
+            tokens: jest.fn(),
+            saveTokens: jest.fn(),
+            redirectToAuthorization: jest.fn(),
+            saveCodeVerifier: jest.fn(),
+            codeVerifier: () => ''
+        }
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1'
+        }
+        const resolver = jest.fn(async (request: McpConsumerAuthProviderRequest) => {
+            if (!request.runtimeScope?.conversationId || !request.runtimeScope?.executionId) {
+                throw new Error('Connector execution identity is required')
+            }
+            expect(request.runtimeScope).toEqual(scope)
+            return provider
+        })
+        configureMcpConnectorAuthProviderResolver(resolver)
+
+        await createMCPClient(
+            {
+                ...toolset,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                workspaceId: scope.workspaceId
+            },
+            {
+                mcpServers: {
+                    github: {
+                        type: MCPServerType.HTTP,
+                        url: 'https://api.githubcopilot.com/mcp/',
+                        auth: { type: 'connector', provider: 'github', bindingId: 'binding-1' }
+                    }
+                }
+            },
+            {},
+            scope.xpertId,
+            scope
+        )
+
+        expect(resolver).toHaveBeenCalledTimes(1)
+        const server = getConfiguredMcpServer(getCreatedClient(), 'github')
+        expect(server.authProvider).toBe(provider)
+        expect(server).not.toHaveProperty('auth')
+    })
+
+    it('does not construct an unauthenticated client when Connector authorization fails', async () => {
+        const denied = new Error('Connector access denied')
+        configureMcpConnectorAuthProviderResolver(jest.fn().mockRejectedValue(denied))
+
+        await expect(
+            createMCPClient(
+                toolset,
+                {
+                    servers: {
+                        github: {
+                            type: MCPServerType.HTTP,
+                            url: 'https://api.githubcopilot.com/mcp/',
+                            auth: { type: 'connector', provider: 'github', bindingId: 'binding-1' }
+                        }
+                    }
+                },
+                {}
+            )
+        ).rejects.toBe(denied)
+        expect(MockedMultiServerMCPClient).not.toHaveBeenCalled()
     })
 
     it('runs a generic stdio server without a plugin installation', async () => {

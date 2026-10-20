@@ -1,4 +1,9 @@
 {
+    "AssistantDependency": {
+        "UpdateAvailable": "助理有可用更新",
+        "VersionOnly": "插件版本变化",
+        "UpdateRecommendation": "{{dependency}} 从 {{installedVersion}} 变为 {{currentVersion}}（{{resources}}）。本次执行可继续，可查看变更后按需更新助理。"
+    },
     "SpeechToText": {
         "TemporaryFileCleanupFailed": "语音转文字临时音频文件删除失败。"
     },
@@ -57,6 +62,9 @@
         "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
         "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
         "McpToolDiscoveryLimit": "MCP 工具发现超出限制或返回了重复的游标。",
+        "RestClientAccessDenied": "REST 连接访问被拒绝。",
+        "ApiKeyCredentialsInvalid": "API Key 认证配置无效。",
+        "RestClientUnavailable": "REST 操作不可用、已更改或返回了无效结果。",
         "McpClientAccessDenied": "无权访问 MCP 连接。",
         "McpClientUnavailable": "MCP 操作不可用、定义已变化或返回了无效结果。",
         "SandboxJobCancelled": "沙箱任务已取消。",
@@ -176,6 +184,14 @@
         "ExternalAssistantCancelledByUser": "该外部专家执行已被用户取消。请向用户说明取消结果，未经用户重新要求不要自动重试。",
         "ProjectTaskTypeInvalid": "项目任务类型必须使用所属提供方的唯一标识和已注册的展示图标。",
         "ProjectTaskProgressInvalid": "任务进度必须是 0 到 100 之间的数字；未知进度请使用 null。",
+        "ProjectPipelineDispatchPaused": "流水线已暂停新派发，仍可查询和取消在途执行。",
+        "ProjectPipelineModelGateUnsupported": "模型客户端不支持原生模型调用前的预算检查。",
+        "ProjectPipelineNativeModelBudgetExceeded": "实例原生模型预算不足以准入下一次调用，已消耗额度和未知预留均保留。",
+        "ProjectPipelineProjectionConflict": "流水线投影与已保存版本冲突。",
+        "ProjectPipelineNotFound": "未找到项目流水线。",
+        "ProjectPipelineConfigurationInvalid": "项目流水线配置无效。",
+        "ProjectPipelineAnalyticsWindowInvalid": "请选择有效的统计时间范围，最长 93 天。",
+        "ProjectPipelinePortfolioInputInvalid": "请选择 1–50 个不同的项目，以及不超过 93 天的有效时间范围",
         "ProjectTaskAccessDenied": "无权访问此项目任务。",
         "ProjectTaskNotFound": "找不到项目任务。",
         "ProjectTaskRevisionConflict": "任务已变化，请重新加载后编辑。",
@@ -304,6 +320,7 @@
         "PausedGraphChanged": "工作流配置已变化，不能继续使用原存档。",
         "PausedContextUnavailable": "原任务的运行上下文存档不可用，无法恢复。",
         "CheckpointUnavailable": "所需存档已不存在，无法安全继续。",
+        "ThreadStateNotFound": "未找到此会话的执行状态存档。",
         "MessageCheckpointUnavailable": "这条消息没有可用的输入前存档，无法安全创建历史分支。",
         "ThreadIsPaused": "请先恢复或停止已暂停的流程，再发送后续消息。",
         "PauseTokenRequired": "恢复流程需要指定暂停存档标识。",
@@ -482,6 +499,11 @@
         "WorkspaceFileAbsolutePathOutsideRoot": "Workspace 文件绝对路径必须位于运行时 Workspace 根目录内。",
         "WorkspaceFilePathBelowRootRequired": "Workspace 文件路径必须指向 Workspace 根目录下的文件。",
         "WorkspaceRuntimePathOutsideRoot": "运行时 Workspace 路径必须位于 Workspace 根目录内。",
+        "McpSourceConfigurationInvalid": "插件配置无效，请检查表单字段和值。",
+        "McpSourceConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
+        "McpSourceConfigurationNotFound": "当前 MCP 服务未绑定此可配置的插件来源。",
+        "McpSourceConfigurationChanged": "配置已被更新，请重新加载后再保存。",
+        "McpPublicationDisableBeforeDelete": "请先停用 MCP 服务再删除。",
         "McpPublicationNotFound": "未找到 MCP 服务，或该服务已停用。",
         "McpConsumerWorkspaceRequired": "外部 MCP 连接必须属于某个工作空间。",
         "McpPublicationInvalidName": "MCP 服务名称不能为空，且不能超过 191 个字符。",
@@ -1076,6 +1098,15 @@
         "TemplateFileScopeConflict": "文件隔离策略必须与模板声明一致。",
         "TemplateDependencyBusy": "模板依赖正在由另一个安装更新，请稍后重试。",
         "TemplateDependencyChanged": "此助手绑定的插件或资源版本已变化，请恢复绑定版本后再运行。",
+        "AssistantDependency": {
+            "plugin-unavailable": "当前范围内未加载必需插件 {{dependency}}，请恢复该插件后运行。",
+            "version-required": "依赖 {{dependency}} 明确要求版本 {{expectedVersion}}，当前加载的是 {{actualVersion}}。请更新助理到兼容模板，或恢复要求的版本。",
+            "provider-owner-changed": "依赖 {{dependency}} 的提供方归属已变化，请恢复原提供方或更新助理绑定。",
+            "provider-not-ready": "依赖 {{dependency}} 注册版本为 {{actualVersion}}，与已加载插件 {{expectedVersion}} 不一致，请等待插件激活完成。",
+            "provider-unavailable": "必需提供方 {{dependency}} 当前不可用，请恢复提供方或更新助理所用能力。",
+            "resource-unavailable": "必需资源 {{dependency}} 当前不可用，请恢复资源或更新助理依赖。",
+            "resource-not-ready": "资源 {{dependency}} 版本为 {{actualVersion}}，与已加载插件 {{expectedVersion}} 不一致，请等待插件激活完成。"
+        },
         "TemplateSetupChanged": "助手配置已变化，请刷新后再保存。",
         "TemplateSetupInvalid": "请填写必要偏好并选择已授权的连接。",
         "TemplateRoutineInvalid": "请检查时间规则、时区、首次引导及必需连接后再启用例行任务。",
@@ -1137,7 +1168,10 @@
         "ArtifactPresentationChanged": "正式版本已变化，请重新打开分享页。",
         "ArtifactPresentationUnavailable": "展示插件不可用。",
         "ArtifactPresentationAccessDenied": "需要经过认证的团队分享权限。",
-        "ArtifactPresentationInputInvalid": "展示请求无效。"
+        "ArtifactPresentationInputInvalid": "展示请求无效。",
+        "ProviderCredentialSchemaMissing": "当前提供商未配置凭据表单。",
+        "ProviderCredentialTargetRequired": "请选择支持的模型类型，并填写模型或接入点 ID 以验证凭据。",
+        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。"
     },
     "Mcp": {
         "Test": {

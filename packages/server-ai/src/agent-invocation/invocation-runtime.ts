@@ -5,6 +5,7 @@ import { createHash } from 'crypto'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
+    projectPipelineInvocationScopeSchema,
     agentOutputDeliverySchema,
     agentInvocationDispatchContextSchema,
     AgentInvocationApi,
@@ -45,7 +46,9 @@ export class AgentInvocationRuntime {
     ) {}
 
     assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
-        const strategy = this.registry.get(target.provider, organizationId)
+        const strategy = this.registry
+            .listRegistrations(organizationId)
+            .find((item) => item.type === target.provider)?.strategy
         if (!strategy) throw invocationError('ProviderUnavailable')
         if (!strategy.capabilities.background || strategy.capabilities.recovery === 'checkpoint')
             throw invocationError('Unsupported')
@@ -62,6 +65,11 @@ export class AgentInvocationRuntime {
         ) {
             throw invocationError('InvalidScope')
         }
+        if (
+            (scope.callerType === 'project_pipeline' || scope.pipelineOrigin) &&
+            !projectPipelineInvocationScopeSchema.safeParse(scope).success
+        )
+            throw invocationError('InvalidScope')
         const context = { ...access, scope }
         return {
             start: (request) => this.start(request, context),

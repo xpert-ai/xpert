@@ -14,7 +14,9 @@ import type {
   McpCapabilityPolicy,
   McpCapabilityType,
   McpOAuthSubjectMapping,
-  McpPublicationStatus
+  McpPublicationStatus,
+  McpPublicationConfigurationTab,
+  McpPublicationConfiguration
 } from '@xpert-ai/contracts'
 import { API_MCP_API_KEYS, API_MCP_PUBLICATIONS } from '../constants/app.constants'
 
@@ -90,6 +92,25 @@ export interface McpPublicationTestResult {
 export class McpPublicationService {
   readonly #http = inject(HttpClient)
 
+  configurationTabs(publicationId: string) {
+    return this.#http.get<McpPublicationConfigurationTab[]>(
+      `${API_MCP_PUBLICATIONS}/${encode(publicationId)}/plugin-configurations`
+    )
+  }
+
+  sourceConfiguration(publicationId: string, toolsetId: string) {
+    return this.#http.get<McpPublicationConfiguration>(
+      `${API_MCP_PUBLICATIONS}/${encode(publicationId)}/plugin-configurations/${encode(toolsetId)}`
+    )
+  }
+
+  updateSourceConfiguration(publicationId: string, toolsetId: string, input: McpPublicationConfiguration) {
+    return this.#http.put<McpPublicationConfiguration>(
+      `${API_MCP_PUBLICATIONS}/${encode(publicationId)}/plugin-configurations/${encode(toolsetId)}`,
+      input
+    )
+  }
+
   create(input: CreateMcpPublicationInput) {
     return this.#http.post<IMcpPublication>(API_MCP_PUBLICATIONS, input)
   }
@@ -110,6 +131,10 @@ export class McpPublicationService {
 
   disable(publicationId: string) {
     return this.#http.post<IMcpPublication>(`${API_MCP_PUBLICATIONS}/${encode(publicationId)}/disable`, {})
+  }
+
+  remove(publicationId: string) {
+    return this.#http.delete<{ id: string; deleted: boolean }>(`${API_MCP_PUBLICATIONS}/${encode(publicationId)}`)
   }
 
   enable(publicationId: string) {

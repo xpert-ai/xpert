@@ -88,7 +88,9 @@ test('image artifacts are exported only after health checks, without publishing 
   assert.ok(!imageBuild.environment)
   const health = steps.findIndex((step) => step.run === 'node "$HEALTH_CHECK" "$LOCAL_IMAGE"')
   const save = steps.findIndex((step) => step.run?.includes('docker save'))
-  const upload = steps.findIndex((step) => step.uses === 'actions/upload-artifact@v4')
+  const upload = steps.findIndex(
+    (step) => step.uses === 'actions/upload-artifact@v4' && step.with.name.startsWith('verified-')
+  )
   assert.ok(health > 0 && save > health && upload > save)
   assert.equal(steps[save].if, 'matrix.publish')
   assert.equal(steps[upload].if, 'matrix.publish')
@@ -100,7 +102,9 @@ test('publication requires every build to pass and loads the matching artifact w
   assert.equal(jobs.publish.environment, 'production')
   assert.ok(!jobs.publish.steps.some((step) => step.uses === 'docker/build-push-action@v6'))
   assert.ok(jobs.publish.steps.some((step) => step.run?.startsWith('docker load ')))
-  const upload = imageBuild.steps.find((step) => step.uses === 'actions/upload-artifact@v4')
+  const upload = imageBuild.steps.find(
+    (step) => step.uses === 'actions/upload-artifact@v4' && step.with.name.startsWith('verified-')
+  )
   const download = jobs.publish.steps.find((step) => step.uses === 'actions/download-artifact@v4')
   assert.equal(download.with.name, upload.with.name.replace('inputs.sha', 'needs.prepare.outputs.sha'))
   assert.ok(!download.with.name.includes('run_attempt'), 'A publish-only retry must find the original artifact')
@@ -109,6 +113,29 @@ test('publication requires every build to pass and loads the matching artifact w
   assert.equal(push.env.IMAGE_SHA, '${{ needs.prepare.outputs.sha }}')
   assert.equal(imageBuild.steps[0].with.ref, '${{ inputs.sha }}')
   assert.equal(jobs.publish.steps[0].with.ref, '${{ needs.prepare.outputs.sha }}')
+})
+
+test('API failure diagnostics export only sanitized files and cannot authorize publication', () => {
+  const health = imageBuild.steps.find((step) => step.id === 'health')
+  const upload = imageBuild.steps.find(
+    (step) => step.uses === 'actions/upload-artifact@v4' && step.with.name.startsWith('api-health-diagnostics-')
+  )
+  assert.equal(health.env.API_HEALTH_DIAGNOSTICS_DIR, '${{ runner.temp }}/api-health-diagnostics')
+  assert.equal(upload.with['retention-days'], 7)
+  assert.deepEqual(upload.with.path.trim().split('\n'), [
+    '${{ runner.temp }}/api-health-diagnostics/*.log',
+    '${{ runner.temp }}/api-health-diagnostics/containers.json'
+  ])
+  const evaluate = (failed, outcome, image) =>
+    runInNewContext(upload.if, {
+      failure: () => failed,
+      steps: { health: { outcome } },
+      matrix: { image_name: image }
+    })
+  assert.equal(evaluate(true, 'failure', 'xpert-api'), true)
+  assert.equal(evaluate(false, 'success', 'xpert-api'), false)
+  assert.equal(evaluate(true, 'skipped', 'xpert-api'), false)
+  assert.equal(evaluate(true, 'failure', 'xpert-webapp'), false)
 })
 
 test('publication tolerates skipped optional validators but rejects failed or cancelled builds', () => {

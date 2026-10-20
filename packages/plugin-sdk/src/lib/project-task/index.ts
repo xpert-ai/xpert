@@ -33,6 +33,7 @@ export interface ProjectTaskProjection {
   executions: Array<{
     key: string
     attempt: number
+    invocationId?: string
     agentExecutionId?: string
     conversationId?: string
     threadId?: string

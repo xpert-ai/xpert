@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "proposalOnly": true,
+  "template": {
+    "key": "example.bom.document-flow",
+    "version": "1.0.0",
+    "title": "文档转 BOM",
+    "executionAuthority": "provider",
+    "providerRef": "example.bom.pipeline-source@1",
+    "subjectResolverRef": "example.bom.case-version@1",
+    "topology": {
+      "source": "provider",
+      "presentationAdapterRef": "example.bom.flow-to-pipeline@1"
+    },
+    "roles": [
+      {
+        "key": "inquiry",
+        "allowedKinds": ["assistant"]
+      },
+      {
+        "key": "engineering",
+        "allowedKinds": ["assistant"]
+      },
+      {
+        "key": "approver",
+        "allowedKinds": ["human"]
+      },
+      {
+        "key": "system",
+        "allowedKinds": ["service"]
+      }
+    ],
+    "lanes": [
+      {
+        "key": "inquiry",
+        "roleKey": "inquiry",
+        "label": "技术征询",
+        "order": 1
+      },
+      {
+        "key": "engineering",
+        "roleKey": "engineering",
+        "label": "BOM 工程",
+        "order": 2
+      },
+      {
+        "key": "approval",
+        "roleKey": "approver",
+        "label": "质量审核",
+        "order": 3
+      },
+      {
+        "key": "system",
+        "roleKey": "system",
+        "label": "系统服务",
+        "order": 4
+      }
+    ],
+    "stages": [
+      {
+        "key": "intake",
+        "label": "资料准备",
+        "order": 1
+      },
+      {
+        "key": "structure",
+        "label": "结构生成",
+        "order": 2
+      },
+      {
+        "key": "approval",
+        "label": "审核确认",
+        "order": 3
+      },
+      {
+        "key": "condition",
+        "label": "条件处理",
+        "order": 4
+      },
+      {
+        "key": "delivery",
+        "label": "交付归档",
+        "order": 5
+      }
+    ],
+    "presentation": {
+      "views": ["tasks", "pipeline", "agent_timeline"],
+      "nodeDetailRef": "example.bom.node-detail@1",
+      "evidenceTypes": ["example.bom.baseline@1", "example.bom.technical-bom@1"]
+    },
+    "actionRefs": ["example.bom.run-node@1", "example.bom.review-change@1", "example.bom.open-workspace@1"],
+    "metrics": {
+      "dimensionRefs": ["example.bom.product-line@1"],
+      "metricRefs": ["example.bom.accepted-cycle-time@1"]
+    }
+  },
+  "binding": {
+    "templateRef": "example.bom.document-flow@1.0.0",
+    "roleBindings": {
+      "inquiry": {
+        "kind": "assistant",
+        "selectionKey": "inquiry-assistant"
+      },
+      "engineering": {
+        "kind": "assistant",
+        "selectionKey": "bom-assistant"
+      },
+      "approver": {
+        "kind": "human",
+        "selectionKey": "quality-reviewers"
+      },
+      "system": {
+        "kind": "service",
+        "selectionKey": "bom-domain-service"
+      }
+    },
+    "providerConfiguration": {
+      "domainTemplateKey": "contract_document_to_bom",
+      "domainTemplateVersion": 1,
+      "subjectType": "case",
+      "expansionScope": "product_line"
+    },
+    "parameters": {
+      "slaPolicyRef": "example.bom.business-hours@1"
+    }
+  },
+  "exampleInstance": {
+    "subject": {
+      "resolverRef": "example.bom.case-version@1",
+      "externalKey": "CASE-001"
+    },
+    "projectMapping": "existing_case_project"
+  }
+}

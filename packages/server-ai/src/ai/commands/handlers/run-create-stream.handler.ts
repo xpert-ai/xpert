@@ -655,9 +655,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 )
             } else if (ownsRunClaim && this.conversationThreadService) {
                 if (execution?.id && this.threadRunControl) {
-                    await this.threadRunControl.finish(threadId, execution.id, 'idle')
+                    await this.threadRunControl.finish(threadId, execution.id, 'error', getErrorMessage(error))
                 } else {
-                    await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+                    await this.conversationThreadService.updateRuntimeState(threadId, 'error', getErrorMessage(error))
                 }
             }
             throw error

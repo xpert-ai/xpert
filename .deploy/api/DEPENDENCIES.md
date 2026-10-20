@@ -75,10 +75,20 @@ corepack pnpm run api:image:check
 
 This builds the production image, then checks `/api/health/ready` and
 `/api/health` in a disposable Compose project with its own Postgres and Redis.
+Before API startup it runs the image's `schema-sync` command and the ordered
+Project Pipeline SQL migrations against that disposable database. API startup
+uses `DB_SCHEMA_SYNC_MODE=external` so ORM synchronization cannot remove the
+migration-owned constraints. A schema or migration failure stops acceptance.
 It publishes no host ports, uses generated temporary secrets, and removes only
 its own containers and volumes afterward. Existing services and `.env` files
-are untouched. API/database/cache/Redis must all be healthy. On failure, private
-diagnostic paths are printed; application logs are not streamed to CI output.
+are untouched. API/database/cache/Redis must all be healthy. On failure,
+sanitized Compose errors and container health states are printed. Bounded API,
+Postgres and Redis logs, including the last health probe outputs, are saved in
+a separate diagnostics directory. Generated credentials and sensitive values
+are redacted before output or persistence; container configuration and `.env`
+files are never exported. CI uploads only these sanitized files on failure
+with a seven-day retention. Set `API_HEALTH_DIAGNOSTICS_DIR` to choose the output
+directory locally.
 
 To check an already-built image:
 

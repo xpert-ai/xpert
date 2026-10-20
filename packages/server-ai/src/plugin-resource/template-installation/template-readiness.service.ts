@@ -1,8 +1,14 @@
 // Readiness is recomputed before writes. Loaded packages never imply that all their resources are selected.
-import { TemplateDependencyLock, TXpertTemplate, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import {
+    TemplateDependencyLock,
+    TemplateRuntimeDependencyReport,
+    templateDependencyVersionsSchema,
+    TXpertTemplate,
+    XpertToolsetCategoryEnum
+} from '@xpert-ai/contracts'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -26,10 +32,6 @@ import {
     ResolveAgentPluginTemplateDependencyCommand,
     AssertAgentPluginTemplateDependencyCommand
 } from '../../agent-plugin/templates/agent-plugin-template.command'
-
-const versionsSchema = z
-    .array(z.object({ pluginName: z.string().min(1).max(214), version: z.string().min(1).max(100) }).strict())
-    .max(100)
 
 @Injectable()
 export class TemplateReadinessService {
@@ -90,7 +92,7 @@ export class TemplateReadinessService {
         const { readiness, manifest, normalized } = result
         const components: RuntimeComponent[] = []
         const dependencies = normalized?.dependencies ?? template.dependencies
-        const parsedVersions = versionsSchema.safeParse(dependencies?.versions ?? [])
+        const parsedVersions = templateDependencyVersionsSchema.safeParse(dependencies?.versions ?? [])
         if (!parsedVersions.success) {
             readiness.checks.push(requirementCheck('manifest', 'dependency-versions', 'incompatible'))
             readiness.canInstall = false
@@ -180,9 +182,13 @@ export class TemplateReadinessService {
                 const providers = providerOwners
                     .filter((item) => item.pluginName === pluginName)
                     .map(({ kind, key }) => ({ kind, key }))
+                const requiredVersion = parsedVersions.data.find(
+                    (item) => normalizePluginName(item.pluginName) === pluginName
+                )?.version
                 readiness.dependencies.push({
                     pluginName,
                     version,
+                    ...(requiredVersion ? { requiredVersion } : {}),
                     components: [],
                     ...(providers.length ? { providers } : {})
                 })
@@ -326,6 +332,7 @@ export class TemplateReadinessService {
         return z.object({ meta: z.object({ version: z.string().min(1) }) }).parse(plugin.instance).meta.version
     }
 
+    /** Installation uses exact snapshots to detect changes between preparation and resource writes. */
     async assertDependencies(locks: TemplateDependencyLock[]) {
         for (const lock of locks) {
             try {
@@ -361,6 +368,106 @@ export class TemplateReadinessService {
             }
         }
     }
+
+    /**
+     * Published Assistants keep their graph and installed resources across compatible plugin updates.
+     * A package version or definition hash is provenance, not proof of a breaking change.
+     * Immutable agent-plugin references still verify their pinned artifact, not the latest package.
+     */
+    async inspectRuntimeDependencies(locks: TemplateDependencyLock[]): Promise<TemplateRuntimeDependencyReport> {
+        const updates: TemplateRuntimeDependencyReport['updates'] = []
+        for (const lock of locks) {
+            if (lock.source?.kind === 'agent-plugin') {
+                await this.commands.execute(new AssertAgentPluginTemplateDependencyCommand(lock))
+                continue
+            }
+            let version: string
+            try {
+                version = this.pluginVersion(lock.pluginName)
+            } catch {
+                this.runtimeUnavailable(lock.pluginName, 'plugin-unavailable')
+            }
+            if (lock.requiredVersion && version !== lock.requiredVersion) {
+                this.runtimeUnavailable(lock.pluginName, 'version-required', lock.requiredVersion, version)
+            }
+            for (const provider of lock.providers ?? []) {
+                const dependency = `${lock.pluginName}/${provider.kind}:${provider.key}`
+                try {
+                    const source =
+                        provider.kind === 'middleware'
+                            ? this.middleware.getSource(this.middleware.get(provider.key))
+                            : provider.kind === 'sandbox'
+                              ? this.sandbox.getSource(this.sandbox.get(provider.key))
+                              : this.toolsetRegistry.getSource(this.toolsetRegistry.get(provider.key))
+                    if (source.kind !== 'plugin' || normalizePluginName(source.pluginName) !== lock.pluginName)
+                        this.runtimeUnavailable(dependency, 'provider-owner-changed')
+                    // A registration from a different *loaded* version is a partially activated runtime,
+                    // not an old Assistant binding. Do not execute mismatched code during a rollout.
+                    if (source.pluginVersion && source.pluginVersion !== version)
+                        this.runtimeUnavailable(dependency, 'provider-not-ready', version, source.pluginVersion)
+                } catch (error) {
+                    if (error instanceof HttpException && error.getStatus() !== 404) throw error
+                    this.runtimeUnavailable(dependency, 'provider-unavailable')
+                }
+            }
+            const changedComponents: TemplateRuntimeDependencyReport['updates'][number]['changedComponents'] = []
+            for (const component of lock.components) {
+                const dependency = `${lock.pluginName}/${component.type}:${component.key}`
+                let current: RuntimeComponent[]
+                try {
+                    current = await this.installer.resolveRuntimeComponents(lock.pluginName, [
+                        { componentType: component.type, componentKey: component.key }
+                    ])
+                } catch (error) {
+                    // Preserve actual access denials and storage failures instead of calling them version drift.
+                    if (error instanceof NotFoundException) this.runtimeUnavailable(dependency, 'resource-unavailable')
+                    throw error
+                }
+                if (current.length !== 1) this.runtimeUnavailable(dependency, 'resource-unavailable')
+                if (current[0].pluginVersion !== version)
+                    this.runtimeUnavailable(dependency, 'resource-not-ready', version, current[0].pluginVersion)
+                if (current[0].component.definitionHash !== component.hash)
+                    changedComponents.push({ type: component.type, key: component.key })
+            }
+            if (version !== lock.version || changedComponents.length) {
+                updates.push({
+                    pluginName: lock.pluginName,
+                    installedVersion: lock.version,
+                    currentVersion: version,
+                    changedComponents
+                })
+            }
+        }
+        return { updates }
+    }
+
+    private runtimeUnavailable(
+        dependency: string,
+        reason:
+            | 'plugin-unavailable'
+            | 'version-required'
+            | 'provider-owner-changed'
+            | 'provider-not-ready'
+            | 'provider-unavailable'
+            | 'resource-unavailable'
+            | 'resource-not-ready',
+        expectedVersion?: string,
+        actualVersion?: string
+    ): never {
+        throw new BadRequestException({
+            code: 'ASSISTANT_DEPENDENCY_UNAVAILABLE',
+            dependency,
+            reason,
+            ...(expectedVersion ? { expectedVersion } : {}),
+            ...(actualVersion ? { actualVersion } : {}),
+            message: t(`server-ai:Error.AssistantDependency.${reason}`, {
+                interpolation: { escapeValue: false },
+                dependency,
+                expectedVersion,
+                actualVersion
+            })
+        })
+    }
 }
 
 @CommandHandler(InspectTemplateReadinessCommand)
@@ -381,6 +488,6 @@ export class AssertAssistantTemplateDependenciesHandler implements ICommandHandl
         const access = await this.commands.execute(
             new ResolveAssistantFileAccessCommand(command.assistantId, 'capabilities', command.entry)
         )
-        await this.readiness.assertDependencies(access.dependencyLocks ?? [])
+        return this.readiness.inspectRuntimeDependencies(access.dependencyLocks ?? [])
     }
 }

@@ -1,3 +1,4 @@
+import { registerViewStateTests } from './remote-view-state.cases'
 import { registerFileAccessTests } from './remote-component-file-access.cases'
 import { registerContextTests } from './remote-component-context.cases'
 jest.mock('@cloud/app/@core', () => {
@@ -342,6 +343,8 @@ describe('RemoteComponentRendererComponent', () => {
     )
     expect(frame.getAttribute('allow')).toBe('autoplay')
   })
+
+  registerViewStateTests(manifest, flushRemoteEntry)
 
   it('passes the current host theme to the iframe init message', async () => {
     document.documentElement.dataset.theme = 'dark'

@@ -61,10 +61,22 @@ jobs:
             org.opencontainers.image.revision=${{ inputs.sha }}
             org.opencontainers.image.version=${{ matrix.version }}
       - name: Check image startup and health
+        id: health
         if: matrix.health_check != ''
         env:
           HEALTH_CHECK: ${{ matrix.health_check }}
+          API_HEALTH_DIAGNOSTICS_DIR: ${{ runner.temp }}/api-health-diagnostics
         run: node "$HEALTH_CHECK" "$LOCAL_IMAGE"
+      - name: Upload sanitized API failure diagnostics
+        if: failure() && steps.health.outcome == 'failure' && matrix.image_name == 'xpert-api'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-health-diagnostics-${{ inputs.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/api-health-diagnostics/*.log
+            ${{ runner.temp }}/api-health-diagnostics/containers.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Save verified image for publication
         if: matrix.publish
         run: |

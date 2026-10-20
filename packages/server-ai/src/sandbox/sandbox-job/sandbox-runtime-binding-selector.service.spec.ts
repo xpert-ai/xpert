@@ -1,6 +1,7 @@
 import type { ISandboxRuntimeProvider, SandboxRuntimeBinding } from '@xpert-ai/plugin-sdk'
 import { SandboxRuntimeBindingSelector } from './sandbox-runtime-binding-selector.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
+import { LocalBrowserRuntimeProvider } from './local-browser-runtime.provider'
 
 const definition = new SandboxRuntimeDefinitionRegistry().require('browser/playwright-1.61/v1')
 
@@ -68,13 +69,12 @@ describe('SandboxRuntimeBindingSelector', () => {
         })
     })
 
-    it('requires a read-only workspace even for a development-only binding', async () => {
+    it('requires a read-only workspace for a regular binding that declares it', async () => {
         process.env.NODE_ENV = 'development'
         const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
         const localBinding = {
             ...binding('compute', 'compute-runtime', 0),
-            runtimeProfile: compute.name,
-            developmentOnly: true as const
+            runtimeProfile: compute.name
         }
         const runtime = provider('compute-runtime', [localBinding])
         await expect(createSelector([runtime]).inspect(compute)).resolves.toMatchObject({ available: false })
@@ -83,12 +83,12 @@ describe('SandboxRuntimeBindingSelector', () => {
     })
 
     it.each(['isolation', 'resourceLimits', 'networkPolicy', 'readOnlyRootFilesystem'] as const)(
-        'does not let a development compute binding bypass its %s requirement',
+        'requires a regular compute binding to satisfy its %s requirement',
         async (field) => {
             process.env.NODE_ENV = 'development'
             const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
             const runtime = provider('compute-runtime', [
-                { ...binding('compute', 'compute-runtime', 0), runtimeProfile: compute.name, developmentOnly: true }
+                { ...binding('compute', 'compute-runtime', 0), runtimeProfile: compute.name }
             ])
             runtime.capabilities = {
                 ...runtime.capabilities,
@@ -141,6 +141,42 @@ describe('SandboxRuntimeBindingSelector', () => {
         await expect(createSelector([local]).require(definition)).resolves.toMatchObject({
             provider: { type: 'local-browser-runtime' },
             binding: { id: 'local', developmentOnly: true }
+        })
+    })
+
+    it.each(['document/libreoffice-v1', 'document/python-3.12/v1'])(
+        'selects the built-in local binding for %s in development',
+        async (profile) => {
+            process.env.NODE_ENV = 'development'
+            const runtime = new LocalBrowserRuntimeProvider()
+            jest.spyOn(runtime, 'getBindingHealth').mockResolvedValue({ available: true })
+            const document = new SandboxRuntimeDefinitionRegistry().require(profile)
+
+            await expect(createSelector([runtime]).require(document)).resolves.toMatchObject({
+                binding: { runtimeProfile: profile, developmentOnly: true }
+            })
+        }
+    )
+
+    it('applies the development fallback consistently to profiles with workspace requirements', async () => {
+        process.env.NODE_ENV = 'development'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const runtime = provider('development-runtime', [
+            {
+                ...binding('development', 'development-runtime', 10_000),
+                runtimeProfile: compute.name,
+                developmentOnly: true
+            }
+        ])
+        runtime.capabilities = {
+            isolation: 'process',
+            ephemeral: true,
+            resourceLimits: false,
+            networkPolicy: false,
+            readOnlyRootFilesystem: false
+        }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({
+            binding: { id: 'development' }
         })
     })
 

@@ -106,6 +106,7 @@ export class ModelUsageLedgerService {
             revision: 1,
             originType: 'model',
             originId: normalizeText(scope.originId) ?? requestId,
+            originExecutionId: normalizeText(scope.originExecutionId) ?? null,
             xpertId: scope.xpertId,
             copilotId: scope.copilotId,
             providerScopeId: scope.providerScopeId,
