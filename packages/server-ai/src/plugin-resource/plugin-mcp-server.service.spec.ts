@@ -72,7 +72,7 @@ jest.mock('../shared/request-context', () => ({
     })
 }))
 
-import { StrategyBus, describeXpertToolProvider } from '@xpert-ai/plugin-sdk'
+import { StrategyBus, XPERT_TOOL_PROVIDER, describeXpertToolProvider } from '@xpert-ai/plugin-sdk'
 import { PluginMcpServerService } from './plugin-mcp-server.service'
 
 const defaultDescribeProvider = jest.mocked(describeXpertToolProvider).getMockImplementation()!
@@ -84,7 +84,7 @@ describe('PluginMcpServerService', () => {
     })
 
     it.each(['tools', 'resources', 'prompts'] as const)(
-        'adopts a stable Publication for %s and only returns a newly created secret once',
+        'initializes organization-owned %s from a tenant plugin and preserves its endpoint and credential',
         async (surface) => {
             if (surface !== 'tools') {
                 const descriptor = defaultDescribeProvider({})
@@ -110,7 +110,7 @@ describe('PluginMcpServerService', () => {
             const installation = {
                 id: 'installation-1',
                 tenantId: 'tenant-1',
-                organizationId: null,
+                organizationId: 'org-1',
                 pluginName: '@xpert-ai/plugin-decorated',
                 componentType: 'toolset',
                 componentKey: 'decorated-tools',
@@ -163,7 +163,7 @@ describe('PluginMcpServerService', () => {
             const publication = {
                 id: 'publication-1',
                 tenantId: 'tenant-1',
-                organizationId: null,
+                organizationId: 'org-1',
                 name: 'Decorated tools',
                 slug: '',
                 status: 'draft',
@@ -269,9 +269,20 @@ describe('PluginMcpServerService', () => {
             installation.config = first.installation.config as typeof installation.config
             queryBuilder.getOne.mockResolvedValue(installation)
             const second = await service.enable('@xpert-ai/plugin-decorated', 'decorated-tools')
+            await service.connectionInfo('@xpert-ai/plugin-decorated', 'decorated-tools')
+            mockOrganizationId = null
+            await service.synchronizeEnabled(
+                '@xpert-ai/plugin-decorated',
+                'decorated-tools',
+                'tenant:tenant-1:global',
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1'
+                }
+            )
 
             const managedSlug = publications.findManagedBySlug.mock.calls[0][0]
-            expect(managedSlug).toMatch(/^acme-factory-decorated-t-[a-f0-9]{12}$/)
+            expect(managedSlug).toMatch(/^acme-factory-decorated-o-[a-f0-9]{12}$/)
             expect(managedSlug).not.toContain('tenant-1')
             expect(managedSlug).not.toContain('org-1')
             expect(publications.create).not.toHaveBeenCalled()
@@ -304,24 +315,26 @@ describe('PluginMcpServerService', () => {
                 'org-1',
                 expect.any(Object)
             )
-            expect(publicationAccess.enable).toHaveBeenCalledTimes(2)
+            expect(publicationAccess.enable).not.toHaveBeenCalled()
             expect(installer.installRegisteredRuntimeToolProviderToOrganization).toHaveBeenCalledWith({
                 pluginName: '@xpert-ai/plugin-decorated',
                 componentKey: 'decorated-tools',
                 provider: 'decorated',
                 sourceScopeKey: 'tenant:tenant-1:global'
             })
-            expect(providerScopes).toEqual([null, null])
+            expect(providerScopes).toEqual(['org-1', 'org-1', 'org-1'])
+            expect(publicationAccess.assertEnabled).not.toHaveBeenCalled()
+            expect(publications.disable).not.toHaveBeenCalled()
             expect(installation.config).toMatchObject({
                 artifactNamespace: 'acme_factory',
                 provider: 'decorated',
                 pluginLevel: 'tenant',
-                publicationScope: 'tenant'
+                publicationScope: 'organization'
             })
         }
     )
 
-    it('disables only the current organization grant for a tenant plugin', async () => {
+    it('disables the organization instance of a tenant plugin', async () => {
         const installation = {
             pluginName: '@xpert-ai/plugin-decorated',
             componentType: 'toolset',
@@ -339,7 +352,7 @@ describe('PluginMcpServerService', () => {
         const publication = {
             id: 'publication-1',
             tenantId: 'tenant-1',
-            organizationId: null,
+            organizationId: 'org-1',
             status: 'active'
         }
         const publications = {
@@ -385,9 +398,9 @@ describe('PluginMcpServerService', () => {
 
         await service.disable('@xpert-ai/plugin-decorated', 'decorated-tools')
 
-        expect(publicationAccess.disable).toHaveBeenCalledWith(publication, 'org-1')
-        expect(publications.disable).not.toHaveBeenCalled()
-        expect(installation.enabled).toBe(true)
+        expect(publicationAccess.disable).not.toHaveBeenCalled()
+        expect(publications.disable).toHaveBeenCalledWith('publication-1')
+        expect(installation.enabled).toBe(false)
     })
 
     it('compensates a partially prepared Toolset, catalog, and Publication when activation fails', async () => {
@@ -841,7 +854,13 @@ describe('PluginMcpServerService', () => {
         service.onModuleDestroy()
     })
 
-    it('reconciles enabled Providers after all modules finish initialization', async () => {
+    it.each(['bootstrap', 'registration'])('retains every installation scope on %s', async (trigger) => {
+        const source = {
+            kind: 'plugin' as const,
+            pluginName: '@xpert-ai/plugin-decorated',
+            scopeKey: 'tenant:tenant-1:global'
+        }
+        const strategyBus = new StrategyBus()
         const queryBuilder = {
             where: jest.fn(),
             andWhere: jest.fn(),
@@ -849,6 +868,10 @@ describe('PluginMcpServerService', () => {
                 {
                     tenantId: 'tenant-1',
                     organizationId: null
+                },
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1'
                 }
             ])
         }
@@ -858,6 +881,7 @@ describe('PluginMcpServerService', () => {
             createQueryBuilder: jest.fn(() => queryBuilder)
         }
         const providerRegistry = {
+            getSource: jest.fn(() => source),
             listAllRegistrations: jest.fn(() => [
                 {
                     strategy: {},
@@ -877,7 +901,7 @@ describe('PluginMcpServerService', () => {
             {} as never,
             {} as never,
             {} as never,
-            new StrategyBus(),
+            strategyBus,
             providerRegistry as never,
             [
                 {
@@ -892,8 +916,12 @@ describe('PluginMcpServerService', () => {
         const synchronizeEnabled = jest.spyOn(service, 'synchronizeEnabled').mockResolvedValue(undefined)
 
         service.onModuleInit()
-        service.onApplicationBootstrap()
-        await new Promise<void>((resolve) => queueMicrotask(resolve))
+        if (trigger === 'bootstrap') {
+            service.onApplicationBootstrap()
+        } else {
+            strategyBus.upsert(XPERT_TOOL_PROVIDER, { instance: {}, sourceId: 'provider-1', sourceKind: 'plugin' })
+        }
+        await new Promise<void>((resolve) => setImmediate(resolve))
 
         expect(synchronizeEnabled).toHaveBeenCalledWith(
             '@xpert-ai/plugin-decorated',
@@ -901,6 +929,10 @@ describe('PluginMcpServerService', () => {
             'tenant:tenant-1:global',
             { tenantId: 'tenant-1', organizationId: null }
         )
+        expect(synchronizeEnabled).toHaveBeenCalledWith(source.pluginName, 'decorated-tools', source.scopeKey, {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
         service.onModuleDestroy()
     })
 

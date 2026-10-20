@@ -274,7 +274,7 @@ describe('ListPluginResourceComponentStatesHandler', () => {
         ])
     })
 
-    it('shows a tenant Provider as disabled until the current organization has an access grant', async () => {
+    it.each([false, true])('shows only the organization MCP instance when initialized=%s', async (initialized) => {
         jest.mocked(collectPluginBundleComponents).mockReturnValue([
             {
                 componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
@@ -309,12 +309,28 @@ describe('ListPluginResourceComponentStatesHandler', () => {
             }
         }
         const { handler, installationRepo } = createHandler({
-            installations: [],
+            installations: initialized
+                ? [
+                      {
+                          ...tenantInstallation,
+                          organizationId: 'org-1',
+                          runtimeId: 'toolset-organization',
+                          config: { publicationId: 'publication-organization' }
+                      }
+                  ]
+                : [],
             tenantInstallations: [tenantInstallation],
             publications: [
                 {
                     id: 'publication-tenant',
+                    organizationId: null,
                     slug: 'factory-ops-t-scopehash',
+                    status: 'active'
+                },
+                {
+                    id: 'publication-organization',
+                    organizationId: 'org-1',
+                    slug: 'factory-ops-o-scopehash',
                     status: 'active'
                 }
             ],
@@ -347,17 +363,15 @@ describe('ListPluginResourceComponentStatesHandler', () => {
             })
         )
 
-        expect(installationRepo.createQueryBuilder).toHaveBeenCalledTimes(2)
+        expect(installationRepo.createQueryBuilder).toHaveBeenCalledTimes(1)
         expect(states).toEqual([
             expect.objectContaining({
-                installed: true,
+                installed: initialized,
                 mcpServer: expect.objectContaining({
-                    publicationId: 'publication-tenant',
-                    publicationScope: 'tenant',
-                    accessEnabled: false,
-                    status: 'disabled',
-                    syncError: 'descriptor validation failed',
-                    syncFailedAt: '2026-09-03T01:00:00.000Z'
+                    publicationId: initialized ? 'publication-organization' : null,
+                    publicationScope: 'organization',
+                    accessEnabled: true,
+                    status: initialized ? 'active' : null
                 })
             })
         ])
