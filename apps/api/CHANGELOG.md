@@ -1,5 +1,38 @@
 # @xpert-ai/xpert-api
 
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
+### Patch Changes
+
+- 00001bc: Initialize the disposable API acceptance database with schema synchronization and Project Pipeline SQL migrations before starting in external schema mode. Preserve sanitized startup failures, dependency logs and container health probe results in CI.
+- babce0b: Return typed errors for disallowed or unavailable Assistant model selections. Preserve failed execution and thread error details while releasing the run claim after admission rejection.
+- c2b52ba: Include Assistant runtime dependency compatibility in application releases. Ordinary plugin updates produce non-blocking recommendations while unavailable dependencies and explicit version requirements retain actionable runtime errors.
+- ba77738: Allow compatible ChatKit patches within the current minor line and provide an explicit dependency refresh command that keeps workspace and deployment locks aligned. Docker builds continue to use frozen locks.
+- 6496fd3: Stop restoring checkpoint values for ordinary thread reads so opening conversations and polling run control do not block the API on large saved states. The existing thread route retains metadata and control fields; callers that need execution values must use the explicit thread state route.
+
+  Return a localized 404 when the state route cannot find the latest or requested checkpoint, while preserving access checks and allowing ordinary metadata reads for threads without saved state.
+
+- 4ff6010: Use the resolved model context window consistently for primary calls and context compression. Preserve explicit provider limits and remove model-name guesses that can incorrectly reject summary input for custom endpoints.
+- 0f55121: Ship the shared legacy model capability conversion fix in application images. Preserve explicitly configured streaming tool calls and the authority of newer model features while keeping multi-tool-call support a separate explicit declaration.
+- 8a0c256: Expose configuration tabs for existing MCP Publication plugin sources, rendered from each bound provider's `configSchema`. Preserve schema UI metadata, mask saved secrets and reject stale saves without changing ordinary toolset registration or installation.
+
+  Allow native providers to validate connection values before persistence. Preserve array secrets by their source reference when entries are moved or removed, and reject ambiguous or mismatched references. Avoid eager tag joins when locking connection rows on PostgreSQL.
+
+  Allow administrators to delete disabled MCP services after confirmation, clearing publication records and installation references while retaining source plugins and tools. Removing shared-service admission in an organization only removes that organization's access and records.
+
+- 27fab44: Resume pending plugin rollouts when API capacity recovers, preserve last-replica outage approval and generation fencing, and keep the plugin settings page tracking waiting releases until completion.
+- 854a4c0: Include the Project type business-task concurrency policy in application releases,
+  allowing business applications to declare their task capacity through the Project
+  type catalog.
+- 1b5096f: Validate provider credentials before saving by reusing model discovery when supported, or by testing a user-selected model or endpoint. Expose an optional SDK validation policy and typed preview API, show discovered models and actionable authentication errors, and repeat validation on save without persisting the test target.
+- 1cd5a33: Expose a governed REST client runtime for enabled read-only operations on existing OpenAPI connections. Reuse platform credentials and permissions, pin operation contracts, and bound JSON transport without redirects.
+- d59c8e5: Share MCP client authorization context assembly so client factories preserve execution identity when resolving Connector credentials without changing access checks.
+- 2aada62: Include runtime entities in standalone schema synchronization so externally managed fresh databases contain Sandbox jobs and managed services, invocation and delivery records, and the other entities already registered by runtime feature modules.
+
 ## 3.22.1
 
 ### Patch Changes

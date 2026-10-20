@@ -1,5 +1,27 @@
 # @xpert-ai/contracts
 
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+- babce0b: Return typed errors for disallowed or unavailable Assistant model selections. Preserve failed execution and thread error details while releasing the run claim after admission rejection.
+- 854a4c0: Expose optional business-task concurrency policy on Project type declarations and
+  their catalog. Entity-backed applications enforce it in business dispatch and
+  claim services; generic Agent execution and model configuration are unchanged.
+- 1b5096f: Validate provider credentials before saving by reusing model discovery when supported, or by testing a user-selected model or endpoint. Expose an optional SDK validation policy and typed preview API, show discovered models and actionable authentication errors, and repeat validation on save without persisting the test target.
+
+### Patch Changes
+
+- c2b52ba: Allow published Assistants to continue after ordinary plugin version or resource definition changes, with non-blocking update recommendations. Preserve exact installation snapshots, explicit template version requirements, scoped dependency availability and ownership, immutable artifact integrity, and actionable runtime errors.
+- ba77738: Allow compatible ChatKit patches within the current minor line and provide an explicit dependency refresh command that keeps workspace and deployment locks aligned. Docker builds continue to use frozen locks.
+- 0f55121: Preserve explicitly declared streaming tool calls when converting legacy custom model settings. Share the conversion between model catalogs and execution admission, keep saved model configuration features authoritative, and require a separate explicit declaration for multi-tool-call support.
+- 8a0c256: Expose configuration tabs for existing MCP Publication plugin sources, rendered from each bound provider's `configSchema`. Preserve schema UI metadata, mask saved secrets and reject stale saves without changing ordinary toolset registration or installation.
+
+  Allow native providers to validate connection values before persistence. Preserve array secrets by their source reference when entries are moved or removed, and reject ambiguous or mismatched references. Avoid eager tag joins when locking connection rows on PostgreSQL.
+
+  Allow administrators to delete disabled MCP services after confirmation, clearing publication records and installation references while retaining source plugins and tools. Removing shared-service admission in an organization only removes that organization's access and records.
+
 ## 3.23.0
 
 ### Minor Changes
