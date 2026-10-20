@@ -2136,6 +2136,9 @@ export class ModelAccessService {
         if (modelProperties?.function_calling_type === 'tool_call') {
             features.push(ModelFeature.TOOL_CALL)
         }
+        if (modelProperties?.stream_function_calling === 'supported') {
+            features.push(ModelFeature.STREAM_TOOL_CALL)
+        }
         return features
     }
 
