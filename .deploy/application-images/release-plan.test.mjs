@@ -745,3 +745,60 @@ test('fixed groups reject partial versioning and incomplete note consumption', (
   f.note('pending', [api.name, web.name], 'minor')
   assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
 })
+
+test('one outgoing batch can merge a published main baseline and introduce a fixed group', (t) => {
+  const f = mainSyncFixture(t)
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.version(web, '1.11.0')
+  f.note('align', [api.name, web.name], 'minor')
+  const after = f.commit()
+  const plan = f.plan(f.before, after, 'push', 'refs/heads/develop', f.main)
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.12.0' && !image.stable && !image.versioned))
+  assert.throws(() => f.plan(f.before, after), /consume all pending/)
+  assert.throws(() => f.plan(f.before, after, 'push', 'refs/heads/main', f.main), /consume all pending/)
+  f.remove('downstream')
+  assert.throws(() => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main), /version must match/)
+})
+
+test('batched alignment preserves notes consumed only by the newly merged main ancestor', (t) => {
+  const f = fixture(t)
+  f.note('published', [api.name, web.name])
+  const fork = f.commit()
+  f.remove('published')
+  f.version(api, '1.0.1')
+  f.version(web, '1.0.1')
+  const main = f.commit()
+  f.git('checkout', '--detach', fork)
+  f.note('downstream', [api.name, web.name])
+  const before = f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync main',
+    main
+  )
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.note('align', [api.name, web.name], 'minor')
+  const plan = f.plan(before, f.commit(), 'push', 'refs/heads/develop', main)
+  assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.1.0' && !image.stable))
+})

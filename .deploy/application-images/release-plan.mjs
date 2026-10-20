@@ -65,6 +65,8 @@ export function releasePlan({
       mergedMain = ancestor
   }
   const mainTree = mergedMain ? tree(mergedMain) : new Set()
+  const mainFork = mergedMain ? git('merge-base', before, mergedMain) : undefined
+  const mainForkTree = mainFork ? tree(mainFork) : new Set()
   const adoptedMainVersion = (manifest, previous, current) =>
     mainTree.has(manifest) && semver.gt(current, previous) && read(mergedMain, manifest).version === current
   assert.equal(
@@ -98,6 +100,17 @@ export function releasePlan({
     ),
     oldNotes,
     newNotes,
+    adoptedVersion: (name) => {
+      const manifest = [...mainTree].find(
+        (file) => file.endsWith('/package.json') && read(mergedMain, file).name === name
+      )
+      return manifest ? read(mergedMain, manifest).version : undefined
+    },
+    adoptedNote: (file) =>
+      mainForkTree.has(file) &&
+      !mainTree.has(file) &&
+      !newTree.has(file) &&
+      git('show', `${mainFork}:${file}`) === git('show', `${before}:${file}`),
     unchangedNote: (file) => newTree.has(file) && git('show', `${before}:${file}`) === git('show', `${after}:${file}`)
   })
   const plannedVersion = (name, version, notes, phase) => {

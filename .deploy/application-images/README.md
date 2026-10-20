@@ -93,6 +93,12 @@ unchanged and every member must use that exact baseline. This alignment can only
 produce candidates; it cannot authorize stable tags or consume release notes.
 The core platform group starts at `3.24.0`, with `3.25.0` queued as its next minor.
 
+When a single outgoing batch also merges `main`, alignment may use the highest
+version from that newly merged ancestor. A removed note counts as already consumed
+only if its unchanged content existed at the common fork and is absent from the
+merged main tree. Downstream notes must still be retained. This remains a candidate
+baseline, never authorization for stable tags.
+
 When `main` is merged back into `develop`, its application and shared-package
 versions are already the release baseline. The workflow supplies the fetched
 `main` SHA through `IMAGE_RELEASE_MAIN` (`mainSha` for API callers). The planner

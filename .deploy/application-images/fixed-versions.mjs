@@ -6,7 +6,17 @@ import { createRequire } from 'node:module'
 const require = createRequire(new URL('./release-tools/package.json', import.meta.url))
 const semver = require('semver')
 
-export function fixedVersions({ before, after, read, manifests, oldNotes, newNotes, unchangedNote }) {
+export function fixedVersions({
+  before,
+  after,
+  read,
+  manifests,
+  oldNotes,
+  newNotes,
+  unchangedNote,
+  adoptedVersion = () => undefined,
+  adoptedNote = () => false
+}) {
   const oldGroups = read(before, '.changeset/config.json').fixed ?? []
   const newGroups = read(after, '.changeset/config.json').fixed ?? []
   const groupFor = (groups, name) => groups.find((group) => group.includes(name))
@@ -34,11 +44,15 @@ export function fixedVersions({ before, after, read, manifests, oldNotes, newNot
     alignment(name) {
       const group = groupFor(newGroups, name)
       if (!group || groupFor(oldGroups, name)) return false
-      const baseline = highest(group, oldPackages)
+      // A single push may contain both a main sync and the initial alignment.
+      // Only versions from the caller's verified newly merged ancestor qualify.
+      const baseline = [highest(group, oldPackages), ...group.map(adoptedVersion).filter(Boolean)].sort(
+        semver.rcompare
+      )[0]
       if (!group.every((member) => newPackages.get(member)?.version === baseline)) return false
       if (!group.every((member) => semver.major(oldPackages.get(member).version) === semver.major(baseline)))
         return false
-      return groupNotes(group, oldNotes).every((note) => unchangedNote(note.file))
+      return groupNotes(group, oldNotes).every((note) => unchangedNote(note.file) || adoptedNote(note.file))
     },
     basis(name, phase, notes) {
       const groups = phase === 'before' ? oldGroups : newGroups
