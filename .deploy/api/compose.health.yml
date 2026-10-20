@@ -39,6 +39,8 @@ services:
       DB_NAME: api_health
       DB_USER: api_health
       DB_PASS: ${CHECK_DB_PASS:?}
+      # SQL migrations own constraints that TypeORM synchronization would remove.
+      DB_SCHEMA_SYNC_MODE: external
       REDIS_ENABLED: 'true'
       REDIS_HOST: redis
       REDIS_PORT: '6379'

@@ -6,7 +6,35 @@ import { McpAppHistory } from '../../mcp-app-runtime/mcp-app-history.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../../realtime-voice/voice.entity'
 import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
-import { AgentInvocationWaitEntity } from '../../agent-invocation/invocation.entity'
+import {
+    AgentInvocationEntity,
+    AgentRuntimeBindingEntity,
+    AgentInvocationEventEntity,
+    AgentInvocationWaitEntity
+} from '../../agent-invocation/invocation.entity'
+import { InvocationActivityItem, InvocationActivityState } from '../../agent-invocation/activity/activity.entity'
+import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
+import { SandboxJobEntity } from '../../sandbox/sandbox-job/sandbox-job.entity'
+import { SandboxManagedServiceEntity } from '../../sandbox/sandbox-managed-service.entity'
+import { AGENT_EVOLUTION_ENTITIES } from '../../agent-evolution/entities'
+import { ChatConversationReadState } from '../../chat-conversation/conversation-read-state.entity'
+import { CollaborationDocument } from '../../collaboration/entities/collaboration-document.entity'
+import { CollaborationUpdate } from '../../collaboration/entities/collaboration-update.entity'
+import {
+    ConversationFileLink,
+    FileArtifact,
+    FileChunk,
+    FileCitationAnchor,
+    FileEmbedding
+} from '../../file-understanding/entities'
+import { McpAppAudit } from '../../mcp-app-runtime/mcp-app-audit.entity'
+import { McpConsumerOAuthCredential } from '../../mcp-consumer/auth/mcp-consumer-oauth-credential.entity'
+import { McpConsumerOAuthSession } from '../../mcp-consumer/auth/mcp-consumer-oauth-session.entity'
+import { PromptWorkflow } from '../../prompt-workflow/prompt-workflow.entity'
+import { XpertAccessRequest } from '../../xpert-marketplace/xpert-access-request.entity'
+import { AutoTask } from '../../xpert-task/auto-task.entity'
+import { AutoTaskTemplate } from '../../xpert-task/auto-task-template.entity'
+import { ScheduleNote } from '../../xpert-task/schedule-note.entity'
 import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
 import { ShellCliExecution, ShellProcessExecution } from '../../shell-execution/shell-execution.entity'
 import {
@@ -147,7 +175,33 @@ export const ALL_AI_ENTITIES = [
     RealtimeVoiceTask,
     RealtimeVoiceTurn,
     ModelExecutionReconciliation,
+    AgentInvocationEntity,
+    AgentRuntimeBindingEntity,
+    AgentInvocationEventEntity,
     AgentInvocationWaitEntity,
+    InvocationActivityItem,
+    InvocationActivityState,
+    AgentRuntimeDelivery,
+    AgentRuntimeInbox,
+    SandboxJobEntity,
+    SandboxManagedServiceEntity,
+    ...AGENT_EVOLUTION_ENTITIES,
+    ChatConversationReadState,
+    CollaborationDocument,
+    CollaborationUpdate,
+    ConversationFileLink,
+    FileArtifact,
+    FileChunk,
+    FileCitationAnchor,
+    FileEmbedding,
+    McpAppAudit,
+    McpConsumerOAuthCredential,
+    McpConsumerOAuthSession,
+    PromptWorkflow,
+    XpertAccessRequest,
+    AutoTask,
+    AutoTaskTemplate,
+    ScheduleNote,
     DesktopShellDevice,
     DesktopShellGrant,
     DesktopShellOperation,
