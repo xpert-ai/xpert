@@ -116,6 +116,40 @@ calculated from the new manifest and those remaining notes, including on `main`;
 stable aliases stay disabled. A version bump consuming no application note still
 fails. The default policy remains `reject`.
 
+Fixed groups use the highest bump among consumed group notes for an opted-in
+candidate synchronization, and the highest remaining group bump for its next
+candidate. The default policy still requires complete group-note consumption.
+
+An aggregated downstream merge may contain an upstream note and the commit that
+consumed it, leaving the note absent from both comparison endpoints. Candidate
+retention verifies every source version transition against its own parent with the
+strict release gate, including shared-package coverage. Missing declarations,
+incorrect intermediate bumps and sibling-branch evidence cannot fill a version gap.
+This history can authorize candidates only when application notes remain.
+
+Downstream callers can pass an exact `upstreamMainSha` together with candidate
+retention. Only the upstream ancestor already merged into the checked source and
+newly introduced since the previous revision can supply an adopted baseline.
+Fixed-group alignment may use this verified baseline. Adoption cannot authorize
+stable aliases, use an unmerged upstream version, or replace application notes.
+
+### Optional downstream hook policy
+
+The open-source repository does not include a `release-policy.json`; its hooks keep
+the default strict policy and existing `origin/main` handling, without fetching an
+additional repository. A downstream clone may opt in by committing
+`.deploy/application-images/release-policy.json` with an explicit
+`upstreamMainRepository` and `retainedChangesetPolicy` set to `candidate`.
+
+Commit checks read this policy from the staged snapshot; push checks read it from
+each outgoing commit. Unstaged edits cannot enable or change it. Before planning,
+the hooks fetch only the configured repository's `main` into
+`refs/xpert/application-images/upstream-main`, leaving `origin/main` and
+`FETCH_HEAD` unchanged. A refresh failure stops validation instead of reusing a
+cached baseline. Release-note coverage and stable-release constraints still apply.
+This policy is a downstream hook option; enabling it does not change the default
+planner or the open-source CI workflow.
+
 Wrappers may also select `applicationNames` from the service registry. Selection
 scopes both version validation and shared-package coverage before constructing the
 matrix; unrelated image release failures do not block that wrapper. The default

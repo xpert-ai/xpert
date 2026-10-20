@@ -1,90 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import { services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
+import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
-function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
-  const cwd = mkdtempSync(path.join(tmpdir(), 'application-images-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
-  const git = (...args) =>
-    execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
-  const write = (file, content) => {
-    mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true })
-    writeFileSync(path.join(cwd, file), content)
-  }
-  const version = (service, value) =>
-    write(service.manifest, JSON.stringify({ name: service.name, private: true, version: value }))
-  const note = (id, names = [api.name], type = 'patch') =>
-    write(
-      `.changeset/${id}.md`,
-      `---\n${names.map((name) => `'${name}': ${type}`).join('\n')}\n---\nPublish the requested images.\n`
-    )
-  const remove = (id) => rmSync(path.join(cwd, `.changeset/${id}.md`))
-  const commit = () => {
-    git('add', '.')
-    git(
-      '-c',
-      'core.hooksPath=/dev/null',
-      '-c',
-      'user.name=Release tests',
-      '-c',
-      'user.email=test@example.invalid',
-      'commit',
-      '-qm',
-      'fixture'
-    )
-    return git('rev-parse', 'HEAD')
-  }
-  git('init', '-q')
-  for (const service of services) if (!legacy || service !== jail) version(service, '1.0.0')
-  for (const file of new Set(services.flatMap((service) => service.shared))) {
-    const { name } = JSON.parse(readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8'))
-    write(file, JSON.stringify({ name, version: '1.0.0' }))
-  }
-  write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
-  const initial = commit()
-  const plan = (before, after, event = 'push', ref = 'refs/heads/develop', mainSha) =>
-    releasePlan({ cwd, before, after, event, ref, mainSha, retainedChangesetPolicy })
-  return { cwd, git, write, version, note, remove, commit, initial, plan }
-}
-const tags = (image) => image.tags.split('\n').map((tag) => tag.replace('type=raw,value=', ''))
-
-function mainSyncFixture(t) {
-  const f = fixture(t)
-  f.note('released', [api.name, web.name, contracts], 'minor')
-  const fork = f.commit()
-  f.remove('released')
-  f.version(api, '1.1.0')
-  f.version(web, '1.1.0')
-  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
-  f.commit()
-  // Main may contain multiple releases or an intentional version baseline alignment.
-  f.version(api, '1.11.0')
-  const main = f.commit()
-  f.git('checkout', '--detach', fork)
-  f.note('downstream', [api.name, web.name])
-  const before = f.commit()
-  f.git(
-    '-c',
-    'core.hooksPath=/dev/null',
-    '-c',
-    'user.name=Release tests',
-    '-c',
-    'user.email=test@example.invalid',
-    'merge',
-    '--no-ff',
-    '-qm',
-    'Sync main',
-    main
-  )
-  const after = f.git('rev-parse', 'HEAD')
-  return { ...f, main, before, after }
-}
 
 test('newly merged main versions retain downstream notes and authorize only candidates', (t) => {
   const f = mainSyncFixture(t)
@@ -168,6 +88,22 @@ test('main syncs do not make old notes fresh for later documentation-only pushes
   assert.equal(plan.publish, false)
   assert.equal(plan.validate, false)
   assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/develop', 'main'), /Exact main commit SHA/)
+})
+
+test('upstream main baselines require explicit downstream candidate retention', (t) => {
+  const f = mainSyncFixture(t)
+  assert.throws(
+    () =>
+      releasePlan({
+        cwd: f.cwd,
+        before: f.before,
+        after: f.after,
+        event: 'push',
+        ref: 'refs/heads/main',
+        upstreamMainSha: f.main
+      }),
+    /Upstream main baselines require candidate retention/
+  )
 })
 
 test('an API Changeset selects only API and publishes candidate/version/SHA tags', (t) => {
@@ -612,6 +548,16 @@ test('a version bump without a previously landed application note cannot publish
   assert.equal(f.plan(f.initial, bumped).build, false)
   f.note('api')
   assert.throws(() => f.plan(f.initial, f.commit()), /before consuming/)
+})
+test('the default policy does not accept versioning evidence hidden inside an aggregated sync', (t) => {
+  const f = fixture(t)
+  f.note('upstream', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream')
+  assert.throws(() => f.plan(f.initial, f.commit(), 'push', 'refs/heads/main'), /before consuming/)
 })
 test('new shared contracts notes require explicit API and Web image declarations', (t) => {
   const f = fixture(t)

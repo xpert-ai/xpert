@@ -54,7 +54,7 @@ export function fixedVersions({
         return false
       return groupNotes(group, oldNotes).every((note) => unchangedNote(note.file) || adoptedNote(note.file))
     },
-    basis(name, phase, notes) {
+    basis(name, phase, notes, retainedForCandidate = false) {
       const groups = phase === 'before' ? oldGroups : newGroups
       const group = groupFor(groups, name)
       if (!group) return undefined
@@ -64,7 +64,7 @@ export function fixedVersions({
         group.every((member) => newPackages.get(member)?.version === newPackages.get(name)?.version),
         `Fixed group containing ${name} must use the same version`
       )
-      if (phase === 'before') {
+      if (phase === 'before' && !retainedForCandidate) {
         assert.ok(
           groupNotes(group, oldNotes).every((note) => !newNotes.some((next) => next.file === note.file)),
           `Fixed group containing ${name} must consume all pending Changesets`

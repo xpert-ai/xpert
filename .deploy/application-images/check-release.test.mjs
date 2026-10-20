@@ -133,6 +133,47 @@ test('staged consumption and version bumps use the CI version rules', async (t) 
   assert.equal((await f.check()).skipped, false)
 })
 
+test('absent snapshot policy keeps staged and push checks strict despite an unstaged opt-in', async (t) => {
+  const f = fixture(t)
+  f.note('consumed', [api.name])
+  f.note('retained', [api.name])
+  const before = f.commit()
+  f.git('rm', '.changeset/consumed.md')
+  f.version(api.manifest, '1.0.1')
+  f.git('add', api.manifest)
+  f.write(
+    '.deploy/application-images/release-policy.json',
+    JSON.stringify({ upstreamMainRepository: f.cwd, retainedChangesetPolicy: 'candidate' })
+  )
+  await assert.rejects(f.check, /consume all pending/)
+  f.git('-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'Commit only staged release metadata')
+  const after = f.git('rev-parse', 'HEAD')
+  await assert.rejects(() => checkPushReleases(f.push(before, after), { cwd: f.cwd }), /consume all pending/)
+  const baseline = spawnSync(
+    'git',
+    ['show-ref', '--verify', '--quiet', 'refs/xpert/application-images/upstream-main'],
+    {
+      cwd: f.cwd
+    }
+  )
+  assert.equal(baseline.status, 1)
+})
+
+test('upstream policy must explicitly select candidate retention before any baseline fetch', async (t) => {
+  const f = fixture(t)
+  for (const [policy, message] of [
+    [null, /Invalid application release policy/],
+    [[], /Invalid application release policy/],
+    [{ upstreamMainRepository: f.cwd }, /require candidate retention/],
+    [{ upstreamMainRepository: f.cwd, retainedChangesetPolicy: 'reject' }, /require candidate retention/],
+    [{ upstreamMainRepository: '', retainedChangesetPolicy: 'candidate' }, /requires an upstream main repository/]
+  ]) {
+    f.write('.deploy/application-images/release-policy.json', JSON.stringify(policy))
+    f.git('add', '.deploy/application-images/release-policy.json')
+    await assert.rejects(f.check, message)
+  }
+})
+
 test('deletion-only staging is checked, while unrelated source changes skip the planner', async (t) => {
   const f = fixture(t)
   f.write('README.md', 'Documentation')
@@ -163,6 +204,93 @@ test('pending merge ancestry preserves adoption of main versions', async (t) => 
   assert.ok(plan.matrix.include.every((image) => !image.versioned && !image.stable))
   assert.equal(f.git('rev-parse', 'HEAD'), before)
   assert.equal(f.git('rev-parse', 'MERGE_HEAD'), main)
+})
+
+function upstreamAlignmentFixture(t, { merge = true } = {}) {
+  const f = fixture(t)
+  f.note('released', [contracts, sdk, api.name, web.name])
+  f.commit()
+  f.git('checkout', '-qb', 'main')
+  f.git('rm', '.changeset/released.md')
+  f.version(api.manifest, '1.0.1')
+  f.version(web.manifest, '1.0.1')
+  f.version('packages/contracts/package.json', '1.1.0')
+  f.version('packages/plugin-sdk/package.json', '1.1.0')
+  const main = f.commit()
+  f.git('checkout', '-q', 'develop')
+  f.note('downstream', [api.name, web.name])
+  const before = f.commit()
+  f.git('update-ref', 'refs/remotes/origin/main', f.initial)
+  if (merge) f.git('-c', 'core.hooksPath=/dev/null', 'merge', '--no-ff', '--no-commit', 'main')
+  f.write(
+    '.deploy/application-images/release-policy.json',
+    JSON.stringify({ upstreamMainRepository: f.cwd, retainedChangesetPolicy: 'candidate' })
+  )
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({ privatePackages: { version: true }, fixed: [[api.name, web.name, contracts, sdk]] })
+  )
+  for (const manifest of [
+    api.manifest,
+    web.manifest,
+    'packages/contracts/package.json',
+    'packages/plugin-sdk/package.json'
+  ])
+    f.version(manifest, '1.1.0')
+  f.note('alignment', [api.name, web.name, contracts, sdk])
+  f.git('add', '.')
+  return { ...f, before, main }
+}
+
+test('staged upstream alignment refreshes the configured main without changing origin or the index', async (t) => {
+  const f = upstreamAlignmentFixture(t)
+  const staged = f.git('diff', '--cached', '--binary')
+  f.write('.deploy/application-images/release-policy.json', 'invalid unstaged editor contents')
+  const { plan } = await f.check()
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.1.1' && !image.versioned && !image.stable))
+  assert.equal(f.git('rev-parse', 'refs/xpert/application-images/upstream-main'), f.main)
+  assert.equal(f.git('rev-parse', 'refs/remotes/origin/main'), f.initial)
+  assert.equal(f.git('diff', '--cached', '--binary'), staged)
+  assert.equal(f.git('rev-parse', 'HEAD'), f.before)
+  assert.equal(f.git('rev-parse', 'MERGE_HEAD'), f.main)
+})
+
+test('an upstream main that was not merged cannot authorize copied fixed-group versions', async (t) => {
+  const f = upstreamAlignmentFixture(t, { merge: false })
+  await assert.rejects(f.check, /consume all pending/)
+})
+
+test('pre-push uses the outgoing policy and a fresh upstream baseline across the whole merge', async (t) => {
+  const f = upstreamAlignmentFixture(t)
+  const after = f.commit()
+  f.git('update-ref', 'refs/xpert/application-images/upstream-main', f.initial)
+  f.write('.deploy/application-images/release-policy.json', 'invalid working-tree policy')
+  const [plan] = await checkPushReleases(f.push(f.before, after, 'refs/heads/main'), { cwd: f.cwd })
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => !image.versioned && !image.stable))
+  assert.equal(f.git('rev-parse', 'refs/xpert/application-images/upstream-main'), f.main)
+})
+
+test('a failed upstream refresh rejects the check even when a cached baseline exists', async (t) => {
+  const f = upstreamAlignmentFixture(t)
+  f.git('update-ref', 'refs/xpert/application-images/upstream-main', f.main)
+  f.write(
+    '.deploy/application-images/release-policy.json',
+    JSON.stringify({
+      upstreamMainRepository: path.join(f.cwd, 'missing-upstream.git'),
+      retainedChangesetPolicy: 'candidate'
+    })
+  )
+  f.git('add', '.deploy/application-images/release-policy.json')
+  await assert.rejects(f.check, /Cannot refresh the configured upstream main release baseline/)
+})
+
+test('configured upstream baselines retain the common NsJail release declaration check', async (t) => {
+  const f = upstreamAlignmentFixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'runtime change')
+  f.git('add', '.deploy/nsjail-runner/runner.py')
+  await assert.rejects(f.check, /nsjail-runner: add an application Changeset/)
 })
 
 test('pre-push covers complete outgoing batches, including previously committed missing notes', async (t) => {
@@ -196,6 +324,10 @@ test('the actual hooks block incomplete declarations before formatting or pushin
   symlinkSync(
     fileURLToPath(new URL('./services.mjs', import.meta.url)),
     path.join(f.cwd, '.deploy/application-images/services.mjs')
+  )
+  symlinkSync(
+    fileURLToPath(new URL('./release-baseline.mjs', import.meta.url)),
+    path.join(f.cwd, '.deploy/application-images/release-baseline.mjs')
   )
   f.git('config', 'core.hooksPath', hooks)
   f.note('shared', [contracts, api.name])
