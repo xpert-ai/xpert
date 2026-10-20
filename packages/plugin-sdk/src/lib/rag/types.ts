@@ -4,19 +4,19 @@ import fs from 'fs'
 import http from 'http'
 import https from 'https'
 
-export { TDocumentAsset } from '@xpert-ai/contracts'
+export type { TDocumentAsset } from '@xpert-ai/contracts'
 
-export interface ChunkMetadata extends IDocChunkMetadata{
+export interface ChunkMetadata extends IDocChunkMetadata {
   startOffset?: number // Start position in the original text
   endOffset?: number // End position in the original text
   type?: 'parent' | 'child' // Chunk type
-  
+
   [key: string]: any // Allow plugin extensions
 }
 
 /**
  * Merge parent chunks with their child chunks based on metadata (parentId and chunkId)
- * 
+ *
  * @deprecated use buildChunkTreeAndFindLeaves instead
  */
 export function mergeParentChildChunks(
