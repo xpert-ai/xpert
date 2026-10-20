@@ -13,6 +13,7 @@ const TOUCH_ACTIVITY = `
 local time = redis.call('TIME')
 local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
+if ARGV[3] == 'renew' and not redis.call('ZSCORE', KEYS[1], ARGV[1]) then return 0 end
 redis.call('ZADD', KEYS[1], now + tonumber(ARGV[2]), ARGV[1])
 local latest = redis.call('ZREVRANGE', KEYS[1], 0, 0, 'WITHSCORES')
 redis.call('PEXPIRE', KEYS[1], math.ceil(tonumber(latest[2]) - now))
@@ -94,6 +95,18 @@ export class RedisEphemeralService {
 			keys: [this.key('activity', resource)],
 			arguments: [owner, String(ttlMs)]
 		})
+	}
+
+	/** Renew a live owner without resurrecting one already expired or released. */
+	async renewActivity(resource: string, owner: string, ttlMs: number): Promise<boolean> {
+		assertTtl(ttlMs)
+		assertOwner(owner)
+		return (
+			(await this.redis.eval(TOUCH_ACTIVITY, {
+				keys: [this.key('activity', resource)],
+				arguments: [owner, String(ttlMs), 'renew']
+			})) === 1
+		)
 	}
 
 	async releaseActivity(resource: string, owner: string): Promise<void> {

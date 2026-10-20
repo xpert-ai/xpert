@@ -1,5 +1,6 @@
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
+import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import { isAIMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { Command, CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
 import {
@@ -40,7 +41,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { catchError, concat, defer, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, defer, filter, finalize, from, map, Observable, of, switchMap, tap } from 'rxjs'
 import { Repository } from 'typeorm'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
 import { ChatMessage } from '../../../chat-message/chat-message.entity'
@@ -124,6 +125,26 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
     }
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
+        const lifetime = { controller: new AbortController(), release: async () => {} }
+        try {
+            const stream = await this.invoke(command, lifetime)
+            return stream.pipe(
+                finalize(() => {
+                    lifetime.controller.abort()
+                    void lifetime.release().catch((error) => this.#logger.warn(getErrorMessage(error)))
+                })
+            )
+        } catch (error) {
+            lifetime.controller.abort()
+            await lifetime.release().catch((releaseError) => this.#logger.warn(getErrorMessage(releaseError)))
+            throw error
+        }
+    }
+
+    private async invoke(
+        command: XpertAgentInvokeCommand,
+        lifetime: { controller: AbortController; release: () => Promise<void> }
+    ): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
         const { execution, subscriber, memories } = options
         const tenantId = RequestContext.currentTenantId()
@@ -205,6 +226,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         if (sandboxContext?.provider && sandboxContext.provider !== workAreaInput.provider) {
             workArea = await this.workAreaResolver.resolve({ ...workAreaInput, provider: sandboxContext.provider })
         }
+        const backend = resolveSandboxBackend(sandboxContext)
+        if (backend?.retainExecution && execution?.id) {
+            lifetime.release = await backend.retainExecution({
+                executionId: execution.id,
+                signal: lifetime.controller.signal,
+                onLost: (error) => lifetime.controller.abort(error)
+            })
+        }
         const volumePath = workArea.volumePath
         const workspacePath =
             sandboxContext?.workingDirectory ?? initialWorkspaceBinding?.workspacePath ?? workArea.workingDirectory
@@ -231,7 +260,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
         options.environment = mergeEnvironmentWithEnvState(options.environment, getContextEnvState(options.context))
 
-        const abortController = new AbortController()
+        const abortController = lifetime.controller
         if (execution?.id) {
             this.executionCancelService.register(execution.id, abortController)
         }
