@@ -112,6 +112,22 @@ export function readModelConfiguration(
   return modelConfigurationSchema.parse(value)
 }
 
+/** Legacy fallback only; explicit model_configuration.features remains authoritative. */
+export function legacyModelFeatures(properties?: Record<string, unknown> | null): ModelFeature[] {
+  const features: ModelFeature[] = []
+  if (properties?.['vision_support'] === 'support') features.push(ModelFeature.VISION)
+  if (
+    properties?.['function_calling_type'] === 'tool_call' ||
+    properties?.['function_calling_type'] === 'multi_tool_call'
+  ) {
+    features.push(ModelFeature.TOOL_CALL)
+  }
+  if (properties?.['function_calling_type'] === 'multi_tool_call') features.push(ModelFeature.MULTI_TOOL_CALL)
+  if (properties?.['stream_function_calling'] === 'supported') features.push(ModelFeature.STREAM_TOOL_CALL)
+  if (properties?.['agent_though_support'] === 'supported') features.push(ModelFeature.AGENT_THOUGHT)
+  return features
+}
+
 export interface DiscoveredModel {
   /** Exact ID returned by the upstream discovery endpoint. */
   model: string
