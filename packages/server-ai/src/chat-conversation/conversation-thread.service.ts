@@ -19,12 +19,9 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { messageAncestorPath } from './message-path'
-
-export type CopyConversationThreadInput = {
-    metadata?: Record<string, unknown>
-    beforeMessageId?: string
-    requestId?: string
-}
+import { SideChatForkService } from './side-chat-fork.service'
+import type { CopyConversationThreadInput } from './thread-copy.schema'
+export type { CopyConversationThreadInput } from './thread-copy.schema'
 
 export type FindVisibleThreadMessagesOptions = {
     where?: FindOptionsWhere<ChatMessage>
@@ -47,7 +44,8 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         private readonly messageRepository: Repository<ChatMessage>,
         @InjectRepository(ChatConversation)
         private readonly conversationRepository: Repository<ChatConversation>,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly sideChats: SideChatForkService
     ) {
         super(repository)
     }
@@ -122,6 +120,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
 
     async copyThread(sourceThreadId: string, input: CopyConversationThreadInput = {}): Promise<ChatConversationThread> {
         const source = await this.requireByThreadId(sourceThreadId)
+        if (input.mode === 'latest-sealed-reply') return this.sideChats.copy(source, input)
         const childThreadId = uuidv4()
         const editedMessage = input.beforeMessageId
             ? (await this.findVisibleMessages(sourceThreadId)).items.find(
@@ -155,6 +154,11 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                     .andWhere(`thread.metadata ->> 'forkRequestId' = :requestId`, { requestId: input.requestId })
                     .getOne()
                 if (existing) {
+                    if (existing.metadata.forkMode)
+                        throw threadControlConflict(
+                            'BranchRequestInvalid',
+                            'Branch mode does not match the original request.'
+                        )
                     if (
                         (existing.metadata.purpose === ChatThreadPurpose.MessageEdit
                             ? existing.forkedFromMessageId

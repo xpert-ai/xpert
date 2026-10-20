@@ -404,7 +404,7 @@ describe('ConversationMapService', () => {
     it('passes the stable retry key and exact source to side-chat and the branch command', async () => {
         const f = fixture()
         await f.service.act(context, { type: 'side-chat', conversationId, threadId: 'main', requestId: 'retry' })
-        expect(f.threads.copyThread).toHaveBeenCalledWith('main', { requestId: 'retry' })
+        expect(f.threads.copyThread).toHaveBeenCalledWith('main', { mode: 'latest-sealed-reply', requestId: 'retry' })
         await f.service.act(context, {
             type: 'branch',
             conversationId,

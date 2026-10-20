@@ -410,7 +410,10 @@ export class ConversationMapService {
                 } else await this.conversations.update(conversation.id, { title: input.title })
                 return { renamed: true }
             case 'side-chat': {
-                const thread = await this.threads.copyThread(input.threadId, { requestId: input.requestId })
+                const thread = await this.threads.copyThread(input.threadId, {
+                    mode: 'latest-sealed-reply',
+                    requestId: input.requestId
+                })
                 return this.target(context, conversation.id, thread.threadId)
             }
             case 'branch': {

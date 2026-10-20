@@ -146,10 +146,12 @@ export type TChatThreadMetadata = {
   title?: string
   primary?: boolean
   purpose?: TChatThreadPurpose
-  /** Graph revision the edited input was captured on; cleared after the first successful run. */
+  /** Graph revision captured for a fork; cleared after the first successful run. */
   forkGraphRevision?: string
   /** Client-provided idempotency key for branch creation. */
   forkRequestId?: string
+  /** Explicit copy semantics for validating idempotent retries. */
+  forkMode?: 'latest-sealed-reply'
   [key: string]: unknown
 }
 export type TToolCallType = 'agent' | 'tool'

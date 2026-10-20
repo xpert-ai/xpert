@@ -11,7 +11,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,
     Public: () => () => undefined,
-    TransformInterceptor: class {}
+    TransformInterceptor: class {},
+    ZodValidationPipe: jest.requireActual('../../../server/src/shared/pipes/zod-validation.pipe').ZodValidationPipe
 }))
 
 jest.mock('./ai.service', () => ({

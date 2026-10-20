@@ -152,7 +152,6 @@ export default {
             const input = message.input
             const branch = state.branches.find((item) => item.threadId === input.threadId)
             if (input.conversationId !== conversationId || !branch) throw Error('Invalid target')
-            if (input.type === 'side-chat' && branch.status !== 'idle') throw Error('Branch is not idle')
             state.actions.push(input)
             // Record dispatch only: this fixture never creates a real conversation or navigates the browser.
             return {

@@ -8,6 +8,7 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ChatConversationThreadService } from './conversation-thread.service'
+import { SideChatForkService } from './side-chat-fork.service'
 
 describe('ChatConversationThreadService', () => {
     function createService({
@@ -25,7 +26,8 @@ describe('ChatConversationThreadService', () => {
             threadRepository as Repository<ChatConversationThread>,
             messageRepository as Repository<ChatMessage>,
             conversationRepository as Repository<ChatConversation>,
-            dataSource as DataSource
+            dataSource as DataSource,
+            {} as SideChatForkService
         )
     }
 
