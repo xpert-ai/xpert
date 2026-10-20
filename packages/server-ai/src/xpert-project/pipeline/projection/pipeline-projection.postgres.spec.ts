@@ -463,7 +463,7 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         const before = await portfolio.read(context.actor, input)
         expect(before.totals.current.business).toMatchObject({ total: 2, completed: 0 })
         expect(before.byProject.map((row) => row.snapshotAt)).toEqual([before.snapshotAt, before.snapshotAt])
-        expect(before.totals.coverage.recordedAttempts).toBe(2)
+        expect(before.totals.coverage.recordedAttempts).toBe(0)
         expect(before.sharedAcrossProjects).toBe(0)
         expect(before.totals).not.toHaveProperty('humanWait')
         expect(before.byProject.every((row) => row.humanWait && row.queue)).toBe(true)
@@ -521,12 +521,13 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         const window = { from: '2026-10-18T00:00:00Z', to: '2026-10-19T00:00:00Z' }
         const before = await analytics.read(context, window)
         expect(before.current.business).toMatchObject({ total: 2, completed: 0 })
-        expect(before.coverage).toMatchObject({ instances: 2, recordedAttempts: 2, attemptsWithoutStartTime: 2 })
+        // Legacy provider attempts have no durable node/round owner and cannot enter execution cohorts.
+        expect(before.coverage).toMatchObject({ instances: 2, recordedAttempts: 0, attemptsWithoutStartTime: 0 })
         expect(before.executions.attempts.total).toBe(0)
         expect(before.byInstance).toHaveLength(2)
         const after = await analytics.read(context, window)
         expect(after.current.business.completed).toBe(1)
-        expect(after.coverage.recordedAttempts).toBe(3)
+        expect(after.coverage.recordedAttempts).toBe(0)
         // Even if an upstream ACL were broader, SQL never substitutes another tenant's rows.
         const wrongTenant = await analytics.read(
             { ...context, actor: { ...context.actor, tenantId: randomUUID() } },

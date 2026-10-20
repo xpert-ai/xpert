@@ -53,16 +53,20 @@ export type PipelineAttemptFact = {
   pipelineAttemptKind?: 'initial' | 'technical_retry'
   status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
   runtimeStatus?: string
+  invocationStatus?: string
   runtimeStartedAt?: string | null
   runtimeCompletedAt?: string | null
 }
 
-/** Runtime outcome has precedence over domain acceptance. Missing runtime observation retains the legacy attempt status. */
+/** Full Invocation outcomes preserve waiting/unknown states lost by the legacy Task status.
+ * Runtime observation takes precedence over business acceptance; absence retains the legacy fallback.
+ */
 function status(
   fact: PipelineAttemptFact
 ): 'queued' | 'running' | 'waiting' | 'succeeded' | 'failed' | 'cancelled' | 'unknown' {
-  if (!fact.runtimeStatus) return fact.status
-  switch (fact.runtimeStatus) {
+  const observed = fact.invocationStatus ?? fact.runtimeStatus
+  if (!observed) return fact.status
+  switch (observed) {
     case 'success':
     case 'succeeded':
       return 'succeeded'

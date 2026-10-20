@@ -73,7 +73,7 @@ export const projectPipelineAnalyticsSchema = z
   })
   .strict()
 export type ProjectPipelineAnalytics = z.output<typeof projectPipelineAnalyticsSchema>
-type Node = { projection: ProjectPipelineProjectionNode; taskIds: string[] }
+type Node = { projection: ProjectPipelineProjectionNode; taskIds: string[]; executionIds?: string[] }
 export interface PipelineAnalyticsInstanceFacts {
   id: string
   title: string
@@ -91,16 +91,15 @@ export function pipelineAnalyticsFacts(
   executions: readonly PipelineAttemptFact[],
   window: ProjectPipelineAnalyticsInput
 ) {
-  const taskIds = new Set(
-    instances.flatMap((instance) =>
-      instance.historyNodes
-        .filter((node) => ['work', 'human_gate', 'external_wait'].includes(node.projection.kind))
-        .flatMap((node) => node.taskIds)
-    )
-  )
+  // Explicit ownership is authoritative; omitted IDs retain the legacy helper contract.
+  const nodes = instances
+    .flatMap((instance) => instance.historyNodes)
+    .filter((node) => ['work', 'human_gate', 'external_wait'].includes(node.projection.kind))
+  const taskIds = new Set(nodes.filter((node) => node.executionIds === undefined).flatMap((node) => node.taskIds))
+  const executionIds = new Set(nodes.flatMap((node) => node.executionIds ?? []))
   const recorded = new Map<string, PipelineAttemptFact>()
   for (const execution of executions) {
-    if (!taskIds.has(execution.taskId)) continue
+    if (!taskIds.has(execution.taskId) && !(execution.id && executionIds.has(execution.id))) continue
     const key = execution.agentExecutionId
       ? `native:${execution.agentExecutionId}`
       : execution.invocationId

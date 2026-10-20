@@ -1,7 +1,9 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { IXpertProjectTaskExecution } from '@xpert-ai/contracts'
 import { AgentInvocation } from '@xpert-ai/plugin-sdk'
-import { projectTaskInvocationView } from './project-task-invocation-view'
+import { EntityManager } from 'typeorm'
+import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
+import { observeProjectTaskInvocations, projectTaskInvocationView } from './project-task-invocation-view'
 
 const attempt: IXpertProjectTaskExecution = {
     id: 'attempt',
@@ -78,7 +80,7 @@ describe('Project task invocation read projection', () => {
         })
         expect(attempt.status).toBe('queued')
     })
-    it('requires the exact stored Pipeline node-to-task link and operation identity', () => {
+    it('requires the exact stored Pipeline node-to-task link and operation identity', async () => {
         const id = '00000000-0000-4000-8000-000000000001'
         const observed = invocation('succeeded')
         observed.scope = {
@@ -105,6 +107,41 @@ describe('Project task invocation read projection', () => {
         const source = { ...attempt, projectId: id, sourceKey: id },
             link = { projectId: id, taskId: attempt.taskId, nodeInstanceId: id }
         expect(projectTaskInvocationView(source, observed, link).invocationStatus).toBe('succeeded')
+        const oldId = '00000000-0000-4000-8000-000000000002'
+        const older = structuredClone(observed)
+        older.id = 'older-invocation'
+        older.scope.pipelineOrigin.nodeInstanceId = oldId
+        older.scope.pipelineOrigin.operationId = oldId
+        older.scope.parentExecutionId = `pipeline-operation:${oldId}`
+        older.request.callId = oldId
+        const olderAttempt = { ...source, id: 'older-attempt', invocationId: older.id, sourceKey: oldId }
+        const findInvocations = jest.fn(async () => [
+            { id: older.id, invocation: older },
+            { id: observed.id, invocation: observed }
+        ])
+        const findLinks = jest.fn(async () => [{ ...link, nodeInstanceId: oldId }, link])
+        const manager = {
+            getRepository: (entity: unknown) => ({
+                find: entity === AgentInvocationEntity ? findInvocations : findLinks
+            })
+        } as unknown as EntityManager
+        const scope = { projectId: id, tenantId: id, organizationId: id }
+        expect(
+            (await observeProjectTaskInvocations(manager, scope, [source, olderAttempt])).map(
+                (item) => item.invocationStatus
+            )
+        ).toEqual(['succeeded', 'succeeded'])
+        expect(findInvocations).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ tenantId: id, organizationId: id })
+            })
+        )
+        expect(findLinks).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining(scope)
+            })
+        )
+
         expect(projectTaskInvocationView(source, observed).invocationStatus).toBe('unknown')
         expect(projectTaskInvocationView(source, observed, { ...link, taskId: 'another' }).invocationStatus).toBe(
             'unknown'

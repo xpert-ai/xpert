@@ -128,3 +128,25 @@ it.each([
 ])('rejects invalid or unbounded query windows', (input) =>
   expect(() => projectPipelineAnalyticsInputSchema.parse(input)).toThrow()
 )
+
+it('uses exact execution ownership when supplied, including an explicitly empty current round', () => {
+  const owned = instance(first, 'shared-task'),
+    empty = instance(second, 'shared-task')
+  owned.historyNodes[0].executionIds = ['owned', 'alias']
+  empty.historyNodes[0].executionIds = []
+  const report = projectPipelineAnalytics(
+    project,
+    [owned, empty],
+    [
+      fact('shared-task', { id: 'owned', agentExecutionId: 'native' }),
+      fact('shared-task', { id: 'alias', agentExecutionId: 'native' }),
+      fact('shared-task', { id: 'unowned' })
+    ],
+    { from, to },
+    to
+  )
+  expect(report.coverage.recordedAttempts).toBe(1)
+  expect(report.executions.attempts.total).toBe(1)
+  expect(report.byInstance.map((item) => item.executions.attempts.total)).toEqual([1, 0])
+  expect(report.coverage.sharedAcrossInstances).toBe(0)
+})

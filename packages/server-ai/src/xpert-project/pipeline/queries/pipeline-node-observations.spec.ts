@@ -1,5 +1,5 @@
 import { projectPipelineStatistics, type ProjectPipelineGraph, type ProjectTaskGraph } from '@xpert-ai/contracts'
-import { observeHistoricalPipelineNodes } from './pipeline-node-observations'
+import { observePipelineNodes } from './pipeline-node-observations'
 
 type Node = ProjectPipelineGraph['nodes'][number]
 type Attempt = ProjectTaskGraph['executions'][number]
@@ -39,7 +39,7 @@ const attempt = (patch: Partial<Attempt> = {}): Attempt => ({
 it('updates runtime and running totals without changing the historical business snapshot or input', () => {
     const original = node(),
         before = structuredClone(original)
-    const observed = observeHistoricalPipelineNodes([original], [attempt()])
+    const observed = observePipelineNodes([original], [attempt()])
     expect(observed[0].projection.state).toEqual({ ...original.projection.state, runtime: 'succeeded' })
     expect(observed[0].projection).toEqual({
         ...original.projection,
@@ -60,8 +60,7 @@ it.each([
     ['unknown', 'unknown']
 ] as const)('uses the actual %s observation instead of domain acceptance', (runtimeStatus, expected) => {
     expect(
-        observeHistoricalPipelineNodes([node()], [attempt({ status: 'succeeded', runtimeStatus })])[0].projection.state
-            .runtime
+        observePipelineNodes([node()], [attempt({ status: 'succeeded', runtimeStatus })])[0].projection.state.runtime
     ).toBe(expected)
 })
 
@@ -72,18 +71,16 @@ it('uses the latest retry per Task, but retains active work on another Task', ()
         attempt({ id: 'retry', attempt: 2 }),
         attempt({ id: 'parallel', taskId: 'parallel', runtimeStatus: 'running' })
     ]
-    expect(observeHistoricalPipelineNodes([n], executions)[0].projection.state.runtime).toBe('running')
+    expect(observePipelineNodes([n], executions)[0].projection.state.runtime).toBe('running')
     executions[2].runtimeStatus = 'success'
-    expect(observeHistoricalPipelineNodes([n], executions)[0].projection.state.runtime).toBe('succeeded')
+    expect(observePipelineNodes([n], executions)[0].projection.state.runtime).toBe('succeeded')
 })
 
 it('does not import later-round or sibling executions sharing a logical Task', () => {
     const n = node(),
         executions = [attempt(), attempt({ id: 'later-round', attempt: 9, runtimeStatus: 'running' })]
-    expect(observeHistoricalPipelineNodes([n], executions)[0].projection.state.runtime).toBe('succeeded')
-    expect(observeHistoricalPipelineNodes([node({ executionIds: [] })], executions)[0].projection.state.runtime).toBe(
-        'running'
-    )
+    expect(observePipelineNodes([n], executions)[0].projection.state.runtime).toBe('succeeded')
+    expect(observePipelineNodes([node({ executionIds: [] })], executions)[0].projection.state.runtime).toBe('running')
 })
 
 it('does not invent a whole-node result from missing ownership or partial Task coverage', () => {
@@ -92,5 +89,5 @@ it('does not invent a whole-node result from missing ownership or partial Task c
         node({ taskIds: ['task', 'unobserved'] }),
         node({ taskIds: ['other'] })
     ]
-    for (const original of cases) expect(observeHistoricalPipelineNodes([original], [attempt()])[0]).toBe(original)
+    for (const original of cases) expect(observePipelineNodes([original], [attempt()])[0]).toBe(original)
 })

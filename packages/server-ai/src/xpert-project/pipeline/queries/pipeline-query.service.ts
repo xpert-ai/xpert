@@ -1,6 +1,6 @@
 // Invariants: historical business state is immutable; runtime observations may finish later.
 // Merge observations only through persisted node/round ownership, never shared task identity alone.
-import { observeHistoricalPipelineNodes } from './pipeline-node-observations'
+import { observePipelineNodes } from './pipeline-node-observations'
 import { attributePipelineExecutions } from './pipeline-execution-attribution'
 import { pipelineExecutionOwners } from './pipeline-execution-owners'
 import { pipelineDispatchEnabled } from '../runtime/pipeline-dispatch-policy'
@@ -247,9 +247,7 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                 nativeModelBudget: instance.nativeModelBudget
                     ? await pipelineModelBudgetTotals(manager, instance)
                     : null,
-                nodes: historical
-                    ? observeHistoricalPipelineNodes(attributed.nodes, graph.executions)
-                    : attributed.nodes,
+                nodes: observePipelineNodes(attributed.nodes, graph.executions),
                 executionAttribution: attributed.executionAttribution,
                 edges: z.array(projectPipelineProjectionEdgeSchema).parse(round.edges)
             }

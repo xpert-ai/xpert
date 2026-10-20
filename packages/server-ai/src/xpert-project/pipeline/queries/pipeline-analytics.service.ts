@@ -28,6 +28,9 @@ import {
     ProjectPipelineNodeEntity,
     ProjectPipelineDefinitionEntity
 } from '../persistence/pipeline.entity'
+import { observePipelineNodes } from './pipeline-node-observations'
+import { attributePipelineExecutions } from './pipeline-execution-attribution'
+import { pipelineExecutionOwners } from './pipeline-execution-owners'
 import { readPipelineModelUsage } from './pipeline-model-usage'
 import { readPipelineQueueStatistics } from './pipeline-queue-statistics'
 import { readPipelineHumanWaitStatistics } from './pipeline-human-wait-statistics'
@@ -66,6 +69,7 @@ export class ProjectPipelineAnalyticsService implements ProjectPipelineAnalytics
         const rounds = await manager.find(ProjectPipelineRoundEntity, { where })
         const nodes = await manager.find(ProjectPipelineNodeEntity, { where })
         const definitions = await manager.find(ProjectPipelineDefinitionEntity, { where })
+        const taskGraph = await this.tasks.graphWithinTransaction(context, manager)
         const facts: PipelineAnalyticsInstanceFacts[] = []
         const waitingNodeIds: string[] = []
         for (const instance of instances) {
@@ -75,10 +79,28 @@ export class ProjectPipelineAnalyticsService implements ProjectPipelineAnalytics
             if (!run || !round || !definition) continue
             const runIds = new Set(runs.filter((item) => item.instanceId === instance.id).map((item) => item.id))
             const roundIds = new Set(rounds.filter((item) => runIds.has(item.runId)).map((item) => item.id))
-            const parse = (node: ProjectPipelineNodeEntity) => ({
-                taskIds: node.taskIds,
-                projection: projectPipelineProjectionNodeSchema.parse(node.projection)
-            })
+            // Analytics uses the same durable node/round ownership as the swimlane, including history.
+            const owners = await pipelineExecutionOwners(manager, context, instance.id, instance.authority)
+            const attributed = new Map(
+                [...roundIds].flatMap((roundId) => {
+                    const roundNodes = attributePipelineExecutions(
+                        nodes
+                            .filter((node) => node.roundId === roundId)
+                            .map((node) => ({
+                                id: node.id,
+                                taskIds: node.taskIds,
+                                projection: projectPipelineProjectionNodeSchema.parse(node.projection)
+                            })),
+                        roundId,
+                        taskGraph.executions,
+                        owners
+                    ).nodes
+                    return observePipelineNodes(roundNodes, taskGraph.executions).map(
+                        (node) => [node.id, node] as const
+                    )
+                })
+            )
+            const parse = (node: ProjectPipelineNodeEntity) => attributed.get(node.id)!
             if (round.state === 'active' && ['active', 'pending', 'waiting'].includes(run.state))
                 waitingNodeIds.push(
                     ...nodes
@@ -103,7 +125,6 @@ export class ProjectPipelineAnalyticsService implements ProjectPipelineAnalytics
                 historyNodes: nodes.filter((node) => roundIds.has(node.roundId)).map(parse)
             })
         }
-        const taskGraph = await this.tasks.graphWithinTransaction(context, manager)
         const selected = pipelineAnalyticsFacts(facts, taskGraph.executions, input).selected
         const modelUsage = await readPipelineModelUsage(
             manager,

@@ -36,6 +36,8 @@ import { ProjectPipelineProviderActionsService } from './provider-actions.servic
 import { providerActionQueueFixture } from './testing/provider-action-queue.fixture'
 import { untilPipeline } from '../projection/testing/pipeline-queue.fixture'
 import { providerActionAttentions } from '../queries/pipeline-provider-attentions'
+import { ProjectPipelineAnalyticsService } from '../queries/pipeline-analytics.service'
+import { providerHistoryTasks } from '../queries/pipeline-history'
 import { ProjectPipelineQueryService } from '../queries/pipeline-query.service'
 import { readPipelineQueueStatistics } from '../queries/pipeline-queue-statistics'
 import {
@@ -658,6 +660,78 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
         expect(resolved.cursor).not.toBe(unknown.cursor)
         expect(executeAction).toHaveBeenCalledTimes(1)
         expect(inspectAction).toHaveBeenCalledTimes(1)
+    })
+    it('keeps exact round ownership and live execution outcomes across graph and analytics reads', async () => {
+        const f = await nativeGrant()
+        await f.grants.prepare(f.request)
+        await f.grants.consume(f.request)
+        const projection = structuredClone(sourceSnapshot)
+        projection.sourceSequence = 2
+        projection.nodes[0].state.runtime = 'running'
+        projection.tasks[0].executions = [
+            { key: 'owned', attempt: 1, status: 'running', agentExecutionId: f.request.executionId },
+            { key: 'alias', attempt: 1, status: 'running', agentExecutionId: f.request.executionId },
+            { key: 'unowned', attempt: 2, status: 'running' }
+        ]
+        const projections = new ProjectPipelineProjectionStore(db.getRepository(XpertProject))
+        await projections.apply(context, provider, projection)
+        const live = providerHistoryTasks(context.projectId, instanceId, provider.key, 'live', projection.tasks)
+        live.executions = live.executions.map((attempt) => ({
+            ...attempt,
+            runtimeStatus: 'success',
+            runtimeStartedAt: '2026-10-18T00:00:00Z',
+            runtimeCompletedAt: '2026-10-18T00:01:00Z'
+        }))
+        const access = { listReadable: async () => [{ role: 'owner', archived: false, canManage: true }] }
+        const tasks = { graphWithinTransaction: async () => structuredClone(live) }
+        const query = new ProjectPipelineQueryService(
+            db.getRepository(ProjectPipelineInstanceEntity),
+            access as never,
+            tasks as never,
+            { synchronize } as never,
+            { listForActor: () => [] } as never
+        )
+        const analytics = new ProjectPipelineAnalyticsService(
+            db.getRepository(ProjectPipelineInstanceEntity),
+            access as never,
+            tasks as never
+        )
+        const current = await query.graph(context, instanceId)
+        expect(current.nodes[0].projection.state).toMatchObject({ lifecycle: 'active', runtime: 'succeeded' })
+        expect(current.nodes[0].executionIds).toHaveLength(2)
+        expect(current.statistics.attempts).toMatchObject({ total: 1, succeeded: 1, running: 0 })
+        expect(current.executionAttribution.unattributedCount).toBe(1)
+        const window = { from: '2026-10-18T00:00:00Z', to: '2026-10-19T00:00:00Z' }
+        expect((await analytics.read(context, window)).current.business.running).toBe(0)
+        const next = structuredClone(projection)
+        next.sourceSequence = 3
+        next.round = { ...next.round, key: 'round-2', sequence: 2, generation: 2, supersedesKey: 'round-1' }
+        next.nodes[0].state = { ...next.nodes[0].state, lifecycle: 'completed', runtime: 'none' }
+        next.tasks[0].status = 'done'
+        await projections.apply(context, provider, next)
+        live.tasks[0].status = 'done'
+        const latest = await query.graph(context, instanceId)
+        expect(latest.nodes[0].executionIds).toEqual([])
+        expect(latest.statistics.attempts.total).toBe(0)
+        const historical = await query.graph(context, instanceId, { roundId: input.roundId })
+        expect(historical.nodes[0].projection.state).toMatchObject({ lifecycle: 'active', runtime: 'succeeded' })
+        expect(historical.tasks.tasks[0].status).toBe('todo')
+        expect(historical.nodes[0].executionIds).toEqual(current.nodes[0].executionIds)
+        const saved = await db.getRepository(ProjectPipelineNodeEntity).findOneByOrFail({ id: input.nodeInstanceId })
+        expect(saved.projection.state).toMatchObject({ lifecycle: 'active', runtime: 'running' })
+        const report = await analytics.read(context, window)
+        expect(report.current.business.completed).toBe(1)
+        expect(report.coverage.recordedAttempts).toBe(1)
+        expect(report.executions.attempts).toMatchObject({ total: 1, succeeded: 1, running: 0 })
+        for (const scope of [
+            { ...context, projectId: randomUUID() },
+            { ...context, actor: { ...context.actor, tenantId: randomUUID() } },
+            { ...context, actor: { ...context.actor, organizationId: randomUUID() } }
+        ]) {
+            await expect(query.graph(scope, instanceId)).rejects.toMatchObject({ status: 404 })
+            await expect(query.rounds(scope, instanceId)).rejects.toMatchObject({ status: 404 })
+            expect((await analytics.read(scope, window)).coverage.recordedAttempts).toBe(0)
+        }
     })
     it('rejects stale input before reservation and supersedes a queued intent after version change', async () => {
         await expect(service.submit(context, { ...input, generation: 2 })).rejects.toMatchObject({

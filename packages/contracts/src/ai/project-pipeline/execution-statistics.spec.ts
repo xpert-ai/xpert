@@ -88,3 +88,14 @@ describe('runtime outcome and measured execution statistics', () => {
     ])
   })
 })
+
+it('prefers full Invocation outcomes over the lossy legacy Task status', () => {
+  expect(
+    pipelineAttemptCounts([
+      fact({ status: 'running', invocationStatus: 'waiting' }),
+      fact({ status: 'queued', invocationStatus: 'unknown' }),
+      fact({ status: 'running', invocationStatus: 'cancelling' }),
+      fact({ runtimeStatus: 'running', invocationStatus: 'succeeded' })
+    ])
+  ).toMatchObject({ total: 4, waiting: 1, unknown: 2, succeeded: 1, running: 0, queued: 0, terminal: 1 })
+})

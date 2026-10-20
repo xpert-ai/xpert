@@ -75,13 +75,16 @@ export async function observeProjectTaskInvocations<T extends IXpertProjectTaskE
               where: { ...scope, nodeInstanceId: In(pipelineNodeIds) }
           })
         : []
-    return attempts.map((attempt) =>
-        projectTaskInvocationView(
+    return attempts.map((attempt) => {
+        const invocation = records.find(
+            (record) => record.id === attempt.invocationId && record.invocation.scope.projectId === scope.projectId
+        )?.invocation
+        // A logical task may have links in several rounds; match this execution's exact node.
+        const nodeId = invocation?.scope.pipelineOrigin?.nodeInstanceId
+        return projectTaskInvocationView(
             attempt,
-            records.find(
-                (record) => record.id === attempt.invocationId && record.invocation.scope.projectId === scope.projectId
-            )?.invocation,
-            links.find((link) => link.taskId === attempt.taskId)
+            invocation,
+            links.find((link) => link.taskId === attempt.taskId && link.nodeInstanceId === nodeId)
         )
-    )
+    })
 }

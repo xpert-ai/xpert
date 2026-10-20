@@ -4,7 +4,7 @@ type Node = ProjectPipelineGraph['nodes'][number]
 type Attempt = ProjectTaskGraph['executions'][number]
 
 /** Read-time runtime observations only. Never persist these over a historical business snapshot. */
-export function observeHistoricalPipelineNodes(nodes: Node[], executions: Attempt[]): Node[] {
+export function observePipelineNodes(nodes: Node[], executions: Attempt[]): Node[] {
     const attempts = new Map(executions.map((attempt) => [attempt.id, attempt]))
     return nodes.map((node) => {
         const latest = new Map<string, Attempt[]>()
