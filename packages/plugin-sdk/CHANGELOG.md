@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.24.0
+
+### Minor Changes
+
+- 2e7af88: Expose McpClientRuntimeApi (platform.mcp.client) for governed access to existing MCP connections. Initially tools.list/call enforce read-only selection, current-viewer authorization, pinned schema contracts and execution limits.
+
 ## 3.23.1
 
 ### Patch Changes
