@@ -32,6 +32,10 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const c = require('@xpert-ai/contracts'), s = require('@xpert-ai/plugin-sdk');
 assert.equal(s.projectPipelineContributionSchema, c.projectPipelineContributionSchema);
+const contractsManifest = require('@xpert-ai/contracts/package.json');
+const sdkManifest = require('@xpert-ai/plugin-sdk/package.json');
+assert.equal(sdkManifest.dependencies['@xpert-ai/contracts'], contractsManifest.version);
+assert.equal((await import('@xpert-ai/plugin-sdk')).projectPipelineContributionSchema, (await import('@xpert-ai/contracts')).projectPipelineContributionSchema);
 assert.equal(c.projectPipelineContributionSchema.safeParse({}).success, false);
 for (const name of ['contracts', 'plugin-sdk']) {
   const manifest = require('@xpert-ai/' + name + '/package.json');
