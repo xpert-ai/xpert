@@ -10,7 +10,6 @@
   },
   "include": [],
   "files": [
-    "src/ai/project-pipeline/graph.model.ts",
     "src/ai/project-pipeline/native-source.schema.ts",
     "src/ai/project-pipeline/compatibility.ts",
     "src/ai/project-pipeline/resources.schema.ts",
@@ -18,6 +17,7 @@
     "src/ai/project-pipeline/analytics.ts",
     "src/ai/project-pipeline/projection.schema.ts",
     "src/ai/project-pipeline/configuration.schema.ts",
+    "src/ai/project-pipeline/contribution.schema.ts",
     "src/ai/project-pipeline/catalog.validation.ts",
     "src/ai/project-pipeline/operation.schema.ts",
     "src/ai/project-pipeline/commands.schema.ts",

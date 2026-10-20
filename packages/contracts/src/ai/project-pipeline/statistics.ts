@@ -61,7 +61,7 @@ export function selectedPipelineAttemptFacts(
   const executionIds = new Set(selected.flatMap((node) => node.executionIds ?? []))
   const facts = new Map<string, PipelineAttemptFact>()
   for (const execution of executions) {
-    if (!executionIds.has(execution.id) && !legacyTasks.has(execution.taskId)) continue
+    if (!(execution.id !== undefined && executionIds.has(execution.id)) && !legacyTasks.has(execution.taskId)) continue
     const identity = execution.agentExecutionId
       ? `native:${execution.agentExecutionId}`
       : execution.invocationId

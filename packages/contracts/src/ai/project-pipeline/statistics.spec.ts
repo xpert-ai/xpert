@@ -191,3 +191,9 @@ it('uses explicit round attempts instead of all history on a reused Task', () =>
   expect(stats.attempts).toMatchObject({ total: 1, running: 1, succeeded: 0 })
   expect(stats.executionScope).toBe('round')
 })
+
+it('keeps legacy native facts without an attempt id out of explicit round attribution', () => {
+  const facts = [{ taskId: 'shared', status: 'succeeded' as const, agentExecutionId: 'native' }]
+  expect(projectPipelineStatistics([node('shared')], facts).attempts.total).toBe(1)
+  expect(projectPipelineStatistics([{ ...node('shared'), executionIds: [] }], facts).attempts.total).toBe(0)
+})

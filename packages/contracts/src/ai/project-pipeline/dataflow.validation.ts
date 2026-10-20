@@ -34,7 +34,9 @@ export function validateProjectPipelineDataflow(
     for (const [name, binding] of Object.entries(node.inputBindings ?? {})) {
       const refs = binding.from === 'collection' ? binding.items : binding.from === 'node_output' ? [binding] : []
       for (const ref of refs) {
-        if (!byKey.get(ref.nodeKey)?.node.outputPorts?.[ref.port]) report('OUTPUT_PORT_NOT_FOUND', index, name)
+        const ports = byKey.get(ref.nodeKey)?.node.outputPorts
+        if (!ports || !Object.prototype.hasOwnProperty.call(ports, ref.port))
+          report('OUTPUT_PORT_NOT_FOUND', index, name)
         if (!upstream.has(ref.nodeKey)) report('OUTPUT_NOT_UPSTREAM', index, name)
       }
     }

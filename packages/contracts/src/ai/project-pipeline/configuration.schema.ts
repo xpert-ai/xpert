@@ -79,7 +79,8 @@ export const projectPipelineConfigurationSchema = z
         issue('PROVIDER_CONTROLS_EXECUTION', 'binding')
       }
       for (const role of template.roles) {
-        if (!binding.roleBindings[role.key]) issue('ROLE_BINDING_MISSING', 'binding', 'roleBindings', role.key)
+        if (!Object.prototype.hasOwnProperty.call(binding.roleBindings, role.key))
+          issue('ROLE_BINDING_MISSING', 'binding', 'roleBindings', role.key)
       }
       return
     }

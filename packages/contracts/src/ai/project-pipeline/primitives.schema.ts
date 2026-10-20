@@ -1,6 +1,6 @@
 import { z } from 'zod/v3'
 
-/** Machine keys are independent of translated labels and cannot be prototype properties. */
+/** Machine keys are independent of labels. Reserve mutation keys; record readers must still check own fields. */
 export const projectPipelineKeySchema = z
   .string()
   .min(1)

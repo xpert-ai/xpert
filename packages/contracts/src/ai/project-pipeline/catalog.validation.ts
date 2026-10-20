@@ -83,7 +83,10 @@ export function checkProjectPipelineConfiguration(
       checkOutputs(operation.outputs, node.outputPorts ?? {}, path)
       for (const [port, expected] of Object.entries(operation.inputs)) {
         requireRef('schema', expected.schemaRef, [...path, 'inputBindings', port])
-        const input = node.inputBindings?.[port]
+        const input =
+          node.inputBindings && Object.prototype.hasOwnProperty.call(node.inputBindings, port)
+            ? node.inputBindings[port]
+            : undefined
         if (!input) {
           issues.push({ code: 'OPERATION_INPUT_MISSING', path: [...path, 'inputBindings', port] })
           continue
@@ -104,7 +107,7 @@ export function checkProjectPipelineConfiguration(
         }
       }
       for (const port of Object.keys(node.inputBindings ?? {})) {
-        if (!operation.inputs[port])
+        if (!Object.prototype.hasOwnProperty.call(operation.inputs, port))
           issues.push({ code: 'OPERATION_INPUT_UNKNOWN', path: [...path, 'inputBindings', port] })
       }
     }
