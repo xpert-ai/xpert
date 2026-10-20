@@ -110,7 +110,14 @@ export function CatalogSetup({
             result.workspaces.some((workspace) => workspace.id === current) ? current : result.workspaces[0]?.id || ''
           )
           setPreflight(result.preflight ?? null)
-          setTemplateModel((current) => (result.preflight?.models.some((model) => model.id === current) ? current : ''))
+          const defaultModelId = result.preflight?.defaultModelId
+          setTemplateModel((current) =>
+            result.preflight?.models.some((model) => model.id === current)
+              ? current
+              : result.preflight?.models.some((model) => model.id === defaultModelId)
+                ? (defaultModelId ?? '')
+                : ''
+          )
           setHasPrimaryLanguageModel(result.hasPrimaryLanguageModel)
         }
       } catch (error) {
@@ -145,7 +152,9 @@ export function CatalogSetup({
             title.trim() &&
             preflight?.canInstall !== false &&
             (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
-            (preflight?.requiresModel ? !!templateModel : hasPrimaryLanguageModel === true)
+            (preflight?.requiresModel
+              ? preflight.models.some((model) => model.id === templateModel)
+              : hasPrimaryLanguageModel === true)
           : setup?.canInitialize &&
             !initializing &&
             (!setup.requireEmbedding || embedding) &&

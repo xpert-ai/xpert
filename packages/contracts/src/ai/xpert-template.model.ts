@@ -154,7 +154,7 @@ export interface XpertTemplateModelOption extends ModelSelectionMetadata {
 
 export interface XpertTemplateSetup {
   readiness?: TemplateReadiness
-  /** ID of a compatible organization default in `models`; absent if none qualifies. */
+  /** ID of an eligible existing binding or organization/tenant default in `models`; absent if none qualifies. */
   defaultModelId?: string
   realtimeModels?: import('./realtime-voice.model').RealtimeModelOption[]
   requiresModel?: boolean

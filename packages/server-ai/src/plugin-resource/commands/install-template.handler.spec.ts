@@ -17,8 +17,13 @@ jest.mock('@nestjs/typeorm', () => ({
 
 jest.mock('@xpert-ai/server-core', () => jest.requireActual('../../../../server/src/plugin/types'))
 
-jest.mock('../../xpert-template/capabilities/assistant-capability.service', () => ({
-    AssistantCapabilityService: class AssistantCapabilityService {}
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
+    RequestContext: {
+        currentTenantId: () => 'tenant',
+        getOrganizationId: () => 'organization',
+        getLanguageCode: () => 'en-US'
+    }
 }))
 
 jest.mock('../../xpert/dto', () => ({
@@ -58,7 +63,13 @@ jest.mock('../plugin-resource-installer.service', () => ({
 }))
 
 import { blankAssistantTemplate } from '../../xpert-template/capabilities/blank-assistant-template'
-import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum, TemplateManifest } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    AiProviderRole,
+    LanguagesEnum,
+    XpertToolsetCategoryEnum,
+    TemplateManifest
+} from '@xpert-ai/contracts'
 import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
@@ -66,6 +77,7 @@ import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspac
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
 import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
+import { RealtimeModelCatalog } from '../../xpert-template/capabilities/realtime-voice.capability'
 
 const TEMPLATE_DSL = `
 team:
@@ -457,9 +469,14 @@ describe('PluginTemplateInstallHandler', () => {
     })
 
     it('uses an explicitly selected LLM model instead of requiring primary copilot fallback', async () => {
-        const { handler, commandBus } = createHandler({
+        const { handler, commandBus, capabilities } = createHandler({
             toolsets: [createSeedreamToolset()]
         })
+        capabilities.prepareInstallation.mockImplementationOnce(
+            async (_template, draft, _language, _selected, model) => {
+                draft.team.copilotModel = model
+            }
+        )
 
         await handler.execute(
             new PluginTemplateInstallCommand(
@@ -492,6 +509,66 @@ describe('PluginTemplateInstallHandler', () => {
             modelType: AiModelTypeEnum.LLM
         })
     })
+
+    it('imports the binding resolved by preflight without re-entering managed Primary fallback', async () => {
+        const { handler, commandBus, capabilities } = createHandler({ templateDsl: createSandboxTemplateDsl() })
+        const model = { copilotId: 'tenant-provider', model: 'authorized', modelType: AiModelTypeEnum.LLM }
+        capabilities.prepareInstallation.mockImplementationOnce(async (_template, draft) => {
+            draft.team.copilotModel = model
+        })
+        await handler.execute(
+            new PluginTemplateInstallCommand('ordinary-template', 'workspace-1', LanguagesEnum.English)
+        )
+        const imported = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command): command is XpertImportCommand => command instanceof XpertImportCommand)
+        expect(imported?.draft.team.copilotModel).toEqual(model)
+        expect(imported?.options.normalizeCopilotModels).toBe(false)
+    })
+
+    it.each(['existing', 'default'] as const)(
+        'retains %s model options through normalization and real installation preflight',
+        async (source) => {
+            const model = { copilotId: 'tenant-provider', model: 'authorized', modelType: AiModelTypeEnum.LLM }
+            const configured = { ...model, options: { temperature: 0.2 } }
+            const { handler, commandBus, capabilities } = createHandler({
+                templateDsl: JSON.stringify({
+                    team: {
+                        type: 'agent',
+                        agent: { key: 'primary' },
+                        ...(source === 'existing' ? { copilotModel: configured } : {})
+                    },
+                    nodes: [{ type: 'agent', key: 'primary', entity: { key: 'primary' } }],
+                    connections: []
+                })
+            })
+            const queries = {
+                execute: jest.fn().mockResolvedValue([
+                    {
+                        id: model.copilotId,
+                        ...(source === 'default' ? { role: AiProviderRole.Primary, copilotModel: configured } : {}),
+                        providerWithModels: { models: [{ model: model.model, model_type: AiModelTypeEnum.LLM }] }
+                    }
+                ])
+            }
+            const service = new AssistantCapabilityService(
+                { list: () => [] } as never,
+                queries as never,
+                new RealtimeModelCatalog(queries as never)
+            )
+            capabilities.prepareInstallation.mockImplementation(service.prepareInstallation.bind(service))
+            await handler.execute(
+                new PluginTemplateInstallCommand('ordinary-template', 'workspace-1', LanguagesEnum.English, {
+                    copilotModel: model
+                })
+            )
+            const imported = commandBus.execute.mock.calls
+                .map(([command]) => command)
+                .find((command): command is XpertImportCommand => command instanceof XpertImportCommand)
+            expect(imported?.draft.team.copilotModel).toEqual(configured)
+            expect(imported?.options.normalizeCopilotModels).toBe(false)
+        }
+    )
 
     it('applies a declared server sandbox and never selects the local computer provider', async () => {
         const { handler, commandBus } = createHandler({

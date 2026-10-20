@@ -799,6 +799,7 @@
         "InvalidMembershipRateLimits": "Rate limits must be an array of valid usage rules.",
         "InvalidMembershipRuleText": "Provider and model values must be valid text.",
         "ManagedImportRequiresPrimaryLlmModel": "Managed xpert import requires an enabled primary LLM copilot model for {{scope}}.",
+        "ManagedImportRequiresLlmSelection": "Choose an authorized language model for this import, or configure an authorized default.",
         "CurrentOrganizationScope": "the current organization",
         "TenantScope": "tenant scope",
         "XpertMarketplaceInvalidField": "Invalid marketplace field '{{field}}'.",

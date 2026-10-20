@@ -799,6 +799,7 @@
         "InvalidMembershipRateLimits": "使用限制必须是有效的规则数组。",
         "InvalidMembershipRuleText": "提供商和模型必须是有效文本。",
         "ManagedImportRequiresPrimaryLlmModel": "托管 Xpert 导入需要为{{scope}}配置并启用 Primary LLM Copilot 模型。",
+        "ManagedImportRequiresLlmSelection": "请为此次导入选择有权使用的语言模型，或配置有权使用的默认模型。",
         "CurrentOrganizationScope": "当前组织",
         "TenantScope": "租户级别",
         "XpertMarketplaceInvalidField": "无效的智能体广场字段“{{field}}”。",

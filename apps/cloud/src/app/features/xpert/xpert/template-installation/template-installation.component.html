@@ -29,27 +29,16 @@
           @if (!setup.canInstall) {
             <p role="status" class="text-sm text-text-destructive">{{ setup.reason }}</p>
           }
-          @if (!setup.requiresModel && !setup.requiredModelFeatures.length && !primaryAvailable()) {
-            <p role="status" class="text-sm text-text-destructive">
-              {{
-                'XP.Installation.PrimaryRequired'
-                  | translate
-                    : {
-                        Default:
-                          'Configure an authorized primary language model in this organization, then refresh settings.'
-                      }
-              }}
-            </p>
-          }
           @if (setup.models.length) {
             <label class="block space-y-2"
               ><span>{{ 'XP.Installation.Model' | translate: { Default: 'Language model' } }}</span>
               <select
                 class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
                 formControlName="model"
+                [required]="setup.requiresModel || !!setup.requiredModelFeatures.length"
               >
                 <option value="">
-                  {{ 'XP.Installation.DefaultModel' | translate: { Default: 'Organization default' } }}
+                  {{ 'XP.Installation.SelectModel' | translate: { Default: 'Select a model' } }}
                 </option>
                 @for (model of setup.models; track model.id) {
                   <option [value]="model.id">{{ model.label }}</option>

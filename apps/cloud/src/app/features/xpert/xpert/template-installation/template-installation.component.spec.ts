@@ -128,6 +128,58 @@ describe('Web template installation flow', () => {
     component.form.controls.model.setValue('revoked')
     expect(component.canStart()).toBe(false)
   })
+  it('lets an ordinary template select a tenant model without a Primary default and submits that binding', async () => {
+    templates.getSetup.mockImplementation(() => of({ ...setup, requiredModelFeatures: [], defaultModelId: undefined }))
+    const component = fixture.componentInstance
+    component.form.controls.model.setValue('')
+    component.revision.update((value) => value + 1)
+    await settle()
+    expect(primary.getAvailableByRole).not.toHaveBeenCalled()
+    expect(component.canStart()).toBe(false)
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector('[formControlName="model"]')
+    expect(select).not.toBeNull()
+    expect(select.required).toBe(true)
+    select.value = 'compatible'
+    select.dispatchEvent(new Event('change'))
+    await settle()
+    expect(component.canStart()).toBe(true)
+    await component.start()
+    expect(transport.create).toHaveBeenCalledWith(
+      expect.objectContaining({ basic: { title: 'Template', copilotModel: setup.models[0].copilotModel } })
+    )
+  })
+  it('preserves a valid user selection on refresh and clears a revoked one before enabling installation', async () => {
+    const other = {
+      id: 'other',
+      label: 'Other',
+      copilotModel: { copilotId: 'tenant', model: 'other', modelType: 'llm' }
+    }
+    templates.getSetup.mockImplementation(() => of({ ...setup, models: [...setup.models, other] }))
+    const component = fixture.componentInstance
+    component.form.controls.model.setValue('other')
+    component.revision.update((value) => value + 1)
+    await settle()
+    expect(component.form.controls.model.value).toBe('other')
+    templates.getSetup.mockImplementation(() => of({ ...setup, defaultModelId: undefined }))
+    component.revision.update((value) => value + 1)
+    fixture.detectChanges()
+    expect(component.canStart()).toBeFalsy()
+    await settle()
+    expect(component.form.controls.model.value).toBe('')
+    expect(component.canStart()).toBe(false)
+    await component.start()
+    expect(transport.create).not.toHaveBeenCalled()
+  })
+  it('shows the server reason when no authorized compatible model exists', async () => {
+    templates.getSetup.mockImplementation(() =>
+      of({ ...setup, canInstall: false, models: [], reason: 'No authorized compatible model is available.' })
+    )
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    expect(fixture.nativeElement.textContent).toContain('No authorized compatible model is available.')
+    expect(fixture.nativeElement.textContent).not.toContain('XP.Installation.PrimaryRequired')
+    expect(fixture.componentInstance.canStart()).toBe(false)
+  })
   it('opens the dedicated detail page and closes the installation dialog', async () => {
     expect(fixture.nativeElement.querySelector('xp-template-requirements')).toBeNull()
     const detailsButton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find(

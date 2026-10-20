@@ -54,7 +54,7 @@ test('shared model selector renders custom accessible labels, metadata and defau
   assert.equal(trigger.disabled, true)
   assert.equal(trigger.querySelector('img').getAttribute('src'), model.provider.iconUrl)
   assert.equal(trigger.querySelector('img').getAttribute('alt'), '')
-  for (const text of ['Provider / Team connection', '128K context', 'Vision', 'Tool calling', 'Organization default'])
+  for (const text of ['Provider / Team connection', '128K context', 'Vision', 'Tool calling', 'Default model'])
     assert.ok(trigger.textContent.includes(text), text)
   dom.window.close()
   const bosi = render({})

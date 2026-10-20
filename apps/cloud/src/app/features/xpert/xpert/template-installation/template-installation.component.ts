@@ -6,14 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Store, API_PREFIX } from '@cloud/app/@core/state'
-import {
-  AiProviderRole,
-  CopilotServerService,
-  getErrorMessage,
-  XpertAPIService,
-  XpertTemplateService,
-  XpertWorkspaceService
-} from '@cloud/app/@core'
+import { getErrorMessage, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
 import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import type { IXpertWorkspace, TemplateInstallation, XpertTemplateSetup, TXpertTemplate } from '@xpert-ai/contracts'
@@ -51,7 +44,6 @@ export class TemplateInstallationComponent {
   private readonly templates = inject(XpertTemplateService)
   private readonly workspacesService = inject(XpertWorkspaceService)
   private readonly xperts = inject(XpertAPIService)
-  private readonly copilots = inject(CopilotServerService)
   private readonly router = inject(Router)
   private readonly dialog = inject(DialogRef)
   readonly translate = inject(TranslateService)
@@ -63,7 +55,6 @@ export class TemplateInstallationComponent {
   readonly setup = signal<XpertTemplateSetup | null>(null)
   readonly state = signal<InstallationSnapshot>(empty)
   readonly loading = signal(false)
-  readonly primaryAvailable = signal(false)
   readonly revision = signal(0)
   readonly error = signal('')
   readonly capabilities = signal<string[]>([])
@@ -122,20 +113,10 @@ export class TemplateInstallationComponent {
       })
       this.setup.set(null)
       if (!organization) return
-      this.primaryAvailable.set(false)
       this.error.set('')
       void firstValueFrom(this.templates.getSetup(id, capabilities, this.workspaceId() || undefined))
-        .then(async (setup) => {
-          const primary =
-            setup.requiresModel || setup.requiredModelFeatures.length
-              ? null
-              : await firstValueFrom(this.copilots.getAvailableByRole(AiProviderRole.Primary))
+        .then((setup) => {
           if (!active) return
-          this.primaryAvailable.set(
-            !!primary?.id &&
-              !!primary.copilotModel?.model?.trim() &&
-              (!primary.copilotModel.modelType || primary.copilotModel.modelType === 'llm')
-          )
           this.setup.set(setup)
           if (!setup.models.some((model) => model.id === this.form.controls.model.value))
             this.form.controls.model.setValue(setup.defaultModelId ?? '')
@@ -187,7 +168,7 @@ export class TemplateInstallationComponent {
       setup?.canInstall &&
       (setup.requiresModel || setup.requiredModelFeatures.length
         ? setup.models.some((model) => model.id === this.form.controls.model.value)
-        : this.primaryAvailable()) &&
+        : true) &&
       (!this.capabilities().includes('realtime-voice') ||
         (!!this.form.controls.voiceModel.value && !!this.form.controls.voice.value))
     )

@@ -670,6 +670,36 @@ test('required missing template dependencies block install and display the selec
   )
   assert.equal(view.count('createTemplateInstallation'), 0)
 })
+test('template installation preselects an authorized tenant default without a Primary lookup in the renderer', async (t) => {
+  const selected = { copilotId: 'tenant-connection', model: 'eligible', modelType: 'llm' }
+  let submitted
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'createTemplateInstallation') {
+      submitted = input
+      return installation
+    }
+    const result = templateResult(method, input)
+    if (method === 'templateSetup')
+      return {
+        ...result,
+        hasPrimaryLanguageModel: false,
+        preflight: {
+          ...result.preflight,
+          requiresModel: true,
+          defaultModelId: 'tenant-default',
+          models: [{ id: 'tenant-default', label: 'Eligible', copilotModel: selected }]
+        }
+      }
+    return result
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  const button = [...document.querySelectorAll('button')].find((item) => item.textContent.includes('Install & use'))
+  assert.equal(button.disabled, false)
+  await view.click('Install & use')
+  assert.deepEqual(JSON.parse(JSON.stringify(submitted.basic.copilotModel)), selected)
+})
 test('template setup resumes the same failed operation and restores it when reopened without reinstalling', async (t) => {
   let current = installation
   let opened

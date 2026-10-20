@@ -963,7 +963,7 @@
   "All providers": "全部供应商",
   "Other providers": "其他供应商",
   "No matching models": "没有匹配的模型",
-  "Organization default": "组织默认",
+  "Default model": "默认模型",
   "Recommended for cloud computer": "云电脑推荐",
   "Cloud computer works best with vision and tool calling. Compatible models are recommended below.": "云电脑需要视觉和工具调用能力，以下推荐可用的兼容模型。",
   "Vision models can understand screenshots and operate the cloud computer.": "视觉模型可以理解屏幕截图，帮助操作云电脑。",
