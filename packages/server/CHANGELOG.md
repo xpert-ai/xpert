@@ -1,5 +1,29 @@
 # @xpert-ai/server-core
 
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
+### Patch Changes
+
+- 27fab44: Resume pending plugin rollouts when API capacity recovers, preserve last-replica outage approval and generation fencing, and keep the plugin settings page tracking waiting releases until completion.
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [4ff6010]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+- Updated dependencies [1cd5a33]
+    - @xpert-ai/server-common@3.25.0
+    - @xpert-ai/server-config@3.25.0
+    - @xpert-ai/contracts@3.25.0
+    - @xpert-ai/plugin-sdk@3.25.0
+
 ## 3.10.9
 
 ### Patch Changes

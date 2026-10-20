@@ -1,5 +1,12 @@
 # @xpert-ai/desktop
 
+## 0.3.8
+
+### Patch Changes
+
+- ba77738: Allow compatible ChatKit patches within the current minor line and provide an explicit dependency refresh command that keeps workspace and deployment locks aligned. Docker builds continue to use frozen locks.
+  - @xpert-ai/desktop-protocol@0.3.7
+
 ## 0.3.7
 
 ### Patch Changes

@@ -1,5 +1,41 @@
 # @xpert-ai/server-ai
 
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
+### Patch Changes
+
+- babce0b: Return typed errors for disallowed or unavailable Assistant model selections. Preserve failed execution and thread error details while releasing the run claim after admission rejection.
+- c2b52ba: Allow published Assistants to continue after ordinary plugin version or resource definition changes, with non-blocking update recommendations. Preserve exact installation snapshots, explicit template version requirements, scoped dependency availability and ownership, immutable artifact integrity, and actionable runtime errors.
+- 4ff6010: Use the resolved model context window consistently for primary calls and context compression. Preserve explicit provider limits and remove model-name guesses that can incorrectly reject summary input for custom endpoints.
+- 0f55121: Preserve explicitly declared streaming tool calls when converting legacy custom model settings. Share the conversion between model catalogs and execution admission, keep saved model configuration features authoritative, and require a separate explicit declaration for multi-tool-call support.
+- 854a4c0: Expose optional business-task concurrency policy on Project type declarations and
+  their catalog. Entity-backed applications enforce it in business dispatch and
+  claim services; generic Agent execution and model configuration are unchanged.
+- 1b5096f: Validate provider credentials before saving by reusing model discovery when supported, or by testing a user-selected model or endpoint. Expose an optional SDK validation policy and typed preview API, show discovered models and actionable authentication errors, and repeat validation on save without persisting the test target.
+- 2aada62: Include runtime entities in standalone schema synchronization so externally managed fresh databases contain Sandbox jobs and managed services, invocation and delivery records, and the other entities already registered by runtime feature modules.
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [4ff6010]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [27fab44]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+- Updated dependencies [1cd5a33]
+    - @xpert-ai/server-auth@3.25.0
+    - @xpert-ai/server-common@3.25.0
+    - @xpert-ai/server-config@3.25.0
+    - @xpert-ai/contracts@3.25.0
+    - @xpert-ai/plugin-sdk@3.25.0
+    - @xpert-ai/server-core@3.25.0
+    - @xpert-ai/desktop-protocol@0.3.7
+
 ## 3.14.1
 
 ### Patch Changes
