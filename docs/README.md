@@ -77,3 +77,10 @@ Keep plans and review evidence under `plans/project-pipeline/`; see its README f
 current-document links. Documentation conversion does not close pending release or
 business acceptance gates. The separate product-docs repository maintains user
 instructions at `{language}/ai/projects/pipelines/` under Projects & Tasks.
+
+## Database migration implementation plan
+
+[统一数据库迁移执行机制：需求与实施计划](./plans/2026-10-20-unified-database-migrations.md)
+describes the proposed migration manifest, runner, database baseline adoption,
+deployment integration, plugin migration lifecycle, and acceptance criteria.
+It is a delivery plan, not documentation of implemented behavior.

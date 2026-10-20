@@ -69,7 +69,7 @@ if (args[0] === 'compose') {
     process.exit(1)
   }
   if (args.includes('run')) {
-    if (mode === 'schema-failure') {
+    if (mode === 'schema-failure' || (mode === 'migration-failure' && args.includes('verify'))) {
       console.error('schema sync rejected; credential ' + values.CHECK_DB_PASS)
       process.exit(1)
     }
@@ -179,34 +179,12 @@ test('success retains the acceptance receipt and produces no failure artifact', 
   assert.equal(receipt.status, 'api_healthy')
   const calls = fs.readFileSync(path.join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
   const schema = calls.findIndex((args) => args.includes('schema-sync'))
-  const migrations = calls.map((args, index) => (args.includes('psql') ? index : -1)).filter((index) => index >= 0)
+  const verification = calls.findIndex((args) => args.includes('verify'))
   const startup = calls.findIndex((args) => args.includes('up') && args.at(-1) === 'api')
   assert.ok(schema > 0)
-  assert.equal(migrations.length, 7)
-  assert.ok(migrations.every((index) => index > schema && index < startup))
-  assert.ok(migrations.every((index) => calls[index].includes('ON_ERROR_STOP=1')))
-  const appliedSql = fs
-    .readFileSync(path.join(directory, 'migrations.jsonl'), 'utf8')
-    .trim()
-    .split('\n')
-    .map(JSON.parse)
-  assert.deepEqual(
-    appliedSql,
-    receipt.migrations.map((name) =>
-      fs.readFileSync(
-        path.join(__dirname, '../../packages/server-ai/src/xpert-project/pipeline/migrations', name),
-        'utf8'
-      )
-    )
-  )
-  // Each rollout in this directory must be considered explicitly; filename sort is not dependency order.
-  assert.deepEqual(
-    [...receipt.migrations].sort(),
-    fs
-      .readdirSync(path.join(__dirname, '../../packages/server-ai/src/xpert-project/pipeline/migrations'))
-      .filter((name) => name.endsWith('.sql'))
-      .sort()
-  )
+  assert.ok(verification > schema && startup > verification)
+  assert.ok(!calls.some((args) => args.includes('psql')))
+  assert.ok(receipt.checks.includes('sql-migration-verification'))
   assert.match(fs.readFileSync(path.join(__dirname, 'compose.health.yml'), 'utf8'), /DB_SCHEMA_SYNC_MODE: external/)
 })
 

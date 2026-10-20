@@ -53,7 +53,7 @@ export const pluginConfig: IPluginConfig = {
     }
   },
   dbConnectionOptions: {
-    synchronize: true,
+    synchronize: false,
     ...getDbConfig()
   },
   assetOptions: {
@@ -83,7 +83,8 @@ function getDbConfig(): ConnectionOptions {
         ssl: ssl,
         // Removes console logging, instead logs all queries in a file ormlogs.log
         logger: 'file',
-        synchronize: true,
+        // All environments use schema-sync, which protects SQL-managed tables.
+        synchronize: false,
         uuidExtension: 'pgcrypto'
       }
     }

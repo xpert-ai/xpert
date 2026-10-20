@@ -116,4 +116,28 @@ describe('preBootstrapPlugins local shell opt-in', () => {
     await expect(preBootstrapPlugins()).resolves.toBeUndefined()
     expect(setConfig).toHaveBeenCalled()
   })
+
+  it('aborts schema preparation when an uploaded plugin is reported missing without throwing', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    jest.spyOn(Logger, 'error').mockImplementation(() => undefined)
+    register.mockResolvedValueOnce({
+      modules: [],
+      organizationId: 'global',
+      scopeKey: 'system:global',
+      tenantId: null,
+      errors: [{ organizationId: 'global', pluginName: '@fixture/uploaded', error: 'Cannot find module' }]
+    })
+    await expect(preBootstrapPlugins({ failOnPluginRegistrationError: true })).rejects.toThrow(
+      'SCHEMA_PLUGIN_REGISTRATION_FAILED'
+    )
+    expect(setConfig).not.toHaveBeenCalled()
+  })
+
+  it('propagates a thrown registration failure before schema migration', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    jest.spyOn(Logger, 'error').mockImplementation(() => undefined)
+    register.mockRejectedValueOnce(new Error('Plugin import failed'))
+    await expect(preBootstrapPlugins({ failOnPluginRegistrationError: true })).rejects.toThrow('Plugin import failed')
+    expect(setConfig).not.toHaveBeenCalled()
+  })
 })
