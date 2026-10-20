@@ -20,13 +20,17 @@ Pages use stable field IDs, not display labels. `decimal` and `int64` remain exa
 
 ## Providers
 
-| Provider                 | Native operation                                                 | Plugin                                        |
-| ------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
-| `postgres.sql`           | Governed read-only SQL and parameters                            | `@xpert-ai/plugin-analytics-postgres`         |
-| `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver | `@xpert-ai/plugin-analytics-mysql`            |
-| `data-xpert.ontology`    | Published, permitted read-only ontology Actions                  | `@xpert-ai/plugin-analytics-data-xpert`       |
-| `mcp.tool`               | Approved tools on an existing platform MCP connection            | `@xpert-ai/plugin-analytics-mcp`              |
-| `workspace_script.query` | An exact registered script Artifact/version                      | `@xpert-ai/plugin-analytics-workspace-script` |
+| Provider                 | Native operation                                                   | Plugin                                        |
+| ------------------------ | ------------------------------------------------------------------ | --------------------------------------------- |
+| `postgres.sql`           | Governed read-only SQL and parameters                              | `@xpert-ai/plugin-analytics-postgres`         |
+| `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver   | `@xpert-ai/plugin-analytics-mysql`            |
+| `data-xpert.ontology`    | Published, permitted read-only ontology Actions                    | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | Approved tools on an existing platform MCP connection              | `@xpert-ai/plugin-analytics-mcp`              |
+| `rest.json`              | Approved read-only JSON operations on existing OpenAPI connections | `@xpert-ai/plugin-analytics-rest`             |
+| `workspace_script.query` | An exact registered script Artifact/version                        | `@xpert-ai/plugin-analytics-workspace-script` |
+| `file.table`             | Declarative CSV/JSON/XLSX selection, filtering and aggregation     | `@xpert-ai/plugin-analytics-files`            |
+
+`file.table` reuses WorkspaceFiles with an administrator-approved file catalog, explicit formats and typed business columns. Every refresh rereads the current file and rechecks viewer permissions; Bindings and controls cannot replace paths, reader configuration or identity. CSV/JSON/XLSX support filtering, grouping, sum/count/min/max and sorting; complex preparation and cross-source composition remain script tasks. XLSX formulas are never evaluated; explicit cached mode only reads existing results. Artifact versions pin the query, not source bytes. Oversized input fails; output truncation retains completeness metadata.
 
 Providers implement discovery and execution. The platform validates registration, source access, parameters and results. Discovery returns `items`, `inspectRequest`, `nextRequest` and a native `queryContract`. Agents must use returned identities and syntax instead of guessing from names.
 
@@ -41,6 +45,8 @@ fresh on refresh, while paged results retain their partial scope. This adapter n
 new SDK/host capability; local protocol tests do not establish deployed SSO or Agent acceptance.
 
 Platform endpoints are `GET /api/data-source/analytics/sources`, `POST /api/data-source/analytics/discover` and `POST /api/data-source/analytics/query`. These authorized capability interfaces are not direct query endpoints for generated pages.
+
+The REST/JSON provider reuses `RestClientRuntimeApi.operations.list/call`, existing OpenAPI credentials and workspace access. Administrators configure operation catalogs, field semantics, JSON projection and pagination; Agents supply schema-valid arguments. GET and explicitly read-only JSON POST operations support bounded offset/cursor pagination. Page/row limits remain partial results. Bindings cannot override endpoints, methods, credentials or result mappings; redirects, changed contracts and revoked access fail. This adapter requires the matching new SDK and host runtime.
 
 ## Standard and HTML rendering
 
@@ -57,7 +63,9 @@ await live.query('sales', { region: null })
 await live.refresh('sales')
 ```
 
-Place this snippet inside an async function. IDs must come from actual previews. Subscribe before the first query so toolbar refresh updates the page. `bindSelect` maintains typed select values from received rows; the candidate list does not grant additional access.
+Place this snippet inside an async function. IDs must come from actual previews. Subscribe before the first query so toolbar refresh updates the page. `bindSelect` maintains typed select values from received rows; the candidate list does not grant additional access. `bindSelect` queries only one Binding. A shared filter must send the same typed controls to every affected Binding and update each chart, total and detail table; identical control IDs do not broadcast queries automatically.
+
+Mark native data-filter `<select>` elements with `data-dashboard-control="<controlId>"`; mark purely visual options such as chart type with `data-dashboard-presentation`. Preflight checks that data filters actually query their associated Bindings instead of only filtering cached browser rows. Previously saved pages still open; add these markers when editing and saving them again. Custom controls still require separate acceptance testing.
 
 ## Frontend dependencies
 
@@ -71,4 +79,4 @@ The browser submits a saved target, Binding ID and declared controls. The servic
 
 HTML executes under `sandbox="allow-scripts"` and a no-network CSP. Inline JavaScript is allowed; CSP blocks external scripts and `eval`. Libraries do not unlock parent DOM, Web Storage, direct networking or general host Actions. Page code can change its display, not its data permissions.
 
-Before an HTML save, the same document SDK and dependency bytes run with real preview data. Initial-render preflight does not certify business semantics or exhaustively test interactions. Page-authored polling can call `live.refresh`; there is no unified automatic-refresh scheduler or data change-stream push.
+Before an HTML save, the same document SDK and dependency bytes run with real preview data. Preflight requires an initial query for every declared Binding, exercises a bounded set of visible, enabled native selects and buttons, and checks select value types, shared-control propagation and runtime errors during toolbar refresh. These interactions reuse the default preview data; actual filtered results require separate query verification. Preflight does not certify business semantics or exhaustively test interactions. Page-authored polling can call `live.refresh(bindingId)`; there is no unified automatic-refresh scheduler or data change-stream push.

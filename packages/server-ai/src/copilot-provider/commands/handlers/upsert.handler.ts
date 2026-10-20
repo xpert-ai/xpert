@@ -7,32 +7,36 @@ import { CopilotProviderUpsertCommand } from '../upsert.command'
 
 @CommandHandler(CopilotProviderUpsertCommand)
 export class CopilotProviderUpsertHandler implements ICommandHandler<CopilotProviderUpsertCommand> {
-	readonly #logger = new Logger(CopilotProviderUpsertHandler.name)
+    readonly #logger = new Logger(CopilotProviderUpsertHandler.name)
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly providersService: AIProvidersService,
-		private readonly service: CopilotProviderService
-	) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly providersService: AIProvidersService,
+        private readonly service: CopilotProviderService
+    ) {}
 
-	public async execute(command: CopilotProviderUpsertCommand): Promise<CopilotProvider> {
-		const entity = command.entity
-		if (entity.providerName) {
-			this.providersService.getProvider(entity.providerName, true)
-		}
+    public async execute(command: CopilotProviderUpsertCommand): Promise<CopilotProvider> {
+        const entity = command.entity
+        if (entity.providerName) {
+            this.providersService.getProvider(entity.providerName, true)
+        }
 
-		// Check authorization
-		if (entity.credentials) {
-			entity.credentials = await this.commandBus.execute(
-				new AiProviderCredentialsValidateCommand(entity.providerName, entity.credentials)
-			)
-		}
+        // Check authorization
+        if (entity.credentials) {
+            entity.credentials = await this.commandBus.execute(
+                new AiProviderCredentialsValidateCommand(
+                    entity.providerName,
+                    entity.credentials,
+                    command.validationTarget
+                )
+            )
+        }
 
-		if (entity.id) {
-			await this.service.update(entity.id, entity)
-			return this.service.findOne(entity.id)
-		}
+        if (entity.id) {
+            await this.service.update(entity.id, entity)
+            return this.service.findOne(entity.id)
+        }
 
-		return this.service.create(entity)
-	}
+        return this.service.create(entity)
+    }
 }

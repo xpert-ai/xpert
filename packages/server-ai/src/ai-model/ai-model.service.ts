@@ -1,11 +1,16 @@
 import {
     AIModelProviderNotFoundException,
     AIModelProviderRegistry,
-    IAIModelProviderStrategy
+    IAIModelProviderStrategy,
+    RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { Injectable, Inject } from '@nestjs/common'
 import { t } from 'i18next'
-import { ProviderCredentialSchemaValidator } from './schema_validators/'
+import { ProviderCredentialCheckInput, ProviderCredentialValidationTarget } from '@xpert-ai/contracts'
+import {
+    checkProviderCredentials,
+    credentialValidationCapabilities
+} from './credential-validation/credential-validation'
 
 @Injectable()
 export class AIProvidersService {
@@ -35,28 +40,19 @@ export class AIProvidersService {
 
     async providerCredentialsValidate(
         provider: string,
-        credentials: Record<string, any>
+        credentials: Record<string, unknown>,
+        target?: ProviderCredentialValidationTarget
     ): Promise<Record<string, any>> {
-        // Get the provider instance
-        const modelProviderInstance = this.getProvider(provider, true)
+        const strategy = this.getProvider(provider, true, RequestContext.getOrganizationId())
+        return (await checkProviderCredentials(strategy, credentials, target)).credentials
+    }
 
-        // Get the provider schema
-        const providerSchema = modelProviderInstance.getProviderSchema()
+    credentialValidationCapabilities(provider: string) {
+        return credentialValidationCapabilities(this.getProvider(provider, true, RequestContext.getOrganizationId()))
+    }
 
-        // Get provider_credential_schema and validate credentials according to the rules
-        const providerCredentialSchema = providerSchema.provider_credential_schema
-
-        if (!providerCredentialSchema) {
-            throw new Error(`Provider ${provider} does not have provider_credential_schema`)
-        }
-
-        // Validate the provider credential schema
-        const validator = new ProviderCredentialSchemaValidator(providerCredentialSchema)
-        const filteredCredentials = validator.validateAndFilter(credentials)
-
-        // Validate credentials, throw an exception if validation fails
-        await modelProviderInstance.validateProviderCredentials(filteredCredentials)
-
-        return filteredCredentials
+    async checkCredentials(provider: string, input: ProviderCredentialCheckInput) {
+        const strategy = this.getProvider(provider, true, RequestContext.getOrganizationId())
+        return (await checkProviderCredentials(strategy, input.credentials, input.validationTarget)).result
     }
 }

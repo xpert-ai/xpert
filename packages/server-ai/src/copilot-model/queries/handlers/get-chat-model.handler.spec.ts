@@ -15,7 +15,7 @@ import {
     ParameterRule,
     ParameterType
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ChatOAICompatReasoningModel, getModelContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import {
@@ -28,6 +28,30 @@ import { CopilotModelGetChatModelHandler } from './get-chat-model.handler'
 import { prepareMessagesForModel } from '../../model-capabilities'
 
 describe('CopilotModelGetChatModelHandler', () => {
+    it('preserves the configured window on an OpenAI-compatible client with an endpoint alias', async () => {
+        const f = createFixture([], AiModelTypeEnum.LLM, [], { context_size: 256000, max_tokens: 16384 })
+        const client = new ChatOAICompatReasoningModel({ apiKey: 'test-placeholder', model: 'gpt-6.1-sol' })
+        f.getModelInstance.mockReturnValue(client)
+
+        const result = await f.handler.execute(f.query)
+
+        expect(result).toBe(client)
+        expect(getModelContextSize(client)).toBe(256000)
+        expect(getModelContextSize(f.query.copilotModel)).toBe(256000)
+    })
+
+    it('keeps the primary runtime configuration aligned with a smaller declared provider window', async () => {
+        const f = createFixture([], AiModelTypeEnum.LLM, [], { context_size: 256000 })
+        const client = new ChatOAICompatReasoningModel({ apiKey: 'test-placeholder', model: 'custom-endpoint' })
+        Object.assign(client, { profile: { maxInputTokens: 32768 } })
+        f.getModelInstance.mockReturnValue(client)
+
+        await f.handler.execute(f.query)
+
+        expect(getModelContextSize(client)).toBe(32768)
+        expect(getModelContextSize(f.query.copilotModel)).toBe(32768)
+    })
+
     function createFixture(
         features: ModelFeature[] = [],
         modelType = AiModelTypeEnum.LLM,

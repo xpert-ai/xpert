@@ -62,6 +62,9 @@
         "ProjectTaskProjectionUnavailable": "Task synchronization status is temporarily unavailable; saved tasks remain readable.",
         "ProjectTaskProjectionTimeout": "Task synchronization timed out; the saved tasks are preserved and synchronization will retry.",
         "McpToolDiscoveryLimit": "MCP tool discovery exceeded its limit or repeated a cursor",
+        "RestClientAccessDenied": "REST connection access denied.",
+        "ApiKeyCredentialsInvalid": "API key credentials are invalid.",
+        "RestClientUnavailable": "The REST operation is unavailable, changed, or returned an invalid result.",
         "McpClientAccessDenied": "MCP connection access denied.",
         "McpClientUnavailable": "The MCP operation is unavailable, changed, or returned an invalid result.",
         "SandboxJobCancelled": "Sandbox job was cancelled.",
@@ -317,6 +320,7 @@
         "PausedGraphChanged": "The workflow has changed since this run started.",
         "PausedContextUnavailable": "The saved runtime context is unavailable.",
         "CheckpointUnavailable": "The saved checkpoint is unavailable.",
+        "ThreadStateNotFound": "No saved state was found for this thread.",
         "MessageCheckpointUnavailable": "This message has no saved input checkpoint and cannot be edited into a branch.",
         "ThreadIsPaused": "Resume or stop the paused workflow before sending a follow-up.",
         "PauseTokenRequired": "A pause token is required.",
@@ -495,6 +499,11 @@
         "WorkspaceFileAbsolutePathOutsideRoot": "Absolute workspace file path must be inside the runtime workspace root.",
         "WorkspaceFilePathBelowRootRequired": "Workspace file path must point to a file below the workspace root.",
         "WorkspaceRuntimePathOutsideRoot": "Runtime workspace path must be inside the workspace root.",
+        "McpSourceConfigurationInvalid": "The plugin configuration is invalid. Check the declared fields and values.",
+        "McpSourceConfigurationOwnerScope": "Configure this shared service from its owning tenant scope.",
+        "McpSourceConfigurationNotFound": "This configurable plugin source is not bound to the MCP service.",
+        "McpSourceConfigurationChanged": "The configuration changed. Reload it before saving again.",
+        "McpPublicationDisableBeforeDelete": "Disable the MCP service before deleting it.",
         "McpPublicationNotFound": "MCP Publication was not found or is disabled.",
         "McpConsumerWorkspaceRequired": "An external MCP connection must belong to a Workspace.",
         "McpPublicationInvalidName": "MCP Publication name is required and must not exceed 191 characters.",
@@ -1159,7 +1168,10 @@
         "ArtifactPresentationChanged": "The published version changed. Reopen the shared page to load it.",
         "ArtifactPresentationUnavailable": "The presentation plugin is unavailable.",
         "ArtifactPresentationAccessDenied": "An authenticated team share is required.",
-        "ArtifactPresentationInputInvalid": "Invalid presentation request."
+        "ArtifactPresentationInputInvalid": "Invalid presentation request.",
+        "ProviderCredentialSchemaMissing": "This provider has no credential schema.",
+        "ProviderCredentialTargetRequired": "Select an available model type and enter a model or Endpoint ID to verify these credentials.",
+        "ProviderCredentialCheckInvalid": "Invalid credential verification request."
     },
     "Mcp": {
         "Test": {

@@ -337,6 +337,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
             }
             const checkpoint = await manager.getRepository(CopilotCheckpoint).findOne({
+                select: { checkpoint_id: true },
                 where: {
                     thread_id: threadId,
                     checkpoint_ns: control.checkpoint.checkpointNs,

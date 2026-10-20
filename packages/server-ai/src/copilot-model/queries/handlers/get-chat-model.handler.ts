@@ -9,7 +9,12 @@ import {
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { AIModelProviderNotFoundException, IAIModelProviderStrategy, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    AIModelProviderNotFoundException,
+    applyModelContextSize,
+    IAIModelProviderStrategy,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { AIModelGetProviderQuery } from '../../../ai-model'
@@ -203,7 +208,10 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             }
         )
 
-        if (copilotModel.modelType === AiModelTypeEnum.LLM) budgetGate.attach(model)
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            applyModelContextSize(model, copilotModel)
+            budgetGate.attach(model)
+        }
         return setModelVisionSupport(
             model,
             resolveModelVisionSupport(modelName, customModels, modelProvider.getProviderModels(copilotModel.modelType))

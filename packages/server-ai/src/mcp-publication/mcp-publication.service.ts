@@ -32,6 +32,7 @@ import { McpSubscriptionService } from './mcp-subscription.service'
 import { assertMcpOAuthEnabled, isMcpOAuthEnabled } from './mcp-oauth-feature'
 import { McpPublicationAccessService } from './mcp-publication-access.service'
 import { parseMcpRuntimeConfiguration } from './mcp-runtime-configuration'
+import { removeMcpPublication } from './mcp-publication-removal'
 
 const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PUBLIC_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/
@@ -328,7 +329,10 @@ export class McpPublicationService {
     }
 
     async remove(id: string) {
-        return this.disable(id)
+        const publication = await this.getManaged(id)
+        await removeMcpPublication(this.publicationRepository, publication, this.currentScope())
+        this.subscriptions.publishAccessInvalidated(id)
+        return { id, deleted: true }
     }
 
     async availableCapabilities(id: string, toolsetId?: string) {

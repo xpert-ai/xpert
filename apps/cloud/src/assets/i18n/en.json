@@ -919,6 +919,16 @@
     },
     "Title": "Metad Analytics Cloud",
     "McpPublication": {
+      "Delete": "Delete",
+      "DeleteTitle": "Delete MCP service",
+      "DeleteConfirm": "Delete \"{{name}}\"? Its endpoint, API keys, tasks and invocation records will be removed. This cannot be undone. Source plugins and tools are kept.",
+      "DeleteSharedConfirm": "Remove \"{{name}}\" from this organization? Its API keys, tasks and invocation records in this organization will be removed. Other organizations are not affected. This cannot be undone.",
+      "Deleted": "MCP service deleted",
+      "ReloadConfiguration": "Reload configuration",
+      "ConfigurationSaved": "Configuration saved",
+      "ConfigurationOwnerScope": "Open the owning tenant scope to configure this shared service.",
+      "ConfigurationSecretsHint": "Saved passwords are masked. Leave them unchanged to keep them, or replace the value to update them.",
+      "RetryPluginTabs": "Retry plugin tabs",
       "Title": "MCP services",
       "Description": "Publish capabilities in the current tenant or organization as authenticated MCP 2026-07-28 Streamable HTTP services.",
       "NoProviderRequired": "Capabilities come from compatible toolsets in the current management scope; no specific provider or Cut installation is required.",
@@ -4050,6 +4060,20 @@
       }
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "Model or Endpoint ID",
+        "ModelType": "Model type",
+        "ModelPlaceholder": "Select a model or enter an Endpoint ID",
+        "ModelHint": "This provider does not support fetching models with these credentials. Choose a model you can access. The suggestions are reference models, not verified permissions. Testing sends a minimal inference request.",
+        "FetchAndVerify": "Fetch models and verify",
+        "Test": "Test connection",
+        "Retry": "Retry",
+        "ListVerified": "Credentials accepted by the model-list API. {{count}} models returned.",
+        "Empty": "No models are visible to these credentials.",
+        "ListHint": "This is a preview. Save the provider, then import models from its model list. Listing does not verify inference access.",
+        "ModelVerified": "Test succeeded for {{model}}.",
+        "Verified": "Credential verification succeeded."
+      },
       "Discovery": {
         "Title": "Fetch models",
         "Description": "Sync models incrementally and preserve saved parameters. Confirming uses configured models only; imported models missing from this response keep their settings but become unavailable.",

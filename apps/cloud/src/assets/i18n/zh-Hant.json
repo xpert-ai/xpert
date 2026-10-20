@@ -580,6 +580,16 @@
       }
     },
     "McpPublication": {
+      "ReloadConfiguration": "重新載入設定",
+      "ConfigurationSaved": "設定已儲存",
+      "ConfigurationOwnerScope": "請切換至所屬租戶範圍以設定此共用服務。",
+      "ConfigurationSecretsHint": "已儲存的密碼以遮罩顯示；保持不變會保留原密碼，替換內容可更新密碼。",
+      "RetryPluginTabs": "重試外掛頁籤",
+      "Delete": "刪除",
+      "DeleteTitle": "刪除 MCP 服務",
+      "DeleteConfirm": "確認刪除「{{name}}」？服務入口、API 金鑰、任務及呼叫記錄將被刪除，無法復原。來源外掛和工具會保留。",
+      "DeleteSharedConfirm": "確認從目前組織刪除「{{name}}」？本組織的 API 金鑰、任務及呼叫記錄將被刪除，無法復原。其他組織不受影響。",
+      "Deleted": "MCP 服務已刪除",
       "Title": "MCP 服務",
       "Description": "將目前租戶或組織範圍內的能力發佈為經過驗證的 MCP 2026-07-28 Streamable HTTP 服務。",
       "NoProviderRequired": "能力來自目前管理範圍內相容的工具集，無需指定提供者或安裝 Cut。",

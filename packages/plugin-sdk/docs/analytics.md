@@ -40,6 +40,16 @@ parameter paths, JSON projection and completeness rules remain plugin-owned; it 
 MCP branches to Dataset normalization or the dashboard renderer. Build and deploy the matching
 SDK/host capability before using the plugin; an older published SDK is insufficient.
 
+## Existing REST/OpenAPI connections
+
+The generic [REST Client Runtime](./rest-client.md) exposes
+`RestClientRuntimeCapability` (`platform.rest.client`) with `operations.list/call`.
+It reuses saved OpenAPI toolsets, credentials and current-viewer workspace permissions.
+`@xpert-ai/plugin-analytics-rest` supplies the `rest.json` provider with an approved
+dataset catalog, typed JSON projection and bounded offset/cursor pagination. Binding
+payloads cannot supply URLs, headers, credentials or result mappings. Incomplete page
+traversal stays explicitly partial. Deploy the matching SDK and host before installation.
+
 ## Execution
 
 - `GET /api/data-source/analytics/sources`: authorized IDs and supported providers, never credentials.
@@ -52,6 +62,12 @@ SDK/host capability before using the plugin; an older published SDK is insuffici
 - `int64` and `decimal` use exact strings. Timestamps include a timezone. Renderers must reject unsupported precision rather than silently round canonical data.
 
 For composed queries, the platform assigns `executionId` before provider execution. Forward `signal`, `deadlineAt` and `ancestry` through the optional third argument of `AnalyticsRuntimeApi.query`. These are trusted execution constraints, not fields accepted from an HTTP body or Binding payload. Child queries cannot extend the parent deadline; the platform checks provider cycles and nesting depth.
+
+## Authorization and revocation
+
+HTTP and WebSocket JWT validation loads current database role permissions, including for third-party identities. Explicit token permission claims narrow those grants; they cannot recreate deleted or disabled permissions. An empty claim grants no permissions; missing or null claims retain the current database grants for older tokens. Permissions newly granted outside an explicit token ceiling require a refreshed token.
+
+Permission guards reuse role permissions freshly loaded by authentication for the current request, including token restrictions, without issuing a duplicate policy query. Enabled grants must match the current tenant and role. A loaded empty list denies access and never triggers a broader database lookup. When authentication has not loaded the permission relation, the guard queries current tenant/role policy without a cross-request decision cache. Authentication must reload permissions on each request, so revocation applies to subsequent requests without waiting for token expiry. This is a request-time authorization snapshot, not cancellation of operations already authorized and running; capability and resource access checks remain necessary during execution.
 
 ## Reusable Artifacts changes
 
@@ -76,3 +92,17 @@ The generic [isolated HTML document host](artifact-documents.md) provides the if
 [Workspace live script queries](workspace-dataset-pipelines.md) documents the implemented `@xpert-ai/plugin-analytics-workspace-script` example. Its Python/JavaScript entrypoints, file/source aliases, CSV helpers and execution evidence belong to the plugin. The platform supplies the reusable Analytics, Workspace Files, Artifacts and Sandbox Jobs capabilities, including execution-time invocation and parent deadline/cancellation propagation.
 
 Each query executes the script against current authorized inputs and returns the same Dataset contract to either presentation mode. Script or dependency reuse must not turn a dashboard refresh into reuse of a previous result. Deployment requires compatible SDK/contracts exports, a compute runtime artifact and a matching Runtime Binding; local source validation does not establish published-package compatibility.
+
+## Declarative Workspace files
+
+The `file.table` provider in `@xpert-ai/plugin-analytics-files` registers the `workspace-files` source type. Its administrator-owned catalog specifies authorized Workspace file references, explicit CSV/JSON/XLSX readers, field types and business descriptions. Provider discovery returns its native query schema and real bounded previews. Queries select/filter/group/aggregate/sort; neither Binding payloads nor controls may replace file references or reader options.
+
+The plugin reuses `WorkspaceFilesRuntimeCapability` for file access and `ProjectAccessRuntimeCapability` for human Project membership. Assistant files retain the exact published Assistant ACL, and private file references bind the current viewer. Parsing, format dependencies, decimal aggregation and Worker execution remain plugin-owned. No parser or file-query dialect is added to the platform.
+
+Each execution rereads the current source and records a content digest. Input limits fail closed before partial-input aggregation; output limits preserve Dataset completeness. Artifact history pins declarations, not file bytes. See the plugin's bilingual configuration and verification documentation for formula-cache, type and format limits.
+
+## Discovered payload feedback for Agent tools
+
+`validateAnalyticsPayload(payload, queryContract.payloadSchema)`, exported from `@xpert-ai/plugin-sdk`, is a synchronous server SDK helper for structural feedback before a preview call. It uses the provider's declared JSON Schema and reports a bounded field path and failing keyword without echoing payload values. It does not coerce values, remove properties, inject defaults, resolve remote references or validate JSON Schema `format` annotations. Malformed/unresolved schemas and asynchronous (`$async`) schemas fail explicitly. Provider semantic validation, current-actor authorization and bounded execution remain mandatory after this check. A successful structural check is not a preview receipt or permission grant.
+
+Live Dashboard uses this helper on both canonical and simplified preview tools. Keep provider-specific syntax in discovery; do not introduce SQL/file/MCP branches in the dashboard middleware to repair input.

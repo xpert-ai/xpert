@@ -7,18 +7,19 @@ import { GetCopilotCheckpointsByParentQuery } from '../get-by-parent.query'
 
 @QueryHandler(GetCopilotCheckpointsByParentQuery)
 export class GetCopilotCheckpointsByParentHandler implements IQueryHandler<GetCopilotCheckpointsByParentQuery> {
-	serde: SerializerProtocol = new JsonPlusSerializer()
+    serde: SerializerProtocol = new JsonPlusSerializer()
 
-	constructor(private readonly service: CopilotCheckpointService) {}
+    constructor(private readonly service: CopilotCheckpointService) {}
 
-	public async execute(command: GetCopilotCheckpointsByParentQuery): Promise<ICopilotCheckpoint[]> {
-		const { items } = await this.service.findAll({
-			where: {
-				thread_id: command.configurable.thread_id,
-				checkpoint_ns: command.configurable.checkpoint_ns,
-				parent_id: command.configurable.checkpoint_id
-			}
-		})
-		return items
-	}
+    public async execute(command: GetCopilotCheckpointsByParentQuery): Promise<ICopilotCheckpoint[]> {
+        const { items } = await this.service.findAll({
+            select: { checkpoint_id: true },
+            where: {
+                thread_id: command.configurable.thread_id,
+                checkpoint_ns: command.configurable.checkpoint_ns,
+                parent_id: command.configurable.checkpoint_id
+            }
+        })
+        return items
+    }
 }

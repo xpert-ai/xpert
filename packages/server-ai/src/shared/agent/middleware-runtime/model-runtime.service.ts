@@ -25,6 +25,7 @@ import {
     AgentMiddlewareRuntimeScope,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
+    applyModelContextSize,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
@@ -234,7 +235,10 @@ export class AgentMiddlewareModelRuntimeService {
                 }
             }
         )
-        if (purpose === 'invoke' && copilotModel.modelType === AiModelTypeEnum.LLM) budgetGate.attach(model)
+        if (copilotModel.modelType === AiModelTypeEnum.LLM) {
+            applyModelContextSize(model, copilotModel)
+            if (purpose === 'invoke') budgetGate.attach(model)
+        }
         return model as T
     }
 

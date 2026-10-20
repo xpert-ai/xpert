@@ -10,11 +10,11 @@ import computeDefinition from './runtime-definitions/compute-node-python-v1.json
 
 describe('SandboxRuntimeDefinitionRegistry', () => {
     it.each(['document/python-3.12/v1', 'document/libreoffice-v1'])(
-        'uses immutable inputs and provider-owned writable output for %s',
+        'allows a writable document job workspace for %s',
         (profile) => {
             const definition = new SandboxRuntimeDefinitionRegistry().require(profile)
-            expect(definition.security.readOnlyWorkspace).toBe(true)
-            expect(definition.requirements.readOnlyWorkspace).toBe(true)
+            expect(definition.security.readOnlyWorkspace).toBeUndefined()
+            expect(definition.requirements.readOnlyWorkspace).toBeUndefined()
         }
     )
     it('loads an offline compute profile with enforced input immutability and bounded resources', () => {

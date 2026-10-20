@@ -1100,6 +1100,16 @@
     },
     "Title": "XpertAI 云",
     "McpPublication": {
+      "Delete": "删除",
+      "DeleteTitle": "删除 MCP 服务",
+      "DeleteConfirm": "确认删除“{{name}}”？服务入口、API 密钥、任务及调用记录将被删除，无法恢复。来源插件和工具会保留。",
+      "DeleteSharedConfirm": "确认从当前组织删除“{{name}}”？本组织的 API 密钥、任务及调用记录将被删除，无法恢复。其他组织不受影响。",
+      "Deleted": "MCP 服务已删除",
+      "ReloadConfiguration": "重新加载配置",
+      "ConfigurationSaved": "连接配置已保存",
+      "ConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
+      "ConfigurationSecretsHint": "已保存的密码以掩码显示；保持不变会保留原密码，替换内容可更新密码。",
+      "RetryPluginTabs": "重新加载插件页签",
       "Title": "MCP 服务",
       "Description": "将当前租户或组织范围内的能力发布为经过认证的 MCP 2026-07-28 Streamable HTTP 服务。",
       "NoProviderRequired": "能力来源于当前管理范围内兼容的工具集，无需指定提供商或安装 Cut。",
@@ -6250,6 +6260,20 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "CredentialValidation": {
+        "Model": "测试模型或接入点 ID",
+        "ModelType": "模型类型",
+        "ModelPlaceholder": "选择模型或输入接入点 ID",
+        "ModelHint": "此提供商不支持使用当前凭据拉取模型列表。请选择有权限的模型；候选项仅为参考，不代表已获授权。测试会发送一次最小推理请求。",
+        "FetchAndVerify": "获取模型并验证",
+        "Test": "测试连接",
+        "Retry": "重试",
+        "ListVerified": "模型列表接口验证通过，共返回 {{count}} 个模型。",
+        "Empty": "当前凭据暂无可见模型。",
+        "ListHint": "此处仅预览，保存提供商后可在模型列表中导入。列表验证不代表推理权限已验证。",
+        "ModelVerified": "模型 {{model}} 测试通过。",
+        "Verified": "凭据验证通过。"
+      },
       "Discovery": {
         "Title": "拉取模型",
         "Description": "从当前提供商增量同步模型，保留已有参数。确认同步后仅使用已配置模型；本次未返回的接口模型保留配置并停用。",

@@ -69,6 +69,14 @@ export class OrderOperationsTools {
 
 MCP exposure is explicit. Provide strict Zod input/output schemas and return an allowlisted DTO; the host validates the output and maps it to `structuredContent` and a JSON `TextContent` block so clients that only expose text can still read the result. With `resultFormat: 'tool_result'`, image and other content blocks are preserved and the validated structured metadata also receives a JSON text fallback. Invocation context is constructed for every call and must never be cached on the Provider singleton. `getMiddlewareExtensions()` may add Agent-only hooks such as `wrapToolCall`, but business-critical behavior belongs in the method or shared service.
 
+For connection configuration, declare the form in `configSchema` and optionally implement
+`validateConfig(config: unknown): void | Promise<void>` on the Provider. The native Toolset
+adapter awaits this hook when a host configuration-save path invokes `validateConfig`,
+including MCP service configuration tabs. Reuse invocation validation rules and reject
+invalid values with a sanitized error; never include credentials in the error message.
+The hook validates values only: it does not persist or normalize them, and does not replace
+per-invocation authorization. Providers without the hook retain their existing behavior.
+
 Use the same `@XpertToolProvider` class for every capability:
 
 | Decorator                | Method signature                                                | Result                       |

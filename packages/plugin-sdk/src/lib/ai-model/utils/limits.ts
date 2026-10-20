@@ -1,54 +1,69 @@
-import { BaseLanguageModel, getModelContextSize as _getModelContextSize } from "@langchain/core/language_models/base";
-import { ICopilotModel, ModelPropertyKey } from "@xpert-ai/contracts";
-import { ModelProfile } from "../types";
+import { BaseLanguageModel } from '@langchain/core/language_models/base'
+import { ICopilotModel, ModelPropertyKey } from '@xpert-ai/contracts'
 
 export function getModelContextSize(input: BaseLanguageModel | ICopilotModel): number | undefined {
   if (isCopilotModel(input)) {
-    return normalizeContextSize(input.options?.[ModelPropertyKey.CONTEXT_SIZE]);
+    return normalizeContextSize(input.options?.[ModelPropertyKey.CONTEXT_SIZE])
   }
 
-  // Backward compatibility for langchain <1.0.0
-  if (input.metadata && "profile" in input.metadata) {
-    const profile = input.metadata['profile'] as ModelProfile;
-    if ("maxInputTokens" in profile && (typeof profile.maxInputTokens === "number" || profile.maxInputTokens == null)) {
-      return (profile.maxInputTokens as number) ?? undefined;
-    }
-  }
-  // Langchain v1.0.0+
-  if (
-    "profile" in input &&
-    typeof input.profile === "object" &&
-    input.profile &&
-    "maxInputTokens" in input.profile &&
-    (typeof input.profile.maxInputTokens === "number" ||
-      input.profile.maxInputTokens == null)
-  ) {
-    return (input.profile.maxInputTokens as number) ?? undefined;
-  }
+  return getClientContextSize(input)
+}
 
-  if ("model" in input && typeof input.model === "string") {
-    return _getModelContextSize(input.model);
-  }
-  if ("modelName" in input && typeof input.modelName === "string") {
-    return _getModelContextSize(input.modelName);
-  }
+/** Bind the effective window to the runtime configuration and client without guessing from model names. */
+export function applyModelContextSize<T extends object>(model: T, configuration: ICopilotModel): T {
+  const configuredLimit = normalizeContextSize(configuration.options?.[ModelPropertyKey.CONTEXT_SIZE])
+  const providerLimit = getClientContextSize(model)
+  const limits = [configuredLimit, providerLimit].filter((value): value is number => value !== undefined)
+  if (!limits.length) return model
 
-  return undefined;
+  const contextSize = Math.min(...limits)
+  configuration.options = { ...configuration.options, [ModelPropertyKey.CONTEXT_SIZE]: contextSize }
+
+  const metadata =
+    'metadata' in model && typeof model.metadata === 'object' && model.metadata !== null ? model.metadata : {}
+  const legacyProfile =
+    'profile' in metadata && typeof metadata.profile === 'object' && metadata.profile !== null ? metadata.profile : {}
+  const profile = 'profile' in model && typeof model.profile === 'object' && model.profile !== null ? model.profile : {}
+
+  Object.assign(model, { metadata: { ...metadata, profile: { ...legacyProfile, maxInputTokens: contextSize } } })
+  Object.defineProperty(model, 'profile', {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: { ...legacyProfile, ...profile, maxInputTokens: contextSize }
+  })
+  return model
+}
+
+function getClientContextSize(model: object): number | undefined {
+  const metadata = 'metadata' in model ? model.metadata : undefined
+  const legacyProfile = metadata && typeof metadata === 'object' && 'profile' in metadata ? metadata.profile : undefined
+  const limits = [
+    readProfileContextSize(legacyProfile),
+    readProfileContextSize('profile' in model ? model.profile : undefined)
+  ].filter((value): value is number => value !== undefined)
+  return limits.length ? Math.min(...limits) : undefined
+}
+
+function readProfileContextSize(profile: unknown): number | undefined {
+  return profile && typeof profile === 'object' && 'maxInputTokens' in profile
+    ? normalizeContextSize(profile.maxInputTokens)
+    : undefined
 }
 
 function isCopilotModel(input: BaseLanguageModel | ICopilotModel): input is ICopilotModel {
-  return typeof input === "object" && input !== null && !("invoke" in input);
+  return typeof input === 'object' && input !== null && !('invoke' in input)
 }
 
 export function normalizeContextSize(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return Math.floor(value);
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value)
   }
-  if (typeof value === "string") {
-    const parsed = Number.parseInt(value, 10);
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
     if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed;
+      return parsed
     }
   }
-  return undefined;
+  return undefined
 }

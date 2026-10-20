@@ -62,6 +62,9 @@
         "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
         "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
         "McpToolDiscoveryLimit": "MCP 工具发现超出限制或返回了重复的游标。",
+        "RestClientAccessDenied": "REST 连接访问被拒绝。",
+        "ApiKeyCredentialsInvalid": "API Key 认证配置无效。",
+        "RestClientUnavailable": "REST 操作不可用、已更改或返回了无效结果。",
         "McpClientAccessDenied": "无权访问 MCP 连接。",
         "McpClientUnavailable": "MCP 操作不可用、定义已变化或返回了无效结果。",
         "SandboxJobCancelled": "沙箱任务已取消。",
@@ -317,6 +320,7 @@
         "PausedGraphChanged": "工作流配置已变化，不能继续使用原存档。",
         "PausedContextUnavailable": "原任务的运行上下文存档不可用，无法恢复。",
         "CheckpointUnavailable": "所需存档已不存在，无法安全继续。",
+        "ThreadStateNotFound": "未找到此会话的执行状态存档。",
         "MessageCheckpointUnavailable": "这条消息没有可用的输入前存档，无法安全创建历史分支。",
         "ThreadIsPaused": "请先恢复或停止已暂停的流程，再发送后续消息。",
         "PauseTokenRequired": "恢复流程需要指定暂停存档标识。",
@@ -495,6 +499,11 @@
         "WorkspaceFileAbsolutePathOutsideRoot": "Workspace 文件绝对路径必须位于运行时 Workspace 根目录内。",
         "WorkspaceFilePathBelowRootRequired": "Workspace 文件路径必须指向 Workspace 根目录下的文件。",
         "WorkspaceRuntimePathOutsideRoot": "运行时 Workspace 路径必须位于 Workspace 根目录内。",
+        "McpSourceConfigurationInvalid": "插件配置无效，请检查表单字段和值。",
+        "McpSourceConfigurationOwnerScope": "请切换到服务所属的租户范围配置共享连接。",
+        "McpSourceConfigurationNotFound": "当前 MCP 服务未绑定此可配置的插件来源。",
+        "McpSourceConfigurationChanged": "配置已被更新，请重新加载后再保存。",
+        "McpPublicationDisableBeforeDelete": "请先停用 MCP 服务再删除。",
         "McpPublicationNotFound": "未找到 MCP 服务，或该服务已停用。",
         "McpConsumerWorkspaceRequired": "外部 MCP 连接必须属于某个工作空间。",
         "McpPublicationInvalidName": "MCP 服务名称不能为空，且不能超过 191 个字符。",
@@ -1159,7 +1168,10 @@
         "ArtifactPresentationChanged": "正式版本已变化，请重新打开分享页。",
         "ArtifactPresentationUnavailable": "展示插件不可用。",
         "ArtifactPresentationAccessDenied": "需要经过认证的团队分享权限。",
-        "ArtifactPresentationInputInvalid": "展示请求无效。"
+        "ArtifactPresentationInputInvalid": "展示请求无效。",
+        "ProviderCredentialSchemaMissing": "当前提供商未配置凭据表单。",
+        "ProviderCredentialTargetRequired": "请选择支持的模型类型，并填写模型或接入点 ID 以验证凭据。",
+        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。"
     },
     "Mcp": {
         "Test": {
