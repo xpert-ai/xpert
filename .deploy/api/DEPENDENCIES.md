@@ -78,7 +78,13 @@ This builds the production image, then checks `/api/health/ready` and
 It publishes no host ports, uses generated temporary secrets, and removes only
 its own containers and volumes afterward. Existing services and `.env` files
 are untouched. API/database/cache/Redis must all be healthy. On failure, private
-diagnostic paths are printed; application logs are not streamed to CI output.
+sanitized Compose errors and container health states are printed. Bounded API,
+Postgres and Redis logs, including the last health probe outputs, are saved in
+a separate diagnostics directory. Generated credentials and sensitive values
+are redacted before output or persistence; container configuration and `.env`
+files are never exported. CI uploads only these sanitized files on failure
+with a seven-day retention. Set `API_HEALTH_DIAGNOSTICS_DIR` to choose the output
+directory locally.
 
 To check an already-built image:
 

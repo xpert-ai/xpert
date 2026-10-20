@@ -3,6 +3,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { randomBytes } = require('node:crypto')
 const { spawnSync } = require('node:child_process')
+const { createRedactor, commandOutput, collectDiagnostics } = require('./health-diagnostics.cjs')
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-api-health-'))
 fs.chmodSync(directory, 0o700)
@@ -29,6 +30,8 @@ fs.writeFileSync(
   { mode: 0o600 }
 )
 const args = ['compose', '-p', project, '--env-file', envFile, '-f', path.join(__dirname, 'compose.health.yml')]
+const redact = createRedactor(values)
+const diagnostics = process.env.API_HEALTH_DIAGNOSTICS_DIR || path.join(directory, 'diagnostics')
 const run = (extra) =>
   spawnSync('docker', [...args, ...extra], {
     encoding: 'utf8',
@@ -40,11 +43,19 @@ try {
   console.log(`Checking ${values.CHECK_API_IMAGE} in isolated Compose project ${project}`)
   const result = run(['up', '-d', '--wait', '--wait-timeout', '240'])
   if (result.error || result.status !== 0) {
-    // Startup logs can include environment values; keep diagnostics private.
-    const logs = run(['logs', '--no-color', '--tail', '250', 'api'])
-    fs.writeFileSync(path.join(directory, 'api.log'), logs.stdout + logs.stderr, { mode: 0o600 })
-    fs.writeFileSync(path.join(directory, 'compose.log'), result.stdout + result.stderr, { mode: 0o600 })
-    throw new Error(`API startup/health check failed. Private diagnostics: ${directory}`)
+    collectDiagnostics({
+      directory: diagnostics,
+      result,
+      run,
+      inspect: (id) =>
+        spawnSync('docker', ['inspect', '--format', '{{json .State}}', id], {
+          encoding: 'utf8',
+          timeout: 30_000,
+          maxBuffer: 4 * 1024 * 1024
+        }),
+      redact
+    })
+    throw new Error('API startup/health check failed; see sanitized diagnostics above')
   }
   const platform = path.resolve(__dirname, '../..')
   const inspect = spawnSync(
@@ -71,11 +82,13 @@ try {
   fs.writeFileSync(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 })
   console.log(`API startup, readiness, database and Redis checks passed. Receipt: ${directory}/receipt.json`)
 } catch (error) {
-  console.error(error.message)
+  console.error(redact(error.message))
   process.exitCode = 1
 } finally {
   const cleanup = run(['down', '--volumes', '--remove-orphans'])
   if (cleanup.error || cleanup.status !== 0) {
+    fs.mkdirSync(diagnostics, { recursive: true, mode: 0o700 })
+    fs.writeFileSync(path.join(diagnostics, 'cleanup.log'), redact(commandOutput(cleanup)), { mode: 0o600 })
     console.error(`Cleanup failed for ${project}; protected configuration remains at ${directory}`)
     process.exitCode = 1
   } else {
