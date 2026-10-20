@@ -307,6 +307,7 @@
         "PausedGraphChanged": "The workflow has changed since this run started.",
         "PausedContextUnavailable": "The saved runtime context is unavailable.",
         "CheckpointUnavailable": "The saved checkpoint is unavailable.",
+        "ThreadStateNotFound": "No saved state was found for this thread.",
         "MessageCheckpointUnavailable": "This message has no saved input checkpoint and cannot be edited into a branch.",
         "ThreadIsPaused": "Resume or stop the paused workflow before sending a follow-up.",
         "PauseTokenRequired": "A pause token is required.",

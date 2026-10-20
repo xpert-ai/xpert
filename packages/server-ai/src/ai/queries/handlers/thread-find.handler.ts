@@ -5,7 +5,6 @@ import {
     GetChatConversationQuery
 } from '../../../chat-conversation'
 import { Optional } from '@nestjs/common'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { ThreadDTO } from '../../dto'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { FindThreadQuery } from '../thread-find.query'
@@ -29,13 +28,7 @@ export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
         await this.queryBus.execute(new AssertChatConversationAccessQuery({ id: chatConversation.id }))
         await assertPublicXpertSessionConversationAccess(chatConversation, this.queryBus)
 
-        const tuple = await this.queryBus.execute(
-            new CopilotCheckpointGetTupleQuery({
-                thread_id: command.threadId,
-                checkpoint_ns: ''
-            })
-        )
-
-        return new ThreadDTO(chatConversation, tuple?.checkpoint.channel_values ?? {}, thread ?? undefined)
+        // Full execution values belong to /state; ordinary reads must not hydrate checkpoints.
+        return new ThreadDTO(chatConversation, undefined, thread ?? undefined)
     }
 }
