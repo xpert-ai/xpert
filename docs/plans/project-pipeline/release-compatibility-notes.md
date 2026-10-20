@@ -1,5 +1,7 @@
 # Project Pipeline 候选发布兼容性说明
 
+2026-10-20 更新：候选 `d82f91498` 已完成真实配套包验证，详见 [RC2 记录](./candidate-build-regression.md)。两个候选包均为 `4.0.0-pipeline.0.d82f91498f63`，SDK 精确依赖同版 Contracts；CJS / Node ESM、严格 Node / NodeNext / Bundler 类型消费，以及 Node 20 / Zod 4 检查通过。该 4.0 预发布标识显式承认下述类型破坏性变更，只用于本地候选，正式源码版本未改、没有发布。后文“仍须完成”的表述保留第八批时点；对应候选证据现以 RC2 记录为准。
+
 本说明对应代码审核基线 `27bd935b3`，供发布审查和插件维护者使用，尚不是已发布版本公告。最终 Contracts / SDK 版本、依赖范围及产物验证仍须按[发布条件 G1 / G2](./release-readiness-review.md)完成；本轮不改包版本、不发布。
 
 ## 源码类型兼容
