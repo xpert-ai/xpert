@@ -12,6 +12,8 @@
 
 同日按授权完成第六批公共泳道与节点交互审核，修复执行圆点结果口径和轮询导致流水线分页选择项丢失，详见 [公共泳道与节点交互审核记录](./swimlane-interactions-review.md)。11 个 UI 套件、35 项通过，类型检查及组件构建通过；Provider 轮询顺序和视觉覆盖完善记入非阻塞清单。未部署现有服务，第七批、预算、原生续轮及其他剩余工作继续暂停。
 
+同日按授权完成第七批 Cloud 与 Desktop 宿主接入审核，修复节点入口的旧导航、匿名偏好复用、执行会话上下文校验及恢复角色后的首次项目导航，详见 [Cloud 与 Desktop 宿主审核记录](./cloud-desktop-hosts-review.md)。Cloud 70 项、Desktop 30 项通过，Desktop 类型检查通过；未部署或推送，预算、原生续轮及其他剩余工作继续暂停。
+
 ## 审核基线
 
 - 分支：`codex/project-pipeline-review`。
