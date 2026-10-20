@@ -136,6 +136,18 @@ describe('ThreadRunControlService', () => {
         }
     )
 
+    it('releases a rejected run and preserves its error through repeated cleanup', async () => {
+        const { thread, service } = setup()
+        await service.finish('thread', 'run', 'error', 'Model unavailable')
+        expect(thread.runControl).toBeNull()
+        expect(thread.encryptedRunContext).toBeNull()
+        expect(await service.finish('thread', 'run', 'idle')).toBe('error')
+        expect(thread.error).toBe('Model unavailable')
+        await service.start('thread', 'retry')
+        expect(thread.runControl?.executionId).toBe('retry')
+        expect(thread.runControl?.state).toBe('running')
+    })
+
     it('retains a copied graph revision through failed first attempts and clears it on success', async () => {
         const { thread, service } = setup()
         thread.metadata = { forkGraphRevision: 'revision' }
