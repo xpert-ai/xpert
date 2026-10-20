@@ -2,4 +2,4 @@
 '@xpert-ai/xpert-api': patch
 ---
 
-Preserve sanitized API image startup failures, dependency logs and container health probe results in CI.
+Initialize the disposable API acceptance database with schema synchronization and Project Pipeline SQL migrations before starting in external schema mode. Preserve sanitized startup failures, dependency logs and container health probe results in CI.

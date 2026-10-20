@@ -63,9 +63,25 @@ if (args[0] === 'compose') {
   const values = Object.fromEntries(fs.readFileSync(envFile, 'utf8').split('\\n').map(line => line.split('=')))
   fs.writeFileSync(path.join(root, 'secrets.json'), JSON.stringify(Object.values(values).slice(1)))
   if (args.includes('up')) {
+    if (args.at(-1) === 'redis' && mode !== 'no-containers') process.exit(0)
     if (mode === 'success' || mode === 'cleanup-failure') process.exit(0)
     console.error('api is unhealthy; credential ' + values.CHECK_DB_PASS)
     process.exit(1)
+  }
+  if (args.includes('run')) {
+    if (mode === 'schema-failure') {
+      console.error('schema sync rejected; credential ' + values.CHECK_DB_PASS)
+      process.exit(1)
+    }
+    process.exit(0)
+  }
+  if (args.includes('exec')) {
+    fs.appendFileSync(path.join(root, 'migrations.jsonl'), JSON.stringify(fs.readFileSync(0, 'utf8')) + '\\n')
+    if (mode === 'migration-failure') {
+      console.error('ERROR: migration rejected; credential ' + values.CHECK_DB_PASS)
+      process.exit(1)
+    }
+    process.exit(0)
   }
   if (args.includes('logs')) {
     console.log(args.at(-1) + ' ECONNREFUSED; password=' + values.CHECK_REDIS_PASS)
@@ -155,13 +171,61 @@ test('failure before container creation remains diagnosable', (t) => {
 })
 
 test('success retains the acceptance receipt and produces no failure artifact', (t) => {
-  const { result, diagnostics, envFile } = fixture(t, 'success')
+  const { directory, result, diagnostics, envFile } = fixture(t, 'success')
   assert.equal(result.status, 0)
   assert.ok(!fs.existsSync(diagnostics))
   assert.ok(!fs.existsSync(envFile))
   const receipt = JSON.parse(fs.readFileSync(path.join(path.dirname(envFile), 'receipt.json'), 'utf8'))
   assert.equal(receipt.status, 'api_healthy')
+  const calls = fs.readFileSync(path.join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+  const schema = calls.findIndex((args) => args.includes('schema-sync'))
+  const migrations = calls.map((args, index) => (args.includes('psql') ? index : -1)).filter((index) => index >= 0)
+  const startup = calls.findIndex((args) => args.includes('up') && args.at(-1) === 'api')
+  assert.ok(schema > 0)
+  assert.equal(migrations.length, 7)
+  assert.ok(migrations.every((index) => index > schema && index < startup))
+  assert.ok(migrations.every((index) => calls[index].includes('ON_ERROR_STOP=1')))
+  const appliedSql = fs
+    .readFileSync(path.join(directory, 'migrations.jsonl'), 'utf8')
+    .trim()
+    .split('\n')
+    .map(JSON.parse)
+  assert.deepEqual(
+    appliedSql,
+    receipt.migrations.map((name) =>
+      fs.readFileSync(
+        path.join(__dirname, '../../packages/server-ai/src/xpert-project/pipeline/migrations', name),
+        'utf8'
+      )
+    )
+  )
+  // Each rollout in this directory must be considered explicitly; filename sort is not dependency order.
+  assert.deepEqual(
+    [...receipt.migrations].sort(),
+    fs
+      .readdirSync(path.join(__dirname, '../../packages/server-ai/src/xpert-project/pipeline/migrations'))
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+  )
+  assert.match(fs.readFileSync(path.join(__dirname, 'compose.health.yml'), 'utf8'), /DB_SCHEMA_SYNC_MODE: external/)
 })
+
+for (const mode of ['schema-failure', 'migration-failure']) {
+  test(`${mode} aborts before API startup, captures diagnostics and cleans up`, (t) => {
+    const { directory, diagnostics, result, envFile } = fixture(t, mode)
+    assert.equal(result.status, 1)
+    assert.ok(!fs.existsSync(envFile))
+    const calls = fs.readFileSync(path.join(directory, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+    assert.ok(!calls.some((args) => args.includes('up') && args.at(-1) === 'api'))
+    assert.ok(calls.at(-1).includes('down'))
+    const log = fs.readFileSync(path.join(diagnostics, 'compose.log'), 'utf8')
+    assert.match(log, /rejected/)
+    assert.match(log, /\[REDACTED\]/)
+    for (const secret of JSON.parse(fs.readFileSync(path.join(directory, 'secrets.json'), 'utf8'))) {
+      assert.ok(!log.includes(secret))
+    }
+  })
+}
 
 test('cleanup failure remains fatal and saves diagnostics', (t) => {
   const { result, diagnostics, envFile } = fixture(t, 'cleanup-failure')

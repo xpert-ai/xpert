@@ -22,7 +22,7 @@ function createRedactor(values, env = process.env) {
         .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi, '$1 [REDACTED]')
         .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED]')
         .replace(
-          /(["']?[\w.-]*(?:password|passwd|secret|token|credential|api[_-]?key|encryption[_-]?key|authorization|db_pass|redis_pass)[\w.-]*["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,}\]]+)/gi,
+          /(["']?[\w.-]*(?:password|passwd|passphrase|userpass|secret|token|credential|api[_-]?key|encryption[_-]?key|authorization|db_pass|redis_pass)[\w.-]*["']?\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,}\]]+)/gi,
           '$1[REDACTED]'
         )
         // Container output must not be able to issue GitHub workflow commands.
