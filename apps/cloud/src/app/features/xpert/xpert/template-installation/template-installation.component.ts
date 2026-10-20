@@ -6,19 +6,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Store, API_PREFIX } from '@cloud/app/@core/state'
-import {
-  AiProviderRole,
-  CopilotServerService,
-  getErrorMessage,
-  XpertAPIService,
-  XpertTemplateService,
-  XpertWorkspaceService
-} from '@cloud/app/@core'
+import { getErrorMessage, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
 import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import type { IXpertWorkspace, TemplateInstallation, XpertTemplateSetup, TXpertTemplate } from '@xpert-ai/contracts'
 import {
   createInstallationClient,
+  canOpenInstalledAssistant,
   installationStageLabels,
   installationStatusLabel,
   type InstallationSnapshot
@@ -51,7 +45,6 @@ export class TemplateInstallationComponent {
   private readonly templates = inject(XpertTemplateService)
   private readonly workspacesService = inject(XpertWorkspaceService)
   private readonly xperts = inject(XpertAPIService)
-  private readonly copilots = inject(CopilotServerService)
   private readonly router = inject(Router)
   private readonly dialog = inject(DialogRef)
   readonly translate = inject(TranslateService)
@@ -63,9 +56,11 @@ export class TemplateInstallationComponent {
   readonly setup = signal<XpertTemplateSetup | null>(null)
   readonly state = signal<InstallationSnapshot>(empty)
   readonly loading = signal(false)
-  readonly primaryAvailable = signal(false)
   readonly revision = signal(0)
   readonly error = signal('')
+  readonly openingError = signal('')
+  readonly opening = signal(false)
+  private openingGeneration = 0
   readonly capabilities = signal<string[]>([])
   readonly form = new FormGroup({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
@@ -75,6 +70,7 @@ export class TemplateInstallationComponent {
   })
   readonly statusLabel = installationStatusLabel
   readonly stages = installationStageLabels
+  readonly canOpen = canOpenInstalledAssistant
   client: ReturnType<typeof createInstallationClient> | null = null
   constructor() {
     effect((cleanup) => {
@@ -122,20 +118,10 @@ export class TemplateInstallationComponent {
       })
       this.setup.set(null)
       if (!organization) return
-      this.primaryAvailable.set(false)
       this.error.set('')
       void firstValueFrom(this.templates.getSetup(id, capabilities, this.workspaceId() || undefined))
-        .then(async (setup) => {
-          const primary =
-            setup.requiresModel || setup.requiredModelFeatures.length
-              ? null
-              : await firstValueFrom(this.copilots.getAvailableByRole(AiProviderRole.Primary))
+        .then((setup) => {
           if (!active) return
-          this.primaryAvailable.set(
-            !!primary?.id &&
-              !!primary.copilotModel?.model?.trim() &&
-              (!primary.copilotModel.modelType || primary.copilotModel.modelType === 'llm')
-          )
           this.setup.set(setup)
           if (!setup.models.some((model) => model.id === this.form.controls.model.value))
             this.form.controls.model.setValue(setup.defaultModelId ?? '')
@@ -150,19 +136,36 @@ export class TemplateInstallationComponent {
         organization = this.organizationId(),
         user = this.user()
       this.state.set(empty)
+      this.resetOpening()
       this.client = null
       if (!workspaceId || !organization || !user?.id) return
+      const notified = new Set<string>()
+      let selectedId: string | undefined
       const client = createInstallationClient({
         transport: this.service,
         storage: localStorage,
         scope: JSON.stringify([API_PREFIX, user.tenantId, user.id, organization]),
         workspaceId,
         templateId,
-        changed: (state) => this.state.set(state),
+        changed: (state) => {
+          if (state.operation?.id !== selectedId) {
+            selectedId = state.operation?.id
+            this.resetOpening()
+          }
+          this.state.set(state)
+          const operation = state.operation
+          if (operation?.status === 'succeeded' && !notified.has(operation.id)) {
+            notified.add(operation.id)
+            untracked(() => this.xperts.refresh())
+          }
+        },
         errorMessage: getErrorMessage
       })
       this.client = client
-      cleanup(() => client.dispose())
+      cleanup(() => {
+        client.dispose()
+        this.resetOpening()
+      })
       untracked(() => void client.restore().then(() => client.history()))
     })
   }
@@ -187,7 +190,7 @@ export class TemplateInstallationComponent {
       setup?.canInstall &&
       (setup.requiresModel || setup.requiredModelFeatures.length
         ? setup.models.some((model) => model.id === this.form.controls.model.value)
-        : this.primaryAvailable()) &&
+        : true) &&
       (!this.capabilities().includes('realtime-voice') ||
         (!!this.form.controls.voiceModel.value && !!this.form.controls.voice.value))
     )
@@ -216,18 +219,44 @@ export class TemplateInstallationComponent {
     await this.router.navigate(['/explore/templates', this.templateId()])
     this.dialog.close()
   }
+  private resetOpening() {
+    this.openingGeneration++
+    this.openingError.set('')
+    this.opening.set(false)
+  }
+  newInstance() {
+    this.resetOpening()
+    this.client?.newInstance()
+  }
+  async select(operation: TemplateInstallation) {
+    this.resetOpening()
+    await this.client?.select(operation)
+  }
   async open(operation: TemplateInstallation, configure = false) {
-    if (!operation.assistantId || operation.status !== 'succeeded') return
+    const client = this.client
+    if (!client || !this.canOpen(operation) || this.opening() || this.state().busy) return
+    this.resetOpening()
+    this.opening.set(true)
+    const generation = this.openingGeneration
+    const current = () =>
+      this.client === client && generation === this.openingGeneration && this.state().operation?.id === operation.id
     try {
+      const latest = await client.refresh()
+      if (!current() || !latest || !this.canOpen(latest)) return
       if (configure) {
-        await this.router.navigate(['/xpert/w', operation.workspaceId, 'connectors'])
-        this.dialog.close()
+        await this.router.navigate(['/xpert/w', latest.workspaceId, 'connectors'])
+        if (current()) this.dialog.close()
         return
       }
-      const xpert = await firstValueFrom(this.xperts.getById(operation.assistantId))
-      this.completed.emit({ xpert, status: operation.publish ? 'published' : 'created' })
+      const xpert = await firstValueFrom(this.xperts.getById(latest.assistantId))
+      if (current()) this.completed.emit({ xpert, status: latest.publish ? 'published' : 'created' })
     } catch (error) {
-      this.error.set(getErrorMessage(error))
+      if (!current()) return
+      // The target can disappear between the receipt check and opening it.
+      const latest = await client.refresh()
+      if (current() && latest?.assistantAvailability !== 'unavailable') this.openingError.set(getErrorMessage(error))
+    } finally {
+      if (current()) this.opening.set(false)
     }
   }
 }

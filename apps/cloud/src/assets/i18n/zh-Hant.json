@@ -8412,6 +8412,7 @@
       "ConnectionReturnStep": "返回 Bosi"
     },
     "Installation": {
+      "AssistantUnavailable": "此助理已被刪除或無法再存取。請建立另一個助理以重新安裝此範本。",
       "Workspace": "目標工作空間",
       "Title": "助手名稱",
       "Model": "語言模型",

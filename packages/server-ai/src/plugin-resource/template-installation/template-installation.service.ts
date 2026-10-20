@@ -5,7 +5,7 @@ import { IUser, LanguagesEnum, TemplateInstallation } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
 import { ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DataSource, QueryRunner } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { t } from 'i18next'
@@ -18,6 +18,7 @@ import { PluginResourceInstallResult } from '../plugin-resource-installer.servic
 import { TemplateInstallationEntity } from './template-installation.entity'
 import { TemplateInstallationLocks } from './template-installation-locks'
 import { InstallationInput, InstallationList } from './template-installation.schema'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import {
     installationHash,
     InstallationSourceChangedError,
@@ -33,7 +34,8 @@ export class TemplateInstallationService {
         private readonly workspaces: XpertWorkspaceAccessService,
         private readonly templates: XpertTemplateService,
         private readonly locks: TemplateInstallationLocks,
-        @Inject(TemplateReadinessService) private readonly readiness: Pick<TemplateReadinessService, 'prepare'>
+        @Inject(TemplateReadinessService) private readonly readiness: Pick<TemplateReadinessService, 'prepare'>,
+        private readonly queries: QueryBus
     ) {}
 
     private get repository() {
@@ -251,6 +253,22 @@ export class TemplateInstallationService {
         }
     }
 
+    private async assistantAvailability(
+        row: TemplateInstallationEntity
+    ): Promise<TemplateInstallation['assistantAvailability']> {
+        if (!row.imported) return undefined
+        try {
+            // Reuse the Assistant's read policy; a historical receipt does not grant current access.
+            await this.queries.execute(
+                new FindXpertQuery({ id: row.assistantId, tenantId: row.tenantId, organizationId: row.organizationId })
+            )
+            return 'available'
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) return 'unavailable'
+            throw error
+        }
+    }
+
     private async receipt(row: TemplateInstallationEntity, running?: boolean): Promise<TemplateInstallation> {
         if (row.status === 'running' && running === undefined) {
             const runner = await this.lock(row.id)
@@ -279,6 +297,7 @@ export class TemplateInstallationService {
             stage: row.stage,
             attempt: row.attempt,
             assistantId: row.imported ? row.assistantId : null,
+            assistantAvailability: await this.assistantAvailability(row),
             publish: row.input.publish,
             retryable: (status === 'interrupted' || status === 'failed') && row.errorCode !== 'SOURCE_CHANGED',
             error: row.errorCode

@@ -37,6 +37,8 @@ export interface TemplateInstallation {
   stage: TemplateInstallationStage
   attempt: number
   assistantId: string | null
+  /** Current authoring access to the target, independent of the historical installation result. Absent on older servers. */
+  assistantAvailability?: 'available' | 'unavailable'
   publish: boolean
   retryable: boolean
   error: { code: 'INSTALL_FAILED' | 'SOURCE_CHANGED'; message: string } | null

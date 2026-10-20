@@ -29,27 +29,16 @@
           @if (!setup.canInstall) {
             <p role="status" class="text-sm text-text-destructive">{{ setup.reason }}</p>
           }
-          @if (!setup.requiresModel && !setup.requiredModelFeatures.length && !primaryAvailable()) {
-            <p role="status" class="text-sm text-text-destructive">
-              {{
-                'XP.Installation.PrimaryRequired'
-                  | translate
-                    : {
-                        Default:
-                          'Configure an authorized primary language model in this organization, then refresh settings.'
-                      }
-              }}
-            </p>
-          }
           @if (setup.models.length) {
             <label class="block space-y-2"
               ><span>{{ 'XP.Installation.Model' | translate: { Default: 'Language model' } }}</span>
               <select
                 class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
                 formControlName="model"
+                [required]="setup.requiresModel || !!setup.requiredModelFeatures.length"
               >
                 <option value="">
-                  {{ 'XP.Installation.DefaultModel' | translate: { Default: 'Organization default' } }}
+                  {{ 'XP.Installation.SelectModel' | translate: { Default: 'Select a model' } }}
                 </option>
                 @for (model of setup.models; track model.id) {
                   <option [value]="model.id">{{ model.label }}</option>
@@ -119,7 +108,19 @@
       @if (operation.error) {
         <p role="alert" class="text-sm text-text-destructive">{{ operation.error.message }}</p>
       }
-      @if (operation.pendingAuthInstallationIds.length) {
+      @if (operation.assistantAvailability === 'unavailable') {
+        <p role="status" class="text-sm text-text-secondary">
+          {{
+            'XP.Installation.AssistantUnavailable'
+              | translate
+                : {
+                    Default:
+                      'This assistant was deleted or is no longer accessible. Create another assistant to install this template again.'
+                  }
+          }}
+        </p>
+      }
+      @if (operation.pendingAuthInstallationIds.length && operation.assistantAvailability !== 'unavailable') {
         <p role="status" class="text-sm">
           {{ 'XP.Installation.Pending' | translate: { Default: 'Assistant created. {{count}} connections still require
           configuration in the workspace.', count: operation.pendingAuthInstallationIds.length } }}
@@ -135,17 +136,17 @@
           </button>
         }
         @if (operation.status === 'succeeded') {
-          <button z-button (click)="open(operation)">
+          <button z-button [zDisabled]="!canOpen(operation) || state().busy || opening()" (click)="open(operation)">
             {{ 'XP.Installation.Open' | translate: { Default: 'Open assistant' } }}
           </button>
-          @if (operation.pendingAuthInstallationIds.length) {
-            <button z-button zType="outline" (click)="open(operation, true)">
+          @if (operation.pendingAuthInstallationIds.length && canOpen(operation)) {
+            <button z-button zType="outline" [zDisabled]="state().busy || opening()" (click)="open(operation, true)">
               {{ 'XP.Installation.Configure' | translate: { Default: 'Configure connections' } }}
             </button>
           }
         }
         @if (operation.status !== 'running') {
-          <button z-button zType="outline" [zDisabled]="state().busy" (click)="client.newInstance()">
+          <button z-button zType="outline" [zDisabled]="state().busy" (click)="newInstance()">
             {{ 'XP.Installation.Another' | translate: { Default: 'Create another assistant' } }}
           </button>
         }
@@ -165,8 +166,8 @@
       </button>
     </div>
   }
-  @if (state().error || error()) {
-    <p role="alert" class="text-sm text-text-destructive">{{ state().error || error() }}</p>
+  @if (state().error || error() || openingError()) {
+    <p role="alert" class="text-sm text-text-destructive">{{ state().error || error() || openingError() }}</p>
   }
   <p class="text-sm text-text-secondary">
     {{
@@ -192,7 +193,7 @@
         type="button"
         class="mb-2 block w-full rounded-lg border border-components-panel-border p-3 text-left hover:bg-hover-bg"
         [disabled]="state().busy"
-        (click)="client.select(item)"
+        (click)="select(item)"
       >
         {{ item.createdAt }} · {{ 'XP.Installation.' + statusLabel(item) | translate: { Default: statusLabel(item) }
         }}<span class="block text-xs text-text-secondary">{{ item.id }}</span>

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, signal } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import type { IXpertProject, ProjectPipelinePortfolio } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage } from '@cloud/app/@core'
@@ -11,7 +11,7 @@ import { XpertProjectApiService } from './project-api.service'
 @Component({
   standalone: true,
   selector: 'xp-project-pipeline-portfolio',
-  imports: [CommonModule, RouterLink, TranslateModule, ZardButtonComponent],
+  imports: [CommonModule, RouterLink, TranslateModule, ZardButtonComponent, ...ZardSelectImports],
   template: `
     <section
       class="flex flex-col gap-4 border-y border-divider-subtle py-5"
@@ -20,22 +20,19 @@ import { XpertProjectApiService } from './project-api.service'
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="pipeline-portfolio-heading" class="text-lg font-semibold text-text-primary">
-            {{ 'XP.XProject.Portfolio.Title' | translate }}
+            {{ 'XP.XProject.Portfolio.ResultsTitle' | translate }}
           </h2>
           <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.Portfolio.Scope' | translate }}</p>
         </div>
         <div class="flex items-center gap-2">
-          <select
-            #windowInput
-            class="rounded-md border border-divider-subtle bg-components-input-bg px-3 py-2 text-sm"
-            [attr.aria-label]="'XP.XProject.Portfolio.Window' | translate"
-            [value]="days()"
-            (change)="changeWindow(windowInput.value)"
-          >
-            <option value="1">{{ 'XP.XProject.Portfolio.Day' | translate }}</option>
-            <option value="7">{{ 'XP.XProject.Portfolio.Week' | translate }}</option>
-            <option value="30">{{ 'XP.XProject.Portfolio.Month' | translate }}</option>
-          </select>
+          <label>
+            <span class="sr-only">{{ 'XP.XProject.Portfolio.Window' | translate }}</span>
+            <z-select class="w-40" [zValue]="days()" (zSelectionChange)="changeWindow($event)">
+              <z-select-item [zValue]="1">{{ 'XP.XProject.Portfolio.Day' | translate }}</z-select-item>
+              <z-select-item [zValue]="7">{{ 'XP.XProject.Portfolio.Week' | translate }}</z-select-item>
+              <z-select-item [zValue]="30">{{ 'XP.XProject.Portfolio.Month' | translate }}</z-select-item>
+            </z-select>
+          </label>
           <button z-button zType="outline" [disabled]="loading() || !projects().length" (click)="refresh()">
             {{ (loading() ? 'XP.XProject.Portfolio.Loading' : 'XP.XProject.Portfolio.Refresh') | translate }}
           </button>
@@ -77,9 +74,9 @@ import { XpertProjectApiService } from './project-api.service'
         </div>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[920px] text-left text-sm">
-            <thead class="border-b border-divider-subtle text-xs text-text-tertiary">
+            <thead class="whitespace-nowrap border-b border-divider-subtle text-xs text-text-tertiary">
               <tr>
-                <th class="py-3 pr-4">{{ 'XP.XProject.ProjectColumn' | translate }}</th>
+                <th class="w-64 min-w-64 py-3 pr-4">{{ 'XP.XProject.ProjectColumn' | translate }}</th>
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.Business' | translate }}</th>
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.NeedsYou' | translate }}</th>
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.Attempts' | translate }}</th>
@@ -94,9 +91,10 @@ import { XpertProjectApiService } from './project-api.service'
             <tbody>
               @for (row of data.byProject; track row.projectId) {
                 <tr class="border-b border-divider-subtle">
-                  <td class="py-3 pr-4">
+                  <td class="max-w-64 py-3 pr-4">
                     <a
-                      class="font-medium text-primary hover:underline"
+                      class="line-clamp-2 font-medium text-primary hover:underline"
+                      [title]="name(row.projectId)"
                       [routerLink]="['/project', row.projectId, 'timeline']"
                       >{{ name(row.projectId) }}</a
                     >
@@ -204,7 +202,8 @@ export class XpertProjectPipelinePortfolioComponent {
     this.error.set(null)
     this.loading.set(false)
   }
-  changeWindow(value: string) {
+  changeWindow(value: ZardSelectValue | ZardSelectValue[]) {
+    if (typeof value !== 'string' && typeof value !== 'number') return
     const days = Number(value)
     if (![1, 7, 30].includes(days)) return
     this.days.set(days)

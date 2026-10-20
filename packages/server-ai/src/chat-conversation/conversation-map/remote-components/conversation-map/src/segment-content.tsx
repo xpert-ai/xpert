@@ -53,11 +53,7 @@ export function SegmentContent({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem onSelect={() => action('rename', threadTarget)}>{l.rename}</DropdownMenuItem>
-                        <DropdownMenuItem
-                            disabled={thread.status !== 'idle'}
-                            title={thread.status !== 'idle' ? l.busy : undefined}
-                            onSelect={() => action('side-chat', threadTarget)}
-                        >
+                        <DropdownMenuItem disabled={pending} onSelect={() => action('side-chat', threadTarget)}>
                             {l.side}
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => action('copy', target)}>{l.copy}</DropdownMenuItem>

@@ -1,72 +1,47 @@
 import { DataSourceOptions } from 'typeorm'
-import { initializeApplicationDataSource, isSchemaSyncExternallyManaged } from './application-data-source'
-
-class TestDataSource {
-	readonly events: string[] = []
-	readonly optionUpdates: Array<Partial<DataSourceOptions>> = []
-
-	async initialize() {
-		this.events.push('initialize')
-		return this
-	}
-
-	setOptions(options: Partial<DataSourceOptions>) {
-		this.events.push('setOptions')
-		this.optionUpdates.push(options)
-		return this
-	}
-}
-
-const configuredOptions: DataSourceOptions = {
-	type: 'postgres',
-	host: 'db',
-	database: 'xpert',
-	username: 'postgres',
-	password: 'secret',
-	synchronize: true
-}
+import { initializeApplicationDataSource } from './application-data-source'
 
 describe('initializeApplicationDataSource', () => {
-	it('only enables external ownership for the explicit external mode', () => {
-		expect(isSchemaSyncExternallyManaged('external')).toBe(true)
-		expect(isSchemaSyncExternallyManaged(undefined)).toBe(false)
-		expect(isSchemaSyncExternallyManaged('internal')).toBe(false)
+	const environment = { NODE_ENV: process.env.NODE_ENV, DB_SCHEMA_SYNC_MODE: process.env.DB_SCHEMA_SYNC_MODE }
+	afterEach(() => {
+		for (const [key, value] of Object.entries(environment)) {
+			if (value === undefined) delete process.env[key]
+			else process.env[key] = value
+		}
 	})
 
-	it('keeps runtime synchronization disabled when schema ownership is external', async () => {
-		let createdOptions: DataSourceOptions | undefined
-		const dataSource = new TestDataSource()
+	it.each([
+		['development', undefined],
+		['development', 'internal'],
+		['development', 'external'],
+		['production', undefined],
+		['production', 'internal'],
+		['production', 'external']
+	])('prevents startup DDL in %s with mode %s', async (nodeEnv, mode) => {
+		process.env.NODE_ENV = nodeEnv
+		if (mode === undefined) delete process.env.DB_SCHEMA_SYNC_MODE
+		else process.env.DB_SCHEMA_SYNC_MODE = mode
+		const configured: DataSourceOptions = {
+			type: 'postgres',
+			host: 'db',
+			database: 'xpert',
+			synchronize: true,
+			migrationsRun: true,
+			dropSchema: true,
+			installExtensions: true
+		}
+		const dataSource = { initialize: jest.fn(), setOptions: jest.fn() }
+		const create = jest.fn(() => dataSource)
 
-		const result = await initializeApplicationDataSource(
-			configuredOptions,
-			(options) => {
-				createdOptions = options
-				return dataSource
-			},
-			'external'
-		)
-
-		expect(result).toBe(dataSource)
-		expect(createdOptions?.synchronize).toBe(false)
-		expect(dataSource.events).toEqual(['initialize'])
-		expect(dataSource.optionUpdates).toEqual([])
-	})
-
-	it('keeps the configured TypeORM behavior outside external mode', async () => {
-		let createdOptions: DataSourceOptions | undefined
-		const dataSource = new TestDataSource()
-
-		await initializeApplicationDataSource(
-			configuredOptions,
-			(options) => {
-				createdOptions = options
-				return dataSource
-			},
-			undefined
-		)
-
-		expect(createdOptions?.synchronize).toBe(true)
-		expect(dataSource.events).toEqual(['initialize'])
-		expect(dataSource.optionUpdates).toEqual([])
+		expect(await initializeApplicationDataSource(configured, create)).toBe(dataSource)
+		expect(create).toHaveBeenCalledWith({
+			...configured,
+			synchronize: false,
+			migrationsRun: false,
+			dropSchema: false,
+			installExtensions: false
+		})
+		expect(configured.synchronize).toBe(true)
+		expect(dataSource.initialize).toHaveBeenCalledTimes(1)
 	})
 })

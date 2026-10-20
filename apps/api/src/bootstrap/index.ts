@@ -337,7 +337,12 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
   const modules: DynamicModule[] = []
   for await (const group of groups) {
     try {
-      const { modules: orgModules } = await registerPluginsAsync(group, new NestLogger('BootstrapPlugins'))
+      const { modules: orgModules, errors } = await registerPluginsAsync(group, new NestLogger('BootstrapPlugins'))
+      // The loader reports individual package failures without throwing. A schema
+      // job must not succeed with incomplete entity metadata.
+      if (options.failOnPluginRegistrationError && errors.length) {
+        throw new Error('SCHEMA_PLUGIN_REGISTRATION_FAILED: required plugin metadata is unavailable')
+      }
       modules.push(...orgModules)
     } catch (error) {
       console.error(error)

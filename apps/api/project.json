@@ -42,6 +42,26 @@
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/chat-conversation/conversation-map/remote-components",
             "output": "remote-components"
+          },
+          {
+            "glob": "**/migrations/**/*.{sql,json}",
+            "input": "packages/server/src",
+            "output": "database-migrations/core"
+          },
+          {
+            "glob": "**/migrations/**/*.{sql,json}",
+            "input": "packages/server-ai/src",
+            "output": "database-migrations/ai"
+          },
+          {
+            "glob": "database/platform-baseline/{current,types}.sql",
+            "input": "packages/server/src",
+            "output": "database-migrations/core"
+          },
+          {
+            "glob": "database-migrations.json",
+            "input": ".deploy/api",
+            "output": "database-migrations"
           }
         ],
         "webpackConfig": "apps/api/config/webpack.config.js"

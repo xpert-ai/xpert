@@ -64,7 +64,6 @@ const en = {
     open: 'Open',
     expand: 'Expand',
     collapse: 'Collapse',
-    busy: 'This branch is running or paused. Start a side chat when it is idle.',
     reasons: {
         message_not_complete: 'This reply is not complete.',
         state_not_supported: 'This reply uses an unsupported state format.',
@@ -137,7 +136,6 @@ const zh: typeof en = {
     open: '打开',
     expand: '展开',
     collapse: '收起',
-    busy: '分支正在运行或已暂停，请在空闲后开启旁聊。',
     reasons: {
         message_not_complete: '此回复尚未完成。',
         state_not_supported: '此回复的状态格式暂不支持分叉。',

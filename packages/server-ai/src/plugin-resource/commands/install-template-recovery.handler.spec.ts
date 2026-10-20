@@ -146,7 +146,9 @@ async function createFixture() {
         delete: jest.fn(async (_id: string) => undefined)
     }
     const capabilities = {
-        prepareInstallation: jest.fn(async () => undefined),
+        prepareInstallation: jest.fn(async (...args: Parameters<AssistantCapabilityService['prepareInstallation']>) => {
+            if (args[4]) args[1].team.copilotModel = args[4]
+        }),
         configureRealtimeVoice: jest.fn(async () => undefined)
     }
     const module = await Test.createTestingModule({

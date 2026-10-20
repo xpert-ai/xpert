@@ -1,20 +1,17 @@
 /**
  * Plugin activation owns a schema preflight so a new runtime can never become
  * active before its entities have been applied to the shared database.
- * The lock keeps concurrent API replicas from running TypeORM DDL together.
+ * PostgreSQL's session lock serializes this legacy adapter with host migrations.
  */
 import type { PluginMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { DataSource, MixedList } from 'typeorm'
 import { createPluginLogger, GLOBAL_ORGANIZATION_SCOPE, type PluginContext } from '@xpert-ai/plugin-sdk'
-import { RedisLockService } from '../core/redis/redis-lock.service'
+import { withSchemaLock } from '../database/schema-migration'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
 import { loadPlugin } from './plugin-loader'
 import { scopePluginSchemaSynchronization } from './plugin-schema-scope'
-
-const PLUGIN_SCHEMA_SYNC_LOCK = 'xpert:plugin:schema-sync'
-const PLUGIN_SCHEMA_SYNC_LOCK_TTL = 5 * 60 * 1000
 
 export interface PluginSchemaSyncInput {
 	pluginName: string
@@ -32,19 +29,11 @@ export interface PluginSchemaSyncInput {
 export class PluginSchemaSyncService {
 	constructor(
 		private readonly dataSource: DataSource,
-		private readonly moduleRef: ModuleRef,
-		private readonly locks: RedisLockService
+		private readonly moduleRef: ModuleRef
 	) {}
 
 	async synchronize(input: PluginSchemaSyncInput): Promise<PluginMeta> {
-		const result = await this.locks.runWithLock(PLUGIN_SCHEMA_SYNC_LOCK, PLUGIN_SCHEMA_SYNC_LOCK_TTL, async () => {
-			return this.synchronizeWithLock(input)
-		})
-
-		if (!result.acquired) {
-			throw new Error('Another plugin schema migration is already in progress')
-		}
-		return result.value
+		return this.synchronizeWithLock(input)
 	}
 
 	private async synchronizeWithLock(input: PluginSchemaSyncInput): Promise<PluginMeta> {
@@ -94,6 +83,7 @@ export class PluginSchemaSyncService {
 			migrations: [],
 			migrationsRun: false,
 			dropSchema: false,
+			...(this.dataSource.options.type === 'postgres' ? { installExtensions: false } : {}),
 			synchronize: false
 		})
 
@@ -104,7 +94,10 @@ export class PluginSchemaSyncService {
 				ormMetadata.entities,
 				input.artifactNamespace ?? plugin.meta.artifactNamespace
 			)
-			await migrationDataSource.synchronize()
+			if (migrationDataSource.options.type !== 'postgres') {
+				throw new Error('Plugin schema migrations require PostgreSQL')
+			}
+			await withSchemaLock(migrationDataSource, () => migrationDataSource.synchronize())
 		} finally {
 			if (migrationDataSource.isInitialized) {
 				await migrationDataSource.destroy()

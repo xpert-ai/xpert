@@ -108,8 +108,8 @@ export class ProjectPipelineSchemaService implements OnModuleInit {
         )
         if (missing.length) {
             throw new Error(
-                'PIPELINE_SCHEMA_MIGRATION_REQUIRED: apply all project-pipeline SQL migrations after schema sync, ' +
-                    'then start with DB_SCHEMA_SYNC_MODE=external. Missing: ' +
+                'PIPELINE_SCHEMA_MIGRATION_REQUIRED: run main.js --command schema-sync and verify before startup ' +
+                    'with DB_SCHEMA_SYNC_MODE=external. Missing: ' +
                     missing.map((item) => item.missing).join(', ')
             )
         }

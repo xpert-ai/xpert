@@ -17,7 +17,8 @@ import {
     ApiKeyOrClientSecretAuthGuard,
     CurrentUser,
     Public,
-    TransformInterceptor
+    TransformInterceptor,
+    ZodValidationPipe
 } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -50,6 +51,7 @@ import { filter, lastValueFrom, map, Observable, reduce } from 'rxjs'
 import { IsNull } from 'typeorm'
 import { CopilotCheckpointGetTupleQuery } from '../copilot-checkpoint'
 import { UnimplementedException } from '../core'
+import { threadCopySchema, CopyConversationThreadInput } from '../chat-conversation/thread-copy.schema'
 import {
     FindAgentExecutionsQuery,
     GetAgentExecutionRunSummaryQuery,
@@ -202,22 +204,16 @@ export class ThreadsController {
     @Post(':thread_id/copy')
     async copyThread(
         @Param('thread_id') thread_id: string,
-        @Body() body: { metadata?: Record<string, unknown>; beforeMessageId?: string; requestId?: string } = {}
+        @Body(
+            new ZodValidationPipe(
+                threadCopySchema,
+                () => new BadRequestException(t('server-ai:Error.ThreadCopyRequestInvalid'))
+            )
+        )
+        body: CopyConversationThreadInput = {}
     ) {
         await this.ensureThreadAccess(thread_id, 'contribute')
         if (!this.conversationThreadService) throw new UnimplementedException()
-        if (
-            body.beforeMessageId !== undefined &&
-            (typeof body.beforeMessageId !== 'string' ||
-                !body.beforeMessageId.trim() ||
-                typeof body.requestId !== 'string' ||
-                !body.requestId.trim())
-        )
-            throw new BadRequestException(
-                t('server-ai:Error.BranchRequestInvalid', {
-                    defaultValue: 'beforeMessageId and requestId are required to branch from a message.'
-                })
-            )
         const thread = await this.conversationThreadService.copyThread(thread_id, body)
         const { ThreadDTO } = await import('./dto/thread.dto')
         return new ThreadDTO(thread.conversation, {}, thread)

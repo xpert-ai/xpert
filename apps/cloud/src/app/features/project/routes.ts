@@ -12,6 +12,12 @@ import { XpertProjectInvitationAcceptComponent } from './project-invitation-acce
 export const routes: Routes = [
   { path: '', component: XpertProjectListComponent, data: { title: 'Projects' } },
   {
+    path: 'execution-analysis',
+    loadComponent: () =>
+      import('./project-execution-analysis.component').then((m) => m.XpertProjectExecutionAnalysisComponent),
+    data: { title: 'Project execution analysis' }
+  },
+  {
     path: 'invitations/accept',
     component: XpertProjectInvitationAcceptComponent,
     data: { title: 'Project invitation' }

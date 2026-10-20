@@ -2,11 +2,10 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import type { ToolSchemaBase } from '@langchain/core/tools'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import { interrupt } from '@langchain/langgraph'
-import type { Tool } from '@modelcontextprotocol/sdk/types.js'
-import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { HITLRequest, HITLResponse } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import { t } from 'i18next'
+import { Logger } from '@nestjs/common'
 import {
     MCP_CLIENT_CAPABILITIES_META_KEY,
     MCP_TASK_EXTENSION_ID,
@@ -19,7 +18,9 @@ import type {
     McpConsumerElicitationResult
 } from '../elicitation/mcp-consumer-elicitation'
 import { McpConsumerCallToolResult, mcpConsumerCallToolResultSchema } from './mcp-consumer-call-tool-result'
+import { mcpConsumerListToolsResultSchema, type McpConsumerTool } from './mcp-consumer-tool-schema'
 import { createMcpToolAppMeta, type McpToolLike } from '../../xpert-toolset/provider/mcp/app-support'
+import { projectToolParameterHeaders, toolHeaderParameters } from './tool-parameter-headers'
 
 // Release bridge until xpert-pro consumes the ChatKit package with this additive metadata contract.
 type MCPBooleanElicitationHITLRequest = HITLRequest & {
@@ -36,6 +37,8 @@ type MCPBooleanElicitationHITLRequest = HITLRequest & {
 }
 
 export class McpConsumerTools {
+    private readonly logger = new Logger(McpConsumerTools.name)
+    private readonly headerParameters = new Map<string, Map<string, ReturnType<typeof toolHeaderParameters>>>()
     private taskRunner?: (
         name: string,
         arguments_: Record<string, unknown>,
@@ -68,7 +71,7 @@ export class McpConsumerTools {
     async list(
         serverName?: string,
         options?: { signal?: AbortSignal; maxTools?: number; maxPages?: number }
-    ): Promise<Tool[]> {
+    ): Promise<McpConsumerTool[]> {
         const seen = new Set<string>()
         let pages = 0
         const checkPage = (size: number, cursor?: string) => {
@@ -87,24 +90,38 @@ export class McpConsumerTools {
             if (cursor) seen.add(cursor)
         }
         if (this.connection.usesModernHttp(serverName)) {
-            const tools: Tool[] = []
+            const tools: McpConsumerTool[] = []
             let cursor: string | undefined
             do {
                 options?.signal?.throwIfAborted()
                 const response = await this.connection.requestExtension(
                     serverName,
                     { method: 'tools/list', params: cursor ? { cursor } : {} },
-                    ListToolsResultSchema,
+                    mcpConsumerListToolsResultSchema,
                     { routing: { method: 'tools/list' }, signal: options?.signal }
                 )
                 tools.push(...response.tools)
                 cursor = response.nextCursor
                 checkPage(tools.length, cursor)
             } while (cursor)
-            return tools
+            const parameters = new Map<string, ReturnType<typeof toolHeaderParameters>>()
+            // An invalid routing annotation excludes only that tool, not the entire server.
+            const validTools = tools.filter((tool) => {
+                try {
+                    parameters.set(tool.name, toolHeaderParameters(tool.inputSchema))
+                    return true
+                } catch (error) {
+                    this.logger.warn(
+                        `Ignoring MCP tool '${tool.name}': ${error instanceof Error ? error.message : 'Invalid parameter header annotation'}`
+                    )
+                    return false
+                }
+            })
+            this.headerParameters.set(this.connection.resolveServerName(serverName), parameters)
+            return validTools
         }
         const client = await this.connection.getClient(serverName)
-        const tools: Tool[] = []
+        const tools: McpConsumerTool[] = []
         let cursor: string | undefined
         do {
             options?.signal?.throwIfAborted()
@@ -124,6 +141,7 @@ export class McpConsumerTools {
         elicitationHandler?: McpConsumerElicitationHandler
     ): Promise<McpConsumerCallToolResult> {
         if (this.connection.usesModernHttp(serverName)) {
+            const parameters = await this.parameterHeaders(name, arguments_, serverName, signal)
             let inputResponses: object | undefined
             let requestState: string | undefined
             for (let round = 0; round < 8; round += 1) {
@@ -139,7 +157,7 @@ export class McpConsumerTools {
                         }
                     },
                     callToolResponseSchema,
-                    { signal, routing: { method: 'tools/call', name } }
+                    { signal, routing: { method: 'tools/call', name, parameters } }
                 )
                 const inputRequired = inputRequiredResultSchema.safeParse(response)
                 if (!inputRequired.success) return mcpConsumerCallToolResultSchema.parse(response)
@@ -165,6 +183,9 @@ export class McpConsumerTools {
         serverName?: string,
         signal?: AbortSignal
     ): Promise<McpConsumerTaskStart> {
+        const parameters = this.connection.usesModernHttp(serverName)
+            ? await this.parameterHeaders(name, arguments_, serverName, signal)
+            : undefined
         return this.connection.requestExtension(
             serverName,
             {
@@ -178,7 +199,7 @@ export class McpConsumerTools {
             mcpTaskStartResultSchema,
             {
                 signal,
-                routing: { method: 'tools/call', name }
+                routing: { method: 'tools/call', name, ...(parameters ? { parameters } : {}) }
             }
         )
     }
@@ -199,7 +220,7 @@ export class McpConsumerTools {
         return tools
     }
 
-    private createModernLangChainTool(serverName: string, tool: Tool): DynamicStructuredTool {
+    private createModernLangChainTool(serverName: string, tool: McpConsumerTool): DynamicStructuredTool {
         const displayName = this.connection.formatToolName(serverName, tool.name)
         const inputSchema = {
             type: 'object' as const,
@@ -240,6 +261,14 @@ export class McpConsumerTools {
         if (!this.taskRunner) throw new Error('MCP task runner is not configured')
         return this.taskRunner
     }
+
+    private async parameterHeaders(name: string, arguments_: object, serverName?: string, signal?: AbortSignal) {
+        const resolvedName = this.connection.resolveServerName(serverName)
+        if (!this.headerParameters.has(resolvedName)) await this.list(resolvedName, { signal })
+        const parameters = this.headerParameters.get(resolvedName)?.get(name)
+        if (!parameters) throw new Error(`MCP tool '${name}' was not found or has invalid parameter header annotations`)
+        return projectToolParameterHeaders(parameters, arguments_)
+    }
 }
 
 const inputRequiredResultSchema = z
@@ -262,7 +291,7 @@ export function taskCapabilityMeta() {
     }
 }
 
-function modernToolMetadata(tool: Tool): McpToolLike {
+function modernToolMetadata(tool: McpConsumerTool): McpToolLike {
     const metaValue = Reflect.get(tool, '_meta')
     const executionValue = Reflect.get(tool, 'execution')
     const taskSupport =
@@ -319,6 +348,13 @@ function toLangChainToolResult(serverName: string, toolName: string, result: Mcp
                 })
                 break
             case 'resource':
+                // File-reading tools can return the body only as an embedded resource.
+                // Keep it visible to the model; artifacts alone never enter the model context.
+                if (typeof block.resource.text === 'string') {
+                    content.push({ type: 'text', text: block.resource.text })
+                }
+                artifacts.push(block)
+                break
             case 'resource_link':
                 artifacts.push(block)
                 break

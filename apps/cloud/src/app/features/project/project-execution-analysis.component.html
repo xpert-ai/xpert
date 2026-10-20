@@ -1,0 +1,109 @@
+<main class="h-full overflow-y-auto bg-background text-text-primary">
+  <div class="mx-auto w-full max-w-[1600px] px-5 py-6 sm:px-8 lg:px-10">
+    <header class="mb-8">
+      <a z-button zType="ghost" routerLink="/project">
+        <z-icon zType="arrow-left" />{{ 'XP.XProject.BackToProjects' | translate }}
+      </a>
+      <h1 class="mt-4 text-3xl font-semibold tracking-tight">{{ 'XP.XProject.Portfolio.Title' | translate }}</h1>
+    </header>
+
+    <div class="grid min-w-0 gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <section class="min-w-0" aria-labelledby="analysis-project-selection">
+        <div class="flex items-center justify-between gap-2">
+          <h2 id="analysis-project-selection" class="text-lg font-semibold">
+            {{ 'XP.XProject.Portfolio.ChooseProjects' | translate }}
+          </h2>
+          <button
+            z-button
+            zType="ghost"
+            type="button"
+            [disabled]="!selectedProjects().length"
+            (click)="selectedProjects.set([])"
+          >
+            {{ 'XP.XProject.Portfolio.Clear' | translate }}
+          </button>
+        </div>
+        <p class="mt-1 text-sm text-text-tertiary">{{ 'XP.XProject.Portfolio.SelectHint' | translate }}</p>
+        <z-search-input
+          class="mt-4 block w-full"
+          [value]="search()"
+          [placeholder]="'XP.XProject.SearchProjects' | translate"
+          [clearLabel]="'XP.XProject.ClearSearch' | translate"
+          (valueChange)="search.set($event)"
+        />
+        <label class="mt-3 block">
+          <span class="sr-only">{{ 'XP.XProject.StatusFilter' | translate }}</span>
+          <z-select [zValue]="status()" (zSelectionChange)="setStatus($event)">
+            <z-select-item zValue="all">{{ 'XP.XProject.StatusAll' | translate }}</z-select-item>
+            <z-select-item zValue="active">{{ 'XP.XProject.StatusActive' | translate }}</z-select-item>
+            <z-select-item zValue="archived">{{ 'XP.XProject.StatusArchived' | translate }}</z-select-item>
+          </z-select>
+        </label>
+
+        @if (facade.loading()) {
+          <p class="py-8 text-sm text-text-secondary" role="status">
+            {{ 'XP.XProject.LoadingProjects' | translate }}
+          </p>
+        } @else if (facade.error()) {
+          <div class="space-y-3 py-8">
+            <p role="alert" class="text-sm text-text-destructive">{{ facade.error() }}</p>
+            <button z-button zType="outline" type="button" (click)="page(0)">
+              {{ 'XP.XProject.RetryProject' | translate }}
+            </button>
+          </div>
+        } @else {
+          <ul
+            class="mt-4 max-h-80 divide-y divide-divider-subtle overflow-y-auto border-y border-divider-subtle lg:max-h-[55vh]"
+          >
+            @for (project of facade.projects(); track project.id) {
+              <li class="px-1 py-3">
+                <z-checkbox
+                  [ngModel]="isSelected(project.id)"
+                  (ngModelChange)="selectProject(project, $event)"
+                  [zDisabled]="!isSelected(project.id) && selectedProjects().length >= 50"
+                >
+                  <span class="break-words text-sm leading-relaxed">{{ project.name }}</span>
+                </z-checkbox>
+              </li>
+            } @empty {
+              <li class="py-8 text-sm text-text-secondary">{{ 'XP.XProject.NoProjects' | translate }}</li>
+            }
+          </ul>
+        }
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <span class="text-xs tabular-nums text-text-tertiary">
+            {{ facade.projects().length ? skip() + 1 : 0 }}–{{ skip() + facade.projects().length }} /
+            {{ facade.projectsTotal() }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              z-button
+              zType="outline"
+              zSize="icon"
+              type="button"
+              [attr.aria-label]="'XP.XProject.PreviousPage' | translate"
+              [disabled]="skip() === 0 || facade.loading()"
+              (click)="page(-1)"
+            >
+              <z-icon zType="chevron-left" />
+            </button>
+            <button
+              z-button
+              zType="outline"
+              zSize="icon"
+              type="button"
+              [attr.aria-label]="'XP.XProject.NextPage' | translate"
+              [disabled]="skip() + 50 >= facade.projectsTotal() || facade.loading()"
+              (click)="page(1)"
+            >
+              <z-icon zType="chevron-right" />
+            </button>
+          </div>
+        </div>
+      </section>
+      <div class="min-w-0">
+        <xp-project-pipeline-portfolio [projects]="selectedProjects()" />
+      </div>
+    </div>
+  </div>
+</main>

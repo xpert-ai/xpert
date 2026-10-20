@@ -103,7 +103,7 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
                 installationByComponent.set(key, installation)
             }
         }
-        if (target === 'organization' && tenantScopedRuntimeKeys.size) {
+        if (target === 'organization' && !RequestContext.getOrganizationId() && tenantScopedRuntimeKeys.size) {
             const tenantInstallations = await this.findTenantScopedInstallations(pluginName)
             for (const installation of tenantInstallations) {
                 const key = pluginResourceComponentStateKey(installation)
@@ -170,9 +170,7 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
                 effectiveInstallation?.status ?? (skillPackage ? PLUGIN_RESOURCE_INSTALLATION_STATUS.READY : null)
             const publicationId = readInstallationString(effectiveInstallation?.config, 'publicationId')
             const publication = publicationId ? publicationById.get(publicationId) : undefined
-            const publicationScope = tenantScopedRuntimeKeys.has(pluginResourceComponentStateKey(component))
-                ? 'tenant'
-                : 'organization'
+            const publicationScope = currentOrganizationId ? 'organization' : 'tenant'
             const accessEnabled =
                 publicationScope === 'tenant' && currentOrganizationId
                     ? !!publicationId && accessiblePublicationIds.has(publicationId)

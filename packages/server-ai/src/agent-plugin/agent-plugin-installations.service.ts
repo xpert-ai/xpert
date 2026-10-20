@@ -21,6 +21,7 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { agentPluginScope, agentPluginScopeWhere, visibleAgentPluginScopes } from './agent-plugin-scope'
 import { importedPluginBinding, installedPluginBindings } from './installed-plugin-catalog'
 import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
+import { readInstalledPluginDetails, readInstalledPluginInventory } from './installed-plugin-inventory'
 
 @Injectable()
 export class AgentPluginInstallationsService {
@@ -76,6 +77,44 @@ export class AgentPluginInstallationsService {
                 pkg: packages.find((pkg) => definition.kind === 'agent_plugin' && pkg.id === definition.packageId)!
             }
         })
+    }
+
+    /** Browse metadata retains every version for precedence without loading template snapshots or images. */
+    async catalogInventory(workspaceId: string) {
+        const scope = agentPluginScope()
+        const [packages, bindings] = await Promise.all([
+            readInstalledPluginInventory(this.packages, scope),
+            this.bindings.find({ where: visibleAgentPluginScopes(scope), order: { createdAt: 'DESC', id: 'ASC' } })
+        ])
+        const byId = new Map(packages.map((pkg) => [pkg.id, pkg]))
+        return installedPluginBindings(packages, bindings, scope, workspaceId).map((binding) => ({
+            binding,
+            pkg: binding.definition.kind === 'agent_plugin' ? byId.get(binding.definition.packageId)! : undefined
+        }))
+    }
+
+    catalogPackages(ids: string[]) {
+        return readInstalledPluginDetails(this.packages, agentPluginScope(), ids)
+    }
+
+    catalogConnectorReferences(
+        entries: Array<{
+            pkg: AgentPluginPackage
+            binding: Pick<AgentResourceBinding, 'definition' | 'installations'>
+        }>,
+        assistant: Pick<IXpert, 'id' | 'workspaceId'>
+    ) {
+        return this.connectors.runtimeBindingsBatch(
+            entries.map(({ pkg, binding }) => ({
+                pkg,
+                requirements:
+                    binding.definition.kind === 'agent_plugin'
+                        ? (binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {})
+                        : {},
+                previous: binding.installations[assistant.workspaceId]?.connectors
+            })),
+            assistant.id
+        )
     }
 
     /** Backfill only an already scope-authorized, digest-verified immutable package. */

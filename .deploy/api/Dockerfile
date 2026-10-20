@@ -55,7 +55,7 @@ COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
-COPY --chown=node:node .deploy/api/build.mjs .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml ./.deploy/api/
+COPY --chown=node:node .deploy/api/build.mjs .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml .deploy/api/database-migrations.json ./.deploy/api/
 RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/nsjail-runner packages/plugins/local-shell-sandbox
 
 # All package manifests were installed above; reject any source-layout drift.
@@ -133,7 +133,8 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 RUN touch ormlogs.log
 
 # Exercise native bindings as the runtime user, not just dependency resolution.
-RUN node check-native-modules.cjs
+RUN node --no-node-snapshot check-native-modules.cjs
+RUN node main.js --command schema-check
 
 EXPOSE ${PORT}
 

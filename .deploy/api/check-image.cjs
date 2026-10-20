@@ -1,5 +1,5 @@
-// The disposable database follows deployment order: schema sync, SQL migrations,
-// then API startup with ORM synchronization disabled to preserve SQL constraints.
+// The disposable database runs packaged schema-sync/verify before API startup.
+// Application synchronization stays disabled to preserve SQL-owned constraints.
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
@@ -76,26 +76,18 @@ try {
     '--command',
     'schema-sync'
   ])
-  const migrations = [
-    '20261018-project-pipeline.sql',
-    '20261018-project-pipeline-runtime.sql',
-    '20261019-project-pipeline-resources.sql',
-    '20261019-project-pipeline-runtime-intent.sql',
-    '20261019-project-pipeline-provider-actions.sql',
-    '20261019-project-pipeline-model-budget.sql',
-    '20261019-project-pipeline-native-grant.sql'
-  ]
-  for (const migration of migrations) {
-    const sql = fs.readFileSync(
-      path.join(__dirname, '../../packages/server-ai/src/xpert-project/pipeline/migrations', migration),
-      'utf8'
-    )
-    checkedRun(
-      `Applying ${migration}`,
-      ['exec', '-T', 'db', 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'api_health', '-d', 'api_health'],
-      { input: sql }
-    )
-  }
+  checkedRun('Verifying SQL migrations', [
+    'run',
+    '--rm',
+    '--no-deps',
+    'api',
+    'node',
+    'main.js',
+    '--command',
+    'schema-sync',
+    '--action',
+    'verify'
+  ])
   checkedRun('Checking API startup and health', ['up', '-d', '--wait', '--wait-timeout', '240', 'api'])
   const platform = path.resolve(__dirname, '../..')
   const inspect = spawnSync(
@@ -115,8 +107,7 @@ try {
     project,
     status: 'api_healthy',
     checkedAt: new Date().toISOString(),
-    checks: ['schema-sync', 'pipeline-migrations', 'readiness', 'database', 'cache', 'redis'],
-    migrations,
+    checks: ['schema-sync', 'sql-migration-verification', 'readiness', 'database', 'cache', 'redis'],
     uiChecked: false,
     businessOperationsChecked: false
   }

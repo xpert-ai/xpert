@@ -1,6 +1,6 @@
 import { ModuleRef } from '@nestjs/core'
 import { DataSource } from 'typeorm'
-import { RedisLockService } from '../core/redis/redis-lock.service'
+import { withSchemaLock } from '../database/schema-migration'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
 import { loadPlugin } from './plugin-loader'
@@ -10,7 +10,9 @@ jest.mock('./plugin-orm-metadata', () => ({
 	collectPluginOrmMetadata: jest.fn(),
 	validatePluginEntityTableNames: jest.fn()
 }))
-jest.mock('../core/redis/redis-lock.service', () => ({ RedisLockService: class {} }))
+jest.mock('../database/schema-migration', () => ({
+	withSchemaLock: jest.fn(async (source: DataSource) => source.synchronize())
+}))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: 'global',
 	createPluginLogger: jest.fn(() => ({}))
@@ -28,6 +30,7 @@ describe('plugin schema preflight', () => {
 	const pluginMetadata = { target: PluginEntity, tableName: 'plugin_test_entity', synchronize: true, relations: [] }
 	const hostMetadata = { target: class HostEntity {}, tableName: 'host_entity', synchronize: true, relations: [] }
 	const migration = {
+		options: { type: 'postgres' },
 		initialize: jest.fn(),
 		synchronize: jest.fn(),
 		destroy: jest.fn(),
@@ -55,13 +58,7 @@ describe('plugin schema preflight', () => {
 		})
 		service = new PluginSchemaSyncService(
 			{ options: { type: 'postgres', synchronize: false } } as DataSource,
-			{} as ModuleRef,
-			{
-				runWithLock: async (_key: string, _ttl: number, work: () => Promise<boolean>) => ({
-					acquired: true,
-					value: await work()
-				})
-			} as unknown as RedisLockService
+			{} as ModuleRef
 		)
 	})
 
@@ -96,6 +93,7 @@ describe('plugin schema preflight', () => {
 		expect(pluginMetadata.synchronize).toBe(true)
 		expect(hostMetadata.synchronize).toBe(false)
 		expect(migration.initialize).toHaveBeenCalledTimes(1)
+		expect(withSchemaLock).toHaveBeenCalledWith(migration, expect.any(Function))
 		expect(migration.synchronize).toHaveBeenCalledTimes(1)
 		expect(migration.destroy).toHaveBeenCalledTimes(1)
 	})

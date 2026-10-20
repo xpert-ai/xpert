@@ -162,6 +162,27 @@ describe('McpConsumer', () => {
     beforeAll(async () => {
         await i18next.init({ lng: 'en', resources: {} })
     })
+    it('preserves nullable and composed output schemas during modern HTTP discovery', async () => {
+        const client = createSdkClient()
+        const connection = new FakeConnection(client, ['github'], true)
+        const tools = [
+            {
+                name: 'get_me',
+                inputSchema: { type: 'object' },
+                outputSchema: { type: ['object', 'null'], properties: { login: { type: 'string' } } }
+            },
+            {
+                name: 'search_repositories',
+                inputSchema: { type: 'object' },
+                outputSchema: { anyOf: [{ type: 'object' }, { type: 'null' }] }
+            }
+        ]
+        connection.extensionResponses.push({ tools: [tools[0]], nextCursor: 'second-page' }, { tools: [tools[1]] })
+
+        await expect(new McpConsumer(connection).tools.list()).resolves.toEqual(tools)
+        expect(connection.extensionCalls.map(({ request }) => request.params)).toEqual([{}, { cursor: 'second-page' }])
+        expect(client.listTools).not.toHaveBeenCalled()
+    })
     it('bounds discovery pages and rejects repeated cursors before more requests', async () => {
         const client = createSdkClient()
         client.listTools.mockResolvedValue({ tools: [], nextCursor: 'same' })
@@ -419,6 +440,44 @@ describe('McpConsumer', () => {
             ]
         ])
         expect(connection.extensionCalls.map(({ request }) => request.method)).toEqual(['tools/list', 'tools/call'])
+    })
+
+    it.each([true, false])('passes embedded text resources to the model (summary: %s)', async (withSummary) => {
+        const connection = new FakeConnection(createSdkClient(), ['generic'], true)
+        const resource = {
+            type: 'resource' as const,
+            resource: {
+                uri: 'repo://example/project/contents/README.md',
+                mimeType: 'text/plain; charset=utf-8',
+                text: '# Project\n\nFile contents returned by the tool.'
+            }
+        }
+        const summary = { type: 'text' as const, text: 'successfully downloaded text file' }
+        connection.extensionResponses.push(
+            { tools: [{ name: 'read_file', inputSchema: { type: 'object' } }] },
+            { content: withSummary ? [summary, resource] : [resource] }
+        )
+        const [tool] = await new McpConsumer(connection).tools.asLangChain()
+
+        await expect(tool.func({})).resolves.toEqual([
+            withSummary ? [summary, { type: 'text', text: resource.resource.text }] : resource.resource.text,
+            [resource]
+        ])
+    })
+
+    it('keeps binary resources in artifacts without presenting base64 as model text', async () => {
+        const connection = new FakeConnection(createSdkClient(), ['generic'], true)
+        const resource = {
+            type: 'resource' as const,
+            resource: { uri: 'data://file.bin', mimeType: 'application/octet-stream', blob: 'AAEC' }
+        }
+        connection.extensionResponses.push(
+            { tools: [{ name: 'read_binary', inputSchema: { type: 'object' } }] },
+            { content: [{ type: 'text', text: 'Binary attachment' }, resource] }
+        )
+        const [tool] = await new McpConsumer(connection).tools.asLangChain()
+
+        await expect(tool.func({})).resolves.toEqual(['Binary attachment', [resource]])
     })
 
     it('routes modern LangChain tool elicitation through the execution host input API', async () => {

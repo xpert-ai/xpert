@@ -192,7 +192,7 @@ export function NodeQuickActions({
                 <NodeIconButton
                     label={l.side}
                     compact={compact}
-                    reason={pending ? l.loading : node.status !== 'idle' ? l.busy : undefined}
+                    reason={pending ? l.loading : undefined}
                     onClick={() => action('side-chat', node)}
                 >
                     <MessageSquarePlus className="size-4" aria-hidden />
@@ -256,13 +256,7 @@ export function NodeMenu({
             <DropdownMenuContent>
                 <DropdownMenuItem onSelect={() => action('locate', node)}>{l.locate}</DropdownMenuItem>
                 {node.kind === 'thread' && (
-                    <DropdownMenuItem
-                        title={node.status !== 'idle' ? l.busy : undefined}
-                        disabled={node.status !== 'idle'}
-                        onSelect={() => action('side-chat', node)}
-                    >
-                        {l.side}
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => action('side-chat', node)}>{l.side}</DropdownMenuItem>
                 )}
                 {(node.kind === 'conversation' || node.kind === 'thread') && (
                     <DropdownMenuItem onSelect={() => action('rename', node)}>{l.rename}</DropdownMenuItem>

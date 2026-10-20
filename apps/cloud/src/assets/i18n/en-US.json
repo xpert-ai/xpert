@@ -3478,18 +3478,35 @@
       "AgentWorkflow": "Agent Workflow"
     },
     "XProject": {
+      "ListView": {
+        "MoreActions": "More project actions",
+        "Filters": "Filters",
+        "SortBy": "Sort projects",
+        "RecentlyUpdated": "Recently updated",
+        "RecentlyCreated": "Recently created",
+        "NameOrder": "Name A–Z",
+        "ResetFilters": "Clear filters",
+        "Deprecated": "Deprecated",
+        "TaskProgress": "{{done}}/{{total}} tasks completed",
+        "Subtitle": "Keep every project moving, together.",
+        "ProjectCount": "{{count}} projects",
+        "OpenApplication": "Open in application",
+        "Owner": "Owner"
+      },
       "TaskExecutionResult": "Execution result",
       "Portfolio": {
         "Cost": "Priced cost",
         "Partial": "Partial observation",
-        "Title": "Pipeline comparison",
+        "Title": "Project execution analysis",
+        "ResultsTitle": "Execution overview",
+        "ChooseProjects": "Choose projects",
         "Scope": "Current business progress and executions started in the selected time window. Only selected Projects are included.",
         "Window": "Time window",
         "Day": "Last 24 hours",
         "Week": "Last 7 days",
         "Month": "Last 30 days",
         "Loading": "Loading…",
-        "Refresh": "Refresh comparison",
+        "Refresh": "Refresh analysis",
         "Selection": "Selected Projects ({{count}})",
         "Business": "Business completed",
         "NeedsYou": "Needs you",
@@ -3504,11 +3521,11 @@
         "Unknown": "— means no reliable observation. Human wait combines overlapping intervals within each Project; incomplete history is not treated as zero. Project rows may overlap in execution and token attribution.",
         "UsageCoverage": "Native executions with usage: {{observed}} / {{requested}} · Model calls: {{calls}} · Unpriced calls: {{unpriced}}",
         "IncompleteUsage": "Usage records are incomplete; the displayed usage is a partial observation.",
-        "Prompt": "Select Projects below, then refresh to compare their pipelines.",
-        "Compare": "Compare pipelines",
+        "Prompt": "Select projects, then refresh the analysis to view execution metrics.",
+        "Compare": "Project execution analysis",
         "Clear": "Clear selection",
         "SelectHint": "Select up to 50 Projects across pages.",
-        "Select": "Select for comparison"
+        "Select": "Select project"
       },
       "TaskTimeline": "Project tasks",
       "NoExperts": "No experts found",
@@ -5415,6 +5432,7 @@
       "ConnectionReturnStep": "Return to Bosi"
     },
     "Installation": {
+      "AssistantUnavailable": "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.",
       "Workspace": "Target workspace",
       "Title": "Assistant name",
       "Model": "Language model",

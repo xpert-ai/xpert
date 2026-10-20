@@ -84,6 +84,12 @@ export class PublicationStore {
         private readonly source: Xpert
     ) {}
 
+    async advanceVersion(version: string): Promise<void> {
+        // Reserving the new version must not cascade into Agents before their stale checks.
+        const repository = this.manager.getRepository<Pick<Xpert, 'id' | 'version'>>(Xpert)
+        await repository.update(this.source.id, { version })
+    }
+
     async saveTeam(entity: Xpert): Promise<Xpert> {
         const repository = this.manager.getRepository(Xpert)
         await assertValidTagAssociations(repository, this.access, entity, TagCategoryEnum.XPERT)

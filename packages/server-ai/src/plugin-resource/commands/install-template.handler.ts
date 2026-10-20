@@ -132,7 +132,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         await this.capabilities.configureRealtimeVoice(draft, command.basic?.realtimeVoice)
         if (command.basic?.prompt !== undefined) updateAssistantPrompt(draft, command.basic.prompt)
         const importOptions: XpertImportCommandOptions = {
-            normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
+            normalizeCopilotModels: !hasExplicitLlmCopilotModel(draft.team.copilotModel),
             language: command.language,
             templateId,
             sourceTemplateId: template.id,
@@ -255,7 +255,13 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
 
         const team = teamValue as TXpertTeamDraft['team']
         const features = normalizeTemplateSandboxFeatures(team.features, sandboxProviders)
-        const { workspaceDataScope: _workspaceDataScope, prompt: _prompt, ...portableBasic } = basic ?? {}
+        // Model resolution needs both the source binding and the explicit selection to preserve compatible options.
+        const {
+            workspaceDataScope: _workspaceDataScope,
+            prompt: _prompt,
+            copilotModel: _copilotModel,
+            ...portableBasic
+        } = basic ?? {}
         return new XpertDraftDslDTO({
             team: {
                 ...team,

@@ -17,6 +17,8 @@ export type McpConsumerExtensionRequest = {
 export type McpConsumerRoutingHeaders = {
     method: string
     name?: string
+    /** Encoded SEP-2243 values, keyed by the schema's x-mcp-header annotation. */
+    parameters?: Record<string, string>
 }
 
 export type McpConsumerNotification = {

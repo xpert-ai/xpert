@@ -72,3 +72,20 @@ test('missing organization, invalid pagination and unknown statuses fail closed'
   await assert.rejects(service.listTemplateInstallations({ workspaceId: 'workspace', skip: -1 }), { status: 400 })
   await assert.rejects(host({ ...receipt, status: 'ready' }).getTemplateInstallation('op'), { status: 502 })
 })
+test('target availability survives the host projection and legacy receipts remain readable', async () => {
+  for (const assistantAvailability of ['available', 'unavailable']) {
+    const result = { ...receipt, status: 'succeeded', assistantId: 'assistant', assistantAvailability }
+    assert.deepEqual(await host(result).getTemplateInstallation('op'), result)
+    assert.deepEqual(
+      await host({ items: [result], total: 1 }).listTemplateInstallations({ workspaceId: 'workspace' }),
+      {
+        items: [result],
+        total: 1
+      }
+    )
+  }
+  assert.deepEqual(await host().getTemplateInstallation('op'), receipt)
+  await assert.rejects(host({ ...receipt, assistantAvailability: 'deleted' }).getTemplateInstallation('op'), {
+    status: 502
+  })
+})
