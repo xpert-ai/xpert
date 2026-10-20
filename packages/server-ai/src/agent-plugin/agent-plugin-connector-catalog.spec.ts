@@ -642,6 +642,20 @@ class MemoryRepository<T extends { id?: string }> {
         return this.items.filter((item) => clauses.some((where) => matches(item, where)))
     }
 
+    createQueryBuilder() {
+        let where: object | object[]
+        const query = {
+            select: () => query,
+            addSelect: () => query,
+            where: (value: object | object[]) => {
+                where = value
+                return query
+            },
+            getRawMany: () => this.find({ where })
+        }
+        return query
+    }
+
     async findOne(options: { where: object }) {
         return (await this.find(options))[0] ?? null
     }
@@ -668,6 +682,10 @@ class MemoryRepository<T extends { id?: string }> {
 function matches(item: object, where: object) {
     return Object.entries(where).every(([key, expected]) => {
         const actual: unknown = Reflect.get(item, key)
-        return expected instanceof FindOperator && expected.type === 'isNull' ? actual == null : actual === expected
+        if (expected instanceof FindOperator) {
+            if (expected.type === 'isNull') return actual == null
+            if (expected.type === 'in') return expected.value.includes(actual)
+        }
+        return actual === expected
     })
 }

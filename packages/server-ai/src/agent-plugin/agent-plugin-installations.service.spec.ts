@@ -37,6 +37,7 @@ function matches(record: ScopedRecord, where: Where) {
         const actual = record[key as keyof ScopedRecord]
         if (value instanceof FindOperator) {
             if (value.type === 'isNull') return actual == null
+            if (value.type === 'in') return typeof actual === 'string' && value.value.includes(actual)
             if (value.type === 'raw' && key === 'descriptor')
                 return record.descriptor?.name === value.objectLiteralParameters.packageName
             if (value.type === 'raw' && key === 'definition')
@@ -142,6 +143,19 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         }
         const packageRepository = {
             find: findPackages,
+            createQueryBuilder: () => {
+                let where: Where | Where[]
+                const query = {
+                    select: () => query,
+                    addSelect: () => query,
+                    where: (value: Where | Where[]) => {
+                        where = value
+                        return query
+                    },
+                    getRawMany: () => findPackages({ where })
+                }
+                return query
+            },
             manager: { getRepository: () => ({ update: workspaceUpdate }) }
         } as unknown as Repository<AgentPluginPackage>
         const bindingRepository = {
@@ -154,7 +168,10 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             packageRepository,
             bindingRepository,
             { installRuntimeComponent: install } as unknown as PluginResourceInstallerService,
-            { runtimeBindings: connectorReferences } as unknown as AgentPluginConnectorService
+            {
+                runtimeBindings: connectorReferences,
+                runtimeBindingsBatch: jest.fn().mockResolvedValue(new Map())
+            } as unknown as AgentPluginConnectorService
         )
         const dependencies = new Map<unknown, unknown>([
             [AgentMiddlewareRegistry, { get: () => ({ meta: {} }), list: () => [] }],
@@ -174,6 +191,28 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         )
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('loads and describes only the sorted page while preserving filtered totals and scope precedence', async () => {
+        const original = packages[0]
+        packages = ['c-visible', 'a-hidden', 'b-visible', 'd-visible'].map((name, index) => ({
+            ...original,
+            id: `package-${index}`,
+            descriptor: {
+                ...original.descriptor,
+                name,
+                extension: { version: 2, role: index === 1 ? 'assistant' : 'capability' }
+            }
+        }))
+        const details = jest.spyOn(installations, 'catalogPackages')
+        const connectors = jest.spyOn(installations, 'catalogConnectorReferences')
+        const result = await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 1, limit: 1 })
+        expect(result.total).toBe(3)
+        expect(result.items.map(({ title }) => title)).toEqual(['c-visible'])
+        expect(details).toHaveBeenCalledWith(['package-0'])
+        expect(connectors.mock.calls[0][0].map(({ pkg }) => pkg.id)).toEqual(['package-0'])
+        await runtime.catalog('assistant', { kind: 'agent_plugin', search: 'no-match', limit: 1 })
+        expect(details).toHaveBeenLastCalledWith([])
+    })
 
     it('narrows targeted inventory reads while retaining organization overrides and immediate revocation', async () => {
         const organization = packages[0]

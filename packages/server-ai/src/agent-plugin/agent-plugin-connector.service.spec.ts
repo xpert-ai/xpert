@@ -180,6 +180,29 @@ describe('Agent Plugin Connector binding boundary', () => {
         ).resolves.toEqual(previous)
     })
 
+    it('shares one authorized snapshot across a page but refreshes it on the next request', async () => {
+        jest.spyOn(service, 'register').mockReturnValue(new Map([['test', 'canva']]))
+        runtimeOptions.mockResolvedValue({
+            items: [{ ...reference, authorizationMode: 'shared' }]
+        })
+        const entries = ['first', 'second'].map((id) => ({
+            pkg: { id } as AgentPluginPackage,
+            requirements: { test: requirement }
+        }))
+        const result = await service.runtimeBindingsBatch(entries, 'assistant')
+        expect(result.get('first')).toEqual({ test: reference })
+        expect(result.get('second')).toEqual({ test: reference })
+        expect(runtimeOptions).toHaveBeenCalledTimes(1)
+        expect(runtimeOptions).toHaveBeenCalledWith('assistant')
+        expect(credential).not.toHaveBeenCalled()
+
+        runtimeOptions.mockResolvedValue({ items: [] })
+        const revoked = await service.runtimeBindingsBatch(entries, 'assistant')
+        expect(revoked.get('first')).toEqual({})
+        expect(revoked.get('second')).toEqual({})
+        expect(runtimeOptions).toHaveBeenCalledTimes(2)
+    })
+
     it('passes only the exact dependency binding and validated actor to Connector', async () => {
         const provider = await resolveMcpConsumerAuthProvider(request)
         expect((await provider.tokens()).access_token).toBe('test-only')
