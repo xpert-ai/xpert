@@ -53,10 +53,6 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
-        "SandboxLifecycleBusy": "The sandbox lifecycle is busy. Retry after the current operation finishes.",
-        "SandboxLifecycleLeaseLost": "Sandbox lifecycle ownership was lost. Reconnect before continuing.",
-        "SandboxInUse": "The sandbox is still in use and its container cannot be replaced.",
-        "SandboxBindingChanged": "The sandbox container is no longer available. Reconnect before continuing.",
         "ProjectTaskProjectionRetry": "Task synchronization was superseded or is owned by another worker; the queue will retry.",
         "ProjectTaskProjectionUnavailable": "Task synchronization status is temporarily unavailable; saved tasks remain readable.",
         "ProjectTaskProjectionTimeout": "Task synchronization timed out; the saved tasks are preserved and synchronization will retry.",
