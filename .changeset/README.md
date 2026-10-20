@@ -17,6 +17,19 @@ Headless UI `^0.0.2 || ^0.1.0`; later pre-1.0 minor versions still require a
 compatibility review and range update. `workspace:*` pins the exact current version
 when published, so it is unsuitable for peers that should accept minor upgrades.
 
+Core platform packages share one fixed Changesets group: API, Cloud, Contracts,
+Plugin SDK, Server Auth, Common, Config, Core and AI. Their aligned baseline is
+`3.24.0`; the next queued minor release is `3.25.0`. A release affecting any group
+member applies the highest requested bump to every member, keeping patch versions
+aligned as well. Keep this explicit list in `config.json`; Desktop, runtimes and
+plugins retain independent release lines. The private repository-root manifest is
+not a released workspace package.
+
+Version alignment is release coordination, not proof of API compatibility. Keep
+breaking contract changes explicit and use a major Changeset when required. Run
+`corepack pnpm changeset status` to inspect the plan before applying
+`corepack pnpm changeset:version`; do not version packages individually.
+
 Create a release note with:
 
 ```bash

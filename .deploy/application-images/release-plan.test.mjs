@@ -676,3 +676,72 @@ test('tags, missing baselines, manual events and invalid version strings cannot 
   f.version(api, '1.0.0+metadata')
   assert.throws(() => f.plan(f.initial, f.commit()), /Invalid version/)
 })
+
+function fixedFixture(t) {
+  const f = fixture(t)
+  f.version(web, '1.4.0')
+  f.note('pending', [api.name, web.name], 'minor')
+  const before = f.commit()
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.version(api, '1.4.0')
+  f.note('alignment', [api.name, web.name], 'minor')
+  return { ...f, before }
+}
+
+test('new fixed groups align to the existing maximum without authorizing stable images', (t) => {
+  const f = fixedFixture(t)
+  const after = f.commit()
+  for (const ref of ['refs/heads/develop', 'refs/heads/main']) {
+    const plan = f.plan(f.before, after, 'push', ref)
+    assert.equal(plan.matrix.include.length, 2)
+    for (const image of plan.matrix.include) {
+      assert.equal(image.baseVersion, '1.5.0')
+      assert.equal(image.versioned, false)
+      assert.equal(image.stable, false)
+    }
+  }
+})
+
+test('alignment cannot silently delete pending notes or invent a higher baseline', (t) => {
+  const f = fixedFixture(t)
+  f.remove('pending')
+  assert.throws(() => f.plan(f.before, f.commit()), /version must match/)
+  f.note('pending', [api.name, web.name], 'minor')
+  f.version(api, '1.5.0')
+  f.version(web, '1.5.0')
+  assert.throws(() => f.plan(f.before, f.commit()), /consume all pending/)
+})
+
+test('fixed versions apply the highest group bump while requiring application notes', (t) => {
+  const f = fixedFixture(t)
+  f.commit()
+  f.note('breaking', [web.name], 'major')
+  const before = f.commit()
+  f.remove('pending')
+  f.remove('alignment')
+  f.remove('breaking')
+  f.version(api, '2.0.0')
+  f.version(web, '2.0.0')
+  const after = f.commit()
+  const plan = f.plan(before, after, 'push', 'refs/heads/main')
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => image.stable && image.version === '2.0.0'))
+})
+
+test('fixed groups reject partial versioning and incomplete note consumption', (t) => {
+  const f = fixedFixture(t)
+  const before = f.commit()
+  f.remove('pending')
+  f.remove('alignment')
+  f.version(api, '1.5.0')
+  assert.throws(() => f.plan(before, f.commit()), /must use the same version/)
+  f.version(web, '1.5.0')
+  f.note('pending', [api.name, web.name], 'minor')
+  assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
+})

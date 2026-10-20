@@ -83,6 +83,16 @@ before it is saved for publication.
   Version commits on `develop` remain candidates. PRs can validate either plan
   but cannot publish images or access registry credentials.
 
+For an explicit Changesets `fixed` group, the highest pending group bump determines
+all member versions. Each application still needs its own release note. Stable
+releases must consume every pending group note and keep all members at one version.
+
+When first introducing a fixed group, its manifests may align to the group's
+existing highest version within the same major. All existing notes must remain
+unchanged and every member must use that exact baseline. This alignment can only
+produce candidates; it cannot authorize stable tags or consume release notes.
+The core platform group starts at `3.24.0`, with `3.25.0` queued as its next minor.
+
 When `main` is merged back into `develop`, its application and shared-package
 versions are already the release baseline. The workflow supplies the fetched
 `main` SHA through `IMAGE_RELEASE_MAIN` (`mainSha` for API callers). The planner

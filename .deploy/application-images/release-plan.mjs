@@ -8,6 +8,7 @@ import { appendFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import { affectsImage, requiresImageRelease, services } from './services.mjs'
+import { fixedVersions } from './fixed-versions.mjs'
 const require = createRequire(new URL('./release-tools/package.json', import.meta.url))
 const parse = require('@changesets/parse').default
 const semver = require('semver')
@@ -51,10 +52,7 @@ export function releasePlan({
   if (event === 'pull_request') before = git('merge-base', before, after)
   else git('merge-base', '--is-ancestor', before, after)
   const changedFiles = git('diff', '--no-renames', '--name-only', '-z', before, after).split('\0').filter(Boolean)
-  const releasePaths = [
-    '.changeset',
-    ...new Set(selectedServices.flatMap(({ manifest, shared }) => [manifest, ...shared]))
-  ]
+  const releasePaths = ['.changeset', ...new Set(services.flatMap(({ manifest, shared }) => [manifest, ...shared]))]
   const tree = (sha) => new Set(git('ls-tree', '-r', '--name-only', sha, '--', ...releasePaths).split('\n'))
   const oldTree = tree(before),
     newTree = tree(after)
@@ -91,6 +89,21 @@ export function releasePlan({
     git('diff', '--find-renames', '--diff-filter=A', '--name-only', before, after, '--', '.changeset').split('\n')
   )
   const fresh = newNotes.filter((note) => added.has(note.file))
+  const fixed = fixedVersions({
+    before,
+    after,
+    read,
+    manifests: [...new Set(services.flatMap((service) => [service.manifest, ...service.shared]))].filter(
+      (file) => oldTree.has(file) && newTree.has(file)
+    ),
+    oldNotes,
+    newNotes,
+    unchangedNote: (file) => newTree.has(file) && git('show', `${before}:${file}`) === git('show', `${after}:${file}`)
+  })
+  const plannedVersion = (name, version, notes, phase) => {
+    const basis = fixed.basis(name, phase, notes)
+    return bump(basis?.version ?? version, basis?.notes ?? notes)
+  }
   const include = []
   for (const service of selectedServices) {
     const current = read(after, service.manifest)
@@ -107,7 +120,9 @@ export function releasePlan({
     const remaining = newNotes.filter((note) => note.name === service.name)
     const requested = fresh.filter((note) => note.name === service.name)
     const versioned =
-      current.version !== previous.version && !adoptedMainVersion(service.manifest, previous.version, current.version)
+      current.version !== previous.version &&
+      !adoptedMainVersion(service.manifest, previous.version, current.version) &&
+      !fixed.alignment(service.name)
     let baseVersion, evidence
     let retainedForCandidate = false
     if (versioned) {
@@ -124,14 +139,16 @@ export function releasePlan({
       )
       assert.equal(
         current.version,
-        bump(previous.version, consumed),
+        plannedVersion(service.name, previous.version, consumed, 'before'),
         `${service.name} version must match its requested bump`
       )
-      baseVersion = retainedForCandidate ? bump(current.version, remaining) : current.version
+      baseVersion = retainedForCandidate
+        ? plannedVersion(service.name, current.version, remaining, 'after')
+        : current.version
       evidence = retainedForCandidate ? [...consumed, ...requested] : consumed
     } else {
       if (!requested.length && !(remaining.length && affectsImage(service, changedFiles))) continue
-      baseVersion = bump(current.version, remaining)
+      baseVersion = plannedVersion(service.name, current.version, remaining, 'after')
       evidence = requested.length ? requested : remaining
     }
     const stable = versioned && !retainedForCandidate && event === 'push' && ref === 'refs/heads/main'

@@ -2,7 +2,19 @@
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@xpert-ai/xpert-api",
+      "@xpert-ai/xpert-ui",
+      "@xpert-ai/server-auth",
+      "@xpert-ai/server-common",
+      "@xpert-ai/server-config",
+      "@xpert-ai/contracts",
+      "@xpert-ai/plugin-sdk",
+      "@xpert-ai/server-core",
+      "@xpert-ai/server-ai"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
