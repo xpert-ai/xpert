@@ -16,6 +16,8 @@ import type {
 import { ProjectPipelineScopedRegistry } from './scoped-registry'
 import { STRATEGY_META_KEY } from '../types'
 import type { ProjectPipelineContext } from './capability'
+import { projectPipelineRefSchema } from '@xpert-ai/contracts'
+import type { StrategySource } from '../strategy'
 
 export interface ProjectPipelineProjectionLinks {
   instanceId: string
@@ -65,11 +67,11 @@ export interface IProjectPipelineProjectionProvider {
   snapshot(context: ProjectPipelineSnapshotContext, sourceKey: string): Promise<ProjectPipelineProjection | null>
   /** Receipt delivery is retryable. This callback must not dispatch or advance business work. */
   linked?(context: ProjectPipelineContext, sourceKey: string, links: ProjectPipelineProjectionLinks): Promise<void>
-  /** Read-only availability for this actor and exact node; refs must be allowlisted by the saved definition. */
   /** Read-only actor-specific diagnostics. Never persist permissions in the shared projection. */
   describeNode?(context: ProjectPipelineProviderNodeContext): Promise<ProjectPipelineNodePresentation | null>
+  /** Read-only availability for this actor and exact node; refs must be allowlisted by the saved definition. */
   actions?(context: ProjectPipelineProviderNodeContext): Promise<ProjectPipelineProviderActionDescriptor[]>
-  /** Recheck domain version and permissions, then commit one keyed receipt with the domain effect. */
+  /** Pair with inspectAction for recovery. Recheck domain permissions and commit a receipt with the effect. */
   executeAction?(context: ProjectPipelineProviderActionContext): Promise<ProjectPipelineProviderActionReceipt>
   /** Recover the original operation without repeating its effect, including after an ambiguous dispatch. */
   inspectAction?(
@@ -88,5 +90,25 @@ export const ProjectPipelineProjectionProvider = (key: string) =>
 export class ProjectPipelineProjectionProviderRegistry extends ProjectPipelineScopedRegistry<IProjectPipelineProjectionProvider> {
   constructor(discovery: DiscoveryService, reflector: Reflector) {
     super(PROJECT_PIPELINE_PROJECTION_PROVIDER, discovery, reflector)
+  }
+
+  override register(key: string, provider: IProjectPipelineProjectionProvider, source: StrategySource) {
+    projectPipelineRefSchema.parse(key)
+    if (provider.key !== key) throw new Error('PIPELINE_PROVIDER_KEY_MISMATCH')
+    // Registration checks the extension shape without executing business callbacks. A future
+    // protocol must be negotiated explicitly rather than silently treated as a legacy provider.
+    if (provider.nativeTaskProtocol !== undefined && provider.nativeTaskProtocol !== 1)
+      throw new Error('PIPELINE_PROVIDER_PROTOCOL_UNSUPPORTED')
+    if (typeof provider.snapshot !== 'function') throw new Error('PIPELINE_PROVIDER_CONTRACT_INVALID')
+    for (const name of ['linked', 'describeNode', 'actions', 'executeAction', 'inspectAction'] as const) {
+      if (provider[name] !== undefined && typeof provider[name] !== 'function')
+        throw new Error('PIPELINE_PROVIDER_CONTRACT_INVALID')
+    }
+    if (
+      (provider.executeAction === undefined) !== (provider.inspectAction === undefined) ||
+      (provider.actions !== undefined && provider.executeAction === undefined)
+    )
+      throw new Error('PIPELINE_PROVIDER_CONTRACT_INVALID')
+    return super.register(key, provider, source)
   }
 }

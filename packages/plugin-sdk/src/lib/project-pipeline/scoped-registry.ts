@@ -27,6 +27,18 @@ export abstract class ProjectPipelineScopedRegistry<T> extends BaseStrategyRegis
       )
         throw new Error('PIPELINE_ADAPTER_OWNER_CONFLICT')
     }
+    // Live adapters cannot be cloned safely. Require a distinct instance for each provenance
+    // so registration in one scope cannot silently change ownership in another.
+    for (const [scope, entries] of this.strategies) {
+      if (![...entries.values()].includes(instance)) continue
+      const owner = this.getSource(instance)
+      if (
+        scope !== source.scopeKey ||
+        owner.kind !== source.kind ||
+        (owner.kind === 'plugin' && source.kind === 'plugin' && owner.pluginName !== source.pluginName)
+      )
+        throw new Error('PIPELINE_ADAPTER_SOURCE_CONFLICT')
+    }
     super.assertCanRegister(key, instance, source)
   }
 

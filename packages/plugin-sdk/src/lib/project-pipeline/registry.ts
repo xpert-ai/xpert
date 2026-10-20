@@ -1,12 +1,8 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { z } from 'zod/v3'
 import {
-  projectPipelineConfigurationSchema,
-  projectPipelineExtensionDescriptorSchema,
-  projectPipelineKeySchema,
-  projectPipelineConfigurationFormSchema,
-  validateProjectPipelineConfigurationForm,
+  projectPipelineContributionSchema,
+  type ProjectPipelineContribution,
   type ProjectPipelineJsonValue
 } from '@xpert-ai/contracts'
 import { BaseStrategyRegistry, resolveStrategyMetadataTarget, type StrategySource } from '../strategy'
@@ -20,36 +16,8 @@ import {
 } from '../types'
 import type { ProjectAccessActor } from '../runtime/capabilities/project-access'
 
-export const projectPipelineContributionSchema = z
-  .object({
-    key: projectPipelineKeySchema,
-    configurations: z.array(projectPipelineConfigurationSchema).max(100),
-    descriptors: z.array(projectPipelineExtensionDescriptorSchema).max(1000),
-    forms: z.array(projectPipelineConfigurationFormSchema).max(100).optional()
-  })
-  .strict()
-  .superRefine((value, context) => {
-    const keys = value.configurations.map((item) => `${item.template.key}@${item.template.version}`)
-    const refs = value.descriptors.map((descriptor) => `${descriptor.kind}:${descriptor.ref}`)
-    if (new Set(keys).size !== keys.length || new Set(refs).size !== refs.length) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'DUPLICATE_PIPELINE_CONTRIBUTION' })
-    }
-    const forms = value.forms ?? []
-    if (new Set(forms.map((form) => form.templateRef)).size !== forms.length)
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'DUPLICATE_CONFIGURATION_FORM' })
-    forms.forEach((form, index) => {
-      const configuration = value.configurations.find((item) => item.binding.templateRef === form.templateRef)
-      try {
-        if (!configuration) throw new Error('CONFIGURATION_MISSING')
-        validateProjectPipelineConfigurationForm(configuration, form)
-      } catch {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: 'INVALID_CONFIGURATION_FORM', path: ['forms', index] })
-      }
-    })
-  })
-
-/** Catalog metadata only. Runtime adapters are resolved separately and are never called during checking. */
-export type ProjectPipelineContribution = z.output<typeof projectPipelineContributionSchema>
+// Keep the SDK import path stable while the strict Contracts build owns schema declarations.
+export { projectPipelineContributionSchema, type ProjectPipelineContribution } from '@xpert-ai/contracts'
 
 export const PROJECT_PIPELINE_CONTRIBUTION = 'PROJECT_PIPELINE_CONTRIBUTION'
 export const ProjectPipelineContributor = (key: string) =>
@@ -60,7 +28,7 @@ export const ProjectPipelineContributor = (key: string) =>
 
 @Injectable()
 export class ProjectPipelineContributionRegistry extends BaseStrategyRegistry<ProjectPipelineContribution> {
-  private readonly parsedContributions = new WeakMap<object, ProjectPipelineContribution>()
+  private readonly parsedContributions = new WeakMap<object, Map<string, ProjectPipelineContribution>>()
   constructor(discovery: DiscoveryService, reflector: Reflector) {
     super(PROJECT_PIPELINE_CONTRIBUTION, discovery, reflector)
   }
@@ -73,19 +41,30 @@ export class ProjectPipelineContributionRegistry extends BaseStrategyRegistry<Pr
     if (key !== contribution.key) throw new Error('PIPELINE_CONTRIBUTION_KEY_MISMATCH')
     // Parsing above validates the original object's public fields before preserving loader provenance.
     const original = instance as ProjectPipelineContribution
-    const cached = this.parsedContributions.get(original)
-    const parsed = cached && JSON.stringify(cached) === JSON.stringify(contribution) ? cached : contribution
-    super.register(key, parsed, this.getSource(original))
-    this.parsedContributions.set(original, parsed)
+    this.registerParsed(key, original, contribution, this.getSource(original))
   }
 
   override register(key: string, contribution: ProjectPipelineContribution, source: StrategySource) {
-    const validated = projectPipelineContributionSchema.parse(contribution)
-    const cached = this.parsedContributions.get(contribution)
+    return this.registerParsed(key, contribution, projectPipelineContributionSchema.parse(contribution), source)
+  }
+
+  private registerParsed(
+    key: string,
+    contribution: ProjectPipelineContribution,
+    validated: ProjectPipelineContribution,
+    source: StrategySource
+  ) {
+    // Parsed metadata is immutable and source-local: sharing a cached object would overwrite
+    // the loader provenance held by the base registry when another scope registers it.
+    const identity = JSON.stringify([source.kind, source.scopeKey, source.kind === 'plugin' ? source.pluginName : null])
+    const cache = this.parsedContributions.get(contribution) ?? new Map<string, ProjectPipelineContribution>()
+    const cached = cache.get(identity)
     const parsed = cached && JSON.stringify(cached) === JSON.stringify(validated) ? cached : validated
     if (parsed.key !== key) throw new Error('PIPELINE_CONTRIBUTION_KEY_MISMATCH')
+    freezeMetadata(parsed)
     const previous = super.register(key, parsed, source)
-    this.parsedContributions.set(contribution, parsed)
+    cache.set(identity, parsed)
+    this.parsedContributions.set(contribution, cache)
     return previous
   }
 
@@ -127,6 +106,13 @@ export class ProjectPipelineContributionRegistry extends BaseStrategyRegistry<Pr
     }
     return Array.from(effective.values())
   }
+}
+
+/** Only validated JSON metadata is frozen; live adapter instances retain their own lifecycle. */
+function freezeMetadata(value: ProjectPipelineJsonValue): void {
+  if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return
+  for (const child of Object.values(value)) freezeMetadata(child)
+  Object.freeze(value)
 }
 
 function canonicalJson(value: ProjectPipelineJsonValue): string {
