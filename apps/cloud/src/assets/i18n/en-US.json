@@ -5415,6 +5415,7 @@
       "ConnectionReturnStep": "Return to Bosi"
     },
     "Installation": {
+      "AssistantUnavailable": "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.",
       "Workspace": "Target workspace",
       "Title": "Assistant name",
       "Model": "Language model",

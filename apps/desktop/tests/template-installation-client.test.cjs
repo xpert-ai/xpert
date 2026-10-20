@@ -1,6 +1,10 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
-const { createInstallationClient, installationStatusLabel } = require('./helpers/template-installation.cjs')
+const {
+  createInstallationClient,
+  installationStatusLabel,
+  canOpenInstalledAssistant
+} = require('./helpers/template-installation.cjs')
 const input = { templateId: 'template', workspaceId: 'workspace', publish: true, basic: { title: 'Assistant' } }
 const operation = (patch = {}) => ({
   id: 'operation',
@@ -96,6 +100,33 @@ test('double submit is serialized and an explicit new instance gets a different 
   h.client.newInstance()
   await h.client.start(input)
   assert.notEqual(h.calls[0].idempotencyKey, h.calls[1].idempotencyKey)
+})
+test('deleted target restores its successful history without replaying creation and refresh returns current availability', async (t) => {
+  const first = harness(t)
+  await first.client.start(input)
+  first.client.dispose()
+  const deleted = operation({ assistantAvailability: 'unavailable' })
+  const reopened = harness(t, { get: async () => deleted }, first.entries)
+  await reopened.client.restore()
+  assert.equal(reopened.calls.length, 0)
+  assert.equal(installationStatusLabel(reopened.state.operation), 'Installation complete')
+  assert.equal(canOpenInstalledAssistant(reopened.state.operation), false)
+  assert.deepEqual(await reopened.client.refresh(), deleted)
+  await reopened.client.retry()
+  assert.equal(reopened.calls.length, 0)
+  reopened.client.newInstance()
+  assert.equal(reopened.state.operation, null)
+  assert.equal(reopened.state.history[0].id, deleted.id)
+  await reopened.client.start(input)
+  assert.equal(reopened.calls.length, 1)
+  assert.notEqual(reopened.calls[0].idempotencyKey, first.calls[0].idempotencyKey)
+})
+test('opening requires a successful imported target and supports receipts from older servers', () => {
+  assert.equal(canOpenInstalledAssistant(operation()), true)
+  assert.equal(canOpenInstalledAssistant(operation({ assistantAvailability: 'available' })), true)
+  assert.equal(canOpenInstalledAssistant(operation({ assistantId: null })), false)
+  assert.equal(canOpenInstalledAssistant(operation({ status: 'running' })), false)
+  assert.equal(canOpenInstalledAssistant(operation({ assistantAvailability: 'unavailable' })), false)
 })
 test('retry uses the durable operation id and keeps pending configuration distinct from completion', async (t) => {
   let retried

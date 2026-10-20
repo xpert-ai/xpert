@@ -148,7 +148,10 @@ export function createInstallationClient(options: {
     update({ busy: true, error: '' })
     try {
       const operation = await action()
-      if (!disposed && version === generation) accept(operation)
+      if (!disposed && version === generation) {
+        accept(operation)
+        return operation
+      }
     } catch (error) {
       if (!disposed && version === generation)
         update({ error: options.errorMessage(error), uncertain: saved?.kind === 'intent' })
@@ -159,10 +162,10 @@ export function createInstallationClient(options: {
   const refresh = async () => {
     if (saved?.kind === 'operation') {
       const id = saved.id
-      await run(() => transport.get(id))
+      return run(() => transport.get(id))
     } else if (saved?.kind === 'intent') {
       const input = saved.input
-      await run(() => transport.create(input))
+      return run(() => transport.create(input))
     }
   }
   return {
@@ -240,6 +243,13 @@ export const installationStageLabels: Record<TemplateInstallation['stage'], stri
   publishing: 'Publishing assistant',
   initializing: 'Initializing workspace',
   completed: 'Installation complete'
+}
+export function canOpenInstalledAssistant(
+  operation: TemplateInstallation
+): operation is TemplateInstallation & { assistantId: string } {
+  return (
+    operation.status === 'succeeded' && !!operation.assistantId && operation.assistantAvailability !== 'unavailable'
+  )
 }
 export function installationStatusLabel(operation: TemplateInstallation): string {
   if (operation.status === 'succeeded')

@@ -1190,6 +1190,7 @@
   "Updates are not available in this build.": "Updates are not available in this build.",
   "Bosi is up to date.": "Bosi is up to date.",
   "Bosi {{version}} is available.": "Bosi {{version}} is available.",
+  "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.": "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.",
   "Template installations": "Template installations",
   "Importing assistant": "Importing assistant",
   "Installing dependencies": "Installing dependencies",

@@ -21,7 +21,8 @@ jest.mock('../../xpert-workspace/workspace-access.service', () => ({ XpertWorksp
 jest.mock('../../xpert-template/xpert-template.service', () => ({ XpertTemplateService: class {} }))
 jest.mock('./template-installation.entity', () => ({ TemplateInstallationEntity: class {} }))
 jest.mock('i18next', () => ({ t: (key: string) => key }))
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
@@ -34,6 +35,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
 import { InstallationInput } from './template-installation.schema'
 import { InstallationSourceChangedError } from './template-installation-source'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 
 const input: InstallationInput = {
     templateId: 'template',
@@ -135,6 +137,7 @@ function harness() {
     const templates = {
         getTemplateDetail: jest.fn(async () => ({ id: 'template', export_data: 'test', dependencies: {} }))
     }
+    const queries = { execute: jest.fn(async (query: FindXpertQuery) => ({ id: query.conditions.id })) }
     const service = new TemplateInstallationService(
         database,
         commands,
@@ -147,14 +150,15 @@ function harness() {
                 readiness: { legacy: true, canInstall: true, checks: [], dependencies: [] },
                 components: []
             }))
-        }
+        },
+        queries as unknown as QueryBus
     )
     const settle = async (id: string) => {
         for (let i = 0; i < 100 && locks.has(id); i++) await new Promise<void>((resolve) => setImmediate(resolve))
         expect(locks.has(id)).toBe(false)
         return service.get(id)
     }
-    return { service, rows, locks, install, workspaces, templates, settle }
+    return { service, rows, locks, install, workspaces, templates, queries, settle }
 }
 
 describe('durable template installation orchestration', () => {
@@ -260,6 +264,52 @@ describe('durable template installation orchestration', () => {
         await expect(h.service.get(first.id)).rejects.toThrow('revoked')
         await expect(h.service.retry(first.id)).rejects.toThrow('revoked')
         expect(h.install).toHaveBeenCalledTimes(1)
+    })
+    it.each([new NotFoundException(), new ForbiddenException()])(
+        'preserves successful history when its Assistant is deleted or inaccessible (%s)',
+        async (error) => {
+            const h = harness()
+            const first = await h.service.create(input)
+            const done = await h.settle(first.id)
+            expect(done.assistantAvailability).toBe('available')
+            expect(h.queries.execute).toHaveBeenCalledWith(
+                new FindXpertQuery({ id: done.assistantId, tenantId: 'tenant', organizationId: 'org' })
+            )
+            h.queries.execute.mockRejectedValue(error)
+            const expected = {
+                id: done.id,
+                assistantId: done.assistantId,
+                status: 'succeeded',
+                attempt: 1,
+                assistantAvailability: 'unavailable',
+                retryable: false,
+                error: null
+            }
+            expect(await h.service.get(done.id)).toMatchObject(expected)
+            expect((await h.service.list({ workspaceId: 'workspace', skip: 0, take: 20 })).items[0]).toMatchObject(
+                expected
+            )
+            expect(await h.service.retry(done.id)).toMatchObject(expected)
+            expect(await h.service.create(input)).toMatchObject(expected)
+            expect(h.install).toHaveBeenCalledTimes(1)
+            expect(h.rows.get(done.id).status).toBe('succeeded')
+            h.queries.execute.mockImplementation(async (query) => ({ id: query.conditions.id }))
+            const next = await h.service.create({ ...input, idempotencyKey: 'new-intent' })
+            const nextDone = await h.settle(next.id)
+            expect(nextDone.id).not.toBe(done.id)
+            expect(nextDone.assistantId).not.toBe(done.assistantId)
+            expect(nextDone.assistantAvailability).toBe('available')
+        }
+    )
+    it('does not check a reserved identity before import or turn storage failures into an unavailable target', async () => {
+        const h = harness()
+        const first = await h.service.create(input)
+        expect(first.assistantAvailability).toBeUndefined()
+        expect(h.queries.execute).not.toHaveBeenCalled()
+        const done = await h.settle(first.id)
+        h.queries.execute.mockRejectedValue(new Error('database offline'))
+        await expect(h.service.get(done.id)).rejects.toThrow('database offline')
+        expect(h.rows.get(done.id).status).toBe('succeeded')
     })
     it('rejects missing organization context and scoped credentials', async () => {
         const h = harness()

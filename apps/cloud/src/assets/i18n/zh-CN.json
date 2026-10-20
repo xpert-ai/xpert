@@ -5374,6 +5374,7 @@
       "ConnectionReturnStep": "返回 Bosi"
     },
     "Installation": {
+      "AssistantUnavailable": "此助手已被删除或无法再访问。请创建另一个助手以重新安装此模板。",
       "Workspace": "目标工作空间",
       "Title": "助手名称",
       "Model": "语言模型",

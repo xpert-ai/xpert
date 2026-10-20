@@ -787,6 +787,115 @@ test('source-changed history shows the error without a resume action', async (t)
   )
   assert.equal(view.count('createTemplateInstallation'), 0)
 })
+test('deleted template targets retain successful history and require an explicit new installation', async (t) => {
+  let current = {
+    ...installation,
+    status: 'succeeded',
+    stage: 'completed',
+    retryable: false,
+    error: null,
+    assistantAvailability: 'available'
+  }
+  let opened = 0
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      return templateResult(method, input)
+    },
+    async () => {
+      opened++
+    }
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  await view.click('Back to catalog')
+  current = { ...current, assistantAvailability: 'unavailable' }
+  await view.click('View template')
+  await view.click('Import Assistant')
+  assert.match(document.body.textContent, /Installation complete/)
+  assert.match(document.body.textContent, /deleted or is no longer accessible/)
+  const open = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Open assistant')
+  assert.equal(open.disabled, true)
+  await view.click('Open assistant')
+  await view.click('Refresh status')
+  assert.equal(opened, 0)
+  assert.equal(view.count('createTemplateInstallation'), 1)
+  await view.click('Create another assistant')
+  assert.doesNotMatch(document.body.textContent, /deleted or is no longer accessible/)
+  current = { ...current, id: 'second', assistantId: 'second-assistant', assistantAvailability: 'available' }
+  await view.click('Install & use')
+  const creates = view.calls.filter((call) => call.method === 'createTemplateInstallation')
+  assert.equal(creates.length, 2)
+  assert.notEqual(creates[0].input.idempotencyKey, creates[1].input.idempotencyKey)
+})
+test('opening rechecks the target and clears errors when a new installation is selected', async (t) => {
+  let current = {
+    ...installation,
+    status: 'succeeded',
+    retryable: false,
+    error: null,
+    assistantAvailability: 'available'
+  }
+  let opened = 0
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      if (method === 'listTemplateInstallations') return { items: [current], total: 1 }
+      return templateResult(method, input)
+    },
+    async () => {
+      opened++
+      throw new Error('opening failed')
+    }
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  current = { ...current, assistantAvailability: 'unavailable' }
+  await view.click('Open assistant')
+  assert.equal(opened, 0)
+  assert.match(document.body.textContent, /deleted or is no longer accessible/)
+  current = { ...current, assistantAvailability: 'available' }
+  await view.click('Refresh status')
+  await view.click('Open assistant')
+  assert.match(document.body.textContent, /opening failed/)
+  const record = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('operation'))
+  await React.act(async () => record.click())
+  assert.doesNotMatch(document.body.textContent, /opening failed/)
+  await view.click('Open assistant')
+  assert.match(document.body.textContent, /opening failed/)
+  await view.click('Create another assistant')
+  assert.doesNotMatch(document.body.textContent, /opening failed/)
+})
+test('late opening failures cannot contaminate a new template installation', async (t) => {
+  const current = { ...installation, status: 'succeeded', retryable: false, error: null }
+  let fail
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      return templateResult(method, input)
+    },
+    () =>
+      new Promise((_resolve, reject) => {
+        fail = reject
+      })
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  await view.click('Open assistant')
+  assert.equal(typeof fail, 'function')
+  await view.click('Create another assistant')
+  await React.act(async () => fail(new Error('late opening failure')))
+  assert.doesNotMatch(document.body.textContent, /late opening failure/)
+})
 
 test('template introduction shows four sections without setup or installation until import is requested', async (t) => {
   const calls = []

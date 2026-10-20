@@ -1190,6 +1190,7 @@
   "Updates are not available in this build.": "このビルドではアップデートを利用できません。",
   "Bosi is up to date.": "Bosi は最新です。",
   "Bosi {{version}} is available.": "Bosi {{version}} にアップデートできます。",
+  "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.": "このアシスタントは削除されたか、アクセスできなくなりました。別のアシスタントを作成して、このテンプレートを再インストールしてください。",
   "Template installations": "テンプレートのインストール",
   "Importing assistant": "アシスタントをインポート中",
   "Installing dependencies": "依存関係をインストール中",

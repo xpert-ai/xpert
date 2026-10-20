@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import {
   createInstallationClient,
+  canOpenInstalledAssistant,
   installationStageLabels,
   installationStatusLabel,
   type InstallationSnapshot
@@ -63,19 +64,47 @@ export function TemplateInstallationProgress({
 }) {
   const operation = state.operation
   const [openingError, setOpeningError] = useState('')
-  const configure = async () => {
-    if (!operation) return
-    const target = { target: 'workspace.connectors.manage', workspaceId: operation.workspaceId, organizationId }
+  const [opening, setOpening] = useState(false)
+  const openingGeneration = useRef(0)
+  const resetOpening = useCallback(() => {
+    openingGeneration.current++
+    setOpeningError('')
+    setOpening(false)
+  }, [])
+  useEffect(() => {
+    resetOpening()
+    return () => {
+      openingGeneration.current++
+    }
+  }, [client, operation?.id, resetOpening])
+  const open = async (configure = false) => {
+    if (!client || !operation || !canOpenInstalledAssistant(operation) || state.busy || opening) return
+    resetOpening()
+    setOpening(true)
+    const generation = openingGeneration.current
+    const current = () => generation === openingGeneration.current
     try {
-      setOpeningError('')
-      if (window.xpertDesktop) {
-        if (!(await window.xpertDesktop.openPlatform(target))) throw new Error(t('The operation failed. Please retry.'))
+      const latest = await client.refresh()
+      if (!current() || !latest || latest.id !== operation.id || !canOpenInstalledAssistant(latest)) return
+      if (configure) {
+        const target = { target: 'workspace.connectors.manage', workspaceId: latest.workspaceId, organizationId }
+        if (window.xpertDesktop) {
+          if (!(await window.xpertDesktop.openPlatform(target)))
+            throw new Error(t('The operation failed. Please retry.'))
+        } else {
+          const url = platformCommandUrl(webUrl, target)
+          if (url) window.open(url, '_blank', 'noopener,noreferrer')
+        }
       } else {
-        const url = platformCommandUrl(webUrl, target)
-        if (url) window.open(url, '_blank', 'noopener,noreferrer')
+        await onUse(latest.assistantId)
       }
     } catch (error) {
-      setOpeningError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+      if (!current()) return
+      const latest = await client.refresh()
+      if (current() && latest?.assistantAvailability !== 'unavailable')
+        setOpeningError(error instanceof Error ? error.message : t('Could not open the assistant.'))
+    } finally {
+      if (current()) setOpening(false)
     }
   }
   return (
@@ -97,7 +126,14 @@ export function TemplateInstallationProgress({
               {operation.error.message}
             </p>
           )}
-          {operation.pendingAuthInstallationIds.length > 0 && (
+          {operation.assistantAvailability === 'unavailable' && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t(
+                'This assistant was deleted or is no longer accessible. Create another assistant to install this template again.'
+              )}
+            </p>
+          )}
+          {operation.pendingAuthInstallationIds.length > 0 && operation.assistantAvailability !== 'unavailable' && (
             <p className="text-sm text-muted-foreground">
               {t('Assistant created. {{count}} connections still require configuration in the workspace.', {
                 count: operation.pendingAuthInstallationIds.length
@@ -116,24 +152,27 @@ export function TemplateInstallationProgress({
             {operation.status === 'succeeded' && operation.assistantId && (
               <Button
                 type="button"
-                onClick={() => {
-                  if (!operation.assistantId) return
-                  setOpeningError('')
-                  void onUse(operation.assistantId).catch((error) =>
-                    setOpeningError(error instanceof Error ? error.message : t('Could not open the assistant.'))
-                  )
-                }}
+                disabled={!canOpenInstalledAssistant(operation) || state.busy || opening}
+                onClick={() => void open()}
               >
                 {t('Open assistant')}
               </Button>
             )}
-            {operation.pendingAuthInstallationIds.length > 0 && (
-              <Button type="button" variant="outline" onClick={() => void configure()}>
+            {operation.pendingAuthInstallationIds.length > 0 && canOpenInstalledAssistant(operation) && (
+              <Button type="button" variant="outline" disabled={state.busy || opening} onClick={() => void open(true)}>
                 {t('Configure connections')}
               </Button>
             )}
             {operation.status !== 'running' && (
-              <Button type="button" variant="outline" disabled={state.busy} onClick={() => client?.newInstance()}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={state.busy}
+                onClick={() => {
+                  resetOpening()
+                  client?.newInstance()
+                }}
+              >
                 {t('Create another assistant')}
               </Button>
             )}
@@ -169,7 +208,10 @@ export function TemplateInstallationProgress({
               type="button"
               key={item.id}
               disabled={state.busy}
-              onClick={() => void client?.select(item)}
+              onClick={() => {
+                resetOpening()
+                void client?.select(item)
+              }}
               className="block w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
             >
               {new Date(item.createdAt).toLocaleString()} · {t(installationStatusLabel(item))}

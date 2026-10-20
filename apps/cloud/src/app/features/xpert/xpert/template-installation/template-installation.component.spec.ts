@@ -2,7 +2,8 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
+import type { TemplateInstallation } from '@xpert-ai/contracts'
 
 jest.mock('@cloud/app/@core', () => ({
   AiProviderRole: { Primary: 'primary' },
@@ -49,7 +50,7 @@ describe('Web template installation flow', () => {
     getSetup: jest.fn(() => of(setup))
   }
   const primary = { getAvailableByRole: jest.fn(() => of(null)) }
-  const receipt = {
+  const receipt: TemplateInstallation = {
     id: 'operation',
     templateId: 'template',
     workspaceId: 'workspace',
@@ -58,6 +59,7 @@ describe('Web template installation flow', () => {
     attempt: 1,
     publish: true,
     assistantId: 'assistant',
+    assistantAvailability: 'available',
     retryable: false,
     resourceInstallationIds: [],
     pendingAuthInstallationIds: ['connection'],
@@ -73,7 +75,11 @@ describe('Web template installation flow', () => {
   }
   const router = { navigate: jest.fn(async () => true) }
   const dialog = { close: jest.fn() }
-  const xperts = { getById: jest.fn(() => of({ id: 'assistant' })) }
+  const xperts = { getById: jest.fn(() => of({ id: 'assistant' })), refresh: jest.fn() }
+  const button = (label: string) =>
+    Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((item) =>
+      item.textContent.includes(label)
+    )
   async function settle() {
     fixture.detectChanges()
     await fixture.whenStable()
@@ -83,6 +89,9 @@ describe('Web template installation flow', () => {
   beforeEach(async () => {
     localStorage.clear()
     jest.clearAllMocks()
+    transport.create.mockImplementation(async () => receipt)
+    transport.get.mockImplementation(async () => receipt)
+    xperts.getById.mockImplementation(() => of({ id: 'assistant' }))
     organization.next('org')
     templates.getSetup.mockImplementation(() => of(setup))
     await TestBed.configureTestingModule({
@@ -112,6 +121,18 @@ describe('Web template installation flow', () => {
         { provide: DialogRef, useValue: dialog }
       ]
     }).compileComponents()
+    const translate = TestBed.inject(TranslateService)
+    translate.setTranslation('en', {
+      XP: {
+        Installation: {
+          Open: 'Open assistant',
+          Another: 'Create another assistant',
+          Configure: 'Configure connections',
+          AssistantUnavailable: 'This assistant was deleted or is no longer accessible.'
+        }
+      }
+    })
+    translate.use('en')
     fixture = TestBed.createComponent(TemplateInstallationComponent)
     fixture.componentRef.setInput('templateId', 'template')
     await settle()
@@ -239,5 +260,122 @@ describe('Web template installation flow', () => {
     organization.next('another-org')
     await settle()
     expect(fixture.componentInstance.state().operation).toBeNull()
+  })
+  it('refreshes the assistant list once per successful operation without requiring Open', async () => {
+    const component = fixture.componentInstance
+    const completed = jest.spyOn(component.completed, 'emit')
+    transport.create.mockResolvedValueOnce({ ...receipt, status: 'running', stage: 'importing' })
+    await component.start()
+    expect(xperts.refresh).not.toHaveBeenCalled()
+    await component.client.refresh()
+    expect(xperts.refresh).toHaveBeenCalledTimes(1)
+    expect(completed).not.toHaveBeenCalled()
+    await component.client.refresh()
+    await component.select(receipt)
+    expect(xperts.refresh).toHaveBeenCalledTimes(1)
+    component.newInstance()
+    transport.create.mockResolvedValueOnce({ ...receipt, id: 'second', assistantId: 'second-assistant' })
+    await component.start()
+    expect(xperts.refresh).toHaveBeenCalledTimes(2)
+  })
+  it('restores deleted targets as historical successes and creates a distinct intent only on explicit submission', async () => {
+    await fixture.componentInstance.start()
+    fixture.destroy()
+    transport.get.mockResolvedValue({ ...receipt, assistantAvailability: 'unavailable' })
+    fixture = TestBed.createComponent(TemplateInstallationComponent)
+    fixture.componentRef.setInput('templateId', 'template')
+    await settle()
+    await settle()
+    const component = fixture.componentInstance
+    expect(component.state().operation).toMatchObject({ status: 'succeeded', assistantAvailability: 'unavailable' })
+    expect(button('Open assistant').disabled).toBe(true)
+    expect(fixture.nativeElement.textContent).toContain('deleted or is no longer accessible')
+    expect(button('Configure connections')).toBeUndefined()
+    await component.client.refresh()
+    await component.open(component.state().operation)
+    expect(xperts.getById).not.toHaveBeenCalled()
+    expect(transport.create).toHaveBeenCalledTimes(1)
+    button('Create another assistant').click()
+    await settle()
+    expect(component.canStart()).toBe(true)
+    expect(component.state().operation).toBeNull()
+    await component.start()
+    expect(transport.create).toHaveBeenCalledTimes(2)
+    expect(transport.create.mock.calls[0]).not.toEqual(transport.create.mock.calls[1])
+  })
+  it('rechecks availability when opening and never opens a target deleted since the last receipt', async () => {
+    const component = fixture.componentInstance
+    await component.start()
+    transport.get.mockResolvedValueOnce({ ...receipt, assistantAvailability: 'unavailable' })
+    await component.open(component.state().operation)
+    expect(xperts.getById).not.toHaveBeenCalled()
+    expect(component.state().operation.assistantAvailability).toBe('unavailable')
+  })
+  it('recognizes deletion between the availability check and the assistant request', async () => {
+    const component = fixture.componentInstance
+    await component.start()
+    transport.get
+      .mockResolvedValueOnce(receipt)
+      .mockResolvedValueOnce({ ...receipt, assistantAvailability: 'unavailable' })
+    xperts.getById.mockReturnValueOnce(throwError(() => new Error('The requested record was not found')))
+    await component.open(component.state().operation)
+    expect(component.state().operation).toMatchObject({ status: 'succeeded', assistantAvailability: 'unavailable' })
+    expect(component.openingError()).toBe('')
+    expect(component.opening()).toBe(false)
+  })
+  it('does not open from a stale receipt when refreshing availability fails', async () => {
+    const component = fixture.componentInstance
+    await component.start()
+    transport.get.mockRejectedValueOnce(new Error('offline'))
+    await component.open(component.state().operation)
+    expect(xperts.getById).not.toHaveBeenCalled()
+    expect(component.state().error).toBe('offline')
+    expect(component.state().operation.assistantAvailability).toBe('available')
+    expect(component.opening()).toBe(false)
+  })
+  it('clears opening errors on new instance and history selection without hiding setup errors', async () => {
+    const component = fixture.componentInstance
+    await component.start()
+    xperts.getById.mockReturnValueOnce(throwError(() => new Error('open failed')))
+    await component.open(component.state().operation)
+    expect(component.openingError()).toBe('open failed')
+    await component.select(receipt)
+    expect(component.openingError()).toBe('')
+    xperts.getById.mockReturnValueOnce(throwError(() => new Error('open failed')))
+    await component.open(component.state().operation)
+    component.error.set('setup failed')
+    component.newInstance()
+    expect(component.openingError()).toBe('')
+    expect(component.error()).toBe('setup failed')
+    expect(component.state().operation).toBeNull()
+  })
+  it.each(
+    ['new instance', 'scope change', 'history selection'].flatMap((change) =>
+      ['failure', 'success'].map((outcome) => [outcome, change])
+    )
+  )('ignores late open %s after %s', async (outcome, change) => {
+    const component = fixture.componentInstance
+    const completed = jest.spyOn(component.completed, 'emit')
+    await component.start()
+    const pending = new Subject<{ id: string }>()
+    xperts.getById.mockReturnValueOnce(pending)
+    const opening = component.open(component.state().operation)
+    await settle()
+    expect(xperts.getById).toHaveBeenCalled()
+    if (change === 'new instance') component.newInstance()
+    else if (change === 'history selection') await component.select(receipt)
+    else {
+      organization.next('another-org')
+      await settle()
+    }
+    if (outcome === 'failure') pending.error(new Error('late failure'))
+    else {
+      pending.next({ id: 'assistant' })
+      pending.complete()
+    }
+    await opening
+    expect(completed).not.toHaveBeenCalled()
+    expect(component.openingError()).toBe('')
+    expect(component.opening()).toBe(false)
   })
 })
