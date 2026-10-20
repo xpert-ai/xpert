@@ -1,4 +1,6 @@
-// A provider dispatch lease can bind one exact native execution per call key. Inspection cannot mint grants.
+// Invariants: only a dispatch lease can prepare a new native effect; inspection cannot mint grants.
+// A prepared grant survives worker expiry for its exact pinned request, subject to current access/work checks.
+// Its one-time consumption is separate from observing or settling the provider action.
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'

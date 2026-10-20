@@ -105,7 +105,15 @@ export class ProjectPipelineRuntimeBridgeService {
                     .addSelect('operation.runtimeIntent')
                     .where({ ...projectionScope(context), id: operation.id })
                     .getOneOrFail()
-                if (row.leaseOwner !== workerId || row.leaseFence !== claim.fence || row.state !== 'dispatching')
+                // A slow read-only adapter cannot write intent after its dispatch lease expires.
+                const now = ((await manager.query('SELECT clock_timestamp() AS now')) as Array<{ now: Date }>)[0].now
+                if (
+                    row.leaseOwner !== workerId ||
+                    row.leaseFence !== claim.fence ||
+                    row.state !== 'dispatching' ||
+                    !row.leaseExpiresAt ||
+                    row.leaseExpiresAt <= now
+                )
                     throw pipelineProjectionConflict('OPERATION_LEASE_EXPIRED')
                 if (row.runtimeIntent && !sameInvocationData(row.runtimeIntent, proposed))
                     throw pipelineProjectionConflict('OPERATION_INPUT_IMMUTABLE')

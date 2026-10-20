@@ -20,6 +20,8 @@ import {
 } from '../persistence/pipeline.entity'
 import { pipelineDigest } from '../persistence/pipeline-identity'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
+import { sameInvocationData } from '../../../agent-invocation/invocation-runtime'
+import { pipelineRuntimeIntentSchema } from './pipeline-runtime-intent.schema'
 import { AuthorizeProjectPipelineRuntimeCommand } from './pipeline-runtime-access.command'
 
 @CommandHandler(AuthorizeProjectPipelineRuntimeCommand)
@@ -49,7 +51,11 @@ export class AuthorizeProjectPipelineRuntimeHandler implements ICommandHandler<A
             organizationId: scope.organizationId,
             enabled: true
         })
-        const operation = await this.operations.findOneBy({ ...where, id: scope.pipelineOrigin.operationId })
+        const operation = await this.operations
+            .createQueryBuilder('operation')
+            .addSelect('operation.runtimeIntent')
+            .where({ ...where, id: scope.pipelineOrigin.operationId })
+            .getOne()
         const workspace = await manager.findOneBy(XpertWorkspace, {
             id: scope.workspaceId,
             tenantId: scope.tenantId,
@@ -87,6 +93,19 @@ export class AuthorizeProjectPipelineRuntimeHandler implements ICommandHandler<A
                 operation.state !== 'dispatching'
             )
                 throw pipelineProjectionConflict('OPERATION_DISPATCH_NOT_AUTHORIZED')
+            // A dispatch lease authorizes the persisted request, not arbitrary work on the same binding.
+            const intent = pipelineRuntimeIntentSchema.safeParse(operation.runtimeIntent)
+            if (
+                !intent.success ||
+                !command.request ||
+                pipelineDigest(intent.data.scope) !== pipelineDigest(scope) ||
+                !sameInvocationData(command.request, {
+                    callId: operation.id,
+                    target: intent.data.target,
+                    input: intent.data.input
+                })
+            )
+                throw pipelineProjectionConflict('OPERATION_INPUT_IMMUTABLE')
         }
         const run = await manager.findOneBy(ProjectPipelineRunEntity, {
             ...where,

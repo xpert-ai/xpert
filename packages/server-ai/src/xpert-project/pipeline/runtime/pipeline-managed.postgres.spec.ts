@@ -1,4 +1,5 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
+import { registerCoordinationReviewCases } from './testing/pipeline-coordination-review.cases'
 import { managedPipelineFixture } from './testing/pipeline-managed.fixture'
 import { registerManagedCases1 } from './testing/pipeline-managed-1.cases'
 import { registerManagedCases2 } from './testing/pipeline-managed-2.cases'
@@ -10,4 +11,5 @@ integration('managed pipeline launch and adapter execution', () => {
     registerManagedCases1(fixture)
     registerManagedCases2(fixture)
     registerManagedCases3(fixture)
+    registerCoordinationReviewCases(fixture)
 })

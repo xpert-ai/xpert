@@ -201,6 +201,8 @@ export class ProjectPipelineProviderActionStore {
             const mode = row.state === 'queued' ? 'execute' : row.projectionPending ? 'project' : 'inspect'
             if (mode === 'execute' && !pipelineDispatchEnabled()) return null
             if (mode === 'execute') row.state = 'dispatching'
+            // Recovery owns observation only; even a fresh fence cannot authorize another dispatch.
+            else if (mode === 'inspect' && row.state === 'dispatching') row.state = 'unknown'
             row.leaseOwner = worker
             row.leaseFence++
             row.leaseExpiresAt = new Date(now.getTime() + leaseMs)

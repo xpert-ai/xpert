@@ -366,6 +366,8 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             start: async (request) => {
                 const scope = currentScope()
                 if (scope.callerType === 'project_pipeline') {
+                    // Authorize and launch one snapshot even if the caller retains a mutable request.
+                    request = structuredClone(request)
                     const parsed = projectPipelineInvocationScopeSchema.safeParse(scope)
                     if (
                         !parsed.success ||
@@ -375,7 +377,12 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                     )
                         throw invocationError('InvalidRequest')
                     await this.commands.execute(
-                        new AuthorizeProjectPipelineRuntimeCommand(parsed.data, request.target.bindingId, 'dispatch')
+                        new AuthorizeProjectPipelineRuntimeCommand(
+                            parsed.data,
+                            request.target.bindingId,
+                            'dispatch',
+                            request
+                        )
                     )
                 }
                 return api().start(request)

@@ -24,6 +24,7 @@ const payloadSchema = z.object({ projectId: z.string().uuid(), operationId: z.st
 @PluginJobProcessor({ ...PIPELINE_OPERATION_JOB, concurrency: 4 })
 export class ProjectPipelineOperationWorkerService {
     private scanning = false
+    private afterId?: string
     private readonly logger = new Logger(ProjectPipelineOperationWorkerService.name)
     constructor(
         private readonly store: ProjectPipelineOperationStore,
@@ -36,7 +37,10 @@ export class ProjectPipelineOperationWorkerService {
         if (this.scanning) return
         this.scanning = true
         try {
-            const operations = await this.store.due(40)
+            const operations = await this.store.due(40, this.afterId)
+            // Failed authorization or preparation must not pin recovery to the first page.
+            // Failed deliveries remain in SQL and are retried on the next sweep.
+            this.afterId = operations.length === 40 ? operations[operations.length - 1].id : undefined
             const results = await Promise.allSettled(
                 operations.map((operation) =>
                     this.queue.enqueue({

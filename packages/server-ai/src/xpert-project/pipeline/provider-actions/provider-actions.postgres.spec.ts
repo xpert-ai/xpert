@@ -302,6 +302,43 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
         await expect(call()).rejects.toMatchObject({ response: { code: 'NATIVE_DISPATCH_ALREADY_CONSUMED' } })
         expect(await grants.countBy({ projectId: context.projectId })).toBe(1)
     })
+    it('keeps a recovered inspection lease from minting new native grants while preserving the prepared identity', async () => {
+        const f = await nativeGrant(),
+            id = f.request.source.operationId,
+            observer = randomUUID()
+        await f.grants.prepare(f.request)
+        await due(id)
+        const recovered = await store.claim(context, id, observer)
+        expect(recovered.mode).toBe('inspect')
+        await expect(
+            f.grants.prepare({
+                ...f.request,
+                executionId: randomUUID(),
+                source: {
+                    ...f.request.source,
+                    leaseOwner: observer,
+                    leaseFence: recovered.fence,
+                    callKey: 'new-effect'
+                }
+            })
+        ).rejects.toMatchObject({ response: { code: 'OPERATION_DISPATCH_NOT_AUTHORIZED' } })
+        await f.grants.consume(f.request)
+        await expect(f.grants.consume(f.request)).rejects.toMatchObject({
+            response: { code: 'NATIVE_DISPATCH_ALREADY_CONSUMED' }
+        })
+        expect(await db.getRepository(ProjectPipelineNativeGrantEntity).countBy({ projectId: context.projectId })).toBe(
+            1
+        )
+    })
+    it('does not allow first dispatch through a recovered inspection lease', async () => {
+        const submitted = await service.submit(context, input),
+            observer = randomUUID()
+        await store.claim(context, submitted.id, randomUUID())
+        await due(submitted.id)
+        const recovered = await store.claim(context, submitted.id, observer)
+        expect(recovered.mode).toBe('inspect')
+        expect(await store.begin(context, submitted.id, observer, recovered.fence)).toBe(false)
+    })
     it('rejects wrong project, actor, lease and publication before saving a native identity', async () => {
         const f = await nativeGrant(),
             r = f.request

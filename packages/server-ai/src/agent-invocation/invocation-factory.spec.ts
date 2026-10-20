@@ -297,7 +297,12 @@ describe('Agent invocation factory and controller boundaries', () => {
         expect(f.provider.start).not.toHaveBeenCalled()
         const first = await api.start(request)
         expect(first.scope).toEqual(scope)
-        await api.start(request)
+        commands.execute.mockImplementationOnce(async () => {
+            request.input.prompt = 'Mutated during authorization'
+        })
+        await expect(api.start(request)).resolves.toMatchObject({
+            request: { input: { prompt: 'Read neutral input' } }
+        })
         expect(f.provider.start).toHaveBeenCalledTimes(1)
         commands.execute.mockRejectedValue(new Error('origin revoked'))
         await expect(api.start(request)).rejects.toThrow()

@@ -205,6 +205,8 @@ export class ProjectPipelineOperationStore implements OnModuleInit {
             }
             // Once claimed, loss of the worker can never produce a second execute for this operation.
             if (mode === 'execute') operation.state = 'dispatching'
+            // Recovery owns observation only; even a fresh fence cannot authorize another dispatch.
+            else if (mode === 'inspect' && operation.state === 'dispatching') operation.state = 'unknown'
             operation.leaseFence += 1
             operation.leaseOwner = workerId
             operation.leaseExpiresAt = new Date(now.getTime() + leaseMs)
@@ -357,18 +359,18 @@ export class ProjectPipelineOperationStore implements OnModuleInit {
     }
 
     /** Bounded recovery scan. Scheduling these IDs grants no authority; claim and the worker revalidate scope. */
-    due(limit = 100) {
-        return this.operations
+    due(limit = 100, afterId?: string) {
+        const query = this.operations
             .createQueryBuilder('operation')
             .where('operation.state IN (:...states)', {
                 states: pipelineDispatchEnabled() ? runnable : runnable.filter((state) => state !== 'queued')
             })
             .andWhere('operation."nextCheckAt" <= CURRENT_TIMESTAMP')
             .andWhere('(operation."leaseExpiresAt" IS NULL OR operation."leaseExpiresAt" <= CURRENT_TIMESTAMP)')
-            .orderBy('operation."nextCheckAt"', 'ASC')
-            .addOrderBy('operation.id', 'ASC')
+            .orderBy('operation.id', 'ASC')
             .take(Math.min(500, Math.max(1, limit)))
-            .getMany()
+        if (afterId) query.andWhere('operation.id > :afterId', { afterId })
+        return query.getMany()
     }
 
     private async lockProject(manager: EntityManager, context: ProjectPipelineContext) {

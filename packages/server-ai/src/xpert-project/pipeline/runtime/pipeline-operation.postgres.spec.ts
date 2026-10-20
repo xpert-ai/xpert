@@ -394,10 +394,18 @@ integration('durable pipeline operation outbox', () => {
         const workerId = randomUUID(),
             claim = await store.claim(context, operation.id, workerId)
         await store.beginDispatch(context, operation.id, workerId, claim.fence)
-        await handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch'))
+        const target = (await db.getRepository(AgentRuntimeBindingEntity).findOneByOrFail({ id: bindingId })).target
+        const request = { callId: operation.id, target, input: { prompt: 'Pinned input' } }
+        await expect(
+            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch', request))
+        ).rejects.toMatchObject({ response: { code: 'OPERATION_INPUT_IMMUTABLE' } })
+        const saved = await db.getRepository(ProjectPipelineOperationEntity).findOneByOrFail({ id: operation.id })
+        saved.runtimeIntent = { scope, invocationId: randomUUID(), target, input: request.input }
+        await db.manager.save(saved)
+        await handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch', request))
         await db.getRepository(ProjectPipelineOperationEntity).update(operation.id, { leaseExpiresAt: new Date(0) })
         await expect(
-            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch'))
+            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch', request))
         ).rejects.toMatchObject({ response: { code: 'OPERATION_DISPATCH_NOT_AUTHORIZED' } })
         await handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId))
         await db
@@ -405,12 +413,12 @@ integration('durable pipeline operation outbox', () => {
             .update(operation.id, { leaseExpiresAt: new Date(Date.now() + 30_000) })
         await db.getRepository(ProjectPipelineInstanceEntity).update(operation.instanceId, { currentRoundId: null })
         await expect(
-            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch'))
+            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch', request))
         ).rejects.toMatchObject({ response: { code: 'OPERATION_DISPATCH_NOT_AUTHORIZED' } })
         await handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId))
         await db.getRepository(ProjectPipelineOperationEntity).update(operation.id, { state: 'superseded' })
         await expect(
-            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch'))
+            handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId, 'dispatch', request))
         ).rejects.toMatchObject({ response: { code: 'OPERATION_DISPATCH_NOT_AUTHORIZED' } })
         await handler.execute(new AuthorizeProjectPipelineRuntimeCommand(scope, bindingId))
         access.assertEdit.mockRejectedValue(new Error('revoked'))

@@ -109,10 +109,15 @@ export class ProjectPipelineAssistantBridgeService {
                         .addSelect('operation.assistantIntent')
                         .where({ ...scope, id: operation.id })
                         .getOneOrFail()
+                    // A slow read-only adapter cannot write intent after its dispatch lease expires.
+                    const now = ((await manager.query('SELECT clock_timestamp() AS now')) as Array<{ now: Date }>)[0]
+                        .now
                     if (
                         current.leaseOwner !== workerId ||
                         current.leaseFence !== claim.fence ||
-                        current.state !== 'dispatching'
+                        current.state !== 'dispatching' ||
+                        !current.leaseExpiresAt ||
+                        current.leaseExpiresAt <= now
                     )
                         throw pipelineProjectionConflict('OPERATION_LEASE_EXPIRED')
                     if (current.assistantIntent && pipelineDigest(current.assistantIntent) !== pipelineDigest(proposed))
