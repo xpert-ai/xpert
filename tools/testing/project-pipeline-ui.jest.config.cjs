@@ -32,6 +32,10 @@ module.exports = {
   },
   transformIgnorePatterns: ['/node_modules/(?!@xpert-ai/chatkit-types/|\\.pnpm/@xpert-ai\\+chatkit-types@)'],
   moduleNameMapper: {
+    // Icons and UI packages must share the renderer's React runtime in this isolated test harness.
+    '^react$': '<rootDir>/node_modules/react',
+    '^react/(.*)$': '<rootDir>/node_modules/react/$1',
+    '^react-dom(.*)$': '<rootDir>/node_modules/react-dom$1',
     '^@xpert-ai/contracts$': '<rootDir>/packages/contracts/src/index.ts',
     '^@xpert-ai/shadcn-ui$': '<rootDir>/packages/shadcn-ui/src/index.ts',
     '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/packages/shadcn-ui/src/brand-icons/index.cts'

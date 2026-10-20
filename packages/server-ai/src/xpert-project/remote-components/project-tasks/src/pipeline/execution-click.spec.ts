@@ -37,7 +37,15 @@ it('opens the precise visible attempt after lane deduplication and after switchi
     )
     const attempts: Attempt[] = [
         { id: 'old', taskId: 'task', attempt: 1, status: 'succeeded', agentExecutionId: 'native-old' },
-        { id: 'current', taskId: 'task', attempt: 2, status: 'succeeded', agentExecutionId: 'native-current' },
+        {
+            id: 'current',
+            taskId: 'task',
+            attempt: 2,
+            status: 'failed',
+            runtimeStatus: 'success',
+            outputSummary: 'rejected',
+            agentExecutionId: 'native-current'
+        },
         { id: 'alias', taskId: 'other-task', attempt: 3, status: 'succeeded', agentExecutionId: 'native-current' }
     ]
     const current = [
@@ -64,6 +72,8 @@ it('opens the precise visible attempt after lane deduplication and after switchi
     try {
         await render(current)
         expect(container.querySelectorAll('button')).toHaveLength(1)
+        expect(container.querySelector('button span')!.className).toContain('bg-[var(--success)]')
+        expect(container.querySelector('button')!.getAttribute('aria-label')).toContain('未通过验收')
         await act(async () => container.querySelector('button')!.click())
         expect(send).toHaveBeenNthCalledWith(1, 'executeAction', {
             actionKey: 'execution-target',

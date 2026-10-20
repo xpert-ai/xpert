@@ -67,6 +67,23 @@ jest.mock('./lifecycle', () => ({ PipelineLifecycle: () => null }))
 jest.mock('./configuration', () => ({ PipelineConfiguration: () => null }))
 jest.mock('./evidence', () => ({ PipelineEvidence: () => null }))
 jest.mock('./provider-actions', () => ({ ProviderActions: () => null }))
+jest.mock('./pipeline-heading', () => ({
+    PipelineHeading: ({
+        items,
+        hasMore,
+        onMore
+    }: {
+        items: Array<{ id: string; title: string }>
+        hasMore: boolean
+        onMore: () => void
+    }) =>
+        React.createElement(
+            'div',
+            { 'data-heading': true },
+            items.map((item) => React.createElement('span', { key: item.id }, item.title)),
+            hasMore && React.createElement('button', { onClick: onMore }, 'More pipelines')
+        )
+}))
 jest.mock('./swimlane', () => ({ Swimlane: () => null }))
 jest.mock('./timeline', () => ({ ExecutionTimeline: () => null }))
 
@@ -165,6 +182,52 @@ it('keeps one workspace entry through repeated polling updates and removes it fo
     } finally {
         await act(async () => root.unmount())
         container.remove()
+        jest.useRealTimers()
+        errors.mockRestore()
+    }
+})
+
+it('preserves loaded pipeline pages while polling an explicitly selected instance', async () => {
+    jest.useFakeTimers()
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    const container = document.createElement('div'),
+        root = createRoot(container)
+    const first = { id: 'first', title: 'First flow' },
+        second = { id: 'second', title: 'Second flow' }
+    jest.mocked(listPipelines)
+        .mockReset()
+        .mockResolvedValueOnce({ items: [first], next: 'page-2' } as Awaited<ReturnType<typeof listPipelines>>)
+        .mockResolvedValueOnce({ items: [second], next: null } as Awaited<ReturnType<typeof listPipelines>>)
+        .mockResolvedValue({ items: [first], next: 'page-2' } as Awaited<ReturnType<typeof listPipelines>>)
+    jest.mocked(readPipelineRounds).mockResolvedValue({ items: [], next: null })
+    jest.mocked(readPipeline).mockResolvedValue({
+        cursor: 'unchanged',
+        instance: first,
+        round: { sequence: 1 },
+        roundId: 'round',
+        definition: { lanes: [], stages: [] },
+        nodes: [],
+        tasks: { tasks: [], executions: [] },
+        attentions: [],
+        edges: []
+    } as Awaited<ReturnType<typeof readPipeline>>)
+    try {
+        await act(async () =>
+            root.render(
+                React.createElement(PipelineView, {
+                    locale: 'en-US',
+                    onTask: () => undefined,
+                    initialFocus: { pipelineInstanceId: 'first' }
+                })
+            )
+        )
+        await act(async () => container.querySelector<HTMLButtonElement>('[data-heading] button')!.click())
+        expect(container.querySelector('[data-heading]')!.textContent).toContain('Second flow')
+        await act(async () => jest.advanceTimersByTime(5000))
+        expect(listPipelines).toHaveBeenCalledTimes(2)
+        expect(container.querySelector('[data-heading]')!.textContent).toContain('Second flow')
+    } finally {
+        await act(async () => root.unmount())
         jest.useRealTimers()
         errors.mockRestore()
     }

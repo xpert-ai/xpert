@@ -71,6 +71,7 @@ export function PipelineView({
             onlyBlocked
         })
     }, [instanceId, roundId, mode, lane, selectedLane, onlyBlocked])
+    const catalogLoaded = useRef(false)
     const historyFirst = useRef<string | null>(null)
     const nextRequest = useRef<{ key: string; id: string } | null>(null)
     const generation = useRef(0),
@@ -82,7 +83,7 @@ export function PipelineView({
             loading.current = revision
             setBusy(true)
             try {
-                if (!instanceId || includeCatalog || !loaded) {
+                if (!instanceId || includeCatalog || !catalogLoaded.current) {
                     const page = await listPipelines()
                     if (revision !== generation.current) return
                     setItems((previous) => {
@@ -92,6 +93,8 @@ export function PipelineView({
                             : page.items
                     })
                     setNext(page.next)
+                    // Poll callbacks retain their original closure; catalog readiness must survive it.
+                    catalogLoaded.current = true
                     setLoaded(true)
                     if (!instanceId && page.items[0]) setInstanceId(page.items[0].id)
                 }

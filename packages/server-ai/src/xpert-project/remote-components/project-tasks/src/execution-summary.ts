@@ -1,13 +1,10 @@
 import { attemptTimes, isRunning, type Attempt } from './model'
 import { runtimeLabel, type Texts } from './i18n'
 export function executionSummary(attempt: Attempt, t: Texts) {
-    const state = attempt.runtimeStatus ?? attempt.invocationStatus ?? attempt.status
+    // Execution color follows the runtime result; business acceptance is a separate annotation.
+    const state = attempt.invocationStatus ?? attempt.runtimeStatus ?? attempt.status
     const succeeded = state === 'success' || state === 'succeeded'
-    const failed =
-        attempt.status === 'failed' ||
-        attempt.status === 'error' ||
-        attempt.outputSummary === 'rejected' ||
-        ['failed', 'error', 'timeout'].includes(state)
+    const failed = ['failed', 'error', 'timeout'].includes(state)
     const businessResult =
         attempt.outputSummary === 'rejected' ? t.rejected : attempt.status === 'failed' && succeeded ? t.failed : null
     return { state, succeeded, failed, businessResult, label: runtimeLabel(state, t) }

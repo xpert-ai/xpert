@@ -35,7 +35,30 @@ it('measures running attempts against the supplied observation or historical sna
 it('keeps runtime success distinct from a rejected business result', () => {
     expect(executionSummary({ ...attempt, outputSummary: 'rejected' }, texts('zh-Hans'))).toMatchObject({
         succeeded: true,
-        failed: true,
+        failed: false,
         businessResult: texts('zh-Hans').rejected
+    })
+})
+
+it('prefers full Invocation status over stale native or Task state', () => {
+    expect(
+        executionSummary(
+            { ...attempt, invocationStatus: 'succeeded', runtimeStatus: 'running', status: 'failed' },
+            texts('zh-Hans')
+        )
+    ).toMatchObject({
+        state: 'succeeded',
+        succeeded: true,
+        failed: false,
+        businessResult: texts('zh-Hans').failed
+    })
+    expect(executionSummary({ ...attempt, invocationStatus: 'waiting' }, texts('zh-Hans'))).toMatchObject({
+        state: 'waiting',
+        succeeded: false,
+        failed: false
+    })
+    expect(executionSummary({ ...attempt, runtimeStatus: 'error' }, texts('zh-Hans'))).toMatchObject({
+        failed: true,
+        succeeded: false
     })
 })
