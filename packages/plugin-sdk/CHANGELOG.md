@@ -1,5 +1,32 @@
 # @xpert-ai/plugin-sdk
 
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+- 1b5096f: Validate provider credentials before saving by reusing model discovery when supported, or by testing a user-selected model or endpoint. Expose an optional SDK validation policy and typed preview API, show discovered models and actionable authentication errors, and repeat validation on save without persisting the test target.
+- 1cd5a33: Expose a governed REST client runtime for enabled read-only operations on existing OpenAPI connections. Reuse platform credentials and permissions, pin operation contracts, and bound JSON transport without redirects.
+
+### Patch Changes
+
+- 4ff6010: Use the resolved model context window consistently for primary calls and context compression. Preserve explicit provider limits and remove model-name guesses that can incorrectly reject summary input for custom endpoints.
+- 8a0c256: Expose configuration tabs for existing MCP Publication plugin sources, rendered from each bound provider's `configSchema`. Preserve schema UI metadata, mask saved secrets and reject stale saves without changing ordinary toolset registration or installation.
+
+  Allow native providers to validate connection values before persistence. Preserve array secrets by their source reference when entries are moved or removed, and reject ambiguous or mismatched references. Avoid eager tag joins when locking connection rows on PostgreSQL.
+
+  Allow administrators to delete disabled MCP services after confirmation, clearing publication records and installation references while retaining source plugins and tools. Removing shared-service admission in an organization only removes that organization's access and records.
+
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+  - @xpert-ai/contracts@3.25.0
+
 ## 3.24.0
 
 ### Minor Changes
