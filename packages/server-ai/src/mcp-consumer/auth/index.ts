@@ -1,4 +1,5 @@
 export * from './mcp-consumer-auth.registry'
+export * from './mcp-client-auth'
 export * from './mcp-consumer-oauth-credential.entity'
 export * from './mcp-consumer-oauth-session.entity'
 export * from './mcp-consumer-oauth.service'
