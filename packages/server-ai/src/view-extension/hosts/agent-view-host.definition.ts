@@ -1,15 +1,10 @@
+import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
 import {
     AIPermissionsEnum,
-    CONVERSATION_MAP_FEATURE,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
-    getAgentMiddlewareNodes,
-    IWFNMiddleware,
     IXpert,
-    normalizeMiddlewareProvider,
     resolveRuntimeXpert,
-    type TXpertTeamNode,
-    TXpertFeatures,
     XpertResolvedViewHostContext,
     XpertViewActionRequest,
     XpertViewHostContext,
@@ -287,63 +282,25 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
     }> {
-        const features = new Set<string>([CONVERSATION_MAP_FEATURE, ...this.getEnabledXpertFeatures(xpert.features)])
-        const middlewareProviders = new Set<string>()
-        const middlewareNodeKeys = new Set<string>()
-        const graph = xpert.graph
-        const agentKey = xpert.agent?.key ?? this.findPrimaryAgentKey(graph)
-        const availableAgents = (graph?.nodes ?? [])
-            .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
-            .map((node) => ({
-                key: node.entity?.key ?? node.key,
-                title: node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key,
-                role:
-                    node.entity?.description ?? node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key
-            }))
-            .filter((agent) => Boolean(agent.key))
-            .sort((left, right) => left.key.localeCompare(right.key))
+        const { agentKey, features, availableAgents, middlewareProviders, middlewareNodeKeys } = agentCapabilities(
+            xpert,
+            this.agentMiddlewareRegistry
+        )
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
         const externalAssistants = agentKey ? await this.resolveExternalAssistants(xpert, agentKey) : []
-
-        if (graph && agentKey) {
-            for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
-                const entity = node?.entity as unknown as IWFNMiddleware | undefined
-                const provider = normalizeMiddlewareProvider(entity?.provider)
-                if (!provider) {
-                    continue
-                }
-
-                middlewareProviders.add(provider)
-                if (node.key) {
-                    middlewareNodeKeys.add(node.key)
-                }
-
-                try {
-                    const strategy = this.agentMiddlewareRegistry.get(provider, xpert.organizationId ?? undefined)
-                    for (const feature of strategy.meta.features ?? []) {
-                        if (typeof feature === 'string' && feature.trim()) {
-                            features.add(feature.trim())
-                        }
-                    }
-                } catch {
-                    // A missing strategy should not make the host unavailable. The
-                    // provider name is still exposed so manifests may gate on it.
-                }
-            }
-        }
 
         return {
             agentKey,
             capabilities: {
-                features: Array.from(features).sort()
+                features
             },
             hostState: {
                 agent: {
                     key: agentKey,
                     availableAgents,
                     ...(externalAssistants.length ? { externalAssistants } : {}),
-                    middlewareProviders: Array.from(middlewareProviders).sort(),
-                    middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
+                    middlewareProviders,
+                    middlewareNodeKeys,
                     connections: knowledgebaseIds.map((id) => ({
                         type: 'knowledgebase',
                         id
@@ -368,21 +325,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return candidates
             .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
             .map((candidate) => safeExternalAssistantBinding(describeExternalAssistantBinding(xpert, candidate)))
-    }
-
-    private getEnabledXpertFeatures(features?: TXpertFeatures | null): string[] {
-        if (!features) {
-            return []
-        }
-
-        return Object.entries(features)
-            .filter(([, value]) => Boolean(value && typeof value === 'object' && 'enabled' in value && value.enabled))
-            .map(([key]) => key)
-    }
-
-    private findPrimaryAgentKey(graph?: IXpert['graph'] | null): string | null {
-        const agentNode = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
-        return agentNode?.key ?? agentNode?.entity?.key ?? null
     }
 }
 

@@ -1,3 +1,4 @@
+import { AuthorizeProjectPipelineRuntimeCommand } from '../../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -60,11 +61,12 @@ async function fixture() {
             fileName: 'test.txt'
         })
     }
+    const commands = { execute: jest.fn() }
     const module = await Test.createTestingModule({
         providers: [
             CodingExecutionProvider,
             ExecutionReaderService,
-            { provide: CommandBus, useValue: { execute: jest.fn() } },
+            { provide: CommandBus, useValue: commands },
             { provide: getRepositoryToken(AgentInvocationEntity), useValue: records },
             { provide: InvocationActivityService, useValue: activity },
             { provide: ArtifactsService, useValue: artifacts }
@@ -78,7 +80,16 @@ async function fixture() {
         userId: 'owner',
         slots: []
     }
-    return { invocation, records, binding, activity, artifacts, context, provider: module.get(CodingExecutionProvider) }
+    return {
+        invocation,
+        records,
+        binding,
+        activity,
+        artifacts,
+        context,
+        commands,
+        provider: module.get(CodingExecutionProvider)
+    }
 }
 describe('independent coding execution View', () => {
     it('reads a retained result without requiring an installed strategy and does not project control data', async () => {
@@ -102,6 +113,40 @@ describe('independent coding execution View', () => {
                 selectionId: f.invocation.id
             })
         ).rejects.toThrow()
+    })
+    it('revalidates exact Pipeline origin before exposing retained execution results', async () => {
+        const f = await fixture(),
+            id = randomUUID(),
+            operationId = randomUUID()
+        f.invocation.scope = {
+            tenantId: id,
+            organizationId: id,
+            userId: id,
+            workspaceId: id,
+            projectId: id,
+            callerType: 'project_pipeline',
+            callerAgentKey: 'pipeline_node',
+            parentExecutionId: `pipeline-operation:${operationId}`,
+            pipelineOrigin: {
+                instanceId: id,
+                runId: id,
+                roundId: id,
+                nodeInstanceId: id,
+                operationId,
+                generation: 1,
+                inputDigest: 'a'.repeat(64)
+            }
+        }
+        f.binding.mockResolvedValue({ workspaceIds: [id] })
+        const context = { ...f.context, hostId: id, tenantId: id, organizationId: id, userId: id }
+        await f.provider.getViewData(context, 'execution', { selectionId: f.invocation.id })
+        expect(f.commands.execute).toHaveBeenCalledWith(expect.any(AuthorizeProjectPipelineRuntimeCommand))
+        f.commands.execute.mockRejectedValueOnce(Error('Origin revoked'))
+        await expect(f.provider.getViewData(context, 'execution', { selectionId: f.invocation.id })).rejects.toThrow(
+            'Origin revoked'
+        )
+        f.invocation.scope.callerXpertId = id
+        await expect(f.provider.getViewData(context, 'execution', { selectionId: f.invocation.id })).rejects.toThrow()
     })
     it('projects the concrete completion failure without leaking runtime control metadata', async () => {
         const f = await fixture()

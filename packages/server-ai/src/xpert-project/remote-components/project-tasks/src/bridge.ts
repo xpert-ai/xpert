@@ -1,3 +1,4 @@
+import { restoreTaskView, type TaskViewState } from './view-state'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
 import { z } from 'zod'
 import { PROJECT_TASK_ICON_NAMES } from '@xpert-ai/contracts'
@@ -14,6 +15,20 @@ const envelope = z
         data: z.unknown().optional(),
         result: z.unknown().optional(),
         locale: z.string().optional(),
+        viewState: z.unknown().optional(),
+        initialQuery: z
+            .object({
+                parameters: z
+                    .object({
+                        pipelineInstanceId: z.string().uuid().optional(),
+                        pipelineRoundId: z.string().uuid().optional(),
+                        pipelineNodeId: z.string().uuid().optional(),
+                        initialTab: z.string().optional(),
+                        configure: z.union([z.boolean(), z.string()]).optional()
+                    })
+                    .optional()
+            })
+            .optional(),
         message: z.string().optional(),
         theme: z
             .object({
@@ -33,7 +48,24 @@ export function send(type: string, body: object = {}) {
         '*'
     )
 }
-export function connect(onReady: (locale: string) => void, contextChanged: () => void) {
+export interface PipelineFocus extends TaskViewState {
+    pipelineNodeId?: string
+}
+let currentViewState: TaskViewState = {}
+export const getTaskViewState = () => ({ ...currentViewState })
+export function saveTaskViewState(patch: TaskViewState) {
+    currentViewState = { ...currentViewState, ...patch }
+    send('saveViewState', {
+        state: Object.fromEntries(Object.entries(currentViewState).filter(([, value]) => value !== undefined))
+    })
+}
+export function connect(
+    onReady: (
+        locale: string,
+        entry: { pipeline: boolean; tab?: TaskViewState['initialTab']; configure: boolean; focus: PipelineFocus }
+    ) => void,
+    contextChanged: () => void
+) {
     const listener = (event: MessageEvent<unknown>) => {
         if (event.source !== window.parent) return
         const parsed = envelope.safeParse(event.data)
@@ -51,7 +83,13 @@ export function connect(onReady: (locale: string) => void, contextChanged: () =>
             document.documentElement.classList.toggle('dark', message.theme?.mode === 'dark')
             document.documentElement.lang = message.locale ?? 'en-US'
             instanceId = message.instanceId
-            onReady(message.locale ?? 'en-US')
+            currentViewState = restoreTaskView(message.viewState, message.initialQuery?.parameters)
+            onReady(message.locale ?? 'en-US', {
+                pipeline: currentViewState.initialTab === 'pipeline',
+                tab: currentViewState.initialTab,
+                configure: message.initialQuery?.parameters?.configure === true,
+                focus: { ...currentViewState, pipelineNodeId: message.initialQuery?.parameters?.pipelineNodeId }
+            })
             return
         }
         if (message.instanceId === instanceId && message.type === 'hostEvent') {
@@ -93,6 +131,9 @@ export function request(type: string, body: object = {}): Promise<unknown> {
     })
 }
 export const nodeSchema = z.object({
+    controlKind: z.enum(['ordinary', 'provider', 'pipeline']).optional(),
+    pipelineInstanceId: z.string().nullable().optional(),
+    pipelineDisposition: z.enum(['active', 'removed', 'excluded', 'superseded']).nullable().optional(),
     id: z.string(),
     title: z.string(),
     status: z.enum(['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled']),
@@ -138,6 +179,7 @@ export const graphSchema = z.object({
         z.object({
             id: z.string(),
             taskId: z.string(),
+            executorName: z.string().nullish(),
             attempt: z.number(),
             status: z.string(),
             invocationId: z.string().nullish(),
@@ -146,6 +188,8 @@ export const graphSchema = z.object({
                 .nullish(),
             runtimeProvider: z.string().optional(),
             runtimeToolId: z.string().optional(),
+            runtimeServiceRef: z.string().optional(),
+            pipelineAttemptKind: z.enum(['initial', 'technical_retry']).optional(),
             runtimeStatus: z.string().optional(),
             runtimeStartedAt: z.string().nullish(),
             runtimeCompletedAt: z.string().nullish(),

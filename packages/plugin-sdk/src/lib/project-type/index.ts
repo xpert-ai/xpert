@@ -1,6 +1,11 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import type { XpertProjectTypeRef, ConversationResourceCard } from '@xpert-ai/contracts'
+import type {
+  XpertProjectTypeRef,
+  ConversationResourceCard,
+  XpertProjectViewSelection,
+  ProjectPipelineProjectionNode
+} from '@xpert-ai/contracts'
 import { BaseStrategyRegistry } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
 
@@ -19,6 +24,17 @@ export interface ProjectTypeBinding {
   xpertId?: string
   viewKey: string
   selectionId?: string
+  parameters?: XpertProjectViewSelection['parameters']
+}
+
+/** Host-validated current node; plugins still recheck their domain link and target resource. */
+export interface ProjectTypePipelineNode {
+  instanceId: string
+  /** Host-validated return focus. Optional for older hosts. */
+  returnFocus?: { instanceId: string; roundId: string; nodeId: string }
+  ownerRef: string
+  sourceKey: string
+  node: ProjectPipelineProjectionNode
 }
 
 /**
@@ -56,6 +72,12 @@ export interface IProjectTypeProvider {
   ): Promise<ProjectTypeBinding & { name: string; status: 'active' | 'archived' }>
   /** Opens the application's governed creation workflow. */
   createEntry(context: ProjectTypeContext): Promise<ProjectTypeBinding>
+  /** Read-only focus within this Project's governed Assistant; cannot change Assistant or Project identity. */
+  resolveNodeEntry?(
+    context: ProjectTypeContext,
+    projectId: string,
+    target: ProjectTypePipelineNode
+  ): Promise<XpertProjectViewSelection>
   /**
    * Optional opt-in to first-send creation. Persist the business entity and its
    * link to input.projectId atomically using input.transaction, then return its entry

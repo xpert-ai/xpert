@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 1,
+  "proposalOnly": true,
+  "template": {
+    "key": "example.code-review.pull-request",
+    "version": "1.0.0",
+    "title": "Code Review",
+    "executionAuthority": "platform",
+    "subjectResolverRef": "example.code-review.pull-request-version@1",
+    "topology": {
+      "source": "definition"
+    },
+    "roles": [
+      {
+        "key": "prepare",
+        "allowedKinds": ["service"]
+      },
+      {
+        "key": "reviewer",
+        "allowedKinds": ["assistant", "runtime_binding"]
+      },
+      {
+        "key": "verifier",
+        "allowedKinds": ["assistant", "runtime_binding"]
+      },
+      {
+        "key": "owner",
+        "allowedKinds": ["human"]
+      },
+      {
+        "key": "system",
+        "allowedKinds": ["service"]
+      }
+    ],
+    "lanes": [
+      {
+        "key": "prepare",
+        "roleKey": "prepare",
+        "label": "变更准备",
+        "order": 1
+      },
+      {
+        "key": "review",
+        "roleKey": "reviewer",
+        "label": "代码审查",
+        "order": 2
+      },
+      {
+        "key": "verification",
+        "roleKey": "verifier",
+        "label": "问题验证",
+        "order": 3
+      },
+      {
+        "key": "owner",
+        "roleKey": "owner",
+        "label": "负责人",
+        "order": 4
+      },
+      {
+        "key": "system",
+        "roleKey": "system",
+        "label": "系统服务",
+        "order": 5
+      }
+    ],
+    "stages": [
+      {
+        "key": "input",
+        "label": "输入版本",
+        "order": 1
+      },
+      {
+        "key": "checks",
+        "label": "并行检查",
+        "order": 2
+      },
+      {
+        "key": "verify",
+        "label": "问题复核",
+        "order": 3
+      },
+      {
+        "key": "decision",
+        "label": "决策门禁",
+        "order": 4
+      },
+      {
+        "key": "delivery",
+        "label": "交付确认",
+        "order": 5
+      }
+    ],
+    "nodes": [
+      {
+        "key": "prepare",
+        "kind": "work",
+        "laneKey": "prepare",
+        "stageKey": "input",
+        "operationRef": "example.code-review.prepare-snapshot@1",
+        "executorSlot": "prepare",
+        "completionRef": "platform.output-validated@1",
+        "inputBindings": {
+          "subject": {
+            "from": "subject"
+          }
+        },
+        "outputPorts": {
+          "snapshot": "example.code-review.code-snapshot@1"
+        }
+      },
+      {
+        "key": "fanout",
+        "kind": "fork",
+        "stageKey": "checks"
+      },
+      {
+        "key": "correctness",
+        "kind": "work",
+        "laneKey": "review",
+        "stageKey": "checks",
+        "operationRef": "example.code-review.correctness@1",
+        "executorSlot": "correctness",
+        "completionRef": "platform.output-validated@1",
+        "outputSchemaRef": "example.code-review.finding-batch@1",
+        "inputBindings": {
+          "snapshot": {
+            "from": "node_output",
+            "nodeKey": "prepare",
+            "port": "snapshot"
+          }
+        },
+        "outputPorts": {
+          "findings": "example.code-review.finding-batch@1"
+        }
+      },
+      {
+        "key": "security",
+        "kind": "work",
+        "laneKey": "review",
+        "stageKey": "checks",
+        "operationRef": "example.code-review.security@1",
+        "executorSlot": "security",
+        "completionRef": "platform.output-validated@1",
+        "outputSchemaRef": "example.code-review.finding-batch@1",
+        "inputBindings": {
+          "snapshot": {
+            "from": "node_output",
+            "nodeKey": "prepare",
+            "port": "snapshot"
+          }
+        },
+        "outputPorts": {
+          "findings": "example.code-review.finding-batch@1"
+        }
+      },
+      {
+        "key": "ci",
+        "kind": "external_wait",
+        "laneKey": "system",
+        "stageKey": "checks",
+        "subscriptionRef": "example.code-review.ci-completed@1",
+        "inputBindings": {
+          "subject": {
+            "from": "subject"
+          }
+        },
+        "outputPorts": {
+          "checks": "example.code-review.check-report@1"
+        }
+      },
+      {
+        "key": "join",
+        "kind": "join",
+        "stageKey": "verify",
+        "join": {
+          "mode": "all_selected",
+          "accept": "completed"
+        }
+      },
+      {
+        "key": "verify",
+        "kind": "work",
+        "laneKey": "verification",
+        "stageKey": "verify",
+        "operationRef": "example.code-review.verify-findings@1",
+        "executorSlot": "verifier",
+        "completionRef": "platform.output-validated@1",
+        "outputSchemaRef": "example.code-review.verified-report@1",
+        "inputBindings": {
+          "snapshot": {
+            "from": "node_output",
+            "nodeKey": "prepare",
+            "port": "snapshot"
+          },
+          "candidates": {
+            "from": "collection",
+            "items": [
+              {
+                "from": "node_output",
+                "nodeKey": "correctness",
+                "port": "findings"
+              },
+              {
+                "from": "node_output",
+                "nodeKey": "security",
+                "port": "findings"
+              }
+            ]
+          },
+          "checks": {
+            "from": "node_output",
+            "nodeKey": "ci",
+            "port": "checks"
+          }
+        },
+        "outputPorts": {
+          "report": "example.code-review.verified-report@1"
+        }
+      },
+      {
+        "key": "route",
+        "kind": "router",
+        "stageKey": "decision",
+        "policyRef": "example.code-review.readiness-policy@1",
+        "outcomes": ["human", "rework", "escalate"],
+        "unmatched": "block",
+        "inputBindings": {
+          "review": {
+            "from": "node_output",
+            "nodeKey": "verify",
+            "port": "report"
+          },
+          "checks": {
+            "from": "node_output",
+            "nodeKey": "ci",
+            "port": "checks"
+          },
+          "subject": {
+            "from": "subject"
+          }
+        },
+        "outputPorts": {
+          "assessment": "platform.policy-evaluation@1"
+        }
+      },
+      {
+        "key": "approve",
+        "kind": "human_gate",
+        "laneKey": "owner",
+        "stageKey": "decision",
+        "policyRef": "example.code-review.owner-approval@1",
+        "candidateRoleKey": "owner",
+        "outcomes": ["accepted", "rework"],
+        "inputBindings": {
+          "assessment": {
+            "from": "node_output",
+            "nodeKey": "route",
+            "port": "assessment"
+          },
+          "review": {
+            "from": "node_output",
+            "nodeKey": "verify",
+            "port": "report"
+          }
+        },
+        "outputPorts": {
+          "decision": "platform.human-decision@1"
+        }
+      },
+      {
+        "key": "handoff",
+        "kind": "work",
+        "laneKey": "system",
+        "stageKey": "delivery",
+        "operationRef": "example.code-review.enqueue-merge@1",
+        "executorSlot": "publisher",
+        "completionRef": "platform.output-validated@1",
+        "inputBindings": {
+          "approval": {
+            "from": "node_output",
+            "nodeKey": "approve",
+            "port": "decision"
+          },
+          "snapshot": {
+            "from": "node_output",
+            "nodeKey": "prepare",
+            "port": "snapshot"
+          }
+        },
+        "outputPorts": {
+          "receipt": "example.code-review.delivery-receipt@1"
+        }
+      },
+      {
+        "key": "merged",
+        "kind": "external_wait",
+        "laneKey": "system",
+        "stageKey": "delivery",
+        "subscriptionRef": "example.code-review.merge-confirmed@1",
+        "inputBindings": {
+          "receipt": {
+            "from": "node_output",
+            "nodeKey": "handoff",
+            "port": "receipt"
+          },
+          "subject": {
+            "from": "subject"
+          }
+        },
+        "outputPorts": {
+          "confirmation": "example.code-review.delivery-confirmation@1"
+        }
+      },
+      {
+        "key": "done",
+        "kind": "terminal",
+        "stageKey": "delivery",
+        "outcome": "completed"
+      },
+      {
+        "key": "revise",
+        "kind": "human_gate",
+        "laneKey": "owner",
+        "stageKey": "decision",
+        "policyRef": "example.code-review.rework-handoff@1",
+        "candidateRoleKey": "owner",
+        "outcomes": ["resubmitted", "abandoned"],
+        "inputBindings": {
+          "assessment": {
+            "from": "node_output",
+            "nodeKey": "route",
+            "port": "assessment"
+          },
+          "review": {
+            "from": "node_output",
+            "nodeKey": "verify",
+            "port": "report"
+          }
+        },
+        "outputPorts": {
+          "decision": "platform.human-decision@1"
+        }
+      },
+      {
+        "key": "rework_end",
+        "kind": "terminal",
+        "stageKey": "decision",
+        "outcome": "rework",
+        "disposition": "await_new_subject"
+      },
+      {
+        "key": "abandoned",
+        "kind": "terminal",
+        "stageKey": "decision",
+        "outcome": "abandoned"
+      },
+      {
+        "key": "escalate",
+        "kind": "human_gate",
+        "laneKey": "owner",
+        "stageKey": "decision",
+        "policyRef": "example.code-review.escalation@1",
+        "candidateRoleKey": "owner",
+        "outcomes": ["resubmitted", "abandoned"],
+        "inputBindings": {
+          "assessment": {
+            "from": "node_output",
+            "nodeKey": "route",
+            "port": "assessment"
+          },
+          "review": {
+            "from": "node_output",
+            "nodeKey": "verify",
+            "port": "report"
+          }
+        },
+        "outputPorts": {
+          "decision": "platform.human-decision@1"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "prepare",
+        "to": "fanout"
+      },
+      {
+        "from": "fanout",
+        "to": "correctness"
+      },
+      {
+        "from": "fanout",
+        "to": "security"
+      },
+      {
+        "from": "fanout",
+        "to": "ci"
+      },
+      {
+        "from": "correctness",
+        "to": "join"
+      },
+      {
+        "from": "security",
+        "to": "join"
+      },
+      {
+        "from": "ci",
+        "to": "join"
+      },
+      {
+        "from": "join",
+        "to": "verify"
+      },
+      {
+        "from": "verify",
+        "to": "route"
+      },
+      {
+        "from": "route",
+        "to": "approve",
+        "outcome": "human"
+      },
+      {
+        "from": "route",
+        "to": "revise",
+        "outcome": "rework"
+      },
+      {
+        "from": "route",
+        "to": "escalate",
+        "outcome": "escalate"
+      },
+      {
+        "from": "approve",
+        "to": "handoff",
+        "outcome": "accepted"
+      },
+      {
+        "from": "approve",
+        "to": "revise",
+        "outcome": "rework"
+      },
+      {
+        "from": "handoff",
+        "to": "merged"
+      },
+      {
+        "from": "merged",
+        "to": "done"
+      },
+      {
+        "from": "revise",
+        "to": "rework_end",
+        "outcome": "resubmitted"
+      },
+      {
+        "from": "revise",
+        "to": "abandoned",
+        "outcome": "abandoned"
+      },
+      {
+        "from": "escalate",
+        "to": "rework_end",
+        "outcome": "resubmitted"
+      },
+      {
+        "from": "escalate",
+        "to": "abandoned",
+        "outcome": "abandoned"
+      }
+    ],
+    "roundPolicy": {
+      "entryNodeKey": "prepare",
+      "maxRounds": 3,
+      "onRework": "await_new_subject_then_next_round",
+      "onLimit": "attention",
+      "newVersionWhileActive": "supersede_round",
+      "terminalOutcomes": ["completed", "abandoned"]
+    },
+    "presentation": {
+      "views": ["tasks", "pipeline", "agent_timeline"],
+      "nodeDetailRef": "example.code-review.node-detail@1",
+      "evidenceTypes": [
+        "example.code-review.code-snapshot@1",
+        "example.code-review.check-report@1",
+        "example.code-review.finding-batch@1"
+      ]
+    },
+    "metrics": {
+      "dimensionRefs": ["example.code-review.risk-tier@1"],
+      "metricRefs": ["example.code-review.confirmed-finding-ratio@1"]
+    },
+    "failurePolicy": {
+      "requiredNodeFailure": "block_and_attention",
+      "unknownExecution": "inspect_without_replay"
+    }
+  },
+  "binding": {
+    "templateRef": "example.code-review.pull-request@1.0.0",
+    "executorBindings": {
+      "prepare": {
+        "roleKey": "prepare",
+        "kind": "service",
+        "selectionKey": "review-preparation"
+      },
+      "correctness": {
+        "roleKey": "reviewer",
+        "kind": "assistant",
+        "selectionKey": "correctness-assistant"
+      },
+      "security": {
+        "roleKey": "reviewer",
+        "kind": "assistant",
+        "selectionKey": "security-assistant"
+      },
+      "verifier": {
+        "roleKey": "verifier",
+        "kind": "runtime_binding",
+        "selectionKey": "code-verifier",
+        "requiredCapabilities": ["evidence.read.pinned", "execution.readonly-code"]
+      },
+      "publisher": {
+        "roleKey": "system",
+        "kind": "service",
+        "selectionKey": "repository-publisher"
+      }
+    },
+    "roleBindings": {
+      "owner": {
+        "kind": "human",
+        "selectionKey": "repository-owners"
+      }
+    },
+    "parameters": {
+      "repositorySelection": "selected_repository",
+      "reviewLevel": "standard",
+      "requiredHumanApprovals": 1,
+      "reviewRuleRef": "protected_review_rules",
+      "automaticRepair": false
+    },
+    "limits": {
+      "maxConcurrentExecutions": 3,
+      "maxTechnicalAttemptsPerNode": 2,
+      "runTimeoutMinutes": 60
+    },
+    "triggers": [
+      {
+        "adapterRef": "example.code-review.pull-request-events@1",
+        "events": ["opened", "synchronize", "manual_request"]
+      }
+    ]
+  },
+  "exampleInstance": {
+    "subject": {
+      "resolverRef": "example.code-review.pull-request-version@1",
+      "externalKey": "sample/payment-service#128"
+    },
+    "projectMapping": "repository_project"
+  }
+}

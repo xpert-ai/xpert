@@ -180,6 +180,18 @@ describe('Agent invocation HTTP inspection', () => {
         expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
         expect(f.queries.execute).not.toHaveBeenCalled()
     })
+    it('routes host Pipeline records through captured source authorization and preserves revocation', async () => {
+        const f = fixture('external-provider')
+        delete f.invocation.scope.callerXpertId
+        f.invocation.scope.callerType = 'project_pipeline'
+        await f.controller.inspect(id)
+        await f.controller.cancel(id)
+        expect(f.factory.createCapturedApi).toHaveBeenCalledWith(f.invocation.scope)
+        expect(f.external.inspect).toHaveBeenCalledWith(id)
+        expect(f.external.cancel).toHaveBeenCalledWith(id)
+        f.external.inspect.mockRejectedValueOnce(new ForbiddenException('Project revoked'))
+        await expect(f.controller.inspect(id)).rejects.toMatchObject({ status: 403 })
+    })
     it('preserves external provider inspection and controls', async () => {
         const f = fixture('external-provider')
         await f.controller.inspect(id)

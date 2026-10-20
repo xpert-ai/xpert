@@ -14,7 +14,7 @@ it('opens the Case view inside the persisted Project route', async () => {
     selectionId: 'case'
   })
   expect(navigate).toHaveBeenCalledWith(['/chat/x', 'automotive', 'p', 'project', 'c'], {
-    queryParams: { view: 'auto__cases', viewSelection: 'case' }
+    queryParams: { view: 'auto__cases', viewSelection: 'case', viewProject: 'project' }
   })
   await navigateProjectEntry(router, {
     kind: 'assistant',
@@ -23,7 +23,7 @@ it('opens the Case view inside the persisted Project route', async () => {
     viewKey: 'auto__cases'
   })
   expect(navigate).toHaveBeenLastCalledWith(['/chat/x', 'automotive', 'c'], {
-    queryParams: { view: 'auto__cases', viewSelection: undefined }
+    queryParams: { view: 'auto__cases', viewSelection: undefined, viewProject: undefined }
   })
 })
 

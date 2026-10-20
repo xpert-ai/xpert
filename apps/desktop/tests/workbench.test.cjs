@@ -3,6 +3,51 @@ const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { platformCommandUrl } = require('../electron/workbench-platform.mjs')
 
+test('standalone Project entry opens only the configured platform without an Assistant or credentials', () => {
+  assert.equal(
+    platformCommandUrl('https://customer.example/platform/', { target: 'project.list' }),
+    'https://customer.example/platform/project'
+  )
+  for (const key of ['projectId', 'assistantId', 'organizationId', 'token', 'url', 'redirect'])
+    assert.equal(platformCommandUrl('https://customer.example', { target: 'project.list', [key]: 'injected' }), null)
+})
+
+test('Project application and pipeline management stay in the configured platform', () => {
+  for (const destination of ['application', 'pipelines']) {
+    assert.equal(
+      platformCommandUrl('https://customer.example/platform', {
+        target: `project.${destination}`,
+        projectId: 'project-1',
+        url: 'https://other.example',
+        assistantId: 'ignored'
+      }),
+      `https://customer.example/platform/project/project-1/${destination}`
+    )
+    for (const projectId of [undefined, '', '..', '../other', 'id?url=elsewhere', 'https://other.example'])
+      assert.equal(
+        platformCommandUrl('https://customer.example', { target: `project.${destination}`, projectId }),
+        null
+      )
+  }
+})
+
+test('node focus is a validated identity hint on application and pipeline routes', () => {
+  const pipelineNodeId = '45123b96-3d55-4321-91d3-9123acb31380'
+  assert.equal(
+    platformCommandUrl('https://customer.example', {
+      target: 'project.application',
+      projectId: 'project',
+      pipelineNodeId
+    }),
+    `https://customer.example/project/project/application?pipelineNodeId=${pipelineNodeId}`
+  )
+  for (const input of [
+    { target: 'project.pipelines', pipelineNodeId: '../other' },
+    { target: 'project.application', pipelineNodeId: '../other' }
+  ])
+    assert.equal(platformCommandUrl('https://customer.example', { projectId: 'project', ...input }), null)
+})
+
 test('Studio links open the selected assistant within the configured deployment', () => {
   assert.equal(
     platformCommandUrl('https://customer.example/platform/', { target: 'assistant.studio', assistantId: 'expert-1' }),
@@ -121,4 +166,18 @@ test('platform links keep source anchors but never serialize evidence or accept 
   assert.equal(url.searchParams.get('block'), 'block')
   assert.ok(!url.href.includes('PRIVATE'))
   assert.equal(platformCommandUrl(base, { target: 'platform.data-source.create' }), `${base}/settings/data-sources`)
+})
+
+test('pipeline return preserves exact instance, round and node without arbitrary routes', () => {
+  const id = '45123b96-3d55-4321-91d3-9123acb31380'
+  assert.equal(
+    platformCommandUrl('https://customer.example', {
+      target: 'project.pipelines',
+      projectId: 'project',
+      pipelineInstanceId: id,
+      pipelineRoundId: id,
+      pipelineNodeId: id
+    }),
+    `https://customer.example/project/project/pipelines?pipelineNodeId=${id}&pipelineInstanceId=${id}&pipelineRoundId=${id}`
+  )
 })

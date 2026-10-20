@@ -25,6 +25,7 @@ export type CopilotModelUsageRecordingScope = {
 }
 
 export type CopilotTokenUsageRecordingScope = {
+    originExecutionId?: string | null
     execution?: ModelExecutionUsageContext
     tenantId: string
     organizationId?: string | null

@@ -36,7 +36,7 @@ export function ChatPanel({
   config: ConnectionConfig
   dark: boolean
   initialThread: string | null
-  initialVoice?: { assistantId: string; conversationId: string } | null
+  initialVoice?: DesktopLastSession['conversation'] | null
   onConversationRead: (botId: string, threadId: string | null) => void
   onSessionChange?: (session: DesktopLastSession) => void
   onAppearanceSaved: () => Promise<void>
@@ -182,6 +182,7 @@ export function ChatPanel({
       api: {
         apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
         xpertId: activeAssistant || undefined,
+        projectId: initialThread ? initialVoice?.projectId : undefined,
         getClientSecret: async () => {
           try {
             if (groupId)
@@ -191,6 +192,7 @@ export function ChatPanel({
                 botId,
                 target: 'assistant.conversation',
                 conversationId: initialVoice.conversationId,
+                projectId: initialVoice.projectId,
                 threadId: initialThread
               })
               if (session.assistantId !== initialVoice.assistantId)
@@ -213,7 +215,7 @@ export function ChatPanel({
       history: { enabled: true },
       taskSummary: { enabled: true },
       composer: {
-        projects: { enabled: true },
+        projects: { enabled: true, locked: Boolean(initialThread && initialVoice?.projectId) },
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }

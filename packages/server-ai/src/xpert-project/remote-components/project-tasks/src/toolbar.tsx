@@ -113,7 +113,11 @@ export function Toolbar({
                 {key === 'dates' ? t.planned : t[key]}
             </DropdownMenuCheckboxItem>
         ))
-    const count = filters.statuses.length + Number(!!filters.assignee) + Number(!!filters.kind)
+    const count =
+        filters.statuses.length +
+        Number(!!filters.assignee) +
+        Number(!!filters.kind) +
+        Number(!!filters.includeInactive)
     const owners = new Map(
         tasks.map((task) => [task.assigneeXpertId ?? 'unassigned', owner(task, t.unassigned, t.unnamedAssistant)])
     )
@@ -147,6 +151,17 @@ export function Toolbar({
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-72 space-y-4">
                     <p className="font-semibold">{t.filter}</p>
+                    {tasks.some((task) => task.pipelineDisposition && task.pipelineDisposition !== 'active') && (
+                        <Label className="gap-2">
+                            <Checkbox
+                                checked={!!filters.includeInactive}
+                                onCheckedChange={(checked) =>
+                                    setFilters({ ...filters, includeInactive: checked === true })
+                                }
+                            />
+                            {t.includeInactive}
+                        </Label>
+                    )}
                     <div className="grid grid-cols-2 gap-3">
                         {statuses.map((status) => (
                             <Label key={status} className="gap-2">

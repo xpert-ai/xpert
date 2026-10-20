@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "rootDir": "src",
+    "outDir": "dist/src",
+    "emitDeclarationOnly": true,
+    "noEmitOnError": true,
+    "incremental": false
+  },
+  "include": [],
+  "files": [
+    "src/ai/project-pipeline/native-source.schema.ts",
+    "src/ai/project-pipeline/compatibility.ts",
+    "src/ai/project-pipeline/resources.schema.ts",
+    "src/ai/project-pipeline/portfolio.schema.ts",
+    "src/ai/project-pipeline/analytics.ts",
+    "src/ai/project-pipeline/projection.schema.ts",
+    "src/ai/project-pipeline/configuration.schema.ts",
+    "src/ai/project-pipeline/contribution.schema.ts",
+    "src/ai/project-pipeline/catalog.validation.ts",
+    "src/ai/project-pipeline/operation.schema.ts",
+    "src/ai/project-pipeline/commands.schema.ts",
+    "src/ai/project-task-runtime.model.ts",
+    "src/ai/project-pipeline/statistics.ts",
+    "src/ai/project-pipeline/configuration-form.ts",
+    "src/ai/project-pipeline/provider-actions.schema.ts"
+  ]
+}

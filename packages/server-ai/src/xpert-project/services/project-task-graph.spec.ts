@@ -109,6 +109,10 @@ describe('project task graph invariants', () => {
     })
     it('does not let ordinary tools overwrite provider state or fabricate provider identity', () => {
         expect(() => assertOrdinaryTask({ providerKey: 'bid.tasks' })).toThrow()
+        expect(() => assertOrdinaryTask({ controlKind: 'pipeline' })).toThrow()
+        expect(() => assertOrdinaryTask({ pipelineInstanceId: 'instance' })).toThrow()
+        expect(() => assertOrdinaryTaskInput({ controlKind: 'ordinary' })).toThrow()
+        expect(() => assertOrdinaryTaskInput({ pipelineInstanceId: null })).toThrow()
         expect(() => assertOrdinaryTaskInput({ providerKey: null })).toThrow()
         expect(() => assertOrdinaryTaskInput({ predecessorIds: ['a'] })).toThrow()
         expect(() => assertOrdinaryTask({ providerKey: null })).not.toThrow()

@@ -4,12 +4,20 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CommandBus } from '@nestjs/cqrs'
 import { randomUUID } from 'node:crypto'
 import { createProjectRuntimeTools } from './runtime'
+import type { StructuredToolInterface } from '@langchain/core/tools'
+import { convertToOpenAITool } from '@langchain/core/utils/function_calling'
+
 import { DecideProjectTaskCommand, DispatchProjectTaskCommand } from '../../../runtime/project-task-dispatch.command'
 import {
     ConversationResourceCard,
     projectTaskDecisionInputSchema,
     projectTaskDispatchInputSchema
 } from '@xpert-ai/contracts'
+
+// Exercise the tool registry's common invocation boundary, not an inferred union of schemas.
+function runtimeTools(...args: Parameters<typeof createProjectRuntimeTools>): StructuredToolInterface[] {
+    return createProjectRuntimeTools(...args)
+}
 
 describe('Project general-agent Runtime tools', () => {
     it.each([false, true])('preserves a committed delegation when card emission fails: %s', async (failCard) => {
@@ -31,7 +39,7 @@ describe('Project general-agent Runtime tools', () => {
         }
         const execute = jest.fn(async () => ({ ...receipt, card }))
         const commands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute })
-        const dispatch = createProjectRuntimeTools(
+        const dispatch = runtimeTools(
             {
                 projectId,
                 conversationId: randomUUID(),
@@ -60,7 +68,7 @@ describe('Project general-agent Runtime tools', () => {
         const projectId = randomUUID(),
             conversationId = randomUUID(),
             executionId = randomUUID()
-        const tools = createProjectRuntimeTools(
+        const tools = runtimeTools(
             {
                 projectId,
                 conversationId,
@@ -134,9 +142,7 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
         })
         const commands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute })
         const create = (overrides: Partial<Parameters<typeof createProjectRuntimeTools>[0]> = {}) =>
-            createProjectRuntimeTools({ ...context, ...overrides }, commands, jest.fn()).find(
-                (tool) => tool.name === name
-            )
+            runtimeTools({ ...context, ...overrides }, commands, jest.fn()).find((tool) => tool.name === name)
         const config = { configurable: { thread_id: 'thread', tool_call_id: 'call-1' } }
         return { context, input, calls, execute, create, config }
     }
@@ -144,7 +150,9 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
     it('hides requestId from the model schema and rejects a model-supplied override', async () => {
         const f = fixture()
         const tool = f.create()
-        expect(tool.schema.shape).not.toHaveProperty('requestId')
+        const parameters = convertToOpenAITool(tool).function.parameters
+        expect(parameters).toHaveProperty('properties.taskId')
+        expect(parameters).not.toHaveProperty('properties.requestId')
         await expect(tool.invoke({ ...f.input, requestId: randomUUID() }, f.config)).rejects.toThrow()
         expect(f.execute).not.toHaveBeenCalled()
         await tool.invoke(f.input, f.config)

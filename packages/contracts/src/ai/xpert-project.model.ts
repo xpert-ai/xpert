@@ -240,6 +240,9 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  controlKind?: 'ordinary' | 'provider' | 'pipeline'
+  pipelineInstanceId?: string | null
+  pipelineDisposition?: 'active' | 'removed' | 'excluded' | 'superseded' | null
   decisions?: ProjectTaskDecision[]
   /** Measured completion percentage (0–100); null/omitted means unknown. */
   progress?: number | null
@@ -301,10 +304,25 @@ export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityMo
   /** Observed runtime status, independent from the business task acceptance status. */
   runtimeStartedAt?: string | null
   runtimeCompletedAt?: string | null
-  /** Authorized Invocation presentation, not persisted task state. */
+  /** Authorized runtime presentation, not persisted task state. */
   runtimeProvider?: string
   runtimeToolId?: string
-  runtimeStatus?: 'running' | 'success' | 'error' | 'pending' | 'timeout' | 'interrupted' | 'unknown'
+  /** Exact registered handler from a persisted Pipeline service operation. */
+  runtimeServiceRef?: string
+  /** Classified from the exact persisted managed Pipeline operation, never from task attempt count. */
+  pipelineAttemptKind?: 'initial' | 'technical_retry'
+  runtimeStatus?:
+    | 'running'
+    | 'success'
+    | 'error'
+    | 'pending'
+    | 'timeout'
+    | 'interrupted'
+    | 'unknown'
+    | 'queued'
+    | 'succeeded'
+    | 'failed'
+    | 'cancelled'
   sourceKey?: string | null
   taskId: string
   conversationId?: string

@@ -16,6 +16,14 @@ import { XpertProjectBaseEntity } from './project.base'
 @Entity('xpert_project_task')
 @Index(['projectId', 'providerKey', 'sourceKey'], { unique: true })
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
+    @Column({ type: 'varchar', default: 'ordinary' }) controlKind: 'ordinary' | 'provider' | 'pipeline'
+    @Column({ type: 'uuid', nullable: true }) pipelineInstanceId: string | null
+    @Column({ type: 'varchar', nullable: true }) pipelineDisposition:
+        | 'active'
+        | 'removed'
+        | 'excluded'
+        | 'superseded'
+        | null
     @Column({ type: 'jsonb', default: '[]' }) decisions: ProjectTaskDecision[]
     @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 100, nullable: true })
     @IsOptional()

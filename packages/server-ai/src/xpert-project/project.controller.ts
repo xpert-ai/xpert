@@ -1,3 +1,4 @@
+import { z } from 'zod/v3'
 import { XpertProjectPlanningController } from './project-planning.controller'
 import { XpertProjectTypeService } from './services/project-type.service'
 import {
@@ -18,6 +19,7 @@ import {
     Public,
     PaginationParams,
     ParseJsonPipe,
+    ZodValidationPipe,
     TransformInterceptor,
     UploadFileCommand,
     getFileAssetDestination
@@ -204,9 +206,17 @@ export class XpertProjectController extends XpertProjectPlanningController {
         @Query('applicationKey') applicationKey: string,
         @Query('projectTypeKey') projectTypeKey: string,
         @Query('projectId') projectId?: string,
-        @Query('xpertId') xpertId?: string
+        @Query('xpertId') xpertId?: string,
+        @Query(
+            'pipelineNodeId',
+            new ZodValidationPipe(
+                z.string().uuid().optional(),
+                () => new BadRequestException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
+            )
+        )
+        pipelineNodeId?: string
     ) {
-        return this.projectTypes.entry({ applicationKey, projectTypeKey }, { projectId, xpertId })
+        return this.projectTypes.entry({ applicationKey, projectTypeKey }, { projectId, xpertId, pipelineNodeId })
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)

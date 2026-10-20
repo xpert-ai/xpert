@@ -1,3 +1,4 @@
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { writeTaskProjection } from './task-projection/project-task-projection.writer'
 import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
@@ -41,6 +42,7 @@ async function fixture() {
     manager.transaction.mockImplementation(async (action) => action(manager))
     const module = await Test.createTestingModule({
         providers: [
+            { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
             ProjectTaskGraphService,
             {
                 provide: ProjectTaskProjectionService,

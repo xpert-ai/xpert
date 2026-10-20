@@ -94,7 +94,10 @@ export function createProjectRuntimeTools(
                 return commandBus.execute(
                     new DecideProjectTaskCommand(
                         context.projectId,
-                        { ...input, requestId: requestId(context.projectId, ProjectToolEnum.DecideTask, actor) },
+                        projectTaskDecisionInputSchema.parse({
+                            ...input,
+                            requestId: requestId(context.projectId, ProjectToolEnum.DecideTask, actor)
+                        }),
                         actor
                     )
                 )

@@ -8,11 +8,17 @@ import { Xpert } from '../xpert/xpert.entity'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AssertProjectAssistantAccessHandler } from './commands/assert-project-assistant-access.command'
+import { HasProjectTaskConversationHandler } from './queries/has-project-task-conversation.query'
+import { XpertProjectTaskExecution } from './entities/project-task-execution.entity'
 
 @Module({
-    imports: [CqrsModule, TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert])],
+    imports: [
+        CqrsModule,
+        TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert, XpertProjectTaskExecution])
+    ],
     providers: [
         AssertProjectAssistantAccessHandler,
+        HasProjectTaskConversationHandler,
         ProjectAccessRuntimeService,
         XpertProjectXpertBindingService,
         XpertProjectAccessService

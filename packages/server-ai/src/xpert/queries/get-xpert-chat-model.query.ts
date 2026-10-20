@@ -22,6 +22,8 @@ export class GetXpertChatModelQuery implements IQuery {
             abortController?: AbortController
             // tokenCallback?: (tokens: number) => void
             usageCallback: (tokens: TLLMUsage) => void | Promise<void>
+            /** Trusted runtime lookup, evaluated for each completed model call. */
+            resolveExecutionId?: () => string | undefined
             threadId: string
         }
     ) {}

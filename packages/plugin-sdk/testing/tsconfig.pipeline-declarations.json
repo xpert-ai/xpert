@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es2022",
+    "types": [],
+    "baseUrl": "../../..",
+    "paths": {
+      "@xpert-ai/contracts": ["packages/contracts/dist/src/index.d.ts"],
+      "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/dist/src/index.d.ts"]
+    }
+  },
+  "files": ["pipeline-declarations.consumer.ts"]
+}

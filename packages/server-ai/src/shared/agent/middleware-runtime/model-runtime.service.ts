@@ -41,6 +41,8 @@ import { ensureCopilotModelContextSize } from '../../../copilot-model/utils/cont
 import { applicationMetrics } from '../../../metrics'
 import { wrapAgentExecution } from '../execution'
 import { normalizeOptionalString } from '../../runtime/runtime-input'
+import { createNativeModelBudgetGate } from '../native-model-budget'
+import { resolveAgentExecutionScope } from './execution-scope'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -85,6 +87,10 @@ export class AgentMiddlewareModelRuntimeService {
         const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
         const userId = scope.userId ?? RequestContext.currentUserId()
         const xpertId = scope.xpertId ?? undefined
+        const budgetGate = createNativeModelBudgetGate(this.commandBus, { tenantId, organizationId, userId }, () => {
+            const current = resolveAgentExecutionScope(scope)
+            return current.executionId
+        })
 
         if (!copilotModel) {
             throw new CopilotModelNotFoundException(
@@ -148,7 +154,7 @@ export class AgentMiddlewareModelRuntimeService {
             copilotModel.options = resolveModelParameterOptions(copilotModel.options, rules)
         }
 
-        return modelProvider.getModelInstance(
+        const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
                 ...copilotModel,
@@ -161,6 +167,7 @@ export class AgentMiddlewareModelRuntimeService {
                     if (purpose === 'observe') {
                         return
                     }
+                    await budgetGate.record(input.requestId, input.usage)
                     if (input.usage) {
                         if (scope.usageCallback) {
                             await scope.usageCallback(input.usage)
@@ -226,7 +233,9 @@ export class AgentMiddlewareModelRuntimeService {
                     }
                 }
             }
-        ) as T
+        )
+        if (purpose === 'invoke' && copilotModel.modelType === AiModelTypeEnum.LLM) budgetGate.attach(model)
+        return model as T
     }
 
     async getModelProvider(

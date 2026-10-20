@@ -15,6 +15,7 @@ import { SidebarResizer } from './SidebarResizer'
 import type { ConversationNotice } from './assistant-list-types'
 import { invoke } from './host'
 import { SidebarAccount } from './SidebarAccount'
+import { ProjectEntry } from './ProjectEntry'
 import type { AppState, Bot } from './types'
 
 export function Sidebar({
@@ -474,6 +475,7 @@ export function Sidebar({
           )}
         </AssistantScrollArea>
       </div>
+      <ProjectEntry webUrl={state.config.webUrl} compact={collapsed} />
       <SidebarAccount
         profile={profile}
         webUrl={state.config.webUrl}

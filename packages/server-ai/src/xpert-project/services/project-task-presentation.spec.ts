@@ -1,3 +1,4 @@
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -10,24 +11,38 @@ import { Xpert } from '../../xpert/xpert.entity'
 
 describe('project task presentation capabilities', () => {
     it('resolves project and assistant labels within the authorized tenant and organization', async () => {
+        const tasks = [
+            {
+                id: 'task',
+                title: '整理资料',
+                status: 'todo',
+                kind: 'task',
+                revision: 1,
+                assigneeXpertId: 'assistant',
+                predecessorIds: []
+            }
+        ]
         const manager = {
             find: jest.fn().mockImplementation(async (entity) =>
-                entity === Xpert
-                    ? [
-                          {
-                              id: 'assistant',
-                              title: 'Knowledge curator',
-                              name: 'curator',
-                              avatar: { emoji: { id: 'memo' } }
-                          }
-                      ]
-                    : []
+                entity === XpertProjectTask
+                    ? tasks
+                    : entity === Xpert
+                      ? [
+                            {
+                                id: 'assistant',
+                                title: 'Knowledge curator',
+                                name: 'curator',
+                                avatar: { emoji: { id: 'memo' } }
+                            }
+                        ]
+                      : []
             ),
             findOne: jest.fn().mockResolvedValue({ id: 'project', name: 'Knowledge refresh' })
         }
         const access = { listReadable: jest.fn().mockResolvedValue([{ role: 'editor', archived: false }]) }
         const module = await Test.createTestingModule({
             providers: [
+                { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
                 ProjectTaskGraphService,
                 {
                     provide: ProjectTaskProjectionService,
@@ -73,7 +88,7 @@ describe('project task presentation capabilities', () => {
                 select: ['id', 'title', 'name', 'avatar']
             })
         )
-        manager.find.mockResolvedValue([])
+        manager.find.mockImplementation(async (entity) => (entity === XpertProjectTask ? tasks : []))
         expect((await service.graph(context)).tasks[0]).toMatchObject({ assigneeName: null, assigneeAvatar: null })
         access.listReadable.mockResolvedValue([{ role: 'viewer', archived: false }])
         expect((await service.graph(context)).canEditPlan).toBe(false)
