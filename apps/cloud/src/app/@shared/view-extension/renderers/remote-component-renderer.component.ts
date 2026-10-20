@@ -832,6 +832,8 @@ export class RemoteComponentRendererComponent {
   }
 
   private viewState(state?: unknown) {
+    // Never share persisted UI preferences under an anonymous identity while the host resolves its user.
+    if (!this.runtimeUserId()) return null
     return remoteViewState(
       [this.hostType(), this.hostId(), this.manifest().key, this.runtimeUserId(), this.runtimeScope()],
       state

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { of, Subject, throwError } from 'rxjs'
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
 import type { XpertProjectEntry } from '@xpert-ai/contracts'
 import { XpertProjectApiService } from './project-api.service'
 import { XpertProjectApplicationComponent } from './project-application.component'
@@ -18,12 +18,14 @@ describe('Project application entry', () => {
   }
   const api = { get: jest.fn(), typeEntry: jest.fn() }
   const navigate = jest.fn(async () => true)
+  let focus: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   beforeEach(() => {
     jest.clearAllMocks()
     navigate.mockResolvedValue(true)
     api.get.mockReturnValue(of(project))
     api.typeEntry.mockReturnValue(of(entry))
     const paramMap = convertToParamMap({ id: 'project' })
+    focus = new BehaviorSubject(convertToParamMap({}))
     TestBed.configureTestingModule({
       imports: [XpertProjectApplicationComponent, TranslateModule.forRoot()],
       providers: [
@@ -31,7 +33,11 @@ describe('Project application entry', () => {
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { parent: { paramMap: of(paramMap), snapshot: { paramMap, queryParamMap: convertToParamMap({}) } } }
+          useValue: {
+            queryParamMap: focus,
+            snapshot: { queryParamMap: convertToParamMap({}) },
+            parent: { paramMap: of(paramMap), snapshot: { paramMap } }
+          }
         }
       ]
     })
@@ -49,9 +55,7 @@ describe('Project application entry', () => {
   })
   it('passes only the node identity to the server and uses the resolved focus parameters', async () => {
     const nodeId = '45123b96-3d55-4321-91d3-9123acb31380'
-    Object.defineProperty(TestBed.inject(ActivatedRoute).parent!.snapshot, 'queryParamMap', {
-      value: convertToParamMap({ pipelineNodeId: nodeId })
-    })
+    focus.next(convertToParamMap({ pipelineNodeId: nodeId }))
     api.typeEntry.mockReturnValue(of({ ...entry, parameters: { tab: 'validation', itemId: 'automotive-part' } }))
     TestBed.createComponent(XpertProjectApplicationComponent)
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -92,5 +96,30 @@ describe('Project application entry', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(fixture.componentInstance.busy()).toBe(false)
     expect(fixture.componentInstance.error()).toBe('PROJECT_APPLICATION_NAVIGATION_CANCELLED')
+  })
+  it('re-resolves a new node in the same Project and ignores the older pending destination', async () => {
+    const first = new Subject<XpertProjectEntry>()
+    const firstNode = '45123b96-3d55-4321-91d3-9123acb31380'
+    const secondNode = '45123b96-3d55-4321-91d3-9123acb31381'
+    focus.next(convertToParamMap({ pipelineNodeId: firstNode }))
+    api.typeEntry.mockReturnValueOnce(first).mockReturnValueOnce(of({ ...entry, selectionId: 'second' }))
+    TestBed.createComponent(XpertProjectApplicationComponent)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    focus.next(convertToParamMap({ pipelineNodeId: secondNode }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    first.next({ ...entry, selectionId: 'stale' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(api.typeEntry).toHaveBeenNthCalledWith(1, expect.anything(), {
+      projectId: 'project',
+      pipelineNodeId: firstNode
+    })
+    expect(api.typeEntry).toHaveBeenNthCalledWith(2, expect.anything(), {
+      projectId: 'project',
+      pipelineNodeId: secondNode
+    })
+    expect(navigate).toHaveBeenCalledTimes(1)
+    expect(navigate).toHaveBeenCalledWith(expect.anything(), {
+      queryParams: expect.objectContaining({ viewSelection: 'second' })
+    })
   })
 })

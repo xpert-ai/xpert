@@ -68,7 +68,8 @@ export function createWorkbenchHandler(
             botId,
             target,
             // Only the authenticated host response may change the active Assistant.
-            ...(target === 'assistant.project' ? { assistantId: activeAssistantId } : {}),
+            // Restored conversations already have a canonical Assistant before this handler navigates once.
+            ...(target === 'assistant.project' ? { assistantId: activeAssistantId ?? connection?.assistantId() } : {}),
             conversationId: value(payload, 'conversationId'),
             projectId: value(payload, 'projectId'),
             threadId: value(payload, 'threadId')

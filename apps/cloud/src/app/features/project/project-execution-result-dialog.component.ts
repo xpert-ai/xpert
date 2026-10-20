@@ -1,5 +1,8 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { map } from 'rxjs'
+import { Store } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension/extension-host-outlet.component'
@@ -32,6 +35,7 @@ export interface ProjectExecutionResultDialogData {
       <xp-extension-host-outlet
         hostType="project"
         [hostId]="data.projectId"
+        [runtimeUserId]="runtimeUserId()"
         slot="task.management"
         [viewKey]="data.viewKey"
         [query]="query"
@@ -42,6 +46,7 @@ export interface ProjectExecutionResultDialogData {
   </section>`
 })
 export class XpertProjectExecutionResultDialogComponent {
+  readonly runtimeUserId = toSignal(inject(Store).user$.pipe(map((user) => user?.id ?? null)), { initialValue: null })
   readonly data = inject<ProjectExecutionResultDialogData>(DIALOG_DATA)
   readonly dialog = inject(DialogRef)
   readonly query = { selectionId: this.data.selectionId }

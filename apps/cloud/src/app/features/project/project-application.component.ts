@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { firstValueFrom } from 'rxjs'
+import { combineLatest, firstValueFrom } from 'rxjs'
 import { getErrorMessage } from '@cloud/app/@core'
 import { XpertProjectApiService } from './project-api.service'
 import { navigateProjectEntry } from './project-entry'
@@ -28,6 +28,7 @@ export class XpertProjectApplicationComponent {
   private readonly api = inject(XpertProjectApiService)
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute).parent!
+  private readonly entryRoute = inject(ActivatedRoute)
   private readonly destroyRef = inject(DestroyRef)
   private generation = 0
   readonly busy = signal(false)
@@ -37,15 +38,20 @@ export class XpertProjectApplicationComponent {
     this.destroyRef.onDestroy(() => {
       this.generation++
     })
-    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(() => {
-      void this.open()
-    })
+    combineLatest([this.route.paramMap, this.entryRoute.queryParamMap])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([params, query]) => {
+        void this.open(params.get('id'), query.get('pipelineNodeId'))
+      })
   }
 
-  async open() {
-    const projectId = this.route.snapshot.paramMap.get('id')
-    if (!projectId) return
+  async open(
+    projectId = this.route.snapshot.paramMap.get('id'),
+    pipelineNodeId = this.entryRoute.snapshot.queryParamMap.get('pipelineNodeId')
+  ) {
+    // Capture the entire navigation intent before awaiting; newer focus invalidates older resolution.
     const generation = ++this.generation
+    if (!projectId) return
     this.busy.set(true)
     this.error.set(null)
     try {
@@ -62,9 +68,7 @@ export class XpertProjectApplicationComponent {
           { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
           {
             projectId,
-            ...(this.route.snapshot.queryParamMap.get('pipelineNodeId')
-              ? { pipelineNodeId: this.route.snapshot.queryParamMap.get('pipelineNodeId')! }
-              : {})
+            ...(pipelineNodeId ? { pipelineNodeId } : {})
           }
         )
       )

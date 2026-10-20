@@ -105,6 +105,26 @@ test('a new host starts with its own Bot even when another host navigated to B',
   assert.equal((await handle(project)).session.assistantId, 'assistant-B')
 })
 
+test('the first Project navigation after restore uses the host current Assistant and still authorizes its binding', async () => {
+  const { service, sessions } = fixture()
+  const changes = []
+  const handle = createHandler(service, (session) => changes.push(session), undefined, {
+    assistantId: () => 'restored-role',
+    connect: async () => undefined
+  })
+  const denied = await handle(
+    navigation({ target: 'assistant.project', projectId: 'forbidden', assistantId: 'spoofed' })
+  )
+  assert.equal(denied.success, false)
+  assert.equal(changes.length, 0)
+  const opened = await handle(project)
+  assert.equal(opened.session.assistantId, 'restored-role')
+  assert.deepEqual(sessions, [
+    { assistant: { id: 'restored-role' }, project: { id: 'forbidden' } },
+    { assistant: { id: 'restored-role' }, project: { id: 'project-B' } }
+  ])
+})
+
 test('project authorization failures do not change the active Assistant or fall back to A', async () => {
   const { handle, sessions, changes } = fixture()
   await handle(conversation)
