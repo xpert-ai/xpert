@@ -1,3 +1,4 @@
+import { persistBeforeTermination } from '../../../shared/stream/persist-before-termination'
 import { RedisSseStreamService } from '../../../shared/stream'
 import { isToolMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
@@ -34,7 +35,7 @@ import { isUUID } from 'class-validator'
 import { format } from 'date-fns/format'
 import { t } from 'i18next'
 import { isNil } from 'lodash'
-import { EMPTY, map, Observable, tap } from 'rxjs'
+import { EMPTY, finalize, map, Observable, tap } from 'rxjs'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import {
     appendMessageSteps,
@@ -432,6 +433,18 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         // Project & Xperts
         const project = await this.getProject(projectId)
 
+        if (aiMessage) {
+            aiMessage.status = 'thinking'
+            aiMessage.error = null
+            await this.commandBus.execute(
+                new ChatMessageUpsertCommand({
+                    id: aiMessage.id,
+                    executionId,
+                    status: 'thinking',
+                    error: null
+                })
+            )
+        }
         const abortController = new AbortController()
         const timeStart = Date.now()
         let status = XpertAgentExecutionStatusEnum.SUCCESS
@@ -812,24 +825,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             }
                         }
                     }
-                },
-                finalize: async () => {
-                    try {
-                        if (aiMessage) {
-                            // Update ai message
-                            aiMessage.status = status
-                            await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-                        }
-                    } catch (err) {
-                        this.#logger.error(err)
-                    } finally {
-                        abortController.abort()
-                    }
                 }
-            })
+            }),
+            persistBeforeTermination(async () => {
+                if (aiMessage) {
+                    aiMessage.status = status
+                    await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+                }
+            }),
+            finalize(() => abortController.abort())
         )
         return (
             this.redisSseStreamService?.wrapChatStream(stream, {
+                currentMessage: () => aiMessage,
                 target: command.options.streamPersistence,
                 threadId: conversation.threadId,
                 runId: executionId

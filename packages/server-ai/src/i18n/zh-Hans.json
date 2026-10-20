@@ -112,6 +112,7 @@
         "ApplicationToolsetConfigurationRequired": "请先配置必需工具集，再启用应用。",
         "ApplicationToolsetProviderRequired": "请先安装必需工具提供方插件，再启用应用。",
         "InvalidStreamCursor": "无效的输出流游标。",
+        "StreamPersistenceCapacity": "进度保存积压已达到容量上限，运行已停止，已产生内容仍保留。",
         "AgentInvocationModelSourceRequired": "项目主 Agent 的 Computer Runtime binding 必须明确配置 modelSource（真实 Assistant），用于模型授权。",
         "ProjectTaskRuntimeInvalid": "任务委托需要有效的任务规格、明确的完成要求和合法请求。",
         "ProjectTaskRuntimeScope": "任务委托调用方或项目上下文未获授权。",

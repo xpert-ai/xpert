@@ -7,6 +7,7 @@ jest.mock('../chat-conversation/thread-run-control.service', () => ({
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
+    TenantOrganizationBaseEntity: class {},
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,

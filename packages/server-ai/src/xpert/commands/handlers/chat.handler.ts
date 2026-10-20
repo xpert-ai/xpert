@@ -1087,6 +1087,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         // Regeneration reuses the message ID, so its previous successful boundary is no longer valid.
         await this.messageCheckpoints?.invalidate(aiMessage.id, conversation.id)
         delete aiMessage.outputCheckpoint
+        if (request.action === 'resume') {
+            aiMessage.status = 'thinking'
+            aiMessage.error = null
+            await this.commandBus.execute(
+                new ChatMessageUpsertCommand({
+                    id: aiMessage.id,
+                    executionId,
+                    status: 'thinking',
+                    error: null
+                })
+            )
+        }
 
         const stream = new Observable<MessageEvent>((subscriber) => {
             let chatMetricsFinished = false
@@ -1611,6 +1623,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
         const persistedStream =
             this.redisSseStreamService?.wrapChatStream(stream, {
+                currentMessage: () => aiMessage,
                 target: options?.streamPersistence,
                 threadId: activeThreadId,
                 runId: executionId

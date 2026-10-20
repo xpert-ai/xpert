@@ -280,7 +280,8 @@ export class ThreadsController {
         @Res() res: Response,
         @Param('thread_id') thread_id: string,
         @Body() body: components['schemas']['RunCreateStateful'],
-        @Headers('last-event-id') lastEventId?: string
+        @Headers('last-event-id') lastEventId?: string,
+        @Query('recovery') recovery?: string
     ) {
         try {
             const { stream, execution, streamTransport } = await this.commandBus.execute(
@@ -304,6 +305,8 @@ export class ThreadsController {
                 runId: execution.id,
                 lastEventId,
                 mode: 'create',
+                recovery: recovery === 'snapshot-v1' ? recovery : undefined,
+                requireReplayStart: recovery === 'snapshot-v1',
                 owner
             })
 
@@ -384,7 +387,8 @@ export class ThreadsController {
         @Res() res: Response,
         @Param('thread_id') thread_id: string,
         @Param('run_id') run_id: string,
-        @Headers('last-event-id') lastEventId?: string
+        @Headers('last-event-id') lastEventId?: string,
+        @Query('recovery') recovery?: string
     ) {
         await this.ensureThreadRunAccess(thread_id, run_id)
         if (lastEventId && !/^\d+-\d+$/.test(lastEventId)) {
@@ -400,6 +404,7 @@ export class ThreadsController {
             lastEventId,
             mode: 'join',
             requireReplayStart: true,
+            recovery: recovery === 'snapshot-v1' ? recovery : undefined,
             isRunFinished: async () => {
                 const run = await this.ensureThreadRunAccess(thread_id, run_id)
                 return !['pending', 'running'].includes(run.status)

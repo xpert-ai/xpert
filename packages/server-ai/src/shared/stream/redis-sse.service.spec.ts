@@ -27,7 +27,12 @@ describe('RedisSseStreamService', () => {
                 }
                 return 'OK'
             })
-            const service = new RedisSseStreamService(redis as never)
+            const service = new RedisSseStreamService(
+                redis as never,
+                { load: jest.fn(), save: jest.fn() } as never,
+                { cancelExecutions: jest.fn() } as never,
+                { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+            )
             const resumed = await service.createSseStream({
                 threadId: 'thread',
                 runId: 'same-run',
@@ -56,7 +61,12 @@ describe('RedisSseStreamService', () => {
             if (args[0] === 'XRANGE') return [['1-0', ['data', JSON.stringify({ type: 'complete' })]]]
             return 1
         })
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const created = await service.createSseStream({ threadId: 'thread', runId: 'new-run', mode: 'create' })
         expect((await lastValueFrom(created.stream.pipe(toArray()))).map((e) => e.id)).toEqual(['1-0'])
         expect(redis.sendCommand).toHaveBeenCalledWith([
@@ -78,7 +88,12 @@ describe('RedisSseStreamService', () => {
                 if (args[0] === 'XRANGE') return [['7-0', ['data', JSON.stringify({ type: 'complete' })]]]
                 return 1
             })
-            const service = new RedisSseStreamService(redis as never)
+            const service = new RedisSseStreamService(
+                redis as never,
+                { load: jest.fn(), save: jest.fn() } as never,
+                { cancelExecutions: jest.fn() } as never,
+                { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+            )
             const joined = await service.createSseStream({
                 threadId: 'thread',
                 runId: 'run',
@@ -103,7 +118,12 @@ describe('RedisSseStreamService', () => {
         redis.set.mockResolvedValue('OK')
         redis.sendCommand.mockResolvedValue(1)
 
-        const service = new RedisSseStreamService(redis as any)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const first = await service.createSseStream({
             threadId: 'thread-1',
             runId: 'run-1',
@@ -186,7 +206,12 @@ describe('RedisSseStreamService', () => {
         })
         redis.eval.mockResolvedValue(1)
 
-        const service = new RedisSseStreamService(redis as any)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const first = await service.createSseStream({
             threadId: 'thread-1',
             runId: 'run-1',
@@ -240,7 +265,12 @@ describe('RedisSseStreamService', () => {
     })
 
     it('persists chat stream events and a complete marker when enabled', async () => {
-        const service = new RedisSseStreamService(createRedisMock() as any)
+        const service = new RedisSseStreamService(
+            createRedisMock() as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const appendEvent = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
         const appendCompleteEvent = jest.spyOn(service, 'appendCompleteEvent').mockResolvedValue('2-0')
         const event = {
@@ -269,7 +299,12 @@ describe('RedisSseStreamService', () => {
     it('serializes ON_AGENT_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
         redis.eval.mockResolvedValue('1-0')
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const data = {
             type: ChatMessageTypeEnum.EVENT,
             event: ChatMessageEventTypeEnum.ON_AGENT_END,
@@ -338,14 +373,19 @@ describe('RedisSseStreamService', () => {
         const payload = JSON.stringify(persistedData)
         expect(redis.eval).toHaveBeenCalledWith(expect.any(String), {
             keys: ['ai:sse:thread:thread-1:run:run-1'],
-            arguments: ['10000', payload, '86400']
+            arguments: [payload]
         })
     })
 
     it('serializes ON_MESSAGE_END events before appending them to Redis', async () => {
         const redis = createRedisMock()
         redis.eval.mockResolvedValue('1-0')
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const data = {
             type: ChatMessageTypeEnum.EVENT,
             event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
@@ -392,14 +432,19 @@ describe('RedisSseStreamService', () => {
         const payload = JSON.stringify(persistedData)
         expect(redis.eval).toHaveBeenCalledWith(expect.any(String), {
             keys: ['ai:sse:thread:thread-1:run:run-1'],
-            arguments: ['10000', payload, '86400']
+            arguments: [payload]
         })
     })
 
-    it('atomically appends an event and refreshes the stream TTL', async () => {
+    it('retains all active events without length trimming or expiry', async () => {
         const redis = createRedisMock()
         redis.eval.mockResolvedValue('1-0')
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
 
         const id = await service.appendEvent('thread-1', 'run-1', { type: 'message' })
 
@@ -407,14 +452,20 @@ describe('RedisSseStreamService', () => {
         expect(redis.eval).toHaveBeenCalledTimes(1)
         expect(redis.eval).toHaveBeenCalledWith(expect.stringContaining("redis.call('XADD'"), {
             keys: ['ai:sse:thread:thread-1:run:run-1'],
-            arguments: ['10000', JSON.stringify({ type: 'message' }), '86400']
+            arguments: [JSON.stringify({ type: 'message' })]
         })
-        expect(redis.eval.mock.calls[0][0]).toContain("redis.call('EXPIRE', KEYS[1], ARGV[3])")
+        expect(redis.eval.mock.calls[0][0]).toContain("redis.call('PERSIST', KEYS[1])")
+        expect(redis.eval.mock.calls[0][0]).not.toContain('MAXLEN')
         expect(redis.sendCommand).not.toHaveBeenCalled()
     })
 
     it('persists a chat error event and complete marker when the stream errors', async () => {
-        const service = new RedisSseStreamService(createRedisMock() as any)
+        const service = new RedisSseStreamService(
+            createRedisMock() as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const appendEvent = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
         const appendCompleteEvent = jest.spyOn(service, 'appendCompleteEvent').mockResolvedValue('2-0')
 
@@ -448,7 +499,12 @@ describe('RedisSseStreamService', () => {
     })
 
     it('serializes writes before completion and runs a shared producer once', async () => {
-        const service = new RedisSseStreamService(createRedisMock() as never)
+        const service = new RedisSseStreamService(
+            createRedisMock() as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const writes: unknown[] = []
         let release: () => void
         const blocked = new Promise<void>((done) => {
@@ -487,7 +543,12 @@ describe('RedisSseStreamService', () => {
     })
 
     it('signals reconciliation when one event cannot be serialized without losing completion', async () => {
-        const service = new RedisSseStreamService(createRedisMock() as never)
+        const service = new RedisSseStreamService(
+            createRedisMock() as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const append = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
         const { of } = jest.requireActual<typeof import('rxjs')>('rxjs')
         const payload: { type: string; data?: unknown } = { type: 'message' }
@@ -508,7 +569,12 @@ describe('RedisSseStreamService', () => {
         redis.sendCommand.mockImplementation(async (args: string[]) =>
             args[0] === 'XRANGE' ? [['20-0', ['data', JSON.stringify({ type: 'message', data: 'tail' })]]] : 1
         )
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const { stream } = await service.createSseStream({
             threadId: 'thread',
             runId: 'run',
@@ -523,7 +589,12 @@ describe('RedisSseStreamService', () => {
     it('finishes an expired terminal run with an explicit resync instead of waiting forever', async () => {
         const redis = createRedisMock()
         redis.sendCommand.mockImplementation(async (args: string[]) => (args[0] === 'XRANGE' ? [] : 1))
-        const service = new RedisSseStreamService(redis as never)
+        const service = new RedisSseStreamService(
+            redis as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const { stream } = await service.createSseStream({
             threadId: 'thread',
             runId: 'run',
@@ -536,7 +607,12 @@ describe('RedisSseStreamService', () => {
     })
 
     it('leaves chat streams untouched when persistence is not enabled', async () => {
-        const service = new RedisSseStreamService(createRedisMock() as any)
+        const service = new RedisSseStreamService(
+            createRedisMock() as never,
+            { load: jest.fn(), save: jest.fn() } as never,
+            { cancelExecutions: jest.fn() } as never,
+            { load: jest.fn().mockResolvedValue(null), read: jest.fn().mockResolvedValue([]) } as never
+        )
         const appendEvent = jest.spyOn(service, 'appendEvent')
         const appendCompleteEvent = jest.spyOn(service, 'appendCompleteEvent')
         const stream = of({ data: 'hello' } as MessageEvent)
@@ -551,10 +627,11 @@ describe('RedisSseStreamService', () => {
 
 function createRedisMock() {
     return {
-        set: jest.fn(),
+        set: jest.fn().mockResolvedValue('OK'),
         get: jest.fn(),
         pTTL: jest.fn(),
         pExpire: jest.fn(),
+        expire: jest.fn().mockResolvedValue(1),
         eval: jest.fn(),
         sendCommand: jest.fn()
     }
