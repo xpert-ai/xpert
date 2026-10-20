@@ -6,6 +6,7 @@ import { MCP_APP_RESOURCE_MIME_TYPE } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { applicationTracing } from '../../tracing/application-tracing'
+import { encodeMcpHeaderValue } from '../tools/tool-parameter-headers'
 import {
     MCP_CONSUMER_PROTOCOL_VERSION,
     MCP_CLIENT_CAPABILITIES_META_KEY,
@@ -280,7 +281,17 @@ export class LangChainMcpConnection implements McpConsumerConnection {
         headers.set('Content-Type', 'application/json')
         headers.set('MCP-Protocol-Version', MCP_CONSUMER_PROTOCOL_VERSION)
         headers.set('Mcp-Method', routing.method)
-        if (routing.name) headers.set('Mcp-Name', routing.name)
+        if (routing.name) headers.set('Mcp-Name', encodeMcpHeaderValue(routing.name))
+        // Parameter headers belong to this call; never reuse static values from
+        // a previous request or the connection configuration.
+        const parameterHeaderNames: string[] = []
+        headers.forEach((_value, key) => {
+            if (key.toLowerCase().startsWith('mcp-param-')) parameterHeaderNames.push(key)
+        })
+        parameterHeaderNames.forEach((key) => headers.delete(key))
+        for (const [name, value] of Object.entries(routing.parameters ?? {})) {
+            headers.set(`Mcp-Param-${name}`, value)
+        }
         if (!headers.has('Authorization') && connection.authProvider) {
             const tokens = await connection.authProvider.tokens()
             if (tokens?.access_token) headers.set('Authorization', `Bearer ${tokens.access_token}`)

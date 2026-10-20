@@ -6,11 +6,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Client as McpSdkClient, type Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
-import {
-    ListResourcesResultSchema,
-    ListToolsResultSchema,
-    ReadResourceResultSchema
-} from '@modelcontextprotocol/sdk/types.js'
+import { ListResourcesResultSchema, ReadResourceResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import {
     MCP_APP_RESOURCE_MIME_TYPE,
     type IXpertTool,
@@ -37,6 +33,10 @@ import {
     mcpConsumerCallToolResultSchema
 } from '../../../mcp-consumer/tools/mcp-consumer-call-tool-result'
 import { applicationMetrics } from '../../../metrics/application-metrics'
+import {
+    installMcpToolSchemaBridge,
+    mcpConsumerListToolsResultSchema
+} from '../../../mcp-consumer/tools/mcp-consumer-tool-schema'
 
 function appInstanceTtl(middleware?: MiddlewareAppBackend) {
     return mcpAppSessionTtl(middleware?.source)
@@ -431,6 +431,7 @@ export function isMcpAppTokenRequired() {
 }
 
 export function installMcpUiClientCapabilitiesBridge(): void {
+    installMcpToolSchemaBridge()
     if (mcpUiClientCapabilitiesBridgeInstalled) {
         return
     }
@@ -717,7 +718,7 @@ async function listClientTools(
         const response = await connection.requestExtension(
             serverName,
             { method: 'tools/list', params: cursor ? { cursor } : {} },
-            ListToolsResultSchema,
+            mcpConsumerListToolsResultSchema,
             { routing: { method: 'tools/list' } }
         )
         for (const tool of response.tools) {
