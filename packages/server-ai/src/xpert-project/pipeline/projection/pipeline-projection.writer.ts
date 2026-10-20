@@ -125,7 +125,11 @@ export async function writePipelineTasksAndNodes(
     for (const node of snapshot.nodes) {
         const id = pipelineIdentity(context, 'node', roundId, node.nodeKey, node.expansionKey)
         const previous = previousNodes.find((item) => item.sourceKey === node.key)
-        if (previous && (previous.id !== id || previous.disposition !== 'active'))
+        // Both producer key and logical identity are stable within a round, including tombstones.
+        if (
+            (previous && (previous.id !== id || previous.disposition !== 'active')) ||
+            previousNodes.some((item) => item.id === id && item.sourceKey !== node.key)
+        )
             throw pipelineProjectionConflict('NODE_IDENTITY_CHANGED')
         const taskIds = [...new Set(node.taskKeys.map((key) => links.find((link) => link.sourceKey === key)!.taskId))]
         await manager.save(

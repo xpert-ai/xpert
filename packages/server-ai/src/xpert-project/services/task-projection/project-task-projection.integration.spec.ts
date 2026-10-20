@@ -141,7 +141,13 @@ integration('managed project task projection concurrency', () => {
     let schema: string
     const connection = () => {
         const url = new URL(process.env.XPERT_PROJECTION_TEST_REDIS_URL!)
-        return { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
+        // Queue and lock clients must observe the same logical Redis database.
+        return {
+            host: url.hostname,
+            port: Number(url.port),
+            db: Number(url.pathname.slice(1) || 0),
+            maxRetriesPerRequest: null
+        }
     }
 
     beforeAll(async () => {

@@ -25,6 +25,14 @@ import { pipelineTaskSourceKey, writePipelineTasksAndNodes } from './pipeline-pr
 import { capturePipelineHumanWaitSnapshot } from '../persistence/pipeline-human-wait-snapshot'
 import { assertPipelineHostCompatible } from '../configuration/pipeline-host-capabilities'
 
+// Cancellation is still in flight until the provider reports a terminal outcome.
+const unfinishedRunStates = new Set<ProjectPipelineProjection['run']['state']>([
+    'pending',
+    'active',
+    'waiting',
+    'cancelling'
+])
+
 @Injectable()
 export class ProjectPipelineProjectionStore {
     constructor(@InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>) {}
@@ -157,8 +165,7 @@ export class ProjectPipelineProjectionStore {
                     ...scope,
                     id: current.currentRunId
                 })
-                if (['pending', 'active', 'waiting'].includes(oldRun.state))
-                    throw pipelineProjectionConflict('ACTIVE_RUN_EXISTS')
+                if (unfinishedRunStates.has(oldRun.state)) throw pipelineProjectionConflict('ACTIVE_RUN_EXISTS')
             }
             const instance = manager.create(ProjectPipelineInstanceEntity, {
                 ...current,
@@ -179,8 +186,14 @@ export class ProjectPipelineProjectionStore {
             })
             await manager.save(instance)
             const run = await manager.findOneBy(ProjectPipelineRunEntity, { ...scope, id: runId })
+            // A higher producer cursor may advance current work, never reopen archived history.
+            if (run && current?.currentRunId !== runId) throw pipelineProjectionConflict('RUN_HISTORY_IMMUTABLE')
             if (run && run.definitionId !== definitionId) throw pipelineProjectionConflict('RUN_DEFINITION_IMMUTABLE')
-            if (run && !['pending', 'active', 'waiting'].includes(run.state) && run.state !== snapshot.run.state)
+            if (
+                run &&
+                !unfinishedRunStates.has(run.state) &&
+                (run.state !== snapshot.run.state || current?.currentRoundId !== roundId)
+            )
                 throw pipelineProjectionConflict('RUN_TERMINAL_IMMUTABLE')
             await manager.save(
                 ProjectPipelineRunEntity,

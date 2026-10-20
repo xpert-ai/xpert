@@ -35,6 +35,7 @@ import { pipelineQueueFixture, untilPipeline } from './testing/pipeline-queue.fi
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ProjectPipelineContributionRegistry } from '@xpert-ai/plugin-sdk'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
+import { projectionBoundaryCases } from './testing/projection-boundaries.cases'
 
 const url = process.env.XPERT_PIPELINE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
@@ -184,6 +185,7 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         }
     })
     const tasks = () => db.getRepository(XpertProjectTask).findBy({ projectId: context.projectId })
+    projectionBoundaryCases(() => ({ db, store, context }), snapshot, provider)
 
     it('rejects unsupported provider definitions atomically without replacing accepted history', async () => {
         const previous = snapshot(),

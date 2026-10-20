@@ -120,8 +120,18 @@ export async function writeTaskProjection(
                     tenantId: context.actor.tenantId,
                     organizationId: context.actor.organizationId,
                     createdById: context.actor.userId,
-                    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
-                    completedAt: execution.completedAt ? new Date(execution.completedAt) : null
+                    // Pipeline observations may omit timing; absence cannot erase an observed fact.
+                    // Keep the legacy Task provider's replacement semantics outside pipeline projection.
+                    startedAt: execution.startedAt
+                        ? new Date(execution.startedAt)
+                        : options
+                          ? (previous?.startedAt ?? null)
+                          : null,
+                    completedAt: execution.completedAt
+                        ? new Date(execution.completedAt)
+                        : options
+                          ? (previous?.completedAt ?? null)
+                          : null
                 })
             )
         }
