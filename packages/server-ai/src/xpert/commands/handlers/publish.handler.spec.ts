@@ -150,6 +150,7 @@ describe('XpertPublishHandler', () => {
         }
 
         const store = {
+            advanceVersion: jest.fn().mockResolvedValue(undefined),
             saveTeam: xpertService.save,
             createBackup: (entity: Partial<Xpert>) => xpertService.createVersionBackup(entity, xpert.id),
             createAgent: xpertAgentService.create,
@@ -421,7 +422,8 @@ describe('XpertPublishHandler', () => {
             'xpert-1'
         )
         expect(xpertService.create).not.toHaveBeenCalled()
-        expect(xpertService.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'xpert-1', version: '2' }))
+        expect(store.advanceVersion).toHaveBeenCalledWith('2')
+        expect(xpertService.save).not.toHaveBeenCalled()
     })
 
     it('allows tenant creators to publish without user groups', async () => {
@@ -638,9 +640,7 @@ describe('XpertPublishHandler', () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
         const { handler, xpert, store, persistence, commandBus } = createHandler({ version: '1' })
         const draft = structuredClone(xpert.draft)
-        store.saveTeam
-            .mockResolvedValueOnce({ ...xpert, version: '2' })
-            .mockRejectedValueOnce(new Error('tool foreign key'))
+        store.saveTeam.mockRejectedValueOnce(new Error('tool foreign key'))
         await expect(handler.execute(new XpertPublishCommand(xpert.id, true, undefined, 'update'))).rejects.toThrow(
             'tool foreign key'
         )

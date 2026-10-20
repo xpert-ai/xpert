@@ -214,7 +214,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
         // Update to new version, leaving space for the old version as a backup
         team.version = version
-        await store.saveTeam(team)
+        await store.advanceVersion(version)
         // backup old version
         const newTeam = await store.createBackup(oldTeam)
 
