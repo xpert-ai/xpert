@@ -1360,8 +1360,5 @@
   "Shared templates": "Shared templates",
   "Other sources": "Other sources",
   "Agent Plugins": "Agent Plugins",
-  "Xpert Plugins": "Xpert Plugins",
-  "Project pipelines": "Project pipelines",
-  "Open Projects in platform": "Open Projects in platform",
-  "Could not open Projects. Please retry.": "Could not open Projects. Please retry."
+  "Xpert Plugins": "Xpert Plugins"
 }

@@ -1360,8 +1360,5 @@
   "Shared templates": "共有テンプレート",
   "Other sources": "その他の提供元",
   "Agent Plugins": "Agent Plugins",
-  "Xpert Plugins": "Xpert Plugins",
-  "Project pipelines": "プロジェクトパイプライン",
-  "Open Projects in platform": "プラットフォームでプロジェクトを開く",
-  "Could not open Projects. Please retry.": "プロジェクトを開けませんでした。再試行してください。"
+  "Xpert Plugins": "Xpert Plugins"
 }

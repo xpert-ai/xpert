@@ -1360,8 +1360,5 @@
   "Shared templates": "共享模板",
   "Other sources": "其他来源",
   "Agent Plugins": "智能体插件",
-  "Xpert Plugins": "Xpert 插件",
-  "Project pipelines": "项目流水线",
-  "Open Projects in platform": "在平台打开项目",
-  "Could not open Projects. Please retry.": "无法打开项目，请重试。"
+  "Xpert Plugins": "Xpert 插件"
 }
