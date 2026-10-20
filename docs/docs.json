@@ -38,6 +38,14 @@
                 ]
               },
               {
+                "group": "Project Pipelines",
+                "pages": [
+                  "en/guides/project-pipelines/overview",
+                  "en/guides/project-pipelines/architecture",
+                  "en/guides/project-pipelines/operations"
+                ]
+              },
+              {
                 "group": "Artifacts Dashboard",
                 "pages": [
                   "en/guides/artifacts-dashboard/overview",
@@ -119,6 +127,14 @@
                   "zh-Hans/architecture/assistant-template-lifecycle",
                   "zh-Hans/architecture/file-lifecycle-data-flow",
                   "zh-Hans/architecture/file-access-preview-architecture"
+                ]
+              },
+              {
+                "group": "项目流水线",
+                "pages": [
+                  "zh-Hans/guides/project-pipelines/overview",
+                  "zh-Hans/guides/project-pipelines/architecture",
+                  "zh-Hans/guides/project-pipelines/operations"
                 ]
               },
               {

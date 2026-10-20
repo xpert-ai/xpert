@@ -63,3 +63,17 @@ batches, local machine context or future proposals into the current feature page
 The separate product-docs repository maintains task-oriented instructions under
 `{language}/ai/live-dashboard/`, in the standalone AI → Live Dashboard (实时看板)
 section, and maintains its navigation order configuration.
+
+## Project Pipeline functional documentation
+
+Maintain implemented pipeline behavior in `en/guides/project-pipelines/` and
+`zh-Hans/guides/project-pipelines/`, with matching navigation routes:
+
+- `overview`: concepts, shared views, execution ownership, history, and analytics.
+- `architecture`: data model, atomic projection, coordination, and plugin boundaries.
+- `operations`: authorization, recovery, compatibility, and verification limits.
+
+Keep plans and review evidence under `plans/project-pipeline/`; see its README for
+current-document links. Documentation conversion does not close pending release or
+business acceptance gates. The separate product-docs repository maintains user
+instructions at `{language}/ai/projects/pipelines/` under Projects & Tasks.

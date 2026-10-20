@@ -1,0 +1,70 @@
+---
+title: 'Project pipeline features'
+description: 'Connect role-based workflows, task execution history and business workbenches within a Project.'
+---
+
+Project pipelines connect business processes, tasks and real execution records within Project collaboration and authorization boundaries. The platform supplies persistence, coordination, queries and swimlanes; plugins supply domain objects, business decisions, display text and workbench destinations.
+
+The shared implementation has completed staged code review and local candidate verification. Deployment acceptance, plugin compatibility and retirement of old pages remain separate, as described in [Operations and acceptance](./operations).
+
+## Projects, configurations and instances
+
+| Object          | Purpose                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| Project         | Collaboration container for members, Assistants, shared resources, tasks and access           |
+| Definition      | Versioned roles, lanes, stages and execution authority                                        |
+| Project Binding | Authorized executor selections and editable parameters, with a revision and definition digest |
+| Instance        | A pipeline for a particular business object; a Project can contain multiple instances         |
+| Run             | One run with pinned definition and binding snapshots                                          |
+| Round           | A versioned set of inputs with sequence, generation, input digest and subject versions        |
+| Node Instance   | A concrete node in that round, linked to tasks, evidence and execution ownership              |
+| Task Execution  | One attempt linked to a native execution or Runtime Invocation                                |
+
+The first selector in the pipeline toolbar selects an **instance within the current Project**, not another Project. The round selector chooses the business snapshot. Template selection belongs in the explicit configuration dialog.
+
+## Execution authority
+
+| Mode       | Owner of workflow facts and advancement                     | Platform responsibility                                                                        |
+| ---------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `provider` | The plugin owns business topology, state and progression    | Atomically project Tasks and Pipelines; display graphs and controlled business actions         |
+| `platform` | The platform coordinates a versioned, bounded DAG per round | Persist dispatch intent; handle dependencies, branches, receipts, human decisions and recovery |
+
+A definition chooses one authority. Labels, icons and object names do not drive execution, and configuration cannot embed arbitrary executable expressions. The existing BOM integration uses a Provider; Code Review uses a platform-managed definition. Both retain domain logic in extensions.
+
+## Shared swimlanes and interaction
+
+Open **Project tasks → Pipeline** in the Project workspace or conversation Workbench. Existing instances appear directly. Only the configuration button or an explicit configuration intent opens the dialog; saving does not start work.
+
+- Stage swimlanes arrange roles as rows and stages as columns. Select a lane or filter the visible scope. The execution timeline shows order and recorded duration.
+- Stage labels and allowlisted `icon` values come from configuration. Work nodes reuse stage icons; control nodes retain type icons.
+- Providers supply readable branch labels, with wrapping for long text. Managed router outcome labels still have follow-up work; automatic translation of every machine key is not promised.
+- Control nodes are placed near adjacent work nodes rather than in a separate flow-control lane. Layout does not change domain ownership.
+- Assistant details appear on lanes. Work cards show only execution dots belonging to that node.
+- Node details separate overview, executions and evidence versions. Plugins can supply blockers, workbench destinations and action availability.
+- Historical rounds provide traceability without business-advancement actions. Navigation and restoration retain the relevant instance, round and node context.
+
+Cloud and Desktop Workbench share the remote component. Desktop's standalone Project entry opens the configured platform page; it is not a native embedded standalone Project page.
+
+## Execution ownership and status
+
+Dots must match both the node's explicit `executionIds` and `taskIds`, with persisted instance and round ownership. Missing associations are not inferred from an Assistant, task name or time window. Node and lane summaries deduplicate by native execution ID, then Invocation ID, then attempt ID. Clicking passes the displayed `taskExecutionId`, not the latest attempt.
+
+Business state and execution state are independent. A successful execution does not prove business approval. A historical node may remain blocked or rejected while its execution dot shows success. Reads overlay authorized runtime observations to correct stale running displays without rewriting historical business snapshots.
+
+## Analytics dimensions
+
+| Dimension             | Available facts                                                                             | Interpretation                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Workflow and business | Current-round work, business state and human attention counts                               | Current business state is not reconstructed from the execution time window                 |
+| Instance and template | Instance, template version and execution authority                                          | Project totals can span instances                                                          |
+| Executor              | Assistant, Agent, Runtime Provider, tool or service reference                               | Only explicitly attributed facts contribute                                                |
+| Outcome               | Queued, running, waiting, success, failure, cancellation, unknown and terminal success rate | Success divided by success + failure + cancellation; unavailable with no terminal attempts |
+| Duration              | Total, mean, median and P95 of valid terminal intervals                                     | Missing timestamps are not zero-duration runs                                              |
+| Retries               | Explicit technical retries, additional attempts and unclassified attempts                   | Repeated attempts do not automatically mean technical retry or business rework             |
+| Model usage           | Recorded usage, costs by currency and coverage                                              | Do not combine currencies or treat unknown cost as free                                    |
+| Queue and human wait  | Durable queue facts and observed human-ready intervals                                      | Waiting is not human labor time; missing observations remain explicit                      |
+| Cross-project         | Explicitly selected Projects readable within one trusted scope                              | Reporting does not widen authorization                                                     |
+
+Project execution cohorts use actual start time in `[from, to)`, with a maximum window of 93 days. Business counts use each instance's current round. Deduplicated totals may differ from the sum of instance rows; coverage includes shared executions and missing timestamps.
+
+See [Architecture and plugin integration](./architecture) for persistence and extension contracts.
