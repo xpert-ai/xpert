@@ -146,6 +146,29 @@ describe('AssistantModelSelectionService', () => {
         })
     })
 
+    it.each(['missing', 'unavailable'] as const)(
+        'returns a distinct typed %s model error without falling back',
+        async (reason) => {
+            const modelId = reason === 'missing' ? 'mdl_removed' : service.getModelId(fast)
+            modelAccessService.canUseCatalogModels.mockResolvedValue([true, false])
+            let failure: unknown
+            try {
+                await service.resolveSelection(xpert as never, { explicitModelId: modelId })
+            } catch (error) {
+                failure = error
+            }
+            expect(failure).toBeInstanceOf(BadRequestException)
+            if (!(failure instanceof BadRequestException)) throw new Error('Expected model admission rejection')
+            expect(failure.getResponse()).toMatchObject({
+                statusCode: 400,
+                code: reason === 'missing' ? 'ASSISTANT_MODEL_NOT_ALLOWED' : 'ASSISTANT_MODEL_UNAVAILABLE',
+                modelId
+            })
+            expect(userPreferenceService.getDomain).not.toHaveBeenCalled()
+            expect(userPreferenceService.setDomain).not.toHaveBeenCalled()
+        }
+    )
+
     it('writes and clears only the modelSelection preference domain', async () => {
         const fastId = service.getModelId(fast)
 

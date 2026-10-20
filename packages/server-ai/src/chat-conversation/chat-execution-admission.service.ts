@@ -1,7 +1,7 @@
 // Invariants: all existing-conversation root entry points share the durable thread writer claim.
 // A runtime reply may queue, but cannot clear a pause, approve an interaction or reverse a user stop.
 import { Injectable } from '@nestjs/common'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { getErrorMessage, RequestContext } from '@xpert-ai/plugin-sdk'
 import { TChatRequest, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { DataSource, EntityManager } from 'typeorm'
 import { randomUUID } from 'node:crypto'
@@ -135,7 +135,8 @@ export class ChatExecutionAdmissionService {
             await this.dataSource.getRepository(XpertAgentExecution).update(
                 { id: executionId, status: XpertAgentExecutionStatusEnum.RUNNING },
                 {
-                    status: XpertAgentExecutionStatusEnum.ERROR
+                    status: XpertAgentExecutionStatusEnum.ERROR,
+                    error: getErrorMessage(error)
                 }
             )
             await this.finish(threadId, executionId)
