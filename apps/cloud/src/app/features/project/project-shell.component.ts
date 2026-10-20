@@ -5,7 +5,13 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { DestroyRef } from '@angular/core'
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
+import {
+  ZardAvatarComponent,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { map, distinctUntilChanged } from 'rxjs'
 import { XpertProjectFacade } from './project.facade'
@@ -24,7 +30,9 @@ import { toSendUserMessageParams } from '../assistant/assistant-chat-client-comm
     RouterLinkActive,
     RouterOutlet,
     TranslateModule,
+    ZardAvatarComponent,
     ZardBadgeComponent,
+    ZardIconComponent,
     ZardButtonComponent,
     EmojiAvatarComponent,
     XpertProjectChatPanelComponent,
@@ -38,49 +46,87 @@ import { toSendUserMessageParams } from '../assistant/assistant-chat-client-comm
     >
       <div class="flex min-h-0 min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-30 shrink-0 border-b border-divider-subtle bg-components-card-bg">
-          <div class="flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-6">
-            <div class="flex min-w-0 items-center gap-3">
+          <div class="px-4 pt-5 pb-4 sm:px-6 sm:pt-6">
+            <nav
+              class="mb-4 flex min-w-0 items-center gap-2 text-sm text-text-tertiary"
+              [attr.aria-label]="'XP.XProject.BackToProjects' | translate"
+            >
               <a
                 z-button
                 zType="ghost"
                 zSize="sm"
                 routerLink="/project"
                 [attr.aria-label]="'XP.XProject.BackToProjects' | translate"
-                ><i class="ri-arrow-left-line"></i
-              ></a>
-              <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-                ><i class="ri-share-line"></i
-              ></span>
-              <div class="min-w-0">
-                <h1 class="truncate text-sm font-semibold text-text-primary">
-                  {{ facade.project()?.name || ('XP.XProject.ProjectFallback' | translate) }}
-                </h1>
-                <p class="truncate text-xs text-text-tertiary">
+                ><z-icon zType="arrow-left" />{{ 'XP.XProject.WorkspaceTitle' | translate }}</a
+              >
+              <span aria-hidden="true">/</span>
+              <span>{{ 'XP.XProject.ProjectWorkspace' | translate }}</span>
+            </nav>
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0 flex-1 basis-72">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1
+                    class="min-w-0 break-words text-2xl font-semibold leading-snug tracking-tight text-text-primary sm:text-3xl"
+                    [title]="facade.project()?.name || ''"
+                  >
+                    {{ facade.project()?.name || ('XP.XProject.ProjectFallback' | translate) }}
+                  </h1>
+                  @if (facade.project()?.status) {
+                    <z-badge zType="secondary">{{
+                      'XP.XProject.ProjectStatusValue.' + facade.project()?.status | translate
+                    }}</z-badge>
+                  }
+                </div>
+                <p
+                  class="mt-2 line-clamp-2 max-w-5xl text-sm leading-relaxed text-text-secondary"
+                  [title]="facade.project()?.description || ''"
+                >
                   {{ facade.project()?.description || ('XP.XProject.ProjectWorkspace' | translate) }}
                 </p>
               </div>
-              @if (facade.project()?.status) {
-                <z-badge zType="outline">{{
-                  'XP.XProject.ProjectStatusValue.' + facade.project()?.status | translate
-                }}</z-badge>
+              <button
+                z-button
+                zType="outline"
+                type="button"
+                class="shrink-0"
+                [class]="chatPanelOpen() ? 'bg-hover-bg' : ''"
+                [attr.aria-expanded]="chatPanelOpen()"
+                (click)="toggleChatPanel()"
+              >
+                <z-icon zType="users" />{{ 'XP.XProject.ProjectExperts' | translate }}
+              </button>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-text-secondary">
+              @if (facade.project()?.owner; as owner) {
+                <div class="flex items-center gap-2">
+                  <z-avatar
+                    zSize="sm"
+                    [zSrc]="owner.imageUrl || ''"
+                    [zAlt]="ownerName()"
+                    [zFallback]="ownerName().slice(0, 1)"
+                  />
+                  <span class="text-text-tertiary">{{ 'XP.XProject.ListView.Owner' | translate }}</span>
+                  <span>{{ ownerName() }}</span>
+                </div>
               }
               @if (facade.project()?.settings?.managementMode; as managementMode) {
-                <z-badge zType="secondary">{{
+                <span>{{
                   'XP.XProject.' + (managementMode === 'advanced' ? 'AdvancedMode' : 'SimpleMode') | translate
-                }}</z-badge>
+                }}</span>
+              }
+              @if (facade.project()?.updatedAt; as updatedAt) {
+                <span class="flex items-center gap-2">
+                  <span class="text-text-tertiary">{{ 'XP.XProject.UpdatedColumn' | translate }}</span>
+                  <time [attr.datetime]="updatedAt">{{ updatedAt | date: 'mediumDate' }}</time>
+                </span>
+              }
+              @if (facade.tasks().length) {
+                <span>{{
+                  'XP.XProject.ListView.TaskProgress'
+                    | translate: { done: completedTaskCount(), total: facade.tasks().length }
+                }}</span>
               }
             </div>
-            <button
-              z-button
-              zType="outline"
-              zSize="sm"
-              type="button"
-              [class.bg-hover-bg]="chatPanelOpen()"
-              [attr.aria-expanded]="chatPanelOpen()"
-              (click)="toggleChatPanel()"
-            >
-              <i class="ri-team-line mr-1"></i>{{ 'XP.XProject.ProjectExperts' | translate }}
-            </button>
           </div>
           <nav
             class="flex w-full gap-1 overflow-x-auto px-4 sm:px-6"
@@ -372,6 +418,20 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly chatAssistantKey = signal<string | null>(null)
   readonly chatEligibleAssistantIds = signal<readonly string[] | null>(null)
   readonly projectExperts = computed(() => this.facade.project()?.xperts ?? [])
+  readonly ownerName = computed(() => {
+    const owner = this.facade.project()?.owner
+    return (
+      owner?.name ||
+      owner?.fullName ||
+      [owner?.firstName, owner?.lastName].filter(Boolean).join(' ') ||
+      owner?.username ||
+      '—'
+    )
+  })
+  readonly completedTaskCount = computed(
+    () => this.facade.tasks().filter((task) => ['done', 'completed'].includes(task.status)).length
+  )
+
   readonly canEditProjectContent = computed(() => this.facade.projectAccess()?.capabilities.canEdit ?? false)
   readonly canManageProject = computed(() => this.facade.projectAccess()?.capabilities.canManage ?? false)
   #resizeStartX = 0

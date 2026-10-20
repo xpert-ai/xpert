@@ -72,6 +72,13 @@ export type XpertProjectConversationTarget = {
   xpertId?: string
 }
 
+export type XpertProjectListQuery = XpertProjectListFilter & {
+  status?: string
+  skip?: number
+  take?: number
+  sort?: 'updated' | 'created' | 'name'
+}
+
 @Injectable({ providedIn: 'root' })
 export class XpertProjectApiService {
   readonly #http = inject(HttpClient)
@@ -84,12 +91,17 @@ export class XpertProjectApiService {
       .pipe(map((response) => projectPipelinePortfolioSchema.parse(response)))
   }
 
-  list(params: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
+  list(params: XpertProjectListQuery = {}) {
     const data = {
       // The workspace owns the status filter, including archived projects.
       // Legacy callers still use the server's active-only default.
       where: params.status ? { status: params.status } : { status: 'all' },
-      order: { updatedAt: 'DESC' },
+      order:
+        params.sort === 'name'
+          ? { name: 'ASC', id: 'ASC' }
+          : params.sort === 'created'
+            ? { createdAt: 'DESC', id: 'ASC' }
+            : { updatedAt: 'DESC', id: 'ASC' },
       skip: params.skip ?? 0,
       take: params.take ?? 50
     }

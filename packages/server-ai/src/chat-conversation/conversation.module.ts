@@ -38,6 +38,8 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
 import { ThreadReferenceService } from './thread-reference.service'
 import { ThreadCursorStore } from './thread-cursor.store'
 import { ConversationInitializerRegistry } from './conversation-initializer.registry'
+import { SideChatForkService } from './side-chat-fork.service'
+import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
 
 @Module({
     imports: [
@@ -57,6 +59,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         SharedModule,
         RedisModule,
         CqrsModule,
+        CopilotCheckpointModule,
 
         BullModule.registerQueue({
             name: 'conversation-summary'
@@ -80,6 +83,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         ChatConversationService,
         ChatConversationSidebarService,
         ChatConversationThreadService,
+        SideChatForkService,
         ThreadRunControlService,
         ChatConversationGoalService,
         ChatTaskSummaryService,

@@ -92,7 +92,7 @@
             "groups": [
               {
                 "group": "Architecture Proposals",
-                "pages": ["en/proposals/scoped-authorization"]
+                "pages": ["en/proposals/scoped-authorization", "en/proposals/shared-checkpoint-forks"]
               }
             ]
           },
@@ -204,7 +204,7 @@
             "groups": [
               {
                 "group": "架构提案",
-                "pages": ["zh-Hans/proposals/scoped-authorization"]
+                "pages": ["zh-Hans/proposals/scoped-authorization", "zh-Hans/proposals/shared-checkpoint-forks"]
               }
             ]
           },

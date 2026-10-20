@@ -326,6 +326,8 @@
         "PauseTokenRequired": "恢复流程需要指定暂停存档标识。",
         "ThreadHasActiveOperation": "当前分支已有运行中或已暂停的流程。",
         "BranchRequestInvalid": "从消息创建分支时必须同时提供 beforeMessageId 和 requestId。",
+        "ThreadCopyRequestInvalid": "请选择一种分叉边界，并提供用于重试的请求标识。",
+        "SideChatCheckpointUnavailable": "暂时没有可用于旁路对话的已完成回复，请等待一次回复完整结束后重试。",
         "ProjectTypeInvalid": "项目类型定义或标识无效。",
         "ProjectTypeDuplicate": "项目类型重复声明。",
         "ProjectTypeUnavailable": "项目所属应用或类型当前不可用。",

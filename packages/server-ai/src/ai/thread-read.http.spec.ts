@@ -7,7 +7,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     CurrentUser: () => () => undefined,
     Public: () => () => undefined,
     TransformInterceptor: class {},
-    UserPublicDTO: class {}
+    UserPublicDTO: class {},
+    ZodValidationPipe: jest.requireActual('../../../server/src/shared/pipes/zod-validation.pipe').ZodValidationPipe
 }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: { currentApiPrincipal: () => null, currentUserId: () => null }
@@ -74,6 +75,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
         updatedAt: new Date('2026-10-16T02:00:00Z')
     })
     const checkpointRead = jest.fn<Promise<CheckpointTuple | undefined>, [CopilotCheckpointGetTupleQuery]>()
+    const copyThread = jest.fn()
     const tuple: CheckpointTuple = {
         config: { configurable: { thread_id: 'branch', checkpoint_ns: '', checkpoint_id: 'checkpoint' } },
         checkpoint: {
@@ -102,6 +104,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
         allowed = true
         exists = true
         checkpointRead.mockReset().mockResolvedValue(undefined)
+        copyThread.mockReset().mockResolvedValue({ ...thread, conversation, status: 'idle' })
         const module = await Test.createTestingModule({
             imports: [CqrsModule.forRoot()],
             controllers: [ThreadsController],
@@ -112,6 +115,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
                 {
                     provide: ChatConversationThreadService,
                     useValue: {
+                        copyThread,
                         requireByThreadId: async () => {
                             if (!exists) throw new NotFoundException()
                             return thread
@@ -151,6 +155,45 @@ describe('thread metadata and explicit state HTTP routes', () => {
     afterEach(async () => {
         await app?.close()
         jest.restoreAllMocks()
+    })
+
+    it('validates sealed copy requests through HTTP and preserves the retry identity', async () => {
+        const body = { mode: 'latest-sealed-reply', requestId: 'retry-1' }
+        const response = await fetch(`${endpoint}/copy`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        expect(response.status).toBe(201)
+        expect(copyThread).toHaveBeenCalledWith('branch', body)
+    })
+
+    it.each([
+        { mode: 'latest-sealed-reply' },
+        { mode: 'latest-sealed-reply', requestId: '' },
+        { mode: 'latest-sealed-reply', requestId: 'retry', beforeMessageId: 'human' },
+        { mode: 'arbitrary', requestId: 'retry' },
+        { beforeMessageId: 'human' },
+        { mode: 'latest-sealed-reply', requestId: 'retry', checkpoint: 'client-chosen' }
+    ])('rejects invalid copy input %j before invoking the service', async (body) => {
+        const response = await fetch(`${endpoint}/copy`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        expect(response.status).toBe(400)
+        expect(copyThread).not.toHaveBeenCalled()
+    })
+
+    it('retains contribute authorization for sealed copies', async () => {
+        allowed = false
+        const response = await fetch(`${endpoint}/copy`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ mode: 'latest-sealed-reply', requestId: 'retry' })
+        })
+        expect(response.status).toBe(403)
+        expect(copyThread).not.toHaveBeenCalled()
     })
 
     it('serializes the real handler response without reading checkpoint values', async () => {
