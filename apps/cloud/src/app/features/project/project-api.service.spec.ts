@@ -15,6 +15,26 @@ describe('XpertProjectApiService', () => {
 
   afterEach(() => httpMock.verify())
 
+  it.each([
+    ['updated', { updatedAt: 'DESC', id: 'ASC' }],
+    ['created', { createdAt: 'DESC', id: 'ASC' }],
+    ['name', { name: 'ASC', id: 'ASC' }]
+  ] as const)('applies %s ordering before pagination without dropping filters', (sort, order) => {
+    service
+      .list({ sort, status: 'archived', skip: 50, take: 50, search: 'proposal', applicationKey: 'bid' })
+      .subscribe()
+    const request = httpMock.expectOne((request) => request.url === '/api/xpert-project/my')
+    expect(JSON.parse(request.request.params.get('data')!)).toEqual({
+      where: { status: 'archived' },
+      order,
+      skip: 50,
+      take: 50
+    })
+    expect(request.request.params.get('search')).toBe('proposal')
+    expect(request.request.params.get('applicationKey')).toBe('bid')
+    request.flush({ items: [], total: 0 })
+  })
+
   it('loads the current user access summary for a Project', () => {
     let result: TXpertProjectAccessSummary | undefined
     service.access('project-1').subscribe((access) => (result = access))
