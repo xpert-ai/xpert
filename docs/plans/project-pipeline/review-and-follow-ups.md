@@ -8,6 +8,8 @@
 
 同日按授权继续第四批执行协调与宿主执行桥接审核，修复观察租约的派发隔离、Runtime 持久化请求授权、过期 intent 写入和恢复扫描饥饿，详见 [执行协调与宿主桥接审核记录](./coordination-bridges-review.md)。预算、原生续轮及其他剩余工作仍暂停。
 
+同日按授权完成第五批查询、统计与 Project API 接入审核，修复统计归属、Invocation 精确节点关联、完整运行状态分类和当前节点终态观察，详见 [查询、统计与 Project API 审核记录](./queries-analytics-api-review.md)。非阻塞项已单独记录；预算、原生续轮及其他剩余工作继续暂停。
+
 ## 审核基线
 
 - 分支：`codex/project-pipeline-review`。
