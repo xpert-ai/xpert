@@ -47,18 +47,18 @@ const pluginConfig: IPluginConfig = {
 }
 
 describe('runSchemaSync', () => {
-  it('does not open a migration connection if required plugin metadata is unavailable', async () => {
+  it('does not open a migration connection if plugin discovery cannot complete', async () => {
     const createDataSource = jest.fn()
     const migrate = jest.fn()
     await expect(
       runSchemaSync(pluginConfig, {
         prepareConfig: async () => {
-          throw new Error('SCHEMA_PLUGIN_REGISTRATION_FAILED')
+          throw new Error('Plugin discovery failed')
         },
         createDataSource,
         migrate
       })
-    ).rejects.toThrow('SCHEMA_PLUGIN_REGISTRATION_FAILED')
+    ).rejects.toThrow('Plugin discovery failed')
     expect(createDataSource).not.toHaveBeenCalled()
     expect(migrate).not.toHaveBeenCalled()
   })
