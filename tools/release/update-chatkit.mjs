@@ -106,7 +106,13 @@ export async function updateChatkit({ root = repository, run = runPnpm, setup = 
       const previous = parse(readFileSync(lockFile, 'utf8'))
       const expected = chatkitPackages.filter((name) => Object.hasOwn(previous.catalogs?.default ?? {}, name))
       assert.ok(expected.length, `Missing ChatKit catalog in ${profile.lock}`)
-      const pinned = { ...workspace, catalog: { ...workspace.catalog, ...versions } }
+      // Catalogs do not update transitive-only consumers (for example Desktop's
+      // web-shared dependency). Pin their resolution too, then restore source policy.
+      const pinned = {
+        ...workspace,
+        catalog: { ...workspace.catalog, ...versions },
+        overrides: { ...workspace.overrides, ...versions }
+      }
       writeFileSync(path.join(directory, 'pnpm-workspace.yaml'), stringify(pinned))
       const install = ['install', '--lockfile-only', '--ignore-scripts', '--no-frozen-lockfile']
       run(install, directory)

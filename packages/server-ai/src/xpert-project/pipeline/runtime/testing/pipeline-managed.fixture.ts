@@ -39,6 +39,8 @@ import { PublishedXpertAccessService } from '../../../../xpert/published-xpert-a
 import { runWithCapturedRequestContext } from '../../../../shared/request-context'
 import { ProjectAccessRuntimeService } from '../../../services/project-access-runtime.service'
 import { XpertProject } from '../../../entities/project.entity'
+import { XpertProjectMembership } from '../../../entities/project-membership.entity'
+import { Xpert } from '../../../../xpert/xpert.entity'
 import { XpertWorkspace } from '../../../../xpert-workspace/workspace.entity'
 import { XpertProjectTask } from '../../../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../../../entities/project-task-execution.entity'
@@ -274,6 +276,8 @@ export function managedPipelineFixture() {
         for (const entity of [
             XpertWorkspace,
             XpertProject,
+            XpertProjectMembership,
+            Xpert,
             XpertProjectTask,
             XpertProjectTaskExecution,
             AgentRuntimeBindingEntity,
@@ -282,6 +286,10 @@ export function managedPipelineFixture() {
             AgentInvocationWaitEntity
         ])
             await queryRunner.createTable(Table.create(db.getMetadata(entity), db.driver))
+        const assistants = db
+            .getMetadata(XpertProject)
+            .relations.find((relation) => relation.propertyName === 'xperts')!
+        await queryRunner.createTable(Table.create(assistants.junctionEntityMetadata!, db.driver))
         await queryRunner.release()
         for (const file of [
             '20261018-project-pipeline.sql',

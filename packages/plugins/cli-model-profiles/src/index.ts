@@ -381,7 +381,7 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
-    revision: '5',
+    revision: '6',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',

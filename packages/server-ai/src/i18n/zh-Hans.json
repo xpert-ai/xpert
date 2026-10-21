@@ -58,6 +58,9 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "AnalyticsDefinitionInvalid": "分析定义不可用或配置无效",
+        "AnalyticsDefinitionConflict": "已有更新版本发布，请重新加载后再发布。",
+        "AnalyticsDefinitionUnavailable": "分析定义不可用。",
         "ProjectTaskProjectionRetry": "任务同步已有新请求或正在由其他实例处理，将由队列重试。",
         "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
         "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
@@ -74,6 +77,7 @@
         "RuntimeUserUnavailable": "运行用户已不可用或不再具有组织访问权限",
         "ArtifactVersionConflict": "产物已被其他保存操作更新，请重新打开后再保存。",
         "AnalyticsAccessDenied": "没有访问分析数据源的权限",
+        "AnalyticsGrainMismatch": "返回的数据行在声明的粒度上重复。请检查真实数据，使用确实唯一的粒度；未聚合的明细表可将 grain 设为空数组。不要丢弃源数据行。",
         "AnalyticsQueryInvalid": "分析查询不可用或无效",
         "PersonalApiKeyNotFound": "个人 API 密钥不存在或已撤销。",
         "PersonalApiKeyHumanRequired": "只有真人用户账号可以管理个人 API 密钥。",
@@ -187,6 +191,7 @@
         "ProjectPipelineDispatchPaused": "流水线已暂停新派发，仍可查询和取消在途执行。",
         "ProjectPipelineModelGateUnsupported": "模型客户端不支持原生模型调用前的预算检查。",
         "ProjectPipelineNativeModelBudgetExceeded": "实例原生模型预算不足以准入下一次调用，已消耗额度和未知预留均保留。",
+        "ProjectPipelineScopedDelegationUnavailable": "当前会话不支持执行流水线操作。请打开项目流水线管理页面，使用有相应项目权限的用户账号登录后继续。",
         "ProjectPipelineProjectionConflict": "流水线投影与已保存版本冲突。",
         "ProjectPipelineNotFound": "未找到项目流水线。",
         "ProjectPipelineConfigurationInvalid": "项目流水线配置无效。",
@@ -627,6 +632,7 @@
         "GraphExtractionEvidenceInvalid": "GraphRAG 提取结果没有为每个图谱项返回有效的原文依据。",
         "KnowledgeDocumentManagedReadOnly": "此文档由系统生成，请在来源应用中更新数据并重新发布索引。",
         "StructuredGraphPublicationInvalid": "结构化图谱发布数据无效或来源分块已变化，请从来源应用重新发布。",
+        "GraphIdentityOutputInvalid": "图谱身份判定在一次纠正尝试后仍返回无效的模型结果。same 的 identityId 必须引用提供的候选项，different 或 uncertain 的 identityId 必须为 null。请检查图谱模型配置后重试失败文档。",
         "GraphExtractionOutputInvalid": "图谱模型在缩小批次重试后仍返回不完整的结构化数据。请检查模型输出长度限制，再重试失败文档。",
         "KnowledgeCandidateRankMissing": "知识检索候选缺少排名，chunk：{{chunkId}}。",
         "RrfRankConstantInvalid": "RRF rankConstant 必须是有限的非负数。",

@@ -272,6 +272,6 @@ describe('background CLI extensions', () => {
     })
 
     it.each(['codex', 'opencode', 'qwen'])('tracks the %s revision for catalog-based configuration', (id) => {
-        expect(builtinCliModelProfiles.get(id)?.revision).toBe('5')
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe(id === 'codex' ? '6' : '5')
     })
 })

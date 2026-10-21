@@ -4,9 +4,8 @@ import { normalizeAnalyticsResult, resolveAnalyticsParameters } from './analytic
 import type { AnalyticsProviderResult } from './analytics-provider'
 
 const binding: AnalyticsBinding = {
-  schemaVersion: 1,
   id: 'revenue',
-  dataSourceId: 'b1234567-1234-4234-8234-123456789012',
+  source: { kind: 'data-source', dataSourceId: 'b1234567-1234-4234-8234-123456789012' },
   providerId: 'test',
   operation: 'read',
   contractVersion: 1,

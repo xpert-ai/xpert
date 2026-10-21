@@ -2,6 +2,7 @@
 // The returned runtime is server-only and must never become part of a View response.
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import {
+    normalizeMiddlewareOptions,
     normalizeMiddlewareProvider,
     WorkflowNodeTypeEnum,
     type IWFNMiddleware,
@@ -96,8 +97,9 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
             connectorBindingIds,
             connectorProviders
         }
+        const options = normalizeMiddlewareOptions(node.options)
         return {
-            options: node.options,
+            options,
             context: {
                 tenantId: context.tenantId,
                 organizationId: context.organizationId,
@@ -110,7 +112,7 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
                 conversationId: runtimeScope.conversationId ?? undefined,
                 agentKey: agent.key,
                 knowledgebaseIds: agent.knowledgebaseIds,
-                node: { ...node, provider },
+                node: { ...node, provider, options },
                 tools: new Map(),
                 runtime: this.middlewareRuntime.createScopedApi(scope)
             }

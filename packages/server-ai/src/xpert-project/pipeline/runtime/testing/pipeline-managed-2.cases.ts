@@ -1,9 +1,10 @@
 import { AgentRuntimeBindingEntity } from '../../../../agent-invocation/invocation.entity'
 import { randomUUID } from 'node:crypto'
-import { projectPipelineConfigurationSchema } from '@xpert-ai/contracts'
+import { projectPipelineConfigurationSchema, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ProjectAccessRuntimeService } from '../../../services/project-access-runtime.service'
 import { XpertProjectTaskExecution } from '../../../entities/project-task-execution.entity'
+import { XpertProject } from '../../../entities/project.entity'
 import {
     ProjectPipelineRunEntity,
     ProjectPipelineRoundEntity,
@@ -12,11 +13,42 @@ import {
     ProjectPipelineDecisionEntity
 } from '../../persistence/pipeline.entity'
 import { ProjectPipelineBindingsService } from '../../configuration/pipeline-bindings.service'
-import { ProjectPipelineBindingEntity } from '../../persistence/pipeline.entity'
+import { ProjectPipelineBindingEntity, ProjectPipelineDefinitionEntity } from '../../persistence/pipeline.entity'
 import { readPipelineHumanWaitStatistics } from '../../queries/pipeline-human-wait-statistics'
 import { managedPipelineFixture } from './pipeline-managed.fixture'
 
 export function registerManagedCases2(fixture: ReturnType<typeof managedPipelineFixture>) {
+    it('runs interactive user work without an allowlist and rechecks live Project access in the worker', async () => {
+        const access = new ProjectAccessRuntimeService(fixture.db.getRepository(XpertProject))
+        fixture.access.assertEdit.mockImplementation((input) => access.assertEdit(input))
+        fixture.access.assertManage.mockImplementation((input) => access.assertManage(input))
+        await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, {
+            ownerId: fixture.context.actor.userId
+        })
+        const credential = jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+            id: fixture.context.actor.userId,
+            tenantId: fixture.context.actor.tenantId,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: fixture.assistantId }
+        })
+        try {
+            await fixture.launch()
+        } finally {
+            credential.mockRestore()
+        }
+        const operations = await fixture.operations()
+        expect(operations).toHaveLength(2)
+        expect(operations[0].context.actor).toEqual(fixture.context.actor)
+        await fixture.request(() => fixture.runner.run(fixture.context, operations[0].id))
+        expect(fixture.execute).toHaveBeenCalledTimes(1)
+        await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, { ownerId: randomUUID() })
+        await expect(
+            fixture.request(() => fixture.runner.run(fixture.context, operations[1].id))
+        ).rejects.toMatchObject({ status: 403 })
+        expect(fixture.execute).toHaveBeenCalledTimes(1)
+    })
+
     it('rejects ambiguous Runtime workspace grants before any work is admitted', async () => {
         const bindingId = randomUUID()
         await fixture.db.getRepository(AgentRuntimeBindingEntity).save({
@@ -289,22 +321,70 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
                 .countBy({ projectId: fixture.context.projectId })
         ).toBe(0)
     })
-    it('never widens a scoped credential into an unrestricted background user', async () => {
-        const spy = jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
-            id: fixture.context.actor.userId,
-            tenantId: fixture.context.actor.tenantId,
-            principalType: 'client_secret',
-            resourceScope: { kind: 'assistant', xpertId: fixture.assistantId }
-        })
-        try {
-            await expect(fixture.launch()).rejects.toMatchObject({
-                response: { code: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
+    it('persists a normal user configuration without starting work and preserves genuine binding conflicts', async () => {
+        await fixture.request(async () => {
+            expect(RequestContext.currentApiPrincipal()).toBeNull()
+            const requestId = randomUUID()
+            const receipt = await fixture.start.configure(fixture.context, {
+                requestId,
+                configuration: fixture.configuration
             })
-        } finally {
-            spy.mockRestore()
-        }
-        expect(await fixture.operations()).toHaveLength(0)
+            const bindings = fixture.db.getRepository(ProjectPipelineBindingEntity)
+            expect(await bindings.findOneByOrFail({ id: receipt.bindingId })).toMatchObject({
+                revision: 1,
+                createdById: fixture.context.actor.userId,
+                configuration: fixture.configuration.binding
+            })
+            await expect(
+                fixture.start.configure(fixture.context, {
+                    requestId,
+                    configuration: {
+                        ...fixture.configuration,
+                        binding: { ...fixture.configuration.binding, parameters: { changed: true } }
+                    }
+                })
+            ).rejects.toMatchObject({ status: 409, response: { code: 'BINDING_REQUEST_CONFLICT' } })
+            expect(await bindings.count()).toBe(1)
+            expect((await bindings.findOneByOrFail({ id: receipt.bindingId })).configuration).toEqual(
+                fixture.configuration.binding
+            )
+            expect(await fixture.operations()).toHaveLength(0)
+        })
     })
+    it.each(['client_secret', 'api_key'] as const)(
+        'persists a scoped %s configuration but never widens it into background execution',
+        async (principalType) => {
+            const spy = jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+                id: fixture.context.actor.userId,
+                tenantId: fixture.context.actor.tenantId,
+                principalType,
+                resourceScope: { kind: 'assistant', xpertId: fixture.assistantId }
+            })
+            try {
+                const { bindingId } = await fixture.start.configure(fixture.context, {
+                    requestId: randomUUID(),
+                    configuration: fixture.configuration
+                })
+                expect(await fixture.operations()).toHaveLength(0)
+                await expect(
+                    fixture.start.start(fixture.context, {
+                        bindingId,
+                        objectKey: 'document',
+                        triggerKey: 'trigger',
+                        title: 'Document assessment'
+                    })
+                ).rejects.toMatchObject({
+                    status: 403,
+                    response: { code: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
+                })
+            } finally {
+                spy.mockRestore()
+            }
+            expect(await fixture.operations()).toHaveLength(0)
+            expect(await fixture.db.getRepository(ProjectPipelineDefinitionEntity).count()).toBe(1)
+            expect(await fixture.db.getRepository(ProjectPipelineBindingEntity).count()).toBe(1)
+        }
+    )
     it('persists native identity and input before dispatch, then links the original runtime attempt after recovery', async () => {
         await fixture.launchAssistant()
         const operation = (await fixture.operations())[0]

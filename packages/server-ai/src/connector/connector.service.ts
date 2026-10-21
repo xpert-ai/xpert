@@ -2010,6 +2010,13 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             }
             return
         }
+        // Trusted Project service calls may precede an Agent execution. Live Project membership,
+        // Assistant assignment and Connector grants are still checked by assertRuntimeBindingAccess.
+        // TODO: 之后改造更严格的权限检查。
+        if (scope.projectId && !scope.conversationId && !scope.executionId) {
+            requiredConnectorText(scope.projectId, 'runtime.projectId')
+            return
+        }
         requiredConnectorText(scope.conversationId, 'runtime.conversationId')
         requiredConnectorText(scope.executionId, 'runtime.executionId')
     }

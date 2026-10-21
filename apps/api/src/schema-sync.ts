@@ -22,7 +22,9 @@ export interface SchemaSyncDependencies {
 const defaultDependencies: SchemaSyncDependencies = {
   prepareConfig: async (config) => {
     const { preBootstrapApplicationConfig } = await import('./bootstrap')
-    return preBootstrapApplicationConfig(config, { failOnPluginRegistrationError: true })
+    // Individual plugin failures are isolated by the loader. A failed discovery
+    // group cannot supply its successful modules, so that still aborts migration.
+    return preBootstrapApplicationConfig(config, { failOnPluginGroupError: true })
   },
   createDataSource: (options) => new DataSource(options),
   migrate: async (source, action) => {

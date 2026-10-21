@@ -1,14 +1,14 @@
 import { pipelineExecutions } from './executions'
-import { saveTaskViewState, type PipelineFocus } from '../bridge'
+import { type PipelineFocus } from '../bridge'
 import { pipelineStageIcons } from './stage-icons'
 import { isCurrentNode } from './selection'
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { GitBranch, Layers, UserCheck, ExternalLink, Flag, Split, Merge, Info } from 'lucide-react'
 import { cn } from '@xpert-ai/shadcn-ui'
 import { Assignee } from '../assignee'
 import { ExecutionIndicators } from '../execution-indicators'
 import { texts } from '../i18n'
-import { useDragScroll } from '../drag-scroll'
+import { PipelineViewport } from './viewport'
 import type { PipelineGraph, PipelineNode } from './bridge'
 import type { PipelineTexts } from './i18n'
 import {
@@ -18,7 +18,8 @@ import {
     isControlNode,
     laneWidth,
     headerHeight,
-    nodeHeight
+    nodeHeight,
+    controlSize
 } from './layout'
 
 const icons = {
@@ -31,6 +32,7 @@ const icons = {
     terminal: Flag
 }
 export function Swimlane({
+    status,
     graph,
     locale,
     t,
@@ -45,6 +47,7 @@ export function Swimlane({
     focusNode,
     initialScroll
 }: {
+    status?: ReactNode
     initialScroll?: PipelineFocus
     graph: PipelineGraph
     locale: string
@@ -60,14 +63,6 @@ export function Swimlane({
     onError: (message: string) => void
 }) {
     const viewport = useRef<HTMLDivElement>(null)
-    useDragScroll(viewport)
-    useEffect(() => {
-        if (viewport.current && !focusNode) {
-            viewport.current.scrollLeft = initialScroll?.scrollLeft ?? 0
-            viewport.current.scrollTop = initialScroll?.scrollTop ?? 0
-            saveTaskViewState({ scrollLeft: viewport.current.scrollLeft, scrollTop: viewport.current.scrollTop })
-        }
-    }, [])
     const nodeElements = useRef(new Map<string, HTMLElement>())
     useEffect(() => {
         if (focusNode) nodeElements.current.get(focusNode)?.scrollIntoView({ block: 'nearest', inline: 'center' })
@@ -78,58 +73,80 @@ export function Swimlane({
     const layout = pipelineLayout(graph, lane)
     const nodeKinds = new Map(graph.nodes.map((node) => [node.projection.key, node.projection.kind]))
     return (
-        <div
-            ref={viewport}
-            onScroll={(event) =>
-                saveTaskViewState({
-                    scrollLeft: event.currentTarget.scrollLeft,
-                    scrollTop: event.currentTarget.scrollTop
-                })
-            }
-            className="min-h-0 flex-1 overflow-auto overscroll-contain data-[panning=true]:cursor-grabbing"
-            aria-label={t.stages}
+        <PipelineViewport
+            status={status}
+            viewport={viewport}
+            width={layout.width}
+            height={layout.height}
+            t={t}
+            initialScroll={initialScroll}
+            focusNode={focusNode}
         >
-            <div className="relative isolate" style={{ width: layout.width, height: layout.height, minHeight: '100%' }}>
+            <div className="relative isolate" style={{ width: layout.width, height: layout.height }}>
                 <div className="sticky top-0 z-30 flex border-b bg-background" style={{ height: headerHeight }}>
                     <div
-                        className="sticky left-0 z-40 shrink-0 border-r bg-background px-5 py-5 text-xs text-muted-foreground"
+                        className="sticky left-0 z-40 shrink-0 border-r bg-background px-3 py-2 text-xs text-muted-foreground"
                         style={{ width: laneWidth }}
                     >
                         <p
-                            className="line-clamp-2 break-words text-base font-semibold text-foreground"
+                            className="truncate text-sm font-semibold leading-tight text-foreground"
                             title={graph.instance.title}
                         >
                             {graph.instance.title}
                         </p>
-                        <p className="mt-2">
+                        <p className="mt-1">
                             {graph.historical ? t.history : t.round} {graph.round.sequence}
                         </p>
                     </div>
-                    {layout.stages.map((stage, index) => {
-                        const StageIcon = stage.icon ? pipelineStageIcons[stage.icon] : Layers
+                    {layout.headers.map((header) => {
+                        const HeaderIcon = header.control
+                            ? icons[header.control.kind]
+                            : header.icon
+                              ? pipelineStageIcons[header.icon]
+                              : Layers
                         return (
                             <div
-                                key={stage.key}
-                                className="relative shrink-0 border-r px-6 py-4"
-                                style={{ width: stage.width }}
+                                key={header.key}
+                                role="group"
+                                aria-label={header.label}
+                                className={cn('relative shrink-0 border-r px-3 py-2', header.control && 'bg-muted/30')}
+                                style={{ width: header.width }}
                             >
-                                {!stage.control && (
-                                    <>
-                                        <p className="absolute right-4 top-3 text-xs text-muted-foreground">
-                                            {String(
-                                                layout.stages.slice(0, index + 1).filter((item) => !item.control).length
-                                            ).padStart(2, '0')}
-                                        </p>
-                                        <div className="flex h-full items-center gap-3">
-                                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                                                <StageIcon className="size-5" />
-                                            </span>
-                                            <p className="min-w-0 truncate text-base font-semibold" title={stage.label}>
-                                                {stage.label}
-                                            </p>
-                                        </div>
-                                    </>
+                                {!header.control && (
+                                    <p className="absolute right-2 top-1 text-[10px] text-muted-foreground">
+                                        {String(header.stageNumber).padStart(2, '0')}
+                                    </p>
                                 )}
+                                <div
+                                    className={cn(
+                                        'flex h-full items-center gap-2',
+                                        header.control && 'justify-center gap-1.5'
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            'flex shrink-0 items-center justify-center',
+                                            header.control
+                                                ? 'text-muted-foreground'
+                                                : 'size-7 rounded-lg bg-primary text-primary-foreground'
+                                        )}
+                                    >
+                                        <HeaderIcon className="size-4" />
+                                    </span>
+                                    <p
+                                        className={cn(
+                                            'min-w-0 truncate font-semibold',
+                                            header.control ? 'text-xs' : 'text-sm'
+                                        )}
+                                        title={
+                                            header.control
+                                                ? `${t[header.control.kind]} · ${header.label}`
+                                                : header.label
+                                        }
+                                    >
+                                        {header.label}
+                                    </p>
+                                </div>
                             </div>
                         )
                     })}
@@ -149,7 +166,7 @@ export function Swimlane({
                     >
                         <div
                             className={cn(
-                                'sticky left-0 z-20 flex min-h-0 shrink-0 flex-col justify-center overflow-hidden border-r bg-background px-5 py-8 before:absolute before:inset-y-0 before:left-0 before:w-1',
+                                'sticky left-0 z-20 flex min-h-0 shrink-0 flex-col justify-center overflow-hidden border-r bg-background px-3 pt-4 pb-9 before:absolute before:inset-y-0 before:left-0 before:w-1',
                                 selectedLane === row.key ? 'bg-accent before:bg-primary' : 'before:bg-border'
                             )}
                             style={{ width: laneWidth }}
@@ -168,7 +185,7 @@ export function Swimlane({
                                         )
                                 ) && (
                                     <button
-                                        className="rounded text-left text-base font-semibold hover:underline focus-visible:outline-ring"
+                                        className="rounded text-left text-sm font-semibold hover:underline focus-visible:outline-ring"
                                         aria-pressed={selectedLane === row.key}
                                         onClick={() => onLaneSelect(row.key)}
                                     >
@@ -195,7 +212,7 @@ export function Swimlane({
                                         t={texts(locale)}
                                         locale={locale}
                                         onError={onError}
-                                        className="my-3"
+                                        className="my-2"
                                         laneHeading={row.label}
                                         laneSelected={selectedLane === row.key}
                                         onLane={() => onLaneSelect(row.key)}
@@ -212,7 +229,7 @@ export function Swimlane({
                                 t={texts(locale)}
                                 locale={locale}
                                 onError={onError}
-                                className="mt-2 shrink-0 justify-end"
+                                className="absolute bottom-3 left-3 right-3 justify-end"
                                 taskTitles={new Map(graph.tasks.tasks.map((task) => [task.id, task.title]))}
                             />
                             <button
@@ -224,11 +241,11 @@ export function Swimlane({
                                 <Info className="size-4" />
                             </button>
                         </div>
-                        {layout.stages.map((stage) => (
+                        {layout.headers.map((header) => (
                             <div
-                                key={stage.key}
-                                className="shrink-0 border-r border-dashed"
-                                style={{ width: stage.width }}
+                                key={header.key}
+                                className={cn('shrink-0 border-r border-dashed', header.control && 'bg-muted/10')}
+                                style={{ width: header.width }}
                             />
                         ))}
                     </div>
@@ -325,27 +342,31 @@ export function Swimlane({
                                     if (element) nodeElements.current.set(node.id, element)
                                     else nodeElements.current.delete(node.id)
                                 }}
-                                className="absolute z-10 flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:outline-ring"
+                                className="absolute z-10 flex flex-col items-center gap-0.5 rounded-lg text-xs focus-visible:outline-ring"
                                 style={{
                                     left: position.x,
                                     top: position.y,
                                     width: position.width,
-                                    height: nodeHeight + 20
+                                    height: nodeHeight
                                 }}
                                 onClick={() => select(node)}
                                 aria-pressed={selected === node.id}
                             >
                                 <span
-                                    style={{ marginTop: (nodeHeight - 56) / 2 }}
+                                    style={{
+                                        marginTop: (nodeHeight - controlSize) / 2,
+                                        width: controlSize,
+                                        height: controlSize
+                                    }}
                                     className={cn(
-                                        'flex size-14 shrink-0 items-center justify-center border bg-background shadow-sm',
+                                        'flex shrink-0 items-center justify-center border bg-background shadow-sm',
                                         projection.kind === 'terminal' ? 'rounded-full' : 'rotate-45 rounded-md',
                                         selected === node.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'
                                     )}
                                 >
-                                    <Icon className={cn('size-5', projection.kind !== 'terminal' && '-rotate-45')} />
+                                    <Icon className={cn('size-4', projection.kind !== 'terminal' && '-rotate-45')} />
                                 </span>
-                                <span className="mt-3 max-w-full truncate font-medium" title={projection.title}>
+                                <span className="max-w-full truncate font-medium" title={projection.title}>
                                     {projection.title}
                                 </span>
                                 <span className="text-muted-foreground">{t[label]}</span>
@@ -359,7 +380,7 @@ export function Swimlane({
                                 else nodeElements.current.delete(node.id)
                             }}
                             className={cn(
-                                'absolute z-10 rounded-2xl border bg-background shadow-sm transition-shadow hover:shadow-md',
+                                'absolute z-10 rounded-xl border bg-background shadow-sm transition-shadow hover:shadow-md',
                                 selected === node.id ? 'ring-2 ring-primary/20' : '',
                                 label === 'blocked'
                                     ? 'border-warning/60 bg-warning/5'
@@ -373,18 +394,18 @@ export function Swimlane({
                             style={{ left: position.x, top: position.y, width: position.width, height: nodeHeight }}
                         >
                             <button
-                                className="flex w-full flex-col gap-2 rounded-2xl px-4 pt-4 text-left focus-visible:outline-ring"
+                                className="flex w-full flex-col gap-0.5 rounded-xl px-2.5 pt-2 text-left focus-visible:outline-ring"
                                 onClick={() => select(node)}
                                 aria-pressed={selected === node.id}
                             >
                                 <span className="flex w-full items-center justify-between gap-2">
-                                    <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                                        <Icon className="size-5" />
+                                    <span className="flex size-5 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                        <Icon className="size-4" />
                                     </span>
                                     <span
                                         title={t[label]}
                                         className={cn(
-                                            'max-w-[65%] truncate rounded-full border px-2 py-0.5 text-xs font-medium',
+                                            'max-w-[70%] truncate rounded-full border px-1.5 text-xs font-medium',
                                             label === 'blocked'
                                                 ? 'border-warning/50 bg-warning/10 text-warning'
                                                 : label === 'completed'
@@ -397,13 +418,13 @@ export function Swimlane({
                                         {t[label]}
                                     </span>
                                 </span>
-                                <span className="w-full truncate text-base font-semibold" title={projection.title}>
+                                <span className="w-full truncate text-sm font-semibold" title={projection.title}>
                                     {projection.title}
                                 </span>
-                                <span className="w-full truncate text-sm" title={graph.instance.title}>
+                                <span className="w-full truncate text-xs" title={graph.instance.title}>
                                     {graph.instance.title}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="w-full truncate text-xs text-muted-foreground">
                                     {t[projection.kind]} · {t[state.runtime]}
                                 </span>
                             </button>
@@ -414,12 +435,12 @@ export function Swimlane({
                                 locale={locale}
                                 onError={onError}
                                 taskTitles={new Map(graph.tasks.tasks.map((task) => [task.id, task.title]))}
-                                className="absolute bottom-3 left-4 right-4 h-5 justify-end"
+                                className="absolute bottom-1 left-2.5 right-2.5 h-3 justify-end"
                             />
                         </div>
                     )
                 })}
             </div>
-        </div>
+        </PipelineViewport>
     )
 }

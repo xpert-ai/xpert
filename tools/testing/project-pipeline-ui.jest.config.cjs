@@ -6,7 +6,12 @@ module.exports = {
   rootDir,
   roots: ['<rootDir>/packages/server-ai/src/xpert-project/remote-components/project-tasks/src'],
   testEnvironment: 'node',
-  testMatch: ['**/pipeline/*.spec.ts', '**/execution-summary.spec.ts', '**/view-state.spec.ts'],
+  testMatch: [
+    '**/pipeline/*.spec.ts',
+    '**/pipeline/*.spec.tsx',
+    '**/execution-summary.spec.ts',
+    '**/view-state.spec.ts'
+  ],
   transform: {
     '^.+\\.(ts|tsx|cts)$': [
       'ts-jest',
@@ -21,7 +26,7 @@ module.exports = {
         diagnostics: false
       }
     ],
-    '^.+\\.js$': [
+    '^.+\\.(js|mjs)$': [
       'babel-jest',
       {
         babelrc: false,
@@ -40,5 +45,5 @@ module.exports = {
     '^@xpert-ai/shadcn-ui$': '<rootDir>/packages/shadcn-ui/src/index.ts',
     '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/packages/shadcn-ui/src/brand-icons/index.cts'
   },
-  moduleFileExtensions: ['ts', 'tsx', 'cts', 'js', 'json']
+  moduleFileExtensions: ['ts', 'tsx', 'cts', 'js', 'mjs', 'json']
 }

@@ -2,15 +2,17 @@ import { IIntegration, IPagination } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { ModuleRef } from '@nestjs/core'
+import { InjectRepository } from '@nestjs/typeorm'
 import {
 	IntegrationPermissionService,
 	PluginWebhookCredentialResult,
 	ResolveConnectorIntegrationQuery
 } from '@xpert-ai/plugin-sdk'
-import { FindManyOptions, FindOneOptions } from 'typeorm'
+import { FindManyOptions, FindOneOptions, Repository } from 'typeorm'
 import { IntegrationService } from '../../integration/integration.service'
 import { Integration } from '../../core/entities/internal'
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from '../plugin-webhook.tokens'
+import { readIntegrationConfiguration, type PluginPermissionScope } from './integration-configuration'
 
 type PluginWebhookCredentialServiceLike = {
 	ensureCredential(
@@ -38,8 +40,13 @@ type PluginWebhookCredentialServiceLike = {
 export class PluginIntegrationPermissionService implements IntegrationPermissionService {
 	constructor(
 		private readonly moduleRef: ModuleRef,
-		private readonly queries: QueryBus
+		private readonly queries: QueryBus,
+		@InjectRepository(Integration) private readonly integrationRepository: Repository<Integration>
 	) {}
+
+	readConfiguration(id: string, scope?: PluginPermissionScope, providers: readonly string[] = []) {
+		return readIntegrationConfiguration(this.integrationRepository, id, scope, providers)
+	}
 
 	readForConnector(id: string, provider: string, scope: { tenantId: string; organizationId: string | null }) {
 		return this.queries.execute(new ResolveConnectorIntegrationQuery(id, provider, scope))

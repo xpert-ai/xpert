@@ -7,9 +7,11 @@
 
 /.nx/cache
 
-# Preserve pnpm's generated workspace and API lockfile format.
+# Preserve pnpm's generated workspace and deployment lockfile format.
 /pnpm-lock.yaml
 /.deploy/api/pnpm-lock.*.yaml
+/.deploy/desktop/pnpm-lock.yaml
+/.deploy/webapp/pnpm-lock.yaml
 
 # Runtime locks are byte-hashed; preserve the output of the metadata generators.
 /packages/sandbox-runtime/images/document-*/dependencies.lock.json

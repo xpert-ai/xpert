@@ -116,6 +116,41 @@ describe('host workspace Connector command', () => {
     await expect(first).resolves.toEqual({ status: 'cancelled' })
   })
 
+  it('carries generic constraints to the dialog even for a ready connection', async () => {
+    const { connect, options, open, close } = setup()
+    options.items[0].status = 'active'
+    options.items[0].granted = true
+    const requiredIntegrationId = '00000000-0000-4000-8000-000000000001'
+    const constrained = { ...request, requiredAuthMethodId: 'example-app', requiredIntegrationId }
+    const pending = connect(constrained)
+    expect(connect(constrained)).toBe(pending)
+    await expect(connect({ ...constrained, requiredAuthMethodId: 'other' })).rejects.toThrow('already in progress')
+    await expect(
+      connect({ ...constrained, requiredIntegrationId: '00000000-0000-4000-8000-000000000002' })
+    ).rejects.toThrow('already in progress')
+    await settle()
+    expect(open).toHaveBeenCalledTimes(1)
+    expect(open.mock.calls[0][1].injector?.get(WORKSPACE_CONNECTOR_DIALOG)).toEqual({
+      workspaceId: 'assistant-workspace',
+      bindingId: 'binding',
+      requiredAuthMethodId: 'example-app',
+      requiredIntegrationId
+    })
+    close()
+    await expect(pending).resolves.toEqual({ status: 'cancelled' })
+  })
+
+  it.each([
+    { requiredIntegrationId: '00000000-0000-4000-8000-000000000001' },
+    { requiredAuthMethodId: '', requiredIntegrationId: '00000000-0000-4000-8000-000000000001' },
+    { requiredAuthMethodId: 'app', requiredIntegrationId: 'invalid' }
+  ])('rejects invalid constraints without querying the workspace: %j', async (constraint) => {
+    const { connect, runtimeOptions, open } = setup()
+    await expect(connect({ ...request, ...constraint })).rejects.toThrow('Invalid connector authorization constraint')
+    expect(runtimeOptions).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+  })
+
   it('closes the flow when the host switches Assistant', async () => {
     const { connect, assistantId, close } = setup()
     const pending = connect(request)

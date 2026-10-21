@@ -112,7 +112,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
       (connection) => connection.type === 'workflow' && normalizeKey(connection.from) === normalizeKey(agentNode.key)
     )
 
-    const unique = new Map<string, { provider: string; options: Record<string, any> }>()
+    const unique = new Map<string, { provider: string; options: IWFNMiddleware['options'] }>()
     middlewareConnections.forEach((connection) => {
       const node = draft.nodes?.find((item) => normalizeKey(item.key) === normalizeKey(connection.to))
       if (!node) return
@@ -126,7 +126,7 @@ export class AgentInterruptOnComponent implements ControlValueAccessor {
       }
       const key = normalizeKey(node.key)
       if (!unique.has(key)) {
-        unique.set(key, { provider, options: (middleware as IWFNMiddleware).options ?? {} })
+        unique.set(key, { provider, options: (middleware as IWFNMiddleware).options })
       }
     })
 

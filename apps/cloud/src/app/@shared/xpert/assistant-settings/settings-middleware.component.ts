@@ -18,6 +18,7 @@ import {
   genXpertMiddlewareKey,
   isMiddlewareToolEnabled,
   isUserAddableAgentMiddleware,
+  normalizeMiddlewareOptions,
   IWFNMiddleware,
   SKILLS_MIDDLEWARE_NAME,
   TAgentMiddlewareDescriptor,
@@ -244,7 +245,7 @@ export class SettingsMiddlewareComponent implements OnInit {
       title: node?.entity.title || node?.entity.provider || this.providerChoice(),
       provider: node?.entity.provider ?? this.providerChoice(),
       required: node?.entity.required ?? !node,
-      options: structuredClone(node?.entity.options ?? {}),
+      options: structuredClone(normalizeMiddlewareOptions(node?.entity.options)),
       tools: structuredClone(node?.entity.tools ?? {})
     })
     this.initial = structuredClone(this.form.getRawValue())

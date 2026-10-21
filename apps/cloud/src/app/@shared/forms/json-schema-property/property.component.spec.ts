@@ -314,7 +314,7 @@ describe('JSONSchemaPropertyComponent control rendering', () => {
       expect(root.querySelectorAll('input')).toHaveLength(2)
       expect(submit).not.toHaveBeenCalled()
 
-      const remove = root.querySelectorAll('.ri-delete-bin-line')[1].closest('button')!
+      const remove = root.querySelectorAll('z-icon[zType="trash"]')[1].closest('button')!
       remove.click()
       stabilize()
       expect(fixture.componentInstance.value$()).toEqual(['be.internal'])
@@ -401,5 +401,121 @@ describe('JSONSchemaPropertyComponent control rendering', () => {
     fixture.componentRef.setInput('readonly', true)
     fixture.detectChanges()
     expect(input.disabled).toBe(true)
+  }))
+})
+
+describe('JSONSchemaPropertyComponent provider schema controls', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [JSONSchemaPropertyComponent, TranslateModule.forRoot()],
+      providers: [JsonSchemaFormOptions]
+    }).compileComponents()
+  })
+
+  it('selects an object branch from its declared constant and uses defaults when switching', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    const field = fixture.componentInstance
+    fixture.componentRef.setInput('schema', {
+      anyOf: [
+        {
+          type: 'object',
+          properties: { format: { type: 'string', const: 'csv' }, headerRow: { type: 'integer', default: 1 } }
+        },
+        {
+          type: 'object',
+          properties: {
+            format: { type: 'string', const: 'json' },
+            rowsPath: { type: 'array', items: { type: 'string' } }
+          }
+        }
+      ]
+    })
+    field.value$.set({ format: 'json', rowsPath: ['data'] })
+    for (let step = 0; step < 4; step++) {
+      fixture.detectChanges()
+      tick()
+    }
+    expect(field.variantIndex()).toBe(1)
+    expect(field.value$()).toEqual({ format: 'json', rowsPath: ['data'] })
+    expect(fixture.nativeElement.querySelector('z-select')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('select')).toBeNull()
+    field.selectVariant(0)
+    for (let step = 0; step < 4; step++) {
+      fixture.detectChanges()
+      tick()
+    }
+    expect(field.value$()).toEqual({ format: 'csv', headerRow: 1 })
+    expect(
+      fixture.nativeElement.querySelector('json-schema-property z-select [role="combobox"]').textContent
+    ).toContain('csv')
+    fixture.componentRef.setInput('readonly', true)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('input[type="number"]')
+    expect(input.disabled).toBe(true)
+  }))
+
+  it('keeps boolean and numeric enum values typed when selecting or clearing Zard options', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    const field = fixture.componentInstance
+    fixture.componentRef.setInput('schema', { enum: [true, false, 0, 5] })
+    field.value$.set(true)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    field.updateEnum(1)
+    fixture.detectChanges()
+    tick()
+    expect(field.value$()).toBe(false)
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role="combobox"]').textContent).toContain('false')
+    field.updateEnum(2)
+    expect(field.value$()).toBe(0)
+    field.updateEnum('')
+    expect(field.value$()).toBeUndefined()
+  }))
+
+  it('reports nested JSON drafts and required fields, and drops optional JSON values when cleared', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    const field = fixture.componentInstance
+    fixture.componentRef.setInput('schema', {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        arguments: { type: 'object', additionalProperties: true }
+      }
+    })
+    field.value$.set({ name: '', arguments: { limit: 0, enabled: false } })
+    for (let step = 0; step < 4; step++) {
+      fixture.detectChanges()
+      tick()
+    }
+    expect(field.invalid).toBe(true)
+    field.updateValue('name', 'Sales')
+    for (let step = 0; step < 4; step++) {
+      fixture.detectChanges()
+      tick()
+    }
+    const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea')
+    expect(JSON.parse(textarea.value)).toEqual({ limit: 0, enabled: false })
+    textarea.value = '{'
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    expect(field.invalid).toBe(true)
+    expect(field.value$().arguments).toEqual({ limit: 0, enabled: false })
+    textarea.value = ''
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    for (let step = 0; step < 4; step++) {
+      fixture.detectChanges()
+      tick()
+    }
+    expect(field.invalid).toBe(false)
+    expect(field.value$()).toEqual({ name: 'Sales' })
   }))
 })

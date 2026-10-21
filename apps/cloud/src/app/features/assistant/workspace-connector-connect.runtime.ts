@@ -3,6 +3,7 @@ import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { DestroyRef, Injector, Signal, effect, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import type { WorkspaceConnectorConnectHandler, WorkspaceConnectorConnectResult } from '@xpert-ai/chatkit-types'
+import { workspaceConnectorAuthorizationSchema } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import { XpertConnectorService } from '../../@core/services/xpert-connector.service'
 import { WORKSPACE_CONNECTOR_DIALOG } from '../xpert/workspace/connectors/workspace-connector-dialog'
@@ -14,7 +15,14 @@ export function injectWorkspaceConnectorConnect(
   const injector = inject(Injector)
   const destroyRef = inject(DestroyRef)
   let active:
-    | { assistantId: string; bindingId: string; requestKey?: string; promise: Promise<WorkspaceConnectorConnectResult> }
+    | {
+        assistantId: string
+        bindingId: string
+        requestKey?: string
+        requiredAuthMethodId?: string
+        requiredIntegrationId?: string
+        promise: Promise<WorkspaceConnectorConnectResult>
+      }
     | undefined
   let dialogRef: DialogRef<WorkspaceConnectorConnectResult | 'manage'> | undefined
   effect(() => {
@@ -39,14 +47,28 @@ export function injectWorkspaceConnectorConnect(
     ) {
       return Promise.reject(new Error('Invalid workspace connection request'))
     }
-    const target = { assistantId: request.assistantId, bindingId: request.bindingId }
+    const authorization = workspaceConnectorAuthorizationSchema.safeParse({
+      authMethodId: 'requiredAuthMethodId' in request ? request.requiredAuthMethodId : undefined,
+      integrationId: 'requiredIntegrationId' in request ? request.requiredIntegrationId : undefined
+    })
+    if (!authorization.success) return Promise.reject(new Error('Invalid connector authorization constraint'))
+    const { authMethodId: requiredAuthMethodId, integrationId: requiredIntegrationId } = authorization.data
+    const target = {
+      assistantId: request.assistantId,
+      bindingId: request.bindingId,
+      requiredAuthMethodId,
+      requiredIntegrationId
+    }
     const requestKey = options?.requestKey?.()
     if (active) {
       if (active.requestKey !== requestKey) {
         dialogRef?.close({ status: 'cancelled' })
         return active.promise.catch(() => undefined).then(() => connect(request))
       }
-      return active.assistantId === target.assistantId && active.bindingId === target.bindingId
+      return active.assistantId === target.assistantId &&
+        active.bindingId === target.bindingId &&
+        active.requiredAuthMethodId === requiredAuthMethodId &&
+        active.requiredIntegrationId === requiredIntegrationId
         ? active.promise
         : Promise.reject(new Error('A workspace connection is already in progress'))
     }
@@ -68,7 +90,13 @@ export function injectWorkspaceConnectorConnect(
       ) {
         throw new Error('Workspace connection configuration is not permitted')
       }
-      if (binding.authorizationMode === 'shared' && binding.status === 'active' && binding.granted)
+      if (
+        !requiredAuthMethodId &&
+        !requiredIntegrationId &&
+        binding.authorizationMode === 'shared' &&
+        binding.status === 'active' &&
+        binding.granted
+      )
         return { status: 'connected' }
       const component =
         binding.authorizationMode === 'personal'
@@ -84,6 +112,8 @@ export function injectWorkspaceConnectorConnect(
             useValue: {
               workspaceId: workspace.workspaceId,
               bindingId: binding.bindingId,
+              ...(requiredAuthMethodId ? { requiredAuthMethodId } : {}),
+              ...(requiredIntegrationId ? { requiredIntegrationId } : {}),
               ...(options?.authorizationNavigation ? { authorizationNavigation: options.authorizationNavigation } : {})
             }
           }

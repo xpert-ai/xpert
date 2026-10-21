@@ -46,6 +46,7 @@ import { pipelineInputs } from '../runtime/pipeline-inputs'
 import { pipelineRetryReason } from '../runtime/pipeline-retry'
 import { readPipelineModelUsage } from './pipeline-model-usage'
 import { providerActionAttentions } from './pipeline-provider-attentions'
+import { pipelineCommandCapability } from '../runtime/pipeline-command-authority'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectPipelinesRuntimeCapability)
@@ -83,7 +84,8 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
     ): Promise<ProjectPipelineGraph> {
         const access = await this.assertRead(context)
         const dispatchEnabled = pipelineDispatchEnabled()
-        let canEdit = !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
+        const commandAllowed = pipelineCommandCapability().allowed
+        let canEdit = commandAllowed && !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
         const descriptors = this.catalog.listForActor(context.actor).flatMap((item) => item.descriptors)
         const scope = projectionScope(context)
         // Repeatable-read prevents a graph from mixing a prior instance revision with newer node rows.
@@ -297,7 +299,10 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                       }
                     : {})
             },
-            permissions: { canEdit, canManage: !saved.historical && !access.archived && access.canManage },
+            permissions: {
+                canEdit,
+                canManage: commandAllowed && !saved.historical && !access.archived && access.canManage
+            },
             actions: saved.actions,
             tasks: {
                 ...graph,

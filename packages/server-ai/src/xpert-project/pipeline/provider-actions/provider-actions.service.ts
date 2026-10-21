@@ -24,7 +24,7 @@ import { ProjectAccessRuntimeService } from '../../services/project-access-runti
 import { boundedProjection } from '../../services/task-projection/project-task-projection.coordinator'
 import { ProjectPipelineProjectionService } from '../projection/pipeline-projection.service'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
-import { assertPipelineCommandAuthority } from '../runtime/pipeline-transaction'
+import { assertPipelineCommandAuthority, pipelineCommandCapability } from '../runtime/pipeline-command-authority'
 import { ProjectPipelineProviderActionStore, providerActionContext, providerActionView } from './provider-action.store'
 import { pipelineHostCapabilities } from '../configuration/pipeline-host-profile'
 
@@ -52,6 +52,7 @@ export class ProjectPipelineProviderActionsService implements ProjectPipelinePro
         const dispatchEnabled = pipelineDispatchEnabled()
         if (
             dispatchEnabled &&
+            pipelineCommandCapability().allowed &&
             !project.archived &&
             ['owner', 'manager', 'editor'].includes(project.role) &&
             saved.round.state === 'active' &&

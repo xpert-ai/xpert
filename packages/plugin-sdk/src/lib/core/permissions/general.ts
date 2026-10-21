@@ -75,12 +75,15 @@ export const INTEGRATION_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_INTEGRATION_PE
  * Read-only integration permission service exposed to plugins.
  */
 export interface IntegrationPermissionService {
+  /** Read plugin configuration in its host-bound scope; system plugins use the Default tenant. */
+  readConfiguration?(id: string): Promise<IIntegration | null>
   /** Exact lookup for a connector whose actor and persisted scope have been authorized by the host. */
   readForConnector?(
     id: string,
     provider: string,
     scope: { tenantId: string; organizationId: string | null }
   ): Promise<IIntegration | null>
+  /** Legacy runtime lookup for integrations with their own callback/actor authorization. */
   read<TIntegration = IIntegration>(id: string, options?: Record<string, any>): Promise<TIntegration | null>
   findAll<TIntegration = IIntegration>(options?: Record<string, any>): Promise<IPagination<TIntegration>>
   findAllWithInheritance?<TIntegration = IIntegration>(

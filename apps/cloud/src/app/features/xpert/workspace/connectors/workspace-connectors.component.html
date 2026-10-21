@@ -331,8 +331,13 @@
               [defaultName]="(definition.label | i18n) || definition.provider"
               [authMethodId]="authMethod!.id"
               [config]="integration"
-              [savedIntegrationId]="binding?.appIntegrationId"
-              [readonly]="!canManageWorkspace() || binding?.status === 'active' || binding?.status === 'pending'"
+              [savedIntegrationId]="connectionContext?.requiredIntegrationId || binding?.appIntegrationId"
+              [readonly]="
+                !!connectionContext?.requiredIntegrationId ||
+                !canManageWorkspace() ||
+                binding?.status === 'active' ||
+                binding?.status === 'pending'
+              "
             />
           }
           @if (binding?.authorizationMode === 'personal') {

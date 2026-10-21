@@ -204,7 +204,7 @@ export async function bootstrap(options: { title: string; version: string }) {
  */
 export async function preBootstrapApplicationConfig(
   applicationConfig: Partial<IPluginConfig>,
-  options: { failOnPluginRegistrationError?: boolean } = {}
+  options: { failOnPluginGroupError?: boolean } = {}
 ) {
   console.time(chalk.yellow('✔ Pre Bootstrap Application Config Time'))
 
@@ -234,13 +234,14 @@ export async function preBootstrapApplicationConfig(
   return config
 }
 
-export async function preBootstrapPlugins(options: { failOnPluginRegistrationError?: boolean } = {}) {
+export async function preBootstrapPlugins(options: { failOnPluginGroupError?: boolean } = {}) {
   type BootstrapPlugin = NonNullable<Parameters<typeof registerPluginsAsync>[0]['plugins']>[number]
 
   const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
   const defaultPlugins: BootstrapPlugin[] = [
     { name: '@xpert-ai/plugin-draft', source: 'code' as const, level: 'organization' },
-    { name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' }
+    { name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' },
+    { name: '@xpert-ai/plugin-github-integration', source: 'code' as const, level: 'system' }
   ]
   const defaultGlobalPlugins = defaultPlugins.filter((plugin) => plugin.level !== 'system')
   const defaultSystemPlugins = defaultPlugins.filter((plugin) => plugin.level === 'system')
@@ -293,10 +294,8 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
       mergedSystemPluginMap.set(localShellPlugin, { name: localShellPlugin, source: 'code', level: 'system' })
     }
   }
-  if (mergedSystemPluginMap.has(localShellPlugin)) {
-    // PLUGINS must not register this system provider a second time in tenant-global scope.
-    mergedGlobalPluginMap.delete(localShellPlugin)
-  }
+  // System plugins must not also be registered in the tenant-global group through PLUGINS.
+  for (const name of mergedSystemPluginMap.keys()) mergedGlobalPluginMap.delete(name)
   const persistedOrganizationGroups = organizationPluginConfigs
     .filter((group) => {
       const scopeKey = group.scopeKey ?? group.organizationId
@@ -337,17 +336,14 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
   const modules: DynamicModule[] = []
   for await (const group of groups) {
     try {
-      const { modules: orgModules, errors } = await registerPluginsAsync(group, new NestLogger('BootstrapPlugins'))
-      // The loader reports individual package failures without throwing. A schema
-      // job must not succeed with incomplete entity metadata.
-      if (options.failOnPluginRegistrationError && errors.length) {
-        throw new Error('SCHEMA_PLUGIN_REGISTRATION_FAILED: required plugin metadata is unavailable')
-      }
+      // The loader records and logs isolated package failures. Keep successful
+      // modules in the same scope; TypeORM leaves unregistered tables untouched.
+      const { modules: orgModules } = await registerPluginsAsync(group, new NestLogger('BootstrapPlugins'))
       modules.push(...orgModules)
     } catch (error) {
       console.error(error)
       NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
-      if (options.failOnPluginRegistrationError || error instanceof PluginStartupTimeoutError) {
+      if (options.failOnPluginGroupError || error instanceof PluginStartupTimeoutError) {
         throw error
       }
     }

@@ -185,6 +185,69 @@ async function main() {
     await synchronizeWithMigrations(evolved, bundle, 'verify')
     console.log('PASS native TypeORM migrations, ordinary-table evolution, cross-owner FK and SQL-table exclusion')
 
+    // A plugin may have installed tables before it becomes unavailable. Omitting
+    // only its metadata must preserve those tables, rows, indexes and constraints.
+    const optionalPlugin = (recovered = false) =>
+      new EntitySchema({
+        name: 'OptionalPlugin',
+        tableName: 'optional_plugin',
+        columns: {
+          id: { type: Number, primary: true },
+          ordinaryId: { type: Number },
+          payload: { type: 'jsonb' },
+          ...(recovered ? { label: { type: String, default: 'recovered' } } : {})
+        },
+        foreignKeys: [{ target: 'Ordinary', columnNames: ['ordinaryId'], referencedColumnNames: ['id'] }]
+      })
+    const withPlugin = await connect([...entity(true), optionalPlugin()])
+    await synchronizeWithMigrations(withPlugin, bundle)
+    await withPlugin.query(`
+      INSERT INTO optional_plugin VALUES(7,1,'{"retained":true}');
+      ALTER TABLE optional_plugin ADD CONSTRAINT plugin_positive CHECK (id > 0);
+      CREATE INDEX plugin_payload ON optional_plugin USING gin(payload)
+    `)
+    const pluginStructure = async () => ({
+      columns: await evolved.query(
+        "SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_name='optional_plugin' ORDER BY ordinal_position"
+      ),
+      constraints: await evolved.query(
+        "SELECT conname,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid='optional_plugin'::regclass ORDER BY conname"
+      ),
+      indexes: await evolved.query(
+        "SELECT indexname,indexdef FROM pg_indexes WHERE tablename='optional_plugin' ORDER BY indexname"
+      )
+    })
+    const pluginBefore = await pluginStructure()
+    for (const action of ['apply', 'apply', 'verify']) {
+      await synchronizeWithMigrations(evolved, bundle, action)
+      assert.deepEqual(await pluginStructure(), pluginBefore)
+      assert.deepEqual(await evolved.query('SELECT * FROM optional_plugin'), [
+        { id: 7, ordinaryId: 1, payload: { retained: true } }
+      ])
+    }
+    const recoveredPlugin = await connect([...entity(true), optionalPlugin(true)])
+    await synchronizeWithMigrations(recoveredPlugin, bundle)
+    assert.deepEqual(await recoveredPlugin.query('SELECT payload,label FROM optional_plugin'), [
+      { payload: { retained: true }, label: 'recovered' }
+    ])
+    await assert.rejects(
+      () =>
+        connect([
+          ...entity(true),
+          new EntitySchema({
+            name: 'DependentPlugin',
+            tableName: 'dependent_plugin',
+            columns: { id: { type: Number, primary: true }, pluginId: { type: Number } },
+            foreignKeys: [{ target: 'OptionalPlugin', columnNames: ['pluginId'], referencedColumnNames: ['id'] }]
+          })
+        ]),
+      /was not found/
+    )
+    assert.equal((await evolved.query("SELECT to_regclass('dependent_plugin') AS name"))[0].name, null)
+    console.log(
+      'PASS unavailable plugin tables survive repeated migration, recover later, and missing entity references block DDL'
+    )
+
     const branch = {
       ...bundle,
       migrations: [

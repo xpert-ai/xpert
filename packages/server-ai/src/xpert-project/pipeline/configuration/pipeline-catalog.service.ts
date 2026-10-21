@@ -23,6 +23,7 @@ import { ProjectPipelineBindingsService } from './pipeline-bindings.service'
 import { ProjectPipelineRuntimeBridgeService } from '../runtime/pipeline-runtime-bridge.service'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { pipelineHostCapabilities } from './pipeline-host-capabilities'
+import { pipelineCommandCapability } from '../runtime/pipeline-command-authority'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectPipelineCatalogRuntimeCapability)
@@ -53,7 +54,9 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
         const input = projectPipelineCatalogRequestSchema.parse(request)
         const access = (await this.access.listReadable({ actor: context.actor, projectIds: [context.projectId] }))[0]
         if (!access) throw new ForbiddenException(t('server-ai:Error.ProjectManagerRequired'))
-        if (!access.canManage) return { canManage: false, items: [], assistants: [] }
+        const capability = pipelineCommandCapability('configure')
+        const commandMetadata = input.protocol === 3 ? { commandCapability: capability } : {}
+        if (!access.canManage) return { canManage: false, items: [], assistants: [], ...commandMetadata }
         const assistants: ProjectPipelineCatalog['assistants'] = []
         for (const id of new Set(access.assistantIds)) {
             try {
@@ -70,6 +73,7 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
                 : await this.runtimes.candidates(context)
         return {
             canManage: true,
+            ...commandMetadata,
             assistants,
             runtimeBindings,
             ...(input.protocol !== undefined ? { hostCapabilities: pipelineHostCapabilities() } : {}),

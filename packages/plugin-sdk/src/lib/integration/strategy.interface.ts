@@ -44,6 +44,8 @@ export interface IntegrationStrategy<T = unknown> {
   execute(integration: IIntegration<T>, payload: TIntegrationStrategyParams): Promise<any>
   onUpdate?(previous: IIntegration<T>, current: IIntegration<any>): Promise<void> | void
   onDelete?(integration: IIntegration<T>): Promise<void> | void
+  /** Normalize a configuration write; previous options are supplied only for the same provider. */
+  prepareConfig?(config: T, previous?: T): Promise<T> | T
   validateConfig?(config: T, integration?: IIntegration<T>): Promise<void | IntegrationTestResult>
   getIdentityBootstrap?(integration: IIntegration<T>): Promise<IntegrationIdentityBootstrap>
   exchangeIdentity?(integration: IIntegration<T>, grant: IntegrationIdentityGrant): Promise<IntegrationExternalIdentity>

@@ -26,11 +26,12 @@ import { ProjectPipelineConfigurationService } from '../configuration/project-pi
 import { pipelineIdentity, pipelineDigest } from '../persistence/pipeline-identity'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
 import { initializeManagedPipelineNodes } from './pipeline-managed-nodes'
-import { managedAudit, lockManagedProject } from './pipeline-transaction'
+import { managedAudit, lockManagedProject, lockPipelineProject } from './pipeline-transaction'
 import { ProjectPipelineCoordinatorService } from './pipeline-coordinator.service'
 import { PIPELINE_HUMAN_DECISION_SCHEMA, PIPELINE_POLICY_DECISION_SCHEMA } from './pipeline-decision-evidence'
 import { ProjectPipelineAssistantBridgeService } from './pipeline-assistant-bridge.service'
 import { assertPipelineHostCompatible } from '../configuration/pipeline-host-capabilities'
+import { assertPipelineCommandAuthority } from './pipeline-command-authority'
 
 export const MANAGED_PIPELINE_OWNER = 'platform.pipeline@1'
 
@@ -62,7 +63,7 @@ export class ProjectPipelineManagedStartService {
         )
         const bindingId = pipelineIdentity(context, 'binding', input.requestId)
         return this.projects.manager.transaction(async (manager) => {
-            await lockManagedProject(manager, context)
+            await lockPipelineProject(manager, context)
             const scope = projectionScope(context),
                 audit = managedAudit(context)
             const previous = await manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: definitionId })
@@ -101,6 +102,7 @@ export class ProjectPipelineManagedStartService {
     async start(context: ProjectPipelineContext, request: ProjectPipelineStart): Promise<ProjectPipelineStartReceipt> {
         const input = projectPipelineStartSchema.parse(request)
         await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
+        assertPipelineCommandAuthority()
         const scope = projectionScope(context)
         const binding = await this.projects.manager.findOneByOrFail(ProjectPipelineBindingEntity, {
             ...scope,

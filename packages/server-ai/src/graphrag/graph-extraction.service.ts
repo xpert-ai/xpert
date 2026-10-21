@@ -21,10 +21,6 @@ import { TDocChunkMetadata } from '../knowledge-document/types'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { identityFingerprint } from '../knowledgebase/identity/knowledge-identity-catalogue'
 import { KnowledgeIdentityError } from '../knowledgebase/identity/knowledge-identity-error'
-import {
-    buildKnowledgeIdentityDedupMessages,
-    knowledgeIdentityDedupOutputSchema
-} from '../knowledgebase/identity/knowledge-identity-model'
 import { KnowledgeIdentityService } from '../knowledgebase/identity/knowledge-identity.service'
 import { KnowledgeIdentitySource } from '../knowledgebase/identity/knowledge-identity.types'
 import { KnowledgeGraphIndexJob } from './entities'
@@ -36,6 +32,7 @@ import {
 } from './graph-extraction-model'
 import { TKnowledgeGraphExtraction } from './types'
 import { extractGraphBatch, planGraphExtractionBatches } from './graph-extraction-batches'
+import { judgeGraphIdentity } from './graph-identity-judge'
 
 @Injectable()
 export class KnowledgeGraphExtractionService {
@@ -209,10 +206,7 @@ export class KnowledgeGraphExtractionService {
             {
                 judge: async (input) => {
                     model ??= await this.resolveExtractionChatModel(job.knowledgebase)
-                    const output = await model
-                        .withStructuredOutput(knowledgeIdentityDedupOutputSchema, { method: 'functionCalling' })
-                        .invoke(buildKnowledgeIdentityDedupMessages(input))
-                    return knowledgeIdentityDedupOutputSchema.parse(output)
+                    return judgeGraphIdentity(model, input)
                 },
                 assertCurrent: (manager) => this.assertCurrent(manager, job)
             }

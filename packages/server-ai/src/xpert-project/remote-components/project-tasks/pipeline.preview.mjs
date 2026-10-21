@@ -28,6 +28,7 @@ export function createPipelineConfigurationPreview() {
     }
     return {
         canManage: true,
+        commandCapability: { allowed: true },
         hostCapabilities: {
             protocols: [1],
             features: {

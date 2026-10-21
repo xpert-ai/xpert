@@ -66,7 +66,7 @@ export function normalizeAnalyticsResult(
   )
     throw new Error('ANALYTICS_GRAIN_MISMATCH')
   return {
-    schema: 'xpert.analytics.dataset/v1',
+    schema: 'xpert.analytics.dataset',
     datasetId: binding.output.datasetId,
     fields,
     rows,

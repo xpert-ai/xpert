@@ -82,7 +82,7 @@ export function buildSettingsNavigation(
   ]
   const groupPaths = {
     People: ['users', 'groups', 'business-area', 'organizations', 'referrals'],
-    Connections: ['assistants', 'data-sources', 'integration', 'model-access', 'model-gateway'],
+    Connections: ['assistants', 'analytics', 'data-sources', 'integration', 'model-access', 'model-gateway'],
     Governance: ['membership', 'roles', 'features/tenant', 'features/organization', 'email-templates', 'tenant']
   }
   // The caller supplies already-authorized menus; grouping never adds management entries.

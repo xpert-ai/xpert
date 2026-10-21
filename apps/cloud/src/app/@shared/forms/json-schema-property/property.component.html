@@ -16,11 +16,7 @@
         }
         @if (hasCustomWidget()) {
           @if (propertyDescription(); as desc) {
-            <i
-              class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-              [zTooltip]="desc | i18n"
-              zPosition="top"
-            ></i>
+            <z-icon zType="info" class="ml-2 text-text-tertiary opacity-80" [zTooltip]="desc | i18n" zPosition="top" />
           }
         }
         @if (xUiHelp(); as helpUrl) {
@@ -30,14 +26,22 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            <i class="ri-book-open-line"></i>
+            <z-icon zType="book-open" />
           </a>
         }
       </div>
 
       @if (type() === 'array' && !enum() && !hasCustomWidget()) {
-        <button type="button" class="btn btn-small justify-center w-6 h-6" [disabled]="readonly()" (click)="addArray()">
-          <i class="ri-add-line"></i>
+        <button
+          z-button
+          zType="outline"
+          zSize="icon"
+          type="button"
+          [zDisabled]="readonly()"
+          [attr.aria-label]="'XP.KEY_WORDS.AddItem' | translate"
+          (click)="addArray()"
+        >
+          <z-icon zType="plus" />
         </button>
       }
       @if (collapsibleObject()) {
@@ -47,33 +51,65 @@
             : ('XP.KEY_WORDS.Collapse' | translate: { Default: 'Collapse' });
         <button
           type="button"
-          class="btn btn-ghost btn-small flex h-6 w-6 shrink-0 items-center justify-center"
+          z-button
+          zType="ghost"
+          zSize="icon"
           [attr.aria-label]="collapseLabel"
           [attr.aria-expanded]="!objectCollapsed()"
           [zTooltip]="collapseLabel"
           zPosition="top"
           (click)="toggleObjectCollapsed()"
         >
-          <i [class]="objectCollapsed() ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"></i>
+          <z-icon [zType]="objectCollapsed() ? 'chevron-down' : 'chevron-up'" />
         </button>
       }
       @if (arrayItem() && !readonly()) {
         @let deleteLabel = 'XP.KEY_WORDS.DELETE' | translate: { Default: 'Delete' };
         <button
           type="button"
-          class="btn btn-ghost btn-small danger pointer-events-none flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover/item:pointer-events-auto group-hover/item:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          class="text-destructive"
           [attr.aria-label]="deleteLabel"
           [zTooltip]="deleteLabel"
           zPosition="top"
           (click)="removeItem.emit()"
         >
-          <i class="ri-delete-bin-line"></i>
+          <z-icon zType="trash" />
         </button>
       }
     </div>
   }
 
-  @if (hasCustomWidget()) {
+  @if (variants().length) {
+    <z-select
+      [ngModel]="variantIndex()"
+      [ngModelOptions]="{ standalone: true }"
+      [zDisabled]="readonly()"
+      [attr.aria-label]="label() | i18n"
+      (ngModelChange)="selectVariant($event)"
+    >
+      @for (variant of variants(); track variant) {
+        <z-select-item [zValue]="$index">{{ variantLabel(variant, $index) }}</z-select-item>
+      }
+    </z-select>
+  }
+  @if (jsonEditor()) {
+    <textarea
+      z-input
+      class="min-h-32 font-mono text-sm"
+      [ngModel]="jsonText()"
+      [ngModelOptions]="{ standalone: true }"
+      [disabled]="readonly()"
+      [attr.aria-label]="label() | i18n"
+      [zStatus]="jsonError() ? 'error' : undefined"
+      (ngModelChange)="updateJson($event)"
+    ></textarea>
+    @if (jsonError()) {
+      <z-alert zType="destructive" [zDescription]="'XP.Common.InvalidJson' | translate" />
+    }
+  } @else if (hasCustomWidget()) {
     <xp-json-schema-widget-outlet
       [name]="xUiComponent()"
       [schema]="schema()"
@@ -117,7 +153,7 @@
           }
           {{ label() | i18n }}
           @if (propertyDescription(); as desc) {
-            <i class="ri-information-line ml-2 text-text-tertiary" [zTooltip]="desc | i18n"></i>
+            <z-icon zType="info" class="ml-2 text-text-tertiary" [zTooltip]="desc | i18n" />
           }
         </z-checkbox>
       }
@@ -140,17 +176,21 @@
       }
       @default {
         @if (enum()) {
-          <xp-select
-            class="w-full h-9"
-            [selectOptions]="enumOptions()"
-            [placeholder]="
-              (placeholderMeta() | i18n) +
-              (required() ? '' : '(' + ('XP.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
-            "
-            [(ngModel)]="value$"
+          <z-select
+            class="w-full"
+            [attr.aria-label]="label() | i18n"
+            [zDisabled]="readonly()"
+            [zPlaceholder]="placeholderMeta() | i18n"
+            [zClearable]="!required()"
+            [ngModel]="enumSelection()"
             [ngModelOptions]="{ standalone: true }"
-            [multiple]="type() === 'array'"
-          />
+            (ngModelChange)="updateEnum($event)"
+            [zMultiple]="type() === 'array'"
+          >
+            @for (option of enumOptions(); track option.label + ':' + $index) {
+              <z-select-item [zValue]="$index">{{ option.label }}</z-select-item>
+            }
+          </z-select>
         } @else {
           @switch (type()) {
             @case ('string') {
@@ -299,10 +339,7 @@
                 (ngModelChange)="update($event)"
               >
                 @if (propertyDescription(); as desc) {
-                  <i
-                    class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-                    [zTooltip]="desc | i18n"
-                  ></i>
+                  <z-icon zType="info" class="ml-2 text-text-tertiary opacity-80" [zTooltip]="desc | i18n" />
                 }
               </z-switch>
             }
@@ -319,6 +356,7 @@
                       [schema]="param"
                       [name]="param.name"
                       [required]="isRequired(param.name)"
+                      [readonly]="readonly()"
                       [variables]="variables()"
                       [context]="{ ...(context() ?? {}), model: value$() }"
                       [ngModel]="value$()?.[param.name]"

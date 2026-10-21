@@ -6,9 +6,9 @@
 corepack pnpm run deps:update:chatkit
 ```
 
-The five ChatKit catalog entries in `pnpm-workspace.yaml` use `~0.16.0`.
-This command selects published stable patches within that range; it does not cross
-into `0.17.x` or select prereleases. To adopt another minor line, update the catalog
+The five ChatKit catalog entries in `pnpm-workspace.yaml` use patch ranges.
+This command selects published stable patches within each range; it does not cross
+the configured minor line or select prereleases. To adopt another minor line, update the catalog
 ranges deliberately and run the same command.
 
 The updater resolves versions once, checks declared dependencies and peers between
@@ -18,6 +18,10 @@ profile uses the same resolved versions and must pass a frozen offline lock chec
 Source catalog ranges are retained. Failed resolution or concurrent source edits
 leave the source locks untouched. The command does not install into the checkout's
 `node_modules`, run package lifecycle scripts, build images or publish packages.
+
+Temporary resolution overrides also align transitive-only consumers such as
+Desktop's `chatkit-web-shared`; the original override policy is restored before
+each frozen check and is not changed in the source workspace or generated locks.
 
 Review and commit the lock changes with an application Changeset before building
 images. Declared dependency compatibility is checked here; UI/API behavior still

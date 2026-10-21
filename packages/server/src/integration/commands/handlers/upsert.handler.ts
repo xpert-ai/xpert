@@ -16,10 +16,13 @@ export class IntegrationUpsertHandler implements ICommandHandler<IntegrationUpse
 		if (input.id) {
 			const previous = await this.service.findOne(input.id)
 			const patch = omit(input, 'id')
-			const next = await this.service.applyStrategyValidation({
-				...previous,
-				...patch
-			} as IIntegration)
+			const next = await this.service.applyStrategyValidation(
+				{
+					...previous,
+					...patch
+				} as IIntegration,
+				previous
+			)
 			await this.service.runStrategyUpdateHook(previous, next)
 			await this.service.update(input.id, omit(next, 'id'))
 			return await this.service.findOne(input.id)

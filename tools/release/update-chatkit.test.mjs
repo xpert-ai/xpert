@@ -43,17 +43,20 @@ test('lock validation rejects divergent profiles and hidden transitive copies', 
   assert.throws(() => validateLock(stringify(lock), catalog, selected, chatkitPackages), /Profile version mismatch/)
 })
 
-function fixture(t, { fail = false, concurrent = false } = {}) {
+function fixture(t, { fail = false, concurrent = false, transitiveOnly = false } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'chatkit-update-test-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
-  writeFileSync(path.join(root, 'pnpm-workspace.yaml'), stringify({ catalog }))
+  const overrides = { unrelated: '1.0.0' }
+  const shared = '@xpert-ai/chatkit-web-shared'
+  const direct = chatkitPackages.filter((name) => !transitiveOnly || name !== shared)
+  writeFileSync(path.join(root, 'pnpm-workspace.yaml'), stringify({ catalog, overrides }))
   writeFileSync(path.join(root, 'package.json'), '{"name":"fixture"}\n')
   const oldLock = stringify({
     catalogs: {
-      default: Object.fromEntries(
-        chatkitPackages.map((name) => [name, { specifier: catalog[name], version: '0.16.0' }])
-      )
-    }
+      default: Object.fromEntries(direct.map((name) => [name, { specifier: catalog[name], version: '0.16.0' }]))
+    },
+    overrides,
+    ...(transitiveOnly ? { packages: { [`${shared}@0.16.0`]: {} } } : {})
   })
   const locks = ['root.yaml', 'deploy.yaml']
   for (const lock of locks) writeFileSync(path.join(root, lock), oldLock)
@@ -81,16 +84,20 @@ function fixture(t, { fail = false, concurrent = false } = {}) {
     const file = path.join(cwd, 'pnpm-lock.yaml')
     const lock = parse(readFileSync(file, 'utf8'))
     if (args.includes('--frozen-lockfile')) {
-      validateLock(stringify(lock), catalog, selected, chatkitPackages)
+      validateLock(stringify(lock), catalog, selected, direct)
+      assert.deepEqual(lock.overrides, overrides)
       return
     }
-    for (const name of chatkitPackages) {
+    for (const name of direct) {
       const range = workspace.catalog[name]
       lock.catalogs.default[name] = {
         specifier: range,
         version: range.startsWith('~') ? lock.catalogs.default[name].version : range
       }
     }
+    if (transitiveOnly && workspace.overrides?.[shared])
+      lock.packages = { [`${shared}@${workspace.overrides[shared]}`]: {} }
+    lock.overrides = workspace.overrides
     writeFileSync(file, stringify(lock))
   }
   return { root, locks, oldLock, setup, run }
@@ -104,6 +111,18 @@ test('every profile receives the same selection while source manifests and catal
     validateLock(readFileSync(path.join(f.root, file), 'utf8'), catalog, selected, chatkitPackages)
   assert.equal(readFileSync(path.join(f.root, 'pnpm-workspace.yaml'), 'utf8'), before)
   assert.equal(readFileSync(path.join(f.root, 'package.json'), 'utf8'), '{"name":"fixture"}\n')
+})
+
+test('updates transitive-only packages without leaking resolution overrides into source or locks', async (t) => {
+  const f = fixture(t, { transitiveOnly: true })
+  const before = readFileSync(path.join(f.root, 'pnpm-workspace.yaml'), 'utf8')
+  await updateChatkit(f)
+  for (const file of f.locks) {
+    const lock = parse(readFileSync(path.join(f.root, file), 'utf8'))
+    assert.deepEqual(Object.keys(lock.packages), ['@xpert-ai/chatkit-web-shared@0.16.2'])
+    assert.deepEqual(lock.overrides, { unrelated: '1.0.0' })
+  }
+  assert.equal(readFileSync(path.join(f.root, 'pnpm-workspace.yaml'), 'utf8'), before)
 })
 
 test('a later profile failure leaves all original locks intact', async (t) => {

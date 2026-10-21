@@ -47,6 +47,13 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
     },
     ...(environment.settingsExtensions?.menus ?? []),
     {
+      path: 'analytics',
+      label: 'Analytics',
+      icon: 'layout-dashboard',
+      scopeContext: 'organization-only',
+      data: { translationKey: 'XP.Analytics.Title' }
+    },
+    {
       path: 'data-sources',
       label: 'Data Sources',
       icon: 'database',

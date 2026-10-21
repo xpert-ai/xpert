@@ -2,7 +2,7 @@ import { RolesEnum } from '@xpert-ai/contracts'
 import { CrudController } from '../core/crud'
 import { RoleGuard } from '../shared/guards'
 import { Roles } from '../shared/decorators'
-import { Controller, Post, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { DataSourceType } from './data-source-type.entity'
@@ -17,6 +17,11 @@ export class DataSourceTypeController extends CrudController<DataSourceType> {
 		private readonly commandBus: CommandBus
 	) {
 		super(service)
+	}
+
+	@Get()
+	override findAll() {
+		return this.service.available()
 	}
 
 	@UseGuards(RoleGuard)

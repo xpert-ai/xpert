@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { IIntegration, INTEGRATION_PROVIDERS } from '../../../@core/types'
+import { IIntegration } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
@@ -28,9 +28,5 @@ export class IntegrationListComponent {
 
   compareId(a: IIntegration, b: IIntegration): boolean {
     return a?.id === b?.id
-  }
-
-  getProvider(integration?: IIntegration) {
-    return INTEGRATION_PROVIDERS[integration.name]
   }
 }

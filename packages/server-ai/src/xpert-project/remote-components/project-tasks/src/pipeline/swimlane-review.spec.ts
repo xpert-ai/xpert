@@ -36,7 +36,6 @@ it('renders configured labels/icons and inline controls while keeping node and l
             lanes: [{ key: 'role', label: 'Review role', roleKey: 'reviewer', order: 0 }],
             stages: [
                 { key: 'check', label: 'Configured check', icon: 'code', order: 0 },
-                { key: 'route', label: 'Control', order: 1 },
                 { key: 'finish', label: 'Configured finish', icon: 'shield-check', order: 2 }
             ]
         },
@@ -51,7 +50,7 @@ it('renders configured labels/icons and inline controls while keeping node and l
                 id: 'control',
                 taskIds: [],
                 executionIds: [],
-                projection: { key: 'route', kind: 'router', title: 'Route', laneKey: null, stageKey: 'route', state }
+                projection: { key: 'route', kind: 'router', title: 'Route', laneKey: null, stageKey: 'check', state }
             },
             {
                 id: 'finish',
@@ -61,6 +60,7 @@ it('renders configured labels/icons and inline controls while keeping node and l
             }
         ],
         edges: [
+            { key: 'check-route', from: 'check', to: 'route', selection: 'selected' },
             { key: 'edge', from: 'route', to: 'finish', label: '满足配置中的审核条件后继续', selection: 'selected' }
         ],
         tasks: {
@@ -96,9 +96,10 @@ it('renders configured labels/icons and inline controls while keeping node and l
         expect(container.querySelectorAll('svg.lucide-code')).toHaveLength(2)
         expect(container.querySelectorAll('svg.lucide-shield-check')).toHaveLength(2)
         expect(container.textContent).toContain('Configured check')
+        expect(container.querySelector('[role="group"][aria-label="Route"]')?.textContent).toBe('Route')
         const condition = container.querySelector('svg text')!
         expect([...condition.querySelectorAll('tspan')].map((line) => line.textContent).join('')).toBe(
-            graph.edges[0].label
+            graph.edges[1].label
         )
         const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')]
         const check = buttons.find(

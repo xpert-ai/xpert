@@ -20,7 +20,7 @@ export const pipelineCatalogQuery = z
     .object({
         protocol: z
             .preprocess(
-                (value) => (value === '1' ? 1 : value === '2' ? 2 : value),
+                (value) => (value === '1' ? 1 : value === '2' ? 2 : value === '3' ? 3 : value),
                 projectPipelineCatalogProtocolSchema
             )
             .optional()
@@ -67,7 +67,7 @@ export class ProjectPipelineBindingsService {
         const input = pipelineBindingsPageInput.parse(request),
             query = this.query(context)
         if (input.protocol === undefined) query.andWhere("NOT (definition.definition ? 'hostRequirements')")
-        if (input.protocol !== 2) query.andWhere("binding.configuration #> '{limits,nativeModelBudget}' IS NULL")
+        if ((input.protocol ?? 1) < 2) query.andWhere("binding.configuration #> '{limits,nativeModelBudget}' IS NULL")
         if (input.after) {
             const cursor = await this.query(context).andWhere('binding.id = :id', { id: input.after }).getOne()
             if (!cursor) throw new NotFoundException()

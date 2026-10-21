@@ -19,6 +19,7 @@ const packages = [
   'shadcn-ui',
   'plugins/cli-model-profiles',
   'plugins/draft',
+  'plugins/github-integration',
   'plugins/vlm-default'
 ].map((name) => `packages/${name}`)
 const dependencyFields = [

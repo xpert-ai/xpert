@@ -539,6 +539,25 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
         await service.run(context, row.id)
         expect(executeAction).toHaveBeenCalledTimes(1)
     })
+    it('keeps scoped provider diagnostics readable but does not advertise or accept new commands', async () => {
+        const credential = jest
+            .spyOn(RequestContext, 'currentApiPrincipal')
+            .mockReturnValue({ principalType: 'client_secret' })
+        try {
+            const view = await service.list(context, {
+                instanceId: input.instanceId,
+                nodeInstanceId: input.nodeInstanceId
+            })
+            expect(view.items).toEqual([])
+            await expect(service.submit(context, input)).rejects.toMatchObject({
+                status: 403,
+                response: { code: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
+            })
+            expect(executeAction).not.toHaveBeenCalled()
+        } finally {
+            credential.mockRestore()
+        }
+    })
     it('continues inspect and projection after pausing and fences a claimed execute', async () => {
         const row = await service.submit(context, input),
             worker = randomUUID()
