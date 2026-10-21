@@ -71,7 +71,7 @@ beforeEach(() => {
     jest.mocked(request).mockImplementation(async (method, args: { actionKey?: string }) => {
         if (method === 'invokeClientCommand') return { success: !failNavigation }
         if (args.actionKey === 'pipeline-catalog') return { success: true, data: catalog }
-        if (args.actionKey === 'pipeline-configure') {
+        if (args && 'actionKey' in args && args.actionKey === 'pipeline-configure') {
             if (failSave) {
                 catalog = { ...catalog, commandCapability: restricted }
                 throw Error('Request rejected')
@@ -117,7 +117,11 @@ it('explains a scoped session before input and navigates only to the current Pro
         commandKey: 'workbench.navigation.open',
         payload: { target: 'project.pipelines', projectId }
     })
-    expect(jest.mocked(request).mock.calls.some(([, args]) => args.actionKey === 'pipeline-configure')).toBe(false)
+    expect(
+        jest
+            .mocked(request)
+            .mock.calls.some(([, args]) => args && 'actionKey' in args && args.actionKey === 'pipeline-configure')
+    ).toBe(false)
 })
 it('keeps the dialog usable and explains a rejected management navigation', async () => {
     catalog.commandCapability = restricted
@@ -139,9 +143,11 @@ it('allows a confirmed user session to save and reports success only after the b
     expect(container.textContent).not.toContain('配置已保存')
     await act(async () => button('保存配置').click())
     expect(container.textContent).toContain('配置已保存')
-    expect(jest.mocked(request).mock.calls.filter(([, args]) => args.actionKey === 'pipeline-configure')).toHaveLength(
-        1
-    )
+    expect(
+        jest
+            .mocked(request)
+            .mock.calls.filter(([, args]) => args && 'actionKey' in args && args.actionKey === 'pipeline-configure')
+    ).toHaveLength(1)
 })
 it('preserves the entered configuration and offers recovery when the credential changes before saving', async () => {
     await fill()

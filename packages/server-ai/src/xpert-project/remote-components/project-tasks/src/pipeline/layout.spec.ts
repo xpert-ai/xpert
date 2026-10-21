@@ -1,4 +1,4 @@
-import { pipelineLayout, pipelineEdgePath, edgeLabelLines, nodeWidth, stageWidth } from './layout'
+import { pipelineLayout, pipelineEdgePath, edgeLabelLines, nodeWidth, nodeHeight, stageWidth } from './layout'
 
 type Graph = Parameters<typeof pipelineLayout>[0]
 const node = (
@@ -6,7 +6,7 @@ const node = (
     kind: Graph['nodes'][number]['projection']['kind'],
     laneKey: string | null,
     stageKey = key
-) => ({ projection: { key, kind, laneKey, stageKey } })
+) => ({ projection: { key, title: key, kind, laneKey, stageKey } })
 const makeGraph = (nodes: Graph['nodes'], edges: Graph['edges']): Graph => ({
     definition: {
         lanes: [
@@ -81,15 +81,17 @@ it('handles control cycles and disconnected controls without adding a control ro
     expect(layout.positions.size).toBe(3)
     expect(pipelineLayout(graph, 'review').positions.size).toBe(0)
 })
-it('keeps mixed columns full size and stacks nodes without overlap', () => {
+it('places sequential nodes in separate columns within their configured stage', () => {
     const graph = makeGraph(
         [node('work', 'work', 'engineering', 'shared'), node('route', 'router', null, 'shared')],
         [edge('work', 'route')]
     )
     const layout = pipelineLayout(graph, '')
-    expect(layout.stages[0].width).toBe(stageWidth)
+    expect(layout.stages[0].width).toBeGreaterThan(stageWidth)
+    expect(layout.stages).toHaveLength(1)
     expect(layout.positions.get('work')?.width).toBe(nodeWidth)
-    expect(Math.abs(layout.positions.get('work')!.y - layout.positions.get('route')!.y)).toBeGreaterThan(136)
+    expect(layout.positions.get('route')!.x).toBeGreaterThan(layout.positions.get('work')!.x + nodeWidth)
+    expect(layout.positions.get('route')!.y).toBe(layout.positions.get('work')!.y)
 })
 
 it('routes a skip branch above intermediate cards while keeping adjacent edges level', () => {
@@ -102,7 +104,7 @@ it('routes a skip branch above intermediate cards while keeping adjacent edges l
     expect(skip.path).toContain(' V')
     expect(skip.labelY).toBeLessThan(layout.positions.get('optional')!.y)
     expect(skip.labelY).toBeGreaterThan(layout.rows[0].y)
-    expect(pipelineEdgePath(layout, 'route', 'optional', 'router', 'work')!.path).toContain(' C')
+    expect(pipelineEdgePath(layout, 'route', 'optional', 'router', 'work')!.aboveCards).toBe(false)
 })
 
 it('reserves space for configured Chinese branch labels and wraps without truncation', () => {
@@ -137,5 +139,97 @@ it('allocates separate tracks using actual label width without expanding unrelat
     expect(boxes[0].top).toBeGreaterThanOrEqual(layout.rows[0].y)
     expect(boxes[1].top).toBeGreaterThan(boxes[0].bottom)
     expect(boxes[1].bottom).toBeLessThan(layout.positions.get('start')!.y)
-    expect(layout.rows[1].height).toBe(216)
+    expect(layout.rows[1].height).toBe(nodeHeight + 16 + 24)
+})
+
+it('keeps parallel branches aligned, orders a merge and delivery chain, and remains stable after filtering', () => {
+    const graph = makeGraph(
+        [
+            node('fork', 'fork', null, 'check'),
+            node('ci', 'external_wait', 'engineering', 'check'),
+            node('correctness', 'work', 'review', 'check'),
+            node('security', 'work', 'review', 'check'),
+            node('join', 'join', null, 'verify'),
+            node('verify', 'work', 'review', 'verify'),
+            node('route', 'router', null, 'verify'),
+            node('publish', 'work', 'engineering', 'deliver'),
+            node('confirmed', 'external_wait', 'engineering', 'deliver'),
+            node('done', 'terminal', null, 'deliver')
+        ],
+        [
+            ...['ci', 'correctness', 'security'].flatMap((key) => [edge('fork', key), edge(key, 'join')]),
+            edge('join', 'verify'),
+            edge('verify', 'route'),
+            edge('route', 'publish'),
+            edge('publish', 'confirmed'),
+            edge('confirmed', 'done')
+        ]
+    )
+    const layout = pipelineLayout(graph, '')
+    expect(layout.headers.map((header) => header.label)).toEqual([
+        'fork',
+        'check',
+        'join',
+        'verify',
+        'route',
+        'deliver',
+        'done'
+    ])
+    expect(layout.headers.find((header) => header.label === 'deliver')!.width).toBe(stageWidth * 2)
+    for (const header of layout.headers.filter((header) => header.control)) {
+        const position = layout.positions.get(header.control!.key)!
+        expect(position.x).toBeGreaterThan(header.x)
+        expect(position.x + position.width).toBeLessThan(header.x + header.width)
+    }
+    for (const { from, to } of graph.edges)
+        expect(layout.positions.get(to)!.x).toBeGreaterThan(
+            layout.positions.get(from)!.x + layout.positions.get(from)!.width
+        )
+    expect(layout.positions.get('correctness')!.x).toBe(layout.positions.get('security')!.x)
+    expect(layout.positions.get('correctness')!.x).toBe(layout.positions.get('ci')!.x)
+    expect(layout.positions.get('security')!.y - layout.positions.get('correctness')!.y).toBeGreaterThan(nodeHeight)
+    for (const key of ['publish', 'confirmed', 'done'])
+        expect(layout.positions.get(key)!.y).toBe(layout.positions.get('ci')!.y)
+    const reversed = pipelineLayout(
+        { ...graph, nodes: [...graph.nodes].reverse(), edges: [...graph.edges].reverse() },
+        ''
+    )
+    expect(reversed.positions).toEqual(layout.positions)
+    const filtered = pipelineLayout(graph, 'review')
+    expect(filtered.stages).toEqual(layout.stages)
+    expect(filtered.headers).toEqual(layout.headers)
+    for (const [key, position] of filtered.positions) expect(position.x).toBe(layout.positions.get(key)!.x)
+})
+
+it('gives controls dedicated columns even when independent work has the same dependency depth', () => {
+    const graph = makeGraph(
+        [
+            node('work', 'work', 'engineering', 'shared'),
+            node('branch', 'fork', null, 'shared'),
+            node('end', 'terminal', null, 'shared')
+        ],
+        []
+    )
+    const layout = pipelineLayout(graph, '')
+    expect(layout.headers.map((header) => header.label)).toEqual(['branch', 'end', 'shared'])
+    expect(new Set([...layout.positions.values()].map((position) => position.x)).size).toBe(3)
+    const reordered = pipelineLayout({ ...graph, nodes: [...graph.nodes].reverse() }, '')
+    expect(reordered.headers).toEqual(layout.headers)
+})
+
+it('keeps same-stage cycles finite with separate control columns between upstream and downstream work', () => {
+    const graph = makeGraph(
+        [
+            node('entry', 'work', 'engineering', 'stage'),
+            node('a', 'router', null, 'stage'),
+            node('b', 'join', null, 'stage'),
+            node('finish', 'work', 'engineering', 'stage')
+        ],
+        [edge('entry', 'a'), edge('a', 'b'), edge('b', 'a'), edge('b', 'finish')]
+    )
+    const layout = pipelineLayout(graph, '')
+    expect(layout.positions.size).toBe(4)
+    expect(layout.positions.get('a')!.x).toBeLessThan(layout.positions.get('b')!.x)
+    expect(layout.positions.get('a')!.x).toBeGreaterThan(layout.positions.get('entry')!.x)
+    expect(layout.positions.get('finish')!.x).toBeGreaterThan(layout.positions.get('b')!.x)
 })

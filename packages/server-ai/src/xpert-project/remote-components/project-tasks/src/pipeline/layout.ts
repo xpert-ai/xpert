@@ -1,13 +1,16 @@
 // Layout is presentation only: control nodes share role lanes without changing execution ownership.
 // Topology and configured labels determine routing; domain-specific naming has no meaning here.
 import type { PipelineGraph, PipelineNode } from './bridge'
+import { dependencyColumns } from './layout-columns'
 
-export const laneWidth = 232,
-    stageWidth = 248,
-    headerHeight = 96,
-    nodeWidth = 204,
-    nodeHeight = 172
-const controlWidth = 132
+export const laneWidth = 180,
+    stageWidth = 220,
+    headerHeight = 56,
+    nodeWidth = 184,
+    nodeHeight = 112,
+    controlSize = 32
+const controlWidth = 100,
+    nodeGap = 16
 export const edgeLabelWidth = (label: string) =>
     [...label].reduce((width, char) => width + (/[^\x00-\x7F]/.test(char) ? 10 : 6), 0)
 export function edgeLabelLines(label: string, width: number): string[] {
@@ -28,7 +31,7 @@ export const isControlNode = (kind: PipelineNode['projection']['kind']) =>
 
 type LayoutGraph = {
     definition: Pick<PipelineGraph['definition'], 'lanes' | 'stages'>
-    nodes: Array<{ projection: Pick<PipelineNode['projection'], 'key' | 'kind' | 'laneKey' | 'stageKey'> }>
+    nodes: Array<{ projection: Pick<PipelineNode['projection'], 'key' | 'title' | 'kind' | 'laneKey' | 'stageKey'> }>
     edges: Array<Pick<PipelineGraph['edges'][number], 'from' | 'to' | 'label'>>
 }
 
@@ -70,7 +73,7 @@ function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition'][
     )
 }
 
-/** Stable identity order avoids moving cards when only a status or runtime timestamp changes. */
+/** Business stages group columns; dependencies, not names, order sequential steps within each stage. */
 export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
     const lanes = [...graph.definition.lanes].sort((a, b) => a.order - b.order || a.key.localeCompare(b.key))
     // Resolve against the full graph before filtering, so controls never jump to another role.
@@ -81,44 +84,90 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
         .map((stage) => {
             const nodes = graph.nodes.filter((node) => node.projection.stageKey === stage.key)
             const control = nodes.length > 0 && nodes.every((node) => isControlNode(node.projection.kind))
-            // Reserve room for configured labels beside controls; longer labels wrap without data loss.
-            const labels = graph.edges.filter(
-                (edge) => edge.label && nodes.some((node) => node.projection.key === edge.from)
+            const ranks = dependencyColumns(
+                nodes.map((node) => node.projection.key),
+                graph.edges
             )
-            const labelWidth = Math.max(0, ...labels.map((edge) => edgeLabelWidth(edge.label!)))
-            const width = control ? Math.max(controlWidth, Math.min(340, labelWidth * 2 + 64)) : stageWidth
-            const column = { ...stage, x, width, control }
-            x += width
-            return column
+            const start = x
+            const groups = Array.from({ length: Math.max(0, ...ranks.values()) + 1 }, (_, rank) => {
+                const ranked = nodes
+                    .filter((node) => ranks.get(node.projection.key) === rank)
+                    .sort((a, b) => a.projection.key.localeCompare(b.projection.key))
+                const controls = ranked.filter((node) => isControlNode(node.projection.kind))
+                const work = ranked.filter((node) => !isControlNode(node.projection.kind))
+                // Each control owns a visible column, even alongside work or another control at the same depth.
+                return [...controls.map((node) => [node]), ...(work.length || !ranked.length ? [work] : [])]
+            }).flat()
+            const columns = groups.map((group) => {
+                const keys = group.map((node) => node.projection.key)
+                const control =
+                    group.length === 1 && isControlNode(group[0].projection.kind) ? group[0].projection : null
+                const labels = graph.edges.filter((edge) => edge.label && keys.includes(edge.from))
+                const labelWidth = Math.max(0, ...labels.map((edge) => edgeLabelWidth(edge.label!)))
+                const width = control ? Math.max(controlWidth, Math.min(340, labelWidth * 2 + 64)) : stageWidth
+                const column = { x, width, keys, control }
+                x += width
+                return column
+            })
+            return { ...stage, x: start, width: x - start, control, columns }
         })
+    // Headers and row dividers share these sections so control columns remain visible across every lane.
+    const headers = stages.flatMap((stage, index) => {
+        const sections: Array<{
+            key: string
+            x: number
+            width: number
+            label: string
+            icon: typeof stage.icon
+            stageNumber: number
+            control: LayoutGraph['nodes'][number]['projection'] | null
+        }> = []
+        stage.columns.forEach((column, columnIndex) => {
+            const previous = sections[sections.length - 1]
+            if (!column.control && previous && !previous.control) {
+                previous.width += column.width
+                return
+            }
+            sections.push({
+                key: `${stage.key}:${columnIndex}`,
+                x: column.x,
+                width: column.width,
+                label: column.control?.title ?? stage.label,
+                icon: stage.icon,
+                stageNumber: stages.slice(0, index + 1).filter((item) => !item.control).length,
+                control: column.control
+            })
+        })
+        return sections
+    })
     const rows: Array<{ key: string; label: string; y: number; height: number }> = []
     const positions = new Map<string, { x: number; y: number; width: number }>()
     const topPadding = 24
     let y = headerHeight
     for (const lane of lanes.filter((item) => !laneFilter || item.key === laneFilter)) {
         let count = 1
-        for (const stage of stages) {
+        for (const column of stages.flatMap((stage) => stage.columns)) {
             const nodes = graph.nodes
                 .filter(
                     (node) =>
-                        displayLanes.get(node.projection.key) === lane.key && node.projection.stageKey === stage.key
+                        displayLanes.get(node.projection.key) === lane.key && column.keys.includes(node.projection.key)
                 )
                 .sort((a, b) => a.projection.key.localeCompare(b.projection.key))
             count = Math.max(count, nodes.length)
             nodes.forEach((node, index) => {
                 const width = isControlNode(node.projection.kind) ? controlWidth - 16 : nodeWidth
                 positions.set(node.projection.key, {
-                    x: stage.x + (stage.width - width) / 2,
-                    y: y + topPadding + index * (nodeHeight + 20),
+                    x: column.x + (column.width - width) / 2,
+                    y: y + topPadding + index * (nodeHeight + nodeGap),
                     width
                 })
             })
         }
-        const height = count * (nodeHeight + 20) + topPadding
+        const height = count * (nodeHeight + nodeGap) + topPadding
         rows.push({ key: lane.key, label: lane.label, y, height })
         y += height
     }
-    const layout = { stages, rows, positions, width: x, height: y }
+    const layout = { stages, headers, rows, positions, width: x, height: y }
     const edgeRoutes = new Map<LayoutGraph['edges'][number], NonNullable<ReturnType<typeof pipelineEdgePath>>>()
     const kinds = new Map(graph.nodes.map((node) => [node.projection.key, node.projection.kind]))
     const tracks: Array<{
@@ -164,15 +213,15 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
             0,
             tracks.filter((track) => track.row === row).reduce((sum, track) => sum + track.height, 0) - 12
         )
-        for (const stage of stages) {
+        for (const column of stages.flatMap((stage) => stage.columns)) {
             const nodes = graph.nodes
                 .filter(
                     (node) =>
-                        displayLanes.get(node.projection.key) === row.key && node.projection.stageKey === stage.key
+                        displayLanes.get(node.projection.key) === row.key && column.keys.includes(node.projection.key)
                 )
                 .sort((a, b) => a.projection.key.localeCompare(b.projection.key))
             nodes.forEach((node, index) => {
-                positions.get(node.projection.key)!.y = row.y + topPadding + extra + index * (nodeHeight + 20)
+                positions.get(node.projection.key)!.y = row.y + topPadding + extra + index * (nodeHeight + nodeGap)
             })
         }
     }
@@ -214,7 +263,8 @@ function edgeEndpoints(
     fromKind: PipelineNode['projection']['kind'],
     toKind: PipelineNode['projection']['kind']
 ) {
-    const radius = (kind: PipelineNode['projection']['kind']) => (kind === 'terminal' ? 28 : 38)
+    const radius = (kind: PipelineNode['projection']['kind']) =>
+        kind === 'terminal' ? controlSize / 2 : controlSize / Math.SQRT2
     return {
         x1: from.x + (isControlNode(fromKind) ? from.width / 2 + radius(fromKind) : from.width),
         x2: to.x + (isControlNode(toKind) ? to.width / 2 - radius(toKind) : 0),
@@ -252,9 +302,9 @@ export function pipelineEdgePath(
             labelWidth: x2 - x1 - 24
         }
     }
-    const bend = Math.max(24, Math.abs(x2 - x1) / 2)
+    const bend = (x1 + x2) / 2
     return {
-        path: `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`,
+        path: `M${x1},${y1} H${bend} V${y2} H${x2}`,
         aboveCards: false,
         labelX: (x1 + x2) / 2,
         labelY: (y1 + y2) / 2 - 8,

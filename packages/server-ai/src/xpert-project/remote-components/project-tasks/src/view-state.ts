@@ -7,6 +7,7 @@ export const taskViewStateSchema = z.object({
     pipelineLane: z.string().max(200).optional(),
     selectedLane: z.string().max(200).optional(),
     onlyBlocked: z.boolean().optional(),
+    pipelineScale: z.number().finite().min(0.1).max(2).optional(),
     scrollLeft: z.number().finite().min(0).optional(),
     scrollTop: z.number().finite().min(0).optional()
 })

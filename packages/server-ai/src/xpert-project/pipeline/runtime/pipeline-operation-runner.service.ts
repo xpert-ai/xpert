@@ -1,7 +1,7 @@
 // Invariants: durable operations and leases fence dispatch; external effects stay outside SQL transactions.
 // An uncertain result must be observed before retrying, rather than treated as a confirmed failure.
 import { ProjectPipelineRuntimeBridgeService } from './pipeline-runtime-bridge.service'
-import { Injectable } from '@nestjs/common'
+import { HttpException, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { Repository } from 'typeorm'
@@ -32,6 +32,7 @@ import { ProjectPipelineAssistantBridgeService } from './pipeline-assistant-brid
  * Recovery inspects the original idempotency key; it never repeats an ambiguous execute. */
 @Injectable()
 export class ProjectPipelineOperationRunnerService {
+    private readonly logger = new Logger(ProjectPipelineOperationRunnerService.name)
     constructor(
         @InjectRepository(ProjectPipelineOperationEntity)
         private readonly operations: Repository<ProjectPipelineOperationEntity>,
@@ -176,7 +177,18 @@ export class ProjectPipelineOperationRunnerService {
                     }
                 }
             }
-        } catch {
+        } catch (error) {
+            const response = error instanceof HttpException ? error.getResponse() : null
+            this.logger.warn(
+                {
+                    projectId: context.projectId,
+                    operationId,
+                    mode: claim.mode,
+                    errorType: error instanceof Error ? error.name : 'UnknownError',
+                    code: response && typeof response === 'object' && 'code' in response ? response.code : undefined
+                },
+                'Pipeline observation deferred'
+            )
             policy = undefined
             // Runtime success is retained even if evidence access/evaluation is temporarily unavailable.
             completion =

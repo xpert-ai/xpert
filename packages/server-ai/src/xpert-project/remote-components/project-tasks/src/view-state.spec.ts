@@ -9,6 +9,7 @@ it('restores view, instance, round, filter, selection and viewport after reload'
         pipelineLane: 'review',
         selectedLane: 'review',
         onlyBlocked: true,
+        pipelineScale: 0.65,
         scrollLeft: 820,
         scrollTop: 64
     }

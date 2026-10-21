@@ -38,6 +38,7 @@ import { ProjectPipelineQueryService } from '../pipeline/queries/pipeline-query.
 import { ProjectPipelineAnalyticsService } from '../pipeline/queries/pipeline-analytics.service'
 import { ProjectPipelineCommandsService } from '../pipeline/runtime/pipeline-commands.service'
 import { ProjectPipelineEvidenceAccessService } from '../pipeline/runtime/pipeline-evidence-access.service'
+import { ProjectPipelineWorkspaceService } from '../pipeline/queries/pipeline-workspace.service'
 
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 const requireHere = createRequire(__filename)
@@ -53,7 +54,8 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         private readonly pipelineEvidence: ProjectPipelineEvidenceAccessService,
         private readonly pipelineCatalog: ProjectPipelineCatalogService,
         private readonly providerActions: ProjectPipelineProviderActionsService,
-        private readonly pipelineAnalytics: ProjectPipelineAnalyticsService
+        private readonly pipelineAnalytics: ProjectPipelineAnalyticsService,
+        private readonly workspaces: ProjectPipelineWorkspaceService
     ) {}
     supports(context: XpertResolvedViewHostContext) {
         return context.hostType === 'project' || context.hostType === 'agent'
@@ -111,6 +113,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                     },
                     ...[
                         'task-detail',
+                        'workspace-target',
                         'decide-task',
                         'cancel-attempt',
                         'request-check',
@@ -167,6 +170,35 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         actionKey: string,
         request: XpertViewActionRequest
     ) {
+        if (actionKey === 'workspace-target') {
+            const input = z
+                .object({
+                    pipelineNodeId: z.string().uuid().optional(),
+                    instanceId: z.string().uuid().optional()
+                })
+                .strict()
+                .parse(request.input)
+            const { projectId } = this.context(context)
+            // Resolve the registered business entry through live Project and Assistant authorization.
+            const entry = await this.workspaces.entry(this.context(context), {
+                ...input,
+                ...(context.hostType === 'agent' ? { xpertId: context.hostId } : {}),
+                ...(input.pipelineNodeId ? { pipelineNodeId: input.pipelineNodeId } : {})
+            })
+            if (entry.kind !== 'assistant' || (context.hostType === 'agent' && entry.xpertId !== context.hostId))
+                throw Error(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+            return {
+                success: true,
+                data: {
+                    target: context.hostType === 'agent' ? 'workbench.view' : 'assistant.project',
+                    projectId,
+                    xpertId: entry.xpertId,
+                    viewKey: entry.viewKey,
+                    selectionId: entry.selectionId,
+                    parameters: entry.parameters
+                }
+            }
+        }
         if (actionKey === 'pipeline-provider-node-details') {
             const input = z
                 .object({ instanceId: z.string().uuid(), nodeInstanceId: z.string().uuid() })

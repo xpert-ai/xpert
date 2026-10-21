@@ -6,7 +6,12 @@ module.exports = {
   rootDir,
   roots: ['<rootDir>/packages/server-ai/src/xpert-project/remote-components/project-tasks/src'],
   testEnvironment: 'node',
-  testMatch: ['**/pipeline/*.spec.ts', '**/execution-summary.spec.ts', '**/view-state.spec.ts'],
+  testMatch: [
+    '**/pipeline/*.spec.ts',
+    '**/pipeline/*.spec.tsx',
+    '**/execution-summary.spec.ts',
+    '**/view-state.spec.ts'
+  ],
   transform: {
     '^.+\\.(ts|tsx|cts)$': [
       'ts-jest',

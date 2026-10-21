@@ -1,3 +1,4 @@
+import { ProjectPipelineWorkspaceService } from '../pipeline/queries/pipeline-workspace.service'
 import { Test } from '@nestjs/testing'
 import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { ProjectTasksViewProvider } from './project-tasks.provider'
@@ -40,11 +41,21 @@ async function fixture() {
             xpertId: 'assistant'
         })
     }
+    const projectTypes = {
+        entry: jest.fn().mockResolvedValue({
+            kind: 'assistant',
+            xpertId: 'assistant',
+            viewKey: 'registered__review',
+            selectionId: 'review',
+            parameters: { tab: 'draft' }
+        })
+    }
     const pipelines = { list: jest.fn(), graph: jest.fn(), rounds: jest.fn() }
     const analytics = { read: jest.fn() }
     const module = await Test.createTestingModule({
         providers: [
             ProjectTasksViewProvider,
+            { provide: ProjectPipelineWorkspaceService, useValue: projectTypes },
             { provide: ProjectTaskGraphService, useValue: tasks },
             { provide: ProjectTaskRuntimeReadService, useValue: {} },
             { provide: ProjectTaskDecisionService, useValue: {} },
@@ -59,9 +70,42 @@ async function fixture() {
             { provide: ProjectPipelineAnalyticsService, useValue: analytics }
         ]
     }).compile()
-    return { provider: module.get(ProjectTasksViewProvider), tasks, pipelines, analytics }
+    return { provider: module.get(ProjectTasksViewProvider), tasks, pipelines, analytics, projectTypes }
 }
 describe('shared project task View', () => {
+    it('resolves the business Workbench view from the current Project and retains exact node focus', async () => {
+        const { provider, projectTypes } = await fixture()
+        const pipelineNodeId = '99999999-9999-4999-8999-999999999999'
+        const result = await provider.executeViewAction(agent, 'timeline', 'workspace-target', {
+            input: { pipelineNodeId }
+        })
+        expect(projectTypes.entry).toHaveBeenCalledWith(
+            { projectId: 'p', actor: { tenantId: 't', organizationId: 'o', userId: 'u' } },
+            { xpertId: 'assistant', pipelineNodeId }
+        )
+        expect(result.data).toEqual({
+            target: 'workbench.view',
+            projectId: 'p',
+            xpertId: 'assistant',
+            viewKey: 'registered__review',
+            selectionId: 'review',
+            parameters: { tab: 'draft' }
+        })
+        expect(
+            (await provider.executeViewAction(project, 'timeline', 'workspace-target', { input: {} })).data
+        ).toMatchObject({ target: 'assistant.project', viewKey: 'registered__review' })
+        for (const field of ['projectId', 'xpertId', 'viewKey', 'url']) {
+            await expect(
+                provider.executeViewAction(agent, 'timeline', 'workspace-target', { input: { [field]: 'forged' } })
+            ).rejects.toThrow()
+        }
+        projectTypes.entry.mockResolvedValue({ kind: 'assistant', xpertId: 'other', viewKey: 'other' })
+        await expect(provider.executeViewAction(agent, 'timeline', 'workspace-target', { input: {} })).rejects.toThrow()
+        projectTypes.entry.mockRejectedValue(Error('revoked'))
+        await expect(provider.executeViewAction(agent, 'timeline', 'workspace-target', { input: {} })).rejects.toThrow(
+            'revoked'
+        )
+    })
     it('advertises an on-demand Agent view behind its feature and current project', async () => {
         const { provider } = await fixture()
         expect(provider.getViewManifests(agent, 'agent.workbench')[0]).toMatchObject({

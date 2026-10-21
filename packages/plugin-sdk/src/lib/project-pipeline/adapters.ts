@@ -10,7 +10,8 @@ import type {
   ProjectPipelineAssistantInput,
   ProjectPipelineResourceClaim,
   ProjectPipelineResourceReservation,
-  ProjectPipelineRuntimeInput
+  ProjectPipelineRuntimeInput,
+  XpertProjectViewSelection
 } from '@xpert-ai/contracts'
 import type { ProjectPipelineContext } from './capability'
 import type { AgentInvocationResult } from '../agent/runtime/types'
@@ -20,6 +21,11 @@ export type { ProjectPipelineOperationReceipt } from '@xpert-ai/contracts'
 export interface ProjectPipelineSubjectResolver {
   resolve(context: ProjectPipelineContext, objectKey: string): Promise<ProjectPipelineSubjectVersion>
   checkCurrent(context: ProjectPipelineContext, version: ProjectPipelineSubjectVersion): Promise<boolean>
+  /** Read-only business entry for a saved subject. Reauthorize its Project and actor; never return a URL. */
+  resolveEntry?(
+    context: ProjectPipelineContext,
+    objectKey: string
+  ): Promise<XpertProjectViewSelection & { xpertId: string }>
 }
 
 export interface ProjectPipelineEvidenceResolver {

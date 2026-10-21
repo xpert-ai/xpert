@@ -1,16 +1,27 @@
 import { ForbiddenException } from '@nestjs/common'
-import type { ProjectPipelineCommandCapability } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, type ProjectPipelineCommandCapability } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 
-// The pipeline SQL outbox restores a business actor, not the original credential audience.
-// Configuration saves do not dispatch work; execution still requires a durable credential audience.
+// Interactive USER_XPERT sessions initiate durable Project work as the signed-in user.
+// Entry points and workers retain live Project, Assistant and Connector authorization.
+// Resource credentials still require durable audience delegation before they may dispatch work.
+// TODO: 之后改造更严格的权限检查。
 export function pipelineCommandCapability(
     operation: 'configure' | 'execute' = 'execute'
 ): ProjectPipelineCommandCapability {
-    return operation === 'execute' && RequestContext.currentApiPrincipal()
-        ? { allowed: false, reason: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
-        : { allowed: true }
+    const principal = RequestContext.currentApiPrincipal()
+    if (operation === 'configure' || !principal) return { allowed: true }
+    if (
+        principal.principalType === 'client_secret' &&
+        principal.clientSecretBindingType === SecretTokenBindingType.USER_XPERT &&
+        principal.id &&
+        principal.tenantId &&
+        principal.resourceScope?.kind === 'assistant' &&
+        principal.resourceScope.xpertId.trim()
+    )
+        return { allowed: true }
+    return { allowed: false, reason: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
 }
 
 export function assertPipelineCommandAuthority() {

@@ -75,6 +75,23 @@ describe('application Project types', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
 
+    it('resolves a Workbench destination using persisted Project classification and live access', async () => {
+        const f = fixture()
+        f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })
+        await expect(f.service.entryForProject('project', { xpertId: 'assistant' })).resolves.toMatchObject({
+            kind: 'assistant',
+            projectId: 'project',
+            xpertId: 'assistant',
+            viewKey: 'automotive__cases',
+            selectionId: 'case'
+        })
+        expect(f.access.assertCanUseXpert).toHaveBeenCalledWith('project', 'assistant')
+        jest.mocked(f.provider.resolve).mockClear()
+        f.access.assertCanRead.mockRejectedValue(Error('revoked'))
+        await expect(f.service.entryForProject('project')).rejects.toThrow('revoked')
+        expect(f.provider.resolve).not.toHaveBeenCalled()
+    })
+
     it('authorizes the Project and canonical Assistant before resolving an opt-in node entry', async () => {
         const f = fixture()
         f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })
