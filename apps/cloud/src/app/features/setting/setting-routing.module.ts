@@ -112,6 +112,11 @@ export const routes: Routes = [
       },
       ...(environment.settingsExtensions?.routes ?? []),
       {
+        path: 'analytics',
+        loadChildren: () => import('./analytics/routes').then((m) => m.routes),
+        data: { title: 'settings/analytics', scopeContext: 'organization-only' }
+      },
+      {
         path: 'data-sources',
         loadChildren: () => import('./data-sources/routing').then((m) => m.default),
         canActivate: [NgxPermissionsGuard],

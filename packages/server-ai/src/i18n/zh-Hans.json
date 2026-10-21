@@ -58,6 +58,9 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "AnalyticsDefinitionInvalid": "分析定义不可用或配置无效",
+        "AnalyticsDefinitionConflict": "已有更新版本发布，请重新加载后再发布。",
+        "AnalyticsDefinitionUnavailable": "分析定义不可用。",
         "ProjectTaskProjectionRetry": "任务同步已有新请求或正在由其他实例处理，将由队列重试。",
         "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
         "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
@@ -74,6 +77,7 @@
         "RuntimeUserUnavailable": "运行用户已不可用或不再具有组织访问权限",
         "ArtifactVersionConflict": "产物已被其他保存操作更新，请重新打开后再保存。",
         "AnalyticsAccessDenied": "没有访问分析数据源的权限",
+        "AnalyticsGrainMismatch": "返回的数据行在声明的粒度上重复。请检查真实数据，使用确实唯一的粒度；未聚合的明细表可将 grain 设为空数组。不要丢弃源数据行。",
         "AnalyticsQueryInvalid": "分析查询不可用或无效",
         "PersonalApiKeyNotFound": "个人 API 密钥不存在或已撤销。",
         "PersonalApiKeyHumanRequired": "只有真人用户账号可以管理个人 API 密钥。",

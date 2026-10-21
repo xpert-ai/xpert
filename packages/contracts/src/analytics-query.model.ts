@@ -1,3 +1,4 @@
+import type { AnalyticsSourceRef } from './analytics-source.model'
 import type { JSONValue } from './core.model'
 
 /** JSON-safe scalar shared by cells and controls; nested objects/arrays are not dataset cells. */
@@ -53,12 +54,10 @@ export interface AnalyticsParameter {
  * Renderers consume the normalized Dataset, never execute payload or handle source credentials.
  */
 export interface AnalyticsBinding {
-  /** Version of this shared envelope, separate from the provider operation's contractVersion. */
-  schemaVersion: 1
   /** Binding identity used for lookup and result provenance. */
   id: string
-  /** Platform DataSource ID; access is rechecked for the current actor on each execution. */
-  dataSourceId: string
+  /** Exact governed resource; access is rechecked for the current actor on each execution. */
+  source: AnalyticsSourceRef
   /** Registered provider descriptor ID, not a display name or database engine switch. */
   providerId: string
   /** Must match a read-only operation advertised by the provider. */
@@ -80,7 +79,7 @@ export interface AnalyticsQueryRequest {
 
 /** Canonical, provider-independent result; consumers must inspect completeness before presenting totals. */
 export interface AnalyticalDataset {
-  schema: 'xpert.analytics.dataset/v1'
+  schema: 'xpert.analytics.dataset'
   datasetId: string
   /** Preserved even when rows is empty, so renderers can retain bindings and labels. */
   fields: AnalyticsField[]
@@ -127,26 +126,24 @@ export interface AnalyticsProviderDescriptor {
   id: string
   name: string
   /** Exact platform DataSource.type identifiers supported by this provider. */
-  dataSourceTypes: string[]
+  dataSourceTypes?: string[]
+  sourceKinds: AnalyticsSourceRef['kind'][]
   /** Supported operation/version pairs; providers must enforce read-only behavior at the source. */
   operations: Array<{ name: string; contractVersion: number; readOnly: true }>
   /** Declares a provider-wide collaboration constraint; does not grant source or file access. */
   sharing?: { mode: 'viewer_permissions' | 'owner_only'; reasonCode?: string }
-  /** Optional new source type and configuration schema, never connection values; omit for existing types. */
-  connectionType?: { type: string; name: string; configuration: Record<string, JSONValue> }
 }
 
 /** Discoverable source and available providers for the current actor; contains no connection options. */
 export interface AnalyticsSourceSummary {
-  id: string
+  source: AnalyticsSourceRef
   name: string
-  type: string
   providers: AnalyticsProviderDescriptor[]
 }
 
 /** Read-only catalog navigation; continuation data is provider-owned and never grants authorization. */
 export interface AnalyticsDiscoveryRequest {
-  dataSourceId: string
+  source: AnalyticsSourceRef
   providerId: string
   /** Initial provider request or a returned inspectRequest/nextRequest, forwarded without interpretation. */
   request: JSONValue
@@ -154,7 +151,6 @@ export interface AnalyticsDiscoveryRequest {
 
 /** Bounded discovery page plus the native query contract needed by an Agent or query builder. */
 export interface AnalyticsDiscoveryResult {
-  schemaVersion: 1
   items: Array<{
     /** Provider-local resource identity; need not be a platform entity UUID. */
     id: string

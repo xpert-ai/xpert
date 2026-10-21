@@ -1,3 +1,4 @@
+import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
 import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistence/pipeline.entity'
 import { TemplateUpgradeEntity } from '../../xpert/template-lifecycle/template-upgrade.entity'
@@ -165,6 +166,8 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    AnalyticsDefinition,
+    AnalyticsDefinitionVersion,
     ...ProjectPipelineEntities,
     TemplatePublicationEntity,
     TemplateUpgradeEntity,

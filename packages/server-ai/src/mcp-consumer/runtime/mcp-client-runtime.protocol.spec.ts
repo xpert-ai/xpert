@@ -13,9 +13,13 @@ import { McpClientRuntimeService } from './mcp-client-runtime.service'
 
 // Exercise the existing client/connection/tool filtering over real HTTP, without replacing fetch.
 describe('MCP read-only protocol integration', () => {
-    it.each([true, false])(
-        'uses a saved MCP connection for discovery, filters, refresh and revocation (modern=%s)',
-        async (modern) => {
+    it.each([
+        { modern: true, serverKey: 'business' },
+        { modern: false, serverKey: 'business' },
+        { modern: false, serverKey: '' }
+    ])(
+        'uses a saved MCP connection for discovery, filters, refresh and revocation (modern=$modern, key=$serverKey)',
+        async ({ modern, serverKey }) => {
             const actor = {
                 tenantId: '00000000-0000-4000-8000-000000000001',
                 organizationId: '00000000-0000-4000-8000-000000000002',
@@ -25,7 +29,7 @@ describe('MCP read-only protocol integration', () => {
                 actor,
                 workspaceId: '00000000-0000-4000-8000-000000000004',
                 toolsetId: '00000000-0000-4000-8000-000000000005',
-                serverName: 'business',
+                serverName: serverKey || 'Existing MCP connection',
                 signal: new AbortController().signal,
                 deadlineAt: Date.now() + 10000
             }
@@ -113,7 +117,7 @@ describe('MCP read-only protocol integration', () => {
                 options: { disableToolDefault: false },
                 schema: JSON.stringify({
                     mcpServers: {
-                        business: {
+                        [serverKey]: {
                             type: 'http',
                             url: `http://127.0.0.1:${address.port}/mcp`,
                             headers: { Authorization: 'Bearer local-fixture-only' }

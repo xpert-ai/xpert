@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { IDataSourceType } from '@xpert-ai/contracts'
-import { map, shareReplay } from 'rxjs/operators'
+import { map, shareReplay, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject } from 'rxjs'
 import { API_DATA_SOURCE_TYPE } from './constants'
 
 /**
@@ -12,7 +13,11 @@ import { API_DATA_SOURCE_TYPE } from './constants'
 export class DataSourceTypesService {
   readonly #httpClient = inject(HttpClient)
 
-  readonly types$ = this.getAll().pipe(shareReplay(1))
+  private readonly refresh = new BehaviorSubject(0)
+  readonly types$ = this.refresh.pipe(
+    switchMap(() => this.getAll()),
+    shareReplay({ bufferSize: 1, refCount: true })
+  )
 
   getAll() {
     return this.#httpClient
@@ -21,6 +26,8 @@ export class DataSourceTypesService {
   }
 
   sync() {
-    return this.#httpClient.post(API_DATA_SOURCE_TYPE + '/sync', {})
+    return this.#httpClient
+      .post(API_DATA_SOURCE_TYPE + '/sync', {})
+      .pipe(tap(() => this.refresh.next(this.refresh.value + 1)))
   }
 }

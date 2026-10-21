@@ -4,7 +4,7 @@
  * - The injected model must be the current object value being edited, not a stale parent snapshot.
  * - Keep this layer schema-driven; endpoint-specific select behavior belongs in property/field components.
  */
-import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input, viewChildren } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -52,6 +52,7 @@ export class JSONSchemaFormComponent {
   }
 
   // States
+  readonly children = viewChildren(JSONSchemaPropertyComponent)
   readonly properties = computed(
     () =>
       this.schema()?.properties &&
@@ -75,10 +76,10 @@ export class JSONSchemaFormComponent {
   formOptions = {}
 
   readonly #invalid = computed(() => {
-    if (this.schema().required?.length) {
-      return this.schema().required.some((name) => isNil(this.value$()?.[name]))
-    }
-    return false
+    return (
+      this.schema()?.required?.some((name) => isNil(this.value$()?.[name]) || this.value$()?.[name] === '') ||
+      this.children().some((child) => child.invalid)
+    )
   })
 
   constructor() {
@@ -86,7 +87,11 @@ export class JSONSchemaFormComponent {
   }
 
   updateValue(name: string, value: unknown) {
-    this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
+    this.value$.update((state) => {
+      const next = { ...(state ?? {}), [name]: value }
+      if (value === undefined) delete next[name]
+      return next
+    })
   }
 
   updateValues(value) {

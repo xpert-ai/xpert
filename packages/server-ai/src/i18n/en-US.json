@@ -58,6 +58,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AnalyticsDefinitionInvalid": "Analytics definition is unavailable or invalid",
+        "AnalyticsDefinitionConflict": "A newer version was published. Reload before publishing again.",
+        "AnalyticsDefinitionUnavailable": "Analytics definition is unavailable.",
         "ProjectTaskProjectionRetry": "Task synchronization was superseded or is owned by another worker; the queue will retry.",
         "ProjectTaskProjectionUnavailable": "Task synchronization status is temporarily unavailable; saved tasks remain readable.",
         "ProjectTaskProjectionTimeout": "Task synchronization timed out; the saved tasks are preserved and synchronization will retry.",
@@ -74,6 +77,7 @@
         "RuntimeUserUnavailable": "Runtime user is unavailable",
         "ArtifactVersionConflict": "Artifact was changed by another save. Reopen it before saving again.",
         "AnalyticsAccessDenied": "Analytics access denied",
+        "AnalyticsGrainMismatch": "Returned rows repeat the declared grain. Inspect the actual rows and use a truly unique grain, or an empty grain for an unaggregated table. Do not discard source rows.",
         "AnalyticsQueryInvalid": "Analytics query is unavailable or invalid",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
         "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",

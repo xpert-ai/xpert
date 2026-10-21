@@ -60,6 +60,7 @@ export * from './custom-smtp.model'
 export * from './date-picker.model'
 export * from './data-source.model'
 export * from './analytics-query.model'
+export * from './analytics-source.model'
 export * from './data-source-type.model'
 export * from './integration.model'
 export * from './invite.model'
@@ -125,3 +126,5 @@ export * from './agent-plugin-maintenance'
 
 export * from './assistant-sharing.model'
 export * from './artifact-presentation.model'
+
+export * from './analytics-definition.model'

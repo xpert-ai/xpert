@@ -1,4 +1,7 @@
+import type { AnalyticsDefinitionAuthoring } from './analytics-authoring'
 import type {
+  AnalyticsSourceRef,
+  AnalyticsConfigurationEntry,
   AnalyticsBinding,
   AnalyticsProviderDescriptor,
   AnalyticsQueryRequest,
@@ -16,7 +19,7 @@ import type { DataSourceActor } from '../datasource/workbench'
 export interface AnalyticsProviderContext {
   /** Current authenticated actor, not the source owner or Assistant creator. */
   actor: DataSourceActor
-  dataSourceId: string
+  source: AnalyticsSourceRef
   /** Server-only source options; treat as sensitive and never copy into bindings or datasets. */
   options: Record<string, JSONValue>
   /** Forward to source I/O and stop work on cancellation; a host timeout alone cannot stop ignored I/O. */
@@ -60,6 +63,13 @@ export interface AnalyticsProviderResult {
  */
 export interface AnalyticsQueryProvider {
   readonly descriptor: AnalyticsProviderDescriptor
+  readonly configuration?: AnalyticsConfigurationEntry
+  readonly authoring?: AnalyticsDefinitionAuthoring
+  /** Validate and normalize immutable configuration at publication. */
+  validateConfiguration?(
+    options: Record<string, JSONValue>,
+    actor: DataSourceActor
+  ): Promise<Record<string, JSONValue>> | Record<string, JSONValue>
   /** Optional read-only metadata discovery; apply the same scope, cancellation and deadline as queries. */
   discover?(request: JSONValue, context: AnalyticsProviderContext): Promise<AnalyticsDiscoveryResult>
   /** Parameters are resolved by name; binding.payload remains opaque to the host and needs provider validation. */
@@ -92,9 +102,20 @@ export interface AnalyticsRuntimeApi {
     execution?: AnalyticsQueryExecution
   ): Promise<AnalyticalDataset>
 }
-export const AnalyticsRuntimeCapability = createRuntimeCapability<AnalyticsRuntimeApi>(
-  'platform.datasource.analytics',
-  {
-    description: 'Execute scoped read-only provider queries and validate their dataset contracts.'
-  }
-)
+export const AnalyticsRuntimeCapability = createRuntimeCapability<AnalyticsRuntimeApi>('platform.analytics', {
+  description: 'Execute scoped read-only provider queries and validate their dataset contracts.'
+})
+
+/** Trusted host resource adapter; plugins never provide resource ACLs. */
+export interface AnalyticsSourceResolver {
+  readonly kind: AnalyticsSourceRef['kind']
+  list(actor: DataSourceActor): Promise<AnalyticsSourceSummary[]>
+  resolve(actor: DataSourceActor, source: AnalyticsSourceRef): Promise<AnalyticsResolvedSource>
+}
+export interface AnalyticsResolvedSource {
+  source: AnalyticsSourceRef
+  /** Resource-owned provider identities, not caller-supplied routing. */
+  providerIds: string[]
+  options: Record<string, JSONValue>
+  revalidate(): Promise<void>
+}

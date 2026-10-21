@@ -21,6 +21,7 @@ import { McpStdioRuntimeHandle, mcpStdioRuntimeManager } from './mcp-stdio-runti
 import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 import { resolveMcpClientAuthProvider } from '../../../mcp-consumer/auth/mcp-client-auth'
 import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
+import { resolveMcpServerName } from './server-name'
 
 export async function createMCPClient(
     toolset: Partial<IXpertToolset>,
@@ -38,7 +39,7 @@ export async function createMCPClient(
     // Connect to a remote server via SSE or HTTP
     for await (const serverName of Object.keys(servers)) {
         server = servers[serverName]
-        const name = serverName || toolset.name || 'default'
+        const name = resolveMcpServerName(serverName, toolset.name)
         const transport = server.type?.toLowerCase()
         if (transport === MCPServerType.HTTP) {
             const headers = await resolveRemoteHeaders(server, envState, xpertId)

@@ -1,12 +1,11 @@
 import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@xpert-ai/contracts'
 import { environment as env } from '@xpert-ai/server-config'
-import { RequestContext } from '../core/context'
 import { TenantAwareCrudService } from '../core/crud'
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { AnalyticsProviderRegistry, DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
+import { RequestContext, DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
 
 @Injectable()
@@ -16,14 +15,22 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 	@Inject(DataSourceStrategyRegistry)
 	private readonly dataSourceStrategyRegistry: DataSourceStrategyRegistry
 
-	@Inject(AnalyticsProviderRegistry)
-	private readonly analyticsProviders: AnalyticsProviderRegistry
-
 	constructor(
 		@InjectRepository(DataSourceType)
 		dsTypeRepository: Repository<DataSourceType>
 	) {
 		super(dsTypeRepository)
+	}
+
+	/** Only registered database drivers may appear in the connection type catalog. */
+	async available() {
+		const types = this.dataSourceStrategyRegistry.list().map((strategy) => new (strategy.getClassType())().type)
+		if (!types.length) return { items: [], total: 0 }
+		const items = await this.repository.find({
+			where: { tenantId: RequestContext.currentTenantId(), type: In(types) },
+			order: { name: 'ASC' }
+		})
+		return { items, total: items.length }
 	}
 
 	async sync() {
@@ -43,22 +50,6 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 			} catch (error) {
 				this.log(chalk.red(`❌ Failed to seed ${queryRunner.name} data source type: ${error.message}`))
 			}
-		}
-		for (const provider of this.analyticsProviders.list()) {
-			const descriptor = provider.descriptor.connectionType
-			if (!descriptor) continue
-			const existing = await this.repository.findOne({ where: { tenantId, type: descriptor.type } })
-			if (existing) {
-				existing.name = descriptor.name
-				existing.configuration = descriptor.configuration
-				await this.repository.save(existing)
-			} else
-				await this.create({
-					tenantId,
-					type: descriptor.type,
-					name: descriptor.name,
-					configuration: descriptor.configuration
-				})
 		}
 		this.log(chalk.green(`✅ All data source types seeded successfully for tenant: ${tenantId}`))
 	}
