@@ -28,7 +28,11 @@ describe('PluginIntegrationPermissionService', () => {
 				throw new Error('provider not found')
 			})
 		}
-		const service = new PluginIntegrationPermissionService(moduleRef as never, { execute: jest.fn() } as never)
+		const service = new PluginIntegrationPermissionService(
+			moduleRef as never,
+			{ execute: jest.fn() } as never,
+			{} as never
+		)
 
 		await expect(
 			service.ensureWebhookCredential('integration-1', {
@@ -65,7 +69,11 @@ describe('PluginIntegrationPermissionService', () => {
 				throw new Error('provider not found')
 			})
 		}
-		const service = new PluginIntegrationPermissionService(moduleRef as never, { execute: jest.fn() } as never)
+		const service = new PluginIntegrationPermissionService(
+			moduleRef as never,
+			{ execute: jest.fn() } as never,
+			{} as never
+		)
 
 		await expect(service.ensureWebhookCredential('integration-1')).resolves.toBeNull()
 		await expect(service.rotateWebhookCredential('integration-1')).resolves.toBeNull()
@@ -92,7 +100,11 @@ describe('PluginIntegrationPermissionService', () => {
 				throw new Error('provider not found')
 			})
 		}
-		const service = new PluginIntegrationPermissionService(moduleRef as never, { execute: jest.fn() } as never)
+		const service = new PluginIntegrationPermissionService(
+			moduleRef as never,
+			{ execute: jest.fn() } as never,
+			{} as never
+		)
 
 		await expect(service.read('integration-1')).resolves.toBe(integration)
 		await expect(service.findAll({ where: { provider: 'test_wechat' } })).resolves.toEqual({
@@ -126,7 +138,11 @@ describe('PluginIntegrationPermissionService', () => {
 				throw new Error('provider not found')
 			})
 		}
-		const service = new PluginIntegrationPermissionService(moduleRef as never, { execute: jest.fn() } as never)
+		const service = new PluginIntegrationPermissionService(
+			moduleRef as never,
+			{ execute: jest.fn() } as never,
+			{} as never
+		)
 
 		await expect(service.findAllWithInheritance({ where: { provider: 'github' } })).resolves.toEqual({
 			items: [organizationIntegration, tenantIntegration],

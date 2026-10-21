@@ -319,6 +319,45 @@ Rules:
 - If the command handler is missing or unavailable, the host should return a structured unsupported result so the remote component can fall back to a backend action.
 - Provider code must continue to work without client commands; they are an optional host enhancement.
 
+### Workspace Connector authorization
+
+Declare `workspace.connector.connect` in `manifest.clientCommands` to open the
+host-owned connection dialog for the current Assistant's workspace. Import
+`WorkspaceConnectorConnectPayload` and `workspaceConnectorConnectPayloadSchema`
+from `@xpert-ai/contracts` for its payload contract:
+
+```ts
+const payload: WorkspaceConnectorConnectPayload = {
+  provider: 'example',
+  authMethodId: 'app-oauth',
+  integrationId: '00000000-0000-4000-8000-000000000001'
+}
+```
+
+`provider` is required. `authMethodId` optionally restricts authorization to one
+non-deprecated method declared by that Connector. `integrationId` optionally pins
+an existing system integration and requires `authMethodId`. The selected method
+must declare `appCredentials.integration` for OAuth or `credentials.integration`
+for API key authorization. A provider-only request keeps the normal Connector
+method selection flow.
+
+The host resolves the workspace from the active Assistant, checks management
+permission, and verifies the integration against the selected method's authorized
+integration options. It pins both constraints in the dialog and refuses to replace
+an active or pending shared connection that uses another method or integration.
+The dialog rechecks the binding when loading. The plugin supplies its provider's
+policy; the host applies these generic declared capabilities without provider-name
+branches. Credentials, workspace IDs and tenant IDs must not be supplied in the
+payload.
+
+The command returns `{ success: true, data: { status: 'connected' | 'cancelled' } }`
+or a failure with a generic `code`, including
+`connector_auth_method_unavailable`, `connector_integration_unsupported`,
+`connector_integration_unavailable`, and `connector_connection_mismatch`.
+Plugins may translate those codes into provider-specific guidance. Host context,
+management-permission and legacy personal-binding migration checks still apply;
+a client command never grants access on its own.
+
 ## File Action Rules
 
 File actions use multipart transport end to end.

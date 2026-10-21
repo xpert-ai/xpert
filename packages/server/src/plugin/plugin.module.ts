@@ -49,6 +49,7 @@ import { RuntimeControlModule } from '../runtime-control/runtime-control.module'
 import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import { runShutdownStep } from '../runtime-control/shutdown-step'
+import { Integration } from '../integration/integration.entity'
 
 @Global()
 @Module({
@@ -57,7 +58,7 @@ import { runShutdownStep } from '../runtime-control/shutdown-step'
 		RedisModule,
 		DiscoveryModule,
 		RuntimeControlModule,
-		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
+		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem, Integration]),
 		CqrsModule
 	],
 	controllers: [PluginController, PluginMarketplaceController, SetupPluginsController],

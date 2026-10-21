@@ -75,8 +75,8 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 		return this.drainState ? { ...this.drainState } : null
 	}
 
-	trackRequest(): (() => void) | null {
-		if (this.drainState || !this.readinessGuard()) {
+	trackRequest(options?: { allowUnready?: boolean }): (() => void) | null {
+		if (this.drainState || (!options?.allowUnready && !this.readinessGuard())) {
 			return null
 		}
 

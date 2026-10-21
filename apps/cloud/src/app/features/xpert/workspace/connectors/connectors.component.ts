@@ -176,12 +176,28 @@ export class XpertConnectorsComponent {
             })
           )
         definitions = definitions.filter((definition) => definition.provider === target.provider)
-        if (!definitions.length)
+        if (!definitions.length || definitions[0].unavailable)
           throw new Error(
             this.#translate.instant('XP.Xpert.ConnectorUnavailable', {
               Default: 'This workspace connection is no longer available.'
             })
           )
+        const { requiredAuthMethodId, requiredIntegrationId } = this.connectionContext
+        const methods = this.authMethodsFor(definitions[0])
+        if (
+          (requiredAuthMethodId || requiredIntegrationId) &&
+          (!requiredAuthMethodId ||
+            !methods.length ||
+            ((target.status === 'active' || target.status === 'pending') &&
+              (target.authMethodId !== requiredAuthMethodId ||
+                (requiredIntegrationId && target.appIntegrationId !== requiredIntegrationId))))
+        ) {
+          throw new Error(
+            this.#translate.instant('XP.Xpert.ConnectorIntegrationUnavailable', {
+              Default: 'The required connection is unavailable or conflicts with the current shared connection.'
+            })
+          )
+        }
         bindings = [
           {
             ...target,
@@ -298,6 +314,14 @@ export class XpertConnectorsComponent {
 
     const integration = this.credentialFormFor(authMethod)?.integration
     const selection = integration ? this.integrationForm()?.selection() : null
+    if (
+      (this.connectionContext?.requiredAuthMethodId && authMethod.id !== this.connectionContext.requiredAuthMethodId) ||
+      (this.connectionContext?.requiredIntegrationId &&
+        (selection?.type !== 'existing' || selection.integrationId !== this.connectionContext.requiredIntegrationId))
+    ) {
+      this.#toastr.error('XP.Xpert.ConnectorIntegrationUnavailable')
+      return
+    }
     if (definition.unavailable || (integration && !selection)) {
       this.#toastr.error('XP.Xpert.ConnectorCredentialsRequired')
       return
@@ -421,7 +445,12 @@ export class XpertConnectorsComponent {
   }
 
   authMethodsFor(definition: ConnectorStrategyDefinition): ConnectorAuthMethodDefinition[] {
-    return getConnectorAuthMethods(definition).filter((method) => !method.deprecated)
+    return getConnectorAuthMethods(definition).filter(
+      (method) =>
+        !method.deprecated &&
+        (!this.connectionContext?.requiredAuthMethodId || method.id === this.connectionContext.requiredAuthMethodId) &&
+        (!this.connectionContext?.requiredIntegrationId || !!this.credentialFormFor(method)?.integration)
+    )
   }
 
   formFor(binding: ConnectorBinding | null | undefined, definition: ConnectorStrategyDefinition) {

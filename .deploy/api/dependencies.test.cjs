@@ -120,6 +120,8 @@ test('runtime assembly preserves nested publish roots, legacy paths, and direct 
     'packages/contracts/dist/index.js',
     'packages/plugin-sdk/dist/index.js',
     'packages/plugins/cli-model-profiles/dist/index.js',
+    'packages/plugins/github-integration/index.js',
+    'dist/packages/plugins/github-integration/index.js',
     'packages/server-ai/index.js',
     'dist/packages/server-ai/index.js',
     'packages/desktop-protocol/index.js'

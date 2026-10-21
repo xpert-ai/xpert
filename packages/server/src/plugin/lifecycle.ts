@@ -21,6 +21,7 @@ export function createPluginContext<TConfig extends object>(
 ): PluginContext<TConfig> {
 	const permissionTypes = new Set(permissions.map((permission) => permission.type))
 	const permissionProxyCache: PluginPermissionProxyCache = {}
+	const permissionScope = { ...scope }
 	const ctx: PluginContext<TConfig> = {
 		module: app,
 		config,
@@ -36,7 +37,14 @@ export function createPluginContext<TConfig extends object>(
 			}
 			const resolvedToken = resolvePluginServiceToken(token)
 			const resolved = currentModule.get(resolvedToken, { strict: false })
-			return guardPluginResolvedService(name, permissions, token, resolved, permissionProxyCache) as TResult
+			return guardPluginResolvedService(
+				name,
+				permissions,
+				token,
+				resolved,
+				permissionProxyCache,
+				permissionScope
+			) as TResult
 		}
 	}
 	return ctx

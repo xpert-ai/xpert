@@ -40,7 +40,7 @@ const pluginName = '@xpert-ai/plugin-local-shell-sandbox'
 const loadConfigs = jest.mocked(loadOrganizationPluginConfigs)
 const register = jest.mocked(registerPluginsAsync)
 
-describe('preBootstrapPlugins local shell opt-in', () => {
+describe('preBootstrapPlugins built-in plugins', () => {
   const originalEnabled = process.env.XPERT_LOCAL_SANDBOX_ENABLED
   const originalPlugins = process.env.PLUGINS
 
@@ -66,6 +66,27 @@ describe('preBootstrapPlugins local shell opt-in', () => {
     else process.env.PLUGINS = originalPlugins
     jest.restoreAllMocks()
   })
+
+  it.each([undefined, '@xpert-ai/plugin-github-integration,@xpert-ai/plugin-github-integration@0.1.0'])(
+    'registers GitHub automatically once in system scope with PLUGINS=%s',
+    async (plugins) => {
+      if (plugins) process.env.PLUGINS = plugins
+      await preBootstrapPlugins()
+      const registrations = register.mock.calls.flatMap(([group]) =>
+        group.plugins
+          .filter((plugin) => plugin.name === '@xpert-ai/plugin-github-integration')
+          .map((plugin) => ({ scopeKey: group.scopeKey, ...plugin }))
+      )
+      expect(registrations).toEqual([
+        {
+          scopeKey: SYSTEM_GLOBAL_SCOPE,
+          name: '@xpert-ai/plugin-github-integration',
+          source: 'code',
+          level: 'system'
+        }
+      ])
+    }
+  )
 
   it.each([undefined, '', 'false', '1'])('does not enable host shell implicitly for %s', async (value) => {
     if (value !== undefined) process.env.XPERT_LOCAL_SANDBOX_ENABLED = value

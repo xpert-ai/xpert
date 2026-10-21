@@ -7,7 +7,7 @@ import type {
   ConnectorConnectResponse,
   ConnectorOAuthStatusResponse,
   ConnectorStrategyDefinition
-} from '@xpert-ai/plugin-sdk'
+} from '@xpert-ai/plugin-sdk/connector'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, throwError } from 'rxjs'
 import { ToastrService, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
@@ -15,6 +15,18 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { ClawXpertConnectorsComponent, XpertConnectorsComponent } from './connectors.component'
 import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
 import { navigateConnectorAuthorization } from './connector-authorization-navigation'
+import {
+  connectorDefinition,
+  legacyDefinition,
+  githubDefinition,
+  embeddedDefinition,
+  workspaceBinding,
+  sharedBinding,
+  githubBinding,
+  embeddedBinding,
+  createAuthorizationPopup,
+  integrationDefinition
+} from './connectors.component.test-fixture'
 
 jest.mock('./connector-authorization-navigation', () => ({ navigateConnectorAuthorization: jest.fn() }))
 
@@ -45,140 +57,6 @@ jest.mock('../home/home.component', () => ({
 })
 class StubXpertConnectorsComponent {}
 
-const workspaceScope = { type: 'workspace' as const, workspaceId: 'workspace-1' }
-
-const connectorDefinition: ConnectorStrategyDefinition = {
-  provider: 'example',
-  label: 'Example Connector',
-  description: 'Connect an external workspace service',
-  authorizationModes: ['personal', 'shared'],
-  auth: {
-    type: 'oauth2',
-    authorizationUrl: '',
-    tokenUrl: ''
-  }
-}
-
-const legacyDefinition: ConnectorStrategyDefinition = {
-  provider: 'legacy',
-  label: 'Legacy Connector',
-  auth: {
-    type: 'oauth2',
-    authorizationUrl: '',
-    tokenUrl: ''
-  }
-}
-
-const githubDefinition: ConnectorStrategyDefinition = {
-  provider: 'github',
-  label: 'GitHub',
-  authorizationModes: ['personal', 'shared'],
-  authMethods: [
-    {
-      id: 'github-app-oauth',
-      type: 'oauth2',
-      label: 'GitHub App OAuth',
-      appCredentials: {
-        fields: [
-          { name: 'clientId', label: 'Client ID', required: true },
-          { name: 'clientSecret', label: 'Client secret', required: true, type: 'password', secret: true }
-        ]
-      }
-    },
-    {
-      id: 'pat',
-      type: 'api_key',
-      label: 'PAT',
-      credentials: {
-        fields: [{ name: 'token', label: 'Token', required: true, type: 'password', secret: true }]
-      }
-    }
-  ]
-}
-
-const embeddedDefinition: ConnectorStrategyDefinition = {
-  provider: 'wecom',
-  label: 'WeCom',
-  description: 'Connect WeCom with a QR code',
-  authorizationModes: ['personal', 'shared'],
-  authMethods: [
-    {
-      id: 'wecom-qr',
-      type: 'oauth2',
-      label: 'WeCom QR',
-      authorizationPresentation: {
-        mode: 'embedded_qr',
-        title: 'Scan to authorize',
-        description: 'Use WeCom to scan this QR code.',
-        ariaLabel: 'WeCom authorization QR code',
-        completionHint: 'This window closes after authorization.',
-        cancelLabel: 'Cancel authorization',
-        copyLinkLabel: 'Copy authorization link',
-        copyLinkError: 'Could not copy authorization link.'
-      }
-    }
-  ]
-}
-
-const workspaceBinding: ConnectorBinding = {
-  id: 'workspace-binding',
-  workspaceId: 'workspace-1',
-  scopeType: 'workspace',
-  scope: workspaceScope,
-  authorizationMode: 'shared',
-  provider: 'example',
-  status: 'disconnected'
-}
-
-const sharedBinding: ConnectorBinding = {
-  id: 'shared-binding',
-  workspaceId: 'workspace-1',
-  scopeType: 'workspace',
-  scope: workspaceScope,
-  authorizationMode: 'shared',
-  provider: 'example',
-  status: 'active',
-  profile: { name: 'Team Account' }
-}
-
-const githubBinding: ConnectorBinding = {
-  id: 'github-binding',
-  workspaceId: 'workspace-1',
-  scopeType: 'workspace',
-  scope: workspaceScope,
-  authorizationMode: 'shared',
-  provider: 'github',
-  authMethodId: 'pat',
-  status: 'disconnected'
-}
-
-const embeddedBinding: ConnectorBinding = {
-  id: 'wecom-binding',
-  workspaceId: 'workspace-1',
-  scopeType: 'workspace',
-  scope: workspaceScope,
-  authorizationMode: 'shared',
-  provider: 'wecom',
-  authMethodId: 'wecom-qr',
-  status: 'disconnected'
-}
-
-function createAuthorizationPopup() {
-  const navigate = jest.fn()
-  const focus = jest.fn()
-  const close = jest.fn()
-  const location = {}
-  Object.defineProperty(location, 'href', { set: navigate })
-  const popup = {
-    opener: window,
-    closed: false,
-    close,
-    focus,
-    location
-  } as unknown as Window
-  return { popup, navigate, focus, close }
-}
-
 async function setup(options?: {
   canManage?: boolean
   definitions?: ConnectorStrategyDefinition[]
@@ -186,6 +64,8 @@ async function setup(options?: {
   connectResponse?: ConnectorConnectResponse
   pollResponse?: ConnectorOAuthStatusResponse
   targetBindingId?: string
+  requiredAuthMethodId?: string
+  requiredIntegrationId?: string
   authorizationNavigation?: 'current-tab'
 }) {
   const workspace = signal({ id: 'workspace-1' })
@@ -252,6 +132,8 @@ async function setup(options?: {
               useValue: {
                 workspaceId: 'workspace-1',
                 bindingId: options.targetBindingId,
+                requiredAuthMethodId: options.requiredAuthMethodId,
+                requiredIntegrationId: options.requiredIntegrationId,
                 authorizationNavigation: options.authorizationNavigation
               }
             },
@@ -297,6 +179,124 @@ async function setup(options?: {
 }
 
 describe('XpertConnectorsComponent', () => {
+  it.each(['oauth2', 'api_key'] as const)('pins any declared %s method and saved integration', async (type) => {
+    const definition = integrationDefinition(type)
+    const binding: ConnectorBinding = {
+      ...workspaceBinding,
+      authMethodId: 'other-method',
+      appIntegrationId: 'previous-app'
+    }
+    const { fixture, component, connectorService } = await setup({
+      definitions: [definition],
+      bindings: [binding],
+      targetBindingId: binding.id,
+      requiredAuthMethodId: 'app-auth',
+      requiredIntegrationId: 'saved-app'
+    })
+    const popup = jest.spyOn(window, 'open').mockReturnValue(createAuthorizationPopup().popup)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(component.authMethodsFor(definition).map((method) => method.id)).toEqual(['app-auth'])
+    expect(component.integrationForm()!.readonly()).toBe(true)
+    expect(component.integrationForm()!.selection()).toEqual({ type: 'existing', integrationId: 'saved-app' })
+    await component.connect(binding, definition)
+    expect(connectorService.prepareIntegration).toHaveBeenCalledWith(binding.id, {
+      authMethodId: 'app-auth',
+      selection: { type: 'existing', integrationId: 'saved-app' }
+    })
+    expect(connectorService.connectBinding).toHaveBeenCalledWith(binding.id, { authMethodId: 'app-auth' })
+    if (type === 'api_key') expect(popup).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
+  it.each(['active', 'pending'] as const)(
+    'rechecks %s authorization constraints after loading the dialog',
+    async (status) => {
+      const definition = integrationDefinition('oauth2')
+      const binding: ConnectorBinding = {
+        ...workspaceBinding,
+        authMethodId: 'app-auth',
+        appIntegrationId: 'another-app',
+        status
+      }
+      const { fixture, component, connectorService, closeDialog } = await setup({
+        definitions: [definition],
+        bindings: [binding],
+        targetBindingId: binding.id,
+        requiredAuthMethodId: 'app-auth',
+        requiredIntegrationId: 'saved-app'
+      })
+      expect(component.errorMessage()).toBeTruthy()
+      expect(closeDialog).not.toHaveBeenCalled()
+      expect(connectorService.prepareIntegration).not.toHaveBeenCalled()
+      expect(connectorService.connectBinding).not.toHaveBeenCalled()
+      expect(connectorService.bindingAuthorizationStatus).not.toHaveBeenCalled()
+      fixture.destroy()
+    }
+  )
+
+  it('reuses a matching active connection without preparing credentials or restarting OAuth', async () => {
+    const definition = integrationDefinition('oauth2')
+    const binding: ConnectorBinding = {
+      ...workspaceBinding,
+      authMethodId: 'app-auth',
+      appIntegrationId: 'saved-app',
+      status: 'active'
+    }
+    const { fixture, component, connectorService, closeDialog } = await setup({
+      definitions: [definition],
+      bindings: [binding],
+      targetBindingId: binding.id,
+      requiredAuthMethodId: 'app-auth',
+      requiredIntegrationId: 'saved-app'
+    })
+    expect(component.errorMessage()).toBeNull()
+    expect(closeDialog).toHaveBeenCalledWith({ status: 'connected' })
+    expect(connectorService.prepareIntegration).not.toHaveBeenCalled()
+    expect(connectorService.connectBinding).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
+  it.each(['missing-method', 'other-method'])(
+    'does not fall back when %s cannot use the required integration',
+    async (requiredAuthMethodId) => {
+      const definition = integrationDefinition('oauth2')
+      const { fixture, component, connectorService } = await setup({
+        definitions: [definition],
+        bindings: [workspaceBinding],
+        targetBindingId: workspaceBinding.id,
+        requiredAuthMethodId,
+        requiredIntegrationId: 'saved-app'
+      })
+      expect(component.errorMessage()).toBeTruthy()
+      expect(component.authMethodsFor(definition)).toEqual([])
+      expect(connectorService.prepareIntegration).not.toHaveBeenCalled()
+      expect(connectorService.connectBinding).not.toHaveBeenCalled()
+      fixture.destroy()
+    }
+  )
+
+  it('rejects an altered saved integration selection before preparing credentials', async () => {
+    const definition = integrationDefinition('oauth2')
+    const { fixture, component, connectorService, toastr } = await setup({
+      definitions: [definition],
+      bindings: [workspaceBinding],
+      targetBindingId: workspaceBinding.id,
+      requiredAuthMethodId: 'app-auth',
+      requiredIntegrationId: 'saved-app'
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    jest
+      .spyOn(component.integrationForm()!, 'selection')
+      .mockReturnValue({ type: 'existing', integrationId: 'another-app' })
+    await component.connect(workspaceBinding, definition)
+    expect(toastr.error).toHaveBeenCalledWith('XP.Xpert.ConnectorIntegrationUnavailable')
+    expect(connectorService.prepareIntegration).not.toHaveBeenCalled()
+    expect(connectorService.connectBinding).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
   it('reuses the existing dialog and remembered application when reconnecting', async () => {
     const definition: ConnectorStrategyDefinition = {
       ...githubDefinition,

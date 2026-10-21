@@ -240,7 +240,8 @@ export async function preBootstrapPlugins(options: { failOnPluginGroupError?: bo
   const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
   const defaultPlugins: BootstrapPlugin[] = [
     { name: '@xpert-ai/plugin-draft', source: 'code' as const, level: 'organization' },
-    { name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' }
+    { name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' },
+    { name: '@xpert-ai/plugin-github-integration', source: 'code' as const, level: 'system' }
   ]
   const defaultGlobalPlugins = defaultPlugins.filter((plugin) => plugin.level !== 'system')
   const defaultSystemPlugins = defaultPlugins.filter((plugin) => plugin.level === 'system')
@@ -293,10 +294,8 @@ export async function preBootstrapPlugins(options: { failOnPluginGroupError?: bo
       mergedSystemPluginMap.set(localShellPlugin, { name: localShellPlugin, source: 'code', level: 'system' })
     }
   }
-  if (mergedSystemPluginMap.has(localShellPlugin)) {
-    // PLUGINS must not register this system provider a second time in tenant-global scope.
-    mergedGlobalPluginMap.delete(localShellPlugin)
-  }
+  // System plugins must not also be registered in the tenant-global group through PLUGINS.
+  for (const name of mergedSystemPluginMap.keys()) mergedGlobalPluginMap.delete(name)
   const persistedOrganizationGroups = organizationPluginConfigs
     .filter((group) => {
       const scopeKey = group.scopeKey ?? group.organizationId

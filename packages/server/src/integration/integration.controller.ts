@@ -11,7 +11,9 @@ import {
 	Post,
 	Put,
 	Query,
-	UseInterceptors
+	UseInterceptors,
+	DefaultValuePipe,
+	ParseBoolPipe
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
@@ -39,7 +41,7 @@ export class IntegrationController extends CrudController<Integration> {
 	@Get()
 	async getAll(@Query('data', ParseJsonPipe) data: PaginationParams<Integration>) {
 		const where = transformWhere(data.where) ?? {}
-		const result = await this.service.findAll({...data, where })
+		const result = await this.service.findAll({ ...data, where })
 		return {
 			...result,
 			items: result.items.map((_) => new IntegrationPublicDTO(_))
@@ -56,21 +58,29 @@ export class IntegrationController extends CrudController<Integration> {
 	}
 
 	@Get('select-options')
-	async getSelectOptions(@Query('provider') provider: string | IntegrationEnum, @Query('features') features: string) {
+	async getSelectOptions(
+		@Query('provider') provider: string | IntegrationEnum,
+		@Query('features') features: string,
+		@Query('tenantOnly', new DefaultValuePipe(false), ParseBoolPipe) tenantOnly = false
+	) {
 		const _features = features?.split(',') as IntegrationFeatureEnum[]
 		const where: FindOptionsWhere<Integration> = provider ? { provider } : {}
 		const providers = new Map(this.service.getProviders().map((item) => [item.name, item]))
 		// if (_features?.length) {
 		// 	where.features = Raw((alias) => `${alias} @> :features`, { features: _features })
 		// }
-		const { items } = await this.service.findAll({ where })
-		return items.filter((item) => _features ? _features.every((feature) => item.features?.includes(feature)) : true).map((item) => ({
-			value: item.id,
-			label: item.name,
-			description: item.description,
-			icon: providers.get(item.provider)?.icon,
-			avatar: providers.get(item.provider)?.avatar
-		}))
+		const { items } = tenantOnly
+			? await this.service.findAllWithoutOrganization({ where })
+			: await this.service.findAll({ where })
+		return items
+			.filter((item) => (_features ? _features.every((feature) => item.features?.includes(feature)) : true))
+			.map((item) => ({
+				value: item.id,
+				label: item.name,
+				description: item.description,
+				icon: providers.get(item.provider)?.icon,
+				avatar: providers.get(item.provider)?.avatar
+			}))
 	}
 
 	@Get('providers')
@@ -86,10 +96,7 @@ export class IntegrationController extends CrudController<Integration> {
 
 	@Put(':id')
 	@HttpCode(HttpStatus.ACCEPTED)
-	async update(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() entity: QueryDeepPartialEntity<Integration>
-	) {
+	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: QueryDeepPartialEntity<Integration>) {
 		const patch = normalizeIntegrationUpdatePayload(entity)
 		return this.commandBus.execute(
 			new IntegrationUpsertCommand({

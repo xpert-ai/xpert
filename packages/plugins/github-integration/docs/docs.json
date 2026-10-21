@@ -1,0 +1,9 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "GitHub System Integration",
+  "colors": { "primary": "#2563EB" },
+  "navigation": {
+    "groups": [{ "group": "GitHub System Integration", "pages": ["index"] }]
+  }
+}

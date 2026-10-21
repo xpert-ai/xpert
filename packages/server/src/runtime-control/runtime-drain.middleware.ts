@@ -13,7 +13,9 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 			return
 		}
 
-		const release = this.lifecycle.trackRequest()
+		// Recovery must still reach the normal authentication and scope guards when a
+		// stale plugin manifest closes business traffic. Draining rejects it as usual.
+		const release = this.lifecycle.trackRequest({ allowUnready: this.isRecoveryRequest(request) })
 		if (!release) {
 			response.setHeader('Retry-After', '5')
 			response.setHeader('Connection', 'close')
@@ -36,5 +38,26 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 	private isHealthRequest(request: Request): boolean {
 		const path = (request.originalUrl || request.url).split('?')[0]
 		return /\/health(?:\/|$)/.test(path)
+	}
+
+	private isRecoveryRequest(request: Request): boolean {
+		const path = (request.originalUrl || request.url).split('?')[0].replace(/^\/api(?=\/)/, '')
+		if (request.method === 'POST') {
+			return [
+				'/auth/login',
+				'/plugin',
+				'/plugin/by-names',
+				'/plugin/configuration',
+				'/plugin/refresh',
+				'/system/runtime/restart'
+			].includes(path)
+		}
+		if (request.method === 'PUT') return path === '/plugin/configuration'
+		if (request.method !== 'GET') return false
+		return (
+			path === '/plugin' ||
+			path === '/system/runtime/restart-capability' ||
+			/^\/system\/runtime\/(restart\/[\w-]+|plugin-convergence\/\d+)$/.test(path)
+		)
 	}
 }

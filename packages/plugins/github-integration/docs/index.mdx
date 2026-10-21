@@ -1,0 +1,40 @@
+---
+title: 'GitHub System Integration'
+description: 'Share GitHub App configuration between the GitHub Connector and Code Review.'
+---
+
+The GitHub System Integration provider ships with Xpert and loads automatically at
+API startup. No separate marketplace installation is required.
+
+## Configure a shared integration
+
+1. Open **Settings → System Integrations** and create or edit a GitHub integration.
+2. Enter the GitHub App's client ID and client secret for user authorization.
+3. For Code Review, add the numeric App ID, URL slug and PEM private key. Set the
+   same webhook secret in GitHub and this integration if signature verification is enabled.
+4. Save, then select this integration in the GitHub Connector and Code Review plugin.
+
+The App URL slug is the identifier in `https://github.com/apps/<slug>`, rather than
+the display name. A supplied webhook secret must contain at least 32 characters.
+Blank secret fields preserve saved values when editing an existing integration.
+
+## Upgrade an existing installation
+
+Deploy the updated API with its bundled plugins. Existing Integration records keep
+their IDs, tenant and organization scope, `github` provider, slugs and options.
+Connector and Code Review references continue to resolve the same record. OAuth-only
+integrations remain usable; App-only fields are not required merely to save them.
+
+## Verify behavior
+
+The integration test action checks local configuration structure and returns a
+`configuration_valid` probe with a warning explaining its scope. Use the GitHub
+Connector authorization flow to verify account access and Code Review's event flow
+to verify webhook delivery and automatic reviews.
+
+## Responsibilities
+
+The built-in plugin owns provider metadata, the editor schema, configuration
+validation, secret-preserving updates and localized guidance. The host owns generic
+Integration persistence, permissions and strategy discovery. GitHub authorization
+and review execution remain in their respective Connector and Code Review plugins.

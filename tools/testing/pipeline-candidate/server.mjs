@@ -18,6 +18,7 @@ fs.writeFileSync(
       path.resolve('apps/api/src/**/*.ts'),
       path.resolve('packages/plugins/cli-model-profiles/src/**/*.ts'),
       path.resolve('packages/plugins/draft/src/**/*.ts'),
+      path.resolve('packages/plugins/github-integration/src/**/*.ts'),
       path.resolve('packages/plugins/vlm-default/src/**/*.ts')
     ],
     exclude: [path.resolve('**/*.spec.ts'), path.resolve('**/*.test.ts')],
@@ -54,6 +55,7 @@ const packages = [
   'server-ai',
   'plugins/cli-model-profiles',
   'plugins/draft',
+  'plugins/github-integration',
   'plugins/vlm-default'
 ]
 for (const name of packages) {

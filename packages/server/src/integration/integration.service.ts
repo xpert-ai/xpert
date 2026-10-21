@@ -1,4 +1,4 @@
-import { IIntegration, INTEGRATION_PROVIDERS, IntegrationFeatureEnum, IUser } from '@xpert-ai/contracts'
+import { IIntegration, IntegrationFeatureEnum, IUser } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IntegrationStrategyRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -19,11 +19,7 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	getProviders() {
-		const providers = [
-			...Object.values(INTEGRATION_PROVIDERS),
-			...this.strategyRegistry.list(RequestContext.getOrganizationId()).map((strategy) => strategy.meta)
-		]
-		return providers
+		return this.strategyRegistry.list(RequestContext.getOrganizationId()).map((strategy) => strategy.meta)
 	}
 
 	getIntegrationStrategy(type: string, organizationId?: string | null) {
@@ -34,21 +30,33 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		return this.strategyRegistry.listRegistrations().find(({ type }) => type === provider)?.strategy
 	}
 
-	async applyStrategyValidation<T extends Partial<IIntegration>>(integration: T): Promise<T> {
+	async applyStrategyValidation<T extends Partial<IIntegration>>(
+		integration: T,
+		previous?: IIntegration
+	): Promise<T> {
 		if (!integration.provider) {
 			return integration
 		}
 
 		const strategy = this.resolveOptionalIntegrationStrategy(integration.provider)
 
-		if (!strategy?.validateConfig) {
+		if (!strategy) {
 			return integration
 		}
 
 		try {
-			const result = await strategy.validateConfig(integration.options, integration as IIntegration)
+			const prepared = strategy.prepareConfig
+				? {
+						...integration,
+						options: await strategy.prepareConfig(
+							integration.options,
+							previous?.provider === integration.provider ? previous.options : undefined
+						)
+					}
+				: integration
+			const result = await strategy.validateConfig?.(prepared.options, prepared as IIntegration)
 			return {
-				...integration,
+				...prepared,
 				...pickValidatedIntegrationPatch(result)
 			}
 		} catch (error) {

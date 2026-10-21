@@ -41,6 +41,7 @@ import {
 	resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
+import { PluginConfigError } from './errors'
 import { findPluginLoadFailure } from './plugin.helper'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
@@ -229,7 +230,15 @@ export class PluginController {
 			undefined,
 			plugin.scopeKey
 		)
-		const config = buildConfig(plugin.name, body.config ?? {}, plugin.instance.config)
+		let config: Record<string, unknown>
+		try {
+			config = buildConfig(plugin.name, body.config ?? {}, plugin.instance.config)
+		} catch (error) {
+			if (error instanceof PluginConfigError) {
+				throw new BadRequestException('Invalid plugin configuration')
+			}
+			throw error
+		}
 
 		await this.pluginInstanceService.upsert({
 			tenantId: this.getCurrentTenantId() ?? existing?.tenantId,
