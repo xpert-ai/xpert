@@ -25,10 +25,12 @@ export function toJsonSchemaFormSchema(root: Record<string, JSONValue>): JsonSch
       for (const segment of ref.slice(2).split('/')) {
         const key = segment.replace(/~1/g, '/').replace(/~0/g, '~')
         if (Array.isArray(target)) {
-          if (!/^(0|[1-9]\d*)$/.test(key) || !Object.hasOwn(target, key)) return { 'x-ui': { component: 'json' } }
+          if (!/^(0|[1-9]\d*)$/.test(key) || !Object.prototype.hasOwnProperty.call(target, key))
+            return { 'x-ui': { component: 'json' } }
           target = target[Number(key)]
         } else {
-          if (!jsonObject(target) || !Object.hasOwn(target, key)) return { 'x-ui': { component: 'json' } }
+          if (!jsonObject(target) || !Object.prototype.hasOwnProperty.call(target, key))
+            return { 'x-ui': { component: 'json' } }
           target = target[key]
         }
       }

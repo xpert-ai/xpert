@@ -1,5 +1,47 @@
 import { jsonObject, toJsonSchemaFormSchema } from './schema'
 
+it('resolves object and array references without the ES2022 Object.hasOwn API', () => {
+  const descriptor = Object.getOwnPropertyDescriptor(Object, 'hasOwn')
+  let schema: ReturnType<typeof toJsonSchemaFormSchema>
+  try {
+    Object.defineProperty(Object, 'hasOwn', { configurable: true, value: undefined })
+    schema = toJsonSchemaFormSchema({
+      type: 'object',
+      properties: {
+        label: { $ref: '#/$defs/label' },
+        count: { $ref: '#/$defs/choices/0' }
+      },
+      $defs: { label: { type: 'string' }, choices: [{ type: 'number' }] }
+    })
+  } finally {
+    if (descriptor) Object.defineProperty(Object, 'hasOwn', descriptor)
+    else Reflect.deleteProperty(Object, 'hasOwn')
+  }
+  expect(schema?.properties).toEqual({ label: { type: 'string' }, count: { type: 'number' } })
+})
+
+it('only follows own properties when schema objects shadow hasOwnProperty or have no prototype', () => {
+  const definitions = { hasOwnProperty: { type: 'string' } }
+  Object.setPrototypeOf(definitions, { inherited: { type: 'boolean' } })
+  const standalone = { amount: { type: 'number' } }
+  Object.setPrototypeOf(standalone, null)
+  const schema = toJsonSchemaFormSchema({
+    type: 'object',
+    properties: {
+      label: { $ref: '#/$defs/hasOwnProperty' },
+      inherited: { $ref: '#/$defs/inherited' },
+      amount: { $ref: '#/standalone/amount' }
+    },
+    $defs: definitions,
+    standalone
+  })
+  expect(schema?.properties).toEqual({
+    label: { type: 'string' },
+    inherited: { 'x-ui': { component: 'json' } },
+    amount: { type: 'number' }
+  })
+})
+
 it('inlines local references, including escaped segments, without mutating provider metadata', () => {
   const root = {
     type: 'object',
