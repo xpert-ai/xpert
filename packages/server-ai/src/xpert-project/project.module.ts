@@ -96,6 +96,7 @@ import { ProjectTaskGraphService } from './services/project-task-graph.service'
 import { ProjectTaskProjectionCoordinator } from './services/task-projection/project-task-projection.coordinator'
 import { ProjectTaskProjectionStore } from './services/task-projection/project-task-projection.store'
 import { ProjectTaskProjectionService } from './services/task-projection/project-task-projection.service'
+import { ProjectPipelineWorkspaceService } from './pipeline/queries/pipeline-workspace.service'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
@@ -260,6 +261,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTaskProjectionStore,
         ProjectTaskProjectionService,
         ProjectTasksViewProvider,
+        ProjectPipelineWorkspaceService,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,
         XpertProjectPurgeService,

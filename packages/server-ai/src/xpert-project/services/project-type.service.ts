@@ -273,6 +273,17 @@ export class XpertProjectTypeService {
             throw new BadRequestException(t('server-ai:Error.ProjectApplicationWorkflowRequired'))
     }
 
+    /** Resolve persisted classification after authorization; a View cannot choose an app or Assistant. */
+    async entryForProject(projectId: string, input: { xpertId?: string; pipelineNodeId?: string } = {}) {
+        const { project } = await this.access.assertCanRead(projectId)
+        if (!project.applicationKey || !project.projectTypeKey)
+            throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+        return this.entry(
+            { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
+            { ...input, projectId }
+        )
+    }
+
     /**
      * Resolve a governed creation/opening destination rather than accepting a browser-provided URL.
      * Existing Projects require read access before provider resolution and access to the connected Assistant.

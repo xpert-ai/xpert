@@ -1,9 +1,10 @@
 import { AgentRuntimeBindingEntity } from '../../../../agent-invocation/invocation.entity'
 import { randomUUID } from 'node:crypto'
-import { projectPipelineConfigurationSchema } from '@xpert-ai/contracts'
+import { projectPipelineConfigurationSchema, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ProjectAccessRuntimeService } from '../../../services/project-access-runtime.service'
 import { XpertProjectTaskExecution } from '../../../entities/project-task-execution.entity'
+import { XpertProject } from '../../../entities/project.entity'
 import {
     ProjectPipelineRunEntity,
     ProjectPipelineRoundEntity,
@@ -17,6 +18,37 @@ import { readPipelineHumanWaitStatistics } from '../../queries/pipeline-human-wa
 import { managedPipelineFixture } from './pipeline-managed.fixture'
 
 export function registerManagedCases2(fixture: ReturnType<typeof managedPipelineFixture>) {
+    it('runs interactive user work without an allowlist and rechecks live Project access in the worker', async () => {
+        const access = new ProjectAccessRuntimeService(fixture.db.getRepository(XpertProject))
+        fixture.access.assertEdit.mockImplementation((input) => access.assertEdit(input))
+        fixture.access.assertManage.mockImplementation((input) => access.assertManage(input))
+        await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, {
+            ownerId: fixture.context.actor.userId
+        })
+        const credential = jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+            id: fixture.context.actor.userId,
+            tenantId: fixture.context.actor.tenantId,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: fixture.assistantId }
+        })
+        try {
+            await fixture.launch()
+        } finally {
+            credential.mockRestore()
+        }
+        const operations = await fixture.operations()
+        expect(operations).toHaveLength(2)
+        expect(operations[0].context.actor).toEqual(fixture.context.actor)
+        await fixture.request(() => fixture.runner.run(fixture.context, operations[0].id))
+        expect(fixture.execute).toHaveBeenCalledTimes(1)
+        await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, { ownerId: randomUUID() })
+        await expect(
+            fixture.request(() => fixture.runner.run(fixture.context, operations[1].id))
+        ).rejects.toMatchObject({ status: 403 })
+        expect(fixture.execute).toHaveBeenCalledTimes(1)
+    })
+
     it('rejects ambiguous Runtime workspace grants before any work is admitted', async () => {
         const bindingId = randomUUID()
         await fixture.db.getRepository(AgentRuntimeBindingEntity).save({

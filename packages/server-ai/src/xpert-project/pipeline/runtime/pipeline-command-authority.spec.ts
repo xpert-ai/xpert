@@ -2,11 +2,57 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { init } from 'i18next'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import type { IApiPrincipal } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, type IApiPrincipal } from '@xpert-ai/contracts'
 import { assertPipelineCommandAuthority, pipelineCommandCapability } from './pipeline-command-authority'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
 
 afterEach(() => jest.restoreAllMocks())
+
+const interactivePrincipal: IApiPrincipal = {
+    id: 'user',
+    tenantId: 'tenant',
+    principalType: 'client_secret',
+    clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+    resourceScope: { kind: 'assistant', xpertId: 'assistant' }
+}
+
+it.each(['development', 'production', undefined])(
+    'allows interactive user sessions in %s without a Project allowlist',
+    (nodeEnv) => {
+        jest.replaceProperty(process, 'env', { NODE_ENV: nodeEnv })
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(interactivePrincipal)
+        expect(pipelineCommandCapability()).toEqual({ allowed: true })
+        expect(() => assertPipelineCommandAuthority()).not.toThrow()
+    }
+)
+
+it.each([
+    SecretTokenBindingType.PUBLIC_XPERT,
+    SecretTokenBindingType.API_KEY,
+    SecretTokenBindingType.USER_CONVERSATION,
+    SecretTokenBindingType.ENTERPRISE_XPERT,
+    undefined
+])('does not turn the %s binding into background user authority', (clientSecretBindingType) => {
+    jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+        ...interactivePrincipal,
+        clientSecretBindingType
+    })
+    expect(pipelineCommandCapability().allowed).toBe(false)
+    expect(() => assertPipelineCommandAuthority()).toThrow()
+})
+
+it.each<Partial<IApiPrincipal>>([
+    { id: '' },
+    { tenantId: '' },
+    { resourceScope: undefined },
+    { resourceScope: { kind: 'assistant', xpertId: ' ' } },
+    { resourceScope: { kind: 'workspace', workspaceId: 'workspace' } },
+    { resourceScope: { kind: 'conversation', conversationId: 'conversation' } }
+])('requires the authenticated user and an exact Assistant audience: %j', (invalid) => {
+    jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({ ...interactivePrincipal, ...invalid })
+    expect(pipelineCommandCapability().allowed).toBe(false)
+    expect(() => assertPipelineCommandAuthority()).toThrow()
+})
 
 it('allows an ordinary user credential without replacing the separate Project authorization checks', () => {
     jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user', tenantId: 'tenant' })

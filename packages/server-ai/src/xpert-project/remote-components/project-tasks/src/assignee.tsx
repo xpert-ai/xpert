@@ -53,7 +53,7 @@ export function Assignee({
         <div
             className={cn(
                 'flex min-w-0 items-center gap-1.5 overflow-hidden px-3 text-xs text-muted-foreground',
-                laneHeading && 'flex-wrap gap-3 px-0',
+                laneHeading && 'flex-wrap gap-2 px-0',
                 className
             )}
         >
@@ -62,7 +62,7 @@ export function Assignee({
                     aria-hidden
                     className={cn(
                         'flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm',
-                        laneHeading && 'size-12 rounded-xl border text-2xl shadow-sm'
+                        laneHeading && 'size-8 rounded-lg border text-lg shadow-sm'
                     )}
                     style={{ backgroundColor: avatar?.background }}
                 >
@@ -83,19 +83,19 @@ export function Assignee({
                     <button
                         onClick={onLane}
                         aria-pressed={laneSelected}
-                        className="mb-2 flex max-w-full items-center gap-2 rounded-sm text-left text-base font-semibold text-foreground focus-visible:outline-ring"
+                        className="mb-1 flex max-w-full items-center gap-1.5 rounded-sm text-left text-sm font-semibold text-foreground focus-visible:outline-ring"
                     >
-                        <span className="truncate text-base font-semibold" title={laneHeading}>
+                        <span className="truncate text-sm font-semibold" title={laneHeading}>
                             {laneHeading}
                         </span>
                         <Bot className="size-3.5 shrink-0" />
                     </button>
                     <button
                         onClick={onLane}
-                        className="line-clamp-2 w-full break-words rounded-sm text-left text-sm underline decoration-muted-foreground/50 underline-offset-4 focus-visible:outline-ring"
+                        className="line-clamp-2 w-full break-words rounded-sm text-left text-xs underline decoration-muted-foreground/50 underline-offset-4 focus-visible:outline-ring"
                         title={name}
                     >
-                        <span className="text-sm">{name}</span>
+                        <span className="text-xs">{name}</span>
                     </button>
                 </div>
             ) : (

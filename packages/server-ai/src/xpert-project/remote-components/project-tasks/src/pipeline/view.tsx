@@ -196,6 +196,29 @@ export function PipelineView({
             setActionBusy(false)
         }
     }
+    const status = counts && businessCounts && (
+        <div className="flex min-w-0 flex-1 items-center gap-4 whitespace-nowrap text-xs text-muted-foreground">
+            <span>
+                {businessCounts.completed} {t.completed}
+            </span>
+            <span className="text-primary">
+                {businessCounts.running} {t.running}
+            </span>
+            <span>
+                {counts.needsYou} {t.needsYou}
+            </span>
+            <span className={businessCounts.blocked ? 'text-destructive' : ''}>
+                {businessCounts.blocked} {t.blocked}
+            </span>
+            <span className="ml-auto truncate">
+                {t.updated}{' '}
+                {dateTime(
+                    graph!.historical && graph!.snapshotAt ? graph!.snapshotAt : graph!.instance.updatedAt,
+                    locale
+                )}
+            </span>
+        </div>
+    )
     return (
         <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t.title}>
             <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
@@ -321,9 +344,13 @@ export function PipelineView({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                            void openProjectWorkspace(projectId, 'application', t.actionFailed).catch(() =>
-                                setError(t.actionFailed)
-                            )
+                            void openProjectWorkspace(
+                                projectId,
+                                'application',
+                                t.actionFailed,
+                                undefined,
+                                instanceId || undefined
+                            ).catch(() => setError(t.actionFailed))
                         }}
                     >
                         {t.applicationWorkspace}
@@ -407,29 +434,7 @@ export function PipelineView({
                     {t[graph.runState]}
                 </p>
             )}
-            {counts && businessCounts && (
-                <div className="flex flex-wrap items-center gap-4 border-b px-4 py-2 text-xs text-muted-foreground">
-                    <span>
-                        {businessCounts.completed} {t.completed}
-                    </span>
-                    <span className="text-primary">
-                        {businessCounts.running} {t.running}
-                    </span>
-                    <span>
-                        {counts.needsYou} {t.needsYou}
-                    </span>
-                    <span className={businessCounts.blocked ? 'text-destructive' : ''}>
-                        {businessCounts.blocked} {t.blocked}
-                    </span>
-                    <span className="ml-auto">
-                        {t.updated}{' '}
-                        {dateTime(
-                            graph!.historical && graph!.snapshotAt ? graph!.snapshotAt : graph!.instance.updatedAt,
-                            locale
-                        )}
-                    </span>
-                </div>
-            )}
+            {mode !== 'stage' && status && <div className="flex shrink-0 border-b px-3 py-2">{status}</div>}
             {!graph ? (
                 <div className="grid flex-1 place-content-center gap-2 p-8 text-center text-sm text-muted-foreground">
                     <p>{!loaded || instanceId ? t.loading : t.empty}</p>
@@ -437,6 +442,7 @@ export function PipelineView({
                 </div>
             ) : mode === 'stage' ? (
                 <Swimlane
+                    status={status}
                     key={`${instanceId}:${roundId}:${lane}`}
                     initialScroll={
                         initialFocus.pipelineInstanceId === instanceId &&
