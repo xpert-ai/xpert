@@ -1,5 +1,13 @@
 # @xpert-ai/desktop
 
+## 0.3.10
+
+### Patch Changes
+
+- f15330e: Refresh the coordinated ChatKit package locks to the latest compatible published patches. Align transitive-only ChatKit dependencies in Desktop with the selected versions while preserving the workspace's dependency and override policies.
+- a851fb5: Report recording startup without exposing a capture ID until the server creation callback completes. Preserve scope isolation and retryable cached recordings when startup fails.
+  - @xpert-ai/desktop-protocol@0.3.9
+
 ## 0.3.9
 
 ### Patch Changes
