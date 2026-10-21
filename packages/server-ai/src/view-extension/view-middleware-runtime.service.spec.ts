@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { CommandBus } from '@nestjs/cqrs'
+import { z } from 'zod'
 import {
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
@@ -134,6 +135,56 @@ describe('View middleware runtime authorization', () => {
         jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    describe('middleware options', () => {
+        // No outer default: legacy providers must receive usable options from the host.
+        const schema = z.object({ mode: z.enum(['demo', 'live']).optional() }).strict()
+
+        async function resolveStoredOptions(options: unknown) {
+            const f = await fixture()
+            // Reproduce persisted nodes, including historical graphs with no options property.
+            f.xpert.graph = JSON.parse(
+                JSON.stringify({
+                    ...f.xpert.graph,
+                    nodes: f.xpert.graph.nodes.map((node) =>
+                        node.key === 'maps' ? { ...node, entity: { ...node.entity, options } } : node
+                    )
+                })
+            )
+            const savedGraph = JSON.stringify(f.xpert.graph)
+            const input = { context: f.context, provider: PROVIDER, requiredFeature: FEATURE }
+            const result = await f.service.resolve(input)
+            expect(result.context.node.options).toBe(result.options)
+            expect(JSON.stringify(f.xpert.graph)).toBe(savedGraph)
+            return { ...f, input, result }
+        }
+
+        it.each([
+            { label: 'omitted options', options: undefined },
+            { label: 'empty options', options: {} },
+            { label: 'valid options', options: { mode: 'live' } }
+        ])('provides $label to a strict View provider', async ({ options }) => {
+            const f = await resolveStoredOptions(options)
+            expect(schema.parse(f.result.options)).toEqual(options === undefined ? {} : options)
+            if (options === undefined) {
+                expect(f.xpert.graph.nodes.find((node) => node.key === 'maps').entity).not.toHaveProperty('options')
+                const next = await f.service.resolve(f.input)
+                expect(next.options).toEqual({})
+                expect(next.options).not.toBe(f.result.options)
+                expect(next.context.node.options).toBe(next.options)
+            }
+        })
+
+        it.each(
+            [null, false, 0, '', [], { mode: null }, { mode: 1 }, { mode: 'invalid' }, { unexpected: true }].map(
+                (options) => ({ options })
+            )
+        )('preserves invalid options for View provider validation: $options', async ({ options }) => {
+            const { result } = await resolveStoredOptions(options)
+            expect(result.options).toEqual(options)
+            expect(() => schema.parse(result.options)).toThrow(z.ZodError)
+        })
+    })
 
     it('uses the real View host authorization and exact published connector pin without serializing config', async () => {
         const f = await fixture()

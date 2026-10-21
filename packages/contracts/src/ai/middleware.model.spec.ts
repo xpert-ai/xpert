@@ -7,11 +7,23 @@ import {
   isUserAddableAgentMiddleware,
   normalizeMiddlewareNode,
   normalizeMiddlewareNodes,
+  normalizeMiddlewareOptions,
   normalizeMiddlewareProvider
 } from './middleware.model'
 import { TXpertTeamNode } from './xpert.model'
 
 describe('middleware model helpers', () => {
+  it('defaults omitted options without sharing mutable defaults', () => {
+    const first = normalizeMiddlewareOptions(undefined)
+    expect(first).toEqual({})
+    expect(normalizeMiddlewareOptions(undefined)).not.toBe(first)
+  })
+
+  it.each([null, false, 0, '', [], {}, { allowedFinalProviders: [] }].map((options) => ({ options })))(
+    'preserves explicit configuration for provider validation: $options',
+    ({ options }) => expect(normalizeMiddlewareOptions(options)).toBe(options)
+  )
+
   it('normalizes the legacy compression middleware provider name', () => {
     expect(normalizeMiddlewareProvider(LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME)).toBe(
       CONTEXT_COMPRESSION_MIDDLEWARE_NAME

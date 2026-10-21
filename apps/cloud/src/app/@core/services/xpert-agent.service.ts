@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, shareReplay, switchMap } from 'rxjs'
+import { normalizeMiddlewareOptions } from '@xpert-ai/contracts'
 import { API_XPERT_AGENT } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
 import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareDescriptor, TXpertAgentChatRequest } from '../types'
@@ -41,13 +42,13 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
     return this.httpClient.get<TAgentMiddlewareDescriptor[]>(this.apiBaseUrl + `/middlewares`)
   }
 
-  getAgentMiddleware(provider: string, options: any, xpertId?: string) {
+  getAgentMiddleware(provider: string, options: unknown, xpertId?: string) {
     return this.httpClient.post<{
       stateSchema?: JsonSchemaObjectType
       tools: { name: string; description?: string; schema: JsonSchemaObjectType }[]
     }>(this.apiBaseUrl + `/middlewares/${provider}/tools`, {
       xpertId,
-      options
+      options: normalizeMiddlewareOptions(options)
     })
   }
 
@@ -61,13 +62,13 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
   testAgentMiddlewareTool(
     provider: string,
     toolName: string,
-    options: any,
+    options: unknown,
     parameters: Record<string, any>,
     xpertId?: string
   ) {
     return this.httpClient.post(this.apiBaseUrl + `/middlewares/${provider}/tools/${toolName}/test`, {
       xpertId,
-      options,
+      options: normalizeMiddlewareOptions(options),
       parameters
     })
   }

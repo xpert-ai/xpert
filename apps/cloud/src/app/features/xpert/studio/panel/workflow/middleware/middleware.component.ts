@@ -83,7 +83,7 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
     },
     request: () => ({
       provider: this.provider(),
-      options: this.options() ?? {},
+      options: this.options(),
       xpertId: this.xpertId()
     }),
     loader: ({ request }) => {
