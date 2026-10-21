@@ -3,6 +3,7 @@ import { assertBackgroundRuntime } from './template-routines/background-runtime'
 import {
     generateCronExpression,
     getAgentMiddlewareNodes,
+    normalizeMiddlewareOptions,
     IWFNMiddleware,
     I18nObject,
     IUser,
@@ -3143,8 +3144,9 @@ async function discoverScheduleStateSchemaFromGraph(
 
         try {
             const strategy = agentMiddlewareRegistry.get(entity.provider)
+            const options = normalizeMiddlewareOptions(entity.options)
             const middleware = await Promise.resolve(
-                strategy.createMiddleware(entity.options ?? {}, {
+                strategy.createMiddleware(options, {
                     tenantId: RequestContext.currentTenantId(),
                     organizationId: RequestContext.getOrganizationId(),
                     userId: RequestContext.currentUserId(),
@@ -3152,7 +3154,7 @@ async function discoverScheduleStateSchemaFromGraph(
                     node: {
                         ...node,
                         key: node.key,
-                        options: entity.options ?? {}
+                        options
                     },
                     tools: new Map(),
                     runtime: {}

@@ -62,6 +62,12 @@ jest.mock('./xpert-agent.entity', () => ({
 }))
 
 import { of } from 'rxjs'
+import { z } from 'zod/v3'
+import { tool } from '@langchain/core/tools'
+import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
+import { AgentMiddlewareRegistry, type AgentMiddleware, type IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import { type TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { getAgentMiddlewares } from '../shared/agent/middleware'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgentService } from './xpert-agent.service'
@@ -446,5 +452,138 @@ describe('XpertAgentService', () => {
         expect(queryBus.execute).not.toHaveBeenCalled()
         expect(createMiddleware).not.toHaveBeenCalled()
         expect(agentMiddlewareRuntimeService.createScopedApi).not.toHaveBeenCalled()
+    })
+
+    describe('middleware configuration parity', () => {
+        function fixture(configuration: { options?: unknown }) {
+            // No schema default: this must exercise the host's normalization, not a forgiving plugin.
+            const schema = z
+                .object({
+                    allowedFinalProviders: z.array(z.string().min(1)).min(1).max(20).optional()
+                })
+                .strict()
+            const discover = jest.fn(async () => 'sources')
+            const createMiddleware = jest.fn((options: unknown, context: IAgentMiddlewareContext): AgentMiddleware => {
+                expect(context.node.options).toBe(options)
+                schema.parse(options)
+                return {
+                    name: 'ConfigProbe',
+                    tools: [tool(discover, { name: 'list_sources', description: 'List sources', schema: z.object({}) })]
+                }
+            })
+            const registry = Object.assign(
+                new AgentMiddlewareRegistry(new DiscoveryService(new ModulesContainer()), new Reflector()),
+                {
+                    get: jest.fn(() => ({ createMiddleware }))
+                }
+            )
+            Object.defineProperty(service, 'agentMiddlewareRegistry', { value: registry, configurable: true })
+            // JSON round-trip models a persisted published graph with no options property.
+            const graph: TXpertGraph = JSON.parse(
+                JSON.stringify({
+                    nodes: [
+                        {
+                            key: 'middleware-1',
+                            type: 'workflow',
+                            position: { x: 0, y: 0 },
+                            entity: {
+                                id: 'middleware-1',
+                                key: 'middleware-1',
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'ConfigProbe',
+                                required: true,
+                                ...configuration
+                            }
+                        }
+                    ],
+                    connections: [
+                        { key: 'agent-1/middleware-1', from: 'agent-1', to: 'middleware-1', type: 'workflow' }
+                    ]
+                })
+            )
+            const bindApps = jest.fn((middleware: AgentMiddleware, context: IAgentMiddlewareContext) => {
+                expect(context.node.options).toEqual(configuration.options === undefined ? {} : configuration.options)
+                return middleware
+            })
+            const run = () =>
+                getAgentMiddlewares(
+                    graph,
+                    { id: 'agent-1', key: 'agent-1' },
+                    registry,
+                    {
+                        tenantId: 'tenant-1',
+                        userId: 'user-1',
+                        xpertId: 'xpert-1',
+                        tools: new Map(),
+                        runtime: agentMiddlewareRuntimeService.createScopedApi()
+                    },
+                    {
+                        runtimeCapabilities: {
+                            mode: 'allowlist',
+                            plugins: { nodeKeys: [] },
+                            skills: { ids: [] },
+                            subAgents: { nodeKeys: [] }
+                        }
+                    },
+                    bindApps
+                )
+            return { graph, run, createMiddleware, discover, bindApps }
+        }
+
+        it.each<{ label: string; configuration: { options?: unknown } }>([
+            { label: 'missing options in a published node', configuration: {} },
+            { label: 'explicit undefined', configuration: { options: undefined } },
+            { label: 'empty options', configuration: { options: {} } },
+            {
+                label: 'valid provider policy',
+                configuration: { options: { allowedFinalProviders: ['workspace_script.query'] } }
+            }
+        ])('initializes preview, tool testing and runtime with $label', async ({ configuration }) => {
+            const f = fixture(configuration)
+            const originalGraph = JSON.stringify(f.graph)
+            const body = { xpertId: 'xpert-1', ...configuration }
+            const preview = await service.getMiddlewareTools('ConfigProbe', body)
+            expect(preview.tools.map(({ name }) => name)).toEqual(['list_sources'])
+            await expect(service.testMiddlewareTool('ConfigProbe', 'list_sources', body)).resolves.toBe('sources')
+            const middlewares = await f.run()
+            expect(middlewares).toHaveLength(1)
+            await expect(middlewares[0].tools[0].invoke({})).resolves.toBe('sources')
+            expect(f.discover).toHaveBeenCalledTimes(2)
+            expect(f.createMiddleware).toHaveBeenCalledTimes(3)
+            expect(f.bindApps).toHaveBeenCalledTimes(1)
+            expect(f.createMiddleware.mock.calls.map(([options]) => options)).toEqual(
+                Array(3).fill(configuration.options === undefined ? {} : configuration.options)
+            )
+            expect(JSON.stringify(f.graph)).toBe(originalGraph)
+            if (configuration.options === undefined) expect(f.graph.nodes[0].entity).not.toHaveProperty('options')
+        })
+
+        it.each(
+            [
+                null,
+                '',
+                false,
+                0,
+                [],
+                { unexpected: true },
+                { allowedFinalProviders: null },
+                { allowedFinalProviders: 'workspace_script.query' },
+                { allowedFinalProviders: [] },
+                { allowedFinalProviders: [''] },
+                { allowedFinalProviders: [42] },
+                { allowedFinalProviders: Array(21).fill('workspace_script.query') }
+            ].map((options) => ({ options }))
+        )('rejects invalid options consistently without invoking tools: $options', async ({ options }) => {
+            const f = fixture({ options })
+            const body = { xpertId: 'xpert-1', options }
+            await expect(service.getMiddlewareTools('ConfigProbe', body)).rejects.toBeInstanceOf(z.ZodError)
+            await expect(service.testMiddlewareTool('ConfigProbe', 'list_sources', body)).rejects.toBeInstanceOf(
+                z.ZodError
+            )
+            await expect(f.run()).rejects.toBeInstanceOf(z.ZodError)
+            expect(f.createMiddleware.mock.calls.map(([value]) => value)).toEqual([options, options, options])
+            expect(f.discover).not.toHaveBeenCalled()
+            expect(f.bindApps).not.toHaveBeenCalled()
+        })
     })
 })

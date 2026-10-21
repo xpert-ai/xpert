@@ -210,6 +210,39 @@ describe('middleware MCP Apps boundary', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
     })
     afterEach(() => jest.restoreAllMocks())
+    it('defaults options when restoring Apps from a historical published node', async () => {
+        const f = fixture()
+        f.strategy.createMiddleware.mockImplementation(async (options, context) => {
+            z.object({}).strict().parse(options)
+            expect(context.node.options).toBe(options)
+            return { ...f.middleware, tools: [...f.middleware.tools] }
+        })
+        const app = await f.service.restore(f.snapshot)
+        await expect(app.middleware.callTool('save', { pages: 12 })).resolves.toMatchObject({
+            content: [{ text: '{"pages":12}' }]
+        })
+        expect(f.strategy.createMiddleware).toHaveBeenCalledWith(
+            {},
+            expect.objectContaining({ node: { ...f.node, options: {} } })
+        )
+        expect(f.node).not.toHaveProperty('options')
+    })
+
+    it.each([null, false, '', [], { unexpected: true }].map((options) => ({ options })))(
+        'preserves invalid options on App restoration: $options',
+        async ({ options }) => {
+            const f = fixture()
+            Object.assign(f.node, { options })
+            f.strategy.createMiddleware.mockImplementation(async (value, context) => {
+                expect(context.node.options).toBe(value)
+                z.object({}).strict().parse(value)
+                return { ...f.middleware, tools: [...f.middleware.tools] }
+            })
+            await expect(f.service.restore(f.snapshot)).rejects.toBeInstanceOf(z.ZodError)
+            expect(f.submit).not.toHaveBeenCalled()
+        }
+    )
+
     it('exposes the entry tool to the model while hiding App-only mutation tools', () => {
         const f = fixture()
         const bound = f.service.bind(f.middleware, f.context, { interruptAfter: ['configure'] })
