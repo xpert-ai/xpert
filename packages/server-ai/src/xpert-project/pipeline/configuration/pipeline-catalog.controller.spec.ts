@@ -7,7 +7,7 @@ import { ForbiddenException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { z } from 'zod/v3'
 import { RequestContext, ProjectPipelineContributionRegistry } from '@xpert-ai/plugin-sdk'
-import { projectPipelineConfigurationSchema, type IUser } from '@xpert-ai/contracts'
+import { projectPipelineConfigurationSchema, type IUser, type IApiPrincipal } from '@xpert-ai/contracts'
 import { ProjectPipelineCatalogController } from './pipeline-catalog.controller'
 import { ProjectPipelineCatalogService } from './pipeline-catalog.service'
 import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
@@ -145,7 +145,11 @@ describe('Pipeline catalog HTTP and scoped configuration boundary', () => {
             items: [{ configuration: modern }],
             hostCapabilities: { protocols: [1] }
         })
-        for (const query of ['protocol=3', 'protocol=true', 'protocol=1&features=pipeline.future'])
+        expect(await (await fetch(`${base}?protocol=3`)).json()).toMatchObject({
+            canManage: true,
+            commandCapability: { allowed: true }
+        })
+        for (const query of ['protocol=4', 'protocol=true', 'protocol=1&features=pipeline.future'])
             expect((await fetch(`${base}?${query}`)).status).toBe(400)
     })
     it('saves a canonical server-owned configuration after live authorization, without a start call', async () => {
@@ -307,7 +311,45 @@ describe('Pipeline catalog HTTP and scoped configuration boundary', () => {
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
             principalType: 'client_secret'
         } as ReturnType<typeof RequestContext.currentApiPrincipal>)
-        expect(await (await fetch(base)).json()).toMatchObject({ runtimeBindings: [] })
+        expect(await (await fetch(`${base}?protocol=3`)).json()).toMatchObject({ runtimeBindings: [] })
         expect(runtimes.candidates).not.toHaveBeenCalled()
     })
+    it.each(['client_secret', 'api_key'] as const)(
+        'allows %s configuration saves while retaining Project and executor checks',
+        async (principalType) => {
+            const principal: IApiPrincipal = {
+                id: actor.userId,
+                tenantId: actor.tenantId,
+                principalType,
+                resourceScope: { kind: 'assistant', xpertId: assistantId }
+            }
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue(principal)
+            expect(await (await fetch(`${base}?protocol=3`)).json()).toMatchObject({
+                canManage: true,
+                commandCapability: { allowed: true }
+            })
+            for (const suffix of ['', '?protocol=1', '?protocol=2'])
+                expect(await (await fetch(`${base}${suffix}`)).json()).toMatchObject({
+                    canManage: true,
+                    items: [{ contributionKey: contribution.key }],
+                    assistants: [{ id: assistantId }]
+                })
+            const response = await post(input())
+            expect(response.status).toBe(200)
+            expect(await response.json()).toMatchObject({ revision: 1 })
+            expect(access.assertManage).toHaveBeenCalledWith({ projectId: 'project', actor })
+            expect(assistants.resolve).toHaveBeenCalled()
+            expect(runtimes.resolve).toHaveBeenCalled()
+            expect(launch.configure).toHaveBeenCalledTimes(1)
+
+            launch.configure.mockClear()
+            assistants.resolve.mockRejectedValueOnce(new ForbiddenException())
+            expect((await post(input())).status).toBe(403)
+            expect(launch.configure).not.toHaveBeenCalled()
+
+            access.assertManage.mockRejectedValueOnce(new ForbiddenException())
+            expect((await post(input())).status).toBe(403)
+            expect(launch.configure).not.toHaveBeenCalled()
+        }
+    )
 })

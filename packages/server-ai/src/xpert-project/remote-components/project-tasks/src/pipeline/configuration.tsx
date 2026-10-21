@@ -32,6 +32,7 @@ import { openProjectWorkspace } from './navigation'
 import { RuntimeConfiguration } from './runtime-configuration'
 import { initialRuntimeSelections, runtimeSelectionState } from './runtime-selection'
 import { BudgetConfiguration } from './budget-configuration'
+import { PipelineCommandAccess } from './command-access'
 
 const zh = {
     configure: '配置流水线',
@@ -112,9 +113,10 @@ export function PipelineConfiguration({
     const [bindings, setBindings] = useState<ProjectPipelineSavedConfiguration[]>([]),
         [next, setNext] = useState<string | null>(null)
     const requestKey = useRef<{ input: string; id: string } | null>(null)
+    const commandUnavailable = catalog?.commandCapability?.allowed !== true
     useEffect(() => {
         let active = true
-        void request('executeAction', { actionKey: 'pipeline-catalog', input: { protocol: 2 } })
+        void request('executeAction', { actionKey: 'pipeline-catalog', input: { protocol: 3 } })
             .then((value) => {
                 const result = z.object({ success: z.literal(true), data: projectPipelineCatalogSchema }).parse(value)
                 if (active) {
@@ -132,7 +134,7 @@ export function PipelineConfiguration({
     useEffect(() => {
         if (!open || !catalog?.canManage) return
         let active = true
-        void request('executeAction', { actionKey: 'pipeline-configurations', input: { protocol: 2 } })
+        void request('executeAction', { actionKey: 'pipeline-configurations', input: { protocol: 3 } })
             .then((value) => {
                 const page = z
                     .object({ success: z.literal(true), data: projectPipelineConfigurationPageSchema })
@@ -207,6 +209,7 @@ export function PipelineConfiguration({
     const save = async () => {
         if (
             !item?.form ||
+            commandUnavailable ||
             incompatible ||
             busy ||
             saved ||
@@ -247,6 +250,16 @@ export function PipelineConfiguration({
             setSaved(true)
         } catch {
             setError(t.failed)
+            // A session may change after discovery. Recheck the same server policy without discarding form input.
+            try {
+                const result = z
+                    .object({ success: z.literal(true), data: projectPipelineCatalogSchema })
+                    .parse(await request('executeAction', { actionKey: 'pipeline-catalog', input: { protocol: 3 } }))
+                setCatalog(result.data)
+                if (result.data.commandCapability?.allowed === false) setError('')
+            } catch {
+                // Keep the original failure and the user's input when discovery is unavailable.
+            }
         } finally {
             setBusy(false)
         }
@@ -284,6 +297,13 @@ export function PipelineConfiguration({
                         </Button>
                     </div>
                     <div className="min-h-0 space-y-5 overflow-y-auto px-4 py-4">
+                        {catalog && (
+                            <PipelineCommandAccess
+                                capability={catalog.commandCapability}
+                                projectId={projectId}
+                                locale={locale}
+                            />
+                        )}
                         {error && (
                             <p role="alert" className="text-sm text-destructive">
                                 {error}
@@ -292,7 +312,7 @@ export function PipelineConfiguration({
                         {!catalog && !error && <p className="text-sm text-muted-foreground">{t.loading}</p>}
                         {catalog && !catalog.items.length && <p className="text-sm text-muted-foreground">{t.empty}</p>}
                         {!!catalog?.items.length && (
-                            <Select value={selected} disabled={busy} onValueChange={choose}>
+                            <Select value={selected} disabled={busy || commandUnavailable} onValueChange={choose}>
                                 <SelectTrigger aria-label={t.choose}>
                                     <SelectValue placeholder={t.choose} />
                                 </SelectTrigger>
@@ -363,7 +383,7 @@ export function PipelineConfiguration({
                                                                     ? ''
                                                                     : assistants[field.slot]
                                                             }
-                                                            disabled={busy}
+                                                            disabled={busy || commandUnavailable}
                                                             onValueChange={(value) => {
                                                                 setAssistants((previous) => ({
                                                                     ...previous,
@@ -404,7 +424,7 @@ export function PipelineConfiguration({
                                             catalog={catalog!}
                                             selections={runtimes}
                                             locale={locale}
-                                            disabled={busy}
+                                            disabled={busy || commandUnavailable}
                                             onChange={(slot, selection) => {
                                                 setRuntimes((previous) => ({ ...previous, [slot]: selection }))
                                                 setSaved(false)
@@ -415,7 +435,7 @@ export function PipelineConfiguration({
                                                 value={nativeModelBudget}
                                                 maximum={item.form.nativeModelBudget}
                                                 locale={locale}
-                                                disabled={busy}
+                                                disabled={busy || commandUnavailable}
                                                 onChange={(value) => {
                                                     setNativeModelBudget(value)
                                                     setSaved(false)
@@ -450,7 +470,7 @@ export function PipelineConfiguration({
                                                         field={field}
                                                         value={parameters[field.key]}
                                                         locale={locale}
-                                                        disabled={busy}
+                                                        disabled={busy || commandUnavailable}
                                                         onChange={(value) => {
                                                             setParameters((previous) => ({
                                                                 ...previous,
@@ -516,7 +536,7 @@ export function PipelineConfiguration({
                                             setBusy(true)
                                             void request('executeAction', {
                                                 actionKey: 'pipeline-configurations',
-                                                input: { after: next, protocol: 2 }
+                                                input: { after: next, protocol: 3 }
                                             })
                                                 .then((value) => {
                                                     const page = z
@@ -550,6 +570,7 @@ export function PipelineConfiguration({
                         {item?.form && (
                             <Button
                                 disabled={
+                                    commandUnavailable ||
                                     incompatible ||
                                     busy ||
                                     saved ||

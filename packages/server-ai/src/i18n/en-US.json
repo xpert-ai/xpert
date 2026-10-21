@@ -187,6 +187,7 @@
         "ProjectPipelineDispatchPaused": "New pipeline dispatch is paused. Existing executions can still be observed or cancelled.",
         "ProjectPipelineModelGateUnsupported": "This model client does not support native model admission callbacks.",
         "ProjectPipelineNativeModelBudgetExceeded": "The instance native model budget cannot admit another call. Existing usage and unknown reservations are retained.",
+        "ProjectPipelineScopedDelegationUnavailable": "This session cannot perform pipeline execution actions. Open Project pipeline management and sign in with a user account that has the required Project access.",
         "ProjectPipelineProjectionConflict": "The pipeline projection conflicts with the saved version.",
         "ProjectPipelineNotFound": "Project pipeline was not found.",
         "ProjectPipelineConfigurationInvalid": "Invalid project pipeline configuration.",

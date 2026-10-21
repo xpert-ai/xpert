@@ -21,7 +21,7 @@ module.exports = {
         diagnostics: false
       }
     ],
-    '^.+\\.js$': [
+    '^.+\\.(js|mjs)$': [
       'babel-jest',
       {
         babelrc: false,
@@ -40,5 +40,5 @@ module.exports = {
     '^@xpert-ai/shadcn-ui$': '<rootDir>/packages/shadcn-ui/src/index.ts',
     '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/packages/shadcn-ui/src/brand-icons/index.cts'
   },
-  moduleFileExtensions: ['ts', 'tsx', 'cts', 'js', 'json']
+  moduleFileExtensions: ['ts', 'tsx', 'cts', 'js', 'mjs', 'json']
 }
