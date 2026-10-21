@@ -1,3 +1,6 @@
+// Invariants: internal writes borrow a validated root handle; its caller owns its lifetime.
+// Never reopen Linux FD roots with O_NOFOLLOW; retain it for untrusted path components.
+// Public string roots still undergo the normal directory checks.
 import { existingCreateOnlyTarget, publishCreateOnlyFile } from './volume-create-only'
 import { randomUUID } from 'node:crypto'
 import { assertPublicWorkspacePath, isManagedWorkspacePath } from './workspace-managed-path'
@@ -370,7 +373,7 @@ export class VolumeHandle {
         assertPublicWorkspacePath(relativePath)
         const openedRoot = await this.openOrCreateRoot()
         try {
-            return await VolumeHandle.writeFile(openedRoot.descriptorPath, relativePath, content, {
+            return await VolumeHandle.writeFileAtRoot(openedRoot, relativePath, content, {
                 ...options,
                 boundaryRoot: openedRoot.descriptorPath,
                 assertCanWrite: (relative, stat) => {
@@ -512,13 +515,23 @@ export class VolumeHandle {
         content: string | Uint8Array,
         options?: TVolumeWriteOptions
     ) {
+        return VolumeHandle.writeFileAtRoot(root, relativePath, content, options)
+    }
+
+    private static async writeFileAtRoot(
+        root: string | TOpenedVolumePath,
+        relativePath: string,
+        content: string | Uint8Array,
+        options?: TVolumeWriteOptions
+    ) {
         await assertWorkspaceLeases()
         assertPublicWorkspacePath(relativePath)
-        const targetPath = VolumeHandle.resolvePath(root, relativePath)
+        const rootPath = typeof root === 'string' ? root : root.descriptorPath
+        const targetPath = VolumeHandle.resolvePath(rootPath, relativePath)
         const parentPath = path.dirname(targetPath)
-        await VolumeHandle.ensureDirectory(
+        const openedParent = await VolumeHandle.openOrCreateDirectory(
             root,
-            path.relative(root, parentPath),
+            path.relative(rootPath, parentPath),
             options?.boundaryRoot,
             options?.createOnly === true,
             (relative) => {
@@ -527,15 +540,11 @@ export class VolumeHandle {
             }
         )
 
-        const openedParent = await VolumeHandle.openExistingFile(parentPath, null, {
-            boundaryRoot: options?.boundaryRoot ?? root,
-            flags: fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
-        })
         try {
             if (!openedParent.fileStat.isDirectory()) {
                 throw new Error('Volume file parent is not a directory')
             }
-            const canonicalRoot = await fsPromises.realpath(options?.boundaryRoot ?? root)
+            const canonicalRoot = await fsPromises.realpath(options?.boundaryRoot ?? rootPath)
             const canonicalTargetPath = path.join(openedParent.filePath, path.basename(targetPath))
             ensurePathWithinRoot(canonicalRoot, canonicalTargetPath)
             options?.assertCanWrite?.(path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'))
@@ -582,7 +591,7 @@ export class VolumeHandle {
                 await fsPromises.rm(temporary, { force: true })
             }
         } finally {
-            await openedParent.fileHandle.close()
+            if (openedParent !== root) await openedParent.fileHandle.close()
         }
     }
 
@@ -604,28 +613,32 @@ export class VolumeHandle {
     }
 
     private static async openOrCreateDirectory(
-        root: string,
+        root: string | TOpenedVolumePath,
         relativePath?: string | null,
         boundaryRoot?: string,
         rejectSymlinks = false,
         assertDirectory?: (relative: string) => void
     ) {
-        const targetPath = VolumeHandle.resolvePath(root, relativePath)
-        const relativeDirectory = path.relative(root, targetPath)
+        const rootPath = typeof root === 'string' ? root : root.descriptorPath
+        const targetPath = VolumeHandle.resolvePath(rootPath, relativePath)
+        const relativeDirectory = path.relative(rootPath, targetPath)
         const noFollow = rejectSymlinks && typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0
-        let openedDirectory = await VolumeHandle.openExistingFile(root, null, {
-            boundaryRoot: boundaryRoot ?? root,
-            flags:
-                fsConstants.O_RDONLY |
-                (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0) |
-                noFollow
-        })
+        let openedDirectory =
+            typeof root === 'string'
+                ? await VolumeHandle.openExistingFile(root, null, {
+                      boundaryRoot: boundaryRoot ?? rootPath,
+                      flags:
+                          fsConstants.O_RDONLY |
+                          (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0) |
+                          noFollow
+                  })
+                : root
         try {
             if (!openedDirectory.fileStat.isDirectory()) {
                 throw new Error('Volume root is not a directory')
             }
-            const canonicalRoot = await fsPromises.realpath(boundaryRoot ?? root)
-            assertDirectory?.(openedDirectory.volumeRelativePath)
+            const canonicalRoot = await fsPromises.realpath(boundaryRoot ?? rootPath)
+            assertDirectory?.(path.relative(canonicalRoot, openedDirectory.filePath).replace(/\\/g, '/'))
             for (const segment of relativeDirectory.split(path.sep).filter(Boolean)) {
                 assertDirectory?.(
                     path.relative(canonicalRoot, path.join(openedDirectory.filePath, segment)).replace(/\\/g, '/')
@@ -637,13 +650,13 @@ export class VolumeHandle {
                     }
                 })
                 const nextDirectory = await VolumeHandle.openExistingFile(childPath, null, {
-                    boundaryRoot: boundaryRoot ?? root,
+                    boundaryRoot: boundaryRoot ?? rootPath,
                     flags:
                         fsConstants.O_RDONLY |
                         (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0) |
                         noFollow
                 })
-                await openedDirectory.fileHandle.close()
+                if (openedDirectory !== root) await openedDirectory.fileHandle.close()
                 openedDirectory = nextDirectory
                 assertDirectory?.(openedDirectory.volumeRelativePath)
                 if (!openedDirectory.fileStat.isDirectory()) {
@@ -652,7 +665,7 @@ export class VolumeHandle {
             }
             return openedDirectory
         } catch (error) {
-            await openedDirectory.fileHandle.close()
+            if (openedDirectory !== root) await openedDirectory.fileHandle.close()
             throw error
         }
     }
