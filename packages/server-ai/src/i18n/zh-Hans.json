@@ -187,6 +187,7 @@
         "ProjectPipelineDispatchPaused": "流水线已暂停新派发，仍可查询和取消在途执行。",
         "ProjectPipelineModelGateUnsupported": "模型客户端不支持原生模型调用前的预算检查。",
         "ProjectPipelineNativeModelBudgetExceeded": "实例原生模型预算不足以准入下一次调用，已消耗额度和未知预留均保留。",
+        "ProjectPipelineScopedDelegationUnavailable": "当前会话不支持执行流水线操作。请打开项目流水线管理页面，使用有相应项目权限的用户账号登录后继续。",
         "ProjectPipelineProjectionConflict": "流水线投影与已保存版本冲突。",
         "ProjectPipelineNotFound": "未找到项目流水线。",
         "ProjectPipelineConfigurationInvalid": "项目流水线配置无效。",

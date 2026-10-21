@@ -3,6 +3,7 @@ import { projectPipelineConfigurationSchema, type ProjectPipelineConfiguration }
 import { projectPipelineJsonSchema, projectPipelineKeySchema, projectPipelineRefSchema } from './primitives.schema'
 import { projectPipelineHostCapabilitiesSchema } from './compatibility.schema'
 import { projectPipelineNativeModelBudgetSchema } from './budget.schema'
+import { projectPipelineCommandCapabilitySchema } from './command-capability.schema'
 
 const label = z.object({ en_US: z.string().min(1).max(200), zh_Hans: z.string().min(1).max(200).optional() }).strict()
 const field = { key: projectPipelineKeySchema, label, description: label.optional() }
@@ -99,7 +100,7 @@ export const projectPipelineCatalogConfigureSchema = z
   .strict()
 export type ProjectPipelineCatalogConfigure = z.output<typeof projectPipelineCatalogConfigureSchema>
 /** Catalog wire format; independent of the definition's execution protocol requirements. */
-export const projectPipelineCatalogProtocolSchema = z.union([z.literal(1), z.literal(2)])
+export const projectPipelineCatalogProtocolSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
 export const projectPipelineCatalogRequestSchema = z
   .object({ protocol: projectPipelineCatalogProtocolSchema.optional() })
   .strict()
@@ -110,11 +111,13 @@ export function canReadProjectPipelineConfiguration(
   form?: ProjectPipelineConfigurationForm
 ): boolean {
   if (request.protocol === undefined && configuration.template.hostRequirements) return false
-  return request.protocol === 2 || !(configuration.binding.limits?.nativeModelBudget || form?.nativeModelBudget)
+  return (request.protocol ?? 1) >= 2 || !(configuration.binding.limits?.nativeModelBudget || form?.nativeModelBudget)
 }
 export const projectPipelineCatalogSchema = z
   .object({
     hostCapabilities: projectPipelineHostCapabilitiesSchema.optional(),
+    /** Protocol 3 support for saving configuration; does not grant permission to execute a pipeline. */
+    commandCapability: projectPipelineCommandCapabilitySchema.optional(),
     canManage: z.boolean(),
     items: z.array(
       z

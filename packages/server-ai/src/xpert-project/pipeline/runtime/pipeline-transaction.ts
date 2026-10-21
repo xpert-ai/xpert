@@ -1,12 +1,8 @@
 import { XpertProject } from '../../entities/project.entity'
-import { RequestContext, type ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
+import type { ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
 import { projectionScope } from '../../services/task-projection/project-task-projection.writer'
-import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
-
-/** Managed Queue restores a business user, not a credential audience. Reject scoped delegation until it can be durably reauthorized. */
-export function assertPipelineCommandAuthority() {
-    if (RequestContext.currentApiPrincipal()) throw pipelineProjectionConflict('PIPELINE_SCOPED_DELEGATION_UNAVAILABLE')
-}
+import { assertPipelineCommandAuthority } from './pipeline-command-authority'
+export { assertPipelineCommandAuthority } from './pipeline-command-authority'
 
 export function managedAudit(context: ProjectPipelineContext) {
     return {
@@ -18,6 +14,11 @@ export function managedAudit(context: ProjectPipelineContext) {
 }
 export async function lockManagedProject(manager: import('typeorm').EntityManager, context: ProjectPipelineContext) {
     assertPipelineCommandAuthority()
+    await lockPipelineProject(manager, context)
+}
+
+/** Configuration persistence takes the same Project lock without granting background execution. */
+export async function lockPipelineProject(manager: import('typeorm').EntityManager, context: ProjectPipelineContext) {
     await manager.query("SET LOCAL lock_timeout = '2s'")
     await manager.query("SET LOCAL statement_timeout = '10s'")
     await manager.findOneOrFail(XpertProject, {

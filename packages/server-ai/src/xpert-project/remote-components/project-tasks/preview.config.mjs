@@ -41,7 +41,7 @@ const assistant = (id, assigneeName) => ({
     assigneeAvatar: { emoji: { id: 'memo', unified: '1f4dd' }, background: 'var(--accent)' }
 })
 const graph = {
-    projectId: 'preview',
+    projectId: createPipelinePreview().projectId,
     projectTitle: '客户服务知识库升级',
     canEditPlan: true,
     cursor: '1',
@@ -206,7 +206,12 @@ export default {
         graph,
         pipeline: createPipelinePreview(),
         history: createPipelineHistoryPreview(createPipelinePreview()),
-        catalog: projectPipelineCatalogSchema.parse(createPipelineConfigurationPreview()),
+        catalog: projectPipelineCatalogSchema.parse({
+            ...createPipelineConfigurationPreview(),
+            ...(process.env.TASKS_PREVIEW_CREDENTIAL === 'scoped'
+                ? { commandCapability: { allowed: false, reason: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' } }
+                : {})
+        }),
         bindings: [],
         navigation: null
     },

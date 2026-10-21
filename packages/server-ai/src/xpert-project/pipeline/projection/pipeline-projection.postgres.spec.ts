@@ -379,7 +379,7 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         25_000
     )
 
-    it('exposes paused dispatch in the read model without changing stored revisions or business facts', async () => {
+    it('exposes dispatch and credential restrictions without changing stored revisions or business facts', async () => {
         const first = await store.apply(context, provider, snapshot())
         const access = { listReadable: async () => [{ role: 'manager', archived: false, canManage: true }] }
         const registry = { list: () => [], listForActor: () => [] }
@@ -409,6 +409,18 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
             expect(paused.nodes).toEqual(enabled.nodes)
             expect(paused.tasks).toEqual(enabled.tasks)
             expect(paused.permissions).toEqual(enabled.permissions)
+            const credential = jest
+                .spyOn(RequestContext, 'currentApiPrincipal')
+                .mockReturnValue({ principalType: 'client_secret' })
+            try {
+                const scoped = await query.graph(context, first.instanceId)
+                expect(scoped.permissions).toEqual({ canEdit: false, canManage: false })
+                expect(scoped.actions).toEqual({ cancel: false, retries: [] })
+                expect(scoped.nodes).toEqual(paused.nodes)
+                expect(scoped.cursor).not.toBe(paused.cursor)
+            } finally {
+                credential.mockRestore()
+            }
         } finally {
             if (previous === undefined) delete process.env.XPERT_PIPELINE_DISPATCH_ENABLED
             else process.env.XPERT_PIPELINE_DISPATCH_ENABLED = previous
