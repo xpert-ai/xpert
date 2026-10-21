@@ -1,3 +1,5 @@
+import { ArtifactAnalyticsInventoryService } from './analytics-inventory/artifact-analytics-inventory.service'
+import { ArtifactAnalyticsInventoryController } from './analytics-inventory/artifact-analytics-inventory.controller'
 import { ArtifactDraft } from './drafts/artifact-draft.entity'
 import { ArtifactDraftsService } from './drafts/artifact-drafts.service'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
@@ -31,12 +33,19 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         VolumeModule
     ],
     controllers: [
+        ArtifactAnalyticsInventoryController,
         ArtifactsPublicController,
         ArtifactsShareSessionController,
         ArtifactsManagementController,
         ArtifactPresentationController
     ],
-    providers: [ArtifactsService, ArtifactDraftsService, ArtifactPresentationRegistry, ArtifactPresentationService],
+    providers: [
+        ArtifactAnalyticsInventoryService,
+        ArtifactsService,
+        ArtifactDraftsService,
+        ArtifactPresentationRegistry,
+        ArtifactPresentationService
+    ],
     exports: [ArtifactsService]
 })
 export class ArtifactsModule {}

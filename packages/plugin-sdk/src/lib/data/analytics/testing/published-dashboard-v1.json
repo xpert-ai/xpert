@@ -1,0 +1,208 @@
+{
+  "schema": "xpert.live-dashboard.package/v1",
+  "manifest": {
+    "schema": "xpert.live-dashboard/v1",
+    "id": "d1234567-1234-4234-8234-123456789012",
+    "title": "Published analytics",
+    "bindings": [
+      {
+        "schemaVersion": 1,
+        "id": "query0",
+        "dataSourceId": "b1234567-1234-4234-8234-123456789010",
+        "providerId": "file.table",
+        "operation": "query",
+        "contractVersion": 1,
+        "payload": {
+          "datasetId": "sales",
+          "revision": "v1",
+          "contractHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "select": ["amount"],
+          "filters": []
+        },
+        "parameters": [
+          {
+            "name": "region",
+            "controlId": "region",
+            "type": "string",
+            "required": false,
+            "defaultValue": null
+          }
+        ],
+        "output": {
+          "datasetId": "dataset0",
+          "fields": [
+            {
+              "id": "amount",
+              "sourceField": "amount",
+              "label": "Amount",
+              "logicalType": "decimal",
+              "nullable": false,
+              "role": "measure"
+            }
+          ],
+          "grain": []
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "query1",
+        "dataSourceId": "b1234567-1234-4234-8234-123456789011",
+        "providerId": "rest.json",
+        "operation": "query",
+        "contractVersion": 1,
+        "payload": {
+          "datasetId": "sales",
+          "revision": "v1",
+          "operationContractHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "arguments": {}
+        },
+        "parameters": [
+          {
+            "name": "region",
+            "controlId": "region",
+            "type": "string",
+            "required": false,
+            "defaultValue": null
+          }
+        ],
+        "output": {
+          "datasetId": "dataset1",
+          "fields": [
+            {
+              "id": "amount",
+              "sourceField": "amount",
+              "label": "Amount",
+              "logicalType": "decimal",
+              "nullable": false,
+              "role": "measure"
+            }
+          ],
+          "grain": []
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "query2",
+        "dataSourceId": "b1234567-1234-4234-8234-123456789012",
+        "providerId": "mcp.tool",
+        "operation": "query",
+        "contractVersion": 1,
+        "payload": {
+          "datasetId": "sales",
+          "revision": "v1",
+          "toolContractHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "arguments": {}
+        },
+        "parameters": [
+          {
+            "name": "region",
+            "controlId": "region",
+            "type": "string",
+            "required": false,
+            "defaultValue": null
+          }
+        ],
+        "output": {
+          "datasetId": "dataset2",
+          "fields": [
+            {
+              "id": "amount",
+              "sourceField": "amount",
+              "label": "Amount",
+              "logicalType": "decimal",
+              "nullable": false,
+              "role": "measure"
+            }
+          ],
+          "grain": []
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "query3",
+        "dataSourceId": "b1234567-1234-4234-8234-123456789013",
+        "providerId": "data-xpert.ontology",
+        "operation": "query",
+        "contractVersion": 1,
+        "payload": {
+          "resourceId": "sales",
+          "actionTypeCode": "query",
+          "params": {}
+        },
+        "parameters": [
+          {
+            "name": "region",
+            "controlId": "region",
+            "type": "string",
+            "required": false,
+            "defaultValue": null
+          }
+        ],
+        "output": {
+          "datasetId": "dataset3",
+          "fields": [
+            {
+              "id": "amount",
+              "sourceField": "amount",
+              "label": "Amount",
+              "logicalType": "decimal",
+              "nullable": false,
+              "role": "measure"
+            }
+          ],
+          "grain": []
+        }
+      },
+      {
+        "schemaVersion": 1,
+        "id": "query4",
+        "dataSourceId": "b1234567-1234-4234-8234-123456789014",
+        "providerId": "workspace_script.query",
+        "operation": "query",
+        "contractVersion": 1,
+        "payload": {
+          "artifactId": "a1234567-1234-4234-8234-123456789012",
+          "versionId": "c1234567-1234-4234-8234-123456789012"
+        },
+        "parameters": [
+          {
+            "name": "region",
+            "controlId": "region",
+            "type": "string",
+            "required": false,
+            "defaultValue": null
+          }
+        ],
+        "output": {
+          "datasetId": "dataset4",
+          "fields": [
+            {
+              "id": "amount",
+              "sourceField": "amount",
+              "label": "Amount",
+              "logicalType": "decimal",
+              "nullable": false,
+              "role": "measure"
+            }
+          ],
+          "grain": []
+        }
+      }
+    ],
+    "controls": [
+      {
+        "controlId": "region",
+        "type": "string",
+        "label": "Region",
+        "defaultValue": null
+      }
+    ],
+    "presentation": {
+      "html": "<!DOCTYPE html><html><body><div data-binding=\"query0\"></div></body></html>",
+      "type": "html"
+    },
+    "charts": [],
+    "tables": []
+  },
+  "dependencies": []
+}

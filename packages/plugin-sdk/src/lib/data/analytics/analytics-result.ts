@@ -1,7 +1,10 @@
-import type { AnalyticsBinding, AnalyticsField, AnalyticalDataset, AnalyticsValue } from '@xpert-ai/contracts'
+import type { SupportedAnalyticsBinding, AnalyticsField, AnalyticalDataset, AnalyticsValue } from '@xpert-ai/contracts'
 import type { AnalyticsProviderResult } from './analytics-provider'
 
-export function resolveAnalyticsParameters(binding: AnalyticsBinding, controls: Record<string, AnalyticsValue>) {
+export function resolveAnalyticsParameters(
+  binding: SupportedAnalyticsBinding,
+  controls: Record<string, AnalyticsValue>
+) {
   const allowed = new Set(binding.parameters.map((parameter) => parameter.controlId))
   if (Object.keys(controls).some((name) => !allowed.has(name))) throw new Error('ANALYTICS_UNKNOWN_CONTROL')
   const result: Record<string, AnalyticsValue> = {}
@@ -26,7 +29,7 @@ export function resolveAnalyticsParameters(binding: AnalyticsBinding, controls: 
 }
 
 export function normalizeAnalyticsResult(
-  binding: AnalyticsBinding,
+  binding: SupportedAnalyticsBinding,
   result: AnalyticsProviderResult,
   executionId: string,
   maxRows: number

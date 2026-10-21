@@ -54,7 +54,10 @@ export const analyticsBindingObjectSchema = z
       .strict()
   })
   .strict()
-export const analyticsBindingSchema = analyticsBindingObjectSchema.superRefine((binding, ctx) => {
+export function validateAnalyticsBinding(
+  binding: Pick<z.output<typeof analyticsBindingObjectSchema>, 'output' | 'parameters' | 'payload'>,
+  ctx: z.RefinementCtx
+) {
   const fields = binding.output.fields.map((field) => field.id)
   const names = binding.parameters.map((parameter) => parameter.name)
   if (new Set(fields).size !== fields.length || new Set(names).size !== names.length)
@@ -66,25 +69,29 @@ export const analyticsBindingSchema = analyticsBindingObjectSchema.superRefine((
     ctx.addIssue({ code: 'custom', message: 'Grain references an undeclared field' })
   if (new TextEncoder().encode(JSON.stringify(binding.payload)).byteLength > 64000)
     ctx.addIssue({ code: 'custom', message: 'Query payload exceeds limit' })
-}) as z.ZodType<AnalyticsBinding>
+}
+export const analyticsBindingSchema = analyticsBindingObjectSchema.superRefine(
+  validateAnalyticsBinding
+) as z.ZodType<AnalyticsBinding>
+export const analyticsControlsSchema = z.record(key, value).default({})
 export const analyticsQueryRequestSchema = z
   .object({
     binding: analyticsBindingSchema,
-    controls: z.record(key, value).default({})
+    controls: analyticsControlsSchema
   })
   .strict() as z.ZodType<AnalyticsQueryRequest, z.ZodTypeDef, unknown>
 
-export const analyticsDiscoveryRequestSchema = z
+export const analyticsDiscoveryRequestObjectSchema = z
   .object({
     dataSourceId: z.string().uuid(),
     providerId: z.string().min(1).max(160),
     request: json.default({})
   })
   .strict()
-  .refine(
-    (value) => new TextEncoder().encode(JSON.stringify(value)).byteLength <= 16000,
-    'Discovery request exceeds limit'
-  ) as z.ZodType<AnalyticsDiscoveryRequest, z.ZodTypeDef, unknown>
+export const analyticsDiscoveryRequestSchema = analyticsDiscoveryRequestObjectSchema.refine(
+  (value) => new TextEncoder().encode(JSON.stringify(value)).byteLength <= 16000,
+  'Discovery request exceeds limit'
+) as z.ZodType<AnalyticsDiscoveryRequest, z.ZodTypeDef, unknown>
 export const analyticsDiscoveryResultSchema = z
   .object({
     schemaVersion: z.literal(1),

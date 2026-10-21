@@ -36,6 +36,6 @@ import { AnalyticsController } from './analytics/analytics.controller'
 		...QueryHandlers
 	],
 	controllers: [AnalyticsController, DataSourceController],
-	exports: [TypeOrmModule, DataSourceService]
+	exports: [TypeOrmModule, DataSourceService, AnalyticsRuntimeService]
 })
 export class DataSourceModule {}
