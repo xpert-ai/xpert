@@ -1,5 +1,22 @@
 # @xpert-ai/server-core
 
+## 3.26.0
+
+### Patch Changes
+
+- 54778dc: Extend the existing schema-sync deployment job with TypeORM SQL migrations. Ordinary tables still synchronize from entities; explicitly SQL-managed tables are excluded. Package module-local SQL and checks, preserve migration checksums, support verified baseline adoption, and serialize host/plugin DDL using a shared PostgreSQL lock.
+
+    Disable API startup DDL in development as well as production. Share installed plugin mounts with Compose migration jobs and fail on incomplete plugin registration. Preserve legitimate undispatched ModelExecution calls during baseline adoption, with regression coverage for independently reconstructed legacy databases.
+
+- Updated dependencies [f0590e2]
+- Updated dependencies [23b505e]
+- Updated dependencies [d3ad3a5]
+- Updated dependencies [54778dc]
+    - @xpert-ai/contracts@3.26.0
+    - @xpert-ai/server-config@3.26.0
+    - @xpert-ai/plugin-sdk@3.26.0
+    - @xpert-ai/server-common@3.26.0
+
 ## 3.25.0
 
 ### Minor Changes

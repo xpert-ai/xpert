@@ -1,5 +1,24 @@
 # @xpert-ai/xpert-api
 
+## 3.26.0
+
+### Minor Changes
+
+- 23b505e: Allow side chats to fork the latest sealed assistant reply while the source keeps running. Validate and copy pinned root, subgraph and ancestor checkpoints without pending work or live Goals. Reuse the created thread when a request is retried after the source advances.
+
+  Expose the same behavior from Conversation Map and return a localized explanation when no sealed reply is available. Keep bodyless legacy copies idle-only and preserve historical input editing. Shared checkpoint references remain a separate, unimplemented architecture proposal.
+
+### Patch Changes
+
+- f0590e2: Upgrade ChatKit dependencies to 0.17.0, including the UI's Xpert SDK 0.15.0 dependency, and align workspace, API, Web and Desktop lockfiles.
+- c9027ea: Prevent new-version Assistant publication from cascading a version-number update into its primary Agent and falsely reporting AgentOutdated when the Agent inherits its model. Preserve stale-Agent checks, transactional version backups and rollback, and cover these paths with PostgreSQL regression tests.
+- 138821f: Allow Assistant templates to select an authorized language model without requiring a Primary configuration. Resolve existing bindings and eligible defaults from the governed model catalog, preserve model options, and revalidate access before installation.
+- 629d5fa: Preserve the current organization when initializing MCP services and connections from tenant-installed plugins. Keep organization instance state and synchronization scoped to that organization.
+- d3ad3a5: Refresh the Cloud assistant sidebar after successful template installation. Preserve installation history while reporting current target availability, disable opening deleted or inaccessible assistants in Cloud and Desktop, and clear stale opening errors when starting another installation. Keep interrupted-request recovery and idempotency intact.
+- 54778dc: Extend the existing schema-sync deployment job with TypeORM SQL migrations. Ordinary tables still synchronize from entities; explicitly SQL-managed tables are excluded. Package module-local SQL and checks, preserve migration checksums, support verified baseline adoption, and serialize host/plugin DDL using a shared PostgreSQL lock.
+
+  Disable API startup DDL in development as well as production. Share installed plugin mounts with Compose migration jobs and fail on incomplete plugin registration. Preserve legitimate undispatched ModelExecution calls during baseline adoption, with regression coverage for independently reconstructed legacy databases.
+
 ## 3.25.0
 
 ### Minor Changes

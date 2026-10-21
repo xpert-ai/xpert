@@ -1,5 +1,19 @@
 # @xpert-ai/xpert-ui
 
+## 3.26.0
+
+### Minor Changes
+
+- 23b505e: Allow side chats to fork the latest sealed assistant reply while the source keeps running. Validate and copy pinned root, subgraph and ancestor checkpoints without pending work or live Goals. Reuse the created thread when a request is retried after the source advances.
+
+  Expose the same behavior from Conversation Map and return a localized explanation when no sealed reply is available. Keep bodyless legacy copies idle-only and preserve historical input editing. Shared checkpoint references remain a separate, unimplemented architecture proposal.
+
+### Patch Changes
+
+- f0590e2: Upgrade ChatKit dependencies to 0.17.0, including the UI's Xpert SDK 0.15.0 dependency, and align workspace, API, Web and Desktop lockfiles.
+- 138821f: Allow Assistant templates to select an authorized language model without requiring a Primary configuration. Resolve existing bindings and eligible defaults from the governed model catalog, preserve model options, and revalidate access before installation.
+- d3ad3a5: Refresh the Cloud assistant sidebar after successful template installation. Preserve installation history while reporting current target availability, disable opening deleted or inaccessible assistants in Cloud and Desktop, and clear stale opening errors when starting another installation. Keep interrupted-request recovery and idempotency intact.
+
 ## 3.25.0
 
 ### Minor Changes
