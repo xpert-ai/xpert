@@ -26,6 +26,7 @@ export class ProjectTasksMiddleware implements IAgentMiddlewareStrategy<z.output
     readonly meta: TAgentMiddlewareMeta = {
         name: PROJECT_TASKS_MIDDLEWARE,
         features: ['project.tasks'],
+        featureLabels: { 'project.tasks': { en_US: 'Project tasks', zh_Hans: '项目任务' } },
         label: { en_US: 'Project Tasks', zh_Hans: '项目任务' },
         description: {
             en_US: 'Manage tasks and explicitly delegate them to authorized runtimes in the current project.',
