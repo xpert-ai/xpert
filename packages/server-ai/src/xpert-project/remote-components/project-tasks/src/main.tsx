@@ -228,7 +228,7 @@ function App() {
                             <TabsList
                                 variant="line"
                                 aria-label={t.viewLabel}
-                                className="grid w-full grid-cols-5 gap-0 group-data-[orientation=horizontal]/tabs:h-10"
+                                className="grid w-full grid-cols-5 gap-0 p-0 group-data-[orientation=horizontal]/tabs:h-10"
                             >
                                 {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
                                     const Icon = icons[value]
@@ -238,7 +238,7 @@ function App() {
                                             value={value}
                                             aria-label={t[value]}
                                             title={t[value]}
-                                            className="min-w-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                            className="h-full min-w-0 rounded-none border-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
                                         >
                                             <Icon />
                                             <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
@@ -249,7 +249,7 @@ function App() {
                                     value="pipeline"
                                     aria-label={pipelineTexts(locale).title}
                                     title={pipelineTexts(locale).title}
-                                    className="min-w-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                    className="h-full min-w-0 rounded-none border-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
                                 >
                                     <Workflow />
                                     <span className="hidden truncate @[34rem]:inline">
