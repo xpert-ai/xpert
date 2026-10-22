@@ -1,6 +1,5 @@
 ---
 '@xpert-ai/sandbox-runtime': patch
-'@xpert-ai/sandbox-runtime-document-image': patch
 '@xpert-ai/plugin-sdk': patch
 '@xpert-ai/server-ai': patch
 '@xpert-ai/xpert-api': patch
