@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal, untracked } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked
+} from '@angular/core'
 import { DialogRef } from '@angular/cdk/dialog'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -9,7 +19,15 @@ import { Store, API_PREFIX } from '@cloud/app/@core/state'
 import { getErrorMessage, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
 import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import type { IXpertWorkspace, TemplateInstallation, XpertTemplateSetup, TXpertTemplate } from '@xpert-ai/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import type {
+  ICopilotModel,
+  IXpertWorkspace,
+  TemplateInstallation,
+  XpertTemplateSetup,
+  TXpertTemplate
+} from '@xpert-ai/contracts'
+import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
 import {
   createInstallationClient,
   canOpenInstalledAssistant,
@@ -30,7 +48,15 @@ const empty: InstallationSnapshot = {
 @Component({
   selector: 'xp-template-installation',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, ...XpDialogFrameImports, ZardButtonComponent, ZardInputDirective],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    CopilotModelSelectComponent
+  ],
   templateUrl: './template-installation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' }
@@ -64,10 +90,28 @@ export class TemplateInstallationComponent {
   readonly capabilities = signal<string[]>([])
   readonly form = new FormGroup({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
-    model: new FormControl('', { nonNullable: true }),
+    model: new FormControl('', {
+      nonNullable: true,
+      validators: [
+        (control) => {
+          const setup = this.setup()
+          if (!setup) return { modelUnavailable: true }
+          if (!control.value)
+            return setup.requiresModel || setup.requiredModelFeatures.length ? { required: true } : null
+          return setup.models.some((option) => option.id === control.value) ? null : { modelUnavailable: true }
+        }
+      ]
+    }),
     voiceModel: new FormControl('', { nonNullable: true }),
     voice: new FormControl('', { nonNullable: true })
   })
+  readonly modelType = AiModelTypeEnum.LLM
+  private readonly selectedModelId = toSignal(this.form.controls.model.valueChanges, { initialValue: '' })
+  readonly selectedModel = computed(
+    () => this.setup()?.models.find((option) => option.id === this.selectedModelId())?.copilotModel ?? null
+  )
+  // Setup already applies template capability rules, including multi-tool-call compatibility.
+  readonly allowedModels = computed(() => this.setup()?.models.map((option) => option.copilotModel) ?? [])
   readonly statusLabel = installationStatusLabel
   readonly stages = installationStageLabels
   readonly canOpen = canOpenInstalledAssistant
@@ -85,6 +129,7 @@ export class TemplateInstallationComponent {
       this.workspaceId.set('')
       this.workspaces.set([])
       this.template.set(null)
+      untracked(() => this.form.controls.model.reset(''))
       this.error.set('')
       if (!organization || !user?.id) return
       this.loading.set(true)
@@ -110,21 +155,25 @@ export class TemplateInstallationComponent {
     effect((cleanup) => {
       const id = this.templateId(),
         capabilities = this.capabilities(),
-        organization = this.organizationId()
+        organization = this.organizationId(),
+        workspaceId = this.workspaceId(),
+        user = this.user()
       this.revision()
       let active = true
       cleanup(() => {
         active = false
       })
       this.setup.set(null)
-      if (!organization) return
+      if (!organization || !workspaceId || !user?.id) return
       this.error.set('')
-      void firstValueFrom(this.templates.getSetup(id, capabilities, this.workspaceId() || undefined))
+      void firstValueFrom(this.templates.getSetup(id, capabilities, workspaceId))
         .then((setup) => {
           if (!active) return
           this.setup.set(setup)
-          if (!setup.models.some((model) => model.id === this.form.controls.model.value))
-            this.form.controls.model.setValue(setup.defaultModelId ?? '')
+          if (!setup.models.some((model) => model.id === this.form.controls.model.value)) {
+            this.form.controls.model.setValue(setup.models.find((model) => model.id === setup.defaultModelId)?.id ?? '')
+          }
+          this.form.controls.model.updateValueAndValidity()
         })
         .catch((error) => {
           if (active) this.error.set(getErrorMessage(error))
@@ -172,6 +221,20 @@ export class TemplateInstallationComponent {
   selectWorkspace(event: Event) {
     if (event.target instanceof HTMLSelectElement) this.workspaceId.set(event.target.value)
   }
+  selectModel(value: Partial<ICopilotModel> | null) {
+    if (this.state().busy || this.loading() || !this.setup()) return
+    const option =
+      value &&
+      this.setup().models.find(
+        ({ copilotModel }) =>
+          copilotModel.copilotId === value.copilotId &&
+          copilotModel.model === value.model &&
+          copilotModel.modelType === value.modelType
+      )
+    this.form.controls.model.setValue(option?.id ?? '')
+    this.form.controls.model.markAsTouched()
+    if (value && !option) this.form.controls.model.setErrors({ modelUnavailable: true })
+  }
   toggleCapability(key: string, event: Event) {
     if (!(event.target instanceof HTMLInputElement)) return
     const checked = event.target.checked
@@ -188,9 +251,9 @@ export class TemplateInstallationComponent {
       this.form.valid &&
       !!this.form.controls.title.value.trim() &&
       setup?.canInstall &&
-      (setup.requiresModel || setup.requiredModelFeatures.length
+      (this.form.controls.model.value
         ? setup.models.some((model) => model.id === this.form.controls.model.value)
-        : true) &&
+        : !setup.requiresModel && !setup.requiredModelFeatures.length) &&
       (!this.capabilities().includes('realtime-voice') ||
         (!!this.form.controls.voiceModel.value && !!this.form.controls.voice.value))
     )
