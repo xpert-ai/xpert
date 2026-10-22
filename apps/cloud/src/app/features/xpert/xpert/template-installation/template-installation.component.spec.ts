@@ -278,6 +278,20 @@ describe('Web template installation flow', () => {
     await component.start()
     expect(xperts.refresh).toHaveBeenCalledTimes(2)
   })
+  it.each(['queued', 'running', 'failed'] as const)(
+    'does not notify assistant lists of a successful publication for a %s installation',
+    async (status) => {
+      const operation: TemplateInstallation = { ...receipt, status, stage: 'importing' }
+      transport.create.mockResolvedValueOnce(operation)
+      transport.get.mockResolvedValueOnce(operation)
+      const component = fixture.componentInstance
+      const completed = jest.spyOn(component.completed, 'emit')
+      await component.start()
+      await component.client.refresh()
+      expect(xperts.refresh).not.toHaveBeenCalled()
+      expect(completed).not.toHaveBeenCalled()
+    }
+  )
   it('restores deleted targets as historical successes and creates a distinct intent only on explicit submission', async () => {
     await fixture.componentInstance.start()
     fixture.destroy()

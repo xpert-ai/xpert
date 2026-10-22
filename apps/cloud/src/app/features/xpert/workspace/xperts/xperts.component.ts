@@ -3,6 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -20,7 +21,7 @@ import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/ap
 import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { map, skip, switchMap } from 'rxjs/operators'
 import {
   getErrorMessage,
   IKnowledgebase,
@@ -126,8 +127,15 @@ export class XpertWorkspaceXpertsComponent {
 
   readonly loading = computed(() => this.#loading() || this.#xperts.status() === 'loading')
 
+  constructor() {
+    this.xpertService
+      .onRefresh()
+      // The resource already loads initially; ignore the BehaviorSubject's replay.
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe(() => this.refresh())
+  }
+
   refresh() {
-    // this.refresh$.next()
     this.#xperts.reload()
   }
 
