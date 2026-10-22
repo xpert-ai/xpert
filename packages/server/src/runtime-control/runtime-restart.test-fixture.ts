@@ -1,3 +1,6 @@
+import { runtimeAdmissionMonitorProvider, runtimePluginAdmissionProvider } from './runtime-admission.providers'
+import { RuntimeAdmissionMonitor } from './runtime-admission-monitor'
+import { readRuntimeTrafficOptions, RuntimeTrafficOptions } from './runtime-traffic-options'
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
@@ -194,6 +197,9 @@ export type RuntimeNode = {
 	replicaId: string
 	bootId: string
 	coordinator: RuntimeRestartCoordinatorService
+	admissionMonitor: RuntimeAdmissionMonitor
+	registry: RestartRegistry
+	destroy: () => Promise<void>
 	signaler: RuntimeProcessSignaler
 	lifecycle: RuntimeLifecycleService
 	reportPluginState: (state: RuntimePluginState) => void
@@ -211,7 +217,8 @@ export async function createNode(
 	replicaId: string,
 	bootId: string,
 	initialState: RuntimePluginState | null,
-	start = true
+	start = true,
+	trafficOptions: RuntimeTrafficOptions = readRuntimeTrafficOptions({})
 ): Promise<RuntimeNode> {
 	redis.members.set(replicaId, { instanceId: replicaId, bootId, ready: false, readyUntil: Date.now() + 45_000 })
 	const registry = {
@@ -231,9 +238,20 @@ export async function createNode(
 	} satisfies RestartRegistry
 	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
 	const lifecycle = new RuntimeLifecycleService()
-	const coordinator = new RuntimeRestartCoordinatorService(redis, signaler, lifecycle, registry)
+	const admission = await runtimePluginAdmissionProvider.useFactory(registry, lifecycle)
+	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission)
+	const coordinator = new RuntimeRestartCoordinatorService(
+		redis,
+		signaler,
+		lifecycle,
+		registry,
+		admission,
+		admissionMonitor,
+		trafficOptions
+	)
 	if (start) {
 		await coordinator.onModuleInit()
+		admissionMonitor.onApplicationBootstrap()
 		coordinator.onApplicationBootstrap()
 		await advance(0)
 	}
@@ -241,6 +259,12 @@ export async function createNode(
 		replicaId,
 		bootId,
 		coordinator,
+		admissionMonitor,
+		registry,
+		destroy: async () => {
+			admissionMonitor.onModuleDestroy()
+			await coordinator.onModuleDestroy()
+		},
 		signaler,
 		lifecycle,
 		reportPluginState: (state) => {

@@ -6,11 +6,13 @@ Xpert 可以主动退出当前 Node.js API 进程，由进程管理器启动替�
 
 仓库中的 Docker Compose API 服务通过 `pm2-runtime main.js` 启动。API 主动重启时，会向自己的 PID 发送信号，执行关闭流程并退出；随后由 PM2 启动新的 Node 进程。Docker 的容器重启策略作用于容器层面，API 子进程的替换由 PM2 负责。
 
+整体控制面、RuntimeAdmissionMonitor、入口摘流与 Desktop 恢复见 [Runtime Control 架构与实施计划](/zh-Hans/architecture/runtime-control)。协调式重启会先进入 withdrawing 并等待入口传播，再进入本文的排空和退出流程；外部停机信号可直接触发排空。
+
 ## 功能范围与职责
 
 | 组件                                             | 职责                                                                                         |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| `RuntimeRestartCoordinatorService`               | 协调各副本的重启和插件状态收敛，排空选中的副本，再请求发送 `SIGTERM`。                       |
+| `RuntimeRestartCoordinatorService`               | 协调各副本的重启和插件状态收敛，先摘流、再排空选中的副本，最后请求发送 `SIGTERM`。           |
 | `enableRuntimeShutdown`                          | 确保信号只触发一次关闭流程，启动进程退出计时器，执行准备阶段和 Nest 清理，最终退出当前 PID。 |
 | `prepareApiShutdown` / `RuntimeLifecycleService` | 拒绝新的业务请求，在操作队列前等待已接收的 HTTP 请求完成响应。                               |
 | `RuntimeQueueShutdownService`                    | 发现本地消费者，等待所有消费者完成排空等待，再关闭其队列或 worker 连接。                     |

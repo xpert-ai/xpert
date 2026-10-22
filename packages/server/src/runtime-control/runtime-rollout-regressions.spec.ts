@@ -1,3 +1,4 @@
+import { TRAFFIC_WITHDRAWAL_MS } from './runtime-traffic-withdrawal'
 import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
 import {
 	advance,
@@ -20,7 +21,7 @@ describe('Plugin rollout availability regressions', () => {
 		nodes = []
 	})
 	afterEach(async () => {
-		await Promise.all(nodes.map((node) => node.coordinator.onModuleDestroy()))
+		await Promise.all(nodes.map((node) => node.destroy()))
 		jest.useRealTimers()
 	})
 
@@ -33,7 +34,7 @@ describe('Plugin rollout availability regressions', () => {
 				await createNode(redis, 'api-2', 'boot-1', oldPluginState(), false),
 				await createNode(redis, 'api-3', 'boot-1', oldPluginState(), false)
 			)
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			if (source === 'plugin-change') await healthy.coordinator.recordPluginChange(requirement)
 			else await healthy.coordinator.requestRestart({ source })
 			// The operation eventually fails its deadline without ever draining the remaining API.
@@ -47,13 +48,13 @@ describe('Plugin rollout availability regressions', () => {
 	it('allows an explicitly approved single-replica outage', async () => {
 		const node = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
 		nodes.push(node)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await node.coordinator.requestRestart({
 			source: 'interactive',
 			allowDowntime: true,
 			runtimeRequirements: [requirement]
 		})
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(node.signaler.signal).toHaveBeenCalledTimes(1)
 		expect(node.signaler.signal).toHaveBeenCalledWith('SIGTERM')
 	})
@@ -61,11 +62,11 @@ describe('Plugin rollout availability regressions', () => {
 	it('does not pass outage consent from an earlier operation to a queued automatic change', async () => {
 		const node = await createNode(redis, 'api-1', 'boot-1', emptyPluginState())
 		nodes.push(node)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await node.coordinator.requestRestart({ source: 'interactive', allowDowntime: true })
-		await advance(2_000)
+		await advance(2_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(node.signaler.signal).toHaveBeenCalledWith('SIGTERM')
-		await node.coordinator.onModuleDestroy()
+		await node.destroy()
 		const queued = await node.coordinator.recordPluginChange(requirement)
 		const replacement = await createNode(redis, 'api-1', 'boot-2', emptyPluginState())
 		nodes.push(replacement)
@@ -81,15 +82,15 @@ describe('Plugin rollout availability regressions', () => {
 		const first = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
 		const second = await createNode(redis, 'api-2', 'boot-1', oldPluginState())
 		nodes.push(first, second)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const releases = nodes.map((node) => node.lifecycle.trackRequest())
 		await first.coordinator.recordPluginChange(requirement)
-		await advance(1_000)
+		await advance(2_000 + TRAFFIC_WITHDRAWAL_MS)
 		const candidate = nodes.find((node) => node.lifecycle.readiness().status === 'draining')!
 		expect(candidate).toBeDefined()
 		const peer = nodes.find((node) => node !== candidate)!
-		await peer.coordinator.onModuleDestroy()
-		await advance(6_000)
+		await peer.destroy()
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		releases.forEach((release) => release?.())
 		await advance(2_000)
 		expect(candidate.signaler.signal).not.toHaveBeenCalled()
@@ -100,28 +101,28 @@ describe('Plugin rollout availability regressions', () => {
 		const first = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
 		const second = await createNode(redis, 'api-2', 'boot-1', oldPluginState())
 		nodes.push(first, second)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const active = await first.coordinator.recordPluginChange(requirement)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const candidate = nodes.find((node) => jest.mocked(node.signaler.signal).mock.calls.length > 0)!
 		expect(candidate).toBeDefined()
-		await candidate.coordinator.onModuleDestroy()
+		await candidate.destroy()
 		const peer = nodes.find((node) => node !== candidate)!
 		const future = { ...requirement, pluginName: '@test/future-plugin', version: '1' }
 		const queued = await peer.coordinator.recordPluginChange(future)
 		const replacement = await createNode(redis, candidate.replicaId, 'boot-2', loadedPluginState())
 		nodes.push(replacement)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const activeStatus = await first.coordinator.getPluginConvergenceStatus(active.generation)
 		expect(await readTargets(redis, activeStatus!.restartId!)).toContainEqual(
 			expect.objectContaining({ replicaId: candidate.replicaId, status: 'completed' })
 		)
 		expect(replacement.lifecycle.readiness().status).toBe('ready')
 		expect(peer.signaler.signal).toHaveBeenCalledWith('SIGTERM')
-		await peer.coordinator.onModuleDestroy()
+		await peer.destroy()
 		const peerReplacement = await createNode(redis, peer.replicaId, 'boot-2', loadedPluginState())
 		nodes.push(peerReplacement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(first.coordinator.getPluginConvergenceStatus(active.generation)).resolves.toMatchObject({
 			status: 'completed'
 		})
@@ -130,12 +131,12 @@ describe('Plugin rollout availability regressions', () => {
 			const index = live.findIndex((node) => jest.mocked(node.signaler.signal).mock.calls.length > 0)
 			expect(index).toBeGreaterThanOrEqual(0)
 			const old = live[index]
-			await old.coordinator.onModuleDestroy()
+			await old.destroy()
 			const state = loadedPluginState()
 			state.plugins.push(future)
 			live[index] = await createNode(redis, old.replicaId, 'boot-3', state)
 			nodes.push(live[index])
-			await advance(6_000)
+			await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		}
 		await expect(first.coordinator.getPluginConvergenceStatus(queued.generation)).resolves.toMatchObject({
 			status: 'completed',
@@ -152,12 +153,12 @@ describe('Plugin rollout availability regressions', () => {
 		const second = await createNode(redis, 'api-2', 'boot-1', state)
 		nodes.push(first, second)
 		await first.coordinator.recordPluginChange(prior)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		const active = await first.coordinator.recordPluginChange(requirement)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const candidate = nodes.find((node) => jest.mocked(node.signaler.signal).mock.calls.length > 0)!
 		expect(candidate).toBeDefined()
-		await candidate.coordinator.onModuleDestroy()
+		await candidate.destroy()
 		await second.coordinator.recordPluginChange({ ...requirement, pluginName: '@test/future-plugin' })
 		const outsiderState = loadedPluginState()
 		outsiderState.plugins.push(prior)
@@ -168,7 +169,7 @@ describe('Plugin rollout availability regressions', () => {
 		expect(outsider.lifecycle.readiness().status).toBe('unready')
 		const replacement = await createNode(redis, candidate.replicaId, 'boot-2', loadedPluginState())
 		nodes.push(replacement)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(replacement.lifecycle.readiness().status).toBe('unready')
 		expect(outsider.lifecycle.readiness().status).toBe('unready')
 		expect(

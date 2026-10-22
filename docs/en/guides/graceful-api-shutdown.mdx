@@ -4,11 +4,13 @@ Xpert can shut down its current Node.js API process so that the process supervis
 
 The repository's Docker Compose API service runs `pm2-runtime main.js`. For a self-initiated restart, the API signals its own PID, performs shutdown, and exits; PM2 remains responsible for starting the next Node process. Docker's container restart policy applies at a different level and is not what replaces this child process.
 
+For the control plane, RuntimeAdmissionMonitor, ingress withdrawal and Desktop recovery, see [Runtime Control architecture and implementation plan](/en/architecture/runtime-control). A coordinated restart enters withdrawing and waits for ingress propagation before drain and shutdown; an external shutdown signal can initiate drain directly.
+
 ## Scope and ownership
 
 | Component                                        | Responsibility                                                                                                 |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `RuntimeRestartCoordinatorService`               | Coordinates replicas and plugin convergence, drains a selected replica, then requests `SIGTERM`.               |
+| `RuntimeRestartCoordinatorService`               | Coordinates replicas and plugin convergence, withdraws and drains a selected replica, then requests `SIGTERM`. |
 | `enableRuntimeShutdown`                          | Handles signals once, arms the process deadline, runs preparation and Nest cleanup, and exits the current PID. |
 | `prepareApiShutdown` / `RuntimeLifecycleService` | Reject new application requests and wait for accepted HTTP responses before touching queues.                   |
 | `RuntimeQueueShutdownService`                    | Discovers local consumers, waits at a common drain barrier, then closes their queue/worker connections.        |

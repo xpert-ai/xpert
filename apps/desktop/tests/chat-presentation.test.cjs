@@ -70,6 +70,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   let workbenchConnection
   const connectionRequests = []
   const sessionRequests = []
+  let sessionFailure
   const shell = {
     handlers: {},
     dialog: null,
@@ -119,13 +120,20 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       './host': {
         invoke: async (method, id) => {
           sessionRequests.push([method, id])
+          if (sessionFailure) throw sessionFailure
           return { secret: `test-only-${id}` }
         }
       },
       './theme': theme,
       './avatar/color': avatarColors
     },
-    { window: dom.window, document: dom.window.document, queueMicrotask, AbortController: dom.window.AbortController }
+    {
+      Error,
+      window: dom.window,
+      document: dom.window.document,
+      queueMicrotask,
+      AbortController: dom.window.AbortController
+    }
   )
   let appearance = structuredClone(defaults.appearance)
   appearance.chatkit.messagePresentation = 'bubbles'
@@ -156,6 +164,30 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  // A recovered session clears its failure without waiting for another iframe ready event.
+  sessionFailure = new Error('Xpert is restarting. Please reconnect shortly.')
+  await React.act(async () => {
+    await assert.rejects(received[0].api.getClientSecret(), /restarting/)
+  })
+  assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
+  sessionFailure = undefined
+  await React.act(async () => {
+    await received[0].api.getClientSecret()
+  })
+  assert.equal(document.querySelector('[role="alert"]'), null)
+  await React.act(() =>
+    element.dispatchEvent(
+      new dom.window.CustomEvent('chatkit.error', {
+        detail: { error: new Error('An unrelated tool error') }
+      })
+    )
+  )
+  await React.act(async () => {
+    await received[0].api.getClientSecret()
+  })
+  assert.match(document.querySelector('[role="alert"]').textContent, /unrelated tool/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
+  sessionRequests.length = 0
   assert.equal(workbenchConnection.assistantId(), 'test-bot')
   const connectionRequest = { assistantId: 'test-bot', bindingId: 'github' }
   await workbenchConnection.connect(connectionRequest)

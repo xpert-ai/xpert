@@ -1,3 +1,4 @@
+import { TRAFFIC_WITHDRAWAL_MS } from './runtime-traffic-withdrawal'
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import type { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
@@ -31,7 +32,7 @@ describe('Bulk plugin update rolling convergence', () => {
 		live = []
 	})
 	afterEach(async () => {
-		await Promise.all(nodes.map((node) => node.coordinator.onModuleDestroy()))
+		await Promise.all(nodes.map((node) => node.destroy()))
 		jest.useRealTimers()
 	})
 
@@ -43,7 +44,7 @@ describe('Bulk plugin update rolling convergence', () => {
 			nodes.push(node)
 			live.push(node)
 		}
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 	}
 
 	function candidate() {
@@ -60,7 +61,7 @@ describe('Bulk plugin update rolling convergence', () => {
 	}
 
 	async function replace(old: RuntimeNode, state: RuntimePluginState) {
-		await old.coordinator.onModuleDestroy()
+		await old.destroy()
 		const replacement = await createNode(redis, old.replicaId, `${old.bootId}-next`, state)
 		nodes.push(replacement)
 		live[live.indexOf(old)] = replacement
@@ -82,10 +83,10 @@ describe('Bulk plugin update rolling convergence', () => {
 			await startCluster()
 			const updated = baseline.map((item) => ({ ...item, version: '1.0.1' }))
 			const changes = [await live[0].coordinator.recordPluginChange(updated[0])]
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			const first = candidate()
 			const publisher = healthyPeer(first)
-			await first.coordinator.onModuleDestroy()
+			await first.destroy()
 			// Shared plugin configuration advances while the first process is restarting.
 			changes.push(await publisher.coordinator.recordPluginChange(updated[1]))
 			const intermediate = loaded([...updated.slice(0, 2), ...baseline.slice(2)])
@@ -96,7 +97,7 @@ describe('Bulk plugin update rolling convergence', () => {
 			})
 			if (activation.pluginGeneration === undefined) throw new Error('Expected a queued activation generation')
 			const replacement = await replace(first, bootManifest === 'latest' ? loaded(updated) : intermediate)
-			await advanceWithCapacity(5_000)
+			await advanceWithCapacity(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			expect(replacement.lifecycle.readiness().status).toBe('ready')
 			await expect(
 				publisher.coordinator.getPluginConvergenceStatus(changes[0].generation)
@@ -107,9 +108,9 @@ describe('Bulk plugin update rolling convergence', () => {
 			})
 			for (let round = 0; round < (bootManifest === 'latest' ? 2 : 3); round++) {
 				await replace(candidate(), loaded(updated))
-				await advanceWithCapacity(6_000)
+				await advanceWithCapacity(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			}
-			await advanceWithCapacity(5_000)
+			await advanceWithCapacity(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			for (const generation of [...changes.map((change) => change.generation), activation.pluginGeneration]) {
 				await expect(live[0].coordinator.getPluginConvergenceStatus(generation)).resolves.toMatchObject({
 					status: 'completed',
@@ -131,7 +132,7 @@ describe('Bulk plugin update rolling convergence', () => {
 			await startCluster()
 			const firstUpdate = { ...baseline[0], version: '1.0.1', runtimeRevision: 'revision-1' }
 			const first = await live[0].coordinator.recordPluginChange(firstUpdate)
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			const old = candidate()
 			const publisher = healthyPeer(old)
 			const next: IRuntimePluginRequirement =
@@ -141,11 +142,11 @@ describe('Bulk plugin update rolling convergence', () => {
 			const queued = await publisher.coordinator.recordPluginRequirements([next], 'Next bulk update')
 			const state = loaded([next, ...baseline.slice(1)])
 			const replacement = await replace(old, state)
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			expect(replacement.lifecycle.readiness().status).toBe('ready')
 			for (let round = 0; round < 2; round++) {
 				await replace(candidate(), state)
-				await advance(6_000)
+				await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			}
 			for (const generation of [first.generation, queued.generation]) {
 				await expect(live[0].coordinator.getPluginConvergenceStatus(generation)).resolves.toMatchObject({
@@ -163,10 +164,10 @@ describe('Bulk plugin update rolling convergence', () => {
 			await startCluster()
 			const firstUpdate = { ...baseline[0], version: '1.0.1' }
 			const first = await live[0].coordinator.recordPluginChange(firstUpdate)
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 			const old = candidate()
 			const publisher = healthyPeer(old)
-			await old.coordinator.onModuleDestroy()
+			await old.destroy()
 			const next = { ...baseline[1], version: '1.0.1' }
 			const state = loaded([firstUpdate, next, ...baseline.slice(2)])
 			const replacement = await createNode(redis, old.replicaId, 'boot-2', state, false)
@@ -203,8 +204,9 @@ describe('Bulk plugin update rolling convergence', () => {
 			})
 			try {
 				await replacement.coordinator.onModuleInit()
+				replacement.admissionMonitor.onApplicationBootstrap()
 				replacement.coordinator.onApplicationBootstrap()
-				await advanceWithCapacity(6_000)
+				await advanceWithCapacity(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			} finally {
 				readSpy.mockRestore()
 				writeSpy.mockRestore()
@@ -213,7 +215,7 @@ describe('Bulk plugin update rolling convergence', () => {
 			if (queuedGeneration === undefined) throw new Error('Expected publication during admission')
 			for (let round = 0; round < 2; round++) {
 				await replace(candidate(), state)
-				await advanceWithCapacity(6_000)
+				await advanceWithCapacity(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			}
 			for (const generation of [first.generation, queuedGeneration]) {
 				await expect(live[0].coordinator.getPluginConvergenceStatus(generation)).resolves.toMatchObject({
@@ -238,7 +240,7 @@ describe('Bulk plugin update rolling convergence', () => {
 		await startCluster()
 		const firstUpdate = { ...baseline[0], version: '1.0.1', runtimeRevision: 'revision-1' }
 		const first = await live[0].coordinator.recordPluginChange(firstUpdate)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const old = candidate()
 		const publisher = healthyPeer(old)
 		const secondUpdate = { ...baseline[1], version: '1.0.1' }

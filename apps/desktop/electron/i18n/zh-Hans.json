@@ -1361,5 +1361,7 @@
   "Shared templates": "共享模板",
   "Other sources": "其他来源",
   "Agent Plugins": "智能体插件",
-  "Xpert Plugins": "Xpert 插件"
+  "Xpert Plugins": "Xpert 插件",
+  "Xpert is restarting. Please reconnect shortly.": "Xpert 正在重启，请稍后重新连接。",
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert 暂时不可用，请稍后重新连接。"
 }

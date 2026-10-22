@@ -1,7 +1,7 @@
 /**
- * Invariants: production API processes run under PM2 inside Docker.
- * This module signals one replica at a time; the process supervisor starts each replacement.
- * Local development must run through a watcher such as nodemon for restart recovery.
+ * Invariants: admission monitoring has its own provider lifecycle, independent of restart execution.
+ * The current rolling-self-signal executor requires a supervisor (PM2 or a development watcher).
+ * Runtime completion does not acknowledge ingress readmission.
  */
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
@@ -14,6 +14,8 @@ import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import { RUNTIME_PROCESS_SIGNALER, RuntimeProcessSignaler } from './runtime-process-signaler'
 import { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
 import { RuntimeQueueShutdownService } from './runtime-queue-shutdown.service'
+import { runtimeAdmissionMonitorProvider, runtimePluginAdmissionProvider } from './runtime-admission.providers'
+import { RUNTIME_TRAFFIC_OPTIONS, readRuntimeTrafficOptions } from './runtime-traffic-options'
 
 const processSignaler: RuntimeProcessSignaler = {
 	signal: (signal) => {
@@ -26,6 +28,9 @@ const processSignaler: RuntimeProcessSignaler = {
 	controllers: [RuntimeControlController],
 	providers: [
 		RuntimeLifecycleService,
+		runtimePluginAdmissionProvider,
+		runtimeAdmissionMonitorProvider,
+		{ provide: RUNTIME_TRAFFIC_OPTIONS, useFactory: () => readRuntimeTrafficOptions() },
 		RuntimeDrainMiddleware,
 		RuntimeRestartCoordinatorService,
 		RuntimeControlService,
