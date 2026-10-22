@@ -23,6 +23,19 @@ const ACTION_VERSION = '9.1.0'
 const SANDBOX_RUNTIME_VERSION = new SandboxRuntimeDefinitionRegistry().require(PROFILE).sandboxRuntimeVersion
 
 describe('sandbox runner output formatting', () => {
+    it.each([
+        ['SANDBOX_DEPENDENCY_MISSING', false],
+        ['EXPORT_CONVERSION_FAILED', false],
+        ['EXPORT_TEXT_EXTRACTION_FAILED', false],
+        ['EXPORT_TIMEOUT', true]
+    ])('preserves %s and its retry policy', (code, retryable) => {
+        expect(classifyRunnerFailure(`${code}: document command failed`, 'job-1')).toMatchObject({
+            code,
+            retryable,
+            jobId: 'job-1'
+        })
+    })
+
     it('preserves the beginning and root-cause tail of long runner output', () => {
         const result = truncateSandboxRunnerOutput(`START:${'worker-log\n'.repeat(600)}ROOT_CAUSE_END`)
 
@@ -867,3 +880,33 @@ function successfulExecution() {
         truncated: false
     }
 }
+
+describe('document failure persistence', () => {
+    it.each([
+        'SANDBOX_DEPENDENCY_MISSING',
+        'EXPORT_CONVERSION_FAILED',
+        'EXPORT_TEXT_EXTRACTION_FAILED',
+        'EXPORT_TIMEOUT'
+    ])('persists %s without publishing partial outputs', async (code) => {
+        const harness = await createExecuteHarness()
+        try {
+            harness.runtime.execute.mockResolvedValueOnce({
+                ...successfulExecution(),
+                exitCode: 1,
+                timedOut: code === 'EXPORT_TIMEOUT',
+                output: `${code}: document command failed`
+            })
+            await expect(harness.execute()).rejects.toMatchObject({ code })
+            expect(harness.repository.save).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    status: 'failed',
+                    errorCode: code,
+                    errorMessage: expect.any(String)
+                })
+            )
+            expect(harness.workspaceFiles.uploadBuffer).not.toHaveBeenCalled()
+        } finally {
+            await harness.dispose()
+        }
+    })
+})

@@ -13,7 +13,7 @@ import uuid
 URL = os.environ.get("XPERT_NSJAIL_POC_URL", "http://127.0.0.1:8090").rstrip("/")
 TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "")
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-PROFILES = {"node": "document/node-20/v1", "java": "document/java-17/v1"}
+PROFILES = {"libreoffice": "document/libreoffice-v1", "node": "document/node-20/v1", "java": "document/java-17/v1"}
 
 
 def request(route, data=None, method=None, token=TOKEN):
@@ -83,11 +83,11 @@ class DocumentIntegrationTest(unittest.TestCase):
                 identity = self.create(family, """
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
-execFileSync('node', ['/opt/xpert/sandbox-runtime/verify-document-runtime.mjs',
+execFileSync('node', FAMILY === 'libreoffice' ? ['/opt/xpert/sandbox-runtime/verify-document-preview.mjs'] : ['/opt/xpert/sandbox-runtime/verify-document-runtime.mjs',
  '/opt/xpert/sandbox-runtime/manifest.json', '/opt/xpert/sandbox-runtime/dependencies.lock.json',
  '/opt/xpert/document-dependencies'], {timeout:85000, stdio:'inherit'});
 writeFileSync('/workspace/output/result.json', JSON.stringify({verified:true}));
-""")
+""".replace("FAMILY", json.dumps(family)))
                 result = self.execute(family, identity)
                 self.assertEqual(result["exitCode"], 0, result)
                 downloaded = rpc(f"/v1/document/{family}/jobs/{identity}/files/download", {"paths": ["/workspace/output/result.json"]})[0]

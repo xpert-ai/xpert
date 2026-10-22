@@ -7,7 +7,7 @@ from unittest import mock
 
 import runner
 from compute_process import ComputeJob
-from document_service import DocumentNodeJob, DocumentJavaJob, DocumentNodeService, DocumentJavaService
+from document_service import DocumentNodeJob, DocumentJavaJob, DocumentNodeService, DocumentJavaService, DocumentLibreOfficeJob, DocumentLibreOfficeService
 
 DEFINITIONS = pathlib.Path(__file__).resolve().parents[2] / 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions'
 
@@ -20,8 +20,9 @@ class DocumentPolicyTest(unittest.TestCase):
         compute = ComputeJob('a' * 64, self.definition('compute-node-python-v1.json'))
         node = DocumentNodeJob('a' * 64, self.definition('document-node-20-v1.json'))
         java = DocumentJavaJob('a' * 64, self.definition('document-java-17-v1.json'))
-        self.assertEqual(len({job.root for job in [compute, node, java]}), 3)
-        for job in [node, java]:
+        office = DocumentLibreOfficeJob('a' * 64, self.definition('document-libreoffice-v1.json'))
+        self.assertEqual(len({job.root for job in [compute, node, java, office]}), 4)
+        for job in [node, java, office]:
             args = job.args(['node', '/trusted.mjs'], 300000)
             self.assertEqual(args[args.index('--chroot') + 1], str(job.rootfs))
             self.assertEqual(args[args.index('--cgroup_mem_max') + 1], str(job.definition['resources']['memoryMb'] * 1024 * 1024))
@@ -40,7 +41,7 @@ class DocumentPolicyTest(unittest.TestCase):
         self.assertEqual(java.args(['node'], 1)[java.args(['node'], 1).index(topology) - 1], '--bindmount_ro')
 
     def test_only_the_exact_document_definition_is_accepted(self):
-        for service_class, file in [(DocumentNodeService, 'document-node-20-v1.json'), (DocumentJavaService, 'document-java-17-v1.json')]:
+        for service_class, file in [(DocumentLibreOfficeService, 'document-libreoffice-v1.json'), (DocumentNodeService, 'document-node-20-v1.json'), (DocumentJavaService, 'document-java-17-v1.json')]:
             service = service_class.__new__(service_class)
             service.definition = self.definition(file)
             service.jobs = {}
@@ -59,7 +60,7 @@ class DocumentPolicyTest(unittest.TestCase):
             root = pathlib.Path(temporary) / ('a' * 64)
             root.mkdir()
             (root / 'owner.json').write_text(json.dumps({'version': 1, 'cgroup': 'xpert-compute-' + 'b' * 32 + '-' + root.name}))
-            for job_class in [DocumentNodeJob, DocumentJavaJob]:
+            for job_class in [DocumentNodeJob, DocumentJavaJob, DocumentLibreOfficeJob]:
                 with self.assertRaisesRegex(RuntimeError, 'ownership marker'):
                     job_class.recover(root, self.definition('document-node-20-v1.json'))
             self.assertTrue(root.exists())

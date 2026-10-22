@@ -1,5 +1,5 @@
 """Document profiles reuse the Jobs isolation engine with immutable, separate root filesystems.
-Only Java gets loopback for its job-local OCR service; neither profile has external networking.
+Only Java gets loopback for its job-local OCR service; no profile has external networking.
 """
 from pathlib import Path
 
@@ -19,6 +19,13 @@ class DocumentNodeJob(ComputeJob):
         "OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
         "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
     }
+
+
+class DocumentLibreOfficeJob(DocumentNodeJob):
+    rootfs = Path("/opt/xpert-document-libreoffice-rootfs")
+    state_root = Path("/run/xpert-document-libreoffice")
+    namespace = "document-libreoffice"
+    environment = {"XPERT_SANDBOX_RUNTIME_MANIFEST_PATH": "/opt/xpert/sandbox-runtime/manifest.json"}
 
 
 class DocumentJavaJob(DocumentNodeJob):
@@ -44,4 +51,10 @@ class DocumentJavaService(DocumentNodeService):
     job_class = DocumentJavaJob
 
 
-DOCUMENT_SERVICES = {"node": DocumentNodeService, "java": DocumentJavaService}
+class DocumentLibreOfficeService(DocumentNodeService):
+    rootfs = DocumentLibreOfficeJob.rootfs
+    state_root = DocumentLibreOfficeJob.state_root
+    job_class = DocumentLibreOfficeJob
+
+
+DOCUMENT_SERVICES = {"libreoffice": DocumentLibreOfficeService, "node": DocumentNodeService, "java": DocumentJavaService}

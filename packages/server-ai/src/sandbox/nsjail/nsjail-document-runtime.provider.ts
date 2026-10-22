@@ -3,6 +3,7 @@ import { SandboxJobRuntimeError, SandboxRuntimeProviderStrategy } from '@xpert-a
 import {
     SandboxRuntimeDefinitionRegistry,
     DOCUMENT_NODE_RUNTIME_PROFILE,
+    DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     DOCUMENT_JAVA_RUNTIME_PROFILE
 } from '../sandbox-job/sandbox-runtime-definition.registry'
 import { getNsjailMessage } from './nsjail-i18n'
@@ -18,6 +19,13 @@ export class NsjailDocumentRuntimeProvider extends NsjailJobRuntimeProvider {
             definitions,
             NSJAIL_DOCUMENT_PROVIDER,
             [
+                {
+                    name: DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
+                    bindingId: 'nsjail-document:libreoffice-v1',
+                    route: '/v1/document/libreoffice',
+                    healthTimeoutMs: 75_000,
+                    digest: 'manifest'
+                },
                 {
                     name: DOCUMENT_NODE_RUNTIME_PROFILE,
                     bindingId: 'nsjail-document:node-20-v1',

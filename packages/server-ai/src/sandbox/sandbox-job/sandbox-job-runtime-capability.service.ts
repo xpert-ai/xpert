@@ -955,7 +955,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         for (const job of expired) {
             job.status = 'lost'
             job.progress = lifecycleSandboxJobProgress(job.progress, 'lost')
-            job.errorCode = 'SANDBOX_START_FAILED'
+            job.errorCode = 'EXPORT_TIMEOUT'
             job.errorMessage = 'Sandbox job exceeded its hard deadline and was reclaimed.'
             job.finishedAt = new Date()
             await this.repository.save(job)

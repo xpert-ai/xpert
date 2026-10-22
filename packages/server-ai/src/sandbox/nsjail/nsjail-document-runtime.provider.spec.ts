@@ -64,9 +64,13 @@ describe('NsJail managed document profiles', () => {
         expect(fetchSpy).not.toHaveBeenCalled()
     })
 
-    it('registers both hardened document profiles in production', async () => {
+    it('registers all hardened document profiles in production', async () => {
         fetchSpy.mockImplementation(async (url) => {
-            const profile = String(url).endsWith('/node/health') ? 'document/node-20/v1' : 'document/java-17/v1'
+            const profile = String(url).endsWith('/libreoffice/health')
+                ? 'document/libreoffice-v1'
+                : String(url).endsWith('/node/health')
+                  ? 'document/node-20/v1'
+                  : 'document/java-17/v1'
             const definition = definitions.require(profile)
             return new Response(
                 JSON.stringify({
@@ -102,6 +106,7 @@ describe('NsJail managed document profiles', () => {
     })
 
     it.each([
+        ['document/libreoffice-v1', 'libreoffice'],
         ['document/node-20/v1', 'node'],
         ['document/java-17/v1', 'java']
     ])('%s uses only its fixed RPC and policy', async (profile, route) => {
@@ -121,7 +126,7 @@ describe('NsJail managed document profiles', () => {
         expect(fetchSpy).not.toHaveBeenCalled()
     })
 
-    it.each(['document/node-20/v1', 'document/java-17/v1'])(
+    it.each(['document/libreoffice-v1', 'document/node-20/v1', 'document/java-17/v1'])(
         '%s fails closed on old Runner or dependency drift',
         async (profile) => {
             const input = options(profile)
@@ -133,7 +138,7 @@ describe('NsJail managed document profiles', () => {
                         protocolVersion: 1,
                         available: true,
                         definition: input.definition,
-                        manifest: { ...input.definition.expectedManifest, dependenciesSha256: 'wrong' }
+                        manifest: { ...input.definition.expectedManifest, nodeVersion: 'wrong' }
                     })
                 )
             )

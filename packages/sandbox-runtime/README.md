@@ -80,3 +80,9 @@ node packages/sandbox-runtime/scripts/verify-image.mjs --family document-java --
 ```
 
 Neither command installs a plugin into an API process. Production activation still requires publishing the Runtime artifact and binding its digest through the configured Provider. Local process bindings remain disabled outside development/test.
+
+## LibreOffice preview readiness
+
+The document image includes `poppler-utils`, fontconfig, Noto CJK and Noto Color Emoji. Its build and image smoke check execute `images/document/runtime/verify-document-preview.mjs`: tool versions, exact font matches, a two-page DOCX conversion, PDF signature and UTF-8 text with page delimiters. Docker action readiness and NsJail's isolated document probe run the same check. Local development needs these dependencies on its effective PATH as well.
+
+Release this change through the Runtime Suite version/Changesets workflow and regenerate the Pro release lock with the published digest. Do not overwrite an existing image version or fabricate a production digest. Action failures now distinguish `SANDBOX_DEPENDENCY_MISSING`, `EXPORT_CONVERSION_FAILED`, `EXPORT_TEXT_EXTRACTION_FAILED` and `EXPORT_TIMEOUT`; both PDF and text remain required outputs.

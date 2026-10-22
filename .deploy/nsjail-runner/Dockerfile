@@ -1,3 +1,4 @@
+ARG DOCUMENT_LIBREOFFICE_ROOTFS=document-libreoffice-build
 ARG DOCUMENT_NODE_ROOTFS=document-node-build
 ARG DOCUMENT_JAVA_ROOTFS=document-java-build
 ARG NSJAIL_VERSION=3.6
@@ -52,6 +53,21 @@ COPY packages/sandbox-runtime/images/compute/runtime/manifest.json /opt/xpert/sa
 COPY packages/sandbox-runtime/images/compute/runtime/smoke.mjs /opt/xpert/sandbox-runtime/compute-smoke.mjs
 COPY packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json /opt/xpert/sandbox-runtime/definition.json
 COPY .deploy/nsjail-runner/compute-probe.mjs /opt/xpert/sandbox-runtime/nsjail-probe.mjs
+RUN mkdir -p /workspace/input /workspace/output /workspace/runtime /workspace/invocations /dev/shm /proc /tmp /run && \
+    touch /dev/null /dev/zero /dev/random /dev/urandom
+
+# LibreOffice uses the same offline dependencies and end-to-end probe as the document image.
+FROM node:20.20.2-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS document-libreoffice-build
+RUN apt-get update && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc poppler-utils fontconfig fonts-noto-cjk fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
+COPY packages/sandbox-runtime/images/browser/runtime/runner-host.mjs /opt/xpert/sandbox-runtime/runner-host.mjs
+COPY packages/sandbox-runtime/images/document/runtime/ /opt/xpert/sandbox-runtime/
+ENV HOME=/tmp/xpert TMPDIR=/tmp/xpert
+RUN mkdir -p /tmp/xpert && node /opt/xpert/sandbox-runtime/verify-document-preview.mjs
+
+FROM ${DOCUMENT_LIBREOFFICE_ROOTFS} AS document-libreoffice-rootfs
+USER root
+COPY packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-libreoffice-v1.json /opt/xpert/sandbox-runtime/definition.json
+COPY .deploy/nsjail-runner/document-probe.mjs /opt/xpert/sandbox-runtime/nsjail-probe.mjs
 RUN mkdir -p /workspace/input /workspace/output /workspace/runtime /workspace/invocations /dev/shm /proc /tmp /run && \
     touch /dev/null /dev/zero /dev/random /dev/urandom
 
@@ -119,6 +135,7 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
 COPY --from=nsjail-build /src/nsjail/nsjail /usr/local/bin/nsjail
 COPY --from=jail-rootfs / /opt/xpert-rootfs/
 COPY --from=compute-rootfs / /opt/xpert-compute-rootfs/
+COPY --from=document-libreoffice-rootfs / /opt/xpert-document-libreoffice-rootfs/
 COPY --from=document-node-rootfs / /opt/xpert-document-node-rootfs/
 COPY --from=document-java-rootfs / /opt/xpert-document-java-rootfs/
 RUN mkdir -p \
@@ -129,6 +146,7 @@ RUN mkdir -p \
       /opt/xpert-rootfs/tmp \
       /opt/xpert-rootfs/workspace \
       /opt/xpert-compute-rootfs/dev/shm \
+      /opt/xpert-document-libreoffice-rootfs/dev/shm \
       /opt/xpert-document-node-rootfs/dev/shm \
       /opt/xpert-document-java-rootfs/dev/shm \
       /opt/xpert-document-java-rootfs/sys/devices/system/cpu \
@@ -143,7 +161,7 @@ RUN mkdir -p \
 RUN touch /opt/xpert-compute-rootfs/dev/null /opt/xpert-compute-rootfs/dev/zero \
       /opt/xpert-compute-rootfs/dev/random /opt/xpert-compute-rootfs/dev/urandom
 # Docker does not copy the build stages' transient /dev mounts into these rootfs trees.
-RUN for root in /opt/xpert-document-node-rootfs /opt/xpert-document-java-rootfs; do \
+RUN for root in /opt/xpert-document-libreoffice-rootfs /opt/xpert-document-node-rootfs /opt/xpert-document-java-rootfs; do \
       touch "$root/dev/null" "$root/dev/zero" "$root/dev/random" "$root/dev/urandom"; \
     done
 

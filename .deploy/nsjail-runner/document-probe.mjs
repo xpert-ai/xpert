@@ -36,15 +36,18 @@ for (const host of ['1.1.1.1', '169.254.169.254']) {
     })
   })
 }
+const manifest = JSON.parse(readFileSync('/opt/xpert/sandbox-runtime/manifest.json', 'utf8'))
 execFileSync(
   'node',
-  [
-    '/opt/xpert/sandbox-runtime/verify-document-runtime.mjs',
-    '/opt/xpert/sandbox-runtime/manifest.json',
-    '/opt/xpert/sandbox-runtime/dependencies.lock.json',
-    '/opt/xpert/document-dependencies',
-    '--readiness'
-  ],
+  manifest.profileName === 'document/libreoffice-v1'
+    ? ['/opt/xpert/sandbox-runtime/verify-document-preview.mjs']
+    : [
+        '/opt/xpert/sandbox-runtime/verify-document-runtime.mjs',
+        '/opt/xpert/sandbox-runtime/manifest.json',
+        '/opt/xpert/sandbox-runtime/dependencies.lock.json',
+        '/opt/xpert/document-dependencies',
+        '--readiness'
+      ],
   { timeout: 55000, stdio: ['ignore', 'pipe', 'pipe'] }
 )
 process.stdout.write(execFileSync('node', ['/opt/xpert/sandbox-runtime/runner-host.mjs', '--manifest']))
