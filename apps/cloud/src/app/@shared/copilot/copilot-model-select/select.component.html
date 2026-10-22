@@ -18,10 +18,11 @@
 <div
   xpDialogControl="single"
   #modelContainer
-  #mt="cdkMenuTriggerFor"
   class="model-select-trigger group/container flex w-full items-center px-1 h-8 rounded-lg border border-divider-regular bg-components-input-bg-normal hover:border-divider-deep"
-  [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
-  [cdkMenuTriggerData]="{ mt: mt }"
+  [cdkMenuTriggerFor]="interactionDisabled() ? null : modelsMenu"
+  [attr.aria-disabled]="interactionDisabled()"
+  [attr.tabindex]="interactionDisabled() ? -1 : 0"
+  [attr.aria-label]="(label() | i18n) || ('XP.Copilot.SelectModel' | translate: { Default: 'Select model' })"
   (cdkMenuOpened)="syncActiveCopilotTab()"
   [cdkMenuPosition]="[
     {
@@ -44,8 +45,11 @@
     @if (inheritModel()) {
       @if (isInherit()) {
         <i class="ri-skip-up-line mx-1" [zTooltip]="'XP.Copilot.Inherited' | translate: { Default: 'Inherited' }"></i>
-      } @else if (!readonly() && clearable()) {
+      } @else if (!interactionDisabled() && clearable()) {
         <button
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+          (keydown)="$event.stopPropagation()"
           class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
           [zTooltip]="
             'XP.Copilot.DelCopilotModelUseInherit'
@@ -56,8 +60,11 @@
           <i class="ri-close-line"></i>
         </button>
       }
-    } @else if (!isInherit() && !readonly() && clearable()) {
+    } @else if (!isInherit() && !interactionDisabled() && clearable()) {
       <button
+        type="button"
+        [attr.aria-label]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+        (keydown)="$event.stopPropagation()"
         class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
         (click)="$event.stopPropagation(); delete()"
       >
@@ -185,7 +192,7 @@
       </div>
     }
 
-    @if (!readonly()) {
+    @if (!interactionDisabled()) {
       <svg
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
@@ -201,7 +208,7 @@
     }
   </div>
 
-  @if (!readonly()) {
+  @if (!interactionDisabled() && showParameters()) {
     <div
       class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-hover-bg hover:border-divider-deep"
       #parametersTrigger="cdkMenuTriggerFor"
@@ -229,7 +236,7 @@
   }
 </div>
 
-@if (modelParameterRulesError()) {
+@if (showParameters() && modelParameterRulesError()) {
   <z-alert
     class="mt-2"
     zType="destructive"
@@ -242,6 +249,7 @@
   <div
     #menu="cdkMenu"
     cdkMenu
+    (keydown)="$event.key === 'Escape' && $event.stopPropagation()"
     class="xp-cdk-menu copilot-model-parameters-menu w-[460px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl"
   >
     <div class="flex items-center justify-between mb-2">
@@ -286,12 +294,13 @@
   </div>
 </ng-template>
 
-<ng-template #modelsMenu let-mt="mt">
+<ng-template #modelsMenu>
   @let menuWidth = getMenuWidth(modelContainer);
   @let menuRailWidth = getMenuRailWidth(menuWidth);
   <div
     #menu="cdkMenu"
     cdkMenu
+    (keydown)="$event.key === 'Escape' && $event.stopPropagation()"
     class="xp-cdk-menu flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden pl-2"
     [style.width.px]="menuWidth"
     [style.height.px]="getMenuMaxHeight(modelContainer)"
@@ -450,7 +459,6 @@
                   [ngTemplateOutlet]="copilotModels"
                   [ngTemplateOutletContext]="{
                     $implicit: copilot,
-                    mt: mt,
                     menuWidth: menuWidth,
                     menuRailWidth: menuRailWidth
                   }"
@@ -470,100 +478,104 @@
       <span class="system-xs-medium">{{ 'XP.Copilot.ModelConfig' | translate: { Default: 'Model config' } }}</span>
       <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
     </a>
-  </div>
-</ng-template>
 
-<ng-template #copilotModels let-copilot let-mt="mt" let-menuWidth="menuWidth" let-menuRailWidth="menuRailWidth">
-  @let showInlineTags = showInlineModelTags(menuWidth, menuRailWidth);
-  @let visibleModels = getVisibleCopilotModels(copilot);
+    <ng-template #copilotModels let-copilot let-menuWidth="menuWidth" let-menuRailWidth="menuRailWidth">
+      @let showInlineTags = showInlineModelTags(menuWidth, menuRailWidth);
+      @let visibleModels = getVisibleCopilotModels(copilot);
 
-  <div class="sticky top-0 z-10 flex items-center bg-components-card-bg px-4 pb-3 pt-4 text-base font-semibold">
-    <div class="min-w-0 text-left">
-      <span>{{ copilot.providerWithModels?.label | i18n }}</span>
-      <span class="mx-1">•</span>
-      <span>
-        @if (copilot.name) {
-          <span>{{ copilot.name }}</span>
-        } @else {
-          <span class="uppercase">{{ 'XP.Copilot.Role_' + copilot.role | translate: { Default: copilot.role } }}</span>
-        }
-      </span>
-    </div>
-  </div>
-
-  @for (item of visibleModels; track item.model) {
-    <ng-template #modelTagsPreview>
-      <div class="w-[220px] p-3">
-        <div class="flex min-w-0 items-center gap-2">
-          @if (copilot.providerWithModels.icon_small) {
-            <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0" />
-          }
-          <div class="min-w-0 truncate text-[13px] font-semibold text-text-primary" [title]="item.model">
-            {{ item.model }}
-          </div>
-        </div>
-        <div class="mt-2 flex flex-wrap gap-1">
-          @for (tag of modelDisplayTags(item); track tag.id) {
-            <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap"
-            >
-              @if (tag.iconClass) {
-                <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
-              }
-              {{ tag.defaultText }}
-            </div>
-          }
+      <div class="sticky top-0 z-10 flex items-center bg-components-card-bg px-4 pb-3 pt-4 text-base font-semibold">
+        <div class="min-w-0 text-left">
+          <span>{{ copilot.providerWithModels?.label | i18n }}</span>
+          <span class="mx-1">•</span>
+          <span>
+            @if (copilot.name) {
+              <span>{{ copilot.name }}</span>
+            } @else {
+              <span class="uppercase">{{
+                'XP.Copilot.Role_' + copilot.role | translate: { Default: copilot.role }
+              }}</span>
+            }
+          </span>
         </div>
       </div>
-    </ng-template>
-    <button
-      type="button"
-      class="flex w-full min-w-0 items-center justify-start gap-0.5 rounded-xl px-2.5 py-2 text-left cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
-      [ngClass]="
-        copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
-          ? 'bg-components-card-bg text-primary-600 font-semibold'
-          : ''
-      "
-      [class.opacity-60]="item.deprecated"
-      [zTooltip]="
-        item.deprecated
-          ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' })
-          : showInlineTags
-            ? null
-            : modelTagsPreview
-      "
-      [zTooltipClass]="
-        item.deprecated || showInlineTags
-          ? ''
-          : 'px-0 py-0 rounded-xl border border-divider-regular bg-components-card-bg text-text-primary shadow-lg [&>span]:hidden'
-      "
-      zPosition="left"
-      [disabled]="item.deprecated"
-      (click)="setModel(copilot, item); mt.close()"
-    >
-      @if (copilot.providerWithModels.icon_small) {
-        <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0 inline-block" />
-      }
-      <span
-        class="min-w-0 flex-1 truncate"
-        [title]="item.model"
-        [xpHighlight]="searchTerm()"
-        [content]="item.model"
-        customClasses="text-primary-600"
-        >{{ item.model }}</span
-      >
-      @if (showInlineTags) {
-        @for (tag of modelDisplayTags(item); track tag.id) {
-          <div
-            class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap opacity-60"
-          >
-            @if (tag.iconClass) {
-              <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
-            }
-            {{ tag.defaultText }}
+
+      @for (item of visibleModels; track item.model) {
+        <ng-template #modelTagsPreview>
+          <div class="w-[220px] p-3">
+            <div class="flex min-w-0 items-center gap-2">
+              @if (copilot.providerWithModels.icon_small) {
+                <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0" />
+              }
+              <div class="min-w-0 truncate text-[13px] font-semibold text-text-primary" [title]="item.model">
+                {{ item.model }}
+              </div>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-1">
+              @for (tag of modelDisplayTags(item); track tag.id) {
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap"
+                >
+                  @if (tag.iconClass) {
+                    <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                  }
+                  {{ tag.defaultText }}
+                </div>
+              }
+            </div>
           </div>
-        }
+        </ng-template>
+        <button
+          type="button"
+          class="flex w-full min-w-0 items-center justify-start gap-0.5 rounded-xl px-2.5 py-2 text-left cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
+          [ngClass]="
+            copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
+              ? 'bg-components-card-bg text-primary-600 font-semibold'
+              : ''
+          "
+          [class.opacity-60]="item.deprecated"
+          [zTooltip]="
+            item.deprecated
+              ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' })
+              : showInlineTags
+                ? null
+                : modelTagsPreview
+          "
+          [zTooltipClass]="
+            item.deprecated || showInlineTags
+              ? ''
+              : 'px-0 py-0 rounded-xl border border-divider-regular bg-components-card-bg text-text-primary shadow-lg [&>span]:hidden'
+          "
+          zPosition="left"
+          cdkMenuItem
+          [cdkMenuItemDisabled]="item.deprecated || interactionDisabled()"
+          [disabled]="item.deprecated || interactionDisabled()"
+          (cdkMenuItemTriggered)="setModel(copilot, item)"
+        >
+          @if (copilot.providerWithModels.icon_small) {
+            <img [src]="copilot.providerWithModels.icon_small | i18n" class="h-4 w-4 shrink-0 inline-block" />
+          }
+          <span
+            class="min-w-0 flex-1 truncate"
+            [title]="item.model"
+            [xpHighlight]="searchTerm()"
+            [content]="item.model"
+            customClasses="text-primary-600"
+            >{{ item.model }}</span
+          >
+          @if (showInlineTags) {
+            @for (tag of modelDisplayTags(item); track tag.id) {
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap opacity-60"
+              >
+                @if (tag.iconClass) {
+                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+                }
+                {{ tag.defaultText }}
+              </div>
+            }
+          }
+        </button>
       }
-    </button>
-  }
+    </ng-template>
+  </div>
 </ng-template>

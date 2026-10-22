@@ -30,21 +30,18 @@
             <p role="status" class="text-sm text-text-destructive">{{ setup.reason }}</p>
           }
           @if (setup.models.length) {
-            <label class="block space-y-2"
-              ><span>{{ 'XP.Installation.Model' | translate: { Default: 'Language model' } }}</span>
-              <select
-                class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
-                formControlName="model"
-                [required]="setup.requiresModel || !!setup.requiredModelFeatures.length"
-              >
-                <option value="">
-                  {{ 'XP.Installation.SelectModel' | translate: { Default: 'Select a model' } }}
-                </option>
-                @for (model of setup.models; track model.id) {
-                  <option [value]="model.id">{{ model.label }}</option>
-                }
-              </select>
-            </label>
+            <copilot-model-select
+              class="block min-w-0"
+              [label]="'XP.Installation.Model' | translate: { Default: 'Language model' }"
+              [modelType]="modelType"
+              [allowedModels]="allowedModels()"
+              [showParameters]="false"
+              [required]="setup.requiresModel || !!setup.requiredModelFeatures.length"
+              [readonly]="state().busy || loading()"
+              [ngModel]="selectedModel()"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="selectModel($event)"
+            />
           }
           @for (capability of setup.optionalCapabilities; track capability.key) {
             <label class="flex items-start gap-2"
