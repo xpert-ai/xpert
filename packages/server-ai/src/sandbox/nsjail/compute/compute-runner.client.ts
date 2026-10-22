@@ -1,4 +1,4 @@
-// Invariants: this client speaks only the fixed Compute Jobs protocol, never interactive exec.
+// Invariants: this client speaks only the fixed Jobs protocol, never interactive exec.
 // Deadlines cover the response body as well as headers; Runner diagnostics never become public errors.
 import type {
     SandboxRuntimeDefinition,
@@ -19,34 +19,55 @@ import {
 } from './compute-contract'
 
 const MAX_RESPONSE_BYTES = 64 * 1024 * 1024
-const ROOT = '/v1/compute'
+export type NsjailJobClientOptions = {
+    root: string
+    healthTimeoutMs: number
+    unavailable: typeof computeUnavailable
+}
+const DEFAULT_OPTIONS: NsjailJobClientOptions = {
+    root: '/v1/compute',
+    healthTimeoutMs: 15_000,
+    unavailable: computeUnavailable
+}
 
 export class NsjailComputeClient {
-    constructor(private readonly config: NsjailRunnerConfig) {}
+    constructor(
+        private readonly config: NsjailRunnerConfig,
+        private readonly options = DEFAULT_OPTIONS
+    ) {}
 
     async health(definition: SandboxRuntimeDefinition): Promise<Record<string, string>> {
-        const health = healthSchema.parse(await this.json(`${ROOT}/health`, 'GET', undefined, 15_000))
+        const health = healthSchema.parse(
+            await this.json(`${this.options.root}/health`, 'GET', undefined, this.options.healthTimeoutMs)
+        )
         if (
             !health.available ||
             !health.manifest ||
             !isDeepStrictEqual(health.definition, definition) ||
             Object.entries(definition.expectedManifest).some(([key, value]) => health.manifest[key] !== value)
         )
-            throw computeUnavailable()
+            throw this.options.unavailable()
         return health.manifest
     }
 
     async create(id: string, definition: SandboxRuntimeDefinition): Promise<void> {
         const result = z.object({ runtimeId: z.literal(id) }).strict()
-        result.parse(await this.json(`${ROOT}/jobs`, 'POST', { runtimeId: id, definition }, 20_000))
+        result.parse(
+            await this.json(
+                `${this.options.root}/jobs`,
+                'POST',
+                { runtimeId: id, definition },
+                this.options.healthTimeoutMs + 5000
+            )
+        )
     }
 
     async destroy(id: string): Promise<void> {
-        await this.json(`${ROOT}/jobs/${id}`, 'DELETE', undefined, 10_000)
+        await this.json(`${this.options.root}/jobs/${id}`, 'DELETE', undefined, 10_000)
     }
 
     async terminate(id: string): Promise<void> {
-        await this.json(`${ROOT}/jobs/${id}/terminate`, 'POST', {}, 10_000, true)
+        await this.json(`${this.options.root}/jobs/${id}/terminate`, 'POST', {}, 10_000, true)
     }
 
     async upload(id: string, files: Array<[string, Uint8Array]>): Promise<SandboxRuntimeFileUploadResponse[]> {
@@ -58,11 +79,11 @@ export class NsjailComputeClient {
                 continue
             }
             const result = uploadResultSchema.parse(
-                await this.json(`${ROOT}/jobs/${id}/files/upload`, 'POST', {
+                await this.json(`${this.options.root}/jobs/${id}/files/upload`, 'POST', {
                     files: [{ path, contentBase64: Buffer.from(content).toString('base64') }]
                 })
             )
-            if (result.length !== 1 || result[0].path !== path) throw computeUnavailable()
+            if (result.length !== 1 || result[0].path !== path) throw this.options.unavailable()
             results.push({ path: result[0].path, error: result[0].error })
         }
         return results
@@ -70,16 +91,16 @@ export class NsjailComputeClient {
 
     async download(id: string, paths: string[]): Promise<SandboxRuntimeFileDownloadResponse[]> {
         const results = downloadResultSchema.parse(
-            await this.json(`${ROOT}/jobs/${id}/files/download`, 'POST', { paths })
+            await this.json(`${this.options.root}/jobs/${id}/files/download`, 'POST', { paths })
         )
         if (results.length !== paths.length || results.some((result, index) => result.path !== paths[index]))
-            throw computeUnavailable()
+            throw this.options.unavailable()
         let bytes = 0
         return results.map(({ path, error, contentBase64 }) => {
-            if ((error === null) !== (contentBase64 !== null)) throw computeUnavailable()
+            if ((error === null) !== (contentBase64 !== null)) throw this.options.unavailable()
             const content = contentBase64 === null ? null : Buffer.from(contentBase64, 'base64')
             bytes += content?.byteLength ?? 0
-            if (bytes > 32 * 1024 * 1024) throw computeUnavailable()
+            if (bytes > 32 * 1024 * 1024) throw this.options.unavailable()
             return { path, error, content }
         })
     }
@@ -92,12 +113,12 @@ export class NsjailComputeClient {
     ): Promise<SandboxRuntimeExecuteResponse> {
         try {
             const response = await this.request(
-                `${ROOT}/jobs/${id}/execute`,
+                `${this.options.root}/jobs/${id}/execute`,
                 'POST',
                 { timeoutMs, maxOutputBytes },
                 timeoutMs + 5000
             )
-            if (!response.body) throw computeUnavailable()
+            if (!response.body) throw this.options.unavailable()
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
             let buffered = ''
@@ -106,10 +127,10 @@ export class NsjailComputeClient {
             let result: SandboxRuntimeExecuteResponse | undefined
             const consume = (line: string) => {
                 if (!line) return
-                if (result) throw computeUnavailable()
+                if (result) throw this.options.unavailable()
                 const event = streamEventSchema.parse(JSON.parse(line))
                 if (event.type === 'result') {
-                    if (Buffer.byteLength(event.result.output) > maxOutputBytes + 3) throw computeUnavailable()
+                    if (Buffer.byteLength(event.result.output) > maxOutputBytes + 3) throw this.options.unavailable()
                     result = {
                         output: event.result.output,
                         exitCode: event.result.exitCode,
@@ -119,7 +140,7 @@ export class NsjailComputeClient {
                     }
                 } else {
                     streamed += Buffer.byteLength(event.text)
-                    if (streamed > maxOutputBytes + 3) throw computeUnavailable()
+                    if (streamed > maxOutputBytes + 3) throw this.options.unavailable()
                     try {
                         onOutput?.({ stream: 'stdout', text: event.text })
                     } catch {
@@ -132,7 +153,7 @@ export class NsjailComputeClient {
                     const chunk = await reader.read()
                     if (chunk.done) break
                     received += chunk.value.byteLength
-                    if (received > MAX_RESPONSE_BYTES) throw computeUnavailable()
+                    if (received > MAX_RESPONSE_BYTES) throw this.options.unavailable()
                     buffered += decoder.decode(chunk.value, { stream: true })
                     let newline = buffered.indexOf('\n')
                     while (newline >= 0) {
@@ -143,14 +164,14 @@ export class NsjailComputeClient {
                 }
                 buffered += decoder.decode()
                 if (buffered.trim()) consume(buffered)
-                if (!result) throw computeUnavailable()
+                if (!result) throw this.options.unavailable()
                 return result
             } finally {
                 await reader.cancel().catch(() => undefined)
             }
         } catch {
             await this.terminate(id).catch(() => undefined)
-            throw computeUnavailable()
+            throw this.options.unavailable()
         }
     }
 
@@ -163,7 +184,7 @@ export class NsjailComputeClient {
     ): Promise<unknown> {
         const response = await this.request(route, method, body, timeoutMs, allowMissing)
         if (allowMissing && response.status === 404) return null
-        if (!response.body) throw computeUnavailable()
+        if (!response.body) throw this.options.unavailable()
         const reader = response.body.getReader()
         const chunks: Uint8Array[] = []
         let bytes = 0
@@ -172,12 +193,12 @@ export class NsjailComputeClient {
                 const chunk = await reader.read()
                 if (chunk.done) break
                 bytes += chunk.value.byteLength
-                if (bytes > MAX_RESPONSE_BYTES) throw computeUnavailable()
+                if (bytes > MAX_RESPONSE_BYTES) throw this.options.unavailable()
                 chunks.push(chunk.value)
             }
             return JSON.parse(Buffer.concat(chunks).toString('utf8'))
         } catch {
-            throw computeUnavailable()
+            throw this.options.unavailable()
         } finally {
             await reader.cancel().catch(() => undefined)
         }
@@ -200,11 +221,11 @@ export class NsjailComputeClient {
                 redirect: 'error'
             })
         } catch {
-            throw computeUnavailable()
+            throw this.options.unavailable()
         }
         if (!response.ok && !(allowMissing && response.status === 404)) {
             await response.body?.cancel().catch(() => undefined)
-            throw computeUnavailable(response.status === 429)
+            throw this.options.unavailable(response.status === 429)
         }
         return response
     }

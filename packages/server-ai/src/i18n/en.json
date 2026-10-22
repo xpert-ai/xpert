@@ -85,6 +85,8 @@
         "AnalyticsAccessDenied": "Analytics access denied",
         "AnalyticsGrainMismatch": "Returned rows repeat the declared grain. Inspect the actual rows and use a truly unique grain, or an empty grain for an unaggregated table. Do not discard source rows.",
         "AnalyticsQueryInvalid": "Analytics query is unavailable or invalid",
+        "NsJailDocumentUnavailable": "NsJail Document Runtime is unavailable. Check the Runner image, managed document dependencies and cgroup v2 isolation.",
+        "NsJailDocumentInvalidPolicy": "The NsJail Document request does not match the supported runtime policy.",
         "NsJailComputeUnavailable": "NsJail Compute is unavailable. Check the Runner version, connection and cgroup v2 isolation.",
         "NsJailComputeInvalidPolicy": "The NsJail Compute request does not match the supported runtime policy.",
         "AnalyticsRuntimeUnbound": "The required Sandbox Runtime has no compatible binding. Ask an administrator to deploy the matching Runtime Suite binding and API image, then retry.",

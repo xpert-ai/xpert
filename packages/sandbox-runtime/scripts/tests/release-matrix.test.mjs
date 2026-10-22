@@ -101,3 +101,26 @@ test('suite patch synchronization keeps the matrix and runtime definitions align
   assert.equal(definition.sandboxRuntimeVersion, '1.2.3')
   assert.equal(definition.expectedManifest.sandboxRuntimeVersion, '1.2.3')
 })
+
+for (const family of ['document-node', 'document-java', 'document-python']) {
+  test(`${family} catalog and renderer reject a mislabeled production binding`, async (t) => {
+    const root = await fixture(t)
+    const file = path.join(root, 'images', family, 'artifact-catalog.template.json')
+    const template = await readJson(file)
+    template.artifacts[0].imageFamily = 'document'
+    await writeFile(file, JSON.stringify(template))
+    assert.throws(() => run(root, 'verify-catalog.mjs'), /artifact catalog identity/)
+    assert.throws(
+      () =>
+        run(root, 'render-artifact-catalog.mjs', [
+          '--family',
+          family,
+          '--image',
+          `example.invalid/runtime@sha256:${'a'.repeat(64)}`,
+          '--output',
+          path.join(root, 'artifact.json')
+        ]),
+      /Artifact catalog identity/
+    )
+  })
+}

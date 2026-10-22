@@ -38,6 +38,7 @@ import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-r
 import { VolumeModule } from '../shared/volume'
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
+import { NsjailDocumentRuntimeProvider } from './nsjail/nsjail-document-runtime.provider'
 import { NsjailComputeRuntimeProvider } from './nsjail/compute/nsjail-compute-runtime.provider'
 
 // Local Browser Runtime is source-checkout tooling, never a production fallback.
@@ -73,6 +74,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxRuntimeProviderRegistry,
         ...LOCAL_BROWSER_RUNTIME_PROVIDERS,
         NsjailComputeRuntimeProvider,
+        NsjailDocumentRuntimeProvider,
         SandboxConversationContextService,
         SandboxTerminalGateway,
         SandboxTerminalAuthGuard,
@@ -97,6 +99,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxRuntimeProviderRegistry,
         ...LOCAL_BROWSER_RUNTIME_PROVIDERS,
         NsjailComputeRuntimeProvider,
+        NsjailDocumentRuntimeProvider,
         SandboxConversationContextService,
         SandboxJobRuntimeCapabilityService,
         SandboxRuntimeDefinitionRegistry,

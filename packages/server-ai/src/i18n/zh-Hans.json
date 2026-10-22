@@ -85,6 +85,8 @@
         "AnalyticsAccessDenied": "没有访问分析数据源的权限",
         "AnalyticsGrainMismatch": "返回的数据行在声明的粒度上重复。请检查真实数据，使用确实唯一的粒度；未聚合的明细表可将 grain 设为空数组。不要丢弃源数据行。",
         "AnalyticsQueryInvalid": "分析查询不可用或无效",
+        "NsJailDocumentUnavailable": "NsJail 文档运行时不可用，请检查 Runner 镜像、文档依赖和 cgroup v2 隔离配置。",
+        "NsJailDocumentInvalidPolicy": "NsJail 文档请求与支持的运行时策略不一致。",
         "NsJailComputeUnavailable": "NsJail Compute 不可用，请检查 Runner 版本、连接和 cgroup v2 隔离配置。",
         "NsJailComputeInvalidPolicy": "NsJail Compute 请求与支持的运行时策略不一致。",
         "AnalyticsRuntimeUnbound": "所需的沙箱运行时缺少兼容绑定。请管理员部署匹配的 Runtime Suite 绑定和 API 镜像后重试。",

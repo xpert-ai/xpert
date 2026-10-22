@@ -32,14 +32,24 @@ def run_control(argv):
 
 
 class ComputeJob:
+    # Subclasses are trusted Runner profiles; none of these settings come from RPC data.
+    rootfs = ROOTFS
+    state_root = STATE_ROOT
+    namespace = "compute"
+    environment = {}
+    loopback = False
+    cpu_topology = False
+    pids = 64
+    open_files = 128
+
     def __init__(self, identity, definition):
         self.identity = runtime_id(identity)
         self.definition = definition
-        self.root = STATE_ROOT / self.identity
+        self.root = self.state_root / self.identity
         self.workspace = self.root / "workspace"
         self.scratch = self.root / "scratch"
         self.shm = self.root / "shm"
-        self.cgroup = runner.CGROUP_ROOT / f"xpert-compute-{uuid.uuid4().hex}-{self.identity}"
+        self.cgroup = runner.CGROUP_ROOT / f"xpert-{self.namespace}-{uuid.uuid4().hex}-{self.identity}"
         self.lock = threading.RLock()
         self.finished = threading.Event()
         self.cancelled = threading.Event()
@@ -64,7 +74,7 @@ class ComputeJob:
                 raise RuntimeError("Compute requires cgroup.kill (Linux 5.14 or newer)")
             for name, value in {
                 "memory.max": str(resources["memoryMb"] * MIB), "memory.swap.max": "0",
-                "pids.max": "64", "cpu.max": f'{int(resources["cpu"] * 100000)} 100000',
+                "pids.max": str(self.pids), "cpu.max": f'{int(resources["cpu"] * 100000)} 100000',
                 "cgroup.subtree_control": "+cpu +memory +pids",
             }.items():
                 (self.cgroup / name).write_text(value)
@@ -90,22 +100,27 @@ class ComputeJob:
 
     def args(self, command, timeout_ms):
         resources = self.definition["resources"]
-        args = [runner.NSJAIL_BIN, "--mode", "o", "--quiet", "--chroot", str(ROOTFS),
-                "--cwd", "/workspace", "--hostname", "xpert-compute", "--user", f"{UID}:{UID}:1",
+        args = [runner.NSJAIL_BIN, "--mode", "o", "--quiet", "--chroot", str(self.rootfs),
+                "--cwd", "/workspace", "--hostname", f"xpert-{self.namespace}", "--user", f"{UID}:{UID}:1",
                 "--group", f"{UID}:{UID}:1", "--bindmount_ro", f"{self.workspace}:/workspace",
                 "--bindmount", f"{self.scratch / 'output'}:/workspace/output",
                 "--bindmount", f"{self.scratch / 'tmp'}:/tmp", "--bindmount", f"{self.scratch / 'run'}:/run",
                 "--bindmount", f"{self.shm}:/dev/shm", "--rlimit_as", "max", "--rlimit_cpu", "max",
-                "--rlimit_nproc", "max", "--rlimit_nofile", "128", "--rlimit_fsize", str(resources["tempDiskMb"]),
-                "--time_limit", str(max(1, math.ceil(timeout_ms / 1000))), "--max_cpus", "1",
+                "--rlimit_nproc", "max", "--rlimit_nofile", str(self.open_files), "--rlimit_fsize", str(resources["tempDiskMb"]),
+                "--time_limit", str(max(1, math.ceil(timeout_ms / 1000))), "--max_cpus", str(math.ceil(resources["cpu"])),
                 "--seccomp_policy", runner.SECCOMP_POLICY, "--use_cgroupv2", "--cgroupv2_mount", str(self.cgroup),
                 "--cgroup_mem_max", str(resources["memoryMb"] * MIB), "--cgroup_mem_swap_max", "0",
-                "--cgroup_pids_max", "64", "--cgroup_cpu_ms_per_sec", str(int(resources["cpu"] * 1000)),
-                "--iface_no_lo", "--forward_signals"]
+                "--cgroup_pids_max", str(self.pids), "--cgroup_cpu_ms_per_sec", str(int(resources["cpu"] * 1000)),
+                "--forward_signals"]
+        if not self.loopback:
+            args.append("--iface_no_lo")
+        if self.cpu_topology:
+            # ARM OCR kernels need CPU identification; expose only this fixed, read-only subtree.
+            args.extend(["--bindmount_ro", "/sys/devices/system/cpu:/sys/devices/system/cpu"])
         for device in ("null", "zero", "urandom", "random"):
             args.extend(["--bindmount", f"/dev/{device}:/dev/{device}"])
         for name, value in {"PATH": "/usr/local/bin:/usr/bin:/bin", "HOME": "/tmp/home", "LANG": "C.UTF-8",
-                            "PYTHONDONTWRITEBYTECODE": "1", "XDG_CACHE_HOME": "/tmp/cache"}.items():
+                            "PYTHONDONTWRITEBYTECODE": "1", "XDG_CACHE_HOME": "/tmp/cache", **self.environment}.items():
             args.extend(["--env", f"{name}={value}"])
         # NsJail defaults enforce namespace isolation, RO chroot, no_new_privs and empty capabilities.
         return args + ["--", "/usr/local/bin/node", *command[1:]]
@@ -181,6 +196,8 @@ class ComputeJob:
             events = dict(line.split() for line in (self.cgroup / "memory.events").read_text().splitlines())
             if int(events.get("oom_kill", 0)):
                 reason = "oom"
+                peak = (self.cgroup / "memory.peak").read_text().strip() if (self.cgroup / "memory.peak").exists() else "unknown"
+                print(f"[nsjail-jobs] {self.namespace} OOM: peak={peak}, limit={self.definition['resources']['memoryMb'] * MIB}, events={events}", flush=True)
             if not reason and self.process.returncode == 137 and time.monotonic() >= deadline - 0.1:
                 reason = "deadline"
             return {"output": output.decode("utf-8", errors="replace"), "exitCode": self.process.returncode,
@@ -233,7 +250,7 @@ class ComputeJob:
         if marker.is_symlink() or marker.stat().st_size > 1024:
             raise RuntimeError("Invalid Compute ownership marker")
         owner = json.loads(marker.read_text())
-        if owner.get("version") != 1 or not re.fullmatch(r"xpert-compute-[a-f0-9]{32}-" + runtime_id(root.name), owner.get("cgroup", "")):
+        if owner.get("version") != 1 or not re.fullmatch(rf"xpert-{cls.namespace}-[a-f0-9]{{32}}-" + runtime_id(root.name), owner.get("cgroup", "")):
             raise RuntimeError("Invalid Compute ownership marker")
         job = cls(root.name, definition)
         job.cgroup = runner.CGROUP_ROOT / owner["cgroup"]

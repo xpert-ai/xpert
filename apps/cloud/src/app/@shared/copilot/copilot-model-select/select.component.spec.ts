@@ -131,6 +131,71 @@ describe('CopilotModelSelectComponent', () => {
     deletedModelRules$.complete()
   })
 
+  it('intersects the shared catalog with exact allowed identities and treats an empty allowlist as deny-all', fakeAsync(() => {
+    tick(600)
+    fixture.componentRef.setInput('allowedModels', [
+      { copilotId: copilot.id, model: glmModel.model, modelType: AiModelTypeEnum.LLM },
+      { copilotId: 'another-connection', model: deepseekModel.model, modelType: AiModelTypeEnum.LLM },
+      { copilotId: copilot.id, model: minimalModel.model, modelType: AiModelTypeEnum.TEXT_EMBEDDING }
+    ])
+    fixture.detectChanges()
+    expect(component.featureFilteredCopilots()[0].providerWithModels.models.map((model) => model.model)).toEqual([
+      glmModel.model
+    ])
+    component.setModel(copilot, deepseekModel)
+    expect(component['cva'].value$()).toBeFalsy()
+    component.setModel(copilot, glmModel)
+    expect(component['cva'].value$()?.model).toBe(glmModel.model)
+    fixture.componentRef.setInput('allowedModels', [])
+    fixture.detectChanges()
+    expect(component.featureFilteredCopilots()).toEqual([])
+    fixture.componentRef.setInput('allowedModels', undefined)
+    fixture.detectChanges()
+    expect(component.featureFilteredCopilots()[0].providerWithModels.models).toHaveLength(3)
+    tick(600)
+  }))
+
+  it('retains provider search within the allowed catalog', async () => {
+    fixture.autoDetectChanges()
+    fixture.componentRef.setInput('allowedModels', [
+      { copilotId: copilot.id, model: glmModel.model, modelType: AiModelTypeEnum.LLM }
+    ])
+    component.searchTerm.set('provider')
+    await fixture.whenStable()
+    expect(component.searchedModels()[0].providerWithModels.models.map((model) => model.model)).toEqual([
+      glmModel.model
+    ])
+    component.searchTerm.set('deepseek')
+    await fixture.whenStable()
+    expect(component.searchedModels()).toEqual([])
+  })
+
+  it.each(['readonly', 'form-disabled'])(
+    'prevents model changes and clearing while %s',
+    fakeAsync((mode: string) => {
+      tick(600)
+      component.setModel(copilot, glmModel)
+      if (mode === 'readonly') fixture.componentRef.setInput('readonly', true)
+      else component.setDisabledState(true)
+      fixture.detectChanges()
+      component.setModel(copilot, deepseekModel)
+      component.delete()
+      expect(component['cva'].value$()?.model).toBe(glmModel.model)
+      tick(600)
+    })
+  )
+
+  it('does not request or apply model parameter defaults when parameter editing is hidden', fakeAsync(() => {
+    tick(600)
+    fixture.componentRef.setInput('showParameters', false)
+    fixture.detectChanges()
+    component.setModel(copilot, glmModel)
+    fixture.detectChanges()
+    tick(600)
+    expect(TestBed.inject(CopilotProviderService).getModelParameterRules).not.toHaveBeenCalled()
+    expect(component.modelParameterRules()).toEqual([])
+  }))
+
   it('applies defaults when selecting a model without existing options', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()

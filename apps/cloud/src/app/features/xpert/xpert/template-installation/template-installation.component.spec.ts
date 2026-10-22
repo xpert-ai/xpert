@@ -1,9 +1,12 @@
-import { DialogRef } from '@angular/cdk/dialog'
+import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
+import { By } from '@angular/platform-browser'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
-import type { TemplateInstallation } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ModelFeature } from '@xpert-ai/contracts'
+import type { TemplateInstallation, XpertTemplateSetup } from '@xpert-ai/contracts'
 
 jest.mock('@cloud/app/@core', () => ({
   AiProviderRole: { Primary: 'primary' },
@@ -14,14 +17,17 @@ jest.mock('@cloud/app/@core', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error))
 }))
 jest.mock('@cloud/app/@core/state', () => ({ Store: class {}, API_PREFIX: '/api' }))
-jest.mock('@xpert-ai/headless-ui', () => ({
-  XpDialogFrameImports: [],
-  ZardButtonComponent: jest.requireActual(
-    '../../../../../../../../packages/ui/src/lib/components/button/button.component'
-  ).ZardButtonComponent,
-  ZardInputDirective: jest.requireActual('../../../../../../../../packages/ui/src/lib/components/input/input.directive')
-    .ZardInputDirective
-}))
+jest.mock('@cloud/app/@core/services/copilot-server.service', () => ({ CopilotServerService: class {} }))
+jest.mock('@cloud/app/@core/services/copilot-provider.service', () => {
+  const CopilotProviderService = class {}
+  return {
+    CopilotProviderService,
+    injectCopilotProviderService: () => jest.requireActual('@angular/core').inject(CopilotProviderService)
+  }
+})
+import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
+import { CopilotServerService as CatalogService } from '@cloud/app/@core/services/copilot-server.service'
+import { CopilotProviderService } from '@cloud/app/@core/services/copilot-provider.service'
 import { CopilotServerService, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { Store } from '@cloud/app/@core/state'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
@@ -30,16 +36,16 @@ import { TemplateInstallationComponent } from './template-installation.component
 describe('Web template installation flow', () => {
   let fixture: ComponentFixture<TemplateInstallationComponent>
   const organization = new BehaviorSubject('org')
-  const setup = {
+  const setup: XpertTemplateSetup = {
     canInstall: true,
     requiresModel: true,
-    requiredModelFeatures: ['tool_call'],
+    requiredModelFeatures: [ModelFeature.TOOL_CALL],
     defaultModelId: 'compatible',
     models: [
       {
         id: 'compatible',
         label: 'Compatible',
-        copilotModel: { copilotId: 'provider', model: 'model', modelType: 'llm' }
+        copilotModel: { copilotId: 'provider', model: 'model', modelType: AiModelTypeEnum.LLM }
       }
     ],
     optionalCapabilities: [],
@@ -49,6 +55,45 @@ describe('Web template installation flow', () => {
     getTemplate: jest.fn(() => of({ id: 'template', name: 'Template' })),
     getSetup: jest.fn(() => of(setup))
   }
+  const catalog = {
+    getCopilotModels: jest.fn(() =>
+      of([
+        {
+          id: 'provider',
+          name: 'Primary',
+          role: 'primary',
+          modelProvider: { id: 'provider-metadata' },
+          providerWithModels: {
+            provider: 'test',
+            label: { en_US: 'Test Provider' },
+            models: [
+              { model: 'model', model_type: AiModelTypeEnum.LLM, features: [ModelFeature.MULTI_TOOL_CALL] },
+              { model: 'ineligible', model_type: AiModelTypeEnum.LLM, features: [] }
+            ]
+          }
+        },
+        {
+          id: 'tenant',
+          name: 'Tenant connection',
+          role: 'secondary',
+          modelProvider: { id: 'tenant-metadata' },
+          providerWithModels: {
+            provider: 'tenant',
+            label: { en_US: 'Tenant Provider' },
+            models: [
+              { model: 'model', model_type: AiModelTypeEnum.LLM, features: [ModelFeature.TOOL_CALL] },
+              { model: 'other', model_type: AiModelTypeEnum.LLM, features: [ModelFeature.TOOL_CALL] }
+            ]
+          }
+        }
+      ])
+    )
+  }
+  const parameters = { getModelParameterRules: jest.fn(() => of([])) }
+  const picker = () =>
+    fixture.debugElement.query(By.directive(CopilotModelSelectComponent))?.componentInstance as
+      | CopilotModelSelectComponent
+      | undefined
   const primary = { getAvailableByRole: jest.fn(() => of(null)) }
   const receipt: TemplateInstallation = {
     id: 'operation',
@@ -81,9 +126,7 @@ describe('Web template installation flow', () => {
       item.textContent.includes(label)
     )
   async function settle() {
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
+    fixture.autoDetectChanges()
     await fixture.whenStable()
   }
   beforeEach(async () => {
@@ -95,7 +138,7 @@ describe('Web template installation flow', () => {
     organization.next('org')
     templates.getSetup.mockImplementation(() => of(setup))
     await TestBed.configureTestingModule({
-      imports: [TemplateInstallationComponent, TranslateModule.forRoot()],
+      imports: [DialogModule, TemplateInstallationComponent, TranslateModule.forRoot()],
       providers: [
         {
           provide: Store,
@@ -117,6 +160,8 @@ describe('Web template installation flow', () => {
         },
         { provide: XpertAPIService, useValue: xperts },
         { provide: CopilotServerService, useValue: primary },
+        { provide: CatalogService, useValue: catalog },
+        { provide: CopilotProviderService, useValue: parameters },
         { provide: Router, useValue: router },
         { provide: DialogRef, useValue: dialog }
       ]
@@ -139,6 +184,7 @@ describe('Web template installation flow', () => {
   })
   afterEach(() => {
     fixture.destroy()
+    TestBed.inject(OverlayContainer).getContainerElement().replaceChildren()
     localStorage.clear()
   })
   it('accepts an authorized compatible model without requiring an organization default, and rejects stale model selection', () => {
@@ -157,11 +203,18 @@ describe('Web template installation flow', () => {
     await settle()
     expect(primary.getAvailableByRole).not.toHaveBeenCalled()
     expect(component.canStart()).toBe(false)
-    const select: HTMLSelectElement = fixture.nativeElement.querySelector('[formControlName="model"]')
-    expect(select).not.toBeNull()
-    expect(select.required).toBe(true)
-    select.value = 'compatible'
-    select.dispatchEvent(new Event('change'))
+    const select = picker()
+    expect(select).toBeDefined()
+    expect(select.required()).toBe(true)
+    const trigger: HTMLElement = fixture.nativeElement.querySelector('.model-select-trigger')
+    trigger.click()
+    await settle()
+    const menu = TestBed.inject(OverlayContainer).getContainerElement()
+    const option = Array.from(menu.querySelectorAll<HTMLButtonElement>('[cdkMenuItem]')).find((item) =>
+      item.textContent.includes('model')
+    )
+    expect(option).toBeDefined()
+    option.click()
     await settle()
     expect(component.canStart()).toBe(true)
     await component.start()
@@ -173,7 +226,7 @@ describe('Web template installation flow', () => {
     const other = {
       id: 'other',
       label: 'Other',
-      copilotModel: { copilotId: 'tenant', model: 'other', modelType: 'llm' }
+      copilotModel: { copilotId: 'tenant', model: 'other', modelType: AiModelTypeEnum.LLM }
     }
     templates.getSetup.mockImplementation(() => of({ ...setup, models: [...setup.models, other] }))
     const component = fixture.componentInstance
@@ -200,6 +253,196 @@ describe('Web template installation flow', () => {
     expect(fixture.nativeElement.textContent).toContain('No authorized compatible model is available.')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Installation.PrimaryRequired')
     expect(fixture.componentInstance.canStart()).toBe(false)
+  })
+  it('uses only setup identities while retaining server-approved multi-tool-call models and provider metadata', async () => {
+    const select = picker()
+    expect(select.allowedModels()).toEqual(setup.models.map((option) => option.copilotModel))
+    expect(select.features()).toBeUndefined()
+    expect(select.featureFilteredCopilots().map((item) => item.id)).toEqual(['provider'])
+    expect(select.featureFilteredCopilots()[0].providerWithModels.models.map((item) => item.model)).toEqual(['model'])
+    expect(select.selectedAiModel().features).toEqual([ModelFeature.MULTI_TOOL_CALL])
+    expect(fixture.nativeElement.textContent).toContain('model')
+    expect(select.showParameters()).toBe(false)
+    expect(parameters.getModelParameterRules).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('select[formControlName="model"]')).toBeNull()
+    fixture.nativeElement.querySelector('.model-select-trigger').click()
+    await settle()
+    const menu = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(menu.textContent).toContain('Test Provider')
+    expect(menu.textContent).not.toContain('Tenant Provider')
+    expect(menu.textContent).not.toContain('ineligible')
+  })
+  it('opens the menu and selects a model with the keyboard', async () => {
+    const component = fixture.componentInstance
+    component.selectModel(null)
+    await settle()
+    const trigger: HTMLElement = fixture.nativeElement.querySelector('.model-select-trigger')
+    trigger.focus()
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }))
+    await settle()
+    const option = TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector<HTMLElement>('[role="menuitem"]')
+    expect(option).not.toBeNull()
+    option.focus()
+    option.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }))
+    await settle()
+    expect(component.form.controls.model.value).toBe('compatible')
+    expect(TestBed.inject(OverlayContainer).getContainerElement().querySelector('[cdkMenu]')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+    expect(component.canStart()).toBe(true)
+  })
+  it('closes only the model menu on Escape inside a real CDK dialog', async () => {
+    const dialogs = TestBed.inject(Dialog)
+    const ref = fixture.ngZone.run(() => {
+      const ref = dialogs.open(TemplateInstallationComponent)
+      ref.componentRef.setInput('templateId', 'template')
+      return ref
+    })
+    try {
+      await settle()
+      const trigger: HTMLElement = ref.componentRef.location.nativeElement.querySelector('.model-select-trigger')
+      trigger.click()
+      await settle()
+      const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+      const search = overlay.querySelector<HTMLInputElement>('input[type="search"]')
+      expect(search).not.toBeNull()
+      search.focus()
+      search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }))
+      await settle()
+      expect(overlay.querySelector('[cdkMenu]')).toBeNull()
+      expect(dialogs.openDialogs).toContain(ref)
+      expect(document.activeElement).toBe(trigger)
+    } finally {
+      ref.close()
+    }
+  })
+  it('resolves same-name models by connection and submits only the selected setup identity', async () => {
+    const second = {
+      id: 'opaque-second-option',
+      label: 'Same model on tenant',
+      copilotModel: {
+        copilotId: 'tenant',
+        model: 'model',
+        modelType: AiModelTypeEnum.LLM
+      }
+    }
+    templates.getSetup.mockReturnValueOnce(of({ ...setup, models: [...setup.models, second] }))
+    const component = fixture.componentInstance
+    component.revision.update((value) => value + 1)
+    await settle()
+    const select = picker()
+    const connection = select.featureFilteredCopilots().find((item) => item.id === 'tenant')
+    select.setModel(connection, connection.providerWithModels.models[0])
+    await settle()
+    expect(component.form.controls.model.value).toBe('opaque-second-option')
+    expect(component.selectedModel()).toEqual(second.copilotModel)
+    await component.start()
+    expect(transport.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        basic: { title: 'Template', copilotModel: second.copilotModel }
+      })
+    )
+  })
+  it.each([
+    { copilotId: 'tenant', model: 'model', modelType: AiModelTypeEnum.LLM },
+    { copilotId: 'provider', model: 'model', modelType: AiModelTypeEnum.TEXT_EMBEDDING },
+    { copilotId: 'provider', model: 'ineligible', modelType: AiModelTypeEnum.LLM }
+  ])('rejects an out-of-setup selection even for an optional model: %j', async (value) => {
+    const component = fixture.componentInstance
+    templates.getSetup.mockReturnValueOnce(of({ ...setup, requiresModel: false, requiredModelFeatures: [] }))
+    component.revision.update((revision) => revision + 1)
+    await settle()
+    component.selectModel(value)
+    expect(component.form.controls.model.hasError('modelUnavailable')).toBe(true)
+    await component.start()
+    expect(transport.create).not.toHaveBeenCalled()
+  })
+  it('clears the shared selector and blocks a required selection until a model is chosen again', async () => {
+    picker().delete()
+    await settle()
+    expect(fixture.componentInstance.form.controls.model.value).toBe('')
+    expect(fixture.componentInstance.form.controls.model.hasError('required')).toBe(true)
+    expect(fixture.componentInstance.canStart()).toBe(false)
+    expect(picker().model()).toBeUndefined()
+    await fixture.componentInstance.start()
+    expect(transport.create).not.toHaveBeenCalled()
+  })
+  it('allows clearing an optional model and omits it from the installation payload', async () => {
+    templates.getSetup.mockReturnValueOnce(of({ ...setup, requiresModel: false, requiredModelFeatures: [] }))
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    picker().delete()
+    await settle()
+    expect(fixture.componentInstance.canStart()).toBe(true)
+    await fixture.componentInstance.start()
+    expect(transport.create).toHaveBeenCalledWith(expect.objectContaining({ basic: { title: 'Template' } }))
+  })
+  it('does not select a default absent from the eligible catalog', async () => {
+    templates.getSetup.mockReturnValueOnce(of({ ...setup, defaultModelId: 'missing' }))
+    fixture.componentInstance.form.controls.model.setValue('')
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    expect(fixture.componentInstance.selectedModel()).toBeNull()
+    expect(fixture.componentInstance.canStart()).toBe(false)
+  })
+  it('closes an open overlay and rejects selection changes while an installation request is busy', async () => {
+    const component = fixture.componentInstance
+    const select = picker()
+    fixture.nativeElement.querySelector('.model-select-trigger').click()
+    await settle()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelector('[cdkMenu]')).not.toBeNull()
+    let finish: (value: TemplateInstallation) => void = () => undefined
+    transport.create.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    const starting = component.start()
+    await settle()
+    expect(component.state().busy).toBe(true)
+    expect(select.interactionDisabled()).toBe(true)
+    expect(overlay.querySelector('[cdkMenu]')).toBeNull()
+    select.delete()
+    component.selectModel(null)
+    expect(component.form.controls.model.value).toBe('compatible')
+    finish(receipt)
+    await starting
+  })
+  it.each(['workspace', 'organization'])('discards a late setup response after a %s change', async (scope) => {
+    const stale = new Subject<XpertTemplateSetup>()
+    const current = new Subject<XpertTemplateSetup>()
+    templates.getSetup.mockReturnValueOnce(stale).mockReturnValueOnce(current)
+    const component = fixture.componentInstance
+    component.revision.update((value) => value + 1)
+    await settle()
+    expect(component.canStart()).toBeFalsy()
+    expect(picker()).toBeUndefined()
+    if (scope === 'workspace') component.workspaceId.set('second-workspace')
+    else organization.next('second-org')
+    await settle()
+    current.next({ ...setup, models: [], defaultModelId: undefined, canInstall: false, reason: 'No authorized model' })
+    current.complete()
+    await settle()
+    stale.next(setup)
+    stale.complete()
+    await settle()
+    expect(component.setup().models).toEqual([])
+    expect(component.form.controls.model.value).toBe('')
+    expect(component.canStart()).toBe(false)
+    expect(fixture.nativeElement.textContent).toContain('No authorized model')
+    await component.start()
+    expect(transport.create).not.toHaveBeenCalled()
+  })
+  it('keeps installation blocked after a setup refresh fails', async () => {
+    templates.getSetup.mockReturnValueOnce(throwError(() => new Error('setup unavailable')))
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    expect(picker()).toBeUndefined()
+    expect(fixture.componentInstance.canStart()).toBeFalsy()
+    expect(fixture.nativeElement.textContent).toContain('setup unavailable')
   })
   it('opens the dedicated detail page and closes the installation dialog', async () => {
     expect(fixture.nativeElement.querySelector('xp-template-requirements')).toBeNull()
@@ -238,7 +481,10 @@ describe('Web template installation flow', () => {
         idempotencyKey: expect.any(String),
         publish: true,
         workspaceId: 'workspace',
-        basic: { title: 'Template', copilotModel: { copilotId: 'provider', model: 'model', modelType: 'llm' } }
+        basic: {
+          title: 'Template',
+          copilotModel: { copilotId: 'provider', model: 'model', modelType: AiModelTypeEnum.LLM }
+        }
       })
     )
     expect(component.statusLabel(component.state().operation)).toBe('Configuration required')
@@ -278,6 +524,20 @@ describe('Web template installation flow', () => {
     await component.start()
     expect(xperts.refresh).toHaveBeenCalledTimes(2)
   })
+  it.each(['queued', 'running', 'failed'] as const)(
+    'does not notify assistant lists of a successful publication for a %s installation',
+    async (status) => {
+      const operation: TemplateInstallation = { ...receipt, status, stage: 'importing' }
+      transport.create.mockResolvedValueOnce(operation)
+      transport.get.mockResolvedValueOnce(operation)
+      const component = fixture.componentInstance
+      const completed = jest.spyOn(component.completed, 'emit')
+      await component.start()
+      await component.client.refresh()
+      expect(xperts.refresh).not.toHaveBeenCalled()
+      expect(completed).not.toHaveBeenCalled()
+    }
+  )
   it('restores deleted targets as historical successes and creates a distinct intent only on explicit submission', async () => {
     await fixture.componentInstance.start()
     fixture.destroy()

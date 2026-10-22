@@ -10,6 +10,14 @@ const digest = image.match(/@(sha256:[a-f0-9]{64})$/i)?.[1]?.toLowerCase()
 if (!digest) throw new Error('--image must be an immutable digest reference.')
 const definition = JSON.parse(await readFile(path.join(packageRoot, 'images', family, 'image.json'), 'utf8'))
 const template = await readFile(path.join(packageRoot, definition.artifactCatalogTemplate), 'utf8')
+const value = JSON.parse(template)
+if (
+  !Array.isArray(value.artifacts) ||
+  value.artifacts.length !== 1 ||
+  value.artifacts[0].runtimeProfile !== definition.profileName ||
+  value.artifacts[0].imageFamily !== definition.imageFamily
+)
+  throw new Error('Artifact catalog identity does not match the Runtime image.')
 const rendered = template.replaceAll('__IMMUTABLE_IMAGE__', image).replaceAll('__IMAGE_DIGEST__', digest)
 await mkdir(path.dirname(output), { recursive: true })
 await writeFile(output, `${JSON.stringify(JSON.parse(rendered), null, 2)}\n`)
