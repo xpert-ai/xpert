@@ -36,6 +36,7 @@ export type {
 } from './resource-card'
 export * from './thread-goal.model'
 export * from './chat.model'
+export * from './chat-recovery.model'
 export * from './chat-message.model'
 export * from './chat-task-summary.model'
 export * from './chat-message-feedback.model'

@@ -15,6 +15,7 @@ import { CopilotCheckpoint } from './copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from './writes/writes.entity'
 import { checkpointReadConfig } from './checkpoint-reference'
 import { MessageStateSerializer } from './serde/message-state'
+import { checkpointRecoveryWriter, persistRecoveryCheckpoint } from './checkpoint-recovery'
 
 @Injectable()
 export class CopilotCheckpointSaver extends BaseCheckpointSaver {
@@ -154,23 +155,28 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
             throw new Error('Failed to serialized checkpoint and metadata to the same type.')
         }
 
-        await this.repository.upsert(
-            {
-                tenantId,
-                organizationId,
-                createdById: userId,
-                thread_id: config.configurable?.thread_id?.toString(),
-                checkpoint_ns: config.configurable?.checkpoint_ns,
-                checkpoint_id: checkpoint.id,
-                parent_id: config.configurable?.checkpoint_id,
-                type: type1,
-                checkpoint: serializedCheckpoint,
-                metadata: serializedMetadata
-            } as CopilotCheckpoint,
-            {
+        const row = {
+            tenantId,
+            organizationId,
+            createdById: userId,
+            thread_id: config.configurable?.thread_id?.toString(),
+            checkpoint_ns: config.configurable?.checkpoint_ns ?? '',
+            checkpoint_id: checkpoint.id,
+            parent_id: config.configurable?.checkpoint_id,
+            type: type1,
+            checkpoint: serializedCheckpoint,
+            metadata: serializedMetadata
+        } as CopilotCheckpoint
+        const writer = checkpointRecoveryWriter(config)
+        if (writer) {
+            await this.repository.manager.transaction((manager) =>
+                persistRecoveryCheckpoint(manager, writer, row, metadata)
+            )
+        } else {
+            await this.repository.upsert(row, {
                 conflictPaths: ['organizationId', 'thread_id', 'checkpoint_ns', 'checkpoint_id']
-            }
-        )
+            })
+        }
 
         return {
             configurable: {

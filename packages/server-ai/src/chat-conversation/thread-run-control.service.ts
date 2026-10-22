@@ -20,7 +20,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'
 import { createHash, randomUUID } from 'crypto'
 import { t } from 'i18next'
-import { DataSource, EntityManager, Repository, In } from 'typeorm'
+import { DataSource, EntityManager, Repository, In, IsNull } from 'typeorm'
 import { environment } from '@xpert-ai/server-config'
 import { decryptSecret, encryptSecret } from '@xpert-ai/server-core'
 import z from 'zod'
@@ -34,6 +34,7 @@ import { ChatConversation } from './conversation.entity'
 import { RUN_LEASE_KEY, RUN_LEASE_MS, readRunLease, clearRunLease } from './thread-run-lease'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { clearThreadDisplayPause, readThreadDisplayPause } from './thread-display-pause'
+import { recoveryConflict } from './recovery/recovery-error'
 
 export function threadGraphRevision(graph: TXpertGraph): string {
     return createHash('sha256').update(JSON.stringify(graph)).digest('hex')
@@ -264,7 +265,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         await this.locked(threadId, async (thread, manager) => {
             if (thread.runControl?.executionId !== executionId) return
             if (thread.metadata?.forkGraphRevision && thread.metadata.forkGraphRevision !== graphRevision) {
-                throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
+                throw recoveryConflict('conversation_graph_changed', thread.error, thread.parentThreadId)
             }
             if (thread.runControl.graphRevision && thread.runControl.graphRevision !== graphRevision) {
                 throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
@@ -272,6 +273,11 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             thread.runControl.graphRevision = graphRevision
             await manager.save(thread)
         })
+    }
+
+    async requiresInputAdmission(threadId: string, executionId: string): Promise<boolean> {
+        const thread = await this.threads.findOne({ where: { threadId }, select: { metadata: true, runControl: true } })
+        return thread?.runControl?.executionId === executionId && thread.metadata?.editAdmission?.state === 'pending'
     }
 
     async shouldPause(threadId: string, executionId: string): Promise<boolean> {
@@ -408,6 +414,16 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             thread.error = 'Canceled by user'
             thread.operation = null
             await manager.save(thread)
+            await manager.update(
+                ChatConversation,
+                {
+                    id: thread.conversationId,
+                    threadId,
+                    tenantId: thread.tenantId,
+                    organizationId: thread.organizationId ?? IsNull()
+                },
+                { status: 'interrupted', error: thread.error, operation: null }
+            )
             return true
         })
     }
@@ -443,6 +459,16 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 thread.metadata = metadata
             }
             await manager.save(thread)
+            await manager.update(
+                ChatConversation,
+                {
+                    id: thread.conversationId,
+                    threadId,
+                    tenantId: thread.tenantId,
+                    organizationId: thread.organizationId ?? IsNull()
+                },
+                { status, error: error ?? null, operation: operation ?? null }
+            )
             return status
         })
     }

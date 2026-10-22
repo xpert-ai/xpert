@@ -25,6 +25,7 @@ integration('durable pause control / PostgreSQL', () => {
     const scope = { tenantId: randomUUID(), organizationId: randomUUID() }
     let threadId: string
     let executionId: string
+    let conversationId: string
 
     beforeAll(async () => {
         if (!new URL(url!).pathname.endsWith('_test')) throw new Error('Use a disposable _test database')
@@ -45,6 +46,7 @@ integration('durable pause control / PostgreSQL', () => {
                         status: text,
                         error: nullableText,
                         metadata: { type: 'jsonb', nullable: true },
+                        runtimeContinuationBlockedAt: { type: 'timestamptz', nullable: true },
                         runControl: { type: 'jsonb', nullable: true },
                         encryptedRunContext: { ...nullableText, select: false },
                         operation: { type: 'jsonb', nullable: true }
@@ -68,6 +70,9 @@ integration('durable pause control / PostgreSQL', () => {
                     tableName: 'xpert_agent_execution',
                     columns: {
                         ...scopeColumns,
+                        metadata: { type: 'jsonb', nullable: true },
+                        checkpointId: nullableText,
+                        checkpointNs: nullableText,
                         status: text,
                         error: nullableText,
                         completedAt: { type: 'timestamptz', nullable: true }
@@ -111,7 +116,7 @@ integration('durable pause control / PostgreSQL', () => {
     beforeEach(async () => {
         threadId = randomUUID()
         executionId = randomUUID()
-        const conversationId = randomUUID()
+        conversationId = randomUUID()
         await database
             .getRepository(ChatConversationThread)
             .save({ ...scope, id: randomUUID(), threadId, conversationId, status: 'busy' })
@@ -142,6 +147,17 @@ integration('durable pause control / PostgreSQL', () => {
 
     it('renews a live process and reconciles a dead owner once, invalidating delayed continuations', async () => {
         const threads = database.getRepository(ChatConversationThread)
+        const recovery = {
+            version: 1 as const,
+            graphRevision: 'graph',
+            input: { threadId, checkpointNs: '', checkpointId: 'input' },
+            latest: { threadId, checkpointNs: '', checkpointId: 'latest' }
+        }
+        await database.getRepository(XpertAgentExecution).update(executionId, {
+            checkpointId: 'latest',
+            checkpointNs: '',
+            metadata: { recovery }
+        })
         const before = await threads.findOneByOrFail({ threadId })
         await first.maintainLeases()
         const renewed = await threads.findOneByOrFail({ threadId })
@@ -164,6 +180,7 @@ integration('durable pause control / PostgreSQL', () => {
         await second.maintainLeases()
         const recovered = await threads.findOneByOrFail({ threadId })
         const stoppedExecution = await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })
+        expect(stoppedExecution).toMatchObject({ checkpointId: 'latest', metadata: { recovery } })
         expect(stoppedExecution.completedAt).toBeInstanceOf(Date)
         expect(recovered.status).toBe('error')
         expect(recovered.runControl).toBeNull()
@@ -188,4 +205,18 @@ integration('durable pause control / PostgreSQL', () => {
         )
         expect(await second.recoverExpiredRun(threadId)).toBe(false)
     })
+    it.each([true, false])(
+        'updates cancellation status only for the selected working branch (selected: %s)',
+        async (selected) => {
+            if (!selected)
+                await database.getRepository(ChatConversation).update(conversationId, { threadId: 'other-branch' })
+            expect(await first.cancel(threadId, [executionId])).toBe(true)
+            const conversation = await database.getRepository(ChatConversation).findOneByOrFail({ id: conversationId })
+            expect(conversation.status).toBe(selected ? 'interrupted' : 'busy')
+            expect(await first.finish(threadId, executionId, 'idle')).toBe('interrupted')
+            expect(
+                (await database.getRepository(ChatConversation).findOneByOrFail({ id: conversationId })).status
+            ).toBe(selected ? 'interrupted' : 'busy')
+        }
+    )
 })

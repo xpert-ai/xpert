@@ -1,3 +1,5 @@
+import { recoveryConflict } from '../../../chat-conversation/recovery/recovery-error'
+import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
 import { assertInvocationResume } from '../../../agent-invocation/invocation-resume'
 import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
 import { getErrorMessage } from '@xpert-ai/plugin-sdk'
@@ -438,17 +440,47 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             if (selection.selection) runtimeContext = clearContextProject(runtimeContext)
         }
 
-        const referencedExecutionId =
+        let referencedExecutionId =
             chatRequest.action === 'retry'
                 ? chatRequest.source.executionId
                 : chatRequest.action === 'resume' || chatRequest.action === 'follow_up'
                   ? chatRequest.target?.executionId
                   : undefined
+        if (chatRequest.action === 'retry' && !referencedExecutionId) {
+            const messages = this.conversationThreadService
+                ? (await this.conversationThreadService.findVisibleMessages(threadId)).items
+                : (conversation.messages ?? [])
+            const source = chatRequest.source.aiMessageId
+                ? messages.find((message) => message.id === chatRequest.source.aiMessageId && message.role === 'ai')
+                : [...messages].reverse().find((message) => message.role === 'ai')
+            if (!source?.executionId)
+                throw recoveryConflict('conversation_recovery_unavailable', source?.error ?? conversation.error)
+            referencedExecutionId = source.executionId
+            chatRequest.source = { aiMessageId: source.id, executionId: source.executionId }
+        }
         const referencedExecution = referencedExecutionId
             ? await this.queryBus.execute(
                   new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', threadId)
               )
             : null
+
+        // Reject an unrecoverable retry before claims, execution creation or scope mutation.
+        if (chatRequest.action === 'retry') {
+            const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+                new GetXpertWorkflowQuery(xpert.id, referencedExecution.agentKey, false)
+            )
+            await resolveRetryInputCheckpointId(
+                this.queryBus,
+                threadId,
+                referencedExecution.checkpointNs,
+                referencedExecution.checkpointId,
+                {
+                    execution: referencedExecution,
+                    requestedCheckpointId: chatRequest.checkpointId,
+                    graphRevision: threadGraphRevision(workflow.graph)
+                }
+            )
+        }
 
         if (command.resumePaused && this.threadRunControl) {
             runtimeContext = await this.threadRunControl.getResumeContext(

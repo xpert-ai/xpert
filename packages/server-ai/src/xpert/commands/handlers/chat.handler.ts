@@ -1,3 +1,4 @@
+import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
 import { assertConversationMutationAccess } from '../../conversation-mutation-access'
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
@@ -60,7 +61,11 @@ import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/can
 import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationGoalService } from '../../../chat-conversation/goal'
-import { ThreadRunControlService, threadControlConflict } from '../../../chat-conversation/thread-run-control.service'
+import {
+    ThreadRunControlService,
+    threadControlConflict,
+    threadGraphRevision
+} from '../../../chat-conversation/thread-run-control.service'
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
 import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 import { publicChatMessage } from '../../../chat-message/message-branching'
@@ -96,7 +101,6 @@ import { buildChatConversationSourceAudit, buildChatSourceExecutionMetadata } fr
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { assertExecutionBelongsToThread } from '../../../xpert-agent-execution/execution-access'
 import { isInterruptedExecutionError } from '../../../xpert-agent/commands/handlers/execution-error-status'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
 import { RedisSseStreamService } from '../../../shared/stream'
 import { applicationMetrics } from '../../../metrics'
@@ -176,53 +180,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         @Optional() private readonly messageCheckpoints?: MessageCheckpointService,
         @Optional() private readonly projectResourceCards?: ProjectResourceCardService
     ) {}
-
-    /**
-     * Retry needs the checkpoint captured right after the original human input
-     * was written into LangGraph state. Replaying from the latest execution
-     * checkpoint can be a no-op or resume from a later loop step, so we walk
-     * backward through checkpoint ancestry until we find the nearest `input`
-     * checkpoint for that run.
-     */
-    private async resolveRetryInputCheckpointId(
-        threadId: string,
-        checkpointNs: string | null | undefined,
-        checkpointId: string | null | undefined
-    ): Promise<string> {
-        if (!threadId || !checkpointId) {
-            throw new BadRequestException('Retry source checkpoint not found')
-        }
-
-        const visited = new Set<string>()
-        let currentCheckpointId = checkpointId
-
-        while (currentCheckpointId) {
-            if (visited.has(currentCheckpointId)) {
-                throw new BadRequestException('Retry source checkpoint ancestry contains a cycle')
-            }
-            visited.add(currentCheckpointId)
-
-            const tuple = await this.queryBus.execute(
-                new CopilotCheckpointGetTupleQuery({
-                    thread_id: threadId,
-                    checkpoint_ns: checkpointNs ?? '',
-                    checkpoint_id: currentCheckpointId
-                })
-            )
-            if (!tuple) {
-                break
-            }
-
-            const resolvedCheckpointId = tuple.config?.configurable?.checkpoint_id ?? currentCheckpointId
-            if (tuple.metadata?.source === 'input') {
-                return resolvedCheckpointId
-            }
-
-            currentCheckpointId = tuple.parentConfig?.configurable?.checkpoint_id ?? null
-        }
-
-        throw new BadRequestException('Retry source input checkpoint not found')
-    }
 
     public async execute(c: XpertChatCommand): Promise<Observable<MessageEvent>> {
         const request = c.request
@@ -782,13 +739,17 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     activeThreadId
                 )
                 sourceModelExecution = sourceExecution
-                checkpointId = request.checkpointId
-                    ? request.checkpointId
-                    : await this.resolveRetryInputCheckpointId(
-                          sourceExecution.threadId ?? activeThreadId,
-                          sourceExecution.checkpointNs,
-                          sourceExecution.checkpointId
-                      )
+                checkpointId = await resolveRetryInputCheckpointId(
+                    this.queryBus,
+                    sourceExecution.threadId ?? activeThreadId,
+                    sourceExecution.checkpointNs,
+                    sourceExecution.checkpointId,
+                    {
+                        execution: sourceExecution,
+                        requestedCheckpointId: request.checkpointId,
+                        graphRevision: xpert.graph ? threadGraphRevision(xpert.graph) : undefined
+                    }
+                )
                 userMessage = conversation.messages.find((message) => message.id === retryMessage.parentId)
                 if (!userMessage) {
                     throw new BadRequestException('Retry source human message not found')
@@ -1221,7 +1182,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       }
                                     : undefined,
                             memories,
-                            checkpointId: checkpointId
+                            checkpointId: checkpointId,
+                            retryInputCheckpointId: request.action === 'retry' ? checkpointId : undefined
                         })
                     )
                 }
@@ -1446,14 +1408,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 }
                                 const _conversation = !isDerivedThread
                                     ? await this.commandBus.execute(
-                                          new ChatConversationUpsertCommand({
-                                              id: conversation.id,
-                                              status: convStatus,
-                                              title: resolvedTitle,
-                                              operation,
-                                              error: _execution?.error || error,
-                                              options: conversation.options
-                                          })
+                                          new ChatConversationUpsertCommand(
+                                              {
+                                                  id: conversation.id,
+                                                  status: convStatus,
+                                                  title: resolvedTitle,
+                                                  operation,
+                                                  error: _execution?.error || error,
+                                                  options: conversation.options
+                                              },
+                                              undefined,
+                                              activeThreadId
+                                          )
                                       )
                                     : {
                                           ...conversation,
@@ -1542,17 +1508,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         )
                                     if (!isDerivedThread) {
                                         await this.commandBus.execute(
-                                            new ChatConversationUpsertCommand({
-                                                id: conversation.id,
-                                                status: canceledStatus,
-                                                title: resolveVisibleConversationTitle(
-                                                    conversation.title,
-                                                    _execution?.title,
-                                                    visibleConversationTitleInput,
-                                                    isGoalRun ? titleInput : null
-                                                ),
-                                                options: conversation.options
-                                            })
+                                            new ChatConversationUpsertCommand(
+                                                {
+                                                    id: conversation.id,
+                                                    status: canceledStatus,
+                                                    title: resolveVisibleConversationTitle(
+                                                        conversation.title,
+                                                        _execution?.title,
+                                                        visibleConversationTitleInput,
+                                                        isGoalRun ? titleInput : null
+                                                    ),
+                                                    options: conversation.options
+                                                },
+                                                undefined,
+                                                activeThreadId
+                                            )
                                         )
                                     }
                                     finishChatMetrics('aborted')

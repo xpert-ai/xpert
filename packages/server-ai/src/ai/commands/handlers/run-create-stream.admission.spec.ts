@@ -1,3 +1,4 @@
+import { AssertXpertAgentExecutionAccessQuery } from '../../../xpert-agent-execution/queries/assert-access.query'
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
 }))
@@ -123,6 +124,58 @@ describe('run stream admission failures', () => {
             } else {
                 expect(threads.updateRuntimeState).toHaveBeenCalledWith('thread', 'error', failure.message)
             }
+        }
+    )
+    it.each([true, false])(
+        'rejects a retry without an input recovery point before mutation (execution id: %s)',
+        async (withExecutionId) => {
+            const conversation = { id: 'conversation', threadId: 'thread', xpertId: 'assistant', options: {} }
+            const commandBus = { execute: jest.fn() }
+            const queryBus = {
+                execute: jest.fn(async (query: unknown) =>
+                    query instanceof AssertXpertAgentExecutionAccessQuery
+                        ? { id: 'old-run', threadId: 'thread', error: 'original failure' }
+                        : { graph: {} }
+                )
+            }
+            const threads = {
+                requireByThreadId: jest.fn(async () => ({ status: 'error', conversation })),
+                findVisibleMessages: jest.fn(async () => ({
+                    items: [{ id: 'ai', role: 'ai', executionId: 'old-run' }]
+                })),
+                claimForRun: jest.fn(),
+                updateRuntimeState: jest.fn()
+            }
+            const handler = new RunCreateStreamHandler(
+                commandBus as never,
+                queryBus as never,
+                {} as never,
+                { getAccessiblePublishedXpert: jest.fn(async () => ({ id: 'assistant' })) } as never,
+                undefined,
+                undefined,
+                threads as never
+            )
+            await expect(
+                handler.execute(
+                    new RunCreateStreamCommand('thread', {
+                        assistant_id: 'assistant',
+                        stream_mode: ['messages'],
+                        stream_subgraphs: false,
+                        on_disconnect: 'continue',
+                        multitask_strategy: 'reject',
+                        if_not_exists: 'reject',
+                        input: {
+                            action: 'retry',
+                            source: withExecutionId ? { executionId: 'old-run' } : { aiMessageId: 'ai' }
+                        }
+                    })
+                )
+            ).rejects.toMatchObject({
+                response: { code: 'conversation_recovery_unavailable' },
+                cause: { originalError: 'original failure' }
+            })
+            expect(threads.claimForRun).not.toHaveBeenCalled()
+            expect(commandBus.execute).not.toHaveBeenCalled()
         }
     )
 })

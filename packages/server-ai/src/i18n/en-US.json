@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ConversationBranchSelectionChanged": "The conversation has changed. Refresh it and try again.",
+        "ConversationRetryUnavailable": "Retry is currently unavailable.",
         "CurrentPermissionsScopeDenied": "Current permissions are unavailable in this request scope.",
         "CurrentPermissionsUnavailable": "Authentication did not provide effective permissions. Please retry.",
         "TenantSettingsLookupFailed": "Tenant settings lookup failed",

@@ -59,7 +59,8 @@ export class ChatConversationUpsertHandler implements ICommandHandler<ChatConver
                                 {
                                     id,
                                     tenantId,
-                                    organizationId: organizationId ?? IsNull()
+                                    organizationId: organizationId ?? IsNull(),
+                                    ...(command.expectedThreadId ? { threadId: command.expectedThreadId } : {})
                                 },
                                 update
                             )

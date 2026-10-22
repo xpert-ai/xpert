@@ -1,3 +1,4 @@
+import { ThreadRecoveryController } from './thread-recovery/thread-recovery.controller'
 import { AssistantTemplateSetupRuntimeController } from './assistant-template-setup.controller'
 import { GROUP_CONTROLLERS } from './groups'
 import { GroupWorkbenchGuard } from './groups/group-workbench.guard'
@@ -137,6 +138,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         RuntimeResourceController,
         ConnectorRuntimeController,
         ThreadsController,
+        ThreadRecoveryController,
         ConversationsController,
         StoreController
     ],

@@ -70,7 +70,12 @@ export class ThreadDTO {
             this.updatedBy = thread.updatedBy
         }
 
-        const { [DISPLAY_PAUSE_KEY]: _snapshot, [RUN_LEASE_KEY]: _lease, ...publicMetadata } = thread?.metadata ?? {}
+        const {
+            [DISPLAY_PAUSE_KEY]: _snapshot,
+            [RUN_LEASE_KEY]: _lease,
+            editAdmission: _admission,
+            ...publicMetadata
+        } = thread?.metadata ?? {}
         this.metadata = {
             ...pick(conversation, 'id', 'title', 'fromEndUserId'),
             conversation_id: conversation.id,

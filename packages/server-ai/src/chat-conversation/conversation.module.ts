@@ -1,3 +1,4 @@
+import { ThreadRecoveryService } from './recovery/thread-recovery.service'
 import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { FileChangeStatsService } from './file-change-stats.service'
@@ -85,6 +86,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         ChatConversationThreadService,
         SideChatForkService,
         ThreadRunControlService,
+        ThreadRecoveryService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
         FileChangeStatsService,
@@ -99,6 +101,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         ThreadReferenceService,
         MessageCheckpointService,
         ThreadRunControlService,
+        ThreadRecoveryService,
         ChatConversationService,
         ChatConversationThreadService,
         ChatConversationGoalService,

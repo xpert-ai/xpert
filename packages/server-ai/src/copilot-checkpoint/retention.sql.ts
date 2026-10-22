@@ -28,6 +28,17 @@ AND NOT EXISTS (
       AND thread."runControl" IS NOT NULL
 )
 AND NOT EXISTS (
+    SELECT 1 FROM xpert_agent_execution execution
+    WHERE execution."threadId" = c.thread_id
+      AND execution."tenantId" IS NOT DISTINCT FROM c."tenantId"
+      AND execution."organizationId" IS NOT DISTINCT FROM c."organizationId"
+      AND execution.status IN ('pending', 'running', 'interrupted', 'error')
+      AND execution.metadata->'recovery'->>'version' = '1'
+      AND execution.metadata->'recovery'->'input'->>'threadId' = c.thread_id
+      AND execution.metadata->'recovery'->'input'->>'checkpointNs' = c.checkpoint_ns
+      AND execution.metadata->'recovery'->'input'->>'checkpointId' = c.checkpoint_id
+)
+AND NOT EXISTS (
     SELECT 1 FROM chat_message message
     WHERE message."deletedAt" IS NULL
       AND message."createdInThreadId" = c.thread_id

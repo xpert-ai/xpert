@@ -3481,7 +3481,7 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.checkpointId).toBe('checkpoint-input-1')
     })
 
-    it('uses the explicit retry checkpoint without walking checkpoint ancestry', async () => {
+    it('validates an explicit retry checkpoint against the execution input ancestry', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -3561,7 +3561,19 @@ describe('XpertChatHandler', () => {
                 }
             }
             if (query instanceof CopilotCheckpointGetTupleQuery) {
-                throw new Error('Retry ancestry lookup should be skipped when checkpointId is provided')
+                return {
+                    config: { configurable: query.configurable },
+                    metadata: {
+                        source: query.configurable.checkpoint_id === 'checkpoint-history-1' ? 'input' : 'loop'
+                    },
+                    parentConfig: {
+                        configurable: {
+                            thread_id: 'thread-1',
+                            checkpoint_ns: '',
+                            checkpoint_id: 'checkpoint-history-1'
+                        }
+                    }
+                }
             }
             return null
         })
@@ -3590,7 +3602,7 @@ describe('XpertChatHandler', () => {
         ) as XpertAgentChatCommand
         expect(agentCommand.options.checkpointId).toBe('checkpoint-history-1')
         expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CopilotCheckpointGetTupleQuery)).toBe(
-            false
+            true
         )
     })
 
@@ -4073,7 +4085,7 @@ describe('XpertChatHandler', () => {
                     } as any
                 )
             )
-        ).rejects.toThrow('Retry source input checkpoint not found')
+        ).rejects.toMatchObject({ response: { code: 'conversation_recovery_unavailable' } })
     })
 })
 

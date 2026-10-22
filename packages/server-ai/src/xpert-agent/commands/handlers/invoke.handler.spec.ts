@@ -1053,6 +1053,7 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: [...completedTasks, { id: 'task', name: 'next', interrupts: [{ value: { type: 'thread_pause' } }] }]
         })
         const control = {
+            requiresInputAdmission: jest.fn().mockResolvedValue(false),
             recordGraph: jest.fn(),
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()
@@ -1108,6 +1109,7 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: []
         })
         const control = {
+            requiresInputAdmission: jest.fn().mockResolvedValue(false),
             recordGraph: jest.fn(),
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()
