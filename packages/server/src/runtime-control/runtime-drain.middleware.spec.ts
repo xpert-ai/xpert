@@ -66,4 +66,23 @@ describe('runtime recovery HTTP admission', () => {
 		const { send } = await fixture(true)
 		expect((await send('/api/xpert')).status).toBe(200)
 	})
+	it('returns structured rejection metadata and serves during readiness withdrawal', async () => {
+		const { send, lifecycle } = await fixture(true)
+		const state = { restartId: 'withdraw', requestedAt: new Date().toISOString() }
+		lifecycle.beginWithdrawal(state)
+		expect(lifecycle.readiness().status).toBe('withdrawing')
+		expect((await send('/api/xpert')).status).toBe(200)
+		lifecycle.beginDrain(state)
+		const response = await send('/api/ai/v1/chatkit/sessions')
+		expect(response.status).toBe(503)
+		expect(response.headers.get('retry-after')).toBe('5')
+		expect(response.headers.get('cache-control')).toBe('no-store')
+		expect(await response.json()).toMatchObject({
+			errorCode: 'RUNTIME_DRAINING',
+			reason: 'draining',
+			retryAfter: 5
+		})
+		lifecycle.cancelDrain(state.restartId)
+		expect((await send('/api/xpert')).status).toBe(200)
+	})
 })

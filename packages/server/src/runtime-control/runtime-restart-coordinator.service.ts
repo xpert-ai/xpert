@@ -1,3 +1,8 @@
+import { RELEASE_LOCK_SCRIPT, EXTEND_LOCK_SCRIPT, TRANSITION_ACTIVE_RESTART_SCRIPT } from './runtime-restart-scripts'
+import { RuntimeAdmissionMonitor } from './runtime-admission-monitor'
+import { ACTIVE_RESTART_KEY, readRestartMetadata, restartMetadataKey } from './runtime-restart-metadata'
+import { RUNTIME_TRAFFIC_OPTIONS, RuntimeTrafficOptions } from './runtime-traffic-options'
+import { drainRuntimeTraffic } from './runtime-traffic-withdrawal'
 import { awaitPluginRestartApproval } from './plugin-convergence-capacity'
 /**
  * Invariants:
@@ -14,7 +19,7 @@ import {
 	restartStatus
 } from './runtime-restart-deadlines'
 import { RuntimePluginAdmission, RestartRegistry } from './runtime-plugin-admission'
-import { createRestartMetadata, INITIAL_OPERATION_TTL_MS, replacementAdmission } from './runtime-rollout-policy'
+import { createRestartMetadata, INITIAL_OPERATION_TTL_MS } from './runtime-rollout-policy'
 import { preparePluginStartupRetry, getPluginStartupFailure } from '../plugin/plugin-startup-state'
 import {
 	IPluginRuntimeConvergenceStatus,
@@ -54,39 +59,12 @@ import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 
 export type { PluginRuntimeChangeInput, PluginRuntimeChangeResult } from './runtime-restart.types'
 
-const ACTIVE_RESTART_KEY = 'xpert:system:runtime:restart:active'
 const RESTART_CHANNEL = 'xpert:system:runtime:restart:events'
 const DEFAULT_SIGNAL_DELAY_MS = 750
 const DEFAULT_DRAIN_TIMEOUT_MS = 30_000
 const PENDING_TARGET_TIMEOUT_MS = 45_000
 const ACTIVE_RESTART_EXPIRY_GRACE_MS = 30_000
 const COORDINATOR_POLL_MS = 1_000
-const RELEASE_LOCK_SCRIPT = `
-if redis.call('get', KEYS[1]) == ARGV[1] then
-  return redis.call('del', KEYS[1])
-end
-return 0
-`
-const EXTEND_LOCK_SCRIPT = `
-if redis.call('get', KEYS[1]) == ARGV[1] then
-  return redis.call('pexpire', KEYS[1], tonumber(ARGV[2]))
-end
-return 0
-`
-const TRANSITION_ACTIVE_RESTART_SCRIPT = `
-if redis.call('get', KEYS[1]) ~= ARGV[1] then
-  return -1
-end
-local generation = tonumber(redis.call('get', KEYS[2]) or '0')
-if generation ~= tonumber(ARGV[2]) then
-  return 0
-end
-if ARGV[3] == '' then
-  return redis.call('del', KEYS[1])
-end
-redis.call('psetex', KEYS[1], tonumber(ARGV[4]), ARGV[3])
-return 1
-`
 
 @Injectable()
 export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy {
@@ -99,7 +77,6 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	private bootstrapped = false
 	private readonly generations: PluginRuntimeGenerationStore
 	private readonly targets: RuntimeRestartTargetStore
-	private readonly admission: RuntimePluginAdmission
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -108,11 +85,14 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		private readonly processSignaler: RuntimeProcessSignaler,
 		private readonly lifecycle: RuntimeLifecycleService,
 		@Inject(InstanceRegistryService)
-		private readonly instanceRegistry: RestartRegistry
+		private readonly instanceRegistry: RestartRegistry,
+		private readonly admission: RuntimePluginAdmission,
+		private readonly admissionMonitor: RuntimeAdmissionMonitor,
+		@Inject(RUNTIME_TRAFFIC_OPTIONS)
+		private readonly trafficOptions: RuntimeTrafficOptions
 	) {
 		this.generations = new PluginRuntimeGenerationStore(redis)
 		this.targets = new RuntimeRestartTargetStore(redis)
-		this.admission = new RuntimePluginAdmission(instanceRegistry, lifecycle)
 	}
 
 	async onModuleInit(): Promise<void> {
@@ -240,7 +220,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	async getStatus(restartId: string): Promise<IRuntimeRestartStatus | null> {
-		const metadata = await this.readMetadata(restartId)
+		const metadata = await readRestartMetadata(this.redis, restartId)
 		if (!metadata) {
 			return null
 		}
@@ -375,12 +355,9 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		this.processing = true
 		try {
 			const restartId = await this.redis.get(ACTIVE_RESTART_KEY)
-			let metadata = restartId ? await this.readMetadata(restartId) : null
+			let metadata = restartId ? await readRestartMetadata(this.redis, restartId) : null
 			let targets = metadata ? await this.targets.read(metadata.restartId) : []
-			const admissionCheck = await this.admission.refresh(
-				this.generations,
-				replacementAdmission(metadata, targets, this.instanceRegistry.instanceId, this.instanceRegistry.bootId)
-			)
+			const admissionCheck = await this.admissionMonitor.refresh()
 			if (!restartId) {
 				if (!(await this.ensurePendingPluginOperation())) await this.reconcileLocalPlugins()
 				return
@@ -524,9 +501,9 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	private async finalizeRegistration(metadata: RestartOperationMetadata): Promise<RestartOperationMetadata> {
 		const token = `${metadata.restartId}:${this.instanceRegistry.instanceId}:${randomUUID()}`
 		const claimed = await this.redis.set(this.registrationKey(metadata.restartId), token, { NX: true, PX: 5_000 })
-		if (claimed !== 'OK') return (await this.readMetadata(metadata.restartId)) ?? metadata
+		if (claimed !== 'OK') return (await readRestartMetadata(this.redis, metadata.restartId)) ?? metadata
 		try {
-			const current = await this.readMetadata(metadata.restartId)
+			const current = await readRestartMetadata(this.redis, metadata.restartId)
 			if (!current) return metadata
 			// Upgrade a rollout created by the previous coordinator without dropping registered targets.
 			const registered = await this.targets.read(metadata.restartId)
@@ -603,7 +580,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			await this.releaseRestartSlot(metadata.restartId, restartSlot, lockToken)
 			return
 		}
-		if (!this.lifecycle.beginDrain({ restartId: metadata.restartId, requestedAt: metadata.requestedAt })) {
+		if (!this.lifecycle.beginWithdrawal({ restartId: metadata.restartId, requestedAt: metadata.requestedAt })) {
 			await this.targets.update(metadata.restartId, restarting, {
 				...current,
 				updatedAt: new Date().toISOString()
@@ -612,7 +589,8 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			return
 		}
 
-		this.writeAuditLog('runtime.restart.replica-draining', {
+		this.writeAuditLog('runtime.restart.replica-withdrawing', {
+			withdrawalMs: this.trafficOptions.withdrawalMs,
 			restartId: metadata.restartId,
 			replicaId: target.replicaId,
 			bootId: this.instanceRegistry.bootId
@@ -624,21 +602,29 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 
 	private async terminateAfterDrain(metadata: RestartOperationMetadata, target: RestartTargetState): Promise<void> {
 		try {
-			// This rolling-restart grace precedes the process watchdog, which starts only when SIGTERM is received.
-			const drained = await this.lifecycle.waitForIdle(this.drainTimeoutMs)
-			if (
-				(await this.redis.get(ACTIVE_RESTART_KEY)) !== metadata.restartId ||
-				(await this.targets.read(metadata.restartId)).some((item) => item.status === 'failed')
-			) {
-				this.lifecycle.cancelDrain(metadata.restartId)
-				return
-			}
-			if (
-				metadata.allowDowntime !== true &&
-				!(await this.instanceRegistry.getReadyInstances()).some((item) => item.instanceId !== target.replicaId)
-			) {
-				throw new Error('No healthy peer remains before candidate restart')
-			}
+			const state = { restartId: metadata.restartId, requestedAt: metadata.requestedAt }
+			const drained = await drainRuntimeTraffic(
+				this.lifecycle,
+				state,
+				this.drainTimeoutMs,
+				async () => {
+					if (
+						(await this.redis.get(ACTIVE_RESTART_KEY)) !== metadata.restartId ||
+						(await this.targets.read(metadata.restartId)).some((item) => item.status === 'failed')
+					)
+						return false
+					if (
+						!metadata.allowDowntime &&
+						!(await this.instanceRegistry.getReadyInstances()).some(
+							(item) => item.instanceId !== target.replicaId
+						)
+					)
+						throw new Error('No healthy peer remains before candidate restart')
+					return true
+				},
+				this.trafficOptions.withdrawalMs
+			)
+			if (drained === undefined) return
 			this.writeAuditLog('runtime.restart.replica-signaling', {
 				restartId: metadata.restartId,
 				replicaId: target.replicaId,
@@ -673,6 +659,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		if (!updated) return
 		await this.releaseTargetRestartSlot(restartId, target)
 		this.writeAuditLog('runtime.restart.replica-ready', {
+			completionScope: 'runtime',
 			restartId,
 			replicaId: target.replicaId,
 			previousBootId: target.expectedBootId,
@@ -769,6 +756,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		error?: string
 	): void {
 		this.writeAuditLog(`runtime.restart.${status}`, {
+			...(status === 'completed' ? { completionScope: 'runtime' } : {}),
 			restartId: metadata.restartId,
 			pluginGeneration: metadata.pluginGeneration,
 			targetReplicaCount: metadata.targetReplicaCount,
@@ -853,7 +841,12 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 
 	private async reconcileLocalPlugins(): Promise<void> {
 		const desired = await this.generations.readDesired()
-		if (!desired || desired.status !== 'completed' || this.lifecycle.readiness().status === 'draining') return
+		if (
+			!desired ||
+			desired.status !== 'completed' ||
+			['draining', 'withdrawing'].includes(this.lifecycle.readiness().status)
+		)
+			return
 		if (desired.generation !== (await this.generations.current())) return
 		const result = evaluateRuntimeRequirements(desired.requirements, this.instanceRegistry.getPluginState())
 		if (result.status !== 'failed') return
@@ -872,7 +865,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	private async readOperationResponse(restartId: string): Promise<IRuntimeRestartResponse> {
-		const metadata = await this.readMetadata(restartId)
+		const metadata = await readRestartMetadata(this.redis, restartId)
 		if (metadata) return this.operationResponse(metadata)
 
 		return {
@@ -886,27 +879,8 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		}
 	}
 
-	private async readMetadata(restartId: string): Promise<RestartOperationMetadata | null> {
-		const value = await this.redis.get(this.metadataKey(restartId))
-		if (!value) return null
-		try {
-			const parsed = JSON.parse(value) as RestartOperationMetadata
-			if (
-				parsed.restartId !== restartId ||
-				!Array.isArray(parsed.pluginGenerations) ||
-				!Array.isArray(parsed.runtimeRequirements) ||
-				(parsed.phase !== 'collecting' && parsed.phase !== 'rolling')
-			) {
-				return null
-			}
-			return parsed
-		} catch {
-			return null
-		}
-	}
-
 	private async writeMetadata(metadata: RestartOperationMetadata): Promise<void> {
-		await this.redis.set(this.metadataKey(metadata.restartId), JSON.stringify(metadata), {
+		await this.redis.set(restartMetadataKey(metadata.restartId), JSON.stringify(metadata), {
 			EX: operationStateTtlSeconds(metadata)
 		})
 	}
@@ -959,9 +933,6 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		return await this.releaseLock(this.restartSlotKey(restartId, slot), lockToken)
 	}
 
-	private metadataKey(restartId: string) {
-		return `xpert:system:runtime:restart:${restartId}:metadata`
-	}
 	private legacyTurnKey(restartId: string) {
 		return `xpert:system:runtime:restart:${restartId}:turn`
 	}

@@ -1,4 +1,4 @@
-import { IRuntimeReadiness } from '@xpert-ai/contracts'
+import { IRuntimeAdmissionDiagnostics, IRuntimeReadiness } from '@xpert-ai/contracts'
 import { BeforeApplicationShutdown, Injectable, Logger } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
@@ -20,6 +20,20 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 		this.readinessGuard = guard
 	}
 	private drainState: RuntimeDrainState | null = null
+	private withdrawal: RuntimeDrainState | null = null
+	private diagnostics?: () => IRuntimeAdmissionDiagnostics
+	private lastDiagnostic = ''
+
+	setAdmissionDiagnostics(read: () => IRuntimeAdmissionDiagnostics): void {
+		this.diagnostics = read
+	}
+
+	beginWithdrawal(state: RuntimeDrainState): boolean {
+		if (this.withdrawal || this.drainState) return false
+		this.withdrawal = state
+		this.logger.log(JSON.stringify({ event: 'runtime.traffic.withdrawal-started', ...state }))
+		return true
+	}
 	private readonly idleWaiters = new Set<() => void>()
 
 	async beforeApplicationShutdown(): Promise<void> {
@@ -46,10 +60,16 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 		)
 	}
 
+	completeWithdrawal(state: RuntimeDrainState): boolean {
+		if (this.withdrawal?.restartId !== state.restartId) return false
+		return this.beginDrain(state)
+	}
+
 	beginDrain(state: RuntimeDrainState): boolean {
 		if (this.drainState) {
 			return false
 		}
+		this.withdrawal = null
 		this.drainState = state
 		this.logger.debug(
 			JSON.stringify({
@@ -63,6 +83,7 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 	}
 
 	cancelDrain(restartId: string): void {
+		if (this.withdrawal?.restartId === restartId) this.withdrawal = null
 		if (this.drainState?.restartId === restartId) {
 			this.drainState = null
 			this.logger.debug(
@@ -77,6 +98,7 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 
 	trackRequest(options?: { allowUnready?: boolean }): (() => void) | null {
 		if (this.drainState || (!options?.allowUnready && !this.readinessGuard())) {
+			this.readiness()
 			return null
 		}
 
@@ -145,11 +167,20 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 	}
 
 	readiness(): IRuntimeReadiness {
+		const admission = this.diagnostics?.()
+		const admitted = admission ? admission.reason === 'ready' : this.readinessGuard()
+		const status = this.drainState ? 'draining' : !admitted ? 'unready' : this.withdrawal ? 'withdrawing' : 'ready'
+		const diagnostic = `${status}:${admission?.reason}`
+		if (diagnostic !== this.lastDiagnostic) {
+			this.lastDiagnostic = diagnostic
+			this.logger.log(JSON.stringify({ event: 'runtime.readiness.changed', status, admission }))
+		}
 		return {
-			status: this.drainState ? 'draining' : this.readinessGuard() ? 'ready' : 'unready',
+			status,
+			...(admission ? { admission } : {}),
 			instanceId: this.instanceId,
 			activeRequests: this.activeRequests,
-			...(this.drainState ?? {})
+			...(this.drainState ?? this.withdrawal ?? {})
 		}
 	}
 }

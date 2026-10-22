@@ -8,13 +8,13 @@ ENV NODE_ENV=production \
     XDG_CACHE_HOME=/tmp/xpert/cache
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc fonts-noto-cjk fonts-noto-color-emoji \
+    && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc poppler-utils fontconfig fonts-noto-cjk fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 xpert
 
 WORKDIR /opt/xpert/sandbox-runtime
 COPY packages/sandbox-runtime/images/browser/runtime/runner-host.mjs ./runner-host.mjs
-COPY packages/sandbox-runtime/images/document/runtime/manifest.json ./manifest.json
+COPY packages/sandbox-runtime/images/document/runtime/ ./
 
 RUN chown -R root:root /opt/xpert/sandbox-runtime \
     && chmod -R a-w /opt/xpert/sandbox-runtime \
@@ -23,5 +23,6 @@ RUN chown -R root:root /opt/xpert/sandbox-runtime \
     && chown -R xpert:xpert /workspace /tmp/xpert
 
 USER xpert
+RUN node /opt/xpert/sandbox-runtime/verify-document-preview.mjs
 WORKDIR /workspace
 ENTRYPOINT ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"]

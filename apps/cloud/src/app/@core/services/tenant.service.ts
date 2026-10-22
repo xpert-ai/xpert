@@ -1,3 +1,4 @@
+import { ManualRetentionPreview, ManualRetentionRange, ManualRetentionResult } from '@xpert-ai/contracts'
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_PREFIX } from '@cloud/app/@core/state'
@@ -38,6 +39,16 @@ export class TenantService {
 
   canManageRetention() {
     return this.http.get<boolean>(`${API_PREFIX}/tenant-setting/retention-access`)
+  }
+
+  previewCleanup(range: ManualRetentionRange): Promise<ManualRetentionPreview> {
+    return firstValueFrom(this.http.post<ManualRetentionPreview>(`${API_PREFIX}/data-retention/preview`, range))
+  }
+
+  executeCleanup(previewToken: string): Promise<ManualRetentionResult> {
+    return firstValueFrom(
+      this.http.post<ManualRetentionResult>(`${API_PREFIX}/data-retention/execute`, { previewToken, confirmed: true })
+    )
   }
 
   generateDemo(id: string) {

@@ -365,6 +365,8 @@ function normalizeConfig(config, overrides) {
       css: config.component.css ?? 'app.css'
     },
     hostContext: {
+      scopeRevision: config.hostContext?.scopeRevision,
+      runtimeScope: isPlainObject(config.hostContext?.runtimeScope) ? config.hostContext.runtimeScope : undefined,
       manifest: isPlainObject(config.hostContext?.manifest)
         ? config.hostContext.manifest
         : { key: 'remote-view-preview' },

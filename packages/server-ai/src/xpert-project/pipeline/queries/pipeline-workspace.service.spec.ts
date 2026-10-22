@@ -13,6 +13,7 @@ const definition = {
     version: '1.0.0',
     title: 'Neutral',
     executionAuthority: 'platform',
+    projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
     subjectResolverRef: 'neutral.subject@1',
     topology: { source: 'definition' },
     roles: [{ key: 'owner', allowedKinds: ['human'] }],

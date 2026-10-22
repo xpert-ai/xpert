@@ -4,6 +4,7 @@
 import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { promisify } from 'node:util'
+import { verifyRuntimeManifest } from './verify-runtime-manifest.mjs'
 
 const execFileAsync = promisify(execFile)
 const image = argument('--image')
@@ -31,6 +32,10 @@ const sandboxFlags = [
 const common = [...sandboxFlags, image]
 const manifest = await docker([...common, '--manifest'])
 const value = JSON.parse(manifest.trim())
+const runtimeDefinition = JSON.parse(
+  await readFile(new URL(`../${definition.runtimeDefinition}`, import.meta.url), 'utf8')
+)
+verifyRuntimeManifest(value, runtimeDefinition)
 if (value.imageFamily !== family || value.profileName !== definition.profileName)
   throw new Error('Runtime manifest does not match image family.')
 const identity = await docker([

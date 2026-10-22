@@ -25,11 +25,8 @@ export async function purgeModelGatewayCallBatch(manager: EntityManager, batchSi
     }
     const escape = (name: string) => manager.connection.driver.escape(name)
     const table = (path: string) => path.split('.').map(escape).join('.')
-    const repository = manager.getRepository(MembershipPointLedger)
-    const ledgerTable = table(repository.metadata.tablePath)
     const callTable = table(manager.getRepository(ModelGatewayCall).metadata.tablePath)
     const settingTable = table(manager.getRepository(TenantSetting).metadata.tablePath)
-    const columns = modelGatewayUsageColumns(repository)
     const rows: unknown = await manager.query(
         `
 WITH candidates AS (
@@ -55,19 +52,7 @@ WITH candidates AS (
     LIMIT $6::int
     FOR UPDATE OF c SKIP LOCKED
 ),
-archived AS (
-    INSERT INTO ${ledgerTable} (${columns.map(({ column }) => escape(column.databaseName)).join(', ')})
-    SELECT ${columns.map(({ expression }) => expression).join(', ')} FROM candidates g
-    WHERE ${MODEL_GATEWAY_USAGE_PREDICATE} AND ${modelGatewayUsageNotRecordedSql(ledgerTable)}
-    RETURNING id
-),
-deleted AS (
-    DELETE FROM ${callTable} c
-    USING candidates, (SELECT count(*) FROM archived) preserved
-    WHERE c.id = candidates.id
-    RETURNING 1
-)
-SELECT count(*)::int AS count FROM deleted
+${modelGatewayArchiveDeleteSql(manager)}
 `,
         [
             MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
@@ -90,4 +75,26 @@ SELECT count(*)::int AS count FROM deleted
     }
     const count = Number(rows[0].count)
     return Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0
+}
+
+export function modelGatewayArchiveDeleteSql(manager: EntityManager): string {
+    const escape = (name: string) => manager.connection.driver.escape(name)
+    const table = (path: string) => path.split('.').map(escape).join('.')
+    const repository = manager.getRepository(MembershipPointLedger)
+    const ledgerTable = table(repository.metadata.tablePath)
+    const callTable = table(manager.getRepository(ModelGatewayCall).metadata.tablePath)
+    const columns = modelGatewayUsageColumns(repository)
+    return `archived AS (
+    INSERT INTO ${ledgerTable} (${columns.map(({ column }) => escape(column.databaseName)).join(', ')})
+    SELECT ${columns.map(({ expression }) => expression).join(', ')} FROM candidates g
+    WHERE ${MODEL_GATEWAY_USAGE_PREDICATE} AND ${modelGatewayUsageNotRecordedSql(ledgerTable)}
+    RETURNING id
+),
+deleted AS (
+    DELETE FROM ${callTable} c
+    USING candidates, (SELECT count(*) FROM archived) preserved
+    WHERE c.id = candidates.id
+    RETURNING 1
+)
+SELECT count(*)::int AS count FROM deleted`
 }

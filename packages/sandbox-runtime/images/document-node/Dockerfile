@@ -1,4 +1,4 @@
-FROM node:20.20.2-bookworm-slim@sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c
+FROM node:20.20.2-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip fontconfig fonts-dejavu-core fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
 COPY packages/sandbox-runtime/images/document-node/dependencies.lock.json /opt/xpert/sandbox-runtime/dependencies.lock.json
 COPY packages/sandbox-runtime/images/document-node/runtime/manifest.json /opt/xpert/sandbox-runtime/manifest.json

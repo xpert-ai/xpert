@@ -1,3 +1,4 @@
+import { TRAFFIC_WITHDRAWAL_MS } from './runtime-traffic-withdrawal'
 import type { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
 import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
 import { RuntimeRestartTargetStore } from './runtime-restart-target.store'
@@ -26,7 +27,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 	})
 
 	afterEach(async () => {
-		await Promise.all(nodes.map((node) => node.coordinator.onModuleDestroy()))
+		await Promise.all(nodes.map((node) => node.destroy()))
 		jest.useRealTimers()
 	})
 
@@ -57,19 +58,20 @@ describe('RuntimeRestartCoordinatorService', () => {
 			version: requirement.version,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'completed',
 			targetReplicaCount: 1,
 			completedReplicaCount: 1
 		})
 		await delayed.coordinator.onModuleInit()
+		delayed.admissionMonitor.onApplicationBootstrap()
 		delayed.coordinator.onApplicationBootstrap()
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(delayed.signaler.signal).toHaveBeenCalledWith('SIGTERM')
-		await delayed.coordinator.onModuleDestroy()
+		await delayed.destroy()
 		nodes.push(await createNode(redis, 'api-2', 'boot-2', loadedPluginState()))
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'completed',
 			targetReplicaCount: 2,
@@ -85,16 +87,16 @@ describe('RuntimeRestartCoordinatorService', () => {
 			version: requirement.version,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'completed'
 		})
 		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
 		const late = await createNode(redis, 'api-late', 'boot-1', oldPluginState())
 		nodes.push(late)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(late.signaler.signal).toHaveBeenCalledTimes(1)
-		await late.coordinator.onModuleDestroy()
+		await late.destroy()
 		const failedReplacement = await createNode(redis, 'api-late', 'boot-2', oldPluginState())
 		nodes.push(failedReplacement)
 		await advance(10_000)
@@ -106,7 +108,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			version: requirement.version,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(failedReplacement.signaler.signal).toHaveBeenCalledTimes(1)
 	})
 
@@ -120,21 +122,22 @@ describe('RuntimeRestartCoordinatorService', () => {
 				allowDowntime: true,
 				runtimeRequirements: [requirement]
 			})
-			await advance(6_000)
+			await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			expect(old.signaler.signal).toHaveBeenCalledWith('SIGTERM')
-			await old.coordinator.onModuleDestroy()
+			await old.destroy()
 			const replacement = await createNode(redis, 'api-1', 'boot-2', reported ? loadedPluginState() : null, false)
 			nodes.push(replacement)
 			await replacement.coordinator.onModuleInit()
-			await advance(6_000)
+			await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			await expect(
 				replacement.coordinator.getPluginConvergenceStatus(change.pluginGeneration!)
 			).resolves.toMatchObject({
 				status: 'in_progress',
 				completedReplicaCount: 0
 			})
+			replacement.admissionMonitor.onApplicationBootstrap()
 			replacement.coordinator.onApplicationBootstrap()
-			await advance(6_000)
+			await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			expect(replacement.signaler.signal).not.toHaveBeenCalled()
 			if (!reported) {
 				await expect(
@@ -145,7 +148,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 				})
 				replacement.reportPluginState(loadedPluginState())
 			}
-			await advance(6_000)
+			await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 			await expect(
 				replacement.coordinator.getPluginConvergenceStatus(change.pluginGeneration!)
 			).resolves.toMatchObject({
@@ -175,7 +178,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		})
 		const returned = await createNode(redis, 'api-missing', 'boot-1', oldPluginState())
 		nodes.push(returned)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(returned.signaler.signal).not.toHaveBeenCalled()
 	})
 
@@ -225,14 +228,14 @@ describe('RuntimeRestartCoordinatorService', () => {
 		})
 		expect(responsive.signaler.signal).not.toHaveBeenCalled()
 		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(responsive.signaler.signal).not.toHaveBeenCalled()
 		// A returned stale boot stays fenced; a healthy API can explicitly publish a new generation.
 		expect(responsive.lifecycle.readiness().status).toBe('unready')
 		const healthy = await createNode(redis, 'api-healthy', 'boot-1', loadedPluginState())
 		nodes.push(healthy)
 		await healthy.coordinator.recordPluginChange(requirement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(responsive.signaler.signal).toHaveBeenCalledTimes(1)
 	})
 
@@ -240,7 +243,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
 		nodes.push(ready)
 		await ready.coordinator.recordPluginChange(requirement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		nodes.push(await createNode(redis, 'api-offline', 'boot-1', oldPluginState(), false))
 		const late = await createNode(redis, 'api-late', 'boot-1', oldPluginState())
 		nodes.push(late)
@@ -248,7 +251,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		expect(late.signaler.signal).toHaveBeenCalledTimes(1)
 		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(late.signaler.signal).toHaveBeenCalledTimes(1)
 		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 	})
@@ -258,25 +261,25 @@ describe('RuntimeRestartCoordinatorService', () => {
 		const stale = await createNode(redis, 'api-2', 'boot-1', loadedPluginState())
 		nodes.push(ready, stale)
 		await ready.coordinator.recordPluginChange(requirement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		ready.reportPluginState(emptyPluginState())
 		const removal = await ready.coordinator.recordPluginRequirements(
 			[{ scopeKey: requirement.scopeKey, pluginName: requirement.pluginName, state: 'absent' }],
 			'Uninstall plugin'
 		)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(ready.signaler.signal).not.toHaveBeenCalled()
 		expect(stale.signaler.signal).toHaveBeenCalledTimes(1)
-		await stale.coordinator.onModuleDestroy()
+		await stale.destroy()
 		nodes.push(await createNode(redis, 'api-2', 'boot-2', emptyPluginState()))
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(ready.coordinator.getPluginConvergenceStatus(removal.generation)).resolves.toMatchObject({
 			status: 'completed'
 		})
 		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
 		const late = await createNode(redis, 'api-new', 'boot-1', emptyPluginState())
 		nodes.push(late)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(late.signaler.signal).not.toHaveBeenCalled()
 		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 	})
@@ -288,7 +291,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		}
 
 		const restart = await nodes[0].coordinator.requestRestart({ source: 'interactive' })
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 
 		for (let completed = 0; completed < replicaIds.length; ) {
 			const oldNodes = nodes.filter(
@@ -297,17 +300,17 @@ describe('RuntimeRestartCoordinatorService', () => {
 			expect(oldNodes).toHaveLength(1)
 
 			for (const oldNode of oldNodes) {
-				await oldNode.coordinator.onModuleDestroy()
+				await oldNode.destroy()
 				nodes = nodes.filter((node) => node !== oldNode)
 				nodes.push(
 					await createNode(redis, oldNode.replicaId, `${oldNode.replicaId}-boot-2`, emptyPluginState())
 				)
 			}
 			completed += oldNodes.length
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		}
 
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(nodes[0].coordinator.getStatus(restart.restartId)).resolves.toMatchObject({
 			status: 'completed',
 			targetReplicaCount: 10,
@@ -323,7 +326,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		}
 
 		const restart = await nodes[0].coordinator.requestRestart({ source: 'interactive' })
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 
 		for (let completed = 0; completed < replicaIds.length; completed += 1) {
 			const oldNodes = nodes.filter(
@@ -331,15 +334,15 @@ describe('RuntimeRestartCoordinatorService', () => {
 			)
 			expect(oldNodes).toHaveLength(1)
 			const [oldNode] = oldNodes
-			await oldNode.coordinator.onModuleDestroy()
+			await oldNode.destroy()
 			nodes = nodes.filter((node) => node !== oldNode)
 
 			await advance(100_000)
 			nodes.push(await createNode(redis, oldNode.replicaId, `${oldNode.replicaId}-boot-2`, emptyPluginState()))
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		}
 
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		await expect(nodes[0].coordinator.getStatus(restart.restartId)).resolves.toMatchObject({
 			status: 'completed',
 			targetReplicaCount: 9,
@@ -353,7 +356,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			nodes.push(await createNode(redis, replicaId, `${replicaId}-boot-1`, emptyPluginState()))
 		}
 		const restart = await nodes[0].coordinator.requestRestart({ source: 'interactive' })
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 
 		const metadataKey = `xpert:system:runtime:restart:${restart.restartId}:metadata`
 		const metadataValue = await redis.get(metadataKey)
@@ -365,7 +368,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			{ EX: 900 }
 		)
 
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 
 		await expect(nodes[0].coordinator.getStatus(restart.restartId)).resolves.toMatchObject({
 			status: 'failed',
@@ -377,7 +380,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 	it('keeps a staged single-replica installation pending until explicit outage approval', async () => {
 		const node = await createNode(redis, 'api-1', 'boot-1', emptyPluginState())
 		nodes.push(node)
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		const change = await node.coordinator.recordPluginChange(requirement)
 		await expect(node.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'awaiting_restart'
@@ -394,7 +397,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			allowDowntime: true,
 			runtimeRequirements: [requirement]
 		})
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(node.signaler.signal).toHaveBeenCalledTimes(1)
 	})
 
@@ -408,7 +411,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			scopeKey: requirement.scopeKey
 		})
 		expect(change).toEqual({ scheduled: true, generation: 1 })
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 
 		expect(node.signaler.signal).not.toHaveBeenCalled()
 		await expect(node.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
@@ -430,16 +433,16 @@ describe('RuntimeRestartCoordinatorService', () => {
 			runtimeRevision: currentRevision,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 
 		expect(nodes.find((node) => node.replicaId === 'api-1')?.signaler.signal).not.toHaveBeenCalled()
 		const staleNode = nodes.find((node) => node.replicaId === 'api-2')
 		expect(staleNode?.signaler.signal).toHaveBeenCalledWith('SIGTERM')
 		if (!staleNode) throw new Error('Expected the stale API replica')
-		await staleNode.coordinator.onModuleDestroy()
+		await staleNode.destroy()
 		nodes = nodes.filter((node) => node !== staleNode)
 		nodes.push(await createNode(redis, 'api-2', 'api-2-boot-2', loadedPluginState(currentRevision)))
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 
 		await expect(nodes[0].coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'completed',
@@ -460,7 +463,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			version: requirement.version,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 		expect(nodes.find((node) => node.replicaId === 'api-1')?.signaler.signal).not.toHaveBeenCalled()
 
 		for (let completed = 0; completed < 9; ) {
@@ -469,17 +472,17 @@ describe('RuntimeRestartCoordinatorService', () => {
 			)
 			expect(oldNodes).toHaveLength(1)
 			for (const oldNode of oldNodes) {
-				await oldNode.coordinator.onModuleDestroy()
+				await oldNode.destroy()
 				nodes = nodes.filter((node) => node !== oldNode)
 				nodes.push(
 					await createNode(redis, oldNode.replicaId, `${oldNode.replicaId}-boot-2`, loadedPluginState())
 				)
 			}
 			completed += oldNodes.length
-			await advance(5_000)
+			await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		}
 
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(nodes.filter((node) => node.bootId.endsWith('-boot-2'))).toHaveLength(9)
 		await expect(nodes[0].coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'completed',
@@ -496,15 +499,15 @@ describe('RuntimeRestartCoordinatorService', () => {
 			version: requirement.version,
 			scopeKey: requirement.scopeKey
 		})
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 
 		const staleNode = nodes.find((node) => node.replicaId === 'api-2')
 		expect(staleNode?.signaler.signal).toHaveBeenCalledWith('SIGTERM')
 		if (!staleNode) throw new Error('Expected stale API replica')
-		await staleNode.coordinator.onModuleDestroy()
+		await staleNode.destroy()
 		nodes = nodes.filter((node) => node !== staleNode)
 		nodes.push(await createNode(redis, 'api-2', 'api-2-boot-2', oldPluginState()))
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 
 		await expect(nodes[0].coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
 			status: 'failed',
@@ -518,7 +521,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			nodes.push(await createNode(redis, replicaId, `${replicaId}-boot-1`, emptyPluginState()))
 		}
 		const restart = await nodes[0].coordinator.requestRestart({ source: 'interactive' })
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 
 		const targets = await readTargets(redis, restart.restartId)
 		const pending = targets.find((target) => target.status === 'pending')
@@ -527,7 +530,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		const disappeared = nodes.find((node) => node.replicaId === pending.replicaId)
 		expect(disappeared).toBeDefined()
 		if (!disappeared) throw new Error('Expected registered API participant')
-		await disappeared.coordinator.onModuleDestroy()
+		await disappeared.destroy()
 		nodes = nodes.filter((node) => node !== disappeared)
 
 		await advance(46_000)
@@ -619,11 +622,11 @@ describe('RuntimeRestartCoordinatorService', () => {
 		for (let index = 1; index <= 3; index++)
 			nodes.push(await createNode(redis, `api-${index}`, 'boot-1', oldPluginState()))
 		const change = await nodes[0].coordinator.recordPluginChange(requirement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		const candidates = nodes.filter((node) => jest.mocked(node.signaler.signal).mock.calls.length > 0)
 		expect(candidates).toHaveLength(1)
 		const [candidate] = candidates
-		await candidate.coordinator.onModuleDestroy()
+		await candidate.destroy()
 		nodes = nodes.filter((node) => node !== candidate)
 		const replacement = await createNode(redis, candidate.replicaId, 'boot-2', oldPluginState())
 		nodes.push(replacement)
@@ -643,7 +646,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 			nodes.push(await createNode(redis, `api-${index}`, 'boot-1', oldPluginState()))
 		const releases = nodes.map((node) => node.lifecycle.trackRequest())
 		const change = await nodes[0].coordinator.recordPluginChange(requirement)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		const draining = nodes.find((node) => node.lifecycle.readiness().status === 'draining')
 		expect(draining).toBeDefined()
 		const status = await nodes[0].coordinator.getPluginConvergenceStatus(change.generation)
@@ -654,7 +657,7 @@ describe('RuntimeRestartCoordinatorService', () => {
 		await store.update(status.restartId, pending, { ...pending, status: 'failed', error: 'lost health' })
 		await advance(2_000)
 		releases.forEach((release) => release?.())
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		for (const node of nodes) expect(node.signaler.signal).not.toHaveBeenCalled()
 		expect(draining?.lifecycle.readiness().status).toBe('ready')
 	})
@@ -670,10 +673,10 @@ describe('RuntimeRestartCoordinatorService', () => {
 
 		expect(queued.restartId).toBe(active.restartId)
 		expect(queued.pluginGeneration).toBe(1)
-		await advance(5_750)
+		await advance(5_750 + TRAFFIC_WITHDRAWAL_MS)
 		expect(node.signaler.signal).toHaveBeenCalledWith('SIGTERM')
 
-		await node.coordinator.onModuleDestroy()
+		await node.destroy()
 		nodes = []
 		nodes.push(await createNode(redis, 'api-1', 'api-1-boot-2', loadedPluginState()))
 		await advance(8_000)

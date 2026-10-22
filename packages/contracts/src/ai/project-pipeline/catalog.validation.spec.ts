@@ -11,6 +11,7 @@ function fixture() {
       title: 'Document check',
       executionAuthority: 'platform',
       topology: { source: 'definition' },
+      projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
       subjectResolverRef: 'neutral.subject@1',
       roles: [{ key: 'checker', allowedKinds: ['service'] }],
       lanes: [{ key: 'check', roleKey: 'checker', label: 'Check', order: 0 }],

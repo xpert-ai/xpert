@@ -30,7 +30,7 @@ function connectionDefaults(env = process.env) {
     ['webUrl', 'XPERT_DESKTOP_WEB_URL'],
     ['frameUrl', 'XPERT_DESKTOP_CHATKIT_URL']
   ])
-    if (env[variable] !== undefined) overrides[key] = env[variable]
+    if (env[variable] !== undefined && env[variable] !== '') overrides[key] = env[variable]
   validateConnection(overrides)
   // A customer Web deployment also hosts ChatKit unless explicitly overridden.
   if (overrides.webUrl && !overrides.frameUrl) overrides.frameUrl = chatkitUrl(overrides.webUrl)

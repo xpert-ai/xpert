@@ -52,7 +52,8 @@ const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
 const LOCAL_AI_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai'
 const LOCAL_VIDEO_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:video'
-const LOCAL_DOCUMENT_INSTALL_COMMAND = 'Install LibreOffice and expose the soffice executable on PATH.'
+const LOCAL_DOCUMENT_INSTALL_COMMAND =
+    'Install LibreOffice, Poppler (pdftotext), fontconfig, Noto CJK and Noto Color Emoji fonts on PATH.'
 const execFileAsync = promisify(execFile)
 
 type LocalRuntimeConfiguration = {
@@ -249,11 +250,12 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
                         ]
                     }
                   : configuration.requiresLibreOffice
-                    ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
+                    ? { command: runtime.nodePath, args: [path.join(runtime.root, 'verify-document-preview.mjs')] }
                     : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
-            const timeoutMs = configuration.requiresDocumentDependencies
-                ? DOCUMENT_HEALTH_TIMEOUT_MS
-                : HEALTH_TIMEOUT_MS
+            const timeoutMs =
+                configuration.requiresDocumentDependencies || configuration.requiresLibreOffice
+                    ? DOCUMENT_HEALTH_TIMEOUT_MS
+                    : HEALTH_TIMEOUT_MS
             const browserResult = await runProcess(healthCommand.command, healthCommand.args, {
                 timeoutMs,
                 maxOutputBytes: 256 * 1024,

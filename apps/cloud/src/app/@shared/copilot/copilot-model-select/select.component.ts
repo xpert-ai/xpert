@@ -1,4 +1,4 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import {
   afterNextRender,
@@ -11,7 +11,8 @@ import {
   inject,
   input,
   model,
-  signal
+  signal,
+  viewChildren
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -78,7 +79,7 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
   styleUrls: ['select.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class.readonly]': 'readonly()',
+    '[class.readonly]': 'interactionDisabled()',
     '[class.status-choose]': 'statusChoose()'
   }
 })
@@ -93,6 +94,9 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
   readonly features = input<ModelFeature[]>()
+  /** Undefined uses the shared catalog; an empty list allows no models. */
+  readonly allowedModels = input<ReadonlyArray<Pick<ICopilotModel, 'copilotId' | 'model' | 'modelType'>>>()
+  readonly showParameters = input(true, { transform: booleanAttribute })
   readonly inheritModel = input<ICopilotModel>()
   readonly copilotModel = input<ICopilotModel>()
 
@@ -115,6 +119,8 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly label = input<string | I18nObject>()
 
   readonly modelDisplayTags = providerModelDisplayTags
+  readonly interactionDisabled = computed(() => this.readonly() || this.cva.disabled$())
+  private readonly menuTriggers = viewChildren(CdkMenuTrigger)
 
   // States
   readonly __copilotModel = computed(() => this.cva.value$() ?? this.copilotModel())
@@ -129,6 +135,16 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return this.modelCatalog
       .value()
       ?.filter((item) => !copilot || item.id === copilot.id)
+      .map((item) => ({
+        ...item,
+        providerWithModels: {
+          ...item.providerWithModels,
+          models: item.providerWithModels.models.filter((model) =>
+            this.isAllowedModel({ copilotId: item.id, model: model.model, modelType: model.model_type })
+          )
+        }
+      }))
+      .filter((item) => item.providerWithModels.models.length)
       .sort((a, b) => {
         const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
         return roleOrder[a.role] - roleOrder[b.role]
@@ -264,7 +280,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   readonly #modelParameterRules = myRxResource({
     request: () => ({
-      providerId: this.providerId(),
+      providerId: this.showParameters() ? this.providerId() : undefined,
       modelType: this.modelType(),
       model: this.model()
     }),
@@ -346,6 +362,12 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     this.#destroyRef.onDestroy(() => this.stopRailResize())
 
     effect(() => {
+      if (this.interactionDisabled()) {
+        for (const trigger of this.menuTriggers()) trigger.close()
+      }
+    })
+
+    effect(() => {
       const availableIds = new Set(this.modelFilterTags().map((tag) => tag.id))
       const selectedIds = this.selectedModelFilterIds()
       const nextSelectedIds = selectedIds.filter((id) => availableIds.has(id))
@@ -395,9 +417,19 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   }
 
   updateValue(value: ICopilotModel | null) {
-    if (!this.readonly()) {
+    if (!this.interactionDisabled() && (!value || this.isAllowedModel(value))) {
       this.cva.value$.set(value)
     }
+  }
+
+  private isAllowedModel(value: Pick<ICopilotModel, 'copilotId' | 'model' | 'modelType'>) {
+    const allowed = this.allowedModels()
+    return (
+      allowed === undefined ||
+      allowed.some(
+        (item) => item.copilotId === value.copilotId && item.model === value.model && item.modelType === value.modelType
+      )
+    )
   }
 
   initModel(copilotId: string, model?: ProviderModel | null) {

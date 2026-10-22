@@ -4,54 +4,105 @@
       <h2 class="text-lg font-semibold">{{ 'XP.SettingsRemaining.Parameters' | translate }}</h2>
       <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.ParametersDescription' | translate }}</p>
     </div>
-    <button z-button type="button" (click)="addNew()">{{ 'XP.ACTIONS.Add' | translate }}</button>
+    <button z-button zSize="lg" type="button" (click)="addNew()">{{ 'XP.ACTIONS.Add' | translate }}</button>
   </header>
   <div class="overflow-x-auto rounded-lg border border-border">
-    <table z-table class="min-w-[36rem]">
+    <table z-table class="min-w-[40rem] table-fixed [&_tbody_td]:align-top">
       <thead z-table-header>
         <tr z-table-row>
-          <th z-table-head>{{ 'XP.KEY_WORDS.Name' | translate }}</th>
+          <th z-table-head class="w-[28%]">{{ 'XP.KEY_WORDS.Name' | translate }}</th>
           <th z-table-head>{{ 'XP.KEY_WORDS.Value' | translate }}</th>
-          <th z-table-head class="text-right">{{ 'XP.KEY_WORDS.Actions' | translate }}</th>
+          <th z-table-head class="w-32 text-right">{{ 'XP.KEY_WORDS.Actions' | translate }}</th>
         </tr>
       </thead>
       <tbody z-table-body>
         @for (item of listOfData.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize); track item.id) {
-          <tr z-table-row>
-            <td z-table-cell class="w-1/3">
-              @if (editCache[item.id].edit) {
-                <input
-                  z-input
-                  [(ngModel)]="editCache[item.id].data.name"
-                  [attr.aria-label]="'XP.KEY_WORDS.Name' | translate"
+          @if (editCache[item.id].edit) {
+            <tr z-table-row>
+              <td z-table-cell colspan="3">
+                <div class="space-y-4 p-3">
+                  <label class="block space-y-2">
+                    <span class="text-sm font-medium">{{ 'XP.KEY_WORDS.Name' | translate }}</span>
+                    <input
+                      z-input
+                      class="max-w-lg"
+                      [(ngModel)]="editCache[item.id].data.name"
+                      [disabled]="editCache[item.id].saving"
+                    />
+                  </label>
+                  @if (editCache[item.id].jsonControl; as control) {
+                    <xp-setting-json-editor
+                      [control]="control"
+                      [label]="editCache[item.id].data.name"
+                      [readonly]="!!editCache[item.id].saving"
+                    />
+                  } @else {
+                    <label class="block space-y-2">
+                      <span class="text-sm font-medium">{{ 'XP.KEY_WORDS.Value' | translate }}</span>
+                      <input
+                        z-input
+                        [(ngModel)]="editCache[item.id].data.value"
+                        [disabled]="editCache[item.id].saving"
+                      />
+                    </label>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      type="button"
+                      [zDisabled]="editCache[item.id].saving"
+                      (click)="editAsJson(item.id)"
+                    >
+                      {{ 'XP.SettingsValue.EditAsJson' | translate }}
+                    </button>
+                  }
+                  <div class="flex justify-end gap-2">
+                    <button
+                      z-button
+                      zType="outline"
+                      zSize="lg"
+                      type="button"
+                      [zDisabled]="editCache[item.id].saving"
+                      (click)="cancelEdit(item.id)"
+                    >
+                      {{ 'XP.ACTIONS.Cancel' | translate }}
+                    </button>
+                    <button
+                      z-button
+                      zSize="lg"
+                      type="button"
+                      [zLoading]="editCache[item.id].saving"
+                      [zDisabled]="
+                        editCache[item.id].saving ||
+                        (editCache[item.id].jsonControl?.statusChanges | async) === 'INVALID' ||
+                        editCache[item.id].jsonControl?.invalid
+                      "
+                      (click)="saveEdit(item.id)"
+                    >
+                      {{ 'XP.ACTIONS.Save' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            <tr z-table-row>
+              <td z-table-cell>
+                <code class="block py-1.5 text-sm [overflow-wrap:anywhere]">{{ item.name }}</code>
+              </td>
+              <td z-table-cell>
+                <xp-tenant-setting-value
+                  [value]="item.value"
+                  [name]="item.name"
+                  [contentId]="'tenant-setting-value-' + item.id"
                 />
-              } @else {
-                <code class="text-sm">{{ item.name }}</code>
-              }
-            </td>
-            <td z-table-cell>
-              @if (editCache[item.id].edit) {
-                <input
-                  z-input
-                  [(ngModel)]="editCache[item.id].data.value"
-                  [attr.aria-label]="'XP.KEY_WORDS.Value' | translate"
-                />
-              } @else {
-                <span class="break-all">{{ item.value }}</span>
-              }
-            </td>
-            <td z-table-cell>
-              <div class="flex justify-end gap-1">
-                @if (editCache[item.id].edit) {
-                  <button z-button zSize="sm" type="button" (click)="saveEdit(item.id)">
-                    {{ 'XP.ACTIONS.Save' | translate }}</button
-                  ><button z-button zType="ghost" zSize="sm" type="button" (click)="cancelEdit(item.id)">
-                    {{ 'XP.ACTIONS.Cancel' | translate }}
-                  </button>
-                } @else {
+              </td>
+              <td z-table-cell>
+                <div class="flex justify-end gap-1">
                   <button z-button zType="ghost" zSize="sm" type="button" (click)="startEdit(item.id)">
-                    {{ 'XP.ACTIONS.Edit' | translate }}</button
-                  ><button
+                    {{ 'XP.ACTIONS.Edit' | translate }}
+                  </button>
+                  <button
                     z-button
                     zType="ghost"
                     zSize="sm"
@@ -61,10 +112,10 @@
                   >
                     {{ 'XP.ACTIONS.Delete' | translate }}
                   </button>
-                }
-              </div>
-            </td>
-          </tr>
+                </div>
+              </td>
+            </tr>
+          }
         } @empty {
           <tr z-table-row>
             <td z-table-cell colspan="3" class="h-36 text-center text-muted-foreground">

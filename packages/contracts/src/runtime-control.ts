@@ -8,6 +8,7 @@ export interface IRuntimeStreamInterruption {
   message: string
 }
 
+/** Process-supervisor execution modes; neither implies Pod/deployment orchestration. */
 export type RuntimeRestartMode = 'self-signal' | 'rolling-self-signal'
 
 export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed' | 'awaiting_restart'
@@ -63,9 +64,11 @@ export interface IRuntimeRestartResponse {
 export interface IRuntimeRestartStatus {
   restartId: string
   mode: RuntimeRestartMode
+  /** completed confirms target runtime requirements and replacement readiness, not ingress acknowledgement. */
   status: RuntimeRestartStatus
   requestedAt: string
   targetReplicaCount: number
+  /** Includes already-current targets; not a count of ingress-confirmed serving replicas. */
   completedReplicaCount: number
   failedReplicaCount: number
   pluginGeneration: number
@@ -74,6 +77,7 @@ export interface IRuntimeRestartStatus {
 
 export interface IPluginRuntimeConvergenceStatus {
   generation: number
+  /** Runtime convergence outcome; completed does not attest ingress routing or business acceptance. */
   status: RuntimeRestartStatus
   restartId?: string
   targetReplicaCount: number
@@ -82,10 +86,30 @@ export interface IPluginRuntimeConvergenceStatus {
   error?: string
 }
 
+export type RuntimeAdmissionReason =
+  | 'ready'
+  | 'startup-not-listening'
+  | 'plugin-not-admitted'
+  | 'validation-expired'
+  | 'lease-expired'
+
+export interface IRuntimeAdmissionDiagnostics {
+  reason: RuntimeAdmissionReason
+  validationAgeMs: number | null
+  validationRemainingMs: number
+  leaseRemainingMs?: number
+  checkDurationMs: number | null
+  checkInFlight: boolean
+  lastCheckFailed: boolean
+  eventLoopDelayMaxMs?: number
+  eventLoopDelayP99Ms?: number
+}
+
 export interface IRuntimeReadiness {
-  status: 'ready' | 'draining' | 'unready'
+  status: 'ready' | 'withdrawing' | 'draining' | 'unready'
   instanceId: string
   activeRequests: number
+  admission?: IRuntimeAdmissionDiagnostics
   restartId?: string
   requestedAt?: string
 }

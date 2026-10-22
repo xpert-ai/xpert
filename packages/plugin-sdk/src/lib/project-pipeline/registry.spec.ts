@@ -103,6 +103,7 @@ describe('ProjectPipelineContributionRegistry', () => {
             title: 'Original',
             executionAuthority: 'provider',
             providerRef: 'neutral.provider@1',
+            projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
             subjectResolverRef: 'neutral.subject@1',
             topology: { source: 'provider', presentationAdapterRef: 'neutral.presentation@1' },
             roles: [{ key: 'owner', allowedKinds: ['human'] }],

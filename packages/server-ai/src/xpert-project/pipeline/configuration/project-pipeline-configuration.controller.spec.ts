@@ -23,6 +23,7 @@ describe('Project Pipeline configuration HTTP boundary', () => {
             title: 'Neutral flow',
             executionAuthority: 'provider',
             providerRef: 'neutral.projection@1',
+            projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
             subjectResolverRef: 'neutral.subject@1',
             topology: { source: 'provider', presentationAdapterRef: 'neutral.presentation@1' },
             roles: [{ key: 'owner', allowedKinds: ['human'] }],
@@ -63,7 +64,7 @@ describe('Project Pipeline configuration HTTP boundary', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         guardAccess.assertCanManage.mockResolvedValue(undefined)
-        scopedAccess.assertManage.mockResolvedValue({ canManage: true })
+        scopedAccess.assertManage.mockResolvedValue({ canManage: true, ...configuration.template.projectTypes[0] })
         catalog.listForActor.mockReturnValue([])
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user', tenantId: 'tenant' } as IUser)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -72,6 +73,27 @@ describe('Project Pipeline configuration HTTP boundary', () => {
     })
     afterEach(() => jest.restoreAllMocks())
     afterAll(async () => app?.close())
+    it('rejects project type mismatches even when a caller changes the registered template declaration', async () => {
+        catalog.listForActor.mockReturnValue([{ configurations: [configuration], descriptors: [] }])
+        const project = { applicationKey: 'sample:bom', projectTypeKey: 'case' }
+        scopedAccess.assertManage.mockResolvedValue({ canManage: true, ...project })
+        for (const candidate of [
+            configuration,
+            {
+                ...configuration,
+                template: { ...configuration.template, projectTypes: [project] }
+            }
+        ]) {
+            const response = await post(candidate)
+            expect(response.status).toBe(200)
+            expect(await response.json()).toMatchObject({
+                valid: false,
+                issues: expect.arrayContaining([
+                    { code: 'PIPELINE_PROJECT_TYPE_MISMATCH', path: ['template', 'projectTypes'] }
+                ])
+            })
+        }
+    })
 
     it('uses the actual pipe and service and derives actor scope from trusted context', async () => {
         const response = await post(configuration)

@@ -61,7 +61,8 @@ pending bump still determines their candidate base version. Source-only changes
 without an application note are built and checked, but never published. NsJail
 runtime inputs are stricter: changes under `.deploy/nsjail-runner/` (except
 README/CHANGELOG/AGENTS and `test_*.py` files) require a matching image release
-declaration. Both Git hooks and CI reject a missing declaration, including
+declaration. Its shared Compute Runtime manifest/smoke, Runner Host and embedded
+Compute Definition also require a Runner image release. Both Git hooks and CI reject a missing declaration, including
 deletions and renames. A pending NsJail note can authorize subsequent repairs.
 The exact NsJail image is checked for isolation and managed `.apps` protection
 before it is saved for publication.

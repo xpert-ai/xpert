@@ -99,13 +99,36 @@ describe('Pipeline catalog HTTP and scoped configuration boundary', () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(actor.tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
         contributions.listForActor.mockReturnValue([contribution])
-        access.listReadable.mockResolvedValue([{ canManage: true, assistantIds: [assistantId] }])
+        const project = { ...configuration.template.projectTypes[0], canManage: true, assistantIds: [assistantId] }
+        access.listReadable.mockResolvedValue([project])
+        access.assertManage.mockResolvedValue(project)
         assistants.candidate.mockResolvedValue({ id: assistantId, name: 'Bound Assistant', publishedVersion: '1' })
         runtimes.candidates.mockResolvedValue([])
         launch.configure.mockResolvedValue({ bindingId: randomUUID(), revision: 1, definitionDigest: 'digest' })
     })
     afterEach(() => jest.restoreAllMocks())
     afterAll(() => app.close())
+    it('filters by persisted project type and rejects a mismatched save before resolving executors', async () => {
+        const project = { applicationKey: 'sample:bom', projectTypeKey: 'case', canManage: true, assistantIds: [] }
+        access.listReadable.mockResolvedValue([project])
+        access.assertManage.mockResolvedValue(project)
+        expect(await (await fetch(base)).json()).toMatchObject({ items: [] })
+        expect((await post(input())).status).toBe(400)
+        expect(launch.configure).not.toHaveBeenCalled()
+        expect(assistants.resolve).not.toHaveBeenCalled()
+        expect((await post({ ...input(), projectTypes: configuration.template.projectTypes })).status).toBe(400)
+    })
+    it('does not treat the same type key in a different application as a match', async () => {
+        access.listReadable.mockResolvedValue([
+            {
+                ...configuration.template.projectTypes[0],
+                applicationKey: 'another:app',
+                canManage: true,
+                assistantIds: []
+            }
+        ])
+        expect(await (await fetch(base)).json()).toMatchObject({ items: [] })
+    })
     it('returns only the actor-scoped catalog and currently runnable Project-bound Assistant choices', async () => {
         const response = await fetch(base)
         expect(response.status).toBe(200)

@@ -7,11 +7,17 @@ import { imageVersionTag } from './image-version-tag.mjs'
 const packageRoot = new URL('../', import.meta.url)
 const catalog = JSON.parse(await readFile(new URL('images/catalog.json', packageRoot), 'utf8'))
 const packageJson = JSON.parse(await readFile(new URL('package.json', packageRoot), 'utf8'))
+const familyIndex = process.argv.indexOf('--family')
+const family = familyIndex >= 0 ? process.argv[familyIndex + 1] : undefined
+if (familyIndex >= 0 && (!family || !catalog.images.some((entry) => entry.family === family))) {
+  throw new Error(`Unknown Runtime image family: ${family ?? '(missing)'}`)
+}
 const changedFromIndex = process.argv.indexOf('--changed-from')
 const changedFrom = changedFromIndex >= 0 ? process.argv[changedFromIndex + 1] : ''
 const changedFiles = changedFrom ? await listChangedFiles(changedFrom) : null
 const include = []
 for (const entry of catalog.images) {
+  if (family && entry.family !== family) continue
   const image = JSON.parse(await readFile(new URL(entry.definition, packageRoot), 'utf8'))
   if (changedFiles && !familyChanged(entry.family, image, changedFiles)) continue
   include.push({

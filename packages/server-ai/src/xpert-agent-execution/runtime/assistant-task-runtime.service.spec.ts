@@ -9,9 +9,15 @@ import {
     AgentRuntimeRegistry,
     BUILTIN_GLOBAL_SCOPE,
     DefaultRuntimeCapabilityRegistry,
-    RequestContext
+    RequestContext,
+    runWithRequestContext
 } from '@xpert-ai/plugin-sdk'
-import { NEVER } from 'rxjs'
+import { NEVER, Observable } from 'rxjs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { VolumeHandle } from '../../shared/volume/volume'
+import { VolumeWorkspaceStorage } from '../../shared/volume/workspace-storage'
 import { DataSource } from 'typeorm'
 import { AssistantTaskRuntimeStrategy } from '../../agent-invocation/assistant-task-adapter'
 import { AgentInvocationRuntime } from '../../agent-invocation/invocation-runtime'
@@ -409,4 +415,96 @@ describe('Assistant Task workspace scope', () => {
         expect(f.store.rows.size).toBe(0)
         expect(f.commands.execute).not.toHaveBeenCalled()
     })
+})
+
+describe('Independent Assistant task storage lifetime', () => {
+    it.each(['succeeded', 'failed'] as const)(
+        'preserves context and reconciles %s after the dispatch lock is released',
+        async (status) => {
+            const root = await mkdtemp(path.join(tmpdir(), 'assistant-task-storage-'))
+            const f = fixture(false)
+            const scope = { tenantId: 'tenant', catalog: 'user-xperts' as const, userId: 'user', xpertId: f.target.id }
+            let authorized = true
+            const storage = new VolumeWorkspaceStorage(async () => {
+                if (!authorized) throw new Error('access revoked')
+                expect(RequestContext.currentTenantId()).toBe('tenant')
+                expect(RequestContext.currentUserId()).toBe('user')
+                expect(RequestContext.getOrganizationId()).toBe('organization')
+                return new VolumeHandle(scope, path.join(root, 'workspace'), '', '', root)
+            }, 'meetings')
+            let resume: () => void = () => {}
+            const gate = new Promise<void>((resolve) => {
+                resume = resolve
+            })
+            let created: Promise<Buffer> = Promise.resolve(Buffer.alloc(0))
+            let background: Promise<void> = Promise.resolve()
+            let staleCaller: Promise<void> = Promise.resolve()
+            const original = f.commands.execute.getMockImplementation()!
+            let dispatched = 0
+            const observation = jest.spyOn(f.service, 'getTaskStatus').mockResolvedValue({ status })
+            f.commands.execute.mockImplementation(async (command: unknown) => {
+                if (!(command instanceof XpertChatCommand)) return original(command)
+                dispatched++
+                const context = RequestContext.currentRequestContext()
+                expect(command.options.context).toEqual({ meetings: { operationId: 'operation-1' } })
+                // Eager work starts during command execution, before subscribe is called.
+                created = gate.then(() => storage.read('source'))
+                return new Observable<MessageEvent>((subscriber) => {
+                    background = gate.then(async () => {
+                        expect(RequestContext.currentRequestContext()).toBe(context)
+                        expect((await created).toString()).toBe('transcript')
+                        expect((await storage.read('source')).toString()).toBe('transcript')
+                        await storage.withLock('result', () => storage.write('summary', 'saved'))
+                        authorized = false
+                        await expect(storage.read('source')).rejects.toThrow('access revoked')
+                        authorized = true
+                        if (status === 'failed') subscriber.error(new Error('model failed'))
+                        else subscriber.complete()
+                    })
+                })
+            })
+            try {
+                await new Promise<void>((resolve, reject) =>
+                    runWithRequestContext(
+                        {
+                            headers: { 'organization-id': 'organization', 'x-scope-level': 'organization' },
+                            user: { id: 'user', tenantId: 'tenant' }
+                        },
+                        {},
+                        () => {
+                            void (async () => {
+                                await storage.write('source', 'transcript')
+                                const input = { ...f.input, context: { meetings: { operationId: 'operation-1' } } }
+                                await storage.withLock('supervisor', async () => {
+                                    const first = await f.service.startTask(input)
+                                    const second = await f.service.startTask(input)
+                                    expect(first.status).toBe('running')
+                                    expect(second.executionId).toBe(first.executionId)
+                                    staleCaller = gate.then(() => storage.write('source', 'stale'))
+                                })
+                                const staleRejected = expect(staleCaller).rejects.toMatchObject({ code: 'ELOCKLOST' })
+                                resume()
+                                await Promise.all([background, staleRejected])
+                                expect(dispatched).toBe(1)
+                                expect((await storage.read('summary')).toString()).toBe('saved')
+                                // Completion observation is asynchronous and updates the invocation checkpoint.
+                                for (
+                                    let i = 0;
+                                    i < 20 && [...f.store.rows.values()][0].invocation.status !== status;
+                                    i++
+                                )
+                                    await new Promise<void>((done) => setImmediate(done))
+                                expect([...f.store.rows.values()][0].invocation.status).toBe(status)
+                                expect(observation).toHaveBeenCalled()
+                            })().then(resolve, reject)
+                        }
+                    )
+                )
+            } finally {
+                resume()
+                jest.restoreAllMocks()
+                await rm(root, { recursive: true, force: true })
+            }
+        }
+    )
 })

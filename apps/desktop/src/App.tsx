@@ -402,6 +402,7 @@ export function App() {
       {settings && (
         <ConnectionSettings
           config={state.config}
+          connectionDefaults={state.connectionDefaults}
           signedIn={!!state.profile}
           userName={state.profile?.user.name}
           usageContext={

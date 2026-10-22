@@ -7,6 +7,7 @@
     "title": "文档转 BOM",
     "executionAuthority": "provider",
     "providerRef": "example.bom.pipeline-source@1",
+    "projectTypes": [{ "applicationKey": "sample:bom", "projectTypeKey": "case" }],
     "subjectResolverRef": "example.bom.case-version@1",
     "topology": {
       "source": "provider",

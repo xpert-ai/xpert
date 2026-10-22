@@ -143,6 +143,10 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 		return result
 	}
 
+	getLeaseRemainingMs(): number {
+		return Math.max(0, this.leaseExpiresAt - Date.now())
+	}
+
 	isLeaseValid(): boolean {
 		return Date.now() < this.leaseExpiresAt
 	}

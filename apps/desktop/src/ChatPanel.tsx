@@ -53,6 +53,7 @@ export function ChatPanel({
   // The frame load event precedes ChatKit's own session/data loading state.
   const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
+  const sessionError = useRef('')
   const [retry, setRetry] = useState(0)
   const [customizeId, setCustomizeId] = useState<string | null>(null)
   const delivery = useDeliveredFile(sessionKey)
@@ -91,15 +92,19 @@ export function ChatPanel({
     instance.current = element
     setFrameReady(false)
     setError('')
+    sessionError.current = ''
     element.addEventListener('chatkit.ready', () => {
       if (!disposed) {
         setFrameReady(true)
         setError('')
+        sessionError.current = ''
       }
     })
     element.addEventListener('chatkit.error', (event) => {
-      if (!disposed)
-        setError(event.detail.error.message || t('ChatKit could not connect. Check your connection settings.'))
+      if (!disposed) {
+        const message = event.detail.error.message || t('ChatKit could not connect. Check your connection settings.')
+        setError(message)
+      }
     })
     // StrictMode's discarded effect must not start an iframe navigation.
     queueMicrotask(() => {
@@ -138,6 +143,7 @@ export function ChatPanel({
     setThreadId(activeThread)
     setCustomizeId(null)
     setError('')
+    sessionError.current = ''
     const header = {
       enabled: true,
       windowDrag: !!window.xpertDesktop,
@@ -184,9 +190,19 @@ export function ChatPanel({
         xpertId: activeAssistant || undefined,
         projectId: initialThread ? initialVoice?.projectId : undefined,
         getClientSecret: async () => {
+          const recovered = <T,>(value: T): T => {
+            if (!disposed && activeSessionKey.current === sessionKey) {
+              const previous = sessionError.current
+              setError((current) => (previous && current === previous ? '' : current))
+              sessionError.current = ''
+            }
+            return value
+          }
           try {
             if (groupId)
-              return await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
+              return recovered(
+                await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
+              )
             if (initialVoice && initialThread) {
               const session = await invoke('workbenchSession', {
                 botId,
@@ -197,11 +213,15 @@ export function ChatPanel({
               })
               if (session.assistantId !== initialVoice.assistantId)
                 throw new Error(t('Could not create a chat session.'))
-              return { secret: session.secret, organizationId: session.organizationId }
+              return recovered({ secret: session.secret, organizationId: session.organizationId })
             }
-            return await invoke('chatSession', botId)
+            return recovered(await invoke('chatSession', botId))
           } catch (error) {
-            if (!disposed) setError(error instanceof Error ? error.message : t('Could not create a chat session.'))
+            if (!disposed && activeSessionKey.current === sessionKey) {
+              const message = error instanceof Error ? error.message : t('Could not create a chat session.')
+              sessionError.current = message
+              setError(message)
+            }
             throw error
           }
         }

@@ -65,6 +65,7 @@ import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capabili
 import { ResolvePublishedAgentQuery } from '../../xpert/published-agent/resolve-published-agent.query'
 import { PublishedAgentContextQuery } from '../../xpert/published-agent/published-agent-context.query'
 import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
+import { runWithIndependentWorkspaceLeases } from '../../shared/volume/workspace-storage-lock'
 
 @Injectable()
 @RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
@@ -336,13 +337,16 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
                             )
                         )
                     }
-                    return this.dispatchTask(
-                        {
-                            ...taskInput,
-                            executionId: input.executionId || operationId,
-                            conversationId: input.conversationId || operationId
-                        },
-                        checkpoint
+                    // Creation and subscription both spawn work that outlives the dispatch receipt.
+                    return runWithIndependentWorkspaceLeases(() =>
+                        this.dispatchTask(
+                            {
+                                ...taskInput,
+                                executionId: input.executionId || operationId,
+                                conversationId: input.conversationId || operationId
+                            },
+                            checkpoint
+                        )
                     )
                 },
                 inspect: (handle) =>

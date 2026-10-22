@@ -20,6 +20,18 @@ const nodeInputs = [
   'tsconfig.base.json',
   'wait'
 ]
+const nsjailRuntimeInputs = [
+  'packages/sandbox-runtime/images/compute/',
+  'packages/sandbox-runtime/images/document-node/',
+  'packages/sandbox-runtime/images/document-java/',
+  'packages/sandbox-runtime/scripts/install-document-dependencies.mjs',
+  'packages/sandbox-runtime/scripts/install-document-ocr.mjs',
+  'packages/sandbox-runtime/scripts/verify-document-runtime.mjs',
+  'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
+]
 
 // The Docker dependency profiles own the list of shared source packages. Web
 // also copies two browser-safe plugin-sdk contracts without installing the SDK.
@@ -77,8 +89,8 @@ export const services = [
     dockerfile: '.deploy/nsjail-runner/Dockerfile',
     node_options: '',
     health_check: '.deploy/nsjail-runner/check-image.cjs',
-    inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/'],
-    requiredReleaseInputs: ['.deploy/nsjail-runner/'],
+    inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/', ...nsjailRuntimeInputs],
+    requiredReleaseInputs: ['.deploy/nsjail-runner/', ...nsjailRuntimeInputs],
     shared: []
   }
 ]

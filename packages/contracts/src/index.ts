@@ -128,3 +128,5 @@ export * from './assistant-sharing.model'
 export * from './artifact-presentation.model'
 
 export * from './analytics-definition.model'
+
+export * from './data-retention.model'

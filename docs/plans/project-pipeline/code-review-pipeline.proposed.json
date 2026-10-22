@@ -6,6 +6,7 @@
     "version": "1.0.0",
     "title": "Code Review",
     "executionAuthority": "platform",
+    "projectTypes": [{ "applicationKey": "@xpert-ai/plugin-code-review:code-review", "projectTypeKey": "review" }],
     "subjectResolverRef": "example.code-review.pull-request-version@1",
     "topology": {
       "source": "definition"

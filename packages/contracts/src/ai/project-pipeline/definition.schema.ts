@@ -12,6 +12,7 @@ import {
 import { projectPipelineNodeSchema } from './node.schema'
 import { validateProjectPipelineDefinition } from './definition.validation'
 import { projectPipelineHostRequirementsSchema } from './compatibility.schema'
+import { projectPipelineProjectTypesSchema } from './project-types'
 
 const common = {
   hostRequirements: projectPipelineHostRequirementsSchema.optional(),
@@ -21,6 +22,7 @@ const common = {
     .max(80)
     .regex(/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/),
   title: z.string().min(1).max(240),
+  projectTypes: projectPipelineProjectTypesSchema,
   subjectResolverRef: projectPipelineRefSchema,
   roles: z.array(projectPipelineRoleSchema).min(1).max(100),
   lanes: z.array(projectPipelineLaneSchema).min(1).max(100),

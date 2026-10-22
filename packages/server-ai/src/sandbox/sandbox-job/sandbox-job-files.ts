@@ -320,6 +320,21 @@ export function portableReference(
 
 export function classifyRunnerFailure(output: string, jobId: string): SandboxJobRuntimeError {
     const normalized = output.toUpperCase()
+    for (const code of [
+        'SANDBOX_DEPENDENCY_MISSING',
+        'EXPORT_CONVERSION_FAILED',
+        'EXPORT_TEXT_EXTRACTION_FAILED',
+        'EXPORT_TIMEOUT'
+    ] as const) {
+        if (normalized.includes(`${code}:`)) {
+            return new SandboxJobRuntimeError(
+                code,
+                truncateSandboxRunnerOutput(output),
+                code === 'EXPORT_TIMEOUT',
+                jobId
+            )
+        }
+    }
     if (normalized.includes('SANDBOX_ACTION_INVALID')) {
         return new SandboxJobRuntimeError('SANDBOX_ACTION_INVALID', truncateSandboxRunnerOutput(output), false, jobId)
     }

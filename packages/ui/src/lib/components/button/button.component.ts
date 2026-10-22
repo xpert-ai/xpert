@@ -51,6 +51,9 @@ import {
   encapsulation: ViewEncapsulation.None,
   viewProviders: [provideIcons({ lucideLoaderCircle })],
   host: {
+    'data-slot': 'button',
+    '[attr.data-size]': 'zSize()',
+    '[attr.data-variant]': 'zType()',
     '[class]': 'classes()',
     '[attr.data-dialog-action]': 'dialogActionRole() ?? null',
     '[attr.aria-busy]': 'dialogActionRole() && zLoading() ? true : null',

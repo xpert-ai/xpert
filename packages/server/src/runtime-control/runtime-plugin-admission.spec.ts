@@ -135,4 +135,53 @@ describe('RuntimePluginAdmission', () => {
 		expect(lifecycle.readiness().status).toBe('unready')
 		expect(readRequirements).not.toHaveBeenCalled()
 	})
+	it('distinguishes validation expiry, lease loss, startup and plugin admission failures', async () => {
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().admission).toMatchObject({
+			reason: 'ready',
+			validationAgeMs: 0,
+			checkInFlight: false
+		})
+		await jest.advanceTimersByTimeAsync(5_001)
+		expect(lifecycle.readiness().admission).toMatchObject({ reason: 'validation-expired', validationAgeMs: 5_001 })
+		jest.mocked(registry.isLeaseValid).mockReturnValue(false)
+		expect(lifecycle.readiness().admission?.reason).toBe('lease-expired')
+		jest.mocked(registry.isLeaseValid).mockReturnValue(true)
+		jest.mocked(isPluginStartupListening).mockReturnValue(false)
+		expect(lifecycle.readiness().admission?.reason).toBe('startup-not-listening')
+		jest.mocked(isPluginStartupListening).mockReturnValue(true)
+		readDesired.mockResolvedValue({ ...desired, status: 'completed' })
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().admission?.reason).toBe('plugin-not-admitted')
+	})
+
+	it('reports a stalled rollout snapshot read separately from Redis lease loss', async () => {
+		await admission.refresh(generations)
+		let finish!: () => void
+		const pending = admission.refresh(
+			generations,
+			() =>
+				new Promise((resolve) => {
+					finish = () => resolve(undefined)
+				})
+		)
+		await jest.advanceTimersByTimeAsync(5_001)
+		expect(lifecycle.readiness().admission).toMatchObject({
+			reason: 'validation-expired',
+			checkInFlight: true,
+			checkDurationMs: 5_001
+		})
+		finish()
+		await pending
+		expect(lifecycle.readiness().admission).toMatchObject({
+			reason: 'ready',
+			checkInFlight: false,
+			checkDurationMs: 5_001
+		})
+		readDesired.mockRejectedValueOnce(new Error('Redis unavailable'))
+		await expect(admission.refresh(generations)).rejects.toThrow('Redis unavailable')
+		expect(lifecycle.readiness().admission?.lastCheckFailed).toBe(true)
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().admission?.lastCheckFailed).toBe(false)
+	})
 })

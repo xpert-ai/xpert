@@ -30,7 +30,9 @@ The OSS Core always loads the Runtime Definitions, and the API consumes compatib
 
 The release target is `linux/amd64`. On an ARM development host, build a native, local-only image with temporary tag-based `NODE_BASE_IMAGE` and `PLAYWRIGHT_BASE_IMAGE` build arguments, then pass `--platform linux/arm64` to `verify-image.mjs`. Release workflows always use the digest-pinned defaults from the Dockerfile.
 
-Production Providers consume the released Runtime Artifact Catalog and must pin artifacts with `@sha256:`. Provider release CI turns those catalogs into its own immutable lock file. There is no production image/profile environment-variable override; mutable tags are aliases for development and release discovery only.
+Production OCI Providers consume the released Runtime Artifact Catalog and must pin artifacts with `@sha256:`. Provider release CI turns those catalogs into its own immutable lock file. There is no production image/profile environment-variable override; mutable tags are aliases for development and release discovery only.
+
+OSS also includes the production `nsjail-compute` Provider for `compute/node-python/v1`. It uses a separate, offline Jobs protocol on the configured NsJail Runner, whose image embeds this suite's pinned Node/Python rootfs and Runner Host. It does not need a separately published Compute OCI image. See [NsJail Compute deployment and verification](../../.deploy/nsjail-runner/README.md#open-source-compute-jobs) for the paired API/Runner upgrade, cgroup v2 requirements and boundaries. This does not enable production local process bindings or Browser/Document profiles.
 
 Docker Provider health only validates an already-cached image. A missing digest-pinned `browser-ai` image is reported as cold-start capable and is pulled only when the first matching Sandbox is created; concurrent first jobs share one pull. Operators can remove that first-job latency by pulling the exact digest from the provider runtime lock before accepting traffic.
 
@@ -78,3 +80,9 @@ node packages/sandbox-runtime/scripts/verify-image.mjs --family document-java --
 ```
 
 Neither command installs a plugin into an API process. Production activation still requires publishing the Runtime artifact and binding its digest through the configured Provider. Local process bindings remain disabled outside development/test.
+
+## LibreOffice preview readiness
+
+The document image includes `poppler-utils`, fontconfig, Noto CJK and Noto Color Emoji. Its build and image smoke check execute `images/document/runtime/verify-document-preview.mjs`: tool versions, exact font matches, a two-page DOCX conversion, PDF signature and UTF-8 text with page delimiters. Docker action readiness and NsJail's isolated document probe run the same check. Local development needs these dependencies on its effective PATH as well.
+
+Release this change through the Runtime Suite version/Changesets workflow and regenerate the Pro release lock with the published digest. Do not overwrite an existing image version or fabricate a production digest. Action failures now distinguish `SANDBOX_DEPENDENCY_MISSING`, `EXPORT_CONVERSION_FAILED`, `EXPORT_TEXT_EXTRACTION_FAILED` and `EXPORT_TIMEOUT`; both PDF and text remain required outputs.

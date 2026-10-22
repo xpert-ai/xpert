@@ -149,6 +149,13 @@ export async function assertWorkspaceLeases() {
     assertWorkspaceLeaseValidity()
 }
 
+/** Host-only boundary for independent tasks; preserve every other async context.
+ * A stale caller must not escape fencing by dispatching new work. */
+export async function runWithIndependentWorkspaceLeases<T>(action: () => Promise<T>): Promise<T> {
+    await assertWorkspaceLeases()
+    return leases.run([], action)
+}
+
 export async function withWorkspaceLock<T>(file: string, action: () => Promise<T>, waitMs: number): Promise<T> {
     await assertWorkspaceLeases()
     const lease = new WorkspaceLease(`${file}.lock`)

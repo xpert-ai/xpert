@@ -5,7 +5,9 @@ import { act } from 'react-dom/test-utils'
 import { serialize, deserialize } from 'node:v8'
 import { projectPipelineCatalogSchema, type ProjectPipelineCatalog } from '@xpert-ai/contracts'
 import { PipelineConfiguration } from './configuration'
+import { ProviderTemplateDialog } from './provider-template'
 import { request } from '../bridge'
+import { summarySchema } from './bridge'
 
 jest.mock('../bridge', () => ({ request: jest.fn() }))
 jest.mock('./runtime-configuration', () => ({ RuntimeConfiguration: () => null }))
@@ -45,7 +47,7 @@ jest.mock('@xpert-ai/shadcn-ui', () => {
     }
 })
 
-const { createPipelineConfigurationPreview } = require('../../pipeline.preview.mjs')
+const { createPipelineConfigurationPreview, createPipelinePreview } = require('../../pipeline.preview.mjs')
 // jsdom omits Node's structuredClone; the shared preview fixture uses it for plain data.
 Object.defineProperty(window, 'structuredClone', {
     configurable: true,
@@ -159,4 +161,90 @@ it('preserves the entered configuration and offers recovery when the credential 
     expect(Array.from(container.querySelectorAll('select')).map((element) => element.value)).toEqual(selected)
     expect(button('保存配置').disabled).toBe(true)
     expect(button('打开项目流水线管理')).toBeDefined()
+})
+
+async function mountProvider() {
+    const previous = process.env.TASKS_PREVIEW_SCENARIO
+    process.env.TASKS_PREVIEW_SCENARIO = 'pipeline'
+    catalog = projectPipelineCatalogSchema.parse(createPipelineConfigurationPreview())
+    const graph = {
+        definition: { ...catalog.items[0].configuration.template },
+        instance: summarySchema.parse(createPipelinePreview().instance)
+    }
+    if (previous === undefined) delete process.env.TASKS_PREVIEW_SCENARIO
+    else process.env.TASKS_PREVIEW_SCENARIO = previous
+    graph.definition.title = '汽车工程流程（已绑定）'
+    graph.definition.version = '1.0.0'
+    catalog.items[0].configuration.template.version = '2.0.0'
+    catalog.items[0].configuration.binding.templateRef = `${graph.definition.key}@2.0.0`
+    catalog.commandCapability = restricted
+    await act(async () =>
+        root.render(
+            React.createElement(ProviderTemplateDialog, {
+                locale: 'zh-Hans',
+                projectId,
+                initialOpen: true,
+                pipeline: graph
+            })
+        )
+    )
+    return graph
+}
+
+it('shows only the persisted provider template and management entry, without configuration controls or catalog requests', async () => {
+    await mountProvider()
+    const current = container.querySelector('[aria-label="当前绑定模板"]')!
+    expect(current.textContent).toContain('汽车工程流程（已绑定）')
+    expect(current.textContent).toContain('1.0.0')
+    expect(container.querySelector('select')).toBeNull()
+    expect(button('配置流水线')).toBeUndefined()
+    expect(button('保存配置')).toBeUndefined()
+    expect(request).not.toHaveBeenCalled()
+})
+
+it('hides the configuration entry for provider-only project catalogs even without a loaded instance', async () => {
+    await mountProvider()
+    await mount()
+    expect(button('配置流水线')).toBeUndefined()
+    expect(container.querySelector('select')).toBeNull()
+})
+
+it('opens the provider workbench using the exact instance and host-authorized project target', async () => {
+    const graph = await mountProvider()
+    jest.mocked(request).mockResolvedValueOnce({
+        success: true,
+        data: {
+            target: 'workbench.view',
+            projectId,
+            xpertId: 'automotive-assistant',
+            viewKey: 'automotive.case',
+            selectionId: 'CASE-001'
+        }
+    })
+    await act(async () => button('打开业务工作台').click())
+    expect(request).toHaveBeenCalledWith('executeAction', {
+        actionKey: 'workspace-target',
+        input: { instanceId: graph.instance.id }
+    })
+    expect(request).toHaveBeenCalledWith('invokeClientCommand', {
+        commandKey: 'workbench.navigation.open',
+        payload: {
+            target: 'workbench.view',
+            projectId,
+            xpertId: 'automotive-assistant',
+            viewKey: 'automotive.case',
+            selectionId: 'CASE-001'
+        }
+    })
+    expect(container.querySelector('[role=dialog]')).toBeNull()
+})
+
+it('keeps the binding and dialog when the host rejects a provider management target', async () => {
+    await mountProvider()
+    jest.mocked(request).mockRejectedValueOnce(new Error('Access denied'))
+    await act(async () => button('打开业务工作台').click())
+    expect(container.querySelector('[role=alert]')).not.toBeNull()
+    expect(container.querySelector('[aria-label="当前绑定模板"]')).not.toBeNull()
+    expect(button('打开业务工作台').disabled).toBe(false)
+    expect(jest.mocked(request).mock.calls.some(([method]) => method === 'invokeClientCommand')).toBe(false)
 })
