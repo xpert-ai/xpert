@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import {
+    isProjectPipelineApplicable,
     projectPipelineConfigureSchema,
     projectPipelineStartSchema,
     projectPipelineSubjectVersionSchema,
@@ -101,7 +102,7 @@ export class ProjectPipelineManagedStartService {
 
     async start(context: ProjectPipelineContext, request: ProjectPipelineStart): Promise<ProjectPipelineStartReceipt> {
         const input = projectPipelineStartSchema.parse(request)
-        await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
+        const access = await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
         assertPipelineCommandAuthority()
         const scope = projectionScope(context)
         const binding = await this.projects.manager.findOneByOrFail(ProjectPipelineBindingEntity, {
@@ -113,6 +114,8 @@ export class ProjectPipelineManagedStartService {
             id: binding.definitionId
         })
         const template = definition.definition
+        if (!isProjectPipelineApplicable(template, access))
+            throw pipelineProjectionConflict('PIPELINE_PROJECT_TYPE_MISMATCH')
         assertPipelineHostCompatible(template, binding.configuration)
         if (template.executionAuthority !== 'platform') throw pipelineProjectionConflict('PLATFORM_AUTHORITY_REQUIRED')
         // Catalog presence cannot stand in for live runtime adapters.

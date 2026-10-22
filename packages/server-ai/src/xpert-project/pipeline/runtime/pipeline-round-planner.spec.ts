@@ -20,6 +20,7 @@ function definition(): ManagedPipelineDefinition {
         version: '1.0.0',
         title: 'Neutral evidence review',
         executionAuthority: 'platform',
+        projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
         subjectResolverRef: 'neutral.document@1',
         topology: { source: 'definition' },
         roles: [

@@ -1,6 +1,7 @@
 export * from './primitives.schema'
 export * from './node.schema'
 export * from './definition.schema'
+export * from './project-types'
 export * from './definition.validation'
 export * from './configuration.schema'
 export * from './runtime.schema'

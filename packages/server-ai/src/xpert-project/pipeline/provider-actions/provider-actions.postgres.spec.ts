@@ -155,6 +155,7 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
                 title: 'Document validation',
                 executionAuthority: 'provider',
                 providerRef: provider.key,
+                projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
                 subjectResolverRef: 'neutral.subject@1',
                 topology: { source: 'provider', presentationAdapterRef: 'neutral.presentation@1' },
                 roles: [{ key: 'worker', allowedKinds: ['service'] }],

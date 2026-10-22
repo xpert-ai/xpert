@@ -3,6 +3,7 @@ import { t } from 'i18next'
 import {
     configureProjectPipelineFromForm,
     canReadProjectPipelineConfiguration,
+    isProjectPipelineApplicable,
     projectPipelineCatalogConfigureSchema,
     projectPipelineCatalogRequestSchema,
     type ProjectPipelineCatalogRequest,
@@ -79,6 +80,7 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
             ...(input.protocol !== undefined ? { hostCapabilities: pipelineHostCapabilities() } : {}),
             items: this.contributions.listForActor(context.actor).flatMap((contribution) =>
                 contribution.configurations
+                    .filter((configuration) => isProjectPipelineApplicable(configuration.template, access))
                     .map((configuration) => ({
                         contributionKey: contribution.key,
                         configuration,
@@ -91,13 +93,15 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
 
     async configure(context: ProjectPipelineContext, request: ProjectPipelineCatalogConfigure) {
         const input = projectPipelineCatalogConfigureSchema.parse(request)
-        await this.access.assertManage(context)
+        const access = await this.access.assertManage(context)
         const contribution = this.contributions
             .listForActor(context.actor)
             .find((item) => item.key === input.contributionKey)
         const source = contribution?.configurations.find((item) => item.binding.templateRef === input.templateRef)
         const form = contribution?.forms?.find((item) => item.templateRef === input.templateRef)
         if (!source || !form) throw new BadRequestException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
+        if (!isProjectPipelineApplicable(source.template, access))
+            throw new BadRequestException(t('server-ai:Error.ProjectPipelineProjectTypeMismatch'))
         let configuration: ReturnType<typeof configureProjectPipelineFromForm>
         try {
             configuration = configureProjectPipelineFromForm(source, form, input)
