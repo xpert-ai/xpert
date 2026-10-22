@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import lockfile from 'proper-lockfile'
 import { VolumeHandle } from './volume'
 import { VolumeWorkspaceStorage } from './workspace-storage'
+import { runWithIndependentWorkspaceLeases } from './workspace-storage-lock'
 
 describe('Workspace application filesystem', () => {
     let root: string
@@ -179,6 +180,22 @@ describe('Workspace application filesystem', () => {
         continueWrite()
         await rejected
         expect((await storage.read('record')).toString()).toBe('before')
+    })
+
+    it('does not allow a stale caller to escape fencing through independent dispatch', async () => {
+        let resume: () => void = () => {}
+        const gate = new Promise<void>((resolve) => {
+            resume = resolve
+        })
+        const start = jest.fn(async () => {})
+        let background: Promise<void> = Promise.resolve()
+        await storage.withLock('record', async () => {
+            background = gate.then(() => runWithIndependentWorkspaceLeases(start))
+        })
+        const rejected = expect(background).rejects.toMatchObject({ code: 'ELOCKLOST' })
+        resume()
+        await rejected
+        expect(start).not.toHaveBeenCalled()
     })
 
     it('does not retarget an existing handle after the authorized workspace changes', async () => {
