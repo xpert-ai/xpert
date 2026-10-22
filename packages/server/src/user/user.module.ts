@@ -17,6 +17,8 @@ import { UserDirectoryController } from './directory/user-directory.controller'
 import { UserDirectoryService } from './directory/user-directory.service'
 import { CurrentUserCacheService } from './current-user-cache.service'
 import { CurrentUserCacheSubscriber } from './current-user-cache.subscriber'
+import { CurrentUserPermissionsController } from './permissions/current-user-permissions.controller'
+import { CurrentUserPermissionsService } from './permissions/current-user-permissions.service'
 
 @Module({
 	imports: [
@@ -28,8 +30,9 @@ import { CurrentUserCacheSubscriber } from './current-user-cache.subscriber'
 		forwardRef(() => UserOrganizationModule),
 		FactoryResetModule
 	],
-	controllers: [UserDirectoryController, UserController],
+	controllers: [CurrentUserPermissionsController, UserDirectoryController, UserController],
 	providers: [
+		CurrentUserPermissionsService,
 		UserDirectoryService,
 		UserService,
 		CurrentUserCacheService,
