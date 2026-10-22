@@ -15,6 +15,8 @@ import { UserOrganizationModule } from '../user-organization/user-organization.m
 import { FeatureOrganization } from '../feature/feature-organization.entity'
 import { UserDirectoryController } from './directory/user-directory.controller'
 import { UserDirectoryService } from './directory/user-directory.service'
+import { CurrentUserCacheService } from './current-user-cache.service'
+import { CurrentUserCacheSubscriber } from './current-user-cache.subscriber'
 
 @Module({
 	imports: [
@@ -27,7 +29,14 @@ import { UserDirectoryService } from './directory/user-directory.service'
 		FactoryResetModule
 	],
 	controllers: [UserDirectoryController, UserController],
-	providers: [UserDirectoryService, UserService, ...CommandHandlers, ...EventHandlers],
+	providers: [
+		UserDirectoryService,
+		UserService,
+		CurrentUserCacheService,
+		CurrentUserCacheSubscriber,
+		...CommandHandlers,
+		...EventHandlers
+	],
 	exports: [TypeOrmModule, UserService, CqrsModule]
 })
 export class UserModule {}

@@ -17,6 +17,7 @@ import {
   AppInitService,
   AppRouteReuseStrategy,
   CoreModule,
+  CurrentUserCacheInvalidationInterceptor,
   LOCALE_DEFAULT,
   LanguageInterceptor,
   normalizeApiBaseUrl,
@@ -94,6 +95,11 @@ function detectSubjectType(subject) {
     {
       provide: RouteReuseStrategy,
       useClass: AppRouteReuseStrategy
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: CurrentUserCacheInvalidationInterceptor,
+      multi: true
     },
     {
       provide: HTTP_INTERCEPTORS,

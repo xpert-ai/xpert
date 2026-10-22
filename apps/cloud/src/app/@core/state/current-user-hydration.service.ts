@@ -1,7 +1,14 @@
-import { Injectable } from '@angular/core'
+import { DestroyRef, inject, Injectable } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { fromEvent } from 'rxjs'
 import { IFeatureOrganization, IUser, IUserOrganization, RequestScopeLevel } from '@xpert-ai/contracts'
 import { Store } from './store.service'
 import { CURRENT_USER_FEATURE_RELATIONS, UsersService } from './users.service'
+import {
+  clearCurrentUserSessionCache,
+  currentUserSessionEpoch,
+  currentUserDisplayCacheInvalidated$
+} from './current-user-session-cache'
 
 const FEATURE_HYDRATION_CACHE_PREFIX = 'current-user-feature-context:v1'
 const FEATURE_HYDRATION_CACHE_TTL_MS = 60_000
@@ -47,7 +54,7 @@ function getMembershipOrganizationId(membership: IUserOrganization) {
   return membership.organizationId ?? membership.organization?.id ?? null
 }
 
-export function mergeCurrentUserFeatureHydration(baseUser: IUser, hydrationUser: IUser): IUser {
+export function mergeCurrentUserFeatureHydration(baseUser: IUser, hydrationUser: IUser, authoritative = true): IUser {
   const baseMembershipsByOrganization = new Map<string, IUserOrganization>()
 
   for (const membership of baseUser.organizations ?? []) {
@@ -73,11 +80,11 @@ export function mergeCurrentUserFeatureHydration(baseUser: IUser, hydrationUser:
     }
 
     return {
-      ...membership,
-      ...baseMembership,
+      ...(authoritative ? baseMembership : membership),
+      ...(authoritative ? membership : baseMembership),
       organization: {
-        ...hydrationOrganization,
-        ...baseMembership.organization,
+        ...(authoritative ? baseMembership.organization : hydrationOrganization),
+        ...(authoritative ? hydrationOrganization : baseMembership.organization),
         ...(Array.isArray(featureOrganizations) ? { featureOrganizations } : {})
       }
     }
@@ -86,15 +93,15 @@ export function mergeCurrentUserFeatureHydration(baseUser: IUser, hydrationUser:
   const tenant =
     baseUser.tenant || hydrationUser.tenant
       ? {
-          ...(baseUser.tenant ?? hydrationUser.tenant),
+          ...baseUser.tenant,
+          ...(authoritative ? hydrationUser.tenant : {}),
           featureOrganizations: hydrationUser.tenant?.featureOrganizations ?? baseUser.tenant?.featureOrganizations
         }
       : baseUser.tenant
 
   return {
     ...baseUser,
-    employee: hydrationUser.employee ?? baseUser.employee,
-    role: hydrationUser.role ?? baseUser.role,
+    ...(authoritative ? hydrationUser : {}),
     tenant,
     organizations
   }
@@ -127,22 +134,38 @@ function isFeatureHydrationCachePayload(value: unknown): value is FeatureHydrati
 export class CurrentUserHydrationService {
   private readonly inFlight = new Map<string, Promise<IUser | null>>()
   private readonly serverHydratedKeys = new Set<string>()
+  private readonly expiresAtByKey = new Map<string, number>()
   private readonly latestRequestByKey = new Map<string, number>()
   private lastUserId: string | null = null
   private lastTenantId: string | null = null
   private hasLastContext = false
   private requestSequence = 0
+  private sessionEpoch = currentUserSessionEpoch()
+  private readonly destroyRef = inject(DestroyRef)
 
   constructor(
     private readonly usersService: UsersService,
     private readonly store: Store
-  ) {}
+  ) {
+    currentUserDisplayCacheInvalidated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      void this.getFeatureHydration({ force: true }).catch(() => undefined)
+    })
+    if (typeof window !== 'undefined') {
+      fromEvent(window, 'focus')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          void this.getFeatureHydration({ skipSessionCache: true }).catch(() => undefined)
+        })
+    }
+  }
 
   getFeatureHydration(options: FeatureHydrationOptions = {}): Promise<IUser | null> {
+    if (this.sessionEpoch !== currentUserSessionEpoch()) this.resetMemoryCache()
     const userId = this.store.userId
     const currentUser = this.store.user
 
     if (!userId || !currentUser) {
+      if (this.hasLastContext) this.clearCache()
       return Promise.resolve(null)
     }
 
@@ -160,6 +183,7 @@ export class CurrentUserHydrationService {
     if (
       !options.force &&
       this.store.featureContextHydrated &&
+      (this.expiresAtByKey.get(inFlightKey) ?? 0) > Date.now() &&
       (!options.skipSessionCache || this.serverHydratedKeys.has(inFlightKey))
     ) {
       return Promise.resolve(currentUser)
@@ -168,7 +192,7 @@ export class CurrentUserHydrationService {
     if (!options.force && !options.skipSessionCache) {
       const cachedUser = this.readSessionCache(sessionKey)
       if (cachedUser) {
-        const mergedUser = this.applyHydration(cachedUser)
+        const mergedUser = this.applyHydration(cachedUser, false)
         void this.fetchAndApplyHydration({
           userId,
           inFlightKey,
@@ -190,12 +214,19 @@ export class CurrentUserHydrationService {
   }
 
   clearCache() {
+    clearCurrentUserSessionCache()
+    this.resetMemoryCache()
+  }
+
+  private resetMemoryCache() {
     this.inFlight.clear()
     this.serverHydratedKeys.clear()
+    this.expiresAtByKey.clear()
     this.latestRequestByKey.clear()
     this.lastUserId = null
     this.lastTenantId = null
     this.hasLastContext = false
+    this.sessionEpoch = currentUserSessionEpoch()
   }
 
   private fetchAndApplyHydration({
@@ -216,7 +247,15 @@ export class CurrentUserHydrationService {
       return existing
     }
     const requestId = ++this.requestSequence
-    const requestInFlightKey = reuseInFlight ? inFlightKey : `${inFlightKey}:request:${requestId}`
+    const requestEpoch = currentUserSessionEpoch()
+    const tenantId = this.store.user?.tenantId ?? this.store.user?.tenant?.id ?? null
+    const isCurrentRequest = () =>
+      this.store.userId === userId &&
+      (this.store.user?.tenantId ?? this.store.user?.tenant?.id ?? null) === tenantId &&
+      currentUserSessionEpoch() === requestEpoch &&
+      this.requestSequence === requestId &&
+      this.latestRequestByKey.get(inFlightKey) === requestId
+    const requestInFlightKey = inFlightKey
     this.latestRequestByKey.set(inFlightKey, requestId)
 
     if (!background) {
@@ -227,21 +266,19 @@ export class CurrentUserHydrationService {
     const promise = this.usersService
       .getMe([...CURRENT_USER_FEATURE_RELATIONS])
       .then((hydrationUser) => {
-        if (this.store.userId !== userId || !this.store.user) {
+        if (!isCurrentRequest() || !this.store.user) {
           return this.store.user ?? null
         }
-        if (this.latestRequestByKey.get(inFlightKey) !== requestId) {
-          return this.store.user
-        }
-
         const mergedUser = this.applyHydration(hydrationUser)
         this.serverHydratedKeys.add(inFlightKey)
+        this.expiresAtByKey.set(inFlightKey, Date.now() + FEATURE_HYDRATION_CACHE_TTL_MS)
         this.writeSessionCache(sessionKey, hydrationUser)
         this.store.featureContextHydrationLoading = false
         this.store.featureContextHydrationFailed = false
         return mergedUser
       })
       .catch((error) => {
+        if (!isCurrentRequest()) return this.store.user ?? null
         if (!background) {
           this.store.featureContextHydrationFailed = true
           this.store.featureContextHydrationLoading = false
@@ -252,21 +289,22 @@ export class CurrentUserHydrationService {
         return this.store.user ?? null
       })
       .finally(() => {
-        this.inFlight.delete(requestInFlightKey)
+        if (this.inFlight.get(requestInFlightKey) === promise) this.inFlight.delete(requestInFlightKey)
       })
 
     this.inFlight.set(requestInFlightKey, promise)
     return promise
   }
 
-  private applyHydration(hydrationUser: IUser) {
+  private applyHydration(hydrationUser: IUser, authoritative = true) {
     const currentUser = this.store.user
     if (!currentUser) {
       return null
     }
 
-    const mergedUser = mergeCurrentUserFeatureHydration(currentUser, hydrationUser)
+    const mergedUser = mergeCurrentUserFeatureHydration(currentUser, hydrationUser, authoritative)
     this.store.user = mergedUser
+    this.store.userRolePermissions = mergedUser.role?.rolePermissions ?? []
 
     const tenantFeatures = mergedUser.tenant?.featureOrganizations ?? []
     this.store.featureTenant = tenantFeatures.filter((item) => !item.organizationId)
@@ -298,20 +336,14 @@ export class CurrentUserHydrationService {
       return
     }
 
-    const selectedOrganization = this.store.selectedOrganization
-    if (selectedOrganization?.id === activeOrganizationId) {
-      if (Array.isArray(selectedOrganization.featureOrganizations)) {
-        this.store.featureOrganizations = selectedOrganization.featureOrganizations
-      }
-      return
-    }
-
     this.store.selectedOrganization = null
     this.store.featureOrganizations = []
   }
 
   private buildInFlightKey(userId: string, tenantId: string | null, relations: readonly string[]) {
-    return `${userId}:${tenantId ?? 'tenant'}:${normalizeRelations(relations).join('|')}`
+    const scope = this.store.activeScope
+    const organizationId = scope.level === RequestScopeLevel.ORGANIZATION ? scope.organizationId : ''
+    return `${userId}:${tenantId ?? 'tenant'}:${scope.level}:${organizationId}:${normalizeRelations(relations).join('|')}`
   }
 
   private readSessionCache(key: string) {
@@ -359,9 +391,7 @@ export class CurrentUserHydrationService {
 
   private clearInFlightWhenContextChanges(userId: string, tenantId: string | null) {
     if (this.hasLastContext && (this.lastUserId !== userId || this.lastTenantId !== tenantId)) {
-      this.inFlight.clear()
-      this.serverHydratedKeys.clear()
-      this.latestRequestByKey.clear()
+      this.clearCache()
     }
 
     this.lastUserId = userId
