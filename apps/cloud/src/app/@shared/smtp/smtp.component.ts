@@ -51,7 +51,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnChanges
 
   private routeIsOrganization?: boolean
   private storeOrganization: IOrganization | null = null
-  private resolvedIsOrganization = false
+  protected resolvedIsOrganization = false
   private resolvedOrganization?: IOrganization
 
   loading: boolean

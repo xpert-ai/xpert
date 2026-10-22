@@ -1,3 +1,4 @@
+import { ManualCleanupComponent } from './manual-cleanup.component'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import {
   AbstractControl,
@@ -41,7 +42,8 @@ import { TenantService, ToastrService, getErrorMessage } from '../../../../@core
     ...ZardFormImports,
     ZardInputDirective,
     ZardButtonComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ManualCleanupComponent
   ]
 })
 export class TenantRetentionComponent implements OnInit {
