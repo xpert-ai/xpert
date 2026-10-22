@@ -41,6 +41,7 @@ export interface Profile {
 }
 export interface AppState {
   config: ConnectionConfig
+  connectionDefaults: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   profile: Profile | null
   localLoginAvailable: boolean
 }
