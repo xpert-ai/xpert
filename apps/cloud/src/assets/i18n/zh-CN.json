@@ -1227,7 +1227,8 @@
         "Title": "出现错误",
         "TechnicalDetails": "技术详情",
         "Retry": "重试"
-      }
+      },
+      "Reset": "重置"
     },
     "MCP": {
       "CreateFromJson": "从 JSON 创建",
@@ -1427,7 +1428,26 @@
         "DetailPanelEmptyTitle": "开始对话后即可使用工作区工具",
         "FilesEmptyDesc": "当前 ClawXpert 线程创建后，这里的服务端卷工作区文件就会显示出来。",
         "ComputerEmptyDesc": "当前 ClawXpert 线程创建后，当工作区工具开始运行时，这里的电脑时间线就会显示出来。",
-        "TerminalEmptyDesc": "当前 ClawXpert 线程创建后，你就可以在这里针对当前工作区执行命令。"
+        "TerminalEmptyDesc": "当前 ClawXpert 线程创建后，你就可以在这里针对当前工作区执行命令。",
+        "ActiveDays": "活跃天数",
+        "BoundDays": "陪伴天数",
+        "ConversationCount": "对话数",
+        "ConversationStatsDesc": "展示最近 12 周你与当前助理的每日消息量。",
+        "ConversationStatsTitle": "对话统计",
+        "HeatmapCellEmpty": "{{date}}：0 条消息",
+        "HeatmapCellFuture": "{{date}}：未来日期",
+        "HeatmapCellTitle": "{{date}}：{{count}} 条消息",
+        "HeatmapLegendBusy": "较多",
+        "HeatmapLegendQuiet": "较少",
+        "LoadingPreference": "正在加载 markdown 文档…",
+        "NoMessageActivity": "还没有消息记录，开始对话后这里会显示最近 12 周的每日消息量。",
+        "PreferenceSaveFailed": "保存 ClawXpert markdown 文档失败。",
+        "SaveTriggerDraft": "保存草稿",
+        "TabBehavior": "行为准则",
+        "TabUserProfile": "用户档案",
+        "TaskCount": "任务数",
+        "TotalMessages": "总消息数",
+        "WordCount": "{{count}} 个词"
       }
     },
     "MENU": {
@@ -1717,7 +1737,8 @@
       "Duplicate": "复制",
       "Close": "关闭",
       "Pause": "暂停",
-      "Test": "测试"
+      "Test": "测试",
+      "Retry": "重试"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -4772,10 +4793,32 @@
         "recruiting-people": "招聘与人才",
         "product": "产品管理",
         "operations": "运营管理"
-      }
+      },
+      "ChatKitMaximized": "ChatKit 最大化",
+      "Description": "描述",
+      "LoadingWorkbenchViews": "正在加载扩展视图…",
+      "LongTermMemoryTypeEnum": {
+        "UserProfile": "用户档案"
+      },
+      "MaxConcurrency": "最大并发请求",
+      "Name": "名称",
+      "NoSandboxProvider": "暂无可用的沙盒提供商",
+      "NoWorkbenchViews": "此数字专家当前没有可用的扩展视图。",
+      "OverlayDialog": "浮窗对话",
+      "RecursionLimit": "递归次数限制",
+      "SandboxProvider": "沙盒提供商",
+      "Tags": "标签",
+      "Title": "标题",
+      "TwoColumnLayout": "默认二栏",
+      "WorkbenchDefaultView": "默认工作台视图",
+      "WorkbenchDefaultViewTip": "选择工作台打开时默认选中的扩展视图。如果视图不可用，则使用第一个视图。",
+      "WorkbenchInitialLayout": "首次聊天布局",
+      "WorkbenchMaximized": "工作台最大化",
+      "WorkbenchViewsLoadFailed": "无法加载扩展视图。"
     },
     "Workflow": {
-      "AgentWorkflow": "智能体工作流"
+      "AgentWorkflow": "智能体工作流",
+      "RequiredTriggerConfig": "请先补全必填的触发器配置后再继续。"
     },
     "Feature": {
       "EnableFeature": "启用功能",
@@ -5421,6 +5464,67 @@
       "StructuralCapabilities": "模板中的 Assistant 能力，运行时仍受当前权限和资源绑定限制。",
       "SeedMemoryCount": "初始记忆：{{count}} 条",
       "ServerSandbox": "服务端沙箱"
+    },
+    "AssistantSettings": {
+      "Settings": "设置",
+      "Personalization": "个性化",
+      "Memory": "记忆",
+      "Assistant": "助理设置",
+      "Refresh": "刷新",
+      "Retry": "重试",
+      "Close": "关闭",
+      "Cancel": "取消",
+      "SaveDraft": "保存草稿",
+      "Saving": "正在保存…",
+      "Connect": "连接",
+      "Connecting": "正在连接…",
+      "Disconnect": "断开连接",
+      "Content": "内容",
+      "Enter": "请输入内容",
+      "DraftOnly": "内容仅暂存在当前弹窗中，尚未保存到助手记忆。",
+      "GenerateMemory": "生成记忆",
+      "GenerateMemoryDesc": "允许助手从对话中生成记忆。",
+      "ManageMemory": "管理记忆",
+      "ManageMemoryDesc": "准备要添加到助手记忆中的内容。",
+      "Import": "导入",
+      "MemoryIntro": "管理助手记忆偏好并准备记忆内容。",
+      "BindingRequired": "请先选择并配置助手，再编辑这些设置。",
+      "BindingChanged": "当前助手或组织已变更，请关闭此弹窗后重试。",
+      "PersonalizationIntro": "自定义助手的回复方式以及它对你的了解。",
+      "BehaviorHelp": "描述助手的语气、工作方式和需要遵循的规则。",
+      "BehaviorPlaceholder": "例如：简洁回复，说明假设，并提供可执行的下一步建议。",
+      "ProfileHelp": "填写你的背景、偏好，以及希望助手记住的其他信息。",
+      "ProfilePlaceholder": "例如：我的角色、当前项目、偏好语言和工作习惯。",
+      "MarkdownHelp": "支持 Markdown 格式",
+      "PersonalizationSaveHint": "保存后将个人偏好应用到此助手。",
+      "PersonalizationSaved": "个人偏好已保存。",
+      "PreferenceLoadFailed": "无法加载个人偏好，请重试。",
+      "AvailableTriggers": "可用触发器",
+      "TriggersIntro": "为此助手连接渠道并配置触发器。",
+      "CreateIntegration": "创建集成",
+      "LoadingTriggers": "正在加载触发器…",
+      "NoAvailableTriggers": "暂无可用触发器，请配置集成或安装提供触发器的插件。",
+      "TriggerAvailable": "可连接。",
+      "TriggerUnavailable": "此触发器当前不可用，请检查对应的集成或插件配置。",
+      "TriggerInDraft": "已在助手草稿中启用，发布助手后生效。",
+      "TriggerConfigIntro": "配置此触发器并保存到助手草稿。",
+      "NoTriggerFields": "此触发器无需额外配置。",
+      "TriggerSaveHint": "更改将保存到草稿，发布助手后生效。",
+      "TriggerChanged": "此触发器已变更，请关闭弹窗、刷新后重试。",
+      "TriggerLoadFailed": "无法加载触发器，请重试。",
+      "TriggerSaveFailed": "无法保存触发器配置，请重试。",
+      "DirectQrIntro": "使用 {{provider}} 扫描二维码以连接此助手。",
+      "DirectQrWaiting": "等待你在 {{provider}} 中扫码并授权…",
+      "DirectQrLoading": "正在加载二维码…",
+      "DirectQrActivating": "已获得授权，正在连接…",
+      "DirectQrExpired": "二维码已过期，请重试。",
+      "DirectQrRetry": "重试",
+      "DirectQrCopy": "复制授权链接",
+      "DirectQrCopied": "链接已复制",
+      "DirectQrConnected": "已连接并生效。",
+      "DirectQrOffline": "连接已启用，但当前离线，可按需重新连接。",
+      "DirectQrSaveHint": "扫码连接后立即生效；其他触发器更改需发布助手后生效。",
+      "UnsavedChanges": "有未保存的更改"
     }
   },
   "AUTH": {
