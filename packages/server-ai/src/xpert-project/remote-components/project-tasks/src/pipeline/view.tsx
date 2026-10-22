@@ -26,6 +26,7 @@ import { Swimlane } from './swimlane'
 import { ExecutionTimeline } from './timeline'
 import { PipelineLifecycle } from './lifecycle'
 import { PipelineConfiguration } from './configuration'
+import { ProviderTemplateDialog } from './provider-template'
 import { openProjectWorkspace } from './navigation'
 
 export function PipelineView({
@@ -356,7 +357,23 @@ export function PipelineView({
                         {t.applicationWorkspace}
                     </Button>
                 )}
-                <PipelineConfiguration locale={locale} projectId={projectId} initialOpen={initialConfigure} />
+                {graph?.instance.id === instanceId ? (
+                    graph.definition.executionAuthority === 'provider' ? (
+                        <ProviderTemplateDialog
+                            locale={locale}
+                            projectId={projectId}
+                            pipeline={graph}
+                            initialOpen={initialConfigure}
+                        />
+                    ) : (
+                        <PipelineConfiguration locale={locale} projectId={projectId} initialOpen={initialConfigure} />
+                    )
+                ) : (
+                    !instanceId &&
+                    loaded && (
+                        <PipelineConfiguration locale={locale} projectId={projectId} initialOpen={initialConfigure} />
+                    )
+                )}
                 {graph && <PipelineLifecycle graph={graph} t={t} reload={load} />}
                 {graph?.instance.authority === 'platform' && graph.round.state === 'awaiting_new_subject' && (
                     <Button

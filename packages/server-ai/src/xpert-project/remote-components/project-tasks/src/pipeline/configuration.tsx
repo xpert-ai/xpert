@@ -33,57 +33,8 @@ import { RuntimeConfiguration } from './runtime-configuration'
 import { initialRuntimeSelections, runtimeSelectionState } from './runtime-selection'
 import { BudgetConfiguration } from './budget-configuration'
 import { PipelineCommandAccess } from './command-access'
+import { pipelineConfigurationTexts } from './configuration-i18n'
 
-const zh = {
-    configure: '配置流水线',
-    choose: '选择模板',
-    description: '选择执行器并设置此模板开放的参数。',
-    assistants: '执行智能体',
-    parameters: '流程参数',
-    save: '保存配置',
-    close: '关闭',
-    empty: '当前项目类型暂无可配置的流水线模板',
-    noAssistants: '项目中暂无可用的已发布智能体，请先在项目设置中绑定。',
-    chooseAssistant: '选择智能体',
-    provider: '此流水线的配置由接入应用管理。',
-    saved: '配置已保存，可由接入应用使用此配置发起流水线。',
-    failed: '配置未保存，请检查输入和当前权限后重试。',
-    unavailable: '无法读取流水线配置，请重试。',
-    lines: '每行一项',
-    saving: '正在保存…',
-    version: '版本',
-    loading: '正在读取配置…',
-    savedList: '已保存配置',
-    copy: '复制配置',
-    more: '加载更多',
-    unavailableBindings:
-        '以下角色的已保存绑定在当前会话中不可选。原配置未更改；请在 Project 管理页面配置，或重新选择当前可用的智能体：'
-}
-const en: { [K in keyof typeof zh]: string } = {
-    configure: 'Configure pipeline',
-    choose: 'Choose a template',
-    description: 'Select executors and set the parameters exposed by this template.',
-    assistants: 'Execution Assistants',
-    parameters: 'Parameters',
-    save: 'Save configuration',
-    close: 'Close',
-    empty: 'No pipeline templates are available for this project type',
-    noAssistants: 'No published Assistants are available. Bind Assistants in Project settings first.',
-    chooseAssistant: 'Choose an Assistant',
-    provider: 'Configure this pipeline in its connected application.',
-    saved: 'Configuration saved. The connected application can use it to start a pipeline.',
-    failed: 'Configuration was not saved. Check the inputs and your current access, then retry.',
-    unavailable: 'Unable to load pipeline configuration. Please retry.',
-    lines: 'One item per line',
-    saving: 'Saving…',
-    version: 'Version',
-    loading: 'Loading configuration…',
-    savedList: 'Saved configurations',
-    copy: 'Copy configuration',
-    more: 'Load more',
-    unavailableBindings:
-        'Saved bindings for these roles are unavailable in this session. The saved configuration is unchanged. Use Project management or select currently available Assistants:'
-}
 type Label = { en_US: string; zh_Hans?: string }
 const label = (value: Label, locale: string) => (locale.startsWith('zh') ? (value.zh_Hans ?? value.en_US) : value.en_US)
 const itemKey = (item: ProjectPipelineCatalog['items'][number]) =>
@@ -98,7 +49,7 @@ export function PipelineConfiguration({
     projectId?: string
     initialOpen?: boolean
 }) {
-    const t = locale.startsWith('zh') ? zh : en
+    const t = pipelineConfigurationTexts(locale)
     const [catalog, setCatalog] = useState<ProjectPipelineCatalog | null>(null),
         [open, setOpen] = useState(initialOpen)
     const [selected, setSelected] = useState(''),
@@ -264,7 +215,13 @@ export function PipelineConfiguration({
             setBusy(false)
         }
     }
-    if (catalog && !catalog.canManage) return null
+    if (
+        catalog &&
+        (!catalog.canManage ||
+            (catalog.items.length > 0 &&
+                catalog.items.every((item) => item.configuration.template.executionAuthority === 'provider')))
+    )
+        return null
     return (
         <>
             <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
@@ -317,11 +274,14 @@ export function PipelineConfiguration({
                                     <SelectValue placeholder={t.choose} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {catalog.items.map((item) => (
-                                        <SelectItem key={itemKey(item)} value={itemKey(item)}>
-                                            {item.configuration.template.title} · {item.configuration.template.version}
-                                        </SelectItem>
-                                    ))}
+                                    {catalog.items
+                                        .filter((item) => item.configuration.template.executionAuthority === 'platform')
+                                        .map((item) => (
+                                            <SelectItem key={itemKey(item)} value={itemKey(item)}>
+                                                {item.configuration.template.title} ·{' '}
+                                                {item.configuration.template.version}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                         )}
@@ -671,7 +631,7 @@ export function ParameterField({
                             )
                         }
                     />
-                    <p className="text-xs text-muted-foreground">{locale.startsWith('zh') ? zh.lines : en.lines}</p>
+                    <p className="text-xs text-muted-foreground">{pipelineConfigurationTexts(locale).lines}</p>
                 </>
             ) : (
                 <Input
