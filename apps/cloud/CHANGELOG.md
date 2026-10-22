@@ -1,5 +1,27 @@
 # @xpert-ai/xpert-ui
 
+## 3.26.2
+
+### Patch Changes
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+- 8ac278b: Restore missing assistant settings translations across English, Simplified Chinese, and Traditional Chinese, and remove duplicate translation sections that hid existing labels.
+- 389933d: Require pipeline templates to declare their supported application and project types. Filter the configuration catalog and enforce the persisted project type when saving configurations and starting runs, so templates cannot execute in unrelated projects.
+
+  Upgrade pipeline contributions together with the host and create compatible configurations for typed projects; legacy definitions without an explicit project type are not implicitly accepted. Preserve runtime scope in the remote-view preview host for realistic plugin verification.
+
+  This release intentionally remains on the 3.x patch line. Before upgrading, add
+  explicit `projectTypes` declarations to existing pipeline contributions and saved
+  templates. Older templates are rejected; no compatibility fallback is provided.
+
+- 32d695d: Withdraw API replicas from readiness-aware ingress before draining, refresh plugin admission independently of rollout bookkeeping, and expose validation and lease diagnostics. Preserve structured runtime errors in Desktop with bounded recovery for safe requests and clear recovered session errors. Compose deployments must route all API ingress through the new readiness-aware gateway.
+
+  Give admission monitoring an independent provider lifecycle, validate a configurable ingress propagation budget, and distinguish runtime completion from ingress acknowledgement.
+
+  Keep authenticated readiness independent of tenant settings, bound Redis cache reads and writes with database fallback, and stop queuing cache calls while timed-out operations remain pending.
+
+- f168ddf: Use the shared searchable model selector during template installation, constrained to the setup response's eligible model identities. Preserve valid selections and defaults across refreshes, reject invalid selections before submission, and disable interaction during installation. Hide parameter editing in this identity-only flow and support keyboard selection in the model menu.
+
 ## 3.26.1
 
 ### Patch Changes
