@@ -614,6 +614,41 @@ describe('ThreadsController', () => {
         }
     })
 
+    it('uses the authorized run scope only when the client opts into snapshots', async () => {
+        const redis = {
+            createSseStream: jest.fn().mockResolvedValue({ connectionId: 'c', stream: EMPTY }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const query = {
+            execute: jest.fn(async (value: object) =>
+                value.constructor.name === 'AssertChatConversationAccessQuery'
+                    ? { id: 'conversation', threadId: 'thread' }
+                    : { id: 'run', threadId: 'thread', tenantId: 'tenant', organizationId: 'organization' }
+            )
+        }
+        const command = { execute: jest.fn() }
+        const controller = new ThreadsController({} as never, query as never, command as never, redis as never)
+        const response = new EventEmitter()
+        try {
+            await controller.joinRunStream(
+                { headers: { 'organization-id': 'untrusted' } } as never,
+                response as never,
+                'thread',
+                'run',
+                '1-0',
+                '1'
+            )
+            expect(redis.createSseStream).toHaveBeenLastCalledWith(
+                expect.objectContaining({ snapshotScope: { tenantId: 'tenant', organizationId: 'organization' } })
+            )
+            await controller.joinRunStream({ headers: {} } as never, response as never, 'thread', 'run', '1-0')
+            expect(redis.createSseStream.mock.calls[1][0]).not.toHaveProperty('snapshotScope')
+            expect(command.execute).not.toHaveBeenCalled()
+        } finally {
+            response.emit('close')
+        }
+    })
+
     it('allows multiple clients to join the same run stream', async () => {
         const firstStream = EMPTY
         const secondStream = EMPTY

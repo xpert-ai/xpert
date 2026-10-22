@@ -664,6 +664,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                     projectId: conversation.projectId,
                     streamPersistence: {
                         transport: 'redis-stream',
+                        snapshotOwner: this.threadRunControl?.displaySnapshotOwner?.(threadId, execution.id),
+                        snapshotScope: { tenantId: conversation.tenantId, organizationId: conversation.organizationId },
                         threadId,
                         runId: execution.id
                     }

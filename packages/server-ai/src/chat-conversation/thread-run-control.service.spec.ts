@@ -224,6 +224,8 @@ describe('ThreadRunControlService', () => {
     it('recovers an expired process without falsely confirming a staged pause or replaying work', async () => {
         const { thread, service, cancellations, manager } = setup()
         await service.start('thread', 'run')
+        expect(service.displaySnapshotOwner('thread', 'run')).toEqual(expect.any(String))
+        expect(service.displaySnapshotOwner('thread', 'other-run')).toBeUndefined()
         await service.requestPause('thread', 'run')
         await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
         thread.metadata = {
@@ -235,6 +237,7 @@ describe('ThreadRunControlService', () => {
             }
         }
         expect(await service.recoverExpiredRun('thread')).toBe(true)
+        expect(service.displaySnapshotOwner('thread', 'run')).toBeUndefined()
         expect(manager.update).toHaveBeenCalledWith(
             XpertAgentExecution,
             expect.objectContaining({ id: 'run', status: In([ExecutionStatus.RUNNING, ExecutionStatus.PENDING]) }),

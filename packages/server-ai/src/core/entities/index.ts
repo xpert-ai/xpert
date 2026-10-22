@@ -76,6 +76,7 @@ import {
 import {
     ChatConversation,
     ChatConversationThread,
+    RunDisplaySnapshotEntity,
     ChatConversationGoal,
     ChatMessage,
     ChatMessageFeedback,
@@ -237,6 +238,7 @@ export const ALL_AI_ENTITIES = [
     KnowledgeWikiTaxonomy,
     ChatConversation,
     ChatConversationThread,
+    RunDisplaySnapshotEntity,
     ChatConversationGoal,
     ChatMessage,
     ChatMessageFeedback,

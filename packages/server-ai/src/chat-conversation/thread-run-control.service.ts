@@ -64,6 +64,10 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         this.owned.clear()
     }
 
+    displaySnapshotOwner(threadId: string, executionId: string): string | undefined {
+        return this.owned.get(threadId) === executionId ? this.owner : undefined
+    }
+
     private assignLease(thread: ChatConversationThread, executionId: string) {
         thread.metadata = {
             ...thread.metadata,

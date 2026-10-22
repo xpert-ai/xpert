@@ -55,7 +55,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 		origin: '*',
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
-		allowedHeaders: `Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}, ${XPERT_VIEW_PROJECT_ID_HEADER}, ${XPERT_VIEW_CONVERSATION_ID_HEADER}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
+		allowedHeaders: `Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, X-Xpert-Display-Snapshot, ${API_PRINCIPAL_USER_ID_HEADER}, ${XPERT_VIEW_PROJECT_ID_HEADER}, ${XPERT_VIEW_CONVERSATION_ID_HEADER}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
 		exposedHeaders: MCP_HTTP_CORS_EXPOSED_HEADERS.join(', ')
 	})
 

@@ -380,9 +380,10 @@ export class ThreadsController {
         @Res() res: Response,
         @Param('thread_id') thread_id: string,
         @Param('run_id') run_id: string,
-        @Headers('last-event-id') lastEventId?: string
+        @Headers('last-event-id') lastEventId?: string,
+        @Headers('x-xpert-display-snapshot') displaySnapshot?: string
     ) {
-        await this.ensureThreadRunAccess(thread_id, run_id)
+        const execution = await this.ensureThreadRunAccess(thread_id, run_id)
         if (lastEventId && !/^\d+-\d+$/.test(lastEventId)) {
             throw new BadRequestException(t('server-ai:Error.InvalidStreamCursor'))
         }
@@ -396,6 +397,9 @@ export class ThreadsController {
             lastEventId,
             mode: 'join',
             requireReplayStart: true,
+            ...(displaySnapshot === '1'
+                ? { snapshotScope: { tenantId: execution.tenantId, organizationId: execution.organizationId } }
+                : {}),
             isRunFinished: async () => {
                 const run = await this.ensureThreadRunAccess(thread_id, run_id)
                 return !['pending', 'running'].includes(run.status)
