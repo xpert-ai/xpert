@@ -1,5 +1,42 @@
 # @xpert-ai/xpert-api
 
+## 3.26.2
+
+### Patch Changes
+
+- 2e052d5: Expose current-request platform permissions without role-administration access,
+  preserving live grants, JWT permission ceilings and tenant/organization isolation.
+
+  Support explicit authentication strategies on controllers and routes. The current
+  permissions endpoint requires JWT, while unannotated routes retain the open-source
+  server's JWT/Basic defaults. Reject anonymous, Basic and API-key credentials on
+  the permissions endpoint without marking it public or authenticating twice.
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+- b743428: Attribute providers and controllers returned by a plugin's dynamic `register()` module to their plugin scope and version before discovery. This lets Data Xpert verify managed middleware readiness instead of seeing those providers as built-in. Skip primitive provider values and string aliases when attaching reflection metadata.
+- 0bcd7a7: Prevent independent background Assistant tasks from inheriting the caller's workspace storage lock leases during execution creation and subscription. Preserve authorization and invocation context, idempotent dispatch, and stale-owner fencing so tasks can read and save results after the caller releases its lock.
+- c59009d: Add a built-in NsJail Compute Runtime Provider so open-source deployments can run Python and JavaScript Workspace Script Actions without a Pro Runtime Provider. The Runner includes the pinned Compute rootfs and a separate authenticated, offline Jobs protocol with read-only inputs, bounded scratch storage, cgroup v2 resource limits, streamed host invocations and deterministic cleanup. Update both API and Runner together; Compute remains unavailable on older Runners or without cgroup v2 isolation.
+- 06be3c0: Provide hardened open-source NsJail bindings for AnyDoc and OpenDataLoader document Jobs, with locked native/Java/OCR dependencies, isolated profile lifecycles and real image acceptance checks. Correct document Artifact catalog families and validate release metadata. Deploy the matching API and Runner together; existing Runners fail document readiness closed.
+- 389933d: Require pipeline templates to declare their supported application and project types. Filter the configuration catalog and enforce the persisted project type when saving configurations and starting runs, so templates cannot execute in unrelated projects.
+
+  Upgrade pipeline contributions together with the host and create compatible configurations for typed projects; legacy definitions without an explicit project type are not implicitly accepted. Preserve runtime scope in the remote-view preview host for realistic plugin verification.
+
+  This release intentionally remains on the 3.x patch line. Before upgrading, add
+  explicit `projectTypes` declarations to existing pipeline contributions and saved
+  templates. Older templates are rejected; no compatibility fallback is provided.
+
+- 32d695d: Withdraw API replicas from readiness-aware ingress before draining, refresh plugin admission independently of rollout bookkeeping, and expose validation and lease diagnostics. Preserve structured runtime errors in Desktop with bounded recovery for safe requests and clear recovered session errors. Compose deployments must route all API ingress through the new readiness-aware gateway.
+
+  Give admission monitoring an independent provider lifecycle, validate a configurable ingress propagation budget, and distinguish runtime completion from ingress acknowledgement.
+
+  Keep authenticated readiness independent of tenant settings, bound Redis cache reads and writes with database fallback, and stop queuing cache calls while timed-out operations remain pending.
+
+- c59009d: Preserve known Sandbox Runtime dependency error codes across the Analytics boundary with safe, localized remediation and retry policy. Keep arbitrary plugin HTTP errors, messages and execution details redacted.
+
+  Allow targeted Runtime family publication without npm publication or rebuilding already published families, and verify the full API manifest contract before image promotion.
+
+  Report invalid Action script inputs separately from Runtime startup failures, with fixed guidance about the Workspace script entrypoint and standard-library contract. Runner output remains private.
+
 ## 3.26.1
 
 ### Patch Changes

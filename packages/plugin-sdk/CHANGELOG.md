@@ -1,5 +1,22 @@
 # @xpert-ai/plugin-sdk
 
+## 3.26.2
+
+### Patch Changes
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+- 389933d: Require pipeline templates to declare their supported application and project types. Filter the configuration catalog and enforce the persisted project type when saving configurations and starting runs, so templates cannot execute in unrelated projects.
+
+  Upgrade pipeline contributions together with the host and create compatible configurations for typed projects; legacy definitions without an explicit project type are not implicitly accepted. Preserve runtime scope in the remote-view preview host for realistic plugin verification.
+
+  This release intentionally remains on the 3.x patch line. Before upgrading, add
+  explicit `projectTypes` declarations to existing pipeline contributions and saved
+  templates. Older templates are rejected; no compatibility fallback is provided.
+
+- Updated dependencies [389933d]
+- Updated dependencies [32d695d]
+  - @xpert-ai/contracts@3.26.2
+
 ## 3.26.1
 
 ### Patch Changes
