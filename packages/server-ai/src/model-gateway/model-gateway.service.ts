@@ -509,7 +509,7 @@ export class ModelGatewayService {
             input.usage.settlementAmount === undefined || input.usage.settlementAmount === null
                 ? settleChargeToCny({
                       pricingStatus:
-                          input.usage.priceAmount === undefined
+                          input.usage.priceAmount === undefined || input.usage.priceAmount === null
                               ? 'unpriced'
                               : input.usage.priceAmount === 0
                                 ? 'free'
@@ -525,32 +525,38 @@ export class ModelGatewayService {
         input.usage.settlementAmount = cnySettlement?.amount ?? null
         input.usage.settlementCurrency = cnySettlement?.currency ?? null
         input.usage.exchangeRate = cnySettlement?.exchangeRate ?? null
-        const settlementResult = await this.membershipService.recordGatewayUsage({
-            tenantId: current.tenantId,
-            organizationId: current.organizationId ?? null,
-            copilotOrganizationId: input.resolution.organizationId ?? null,
-            userId: current.userId,
-            provider: current.provider,
-            model: current.model,
-            tokenUsed: input.usage.totalTokens,
-            priceAmount: input.usage.priceAmount,
-            priceCurrency: input.usage.priceCurrency,
-            settlementAmount: cnySettlement?.amount,
-            settlementCurrency: cnySettlement?.currency,
-            exchangeRate: cnySettlement?.exchangeRate,
-            copilotId: input.resolution.copilotId,
-            modelAccess: input.resolution,
-            gatewayRequestId: current.requestId,
-            gatewayApiKeyId: current.apiKeyId
-        })
+        // Unknown pricing is not a free call. Preserve the completed inference and its billing context.
+        const awaitingPrice = input.usage.totalTokens > 0 && !cnySettlement
+        const settlementResult = awaitingPrice
+            ? { chargedPoints: current.chargedPoints, excessPoints: current.excessPoints }
+            : await this.membershipService.recordGatewayUsage({
+                  tenantId: current.tenantId,
+                  organizationId: current.organizationId ?? null,
+                  copilotOrganizationId: input.resolution.organizationId ?? null,
+                  userId: current.userId,
+                  provider: current.provider,
+                  model: current.model,
+                  tokenUsed: input.usage.totalTokens,
+                  priceAmount: input.usage.priceAmount,
+                  priceCurrency: input.usage.priceCurrency,
+                  settlementAmount: cnySettlement?.amount,
+                  settlementCurrency: cnySettlement?.currency,
+                  exchangeRate: cnySettlement?.exchangeRate,
+                  copilotId: input.resolution.copilotId,
+                  modelAccess: input.resolution,
+                  gatewayRequestId: current.requestId,
+                  gatewayApiKeyId: current.apiKeyId
+              })
         const completedAt = retryingSettlement && current.completedAt ? current.completedAt : new Date()
-        current.status = retryingSettlement
-            ? current.errorCode
+        current.status = awaitingPrice
+            ? ModelGatewayCallStatusEnum.SettlementPending
+            : retryingSettlement
+              ? current.errorCode
+                  ? ModelGatewayCallStatusEnum.Failed
+                  : ModelGatewayCallStatusEnum.Succeeded
+              : input.error
                 ? ModelGatewayCallStatusEnum.Failed
                 : ModelGatewayCallStatusEnum.Succeeded
-            : input.error
-              ? ModelGatewayCallStatusEnum.Failed
-              : ModelGatewayCallStatusEnum.Succeeded
         current.completedAt = completedAt
         current.durationMs = Math.max(0, completedAt.getTime() - current.startedAt.getTime())
         current.inputTokens = input.usage.inputTokens
@@ -564,7 +570,7 @@ export class ModelGatewayService {
         current.chargedPoints = settlementResult.chargedPoints
         current.excessPoints = settlementResult.excessPoints
         current.usageSource = input.usage.source
-        current.settlementContext = null
+        current.settlementContext = awaitingPrice ? input.resolution : null
         if (!retryingSettlement) {
             current.errorCode = input.error ? errorCode(input.error) : null
             current.errorMessage = input.error ? getErrorMessage(input.error).slice(0, 4000) : null
@@ -625,6 +631,8 @@ export class ModelGatewayService {
             .addSelect('call.settlementContext')
             .where('call.status = :status', { status: ModelGatewayCallStatusEnum.SettlementPending })
             .andWhere("call.source = 'external_api'")
+            // Unknown prices need authoritative reconciliation, not repeated zero-charge attempts.
+            .andWhere('(call.settlementAmount IS NOT NULL OR call.priceAmount IS NOT NULL)')
             .orderBy('call.createdAt', 'ASC')
             .take(100)
             .getMany()

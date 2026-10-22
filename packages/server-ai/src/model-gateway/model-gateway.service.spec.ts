@@ -720,6 +720,8 @@ describe('ModelGatewayService', () => {
             totalTokens: 20,
             usageSource: ModelGatewayUsageSourceEnum.Provider,
             settlementContext: accessResolution('org-1'),
+            priceAmount: 0.2,
+            priceCurrency: 'CNY',
             errorCode: null
         } as ModelGatewayCall
         const fixture = createService({
@@ -732,6 +734,9 @@ describe('ModelGatewayService', () => {
 
         await fixture.service.retryPendingSettlements()
 
+        expect(fixture.callQueryBuilder.andWhere).toHaveBeenCalledWith(
+            '(call.settlementAmount IS NOT NULL OR call.priceAmount IS NOT NULL)'
+        )
         expect(fixture.modelAccessService.resolveExternalModelAccess).not.toHaveBeenCalled()
         expect(fixture.membershipService.recordGatewayUsage).toHaveBeenCalledTimes(1)
         expect(fixture.membershipService.recordGatewayUsage).toHaveBeenCalledWith(
