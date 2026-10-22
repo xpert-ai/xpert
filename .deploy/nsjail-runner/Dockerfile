@@ -41,6 +41,18 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /workspace /tmp /run /proc
 
+# Compute uses the same pinned interpreters and Runner Host as the OSS Runtime Suite.
+FROM node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS compute-node
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS compute-rootfs
+COPY --from=compute-node /usr/local/bin/node /usr/local/bin/node
+COPY packages/sandbox-runtime/images/browser/runtime/runner-host.mjs /opt/xpert/sandbox-runtime/runner-host.mjs
+COPY packages/sandbox-runtime/images/compute/runtime/manifest.json /opt/xpert/sandbox-runtime/manifest.json
+COPY packages/sandbox-runtime/images/compute/runtime/smoke.mjs /opt/xpert/sandbox-runtime/compute-smoke.mjs
+COPY packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json /opt/xpert/sandbox-runtime/definition.json
+COPY .deploy/nsjail-runner/compute-probe.mjs /opt/xpert/sandbox-runtime/nsjail-probe.mjs
+RUN mkdir -p /workspace/input /workspace/output /workspace/runtime /workspace/invocations /dev/shm /proc /tmp /run && \
+    touch /dev/null /dev/zero /dev/random /dev/urandom
+
 FROM python:3.12-slim-bookworm
 RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
@@ -55,6 +67,7 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
 
 COPY --from=nsjail-build /src/nsjail/nsjail /usr/local/bin/nsjail
 COPY --from=jail-rootfs / /opt/xpert-rootfs/
+COPY --from=compute-rootfs / /opt/xpert-compute-rootfs/
 RUN mkdir -p \
       /opt/xpert-app-data-mask \
       /etc/xpert-nsjail \
@@ -62,6 +75,7 @@ RUN mkdir -p \
       /opt/xpert-rootfs/run \
       /opt/xpert-rootfs/tmp \
       /opt/xpert-rootfs/workspace \
+      /opt/xpert-compute-rootfs/dev/shm \
       /sandbox \
       /var/lib/xpert-nsjail && \
     chmod 0555 /opt/xpert-app-data-mask && \
@@ -70,12 +84,16 @@ RUN mkdir -p \
       /opt/xpert-rootfs/dev/random \
       /opt/xpert-rootfs/dev/urandom \
       /opt/xpert-rootfs/dev/zero
+RUN touch /opt/xpert-compute-rootfs/dev/null /opt/xpert-compute-rootfs/dev/zero \
+      /opt/xpert-compute-rootfs/dev/random /opt/xpert-compute-rootfs/dev/urandom
 
 COPY .deploy/nsjail-runner/runner.py /app/runner.py
+COPY .deploy/nsjail-runner/server.py .deploy/nsjail-runner/compute_*.py /app/
 COPY .deploy/nsjail-runner/network.py /app/network.py
 COPY .deploy/nsjail-runner/net_proxy.py /app/net_proxy.py
 COPY .deploy/nsjail-runner/poc_validate.py /app/poc_validate.py
 COPY .deploy/nsjail-runner/verify_app_data.py /app/verify_app_data.py
+COPY .deploy/nsjail-runner/verify_compute.py /app/verify_compute.py
 COPY .deploy/nsjail-runner/seccomp.policy /etc/xpert-nsjail/seccomp.policy
 RUN chmod 0755 /app/runner.py /app/net_proxy.py /app/poc_validate.py /usr/local/bin/nsjail
 
@@ -89,4 +107,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8090
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD ["python3", "-c", "import os,urllib.request;req=urllib.request.Request('http://127.0.0.1:8090/health',headers={'Authorization':'Bearer '+os.environ['XPERT_NSJAIL_RUNNER_TOKEN']});urllib.request.urlopen(req,timeout=2)"]
-ENTRYPOINT ["python3", "/app/runner.py"]
+ENTRYPOINT ["python3", "/app/server.py"]

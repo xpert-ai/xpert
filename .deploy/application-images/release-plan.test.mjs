@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { services } from './services.mjs'
+import { affectsImage, requiresImageRelease, services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
 import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
+
+test('NsJail release and validation track the shared Compute rootfs inputs', () => {
+  for (const file of [
+    'packages/sandbox-runtime/images/compute/runtime/manifest.json',
+    'packages/sandbox-runtime/images/compute/runtime/smoke.mjs',
+    'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
+  ]) {
+    assert.equal(affectsImage(jail, [file]), true, file)
+    assert.equal(requiresImageRelease(jail, [file]), true, file)
+  }
+})
 
 test('newly merged main versions retain downstream notes and authorize only candidates', (t) => {
   const f = mainSyncFixture(t)

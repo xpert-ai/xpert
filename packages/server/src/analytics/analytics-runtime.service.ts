@@ -32,6 +32,7 @@ import {
 	authorizeAnalyticsActor,
 	SAFE_ANALYTICS_ERRORS
 } from './analytics-errors'
+import { analyticsRuntimeDependencyError } from './analytics-runtime-errors'
 
 /** Only platform modules supply resource adapters. Plugin providers cannot supply source options or ACLs. */
 export const ANALYTICS_SOURCE_RESOLVERS = Symbol('ANALYTICS_SOURCE_RESOLVERS')
@@ -178,6 +179,8 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 						output = await run(provider, context)
 					} catch (error) {
 						if (error instanceof AnalyticsRuntimeError) throw error
+						const dependencyError = analyticsRuntimeDependencyError(error)
+						if (dependencyError) throw dependencyError
 						// Plugin HTTP exceptions are also untrusted; never forward embedded upstream credentials.
 						throw analyticsError(
 							error instanceof Error && SAFE_ANALYTICS_ERRORS.has(error.message)
