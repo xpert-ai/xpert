@@ -42,6 +42,7 @@ const configuration = projectPipelineConfigurationSchema.parse({
         version: '1.0.0',
         title: 'Neutral review',
         executionAuthority: 'platform',
+        projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
         subjectResolverRef: 'neutral.subject@1',
         topology: { source: 'definition' },
         roles: [{ key: 'worker', allowedKinds: ['service'] }],

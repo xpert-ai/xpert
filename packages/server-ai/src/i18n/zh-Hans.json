@@ -205,6 +205,7 @@
         "ProjectPipelineProjectionConflict": "流水线投影与已保存版本冲突。",
         "ProjectPipelineNotFound": "未找到项目流水线。",
         "ProjectPipelineConfigurationInvalid": "项目流水线配置无效。",
+        "ProjectPipelineProjectTypeMismatch": "此流水线模板不适用于当前项目类型。",
         "ProjectPipelineAnalyticsWindowInvalid": "请选择有效的统计时间范围，最长 93 天。",
         "ProjectPipelinePortfolioInputInvalid": "请选择 1–50 个不同的项目，以及不超过 93 天的有效时间范围",
         "ProjectTaskAccessDenied": "无权访问此项目任务。",

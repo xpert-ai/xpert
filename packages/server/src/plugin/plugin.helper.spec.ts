@@ -81,6 +81,51 @@ describe('plugin helper registerPluginsAsync', () => {
 		loadFailures.length = 0
 	})
 
+	it('tags dynamic providers and controllers with plugin provenance before strategy discovery', async () => {
+		class RuntimeModule {}
+		class StaticStrategy {}
+		class DynamicStrategy {}
+		class DynamicController {}
+		class ClassStrategy {}
+		class SharedProvider {}
+		const valueStrategy = {}
+		const factoryStrategy = () => ({})
+		Reflect.defineMetadata('providers', [StaticStrategy], RuntimeModule)
+		loadPlugin.mockResolvedValueOnce({
+			meta: { name: '@xpert-ai/plugin-dynamic', version: '1.0.0', level: 'organization' },
+			register: () => ({
+				module: RuntimeModule,
+				controllers: [DynamicController],
+				providers: [
+					DynamicStrategy,
+					{ provide: 'class', useClass: ClassStrategy },
+					{ provide: 'value', useValue: valueStrategy },
+					{ provide: 'factory', useFactory: factoryStrategy },
+					{ provide: 'config', useValue: 'plain text' },
+					{ provide: 'alias', useExisting: 'class' }
+				]
+			})
+		})
+		const result = await registerPluginsAsync({
+			organizationId: 'org-1',
+			plugins: [{ name: '@xpert-ai/plugin-dynamic', source: 'npm' }]
+		})
+		expect(result.errors).toEqual([])
+		for (const target of [
+			StaticStrategy,
+			DynamicStrategy,
+			DynamicController,
+			ClassStrategy,
+			valueStrategy,
+			factoryStrategy
+		]) {
+			expect(Reflect.getMetadata('plugin-metadata', target)).toBe('@xpert-ai/plugin-dynamic')
+			expect(Reflect.getMetadata('organization-metadata', target)).toBe('org-1')
+			expect(Reflect.getMetadata('plugin-version-metadata', target)).toBe('1.0.0')
+		}
+		expect(Reflect.getMetadata('plugin-metadata', SharedProvider)).toBeUndefined()
+	})
+
 	it('restages code plugins from their workspace path before loading them', async () => {
 		await expect(
 			registerPluginsAsync({

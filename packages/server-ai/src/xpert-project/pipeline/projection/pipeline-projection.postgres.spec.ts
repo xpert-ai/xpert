@@ -54,6 +54,7 @@ function snapshot(): ProjectPipelineProjection {
             title: 'Neutral workflow',
             executionAuthority: 'provider',
             providerRef: provider.key,
+            projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
             subjectResolverRef: 'neutral.subject@1',
             topology: { source: 'provider', presentationAdapterRef: 'neutral.presentation@1' },
             roles: [{ key: 'worker', allowedKinds: ['service'] }],

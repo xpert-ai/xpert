@@ -25,6 +25,8 @@ test('serves built assets and forwards bridge requests to the fixture', async (c
       },
       hostContext: {
         manifest: { key: 'remote-view-test' },
+        scopeRevision: 3,
+        runtimeScope: { projectId: 'project-fixture', conversationId: null },
         locale: 'zh-Hans'
       },
       runtimeAssets: {
@@ -65,7 +67,10 @@ test('serves built assets and forwards bridge requests to the fixture', async (c
 
   const hostResponse = await fetch(preview.url)
   assert.equal(hostResponse.status, 200)
-  assert.match(await hostResponse.text(), /<iframe id="remote-view"/)
+  const hostHtml = await hostResponse.text()
+  assert.match(hostHtml, /<iframe id="remote-view"/)
+  assert.match(hostHtml, /"scopeRevision":3/)
+  assert.match(hostHtml, /"runtimeScope":\{"projectId":"project-fixture","conversationId":null\}/)
 
   const frameResponse = await fetch(new URL('/frame', preview.url))
   assert.equal(frameResponse.status, 200)

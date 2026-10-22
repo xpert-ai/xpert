@@ -77,6 +77,7 @@ const configuration = projectPipelineConfigurationSchema.parse({
         version: '1.0.0',
         title: 'Neutral assessment',
         executionAuthority: 'platform',
+        projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
         subjectResolverRef: 'neutral.subject@1',
         topology: { source: 'definition' },
         roles: [{ key: 'worker', allowedKinds: ['service'] }],
@@ -490,8 +491,8 @@ export function managedPipelineFixture() {
         await db.query(`TRUNCATE TABLE "${schema}".xpert_project CASCADE`)
         jest.clearAllMocks()
         runtimeFixture.reset()
-        access.assertEdit.mockResolvedValue(undefined)
-        access.assertManage.mockResolvedValue(undefined)
+        access.assertEdit.mockResolvedValue({ applicationKey: 'platform', projectTypeKey: 'general' })
+        access.assertManage.mockResolvedValue({ applicationKey: 'platform', projectTypeKey: 'general' })
         checkCurrent.mockResolvedValue(true)
         resolveResources.mockReset().mockResolvedValue([{ key: 'c'.repeat(64), mode: 'exclusive' }])
         authorizeDecision.mockResolvedValue(true)

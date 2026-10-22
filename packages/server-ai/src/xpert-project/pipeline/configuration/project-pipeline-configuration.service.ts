@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import {
     checkProjectPipelineConfiguration,
     checkProjectPipelineHostCompatibility,
+    isProjectPipelineApplicable,
     type ProjectPipelineConfiguration
 } from '@xpert-ai/contracts'
 import { pipelineHostCapabilities } from './pipeline-host-capabilities'
@@ -23,11 +24,20 @@ export class ProjectPipelineConfigurationService implements ProjectPipelineConfi
     ) {}
 
     async check(context: ProjectPipelineContext, configuration: ProjectPipelineConfiguration) {
-        await this.access.assertManage({ actor: context.actor, projectId: context.projectId })
+        const access = await this.access.assertManage({ actor: context.actor, projectId: context.projectId })
+        const contributions = this.contributions.listForActor(context.actor)
         const result = checkProjectPipelineConfiguration(
             configuration,
-            this.contributions.listForActor(context.actor).flatMap((item) => item.descriptors)
+            contributions.flatMap((item) => item.descriptors)
         )
+        const registered = contributions
+            .flatMap((item) => item.configurations)
+            .find((item) => item.binding.templateRef === configuration.binding.templateRef)
+        if (
+            !isProjectPipelineApplicable(configuration.template, access) ||
+            (registered && !isProjectPipelineApplicable(registered.template, access))
+        )
+            result.issues.push({ code: 'PIPELINE_PROJECT_TYPE_MISMATCH', path: ['template', 'projectTypes'] })
         result.issues.push(
             ...checkProjectPipelineHostCompatibility(
                 configuration.template,

@@ -195,6 +195,7 @@ export function createPipelinePreview() {
             title: '技术资料审核',
             executionAuthority: 'provider',
             providerRef: 'neutral.preview@1',
+            projectTypes: [{ applicationKey: 'platform', projectTypeKey: 'general' }],
             subjectResolverRef: 'neutral.subject@1',
             topology: { source: 'provider', presentationAdapterRef: 'neutral.presentation@1' },
             roles: [

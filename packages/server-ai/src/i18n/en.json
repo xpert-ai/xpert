@@ -205,6 +205,7 @@
         "ProjectPipelineProjectionConflict": "The pipeline projection conflicts with the saved version.",
         "ProjectPipelineNotFound": "Project pipeline was not found.",
         "ProjectPipelineConfigurationInvalid": "Invalid project pipeline configuration.",
+        "ProjectPipelineProjectTypeMismatch": "This pipeline template is not available for the current project type.",
         "ProjectPipelineAnalyticsWindowInvalid": "Choose a valid time window of up to 93 days.",
         "ProjectPipelinePortfolioInputInvalid": "Select 1–50 distinct Projects and a valid time window of at most 93 days",
         "ProjectTaskAccessDenied": "Project task access denied.",
