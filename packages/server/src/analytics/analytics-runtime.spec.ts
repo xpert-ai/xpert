@@ -4,6 +4,7 @@ import type { AnalyticsBinding, AnalyticsSourceRef } from '@xpert-ai/contracts'
 import {
 	AnalyticsProviderRegistry,
 	RequestContext,
+	SandboxJobRuntimeError,
 	type AnalyticsQueryProvider,
 	type AnalyticsProviderResult
 } from '@xpert-ai/plugin-sdk'
@@ -178,6 +179,64 @@ describe('one Analytics Runtime for governed sources', () => {
 		const response = await post({ binding, controls: {} })
 		expect(response.status).toBe(400)
 		expect(JSON.stringify(response.body)).not.toContain('credential-secret')
+	})
+	it.each([
+		['SANDBOX_RUNTIME_UNAVAILABLE', false, 'binding'],
+		['SANDBOX_ACTION_UNAVAILABLE', false, 'contracts'],
+		['SANDBOX_ACTION_INVALID', false, 'contracts'],
+		['SANDBOX_PROFILE_UNAVAILABLE', false, 'contracts'],
+		['SANDBOX_VERSION_MISMATCH', false, 'contracts'],
+		['SANDBOX_START_FAILED', true, 'capacity'],
+		['SANDBOX_CAPACITY_UNAVAILABLE', true, 'capacity']
+	] as const)('preserves %s with safe diagnostics at the HTTP boundary', async (code, retryable, hint) => {
+		execute.mockRejectedValue(
+			new SandboxJobRuntimeError(code, 'credential-secret /private/host', !retryable, 'secret-job')
+		)
+		const response = await post({ binding, controls: {} })
+		expect(response.status).toBe(400)
+		expect(response.body).toEqual({ code, retryable, message: expect.stringContaining(hint) })
+		expect(JSON.stringify(response.body)).not.toMatch(/credential-secret|private\/host|secret-job/)
+	})
+	it('recognizes a dependency error from another SDK instance without forwarding its properties', async () => {
+		execute.mockRejectedValue({
+			name: 'SandboxJobRuntimeError',
+			code: 'SANDBOX_RUNTIME_UNAVAILABLE',
+			message: 'credential-secret',
+			retryable: false,
+			jobId: 'secret-job',
+			details: 'secret-details'
+		})
+		const response = await post({ binding, controls: {} })
+		expect(response.body.code).toBe('SANDBOX_RUNTIME_UNAVAILABLE')
+		expect(response.body.message).toContain('matching Runtime Suite binding')
+		expect(JSON.stringify(response.body)).not.toContain('secret')
+	})
+	it.each([
+		new BadRequestException({ code: 'SANDBOX_RUNTIME_UNAVAILABLE', message: 'credential-secret' }),
+		{ name: 'SandboxJobRuntimeError', code: 'SANDBOX_RUNTIME_UNAVAILABLE', message: 'credential-secret' },
+		{ name: 'SandboxJobRuntimeError', code: 'UNKNOWN', message: 'credential-secret', retryable: true }
+	])('keeps unrecognized errors redacted', async (error) => {
+		execute.mockRejectedValue(error)
+		const response = await post({ binding, controls: {} })
+		expect(response.body.code).toBe('ANALYTICS_QUERY_FAILED')
+		expect(JSON.stringify(response.body)).not.toContain('credential-secret')
+	})
+	it('reports invalid script input with fixed guidance and no runner output', async () => {
+		execute.mockRejectedValue(
+			new SandboxJobRuntimeError(
+				'EXPORT_INPUT_INVALID',
+				'ModuleNotFoundError: credential-secret /host/private',
+				true,
+				'private-job'
+			)
+		)
+		const response = await post({ binding, controls: {} })
+		expect(response.body).toEqual({
+			code: 'EXPORT_INPUT_INVALID',
+			retryable: false,
+			message: expect.stringContaining('standard libraries')
+		})
+		expect(JSON.stringify(response.body)).not.toMatch(/credential-secret|host\/private|private-job/)
 	})
 	it('propagates parent cancellation even if a provider ignores its signal', async () => {
 		execute.mockImplementation(() => new Promise(() => undefined))

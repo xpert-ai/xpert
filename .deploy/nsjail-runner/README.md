@@ -2,6 +2,37 @@
 
 This directory contains the private Linux runtime used by the built-in `nsjail` sandbox provider. The Runner is not a second user-facing sandbox API: Xpert still owns provider selection, workspace binding, terminal routing, managed-service records, and preview authorization.
 
+It also provides the independent, built-in `nsjail-compute` **Sandbox Jobs Runtime Provider** for `compute/node-python/v1`. Open-source Xpert can run the Workspace Script plugin's Python and JavaScript Actions through this provider without Xpert Pro or access to the Docker socket from the API.
+
+## Open-source Compute Jobs
+
+Build/release **both the API and Runner from this revision**. The Runner image includes the same digest-pinned Node 20 and Python 3.12 base images, Runner Host and Compute manifest as Runtime Suite 1.3.0. No separately published Compute image is required. Configure `NSJAIL_RUNNER_URL` and `NSJAIL_RUNNER_TOKEN` on the API using the overlay below, install the Workspace Script plugin, and retain the normal Sandbox Jobs database/Redis configuration. Compute is discovered automatically; selecting the interactive `NsJail Sandbox` in an Assistant is not required.
+
+Requirements and behavior:
+
+- Linux with delegated cgroup v2 and `cgroup.kill` (Linux 5.14+), using the overlay's privileged Runner and cgroup mount. `XPERT_NSJAIL_USE_CGROUP_V2=true` is mandatory for Compute. The host-development override defaults to `false`; explicitly set it to `true` when testing Compute.
+- The API probes `/v1/compute/health` with the control-plane token. The probe launches a real jail, verifies both interpreters, actual Runner SHA-256, the complete Runtime Definition, read-only mounts, non-root UID, empty capabilities, `no_new_privs` and network denial. An old Runner, mismatched image or unavailable isolation fails closed. An unconfigured Runner does not prevent the API from starting.
+- Each Job receives a fresh namespace, UID/GID 10001, no network (including when interactive egress is enabled), 256 MiB cgroup memory with no swap, one CPU, 64 PIDs, a 16 MiB shared-memory limit and 64 MiB **aggregate** scratch/output space. Inputs, Actions and host invocation replies are read-only in the jail. The input/reply staging tmpfs has a separate 64 MiB limit; individual RPC files/download batches are limited to 32 MiB and uploads to 4,096 files per Job.
+- Job identity includes tenant, Job and binding identity. The RPC protocol accepts no shell command, image, environment or host path. Files arrive through confined RPC uploads; the Compute jail never mounts the API workspace or Runner control files. The existing `file.read`/`source.query` invocation bridge continues to authorize and execute host-side operations in Core.
+- The 30-second hard deadline starts at runtime creation, covering input staging and execution. Cancellation, disconnect and deadline handling kill the complete cgroup. Output collection occurs after all children exit. Explicit destroy is idempotent, the reaper bounds abandoned state, and startup recovers marked resources left by an interrupted Runner. Provider reload cleanup uses persisted tenant/Job/binding evidence.
+- The remote artifact digest records the Runner Host content hash; the image's pinned base digests live in the Dockerfile. Health verifies the deployed artifact rather than trusting a version label. NsJail binding priority is 100, so an installed healthy Pro Docker binding with priority 0 remains preferred.
+
+This provider supports the Compute profile and materialized files. It does not advertise seekable read-only Workspace file mappings or Browser/Document profiles. Python has its standard library; this change does not add third-party packages such as pandas.
+
+### Compute verification
+
+```bash
+corepack pnpm run test:nsjail-runner
+corepack pnpm exec nx test server-ai --runInBand \
+  --testPathPatterns=nsjail-compute-runtime.provider.spec.ts
+docker build -f .deploy/nsjail-runner/Dockerfile -t xpert-nsjail-runner:review .
+node .deploy/nsjail-runner/check-image.cjs xpert-nsjail-runner:review
+```
+
+The image check uses a disposable privileged container and includes real Python/JavaScript execution, streamed invocation replies, network/filesystem isolation, OOM, disk limits, cancellation, timeouts, output bounds and cleanup. CI runs the same Compute probe before image publication. Shared Compute source changes are included in NsJail image release selection.
+
+An additional opt-in Jest integration suite runs the **actual npm-packed Workspace Script Action** through the TypeScript Provider and Core's invocation bridge. Against a disposable Runner, set `NSJAIL_COMPUTE_TEST_URL`, `NSJAIL_COMPUTE_TEST_TOKEN` and `WORKSPACE_SCRIPT_ACTION_DIR` (the extracted directory containing `action.json` and `bundle/`), then run `nx test server-ai --runInBand --testPathPatterns=nsjail-compute-runtime.integration.spec.ts` through Corepack/pnpm. It checks both languages for aggregation, filtering and refreshed input data. These tests validate execution and the bridge; they do not claim browser UI, persisted database Jobs or real-user file authorization acceptance.
+
 ## Start it
 
 From the repository root:

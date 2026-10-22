@@ -8,11 +8,24 @@ import { test } from 'node:test'
 
 const suiteRoot = fileURLToPath(new URL('../../', import.meta.url))
 const readJson = async (file) => JSON.parse(await readFile(file, 'utf8'))
-const run = (root, script) =>
-  execFileSync(process.execPath, [path.join(root, 'scripts', script)], {
+const run = (root, script, args = []) =>
+  execFileSync(process.execPath, [path.join(root, 'scripts', script), ...args], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   })
+
+test('a targeted repair publishes only the requested family and rejects unknown or missing families', () => {
+  const all = JSON.parse(run(suiteRoot, 'build-matrix.mjs')).include
+  const { include } = JSON.parse(run(suiteRoot, 'build-matrix.mjs', ['--family', 'compute']))
+  assert.deepEqual(
+    include,
+    all.filter((image) => image.family === 'compute')
+  )
+  assert.equal(include.length, 1)
+  for (const args of [['--family'], ['--family', 'unknown'], ['--family', 'compute,browser']]) {
+    assert.throws(() => run(suiteRoot, 'build-matrix.mjs', args), /Unknown Runtime image family/)
+  }
+})
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), 'runtime-release-'))

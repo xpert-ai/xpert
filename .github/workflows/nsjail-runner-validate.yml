@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - '.deploy/nsjail-runner/**'
+      - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
       - 'package.json'
   push:
@@ -12,6 +15,9 @@ on:
       - main
     paths:
       - '.deploy/nsjail-runner/**'
+      - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
       - 'package.json'
 
@@ -79,6 +85,7 @@ jobs:
           done
           [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
           docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
+          docker exec xpert-nsjail-runner-ci python3 /app/verify_compute.py
 
       - name: Clean up Runner isolation probe
         if: always() && env.RUN_PRIVILEGED_PROBE == 'true'

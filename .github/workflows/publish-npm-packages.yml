@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      runtime_family:
+        description: 'Publish only this Runtime family (for example compute), skipping npm. Empty runs the full release.'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: publish-npm-packages-${{ github.ref }}
@@ -13,7 +19,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.repository == 'xpert-ai/xpert'
+    if: github.repository == 'xpert-ai/xpert' && !(github.event_name == 'workflow_dispatch' && inputs.runtime_family != '')
     environment: production
 
     permissions:
@@ -59,7 +65,7 @@ jobs:
   prepare-sandbox-runtime-images:
     name: Prepare Sandbox Runtime image release
     needs: release
-    if: github.repository == 'xpert-ai/xpert' && always() && needs.release.result == 'success'
+    if: github.repository == 'xpert-ai/xpert' && always() && !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.runtime_family != '' && needs.release.result == 'skipped'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -78,11 +84,17 @@ jobs:
           RUNTIME_RELEASE_EVENT: ${{ github.event_name }}
           RUNTIME_RELEASE_BEFORE: ${{ github.event.before }}
           RUNTIME_RELEASE_AFTER: ${{ github.sha }}
+          RUNTIME_RELEASE_FAMILY: ${{ inputs.runtime_family }}
         run: |
           node --test tools/release/runtime-version-changed.test.mjs
           changed=$(node tools/release/runtime-version-changed.mjs)
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          echo "matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs)" >> "$GITHUB_OUTPUT"
+          args=()
+          if [[ -n "$RUNTIME_RELEASE_FAMILY" ]]; then
+            args+=(--family "$RUNTIME_RELEASE_FAMILY")
+          fi
+          matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs "${args[@]}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
       - name: Verify Runtime Suite catalog
         if: steps.runtime.outputs.changed == 'true'
@@ -102,7 +114,7 @@ jobs:
   verify-sandbox-runtime-images:
     name: Verify Sandbox Runtime / ${{ matrix.family }}
     needs: prepare-sandbox-runtime-images
-    if: needs.prepare-sandbox-runtime-images.outputs.changed == 'true'
+    if: always() && !cancelled() && needs.prepare-sandbox-runtime-images.result == 'success' && needs.prepare-sandbox-runtime-images.outputs.changed == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -175,7 +187,7 @@ jobs:
     needs:
       - prepare-sandbox-runtime-images
       - verify-sandbox-runtime-images
-    if: needs.prepare-sandbox-runtime-images.outputs.changed == 'true' && needs.verify-sandbox-runtime-images.result == 'success'
+    if: always() && !cancelled() && needs.prepare-sandbox-runtime-images.outputs.changed == 'true' && needs.verify-sandbox-runtime-images.result == 'success'
     runs-on: ubuntu-latest
     environment: production
     permissions:
