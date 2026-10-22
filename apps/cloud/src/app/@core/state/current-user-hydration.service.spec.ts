@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing'
-import { IFeatureOrganization, IOrganization, IUser, RequestScopeLevel } from '@xpert-ai/contracts'
+import { IFeatureOrganization, IOrganization, IRolePermission, IUser, RequestScopeLevel } from '@xpert-ai/contracts'
+import { clearCurrentUserSessionCache, invalidateCurrentUserDisplayCache } from './current-user-session-cache'
 import { Store } from './store.service'
 import { CURRENT_USER_FEATURE_RELATIONS, UsersService } from './users.service'
 import {
@@ -14,6 +15,7 @@ describe('CurrentUserHydrationService', () => {
   let storeState: {
     userId: string | null
     user: IUser | null
+    userRolePermissions: IRolePermission[]
     selectedOrganization: IOrganization | null
     featureContextHydrated: boolean
     featureContextHydrationLoading: boolean
@@ -131,6 +133,7 @@ describe('CurrentUserHydrationService', () => {
     storeState = {
       userId: 'user-1',
       user: createBootstrapUser(),
+      userRolePermissions: [],
       selectedOrganization: createBootstrapUser().organizations[0].organization,
       featureContextHydrated: false,
       featureContextHydrationLoading: false,
@@ -155,6 +158,9 @@ describe('CurrentUserHydrationService', () => {
       },
       set user(value: IUser | null) {
         storeState.user = value
+      },
+      set userRolePermissions(value: IRolePermission[]) {
+        storeState.userRolePermissions = value
       },
       get selectedOrganization() {
         return storeState.selectedOrganization
@@ -391,7 +397,7 @@ describe('CurrentUserHydrationService', () => {
     expect(storeState.featureOrganizations).toEqual([org2Feature])
   })
 
-  it('keeps the active organization when feature hydration only contains another membership', async () => {
+  it('clears the stale selected organization when the authoritative membership list no longer contains it', async () => {
     const activeOrganizationFeature = {
       ...orgFeature,
       id: 'org-2-feature',
@@ -415,8 +421,8 @@ describe('CurrentUserHydrationService', () => {
 
     await service.getFeatureHydration()
 
-    expect(storeState.selectedOrganization).toEqual(activeOrganization)
-    expect(storeState.featureOrganizations).toEqual([activeOrganizationFeature])
+    expect(storeState.selectedOrganization).toBeNull()
+    expect(storeState.featureOrganizations).toEqual([])
   })
 
   it('does not restore a selected organization while hydrating tenant scope', async () => {
@@ -450,12 +456,149 @@ describe('CurrentUserHydrationService', () => {
     const bootstrapUser = createBootstrapUser()
     bootstrapUser.organizations[0].organization.short_description = 'Keep me'
 
-    const merged = mergeCurrentUserFeatureHydration(bootstrapUser, createHydrationUser())
+    const hydration = createHydrationUser()
+    Reflect.deleteProperty(hydration.organizations[0].organization, 'short_description')
+    const merged = mergeCurrentUserFeatureHydration(bootstrapUser, hydration)
 
     expect(merged.organizations[0].organization.short_description).toBe('Keep me')
-    expect(merged.organizations[0].organization.name).toBe('Org')
+    expect(merged.organizations[0].organization.name).toBe('Org from hydration')
     expect(merged.organizations[0].organization.featureOrganizations).toEqual([orgFeature])
     expect(merged.tenant.name).toBe('Tenant')
     expect(merged.tenant.featureOrganizations).toEqual([tenantFeature])
+  })
+
+  it('refreshes expired in-memory data and updates displayed permissions', async () => {
+    const now = Date.now()
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+      const first = createHydrationUser()
+      first.role.rolePermissions = [{ enabled: true }] as IRolePermission[]
+      usersService.getMe.mockResolvedValueOnce(first)
+      await service.getFeatureHydration()
+      expect(storeState.userRolePermissions).toEqual(first.role.rolePermissions)
+      clock.mockReturnValue(now + 60_001)
+      const updated = createHydrationUser()
+      updated.role.rolePermissions = []
+      usersService.getMe.mockResolvedValueOnce(updated)
+      await service.getFeatureHydration({ skipSessionCache: true })
+      expect(usersService.getMe).toHaveBeenCalledTimes(2)
+      expect(storeState.userRolePermissions).toEqual([])
+    } finally {
+      clock.mockRestore()
+    }
+  })
+
+  it('does not overwrite fresh bootstrap permissions with a session snapshot', async () => {
+    const cached = createHydrationUser()
+    cached.role.rolePermissions = [{ enabled: true }] as IRolePermission[]
+    const key = buildCurrentUserFeatureHydrationKey({
+      userId: 'user-1',
+      tenantId: 'tenant-1',
+      relations: [...CURRENT_USER_FEATURE_RELATIONS]
+    })
+    window.sessionStorage.setItem(key, JSON.stringify({ expiresAt: Date.now() + 60_000, user: cached }))
+    let finish: (user: IUser) => void = () => undefined
+    usersService.getMe.mockReturnValue(
+      new Promise<IUser>((resolve) => {
+        finish = resolve
+      })
+    )
+    await service.getFeatureHydration()
+    expect(storeState.user.role.rolePermissions).toEqual([])
+    finish(createHydrationUser())
+    await Promise.resolve()
+  })
+
+  it('rejects late responses after logout and logging back in as the same user', async () => {
+    let finish: (user: IUser) => void = () => undefined
+    usersService.getMe.mockReturnValueOnce(
+      new Promise<IUser>((resolve) => {
+        finish = resolve
+      })
+    )
+    const oldRequest = service.getFeatureHydration()
+    clearCurrentUserSessionCache()
+    storeState.user = createBootstrapUser()
+    finish(createHydrationUser())
+    await oldRequest
+    expect(storeState.user.organizations[0].organization.name).toBe('Org')
+    expect(window.sessionStorage.length).toBe(0)
+    usersService.getMe.mockResolvedValue(createHydrationUser())
+    await service.getFeatureHydration()
+    expect(usersService.getMe).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects late responses when the tenant changes before another hydration call', async () => {
+    let finish: (user: IUser) => void = () => undefined
+    usersService.getMe.mockReturnValueOnce(
+      new Promise<IUser>((resolve) => {
+        finish = resolve
+      })
+    )
+    const request = service.getFeatureHydration()
+    storeState.user = { ...createBootstrapUser(), tenantId: 'tenant-2' }
+    finish(createHydrationUser())
+    await request
+    expect(storeState.user.tenantId).toBe('tenant-2')
+    expect(storeState.featureContextHydrated).toBe(false)
+    expect(window.sessionStorage.length).toBe(0)
+  })
+
+  it('clears only current-user session entries on explicit invalidation', async () => {
+    usersService.getMe.mockResolvedValue(createHydrationUser())
+    await service.getFeatureHydration()
+    window.sessionStorage.setItem('unrelated', 'keep')
+    service.clearCache()
+    expect(window.sessionStorage.length).toBe(1)
+    expect(window.sessionStorage.getItem('unrelated')).toBe('keep')
+    await service.getFeatureHydration()
+    expect(usersService.getMe).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not let an older organization-scope request replace a newer tenant-scope result', async () => {
+    let finish: (user: IUser) => void = () => undefined
+    usersService.getMe.mockReturnValueOnce(
+      new Promise<IUser>((resolve) => {
+        finish = resolve
+      })
+    )
+    const oldRequest = service.getFeatureHydration()
+    storeState.activeScope = { level: RequestScopeLevel.TENANT }
+    const updated = createHydrationUser()
+    updated.organizations = []
+    usersService.getMe.mockResolvedValueOnce(updated)
+    await service.getFeatureHydration({ skipSessionCache: true })
+    finish(createHydrationUser())
+    await oldRequest
+    expect(storeState.user.organizations).toEqual([])
+    expect(storeState.selectedOrganization).toBeNull()
+  })
+
+  it('automatically refreshes after a successful profile, organization or permission mutation', async () => {
+    usersService.getMe.mockResolvedValue(createHydrationUser())
+    await service.getFeatureHydration()
+    const updated = createHydrationUser()
+    updated.organizations = []
+    usersService.getMe.mockResolvedValue(updated)
+    invalidateCurrentUserDisplayCache()
+    await service.getFeatureHydration()
+    expect(usersService.getMe).toHaveBeenCalledTimes(2)
+    expect(storeState.user.organizations).toEqual([])
+    expect(storeState.selectedOrganization).toBeNull()
+  })
+
+  it('refreshes expired display data when the browser window regains focus', async () => {
+    const now = Date.now()
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+      usersService.getMe.mockResolvedValue(createHydrationUser())
+      await service.getFeatureHydration()
+      clock.mockReturnValue(now + 60_001)
+      window.dispatchEvent(new Event('focus'))
+      await service.getFeatureHydration()
+      expect(usersService.getMe).toHaveBeenCalledTimes(2)
+    } finally {
+      clock.mockRestore()
+    }
   })
 })

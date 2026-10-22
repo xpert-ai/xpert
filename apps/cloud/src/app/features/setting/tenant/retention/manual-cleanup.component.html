@@ -1,0 +1,110 @@
+<section class="mt-8 w-full max-w-3xl border-t border-border pt-6" aria-labelledby="manual-cleanup-heading">
+  <h2 id="manual-cleanup-heading" class="text-lg font-semibold text-text-primary">
+    {{ 'XP.RetentionCleanup.Title' | translate }}
+  </h2>
+  <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Description' | translate }}</p>
+  <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Protection' | translate }}</p>
+
+  <form class="mt-5" [formGroup]="form" (ngSubmit)="previewCleanup()">
+    <fieldset [disabled]="busy()" class="space-y-4">
+      <z-form-field class="w-full sm:max-w-80">
+        <z-form-label>{{ 'XP.RetentionCleanup.Type' | translate }}</z-form-label>
+        <z-select formControlName="target" class="w-full" [zDisabled]="busy()">
+          <z-select-item zValue="copilot_checkpoint">{{ 'XP.RetentionCleanup.Checkpoints' | translate }}</z-select-item>
+          <z-select-item zValue="model_gateway_call">{{
+            'XP.RetentionCleanup.GatewayCalls' | translate
+          }}</z-select-item>
+        </z-select>
+      </z-form-field>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <z-form-field>
+          <z-form-label [zRequired]="true">{{ 'XP.RetentionCleanup.Start' | translate }}</z-form-label>
+          <xp-retention-date-time
+            formControlName="start"
+            [label]="'XP.RetentionCleanup.Start' | translate"
+            [zDisabled]="busy()"
+            aria-describedby="cleanup-time-help"
+          />
+        </z-form-field>
+        <z-form-field>
+          <z-form-label [zRequired]="true">{{ 'XP.RetentionCleanup.End' | translate }}</z-form-label>
+          <xp-retention-date-time
+            formControlName="end"
+            [label]="'XP.RetentionCleanup.End' | translate"
+            [zDisabled]="busy()"
+            aria-describedby="cleanup-time-help"
+          />
+        </z-form-field>
+      </div>
+      <p id="cleanup-time-help" class="text-sm text-muted-foreground">
+        {{ 'XP.RetentionCleanup.TimeHelp' | translate }}
+      </p>
+      @if (form.touched && form.invalid) {
+        <z-form-message zType="error" role="alert">{{ 'XP.RetentionCleanup.InvalidRange' | translate }}</z-form-message>
+      }
+      <button z-button zType="default" zSize="lg" type="submit" [zLoading]="busy()" [zDisabled]="busy()">
+        {{ 'XP.RetentionCleanup.Preview' | translate }}
+      </button>
+    </fieldset>
+  </form>
+
+  @if (preview(); as item) {
+    <div class="mt-6 space-y-4 border-t border-border pt-5" aria-live="polite">
+      <h3 class="font-semibold">{{ 'XP.RetentionCleanup.PreviewTitle' | translate }}</h3>
+      <p class="text-sm font-medium">{{ 'XP.RetentionCleanup.AllTenants' | translate }}</p>
+      <p class="text-sm text-muted-foreground">{{ item.start | date: 'medium' }} → {{ item.end | date: 'medium' }}</p>
+      <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div>
+          <dt class="text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Matched' | translate }}</dt>
+          <dd class="mt-1 text-lg font-semibold">{{ item.matchedCount }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Protected' | translate }}</dt>
+          <dd class="mt-1 text-lg font-semibold">{{ item.protectedCount }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Selected' | translate }}</dt>
+          <dd class="mt-1 text-lg font-semibold">{{ item.selectedCount }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm text-muted-foreground">{{ 'XP.RetentionCleanup.Writes' | translate }}</dt>
+          <dd class="mt-1 text-lg font-semibold">{{ item.relatedWriteCount }}</dd>
+        </div>
+      </dl>
+      @if (item.eligibleCount > item.selectedCount) {
+        <p class="text-sm text-muted-foreground">
+          {{ 'XP.RetentionCleanup.BatchLimit' | translate: { total: item.eligibleCount, limit: item.batchLimit } }}
+        </p>
+      }
+      <p class="text-sm text-muted-foreground">
+        {{ 'XP.RetentionCleanup.Expiry' | translate: { time: (item.expiresAt | date: 'mediumTime') } }}
+      </p>
+      @if (item.selectedCount > 0) {
+        <z-checkbox [formControl]="confirmed" [zDisabled]="busy()" class="items-start" labelClass="text-sm">
+          {{ 'XP.RetentionCleanup.Confirm' | translate }}
+        </z-checkbox>
+        <button
+          z-button
+          zType="destructive"
+          type="button"
+          (click)="executeCleanup()"
+          [zDisabled]="busy() || !confirmed.value"
+          [zLoading]="busy()"
+        >
+          {{ 'XP.RetentionCleanup.Execute' | translate }}
+        </button>
+      } @else {
+        <p class="text-sm">{{ 'XP.RetentionCleanup.Empty' | translate }}</p>
+      }
+    </div>
+  }
+  @if (result(); as outcome) {
+    <p role="status" class="mt-5 text-sm">
+      {{
+        'XP.RetentionCleanup.Result'
+          | translate
+            : { deleted: outcome.deletedCount, writes: outcome.deletedWriteCount, skipped: outcome.skippedCount }
+      }}
+    </p>
+  }
+</section>

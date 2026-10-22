@@ -6,7 +6,9 @@ export class HostError extends Error {
   constructor(
     message: string,
     public status: number,
-    public key?: string
+    public key?: string,
+    public errorCode?: string,
+    public retryAfterMs?: number
   ) {
     super(message)
   }
@@ -27,7 +29,14 @@ export async function invoke<K extends keyof HostMethods>(
     if (!response.ok) throw new HostError(t('Cannot connect to the desktop service. Please retry.'), response.status)
     result = await response.json()
   }
-  if (!result.ok) throw new HostError(t(result.key || result.message, result.params), result.status, result.key)
+  if (!result.ok)
+    throw new HostError(
+      t(result.key || result.message, result.params),
+      result.status,
+      result.key,
+      result.errorCode,
+      result.retryAfterMs
+    )
   return result.value
 }
 

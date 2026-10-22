@@ -45,7 +45,12 @@
   <footer class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
     <button z-button zType="outline" type="button" [zDisabled]="isValidated() || loading" (click)="validateSmtp()">
       {{ 'XP.ACTIONS.Validate' | translate }}</button
-    ><button z-button type="submit" [zDisabled]="!isValidated() || form.invalid || form.pristine || loading">
+    ><button
+      z-button
+      [zSize]="'lg'"
+      type="submit"
+      [zDisabled]="!isValidated() || form.invalid || form.pristine || loading"
+    >
       {{ 'XP.ACTIONS.Save' | translate }}</button
     ><span class="text-xs text-muted-foreground" role="status">{{
       (isValidated() ? 'XP.SettingsRemaining.Validated' : 'XP.SettingsRemaining.ValidateBeforeSave') | translate

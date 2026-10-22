@@ -17,13 +17,17 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 		// stale plugin manifest closes business traffic. Draining rejects it as usual.
 		const release = this.lifecycle.trackRequest({ allowUnready: this.isRecoveryRequest(request) })
 		if (!release) {
+			const readiness = this.lifecycle.readiness()
+			response.setHeader('Cache-Control', 'no-store')
 			response.setHeader('Retry-After', '5')
 			response.setHeader('Connection', 'close')
 			response.status(503).json({
 				statusCode: 503,
-				errorCode: this.lifecycle.readiness().status === 'draining' ? 'RUNTIME_DRAINING' : 'RUNTIME_NOT_READY',
+				retryAfter: 5,
+				reason: readiness.status === 'draining' ? 'draining' : readiness.admission?.reason,
+				errorCode: readiness.status === 'draining' ? 'RUNTIME_DRAINING' : 'RUNTIME_NOT_READY',
 				message:
-					this.lifecycle.readiness().status === 'draining'
+					readiness.status === 'draining'
 						? 'The API instance is draining for restart'
 						: t('server-ai:Error.RuntimeNotReady', { defaultValue: 'The API instance is not ready' })
 			})

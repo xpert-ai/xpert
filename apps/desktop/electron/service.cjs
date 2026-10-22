@@ -1,3 +1,4 @@
+const { runtimeRequest } = require('./runtime-recovery.cjs')
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
 const {
   MessageError,
@@ -138,6 +139,7 @@ class DesktopService {
   constructor({
     storage,
     fetcher = fetch,
+    recoveryWait,
     localLogin,
     certificateProbe,
     defaultConfig = DEFAULT_CONFIG,
@@ -145,6 +147,7 @@ class DesktopService {
   } = {}) {
     this.storage = storage || { read: () => null, write: () => {} }
     this.fetcher = fetcher
+    this.recoveryWait = recoveryWait
     this.localLogin = localLogin
     this.certificateProbe = certificateProbe
     const saved = this.storage.read()
@@ -416,7 +419,8 @@ class DesktopService {
       timeout = 20000,
       responseType = 'json',
       errorMessages,
-      includeServerMessage = false
+      includeServerMessage = false,
+      runtimeRecoveryBudget = { remaining: 2, deadline: Date.now() + 15_000 }
     } = {}
   ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
@@ -435,15 +439,30 @@ class DesktopService {
     const multipart = typeof FormData !== 'undefined' && body instanceof FormData
     if (multipart) delete headers['Content-Type']
     let response
+    let runtime
     try {
-      response = await this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
-        method,
-        headers,
-        ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
-        signal: AbortSignal.timeout(timeout),
-        redirect: 'error'
-      })
+      const result = await runtimeRequest(
+        () =>
+          this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
+            method,
+            headers,
+            ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
+            signal: AbortSignal.timeout(timeout),
+            redirect: 'error'
+          }),
+        {
+          safe: method === 'GET' || method === 'HEAD' || (method === 'POST' && path === '/api/ai/v1/chatkit/sessions'),
+          assertCurrent: () => {
+            if (generation !== this.generation) throw new ClientError('The session changed. Please retry.', 409)
+          },
+          budget: runtimeRecoveryBudget,
+          wait: this.recoveryWait
+        }
+      )
+      response = result.response
+      runtime = result.runtime
     } catch (error) {
+      if (error instanceof ClientError) throw error
       if (method === 'POST' && timeout > 20000)
         throw new ClientError(
           'The installation result is not available yet. Refresh the catalog or check the workspace before retrying.',
@@ -469,10 +488,22 @@ class DesktopService {
         timeout,
         responseType,
         errorMessages,
-        includeServerMessage
+        includeServerMessage,
+        runtimeRecoveryBudget
       })
     }
     if (!response.ok) {
+      if (runtime) {
+        const failure = new ClientError(
+          runtime.errorCode === 'RUNTIME_DRAINING'
+            ? 'Xpert is restarting. Please reconnect shortly.'
+            : 'Xpert is temporarily unavailable. Please reconnect shortly.',
+          503
+        )
+        failure.errorCode = runtime.errorCode
+        failure.retryAfterMs = runtime.retryAfterMs
+        throw failure
+      }
       if (response.status === 401)
         throw new ClientError(
           auth ? 'Your session expired. Please sign in again.' : 'Incorrect email or password.',

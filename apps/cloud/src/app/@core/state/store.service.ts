@@ -23,6 +23,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/headless-ui'
 import { WorkspaceHistoryService } from '../services/workspace-history.service'
+import { clearCurrentUserSessionCache } from './current-user-session-cache'
 
 export type ActiveScope =
   | { level: RequestScopeLevel.TENANT }
@@ -583,6 +584,7 @@ export class Store {
   }
 
   clear() {
+    clearCurrentUserSessionCache()
     this.appStore.reset()
     this.persistStore.update((state) => ({
       ...state,
@@ -599,7 +601,7 @@ export class Store {
   loadRoles() {
     const { user } = this.appQuery.getValue()
     this.ngxRolesService.flushRoles()
-    this.ngxRolesService.addRole(user.role.name, () => true)
+    if (user?.role?.name) this.ngxRolesService.addRole(user.role.name, () => true)
   }
 
   loadPermissions() {

@@ -54,6 +54,45 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "SettingsValue": {
+      "FormatJson": "Format JSON",
+      "InvalidJson": "Invalid JSON. Fix the syntax errors before saving.",
+      "ValidJson": "JSON syntax is valid",
+      "EditAsJson": "Edit as JSON",
+      "Text": "Text",
+      "Expand": "View full value",
+      "Collapse": "Collapse",
+      "Empty": "Empty value",
+      "Copied": "Value copied",
+      "CopyFailed": "Copy failed. Select the value and copy it manually."
+    },
+    "RetentionCleanup": {
+      "Hour": "Hour",
+      "Minute": "Minute",
+      "Title": "Manual cleanup",
+      "Description": "Clean up data across all tenants within a time range, independently of automatic cleanup settings. Preview before confirming.",
+      "Protection": "Checkpoints needed for recovery and branching stay protected. Active or pending-settlement calls are excluded; required billing usage is retained.",
+      "Type": "Data type",
+      "Checkpoints": "Old checkpoints",
+      "GatewayCalls": "Model call logs",
+      "Start": "Start time (inclusive)",
+      "End": "End time (exclusive)",
+      "TimeHelp": "Uses your browser’s local time zone. Checkpoints use creation time; model calls use completion time, falling back to creation time.",
+      "InvalidRange": "Choose a valid past time range. The end must be after the start and no later than now.",
+      "Preview": "Preview impact",
+      "PreviewTitle": "Cleanup preview",
+      "AllTenants": "Scope: all tenants",
+      "Matched": "Matching records",
+      "Protected": "Protected / skipped",
+      "Selected": "Delete this batch",
+      "Writes": "Related writes",
+      "BatchLimit": "{{total}} records are eligible; at most {{limit}} are deleted per batch. Preview again after cleanup to delete the remaining records.",
+      "Expiry": "Preview expires at {{time}}. Changing the selection requires a new preview. Protection is checked again during cleanup.",
+      "Confirm": "I confirm cleanup across all tenants in this range and understand deleted data cannot be restored from this page.",
+      "Execute": "Confirm and clean up",
+      "Empty": "No records can be cleaned up in this batch.",
+      "Result": "Deleted {{deleted}} records and {{writes}} related writes. Skipped {{skipped}} records due to state changes or concurrent processing. Preview again to see remaining data."
+    },
     "Analytics": {
       "AutomaticHelp": "The system or Agent generates analytics definitions from authorized files, toolsets and integrations. Use this page to view, correct and manage versions; internal configuration is supplied automatically.",
       "Title": "Analytics definitions",
@@ -2391,7 +2430,65 @@
       "OrganizationNotConfiguredHint": "No tenant default is configured. Select an expert and save to apply it to this organization.",
       "OrganizationConfigured": "Using organization configuration",
       "SaveTenantDefault": "Save as the tenant default",
-      "SaveConfiguration": "Save configuration"
+      "SaveConfiguration": "Save configuration",
+      "Settings": "Settings",
+      "Personalization": "Personalization",
+      "Memory": "Memory",
+      "Assistant": "Assistant settings",
+      "Refresh": "Refresh",
+      "Retry": "Retry",
+      "Close": "Close",
+      "Cancel": "Cancel",
+      "SaveDraft": "Save draft",
+      "Saving": "Saving…",
+      "Connect": "Connect",
+      "Connecting": "Connecting…",
+      "Disconnect": "Disconnect",
+      "Content": "Content",
+      "Enter": "Enter content",
+      "DraftOnly": "This content is kept only in the current dialog and has not been saved to assistant memory.",
+      "GenerateMemory": "Generate memory",
+      "GenerateMemoryDesc": "Allow the assistant to generate memory from conversations.",
+      "ManageMemory": "Manage memory",
+      "ManageMemoryDesc": "Prepare content to add to assistant memory.",
+      "Import": "Import",
+      "MemoryIntro": "Manage assistant memory preferences and prepare memory content.",
+      "BindingRequired": "Select and configure an assistant before editing these settings.",
+      "BindingChanged": "The current assistant or organization has changed. Close this dialog and try again.",
+      "PersonalizationIntro": "Customize how the assistant responds and what it knows about you.",
+      "BehaviorHelp": "Describe the assistant’s tone, working style, and rules to follow.",
+      "BehaviorPlaceholder": "For example: Respond concisely, explain assumptions, and provide actionable next steps.",
+      "ProfileHelp": "Add your background, preferences, and other context you want the assistant to remember.",
+      "ProfilePlaceholder": "For example: My role, current projects, preferred language, and working habits.",
+      "MarkdownHelp": "Markdown supported",
+      "PersonalizationSaveHint": "Save to apply your personal preferences to this assistant.",
+      "PersonalizationSaved": "Personal preferences saved.",
+      "PreferenceLoadFailed": "Unable to load personal preferences. Please try again.",
+      "AvailableTriggers": "Available triggers",
+      "TriggersIntro": "Connect channels and configure triggers for this assistant.",
+      "CreateIntegration": "Create integration",
+      "LoadingTriggers": "Loading triggers…",
+      "NoAvailableTriggers": "No triggers are available. Configure an integration or install a plugin that provides triggers.",
+      "TriggerAvailable": "Available to connect.",
+      "TriggerUnavailable": "This trigger is currently unavailable. Check its integration or plugin configuration.",
+      "TriggerInDraft": "Enabled in the assistant draft. Publish the assistant to apply changes.",
+      "TriggerConfigIntro": "Configure this trigger and save it to the assistant draft.",
+      "NoTriggerFields": "This trigger requires no additional configuration.",
+      "TriggerSaveHint": "Changes are saved to the draft. Publish the assistant to apply them.",
+      "TriggerChanged": "This trigger has changed. Close this dialog, refresh, and try again.",
+      "TriggerLoadFailed": "Unable to load triggers. Please try again.",
+      "TriggerSaveFailed": "Unable to save trigger configuration. Please try again.",
+      "DirectQrIntro": "Scan the QR code with {{provider}} to connect this assistant.",
+      "DirectQrWaiting": "Waiting for you to scan and authorize in {{provider}}…",
+      "DirectQrLoading": "Loading QR code…",
+      "DirectQrActivating": "Authorization received. Connecting…",
+      "DirectQrExpired": "The QR code has expired. Please try again.",
+      "DirectQrRetry": "Try again",
+      "DirectQrCopy": "Copy authorization link",
+      "DirectQrCopied": "Link copied",
+      "DirectQrConnected": "Connected and active.",
+      "DirectQrOffline": "Connection is enabled but currently offline. Reconnect if needed.",
+      "DirectQrSaveHint": "QR code connections take effect immediately. Other trigger changes must be published to take effect."
     },
     "Assistant": {
       "SettingsButton": "Assistant settings",
@@ -2855,7 +2952,9 @@
       "Refresh": "Refresh",
       "Columns": "Columns",
       "Width": "Width",
-      "Configured": "configured"
+      "Configured": "configured",
+      "Default": "Default",
+      "Save": "Save"
     },
     "Skills": {
       "Selected": "selected",
@@ -2873,7 +2972,8 @@
         "Title": "Something went wrong",
         "TechnicalDetails": "Technical details",
         "Retry": "Try again"
-      }
+      },
+      "Reset": "Reset"
     },
     "Feature": {
       "EnableFeature": "Enable feature",
@@ -3170,7 +3270,26 @@
         "DetailPanelEmptyTitle": "Start a conversation to unlock workspace tools",
         "FilesEmptyDesc": "Once this ClawXpert thread is created, its server-volume workspace files will appear here.",
         "ComputerEmptyDesc": "Once this ClawXpert thread is created, its computer timeline will appear here as workspace tools start running.",
-        "TerminalEmptyDesc": "Once this ClawXpert thread is created, you can run commands here against the current workspace."
+        "TerminalEmptyDesc": "Once this ClawXpert thread is created, you can run commands here against the current workspace.",
+        "ActiveDays": "Active days",
+        "BoundDays": "Companion days",
+        "ConversationCount": "Conversations",
+        "ConversationStatsDesc": "Daily message volume between you and this assistant over the last 12 weeks.",
+        "ConversationStatsTitle": "Conversation stats",
+        "HeatmapCellEmpty": "{{date}}: 0 messages",
+        "HeatmapCellFuture": "{{date}}: upcoming",
+        "HeatmapCellTitle": "{{date}}: {{count}} messages",
+        "HeatmapLegendBusy": "Busy",
+        "HeatmapLegendQuiet": "Quiet",
+        "LoadingPreference": "Loading markdown documents…",
+        "NoMessageActivity": "No message activity yet. Start a conversation to populate this heatmap.",
+        "PreferenceSaveFailed": "Failed to save the ClawXpert markdown documents.",
+        "SaveTriggerDraft": "Save draft",
+        "TabBehavior": "Behavior Guidelines",
+        "TabUserProfile": "User Profile",
+        "TaskCount": "Tasks",
+        "TotalMessages": "Total messages",
+        "WordCount": "{{count}} words"
       }
     },
     "MENU": {
@@ -3380,7 +3499,8 @@
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
       "CONFIRM_DELETE": "Confirm delete?",
-      "Test": "Test"
+      "Test": "Test",
+      "Add": "Add"
     },
     "NOTES": {
       "ORGANIZATIONS": {
@@ -3513,7 +3633,8 @@
       }
     },
     "Workflow": {
-      "AgentWorkflow": "Agent Workflow"
+      "AgentWorkflow": "Agent Workflow",
+      "RequiredTriggerConfig": "Complete the required trigger configuration before continuing."
     },
     "XProject": {
       "ListView": {
@@ -4265,7 +4386,35 @@
         "recruiting-people": "Recruiting & people",
         "product": "Product management",
         "operations": "Operations management"
-      }
+      },
+      "ChatKitMaximized": "Maximize ChatKit",
+      "Description": "Description",
+      "LoadingWorkbenchViews": "Loading extension views…",
+      "LongTermMemoryTypeEnum": {
+        "UserProfile": "User profile"
+      },
+      "MaxConcurrency": "Maximum concurrent requests",
+      "ModelSelection": {
+        "Empty": "Only the Primary model is available to users.",
+        "MoveDown": "Move model down",
+        "MoveUp": "Move model up",
+        "Remove": "Remove model",
+        "Reorder": "Reorder model"
+      },
+      "Name": "Name",
+      "NoSandboxProvider": "No sandbox providers available",
+      "NoWorkbenchViews": "No extension views are currently available for this digital expert.",
+      "OverlayDialog": "Floating chat",
+      "RecursionLimit": "Recursion limit",
+      "SandboxProvider": "Sandbox provider",
+      "Tags": "Tags",
+      "Title": "Title",
+      "TwoColumnLayout": "Default two-column layout",
+      "WorkbenchDefaultView": "Default workbench view",
+      "WorkbenchDefaultViewTip": "Select the extension view to open by default. If it is unavailable, the first available view is used.",
+      "WorkbenchInitialLayout": "Initial chat layout",
+      "WorkbenchMaximized": "Maximize workbench",
+      "WorkbenchViewsLoadFailed": "Unable to load extension views."
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {

@@ -131,7 +131,10 @@ async function dispatch(service, method, argument) {
       ),
       key: error instanceof ClientError ? error.key : 'The operation failed. Please retry.',
       params: error instanceof ClientError ? error.params : {},
-      status: error.status || 500
+      status: error.status || 500,
+      ...(error instanceof ClientError && ['RUNTIME_DRAINING', 'RUNTIME_NOT_READY'].includes(error.errorCode)
+        ? { errorCode: error.errorCode, retryAfterMs: error.retryAfterMs }
+        : {})
     }
   }
 }

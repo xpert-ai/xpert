@@ -1,3 +1,4 @@
+/** rolling-self-signal execution only; its supervisor replaces the process, not an arbitrary deployment. */
 export interface RuntimeProcessSignaler {
 	signal(signal: 'SIGTERM'): void
 }

@@ -138,4 +138,61 @@ describe('tenant general settings', () => {
     expect(component.listOfData).toEqual([{ id: row.id, name: 'tenant_title', value: 'Changed' }])
     expect(toastr.error).not.toHaveBeenCalled()
   })
+
+  it.each(['{"enabled":true,}', '', '{"enabled":'])(
+    'blocks invalid JSON %p without changing the persisted value',
+    async (invalid) => {
+      const original = '{"enabled":true}'
+      component.add({ name: 'policy', value: original })
+      component.startEdit('1')
+      const control = component.editCache['1'].jsonControl
+      expect(control.value).toBe(JSON.stringify(JSON.parse(original), null, 2))
+      control.setValue(invalid)
+
+      await component.saveEdit('1')
+
+      expect(control.hasError('jsonSyntax')).toBe(true)
+      expect(tenantService.saveSettings).not.toHaveBeenCalled()
+      expect(component.listOfData[0].value).toBe(original)
+      expect(component.editCache['1'].edit).toBe(true)
+    }
+  )
+
+  it('saves corrected JSON as a string and retains the draft after a failed request', async () => {
+    component.add({ name: 'policy', value: '[]' })
+    component.startEdit('1')
+    const control = component.editCache['1'].jsonControl
+    control.setValue('[false, 0, {"enabled": true}]')
+    tenantService.saveSettings.mockRejectedValueOnce(new Error('Unavailable')).mockResolvedValueOnce({})
+
+    await component.saveEdit('1')
+    expect(component.editCache['1'].jsonControl).toBe(control)
+    expect(component.listOfData[0].value).toBe('[]')
+    await component.saveEdit('1')
+
+    expect(tenantService.saveSettings).toHaveBeenLastCalledWith({ policy: '[false, 0, {"enabled": true}]' })
+    expect(component.listOfData[0].value).toBe(control.value)
+    expect(component.editCache['1'].edit).toBe(false)
+  })
+
+  it('preserves a JSON draft when adding another row and discards it on cancel', () => {
+    component.add({ name: 'policy', value: '{}' })
+    component.startEdit('1')
+    component.editCache['1'].jsonControl.setValue('{unfinished')
+    component.addNew()
+    expect(component.editCache['1'].jsonControl.value).toBe('{unfinished')
+    component.cancelEdit('1')
+    component.startEdit('1')
+    expect(component.editCache['1'].jsonControl.value).toBe('{}')
+    expect(tenantService.saveSettings).not.toHaveBeenCalled()
+  })
+
+  it('keeps ordinary text in text mode and allows opting into validated JSON editing', () => {
+    component.add({ name: 'fileStorageProvider', value: 'LOCAL' })
+    component.startEdit('1')
+    expect(component.editCache['1'].jsonControl).toBeUndefined()
+    component.editAsJson('1')
+    expect(component.editCache['1'].jsonControl.invalid).toBe(true)
+    expect(component.editCache['1'].jsonControl.value).toBe('LOCAL')
+  })
 })

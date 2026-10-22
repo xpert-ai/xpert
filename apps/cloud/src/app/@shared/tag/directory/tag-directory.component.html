@@ -12,7 +12,7 @@
       </p>
     </div>
     @if (canCreate()) {
-      <button z-button (click)="open('edit')" [zDisabled]="loading() || saving()">
+      <button z-button [zSize]="'lg'" (click)="open('edit')" [zDisabled]="loading() || saving()">
         <z-icon zType="add" class="mr-2" />{{ 'XP.TagDirectory.Create' | translate }}
       </button>
     }

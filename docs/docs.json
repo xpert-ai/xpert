@@ -32,6 +32,7 @@
                 "group": "Architecture",
                 "pages": [
                   "en/architecture/ai-agent-architecture",
+                  "en/architecture/runtime-control",
                   "en/architecture/assistant-template-lifecycle",
                   "en/architecture/file-lifecycle-data-flow",
                   "en/architecture/file-access-preview-architecture"
@@ -124,6 +125,7 @@
                 "group": "架构",
                 "pages": [
                   "zh-Hans/architecture/ai-agent-architecture",
+                  "zh-Hans/architecture/runtime-control",
                   "zh-Hans/architecture/assistant-template-lifecycle",
                   "zh-Hans/architecture/file-lifecycle-data-flow",
                   "zh-Hans/architecture/file-access-preview-architecture"

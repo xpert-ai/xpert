@@ -1361,5 +1361,7 @@
   "Shared templates": "Shared templates",
   "Other sources": "Other sources",
   "Agent Plugins": "Agent Plugins",
-  "Xpert Plugins": "Xpert Plugins"
+  "Xpert Plugins": "Xpert Plugins",
+  "Xpert is restarting. Please reconnect shortly.": "Xpert is restarting. Please reconnect shortly.",
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert is temporarily unavailable. Please reconnect shortly."
 }

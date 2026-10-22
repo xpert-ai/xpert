@@ -84,3 +84,13 @@ instructions at `{language}/ai/projects/pipelines/` under Projects & Tasks.
 describes the proposed migration manifest, runner, database baseline adoption,
 deployment integration, plugin migration lifecycle, and acceptance criteria.
 It is a delivery plan, not documentation of implemented behavior.
+
+## Runtime Control architecture
+
+Maintain the overall design in [中文架构与实施计划](./zh-Hans/architecture/runtime-control.md)
+and [English architecture and implementation plan](./en/architecture/runtime-control.md).
+These pages cover plugin convergence, admission monitoring, replica lifecycle,
+ingress withdrawal and recovery, diagnostics, Desktop recovery, and remaining
+ingress acknowledgement work. Keep implemented behavior separate from deployment
+migration and proposed capabilities. Process cleanup details remain in the
+existing graceful API shutdown guides.

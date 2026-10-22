@@ -1361,5 +1361,7 @@
   "Shared templates": "共有テンプレート",
   "Other sources": "その他の提供元",
   "Agent Plugins": "Agent Plugins",
-  "Xpert Plugins": "Xpert Plugins"
+  "Xpert Plugins": "Xpert Plugins",
+  "Xpert is restarting. Please reconnect shortly.": "Xpert は再起動中です。しばらくしてから再接続してください。",
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert は一時的に利用できません。しばらくしてから再接続してください。"
 }

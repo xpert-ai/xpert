@@ -1,3 +1,4 @@
+import type { IRuntimeAdmissionDiagnostics } from '@xpert-ai/contracts'
 /** A lost Redis lease closes traffic immediately; returning boots must revalidate desired plugin state. */
 import type { InstanceRegistryService } from '../managed-connection/instance-registry.service'
 import { admitPluginStartup, canRestorePluginStartup, isPluginStartupListening } from '../plugin/plugin-startup-state'
@@ -10,21 +11,52 @@ import type { RolloutAdmission } from './runtime-rollout-policy'
 export type RestartRegistry = Pick<
 	InstanceRegistryService,
 	'instanceId' | 'bootId' | 'getPluginState' | 'getReadyInstances' | 'isLeaseValid' | 'setReady'
->
+> &
+	Partial<Pick<InstanceRegistryService, 'getLeaseRemainingMs'>>
 
 export class RuntimePluginAdmission {
 	private admitted = false
 	private checkedUntil = 0
 	private committed = false
 	private readySince?: number
+	private lastCheckAt?: number
+	private checkStartedAt?: number
+	private checkDurationMs: number | null = null
+	private lastCheckFailed = false
+	private eventLoopDelayMaxMs?: number
+	private eventLoopDelayP99Ms?: number
 	constructor(
 		private readonly registry: RestartRegistry,
 		private readonly lifecycle: RuntimeLifecycleService
 	) {
-		lifecycle.setReadinessGuard(
-			() =>
-				isPluginStartupListening() && this.admitted && Date.now() < this.checkedUntil && registry.isLeaseValid()
-		)
+		lifecycle.setReadinessGuard(() => this.diagnostics().reason === 'ready')
+		lifecycle.setAdmissionDiagnostics(() => this.diagnostics())
+	}
+	recordEventLoopDelay(maxMs: number, p99Ms: number): void {
+		this.eventLoopDelayMaxMs = maxMs
+		this.eventLoopDelayP99Ms = p99Ms
+	}
+	diagnostics(): IRuntimeAdmissionDiagnostics {
+		const now = Date.now()
+		return {
+			reason: !isPluginStartupListening()
+				? 'startup-not-listening'
+				: !this.registry.isLeaseValid()
+					? 'lease-expired'
+					: now >= this.checkedUntil
+						? 'validation-expired'
+						: !this.admitted
+							? 'plugin-not-admitted'
+							: 'ready',
+			validationAgeMs: this.lastCheckAt === undefined ? null : now - this.lastCheckAt,
+			validationRemainingMs: Math.max(0, this.checkedUntil - now),
+			leaseRemainingMs: this.registry.getLeaseRemainingMs?.(),
+			checkDurationMs: this.checkStartedAt === undefined ? this.checkDurationMs : now - this.checkStartedAt,
+			checkInFlight: this.checkStartedAt !== undefined,
+			lastCheckFailed: this.lastCheckFailed,
+			eventLoopDelayMaxMs: this.eventLoopDelayMaxMs,
+			eventLoopDelayP99Ms: this.eventLoopDelayP99Ms
+		}
 	}
 	isStable(): boolean {
 		return (
@@ -34,6 +66,24 @@ export class RuntimePluginAdmission {
 		)
 	}
 	async refresh(
+		generations: Pick<PluginRuntimeGenerationStore, 'readDesired' | 'readRequirements'>,
+		rollout?: RolloutAdmission | (() => Promise<RolloutAdmission | undefined>)
+	): Promise<{ manifest?: RolloutAdmission; desiredGeneration: number }> {
+		this.checkStartedAt = Date.now()
+		try {
+			const result = await this.validate(generations, typeof rollout === 'function' ? await rollout() : rollout)
+			this.lastCheckFailed = false
+			return result
+		} catch (error) {
+			this.lastCheckFailed = true
+			throw error
+		} finally {
+			this.checkDurationMs = Date.now() - this.checkStartedAt
+			this.checkStartedAt = undefined
+			this.lifecycle.readiness()
+		}
+	}
+	private async validate(
 		generations: Pick<PluginRuntimeGenerationStore, 'readDesired' | 'readRequirements'>,
 		rollout?: RolloutAdmission
 	): Promise<{ manifest?: RolloutAdmission; desiredGeneration: number }> {
@@ -59,12 +109,13 @@ export class RuntimePluginAdmission {
 			(!!desired &&
 				desired.status !== 'completed' &&
 				(continuous || (desired.status === 'failed' && canRestorePluginStartup(state))))
-		this.checkedUntil = Date.now() + 5_000
+		this.lastCheckAt = Date.now()
+		this.checkedUntil = this.lastCheckAt + 5_000
 		const ready =
 			isPluginStartupListening() &&
 			this.admitted &&
 			this.registry.isLeaseValid() &&
-			this.lifecycle.readiness().status !== 'draining'
+			this.lifecycle.readiness().status === 'ready'
 		this.readySince = ready ? (continuous ? (this.readySince ?? Date.now()) : Date.now()) : undefined
 		await this.registry.setReady(ready, this.checkedUntil)
 		if (this.isStable() && !this.committed) {

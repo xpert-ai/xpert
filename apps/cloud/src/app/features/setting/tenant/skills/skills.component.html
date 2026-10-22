@@ -74,7 +74,13 @@
           {{ 'XP.Skill.InitializePublicRepository' | translate: { Default: 'Initialize Public Skill Repo' } }}
         </button>
 
-        <button type="button" z-button [zDisabled]="initializingPublicRepository()" (click)="uploadPublicSkills()">
+        <button
+          type="button"
+          z-button
+          zSize="lg"
+          [zDisabled]="initializingPublicRepository()"
+          (click)="uploadPublicSkills()"
+        >
           <i class="ri-upload-cloud-2-line mr-1"></i>
           {{ 'XP.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
         </button>

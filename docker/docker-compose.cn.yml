@@ -49,6 +49,7 @@ services:
       DEEP_RESEARCH_URL: ${DEEP_RESEARCH_URL:-https://research.xpertai.cn/}
       DATA_ONTOLOGY_URL: ${DATA_ONTOLOGY_URL:-https://data.xpertai.cn/}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      RUNTIME_TRAFFIC_WITHDRAWAL_MS: ${RUNTIME_TRAFFIC_WITHDRAWAL_MS:-5000}
     env_file:
       - .env
     healthcheck:
@@ -95,6 +96,19 @@ services:
     networks:
       - overlay
 
+  # All API clients must use this readiness-aware hop, including an external Nginx.
+  api-ingress:
+    image: ${XPERT_INGRESS_IMAGE:-haproxy:3.2.26-alpine}
+    restart: unless-stopped
+    volumes:
+      - ./runtime-ingress/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - api
+    expose:
+      - '3000'
+    networks:
+      - overlay
+
   webapp:
     image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:latest
     environment:
@@ -112,7 +126,7 @@ services:
       DEFAULT_LATITUDE: ${DEFAULT_LATITUDE:-42.6459136}
       DEFAULT_LONGITUDE: ${DEFAULT_LONGITUDE:-23.3332736}
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
-      API_HOST: api
+      API_HOST: api-ingress
       API_PORT: 3000
     entrypoint: './entrypoint.compose.sh'
     command: ['nginx', '-g', 'daemon off;']
@@ -120,9 +134,9 @@ services:
       - .env
     restart: on-failure
     links:
-      - api:${API_HOST:-api}
+      - api-ingress
     depends_on:
-      - api
+      - api-ingress
     ports:
       - ${WEB_PORT:-80}:80
       - ${API_PORT:-3000}:3000

@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "TenantSettingsLookupFailed": "Tenant settings lookup failed",
+        "RetentionPreviewExpired": "The preview has expired or is unavailable. Preview the cleanup again.",
+        "RetentionCleanupInvalid": "Select a valid past time range and preview it before confirming cleanup.",
+
         "AnalyticsDefinitionInvalid": "Analytics definition is unavailable or invalid",
         "AnalyticsDefinitionConflict": "A newer version was published. Reload before publishing again.",
         "AnalyticsDefinitionUnavailable": "Analytics definition is unavailable.",

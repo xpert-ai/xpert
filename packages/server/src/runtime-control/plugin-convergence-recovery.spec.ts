@@ -1,3 +1,4 @@
+import { TRAFFIC_WITHDRAWAL_MS } from './runtime-traffic-withdrawal'
 import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
 import {
 	advance,
@@ -20,7 +21,7 @@ describe('Plugin convergence capacity recovery', () => {
 		generations = new PluginRuntimeGenerationStore(redis)
 	})
 	afterEach(async () => {
-		await Promise.all(nodes.map((node) => node.coordinator.onModuleDestroy()))
+		await Promise.all(nodes.map((node) => node.destroy()))
 		jest.useRealTimers()
 	})
 
@@ -34,13 +35,13 @@ describe('Plugin convergence capacity recovery', () => {
 
 		const second = await createNode(redis, 'api-2', 'boot-2', loadedPluginState())
 		nodes.push(second)
-		await advance(6_000)
+		await advance(6_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(first.signaler.signal).toHaveBeenCalledTimes(1)
 		expect(second.signaler.signal).not.toHaveBeenCalled()
 		expect(second.lifecycle.readiness().status).toBe('ready')
 		const restartId = (await generations.readState(generation))?.restartId
 		expect(restartId).toEqual(expect.any(String))
-		await first.coordinator.onModuleDestroy()
+		await first.destroy()
 		const replacement = await createNode(redis, 'api-1', 'boot-2', loadedPluginState())
 		nodes.push(replacement)
 		await advance(10_000)
@@ -68,7 +69,7 @@ describe('Plugin convergence capacity recovery', () => {
 		const first = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
 		nodes.push(first)
 		const { generation } = await first.coordinator.recordPluginChange(requirement)
-		await first.coordinator.onModuleDestroy()
+		await first.destroy()
 		const replacement = await createNode(redis, 'api-1', 'boot-2', loadedPluginState())
 		nodes.push(replacement)
 		await advance(10_000)
@@ -114,9 +115,9 @@ describe('Plugin convergence capacity recovery', () => {
 			allowDowntime: true,
 			runtimeRequirements: [requirement]
 		})
-		await advance(5_000)
+		await advance(5_000 + TRAFFIC_WITHDRAWAL_MS)
 		expect(first.signaler.signal).toHaveBeenCalledTimes(1)
-		await first.coordinator.onModuleDestroy()
+		await first.destroy()
 		nodes.push(await createNode(redis, 'api-1', 'boot-2', loadedPluginState()))
 		await advance(10_000)
 		for (const generation of [waiting.generation, approved.pluginGeneration!]) {
