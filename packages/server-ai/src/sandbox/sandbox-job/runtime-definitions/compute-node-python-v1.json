@@ -2,7 +2,7 @@
     "name": "compute/node-python/v1",
     "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
     "contractVersion": "1",
-    "sandboxRuntimeVersion": "1.3.0",
+    "sandboxRuntimeVersion": "1.3.1",
     "timeoutMs": 25000,
     "hardDeadlineMs": 30000,
     "resources": {
@@ -30,7 +30,7 @@
         "readOnlyWorkspace": true
     },
     "expectedManifest": {
-        "sandboxRuntimeVersion": "1.3.0",
+        "sandboxRuntimeVersion": "1.3.1",
         "imageFamily": "compute",
         "profileName": "compute/node-python/v1",
         "contractVersion": "1",

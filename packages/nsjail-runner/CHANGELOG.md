@@ -1,5 +1,16 @@
 # @xpert-ai/nsjail-runner
 
+## 0.3.0
+
+### Minor Changes
+
+- c59009d: Add a built-in NsJail Compute Runtime Provider so open-source deployments can run Python and JavaScript Workspace Script Actions without a Pro Runtime Provider. The Runner includes the pinned Compute rootfs and a separate authenticated, offline Jobs protocol with read-only inputs, bounded scratch storage, cgroup v2 resource limits, streamed host invocations and deterministic cleanup. Update both API and Runner together; Compute remains unavailable on older Runners or without cgroup v2 isolation.
+- 06be3c0: Provide hardened open-source NsJail bindings for AnyDoc and OpenDataLoader document Jobs, with locked native/Java/OCR dependencies, isolated profile lifecycles and real image acceptance checks. Correct document Artifact catalog families and validate release metadata. Deploy the matching API and Runner together; existing Runners fail document readiness closed.
+
+### Patch Changes
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+
 ## 0.2.2
 
 ### Patch Changes

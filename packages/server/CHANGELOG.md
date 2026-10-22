@@ -1,5 +1,38 @@
 # @xpert-ai/server-core
 
+## 3.26.2
+
+### Patch Changes
+
+- 2e052d5: Expose current-request platform permissions without role-administration access,
+  preserving live grants, JWT permission ceilings and tenant/organization isolation.
+
+    Support explicit authentication strategies on controllers and routes. The current
+    permissions endpoint requires JWT, while unannotated routes retain the open-source
+    server's JWT/Basic defaults. Reject anonymous, Basic and API-key credentials on
+    the permissions endpoint without marking it public or authenticating twice.
+
+- b743428: Attribute providers and controllers returned by a plugin's dynamic `register()` module to their plugin scope and version before discovery. This lets Data Xpert verify managed middleware readiness instead of seeing those providers as built-in. Skip primitive provider values and string aliases when attaching reflection metadata.
+- 32d695d: Withdraw API replicas from readiness-aware ingress before draining, refresh plugin admission independently of rollout bookkeeping, and expose validation and lease diagnostics. Preserve structured runtime errors in Desktop with bounded recovery for safe requests and clear recovered session errors. Compose deployments must route all API ingress through the new readiness-aware gateway.
+
+    Give admission monitoring an independent provider lifecycle, validate a configurable ingress propagation budget, and distinguish runtime completion from ingress acknowledgement.
+
+    Keep authenticated readiness independent of tenant settings, bound Redis cache reads and writes with database fallback, and stop queuing cache calls while timed-out operations remain pending.
+
+- c59009d: Preserve known Sandbox Runtime dependency error codes across the Analytics boundary with safe, localized remediation and retry policy. Keep arbitrary plugin HTTP errors, messages and execution details redacted.
+
+    Allow targeted Runtime family publication without npm publication or rebuilding already published families, and verify the full API manifest contract before image promotion.
+
+    Report invalid Action script inputs separately from Runtime startup failures, with fixed guidance about the Workspace script entrypoint and standard-library contract. Runner output remains private.
+
+- Updated dependencies [d80b159]
+- Updated dependencies [389933d]
+- Updated dependencies [32d695d]
+    - @xpert-ai/plugin-sdk@3.26.2
+    - @xpert-ai/contracts@3.26.2
+    - @xpert-ai/server-common@3.26.2
+    - @xpert-ai/server-config@3.26.2
+
 ## 3.26.1
 
 ### Patch Changes
