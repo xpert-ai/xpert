@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "CurrentPermissionsScopeDenied": "Current permissions are unavailable in this request scope.",
+        "CurrentPermissionsUnavailable": "Authentication did not provide effective permissions. Please retry.",
         "TenantSettingsLookupFailed": "Tenant settings lookup failed",
         "RetentionPreviewExpired": "The preview has expired or is unavailable. Preview the cleanup again.",
         "RetentionCleanupInvalid": "Select a valid past time range and preview it before confirming cleanup.",
