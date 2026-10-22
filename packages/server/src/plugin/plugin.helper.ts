@@ -639,14 +639,16 @@ function tagModuleProvidersWithPluginScope(
 ) {
 	const pluginModule = isDynamicModule(plugin) ? plugin.module : plugin
 	const { controllers, providers } = reflectDynamicModuleMetadata(pluginModule)
-	for (const provider of [...controllers, ...providers]) {
+	// register() returns dynamic providers separately from @Module metadata.
+	// Both need provenance before Nest's strategy explorer discovers them.
+	for (const provider of [...controllers, ...providers, ...(plugin.controllers ?? []), ...(plugin.providers ?? [])]) {
 		const target =
 			(typeof provider === 'function' && provider) ||
 			(isClassProvider(provider) && provider.useClass) ||
 			(isFactoryProvider(provider) && provider.useFactory) ||
 			(isExistingProvider(provider) && provider.useExisting) ||
 			(isValueProvider(provider) && provider.useValue)
-		if (target) {
+		if (typeof target === 'function' || (typeof target === 'object' && target !== null)) {
 			Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, target)
 			Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
 			Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, pluginVersion, target)
