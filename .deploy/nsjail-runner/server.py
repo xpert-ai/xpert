@@ -8,28 +8,36 @@ from urllib.parse import urlsplit
 
 import runner
 from compute_service import ComputeService
+from document_service import DOCUMENT_SERVICES
 from compute_storage import download, upload
 
 
 class RunnerHandler(runner.RunnerHandler):
-    def __init__(self, *args, compute, **kwargs):
+    def __init__(self, *args, compute, documents=None, **kwargs):
         self.compute = compute
+        self.documents = documents or {}
         super().__init__(*args, **kwargs)
 
     def _dispatch(self, method):
         path = urlsplit(self.path).path
-        if not path.startswith("/v1/compute"):
+        if not path.startswith(("/v1/compute", "/v1/document/")):
             return super()._dispatch(method)
         streaming = False
         try:
             self._authorize()
             parts = path.strip("/").split("/")
+            service = self.compute
+            if parts[:2] == ["v1", "document"]:
+                service = self.documents.get(parts[2]) if len(parts) > 2 else None
+                if service is None:
+                    raise runner.RunnerError("Route not found", 404)
+                parts = ["v1", "compute", *parts[3:]]
             if parts == ["v1", "compute", "health"] and method == "GET":
-                self._write_json(self.compute.health())
+                self._write_json(service.health())
                 return
             payload = self._read_json() if method == "POST" else None
             if parts == ["v1", "compute", "jobs"] and method == "POST":
-                job = self.compute.create(payload)
+                job = service.create(payload)
                 self._write_json({"runtimeId": job.identity}, 201)
                 return
             if len(parts) < 4 or parts[:3] != ["v1", "compute", "jobs"]:
@@ -37,10 +45,10 @@ class RunnerHandler(runner.RunnerHandler):
             identity = parts[3]
             route = parts[4:]
             if not route and method == "DELETE":
-                self.compute.destroy(identity)
+                service.destroy(identity)
                 self._write_json({"status": "ok"})
                 return
-            job = self.compute.get(identity)
+            job = service.get(identity)
             if route == ["terminate"] and method == "POST":
                 job.cancel()
                 self._write_json({"status": "ok"})
@@ -88,8 +96,10 @@ def main():
     runner.ensure_startup_invariants()
     runner.NETWORK.initialize()
     compute = ComputeService()
+    documents = {family: service() for family, service in DOCUMENT_SERVICES.items()}
+    services = [compute, *documents.values()]
     try:
-        server = ThreadingHTTPServer((runner.RUNNER_HOST, runner.RUNNER_PORT), partial(RunnerHandler, compute=compute))
+        server = ThreadingHTTPServer((runner.RUNNER_HOST, runner.RUNNER_PORT), partial(RunnerHandler, compute=compute, documents=documents))
     except BaseException:
         runner.NETWORK.close()
         raise
@@ -98,7 +108,8 @@ def main():
     def reap():
         while not stop.wait(5):
             runner.reap_idle_runtimes()
-            compute.reap()
+            for service in services:
+                service.reap()
 
     reaper = threading.Thread(target=reap, daemon=True)
     reaper.start()
@@ -110,7 +121,8 @@ def main():
         stop.set()
         reaper.join(timeout=2)
         try:
-            compute.close()
+            for service in services:
+                service.close()
         finally:
             for runtime in list(runner.RUNTIMES.values()):
                 runtime.destroy()

@@ -17,7 +17,22 @@ Requirements and behavior:
 - The 30-second hard deadline starts at runtime creation, covering input staging and execution. Cancellation, disconnect and deadline handling kill the complete cgroup. Output collection occurs after all children exit. Explicit destroy is idempotent, the reaper bounds abandoned state, and startup recovers marked resources left by an interrupted Runner. Provider reload cleanup uses persisted tenant/Job/binding evidence.
 - The remote artifact digest records the Runner Host content hash; the image's pinned base digests live in the Dockerfile. Health verifies the deployed artifact rather than trusting a version label. NsJail binding priority is 100, so an installed healthy Pro Docker binding with priority 0 remains preferred.
 
-This provider supports the Compute profile and materialized files. It does not advertise seekable read-only Workspace file mappings or Browser/Document profiles. Python has its standard library; this change does not add third-party packages such as pandas.
+This provider supports the Compute profile and materialized files. It does not advertise seekable read-only Workspace file mappings. Python has its standard library; this change does not add third-party packages such as pandas.
+
+## Open-source Document Jobs
+
+The built-in `nsjail-document` Provider adds `document/node-20/v1` (AnyDoc) and `document/java-17/v1` (OpenDataLoader). Build and deploy both the API and Runner from this revision, configure the same `NSJAIL_RUNNER_URL`/`NSJAIL_RUNNER_TOKEN`, and install the corresponding document plugin. Discovery uses Sandbox Jobs; no Pro image or Docker socket on the API is required. Existing Python and LibreOffice document bindings in Pro are independent and are not provided by NsJail.
+
+The Runner builds separate root filesystems from the OSS Runtime Suite's pinned bases, dependency locks, native modules, Java CLI and offline Chinese/English OCR assets. Its Node base pins a multi-platform index so ARM and x86 builds use matching interpreters. These assets substantially increase image size and build time. Readiness executes the real isolated dependencies, compares the full Definition and manifest, and fails closed on an old Runner or missing dependencies. API startup remains possible without a configured Runner.
+
+| Profile               | CPU | Memory | PIDs | Shared memory | Scratch/output | Hard deadline |
+| --------------------- | --- | ------ | ---- | ------------- | -------------- | ------------- |
+| `document/node-20/v1` | 2   | 4 GiB  | 256  | 256 MiB       | 4 GiB          | 360 seconds   |
+| `document/java-17/v1` | 2   | 6 GiB  | 256  | 256 MiB       | 4 GiB          | 360 seconds   |
+
+Each profile admits one active Job per Runner. Memory limits are ceilings, not reservations: the host must have enough free memory for OCR alongside its other services; host OOM can kill a Job before its own limit is reached. Both require cgroup v2, prohibit swap and external networking, and run as UID/GID 10001 with read-only root and inputs. Java alone enables loopback inside its private Job namespace for the OCR subprocess; no other Job or host service is reachable. Compute and Node retain disabled loopback. Java receives only the read-only `/sys/devices/system/cpu` topology subtree required by ARM OCR kernels, not the sysfs root. Cancellation, deadlines, disconnect cleanup and restart recovery share the Compute lifecycle implementation, with separate state directories and cgroups per profile.
+
+Files are materialized over authenticated RPC: each file and download batch is limited to 32 MiB, staging to 64 MiB, and uploads to 4,096 files. Larger source documents require a different provider. Document artifact digests identify the expected manifest, including the dependency-lock and Runner hashes; readiness verifies the deployed content. Healthy Pro Docker bindings remain preferred at priority 0 over NsJail's 100.
 
 ### Compute verification
 
@@ -29,9 +44,11 @@ docker build -f .deploy/nsjail-runner/Dockerfile -t xpert-nsjail-runner:review .
 node .deploy/nsjail-runner/check-image.cjs xpert-nsjail-runner:review
 ```
 
-The image check uses a disposable privileged container and includes real Python/JavaScript execution, streamed invocation replies, network/filesystem isolation, OOM, disk limits, cancellation, timeouts, output bounds and cleanup. CI runs the same Compute probe before image publication. Shared Compute source changes are included in NsJail image release selection.
+The image check uses a disposable privileged container and includes real Python/JavaScript execution, streamed invocation replies, network/filesystem isolation, OOM, disk limits, cancellation, timeouts, output bounds and cleanup. Document checks execute native conversion, the Java CLI and OCR CPU kernels; verify resource limits and private loopback policy; and reject cross-profile requests. CI runs these probes before image publication. Shared Compute and Document source changes are included in NsJail image release selection.
 
 An additional opt-in Jest integration suite runs the **actual npm-packed Workspace Script Action** through the TypeScript Provider and Core's invocation bridge. Against a disposable Runner, set `NSJAIL_COMPUTE_TEST_URL`, `NSJAIL_COMPUTE_TEST_TOKEN` and `WORKSPACE_SCRIPT_ACTION_DIR` (the extracted directory containing `action.json` and `bundle/`), then run `nx test server-ai --runInBand --testPathPatterns=nsjail-compute-runtime.integration.spec.ts` through Corepack/pnpm. It checks both languages for aggregation, filtering and refreshed input data. These tests validate execution and the bridge; they do not claim browser UI, persisted database Jobs or real-user file authorization acceptance.
+
+For packed document Action acceptance, set `NSJAIL_DOCUMENT_TEST_URL`, `NSJAIL_DOCUMENT_TEST_TOKEN`, `ANYDOC_ACTION_DIR`, `OPENDATALOADER_ACTION_DIR` (extracted directories containing `action.json` and `bundle/`) and `NSJAIL_DOCUMENT_FIXTURE_DIR`. The fixture directory must contain a one-page `native.pdf` with selectable text and a one-page `scanned.pdf` with image-only text, both containing `12345`. Run `nsjail-document-runtime.integration.spec.ts` with Jest. It executes both native PDF Actions and OpenDataLoader's real offline OCR through the TypeScript Provider, checks page coverage and the OCR result artifact, and destroys each Job afterward. It does not require or modify the running local API.
 
 ## Start it
 

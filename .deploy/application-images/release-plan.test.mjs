@@ -6,12 +6,19 @@ import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
 
-test('NsJail release and validation track the shared Compute rootfs inputs', () => {
+test('NsJail release and validation track the shared Compute and Document rootfs inputs', () => {
   for (const file of [
     'packages/sandbox-runtime/images/compute/runtime/manifest.json',
     'packages/sandbox-runtime/images/compute/runtime/smoke.mjs',
     'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs',
-    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json',
+    'packages/sandbox-runtime/images/document-node/Dockerfile',
+    'packages/sandbox-runtime/images/document-java/requirements.txt',
+    'packages/sandbox-runtime/scripts/install-document-dependencies.mjs',
+    'packages/sandbox-runtime/scripts/install-document-ocr.mjs',
+    'packages/sandbox-runtime/scripts/verify-document-runtime.mjs'
   ]) {
     assert.equal(affectsImage(jail, [file]), true, file)
     assert.equal(requiresImageRelease(jail, [file]), true, file)

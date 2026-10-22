@@ -5,6 +5,11 @@ on:
     paths:
       - '.deploy/nsjail-runner/**'
       - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/document-node/**'
+      - 'packages/sandbox-runtime/images/document-java/**'
+      - 'packages/sandbox-runtime/scripts/*document*'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
       - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
       - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
@@ -16,6 +21,11 @@ on:
     paths:
       - '.deploy/nsjail-runner/**'
       - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/document-node/**'
+      - 'packages/sandbox-runtime/images/document-java/**'
+      - 'packages/sandbox-runtime/scripts/*document*'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
       - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
       - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
@@ -28,7 +38,7 @@ jobs:
   validate:
     name: Validate xpert-nsjail-runner
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       RUN_PRIVILEGED_PROBE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
@@ -86,6 +96,7 @@ jobs:
           [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
           docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
           docker exec xpert-nsjail-runner-ci python3 /app/verify_compute.py
+          docker exec xpert-nsjail-runner-ci python3 /app/verify_documents.py
 
       - name: Clean up Runner isolation probe
         if: always() && env.RUN_PRIVILEGED_PROBE == 'true'

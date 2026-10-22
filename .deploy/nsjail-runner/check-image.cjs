@@ -67,7 +67,8 @@ async function main() {
     console.log(run(['exec', name, 'python3', '/app/poc_validate.py'], 240000))
     console.log(run(['exec', name, 'python3', '/app/verify_app_data.py'], 60000))
     console.log(run(['exec', name, 'python3', '/app/verify_compute.py'], 120000))
-    console.log(`NsJail protocol, isolation, Compute Jobs and managed app-data checks passed: ${image}`)
+    console.log(run(['exec', name, 'python3', '/app/verify_documents.py'], 240000))
+    console.log(`NsJail protocol, isolation, Compute/Document Jobs and managed app-data checks passed: ${image}`)
   } finally {
     if (created) {
       // Cleanup must also succeed before an image can be published.
