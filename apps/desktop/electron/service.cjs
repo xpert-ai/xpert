@@ -11,7 +11,7 @@ const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
 const { AssistantActivity } = require('./assistant-activity.cjs')
-const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
+const { apiRootUrl, chatkitUrl, resolveConnectionUrls } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
   ...require('./connection/defaults.json'),
@@ -50,8 +50,9 @@ function webUrl(value) {
   return url.href.replace(/\/$/, '')
 }
 
-function parseConfig(value) {
+function parseConfig(value, connectionDefaults) {
   if (!value || typeof value !== 'object') throw new ClientError('Invalid connection settings.')
+  if (connectionDefaults) value = { ...value, ...resolveConnectionUrls(value, connectionDefaults) }
   const apiUrl = webUrl(value.apiUrl)
   const web = webUrl(value.webUrl)
   const frame = webUrl(value.frameUrl || chatkitUrl(web))
@@ -152,6 +153,11 @@ class DesktopService {
     this.certificateProbe = certificateProbe
     const saved = this.storage.read()
     const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig, locale: resolveSystemLocale(systemLanguages) })
+    this.connectionDefaults = Object.freeze({
+      apiUrl: defaults.apiUrl,
+      webUrl: defaults.webUrl,
+      frameUrl: defaults.frameUrl
+    })
     const savedConfig = saved?.config || defaults
     let validSavedConfig = Boolean(saved?.config)
     let appearance
@@ -184,7 +190,12 @@ class DesktopService {
   }
 
   snapshot() {
-    return { config: this.config, profile: this.profile, localLoginAvailable: this.canLoginLocal() }
+    return {
+      config: this.config,
+      connectionDefaults: this.connectionDefaults,
+      profile: this.profile,
+      localLoginAvailable: this.canLoginLocal()
+    }
   }
 
   canLoginLocal() {
@@ -208,7 +219,7 @@ class DesktopService {
   }
 
   configure(value) {
-    const next = parseConfig(value)
+    const next = parseConfig(value, this.connectionDefaults)
     const connectionChanged = connectionPolicyKey(next) !== connectionPolicyKey(this.config)
     if (connectionChanged) this.logout()
     this.config = next
@@ -219,6 +230,7 @@ class DesktopService {
   async checkConnectionCertificates(input) {
     if (!input || typeof input !== 'object') throw new ClientError('Invalid connection settings.')
     if (!this.certificateProbe) throw new ClientError('Unsupported operation.')
+    input = resolveConnectionUrls(input, this.connectionDefaults)
     const groups = new Map()
     const invalid = []
     for (const field of ['apiUrl', 'webUrl', 'frameUrl']) {

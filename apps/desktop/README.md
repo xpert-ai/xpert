@@ -166,7 +166,24 @@ and avoids duplicating `/api` for REST and ChatKit requests. Shell connections
 use the server root. Already saved connection settings take precedence over new
 build defaults, so upgrading does not change an existing account's server.
 
+Connection fields may be left blank: their placeholders are the effective defaults
+shipped in this build, and saving or checking certificates uses those same values.
+ChatKit follows the Web URL with `/chatkit` appended unless a custom ChatKit URL is
+entered. A separately hosted ChatKit default supplied at build time is used with
+the build's default Web URL.
+
 ### Customer builds
+
+The **Build Bosi Desktop apps** workflow reads these GitHub Actions repository
+variables under **Settings → Secrets and variables → Actions → Variables**:
+
+- `XPERT_DESKTOP_API_URL`
+- `XPERT_DESKTOP_WEB_URL`
+- `XPERT_DESKTOP_CHATKIT_URL` (optional; leave unset to append `/chatkit` to the Web URL)
+
+Unset or empty variables use the official defaults. Local builds also accept a JSON
+file as described below; an empty environment variable does not override that file.
+These values are embedded at build time for all installer platforms.
 
 Set the three URLs when building installers (macOS/Linux shell, from the repo root):
 

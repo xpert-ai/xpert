@@ -1,16 +1,20 @@
 import { t } from './i18n'
-import { chatkitUrl, followsWebUrl } from '../electron/connection/urls.mjs'
+import { followsWebUrl, resolveConnectionUrls, type ConnectionUrls } from '../electron/connection/urls.mjs'
 import { Input, Label, Switch } from '@xpert-ai/shadcn-ui'
 import type { ConnectionConfig } from './types'
 import { ConnectionCertificates } from './connection/ConnectionCertificates'
 
 export function ConnectionFields({
   draft,
+  defaults,
   onChange
 }: {
   draft: ConnectionConfig
+  defaults: ConnectionUrls
   onChange: (config: ConnectionConfig) => void
 }) {
+  const effective = resolveConnectionUrls(draft, defaults)
+  const framePlaceholder = resolveConnectionUrls({ ...draft, frameUrl: '' }, defaults).frameUrl
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -21,10 +25,9 @@ export function ConnectionFields({
           className="h-10 text-sm"
           id="api-url"
           type="url"
-          required
           value={draft.apiUrl}
           onChange={(e) => onChange({ ...draft, apiUrl: e.target.value })}
-          placeholder="https://api.xpertai.cn/api/"
+          placeholder={defaults.apiUrl}
         />
         <p className="text-[0.8125rem] leading-5 text-muted-foreground">
           {t('Enter the API URL, including /api. Existing service root URLs also work.')}
@@ -38,17 +41,17 @@ export function ConnectionFields({
           className="h-10 text-sm"
           id="web-url"
           type="url"
-          required
           value={draft.webUrl}
           onChange={(e) => {
             const webUrl = e.target.value
-            const followsWeb = followsWebUrl(draft.frameUrl, draft.webUrl)
+            const followsWeb = followsWebUrl(draft.frameUrl, effective.webUrl)
             onChange({
               ...draft,
               webUrl,
-              ...(followsWeb ? { frameUrl: chatkitUrl(webUrl) } : {})
+              ...(followsWeb ? { frameUrl: '' } : {})
             })
           }}
+          placeholder={defaults.webUrl}
         />
       </div>
       <div className="space-y-2">
@@ -59,15 +62,15 @@ export function ConnectionFields({
           className="h-10 text-sm"
           id="frame-url"
           type="url"
-          required
           value={draft.frameUrl}
           onChange={(e) => onChange({ ...draft, frameUrl: e.target.value })}
+          placeholder={framePlaceholder}
         />
         <p className="text-[0.8125rem] leading-5 text-muted-foreground">
           {t('Use the ChatKit page deployed by this service. Chats connect to this URL.')}
         </p>
       </div>
-      <ConnectionCertificates draft={draft} />
+      <ConnectionCertificates draft={{ ...draft, ...effective }} />
       <div className="space-y-2 border-t pt-6">
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="allow-untrusted-certificates" className="text-sm leading-5">

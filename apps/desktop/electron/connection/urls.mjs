@@ -4,7 +4,21 @@ export function apiRootUrl(apiUrl) {
 }
 
 export function chatkitUrl(webUrl) {
-  return `${webUrl.replace(/\/+$/, '')}/chatkit`
+  return `${webUrl.trim().replace(/\/+$/, '')}/chatkit`
+}
+
+// Blank fields use the same packaged defaults in forms, saves and TLS diagnostics.
+export function resolveConnectionUrls(value, defaults) {
+  const fallback = (url, defaultUrl) => (typeof url === 'string' && !url.trim() ? defaultUrl : (url ?? defaultUrl))
+  const webUrl = fallback(value.webUrl, defaults.webUrl)
+  const usesDefaultWeb =
+    typeof webUrl === 'string' && webUrl.trim().replace(/\/+$/, '') === defaults.webUrl.replace(/\/+$/, '')
+  const defaultFrame = usesDefaultWeb || typeof webUrl !== 'string' ? defaults.frameUrl : chatkitUrl(webUrl)
+  return {
+    apiUrl: fallback(value.apiUrl, defaults.apiUrl),
+    webUrl,
+    frameUrl: fallback(value.frameUrl, defaultFrame)
+  }
 }
 
 export function followsWebUrl(frameUrl, webUrl) {

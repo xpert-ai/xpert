@@ -47,7 +47,7 @@ test('customer file and environment overrides resolve deterministically and only
 
 test('invalid overrides fail the build instead of falling back to the official deployment', (t) => {
   for (const value of [
-    '',
+    ' ',
     'http://remote.example/api',
     'https://user:password@example.com/api',
     'https://example.com/api?token=secret'
@@ -58,6 +58,59 @@ test('invalid overrides fail the build instead of falling back to the official d
   assert.throws(() =>
     connectionDefaults({ XPERT_DESKTOP_CONNECTION_FILE: path.join(os.tmpdir(), 'missing-bosi-config.json') })
   )
+})
+
+test('unset workflow variables retain file or official defaults and derive ChatKit from Web', (t) => {
+  assert.deepEqual(
+    connectionDefaults({ XPERT_DESKTOP_API_URL: '', XPERT_DESKTOP_WEB_URL: '', XPERT_DESKTOP_CHATKIT_URL: '' }),
+    connectionDefaults({})
+  )
+  const file = configFile(t, { webUrl: 'https://customer.example/suite/' })
+  assert.equal(
+    connectionDefaults({
+      XPERT_DESKTOP_CONNECTION_FILE: file,
+      XPERT_DESKTOP_WEB_URL: '',
+      XPERT_DESKTOP_CHATKIT_URL: ''
+    }).frameUrl,
+    'https://customer.example/suite/chatkit'
+  )
+})
+
+test('blank settings save packaged defaults and keep authentication when the effective connection is unchanged', async () => {
+  const defaults = connectionDefaults({
+    XPERT_DESKTOP_API_URL: 'https://customer.example/api',
+    XPERT_DESKTOP_WEB_URL: 'https://customer.example/suite',
+    XPERT_DESKTOP_CHATKIT_URL: 'https://chat.customer.example/ui'
+  })
+  const probes = []
+  let saved
+  const service = new DesktopService({
+    defaultConfig: defaults,
+    storage: {
+      read: () => null,
+      write: (value) => {
+        saved = value
+      }
+    },
+    certificateProbe: async (origin) => {
+      probes.push(origin)
+      return { status: 'trusted' }
+    }
+  })
+  service.credentials = { token: 'existing-session' }
+  const draft = { ...service.config, apiUrl: '', webUrl: ' ', frameUrl: '' }
+  await service.checkConnectionCertificates(draft)
+  assert.deepEqual(probes, ['https://customer.example', 'https://chat.customer.example'])
+  const state = service.configure(draft)
+  for (const key of ['apiUrl', 'webUrl', 'frameUrl']) assert.equal(state.config[key], defaults[key])
+  assert.deepEqual(state.connectionDefaults, defaults)
+  assert.equal(saved.credentials.token, 'existing-session')
+
+  service.configure({ ...draft, webUrl: 'https://other.example/workspace/' })
+  assert.equal(service.config.frameUrl, 'https://other.example/workspace/chatkit')
+  assert.equal(service.credentials, null)
+  assert.throws(() => service.configure({ ...draft, apiUrl: 'invalid' }))
+  assert.throws(() => service.configure({ ...draft, apiUrl: 42 }))
 })
 
 test('saved connections, authentication and sidebar scopes survive an upgrade with different defaults', () => {
