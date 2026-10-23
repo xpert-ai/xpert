@@ -62,6 +62,8 @@ Catalog metadata and runtime adapters register separately and resolve within act
 
 Public SDK capabilities include `ProjectPipelinesRuntimeCapability`, `ProjectPipelineCatalogRuntimeCapability`, `ProjectPipelineConfigurationRuntimeCapability`, `ProjectPipelineCommandsRuntimeCapability`, Provider Actions, Evidence, Analytics and Portfolio. APIs and views share validation schemas. Actor and organization scope come from trusted host context, not client identity fields.
 
+External plugin contributions that fail schema validation are excluded from the catalog without stopping API startup. This includes validation in a `ProjectPipelineContributor` constructor and validation during discovery. The registry logs `PIPELINE_CONTRIBUTION_INVALID` with plugin/source scope and field paths, and exposes diagnostics through `getRegistrationFailures()`; input values are omitted. Templates still require explicit `projectTypes`: missing values are never treated as permission to run on all projects. Explicit registration, built-in defects and non-validation initialization errors remain strict.
+
 ## Domain integrations
 
 | Integration point        | BOM                                                                                  | Code Review                                                                           |
