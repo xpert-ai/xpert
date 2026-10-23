@@ -82,7 +82,41 @@ Queries support `projectId`, `search`, `kind`, `offset`, and `limit`. Administra
 
 ## Storage and deployment
 
-Apply `packages/server-ai/src/agent-plugin/migrations/20260921-agent-plugins.sql` and point `XPERT_AGENT_PLUGIN_PATH` to a persistent directory shared by all API and execution nodes. The default `storage/agent-plugins` is suitable for local development on a single node. Back up the database and package directory together; do not edit package directories after import.
+Apply `packages/server-ai/src/agent-plugin/migrations/20260921-agent-plugins.sql`. Package storage defaults to `path.join(getConfig().assetOptions.dataPath, 'agent-plugins')`, reusing the platform's data directory. Docker/production config sets `dataPath` to `/var/lib/xpert/data/`; local source development uses the project's `tmp/data/` directory. All API and execution nodes must share the same persistent package storage. Back up the database and package directory together; do not edit package directories after import.
+
+Both production Compose templates use the default `/var/lib/xpert/data/agent-plugins` without configuring `XPERT_AGENT_PLUGIN_PATH`. This subdirectory reuses the existing `./volumes/api/data:/var/lib/xpert/data` mount, also shared with schema-sync; no additional Agent Plugin mount or host-path variable is needed. Create the `agent-plugins` subdirectory with access for the API runtime UID/GID 1000 before running preflight. On one Docker host all replicas use the same data directory; across hosts, the data directory must use an actual shared filesystem (for example NFS/RWX storage). Identically named local directories or local volumes on different hosts are not shared storage. Execution workers consuming Agent Plugins must use the same package directory and storage.
+
+Existing package records contain absolute `rootPath` values. Adopting the new data-directory default changes where new imports are stored; it does not relocate existing packages. The existing `XPERT_AGENT_PLUGIN_PATH` override remains supported for compatibility, but standard deployments do not need it. The shared configuration loader maps it to the typed `assetOptions.agentPluginPath` field; storage operations read that field through `getConfig()` and never access `process.env` directly. Before changing an existing deployment, stop imports/updates and drain package consumers in an authorized maintenance window, back up the database **and package files from every old replica**, then merge verified files into `data/agent-plugins`, preserving each tenant/organization/package suffix. Reject conflicting files and compare every destination digest with the database. After verification, coordinate the package `rootPath` updates with the rollout of the new default, keeping IDs, digests and bindings unchanged; retain the old files and database backup for rollback. Export the complete inventory again and verify all new replicas before restoring traffic. Never recreate the last container containing an unbacked-up package. Neither these templates nor the checker migrates files or changes database records automatically, and preflight rejects inventory paths outside the configured storage root.
+
+The operator checker requires a checkout with its development dependencies installed through Corepack. It never starts, stops or recreates application containers. Export the complete package inventory using an authorized read-only database connection; protect this file because paths identify tenant/organization storage:
+
+```sql
+SELECT COALESCE(json_agg(json_build_object('rootPath', "rootPath", 'digest', digest)
+  ORDER BY "rootPath"), '[]'::json) FROM agent_plugin_package;
+```
+
+Before admitting traffic to candidate replicas, run from the repository root (use the actual container names, complete replica count and absolute inventory path):
+
+```sh
+node tools/scripts/check-agent-plugin-storage.mjs \
+  --container candidate-api-1 --container candidate-api-2 --container candidate-api-3 \
+  --expected-replicas 3 --inventory /secure/package-inventory.json \
+  --prepare-recreation /secure/storage-recreation.json
+```
+
+The checker validates the effective application storage path for the standard Docker/production bootstrap (or an existing explicit path override); it refuses to guess development paths from a container working directory. It rejects ephemeral, read-only and nested mounts, reads every recorded package with the same strict digest implementation as the API, and makes every replica write a unique probe that every replica must read. `docker exec` uses each container's configured runtime user. Match that user to the actual API/worker user; do not use a privileged container to stand in for a non-root application. A normal check (omit `--prepare-recreation`) removes its probes immediately. Preparation retains only its unique probe directories and creates a protected receipt without overwriting an existing file.
+
+After a separately authorized recreation, run the same command with `--verify-recreation /secure/storage-recreation.json`. Verification requires all container IDs to have changed, the same inventory, all old probes to remain readable, and every package digest to match; successful verification removes the retained probes. A failed verification retains the old probes for diagnosis and returns a nonzero exit status. Block rollout on a failed preflight or recreation check. The CLI targets one Docker daemon; multi-host orchestrators must perform the equivalent all-writer/all-reader verification across every host before admission. These storage checks are an operator release gate, not an API-wide readiness dependency: one broken package blocks its dependent operation without taking unrelated APIs out of service.
+
+Runtime responses distinguish `AGENT_PLUGIN_STORAGE_MISSING` (503), `AGENT_PLUGIN_STORAGE_UNREADABLE` (503), and `AGENT_PLUGIN_STORAGE_CORRUPT` (409). Public messages are brief; package path, expected/actual digest, filesystem error and instance identity stay in backend logs. Explicit dependency version requirements and exact installation snapshot checks remain enforced separately. After restoring verified package files, refresh the installation settings; this reloads failed inputs without starting an installation automatically.
+
+Regression checks:
+
+```sh
+node --test tools/scripts/tests/agent-plugin-storage.test.mjs
+# Disposable containers/volumes only; includes real non-root permissions and complete container recreation:
+XPERT_STORAGE_DOCKER_TEST=1 node --test tools/scripts/tests/agent-plugin-storage.test.mjs
+```
 
 Release order: backend and database migrations → SDK with resource APIs → ChatKit types/UI/Web Component → Xpert hosts. Preserve compatibility with older clients that have not enabled the entry point. After publishing the SDK, update ChatKit to that published version and refresh the lockfile. After publishing ChatKit, update the corresponding Xpert dependencies and lockfile. The current host uses published ChatKit Types/UI/Web Component 0.6.0, Angular 0.4.4, and Web Shared 0.4.5, with SDK 0.3.0 also pinned in the lockfile; local source linking is not required. Production deployment still requires database migrations and shared package storage configuration.
 

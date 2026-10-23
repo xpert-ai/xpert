@@ -93,6 +93,7 @@ export type {
   TemplateAgentSource,
   RuntimeResourcesSelection,
   AgentPluginDiagnostic,
+  AgentPluginStorageErrorCode,
   RuntimeResourceCatalogItem,
   RuntimeResourceView,
   RuntimeResourceCatalog,

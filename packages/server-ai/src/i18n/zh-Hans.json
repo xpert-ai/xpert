@@ -1123,6 +1123,9 @@
         "TemplateRequirementsUnmet": "模板必需能力或依赖尚未就绪，请查看安装检查。",
         "TemplateFileScopeConflict": "文件隔离策略必须与模板声明一致。",
         "TemplateDependencyBusy": "模板依赖正在由另一个安装更新，请稍后重试。",
+        "AgentPluginStorageMissing": "插件文件暂不可用，请联系管理员。",
+        "AgentPluginStorageUnreadable": "插件文件无法读取，请联系管理员。",
+        "AgentPluginStorageCorrupt": "插件文件校验失败，请联系管理员修复。",
         "TemplateDependencyChanged": "此助手绑定的插件或资源版本已变化，请恢复绑定版本后再运行。",
         "AssistantDependency": {
             "plugin-unavailable": "当前范围内未加载必需插件 {{dependency}}，请恢复该插件后运行。",

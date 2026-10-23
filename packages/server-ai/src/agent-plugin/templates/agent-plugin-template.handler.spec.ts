@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { AgentPluginTemplateService } from './agent-plugin-template.handler'
@@ -335,6 +335,34 @@ describe('Agent Plugin Assistant template adapter', () => {
         await writeFile(join(root, 'skills/hello/SKILL.md'), 'modified')
         await expect(service.templates('agent-plugin/example/desk')).rejects.toThrow()
         expect(await service.templates()).toEqual([])
+    })
+    it('isolates a missing package from healthy template requests and the bulk catalog', async () => {
+        const healthyRoot = await mkdtemp(join(tmpdir(), 'healthy-template-'))
+        try {
+            await cp(root, healthyRoot, { recursive: true })
+            const healthy = {
+                ...pkg,
+                id: '22222222-2222-4222-8222-222222222222',
+                rootPath: healthyRoot,
+                descriptor: { ...pkg.descriptor, name: 'healthy' }
+            }
+            await rm(root, { recursive: true })
+            packages.installedCatalog.mockResolvedValue([
+                { pkg, binding: importedPluginBinding(pkg) },
+                { pkg: healthy, binding: importedPluginBinding(healthy) }
+            ])
+            expect((await service.templates()).map((item) => item.id)).toEqual(['agent-plugin/healthy/desk'])
+            expect(await service.templates('agent-plugin/healthy/desk')).toHaveLength(1)
+        } finally {
+            await rm(healthyRoot, { recursive: true, force: true })
+        }
+    })
+    it('reports missing replica files as storage missing, never dependency version drift', async () => {
+        expect(await service.templates('agent-plugin/example/desk')).toHaveLength(1)
+        await rm(root, { recursive: true })
+        await expect(service.templates('agent-plugin/example/desk')).rejects.toMatchObject({
+            response: { code: 'AGENT_PLUGIN_STORAGE_MISSING', statusCode: 503 }
+        })
     })
     it('omits disabled packages and never exposes another template for an unknown id', async () => {
         expect(await service.templates('agent-plugin/example/missing')).toEqual([])

@@ -1123,6 +1123,9 @@
         "TemplateRequirementsUnmet": "Required template capabilities or dependencies are not ready. Review the installation checks.",
         "TemplateFileScopeConflict": "File isolation must match the template declaration.",
         "TemplateDependencyBusy": "Template dependencies are being updated by another installation. Try again shortly.",
+        "AgentPluginStorageMissing": "Plugin files are unavailable. Contact an administrator.",
+        "AgentPluginStorageUnreadable": "Plugin files cannot be read. Contact an administrator.",
+        "AgentPluginStorageCorrupt": "Plugin files failed verification. Contact an administrator.",
         "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running.",
         "AssistantDependency": {
             "plugin-unavailable": "Required plugin {{dependency}} is not loaded in the current scope. Restore the plugin before running this Assistant.",

@@ -256,3 +256,9 @@ export interface InstalledAgentPlugin extends Omit<WorkspaceAgentPlugin, 'status
   scope: 'tenant' | 'organization'
   status: 'available' | 'configuration_required' | 'disabled'
 }
+
+/** Storage faults are distinct from dependency compatibility and installation snapshot changes. */
+export type AgentPluginStorageErrorCode =
+  | 'AGENT_PLUGIN_STORAGE_MISSING'
+  | 'AGENT_PLUGIN_STORAGE_UNREADABLE'
+  | 'AGENT_PLUGIN_STORAGE_CORRUPT'

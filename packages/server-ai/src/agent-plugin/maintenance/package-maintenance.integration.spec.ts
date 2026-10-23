@@ -12,6 +12,7 @@ jest.mock('@xpert-ai/server-core', () => ({ TenantSetting: class {} }))
 import { DataSource, EntitySchema } from 'typeorm'
 import { TenantSetting } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { getConfig, resetConfig, setConfig } from '@xpert-ai/server-config'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { ModuleRef } from '@nestjs/core'
 import { randomUUID } from 'node:crypto'
@@ -58,12 +59,12 @@ suite('Agent plugin maintenance with PostgreSQL and package files', () => {
     let cleanup: AgentPluginCleanupService
     let root: string
     let source: string
-    const previousPath = process.env.XPERT_AGENT_PLUGIN_PATH
+    const previousConfig = getConfig()
     beforeAll(async () => {
         root = await realpath(await mkdtemp(join(tmpdir(), 'agent-plugin-maintenance-')))
         source = join(root, 'source')
         await mkdir(source)
-        process.env.XPERT_AGENT_PLUGIN_PATH = join(root, 'packages')
+        setConfig({ assetOptions: { ...previousConfig.assetOptions, agentPluginPath: join(root, 'packages') } })
         const bootstrap = new DataSource({ type: 'postgres', url: databaseUrl })
         await bootstrap.initialize()
         await bootstrap.query(`CREATE SCHEMA "${schema}"`)
@@ -148,8 +149,8 @@ suite('Agent plugin maintenance with PostgreSQL and package files', () => {
             await database.destroy()
         }
         if (root) await rm(root, { recursive: true, force: true })
-        if (previousPath === undefined) delete process.env.XPERT_AGENT_PLUGIN_PATH
-        else process.env.XPERT_AGENT_PLUGIN_PATH = previousPath
+        resetConfig()
+        setConfig(previousConfig)
     })
     async function importVersion(version: string, activate = false) {
         await writeFile(

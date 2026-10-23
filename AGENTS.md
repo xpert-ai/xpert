@@ -27,6 +27,13 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
 - Ensure clearer boundaries of responsibilities.
 
+### Environment variables and configuration
+
+- Manage environment variables in `@xpert-ai/server-config` (`packages/config`): read and normalize them at the configuration/bootstrap boundary and map them to typed configuration fields. Backend business services and helpers must use `import { getConfig } from '@xpert-ai/server-config'` and read those fields; do not read or write `process.env` or load `.env` files directly in business code.
+- Add new settings to `IPluginConfig` or its nested interfaces and wire their environment mapping in the shared configuration loader. Keep development and production behavior consistent with their existing configuration sources; do not maintain a second environment parser in a consumer.
+- Derive storage subdirectories from the existing `getConfig().assetOptions.dataPath`, rather than duplicating `/var/lib/xpert/data` or adding unnecessary deployment variables. Read effective configuration when the operation runs so bootstrap overrides through `setConfig()` are respected.
+- Business tests should mock `getConfig()` or use `setConfig()` with configuration restored afterward. Restrict environment mutation to configuration-boundary tests and test-runner setup; verify environment-to-config mapping separately from business behavior.
+
 ### Subfeature organization
 
 - A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.

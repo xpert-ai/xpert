@@ -210,7 +210,7 @@
     {{ 'XP.Installation.Back' | translate: { Default: 'Back' } }}
   </button>
   @if (!state().operation && !state().uncertain) {
-    <button z-button zType="outline" [zDisabled]="state().busy" (click)="revision.set(revision() + 1)">
+    <button z-button zType="outline" [zDisabled]="state().busy || loading()" (click)="refreshSettings()">
       {{ 'XP.Installation.RefreshSettings' | translate: { Default: 'Refresh settings' } }}
     </button>
   }

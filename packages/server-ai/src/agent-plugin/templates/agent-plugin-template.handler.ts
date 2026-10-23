@@ -1,14 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { stringify } from 'yaml'
 import { t } from 'i18next'
 import { resolveI18nText, XpertTypeEnum, type TXpertTemplate } from '@xpert-ai/contracts'
 import { AgentPluginInstallationsService, pluginRuntimeComponents } from '../agent-plugin-installations.service'
 import { AgentPluginPackage } from '../agent-plugin.entity'
-import { containedPath } from '../agent-plugin-parser'
-import { portablePackageDigest } from '../agent-plugin-source'
+import { assertAgentPluginStorage, readVerifiedAgentPluginFile } from '../agent-plugin-storage-error'
 import { normalizeAssistantTemplateDefinition } from '../../xpert-template/definition/normalize-assistant-template'
 import {
     AgentPluginTemplatesCommand,
@@ -23,7 +21,7 @@ export class AgentPluginTemplateService {
     constructor(private readonly installations: AgentPluginInstallationsService) {}
 
     private async verify(pkg: AgentPluginPackage) {
-        if ((await portablePackageDigest(pkg.rootPath)) !== pkg.digest) this.changed()
+        await assertAgentPluginStorage(pkg)
     }
 
     async templates(id?: string, language?: string, summaryOnly = false): Promise<TXpertTemplate[]> {
@@ -66,7 +64,7 @@ export class AgentPluginTemplateService {
                 const templateId = agentPluginTemplateId(pkg.descriptor.name, entry.key)
                 if (id && templateId !== id) continue
                 const normalized = normalizeAssistantTemplateDefinition({
-                    export_data: await readFile(await containedPath(pkg.rootPath, entry.path), 'utf8')
+                    export_data: await readVerifiedAgentPluginFile(pkg, entry.path)
                 })
                 const team = normalized.definition.team
                 snapshot[entry.key] = {

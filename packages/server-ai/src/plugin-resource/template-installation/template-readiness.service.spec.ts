@@ -27,6 +27,7 @@ import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { TemplateReadinessService, AssertAssistantTemplateDependenciesHandler } from './template-readiness.service'
 import { AssertAssistantTemplateDependenciesCommand } from './template-readiness.command'
 import { AssertAgentPluginTemplateDependencyCommand } from '../../agent-plugin/templates/agent-plugin-template.command'
+import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { InstallationSourceChangedError } from './template-installation-source'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
@@ -330,6 +331,30 @@ describe('scoped template dependency preparation', () => {
         await expect(h.service.inspectRuntimeDependencies(locks)).resolves.toMatchObject({
             updates: [{ changedComponents: [{ type: 'skill', key: 'selected' }] }]
         })
+        await h.module.close()
+    })
+
+    it.each([
+        'AGENT_PLUGIN_STORAGE_MISSING',
+        'AGENT_PLUGIN_STORAGE_UNREADABLE',
+        'AGENT_PLUGIN_STORAGE_CORRUPT'
+    ] as const)('preserves %s through readiness, installation locks and runtime checks', async (code) => {
+        const h = await harness()
+        const failure = new AgentPluginStorageException(code)
+        h.module.get(CommandBus).execute = jest.fn().mockRejectedValue(failure)
+        const source = {
+            kind: 'agent-plugin' as const,
+            name: 'example',
+            digest: 'digest',
+            bindingId: 'binding',
+            bindingVersion: 'binding-version'
+        }
+        const locks: TemplateDependencyLock[] = [{ pluginName: 'example', version: 'digest', source, components: [] }]
+        await expect(
+            h.service.inspect({ ...base, dependencies: { skills: [{ componentKey: 'hello', source }] } })
+        ).rejects.toBe(failure)
+        await expect(h.service.assertDependencies(locks)).rejects.toBe(failure)
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toBe(failure)
         await h.module.close()
     })
 

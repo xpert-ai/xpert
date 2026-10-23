@@ -27,6 +27,7 @@ import {
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
+import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
 import {
     ResolveAgentPluginTemplateDependencyCommand,
@@ -225,7 +226,8 @@ export class TemplateReadinessService {
                                     existing.components.push(component)
                         } else readiness.dependencies.push(resolved.lock)
                         readiness.checks.push(requirementCheck('resource', `${kind}:${selector.componentKey}`, 'ready'))
-                    } catch {
+                    } catch (error) {
+                        if (error instanceof AgentPluginStorageException) throw error
                         readiness.checks.push(
                             requirementCheck('resource', `${kind}:${selector.componentKey}`, 'missing')
                         )
@@ -363,7 +365,8 @@ export class TemplateReadinessService {
                     if (current.length !== 1 || current[0].component.definitionHash !== component.hash)
                         throw new Error('Component changed')
                 }
-            } catch {
+            } catch (error) {
+                if (error instanceof AgentPluginStorageException) throw error
                 throw new BadRequestException(t('server-ai:Error.TemplateDependencyChanged'))
             }
         }
