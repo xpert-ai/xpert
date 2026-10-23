@@ -1,3 +1,4 @@
+import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { threadActivityStream } from './thread-activity/thread-activity-stream'
 import { t } from 'i18next'
@@ -131,6 +132,7 @@ export class ThreadsController {
         return this.queryBus.execute(new SearchThreadsQuery(req))
     }
 
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id')
     async getThread(@Param('thread_id') thread_id: string) {
         return await this.queryBus.execute(new FindThreadQuery(thread_id))
@@ -138,6 +140,7 @@ export class ThreadsController {
 
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/stream')
     @Sse()
     async streamThreadActivity(@Res() res: Response, @Param('thread_id') threadId: string) {
@@ -373,6 +376,7 @@ export class ThreadsController {
      */
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/stream')
     @Sse()
     async joinRunStream(
@@ -415,6 +419,7 @@ export class ThreadsController {
         return stream
     }
 
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id')
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         await this.ensureThreadAccess(thread_id)

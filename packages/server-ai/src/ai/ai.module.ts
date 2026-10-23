@@ -1,3 +1,4 @@
+import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadRecoveryController } from './thread-recovery/thread-recovery.controller'
 import { AssistantTemplateSetupRuntimeController } from './assistant-template-setup.controller'
 import { GROUP_CONTROLLERS } from './groups'
@@ -146,6 +147,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         GroupScopeGuard,
         GroupWorkbenchGuard,
         ThreadActivityService,
+        ThreadReadDiagnosticsInterceptor,
         VoiceSessionService,
         VoiceTaskService,
         VoiceTaskProcessor,
