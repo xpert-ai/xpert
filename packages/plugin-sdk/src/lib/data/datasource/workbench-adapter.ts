@@ -1,8 +1,10 @@
 /**
  * Why this exists: existing SQL Workbench plugins share this SDK implementation.
- * Metadata and transaction SQL still couple it to PostgreSQL/MySQL/Doris.
- * TODO: delegate dialect behavior to plugin-owned strategies behind DatabaseWorkbenchAdapter.
- * Keep host authorization/execution limits and generic Dataset/Binding independent of dialects.
+ * Validation, quoting, pagination, metadata and transaction SQL couple it to PostgreSQL/MySQL/Doris.
+ * TODO: move those behaviors into plugin-owned implementations of DatabaseWorkbenchAdapter;
+ * retain SDK interfaces/result types and dialect-independent execution helpers for reuse.
+ * Migrate existing callers with equivalent read-only/security tests before removing legacy guards.
+ * Host authorization/execution limits and generic Dataset/Binding must remain independent of dialects.
  */
 import type {
   DatabaseCapabilities,

@@ -1,9 +1,14 @@
+/**
+ * Why this exists: legacy Workbench adapters share this mixed-dialect policy for compatibility.
+ * TODO: move statement classification, function policy and identifier quoting into database plugins;
+ * keep SDK contracts and genuinely dialect-independent helpers separate from those policies.
+ * Retain these guards until each caller has equivalent validation and security regression coverage.
+ * Invariants: lex comments/literals, fail closed on unknown SQL, and disable driver multi-statements.
+ * Validation is defense in depth; database permissions remain an authority boundary.
+ */
 import { lexWorkbenchSql } from './workbench-sql-lexer'
 import { sqlDeclarationPositions } from './workbench-sql-syntax'
-/** Invariants: comments/literals are lexed, never stripped with a keyword regex.
- * This guard is defense in depth; the database principal remains an authority boundary.
- * Unrecognized statements fail closed. Driver multi-statements stay disabled.
- */
+
 export interface SqlStatement {
   sql: string
   words: string[]
@@ -41,9 +46,11 @@ const SAFE_FUNCTIONS = new Set(
     ' '
   )
 )
-// FROM/JOIN can introduce a parenthesized subquery, not a function call.
+// SQL keywords introduce grouped expressions/subqueries, not function calls.
+// Their contents are still scanned for unsafe or unknown calls (including inside CASE).
+// Compatibility heuristic, not a SQL grammar: migrate with plugin-owned dialect validation.
 const SQL_PARENS = new Set(
-  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH FROM JOIN AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN'.split(
+  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH FROM JOIN AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN WHERE HAVING CASE WHEN THEN ELSE'.split(
     ' '
   )
 )
