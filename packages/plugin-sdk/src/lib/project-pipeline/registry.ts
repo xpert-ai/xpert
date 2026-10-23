@@ -1,4 +1,5 @@
-import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
+import { applyDecorators, Injectable, Logger, SetMetadata } from '@nestjs/common'
+import { z } from 'zod/v3'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import {
   projectPipelineContributionSchema,
@@ -15,20 +16,39 @@ import {
   getTenantGlobalScopeKey
 } from '../types'
 import type { ProjectAccessActor } from '../runtime/capabilities/project-access'
+import {
+  isolatePipelineContribution,
+  pipelineContributionIssues,
+  UnavailablePipelineContribution,
+  type PipelineContributionIssue
+} from './contribution-failure'
 
 // Keep the SDK import path stable while the strict Contracts build owns schema declarations.
 export { projectPipelineContributionSchema, type ProjectPipelineContribution } from '@xpert-ai/contracts'
 
 export const PROJECT_PIPELINE_CONTRIBUTION = 'PROJECT_PIPELINE_CONTRIBUTION'
-export const ProjectPipelineContributor = (key: string) =>
-  applyDecorators(
-    SetMetadata(PROJECT_PIPELINE_CONTRIBUTION, key),
-    SetMetadata(STRATEGY_META_KEY, PROJECT_PIPELINE_CONTRIBUTION)
-  )
+export const ProjectPipelineContributor =
+  (key: string): ClassDecorator =>
+  (target) => {
+    applyDecorators(
+      SetMetadata(PROJECT_PIPELINE_CONTRIBUTION, key),
+      SetMetadata(STRATEGY_META_KEY, PROJECT_PIPELINE_CONTRIBUTION)
+    )(target)
+    return isolatePipelineContribution(target)
+  }
+
+export interface ProjectPipelineContributionFailure {
+  key: string
+  source: Extract<StrategySource, { kind: 'plugin' }>
+  code: 'PIPELINE_CONTRIBUTION_INVALID'
+  issues: PipelineContributionIssue[]
+}
 
 @Injectable()
 export class ProjectPipelineContributionRegistry extends BaseStrategyRegistry<ProjectPipelineContribution> {
   private readonly parsedContributions = new WeakMap<object, Map<string, ProjectPipelineContribution>>()
+  private readonly failures = new Map<string, ProjectPipelineContributionFailure>()
+  private readonly failureLogger = new Logger(ProjectPipelineContributionRegistry.name)
   constructor(discovery: DiscoveryService, reflector: Reflector) {
     super(PROJECT_PIPELINE_CONTRIBUTION, discovery, reflector)
   }
@@ -37,11 +57,49 @@ export class ProjectPipelineContributionRegistry extends BaseStrategyRegistry<Pr
     const target = resolveStrategyMetadataTarget(instance)
     const key = target ? this.reflector.get<string>(PROJECT_PIPELINE_CONTRIBUTION, target) : undefined
     if (!key) return
-    const contribution = projectPipelineContributionSchema.parse(instance)
-    if (key !== contribution.key) throw new Error('PIPELINE_CONTRIBUTION_KEY_MISMATCH')
-    // Parsing above validates the original object's public fields before preserving loader provenance.
-    const original = instance as ProjectPipelineContribution
-    this.registerParsed(key, original, contribution, this.getSource(original))
+    const source = this.getSource(instance as ProjectPipelineContribution)
+    try {
+      if (instance instanceof UnavailablePipelineContribution) {
+        this.rejectContribution(key, source, instance.issues)
+        return
+      }
+      const contribution = projectPipelineContributionSchema.parse(instance)
+      if (key !== contribution.key) throw new Error('PIPELINE_CONTRIBUTION_KEY_MISMATCH')
+      // Parsing validates public fields before preserving loader provenance.
+      this.registerParsed(key, instance as ProjectPipelineContribution, contribution, source)
+      this.failures.delete(this.failureIdentity(key, source))
+    } catch (error) {
+      if (source.kind !== 'plugin' || !(error instanceof z.ZodError)) throw error
+      this.rejectContribution(key, source, pipelineContributionIssues(error))
+    }
+  }
+
+  getRegistrationFailures(): ProjectPipelineContributionFailure[] {
+    return structuredClone([...this.failures.values()])
+  }
+
+  override remove(scopeKey: string, pluginName: string) {
+    super.remove(scopeKey, pluginName)
+    for (const [identity, failure] of this.failures) {
+      if (failure.source.scopeKey === scopeKey && failure.source.pluginName === pluginName)
+        this.failures.delete(identity)
+    }
+  }
+
+  private failureIdentity(key: string, source: StrategySource) {
+    return JSON.stringify([source.scopeKey, source.kind === 'plugin' ? source.pluginName : null, key])
+  }
+
+  private rejectContribution(key: string, source: StrategySource, issues: PipelineContributionIssue[]) {
+    if (source.kind !== 'plugin') throw new Error('PIPELINE_CONTRIBUTION_INVALID')
+    const previous = this.strategies.get(source.scopeKey)?.get(key)
+    if (previous) {
+      const owner = this.getSource(previous)
+      if (owner.kind === 'plugin' && owner.pluginName === source.pluginName) this.unregister(key, source, previous)
+    }
+    const failure: ProjectPipelineContributionFailure = { key, source, code: 'PIPELINE_CONTRIBUTION_INVALID', issues }
+    this.failures.set(this.failureIdentity(key, source), failure)
+    this.failureLogger.error(failure)
   }
 
   override register(key: string, contribution: ProjectPipelineContribution, source: StrategySource) {
