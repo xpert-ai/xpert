@@ -747,7 +747,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     {
                         execution: sourceExecution,
                         requestedCheckpointId: request.checkpointId,
-                        graphRevision: xpert.graph ? threadGraphRevision(xpert.graph) : undefined
+                        graphRevision: xpert.graph
+                            ? threadGraphRevision(xpert.graph, sourceExecution.metadata?.recovery?.graphRevision, xpert)
+                            : undefined
                     }
                 )
                 userMessage = conversation.messages.find((message) => message.id === retryMessage.parentId)

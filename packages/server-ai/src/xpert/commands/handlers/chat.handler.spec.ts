@@ -1,6 +1,7 @@
+import { threadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
-    threadGraphRevision: () => 'graph-v1',
+    threadGraphRevision: jest.requireActual('../../../chat-conversation/thread-graph-revision').threadGraphRevision,
     threadControlConflict: (_key: string, message: string) =>
         new (jest.requireActual('@nestjs/common').ConflictException)(message)
 }))
@@ -30,6 +31,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     type TChatRequest,
+    type IXpert,
     XpertAgentExecutionStatusEnum,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
@@ -73,6 +75,7 @@ describe('XpertChatHandler', () => {
 
     const xpert = {
         id: 'xpert-1',
+        graph: { nodes: [], connections: [] },
         workspaceId: 'workspace-1',
         agent: {
             key: 'agent-1'
@@ -3419,6 +3422,7 @@ describe('XpertChatHandler', () => {
                     threadId: 'thread-1',
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-2',
+                    metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-2', xpert),
                     inputs: {
                         input: 'Original prompt'
                     }
@@ -3481,7 +3485,7 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.checkpointId).toBe('checkpoint-input-1')
     })
 
-    it('validates an explicit retry checkpoint against the execution input ancestry', async () => {
+    it('validates an explicit retry checkpoint against the saved execution input', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -3555,6 +3559,7 @@ describe('XpertChatHandler', () => {
                     threadId: 'thread-1',
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-2',
+                    metadata: retryMetadata('checkpoint-history-1', 'checkpoint-loop-2', xpert),
                     inputs: {
                         input: 'Original prompt'
                     }
@@ -3695,6 +3700,7 @@ describe('XpertChatHandler', () => {
                         threadId: 'thread-1',
                         checkpointNs: '',
                         checkpointId: 'checkpoint-loop-1',
+                        metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-1', xpert),
                         inputs: {
                             input: 'Original prompt 1'
                         }
@@ -3706,6 +3712,7 @@ describe('XpertChatHandler', () => {
                         threadId: 'thread-1',
                         checkpointNs: '',
                         checkpointId: 'checkpoint-loop-2',
+                        metadata: retryMetadata('checkpoint-input-2', 'checkpoint-loop-2', xpert),
                         inputs: {
                             input: 'Original prompt 2'
                         }
@@ -3837,6 +3844,7 @@ describe('XpertChatHandler', () => {
                     threadId: 'thread-1',
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-1',
+                    metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-1', xpert),
                     inputs: {
                         temperature: 'low'
                     }
@@ -3959,6 +3967,7 @@ describe('XpertChatHandler', () => {
                     threadId: 'thread-1',
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-1',
+                    metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-1', xpert),
                     inputs: {
                         human: {
                             input: '',
@@ -4010,7 +4019,7 @@ describe('XpertChatHandler', () => {
         })
     })
 
-    it('throws when retry checkpoint ancestry does not contain an input checkpoint', async () => {
+    it('throws when the saved retry input checkpoint is unavailable', async () => {
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof CreateMemoryStoreCommand) {
                 return null
@@ -4051,6 +4060,7 @@ describe('XpertChatHandler', () => {
                     threadId: 'thread-1',
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-2',
+                    metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-2', xpert),
                     inputs: {
                         input: 'Original prompt'
                     }
@@ -4116,5 +4126,16 @@ function createCheckpointTuple(checkpointId: string, source: 'input' | 'loop', p
               }
             : undefined,
         pendingWrites: []
+    }
+}
+
+function retryMetadata(inputId: string, latestId: string, team: Partial<IXpert>) {
+    return {
+        recovery: {
+            version: 1 as const,
+            graphRevision: threadGraphRevision({ nodes: [], connections: [] }, undefined, team),
+            input: { threadId: 'thread-1', checkpointNs: '', checkpointId: inputId },
+            latest: { threadId: 'thread-1', checkpointNs: '', checkpointId: latestId }
+        }
     }
 }

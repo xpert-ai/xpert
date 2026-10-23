@@ -1,3 +1,4 @@
+import { legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { recoveryConflict } from '../../../chat-conversation/recovery/recovery-error'
 import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
 import { assertInvocationResume } from '../../../agent-invocation/invocation-resume'
@@ -477,7 +478,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 {
                     execution: referencedExecution,
                     requestedCheckpointId: chatRequest.checkpointId,
-                    graphRevision: threadGraphRevision(workflow.graph)
+                    graphRevision: threadGraphRevision(
+                        workflow.graph,
+                        referencedExecution.metadata?.recovery?.graphRevision,
+                        workflow.agent?.team
+                    )
                 }
             )
         }
@@ -596,7 +601,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 threadId,
                 command.resumePaused.executionId,
                 command.resumePaused.pauseId,
-                threadGraphRevision(workflow.graph)
+                threadGraphRevision(workflow.graph, undefined, workflow.agent?.team),
+                legacyThreadGraphRevision(workflow.graph)
             )
         } else if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)

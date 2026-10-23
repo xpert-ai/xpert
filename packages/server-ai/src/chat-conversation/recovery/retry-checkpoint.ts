@@ -6,6 +6,14 @@ import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries
 import { readExecutionRecovery } from './execution-recovery.schema'
 import { recoveryConflict } from './recovery-error'
 
+/**
+ * 解析并校验本次执行所属的根图输入检查点，供显式重试使用。
+ * recovery.input 是唯一可信边界，不能用传入的 checkpointId 或线程最新状态替代；
+ * 客户端指定的 requestedCheckpointId 也必须与该边界一致。
+ * 调用方须按保存的指纹格式计算当前流程的 graphRevision，不匹配时拒绝恢复。
+ * 旧记录缺少恢复元数据时无法证明兼容性，安全拒绝，不回溯猜测检查点。
+ * 读取后再次核对线程、根命名空间和 source=input；此函数仅校验，不执行工具。
+ */
 export async function resolveRetryInputCheckpointId(
     queryBus: QueryBus,
     threadId: string | null | undefined,
@@ -15,47 +23,30 @@ export async function resolveRetryInputCheckpointId(
 ): Promise<string> {
     const unavailable = () => recoveryConflict('conversation_recovery_unavailable', options.execution?.error)
     const recovery = readExecutionRecovery(options.execution?.metadata?.recovery)
-    if (options.execution?.metadata?.recovery && !recovery) throw unavailable()
-    if (recovery) {
-        if (!recovery.input || recovery.input.threadId !== threadId || recovery.input.checkpointNs !== '')
-            throw unavailable()
-        if (options.graphRevision !== recovery.graphRevision)
-            throw recoveryConflict('conversation_graph_changed', options.execution?.error)
-        checkpointId = recovery.input.checkpointId
-        checkpointNs = recovery.input.checkpointNs
-    }
-    if (!threadId || !checkpointId || (checkpointNs ?? '') !== '' || options.execution?.parentId) throw unavailable()
-    const visited = new Set<string>()
-    let currentCheckpointId = checkpointId
-    while (currentCheckpointId) {
-        if (visited.has(currentCheckpointId) || visited.size >= 10000) throw unavailable()
-        visited.add(currentCheckpointId)
-        const tuple = await queryBus.execute<CopilotCheckpointGetTupleQuery, CheckpointTuple | null>(
-            new CopilotCheckpointGetTupleQuery({
-                thread_id: threadId,
-                checkpoint_ns: checkpointNs ?? '',
-                checkpoint_id: currentCheckpointId
-            })
-        )
-        if (!tuple) break
-        const ref = tuple.config?.configurable
-        if (
-            ref?.thread_id !== threadId ||
-            (ref.checkpoint_ns ?? '') !== (checkpointNs ?? '') ||
-            ref.checkpoint_id !== currentCheckpointId
-        )
-            throw unavailable()
-        if (tuple.metadata?.source === 'input') {
-            if (options.requestedCheckpointId && options.requestedCheckpointId !== currentCheckpointId)
-                throw unavailable()
-            return currentCheckpointId
-        }
-        // A stored input boundary must itself be an input, never a nearby loop snapshot.
-        if (recovery) throw unavailable()
-        const parent = tuple.parentConfig?.configurable
-        if (parent && (parent.thread_id !== threadId || (parent.checkpoint_ns ?? '') !== (checkpointNs ?? '')))
-            throw unavailable()
-        currentCheckpointId = parent?.checkpoint_id ?? null
-    }
-    throw unavailable()
+    // Without a saved graph fingerprint there is no proof that an old checkpoint fits the current workflow.
+    if (!recovery?.input) throw unavailable()
+    if (
+        !threadId ||
+        (checkpointNs ?? '') !== '' ||
+        options.execution?.parentId ||
+        recovery.input.threadId !== threadId ||
+        recovery.input.checkpointNs !== ''
+    )
+        throw unavailable()
+    if (options.graphRevision !== recovery.graphRevision)
+        throw recoveryConflict('conversation_graph_changed', options.execution?.error)
+    checkpointId = recovery.input.checkpointId
+    if (options.requestedCheckpointId && options.requestedCheckpointId !== checkpointId) throw unavailable()
+    const tuple = await queryBus.execute<CopilotCheckpointGetTupleQuery, CheckpointTuple | null>(
+        new CopilotCheckpointGetTupleQuery({ thread_id: threadId, checkpoint_ns: '', checkpoint_id: checkpointId })
+    )
+    const ref = tuple?.config?.configurable
+    if (
+        ref?.thread_id !== threadId ||
+        (ref.checkpoint_ns ?? '') !== '' ||
+        ref.checkpoint_id !== checkpointId ||
+        tuple.metadata?.source !== 'input'
+    )
+        throw unavailable()
+    return checkpointId
 }

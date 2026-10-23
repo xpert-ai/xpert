@@ -87,16 +87,13 @@ it.each(['loop', 'foreign', 'missing'] as const)('rejects a corrupt persisted in
     expect(f.execute).toHaveBeenCalledTimes(1)
 })
 
-it('accepts only bounded, same-thread ancestry for legacy executions', async () => {
+it('refuses legacy checkpoints without a saved graph fingerprint, without searching or replaying history', async () => {
     const f = retryFixture()
-    f.execute.mockResolvedValueOnce(f.tuple('loop', 'loop', 'input')).mockResolvedValueOnce(f.tuple('input', 'input'))
+    f.execute.mockResolvedValue(f.tuple('loop', 'loop', 'input'))
     await expect(
         resolveRetryInputCheckpointId({ execute: f.execute } as unknown as QueryBus, 'thread', '', 'loop')
-    ).resolves.toBe('input')
-    f.execute.mockResolvedValue(f.tuple('loop', 'loop', 'loop'))
-    await expect(
-        resolveRetryInputCheckpointId({ execute: f.execute } as unknown as QueryBus, 'thread', '', 'loop')
-    ).rejects.toBeInstanceOf(ConflictException)
+    ).rejects.toMatchObject({ response: { code: 'conversation_recovery_unavailable' } })
+    expect(f.execute).not.toHaveBeenCalled()
 })
 
 it('does not turn database failures into a misleading missing recovery error', async () => {

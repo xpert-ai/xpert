@@ -63,7 +63,8 @@ import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { resolveSandboxWorkFor } from '../../../sandbox/sandbox-work-for'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
-import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
+import { ThreadRunControlService } from '../../../chat-conversation/thread-run-control.service'
+import { threadGraphRevision, legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { isThreadPause } from '../../../shared/agent/thread-pause'
 import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 import {
@@ -268,8 +269,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
         )
 
-        const graphRevision = threadGraphRevision(xpertGraph)
-        await this.threadRunControl?.recordGraph(threadId, execution.id, graphRevision)
+        const currentRevision = threadGraphRevision(xpertGraph, undefined, agent?.team)
+        const graphRevision =
+            (await this.threadRunControl?.recordGraph(
+                threadId,
+                execution.id,
+                currentRevision,
+                legacyThreadGraphRevision(xpertGraph)
+            )) ?? currentRevision
         if (options.inputMessageId) {
             const previous = await this.checkpointSaver.getCopilotCheckpoint({
                 configurable: { thread_id: threadId, checkpoint_ns: '' }

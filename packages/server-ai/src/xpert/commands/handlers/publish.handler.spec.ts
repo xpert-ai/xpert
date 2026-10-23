@@ -52,6 +52,7 @@ import { PublicationStore, XpertPublicationPersistence } from '../../publication
 import { XpertPublishHandler } from './publish.handler'
 import { assistantModelCandidates } from '../../assistant-model-selection.util'
 import { resolveEffectiveCopilotModel } from '../../../xpert-agent/effective-copilot-model'
+import { threadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 
 describe('XpertPublishHandler', () => {
     it('wires the transactional publication provider through Nest', async () => {
@@ -192,6 +193,51 @@ describe('XpertPublishHandler', () => {
     afterEach(() => {
         jest.clearAllMocks()
     })
+
+    it.each(['position', 'size', 'hash'] as const)(
+        'preserves checkpoint compatibility after publishing only a node %s change',
+        async (field) => {
+            const agent: IXpertAgent = {
+                id: 'agent-1',
+                key: 'Agent_primary',
+                prompt: 'Keep the execution instructions unchanged',
+                updatedAt: new Date('2026-10-01T00:00:00Z')
+            }
+            const f = createHandler({
+                agent,
+                draft: {
+                    team: { agent },
+                    nodes: [{ key: agent.key, type: 'agent', position: { x: 0, y: 0 }, entity: agent }],
+                    connections: []
+                }
+            })
+            f.persistence.completeActivation.mockImplementation(async (published: Xpert) => {
+                delete published.options.pendingPublication
+            })
+            Object.assign(
+                f.xpert,
+                await f.handler.execute(new XpertPublishCommand(f.xpert.id, false, undefined, 'initial'))
+            )
+            const savedRevision = threadGraphRevision(f.xpert.graph)
+            const previousEntity = structuredClone(f.xpert.graph.nodes[0].entity)
+            // The next authorized read reloads the primary-agent relation from persistence.
+            f.xpert.agent = f.storedAgents.get(agent.id)
+            f.xpert.draft = { team: { agent: f.xpert.agent }, ...structuredClone(f.xpert.graph) }
+            const node = f.xpert.draft.nodes[0]
+            if (field === 'position') node.position = { x: 300, y: 120 }
+            if (field === 'size') node.size = { width: 320, height: 180 }
+            if (field === 'hash') node.hash = 'recomputed-editor-cache'
+
+            Object.assign(
+                f.xpert,
+                await f.handler.execute(new XpertPublishCommand(f.xpert.id, false, undefined, 'layout only'))
+            )
+
+            expect(f.xpert.graph.nodes[0].entity).toEqual(previousEntity)
+            expect(f.xpert.graph.nodes[0][field]).toEqual(node[field])
+            expect(threadGraphRevision(f.xpert.graph)).toBe(savedRevision)
+        }
+    )
 
     describe('application speech-model repair', () => {
         const model = { copilotId: 'speech-provider', model: 'speech', modelType: AiModelTypeEnum.SPEECH2TEXT }

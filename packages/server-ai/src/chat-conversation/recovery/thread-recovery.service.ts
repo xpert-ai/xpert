@@ -52,8 +52,16 @@ export class ThreadRecoveryService {
         const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
             new GetXpertWorkflowQuery(thread.conversation.xpertId)
         )
-        const graphRevision = threadGraphRevision(workflow.graph)
-        if (thread.metadata?.forkGraphRevision && thread.metadata.forkGraphRevision !== graphRevision)
+        const graphRevision = threadGraphRevision(
+            workflow.graph,
+            execution.metadata?.recovery?.graphRevision,
+            workflow.agent?.team
+        )
+        if (
+            thread.metadata?.forkGraphRevision &&
+            thread.metadata.forkGraphRevision !==
+                threadGraphRevision(workflow.graph, thread.metadata.forkGraphRevision, workflow.agent?.team)
+        )
             return { ...result, reason: 'conversation_graph_changed' }
         try {
             await resolveRetryInputCheckpointId(

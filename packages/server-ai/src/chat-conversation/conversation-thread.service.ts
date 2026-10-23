@@ -149,7 +149,9 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
                 new GetXpertWorkflowQuery(source.conversation.xpertId)
             )
-            if (threadGraphRevision(workflow.graph) !== anchor.graphRevision)
+            if (
+                threadGraphRevision(workflow.graph, anchor.graphRevision, workflow.agent?.team) !== anchor.graphRevision
+            )
                 throw recoveryConflict('conversation_graph_changed', source.error, sourceThreadId)
         }
 
@@ -358,7 +360,10 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
                 new GetXpertWorkflowQuery(source.conversation.xpertId)
             )
-            if (threadGraphRevision(workflow.graph) !== source.metadata.forkGraphRevision)
+            if (
+                threadGraphRevision(workflow.graph, source.metadata.forkGraphRevision, workflow.agent?.team) !==
+                source.metadata.forkGraphRevision
+            )
                 throw recoveryConflict('conversation_graph_changed', source.error, source.parentThreadId)
         }
         return this.dataSource.transaction(async (manager) => {

@@ -1,10 +1,12 @@
-import { ChatThreadPurpose, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ChatThreadPurpose, TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { QueryBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
 import { ChatConversation } from '../conversation.entity'
 import { ChatConversationThread } from '../conversation-thread.entity'
 import { ChatConversationThreadService } from '../conversation-thread.service'
 import { ThreadRecoveryService } from './thread-recovery.service'
+import { legacyThreadGraphRevision, threadGraphRevision } from '../thread-graph-revision'
+import { GetXpertWorkflowQuery } from '../../xpert/queries/get-xpert-workflow.query'
 
 function fixture() {
     const conversation = Object.assign(new ChatConversation(), {
@@ -55,8 +57,56 @@ function fixture() {
             transaction: async (work: (value: typeof manager) => Promise<unknown>) => work(manager)
         } as unknown as DataSource
     )
-    return { conversation, thread, source, manager, findOne, threads, service }
+    return { conversation, thread, source, manager, findOne, threads, service, execute }
 }
+
+it.each(['layout', 'logic', 'legacy-same', 'legacy-layout', 'missing-revision'] as const)(
+    'reports retry capability consistently for %s without executing or rewriting history',
+    async (change) => {
+        const f = fixture()
+        const graph: TXpertGraph = {
+            nodes: [
+                { key: 'agent', type: 'agent', position: { x: 0, y: 0 }, entity: { key: 'agent', prompt: 'original' } }
+            ],
+            connections: []
+        }
+        const saved = change.startsWith('legacy') ? legacyThreadGraphRevision(graph) : threadGraphRevision(graph)
+        const recovery = {
+            version: 1,
+            graphRevision: saved,
+            input: { threadId: 'failed', checkpointNs: '', checkpointId: 'input' },
+            latest: { threadId: 'failed', checkpointNs: '', checkpointId: 'loop' }
+        }
+        f.findOne.mockResolvedValue({
+            id: 'execution',
+            checkpointId: 'loop',
+            error: 'original failure',
+            metadata: change === 'missing-revision' ? {} : { recovery }
+        })
+        f.thread.metadata.forkGraphRevision = saved
+        if (change === 'layout' || change === 'legacy-layout') graph.nodes[0].position.x = 500
+        if (change === 'logic' && graph.nodes[0].type === 'agent') graph.nodes[0].entity.prompt = 'different'
+        f.execute.mockImplementation(async (query: unknown) =>
+            query instanceof GetXpertWorkflowQuery
+                ? { graph }
+                : {
+                      config: { configurable: { thread_id: 'failed', checkpoint_ns: '', checkpoint_id: 'input' } },
+                      metadata: { source: 'input' }
+                  }
+        )
+
+        const result = await f.service.describe('failed')
+
+        expect(result.canRetry).toBe(change === 'layout' || change === 'legacy-same')
+        if (!result.canRetry)
+            expect(result.reason).toBe(
+                change === 'missing-revision' ? 'conversation_recovery_unavailable' : 'conversation_graph_changed'
+            )
+        expect(f.thread.error).toBe('original failure')
+        expect(f.thread.metadata.forkGraphRevision).toBe(saved)
+        expect(f.manager.save).not.toHaveBeenCalled()
+    }
+)
 
 it('explains a legacy failure without a checkpoint and offers only its authorized source', async () => {
     const f = fixture()

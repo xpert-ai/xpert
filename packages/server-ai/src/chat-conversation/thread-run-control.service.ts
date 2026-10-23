@@ -5,8 +5,7 @@ import {
     TChatConversationStatus,
     TChatThreadRunControl,
     TSensitiveOperation,
-    XpertAgentExecutionStatusEnum,
-    TXpertGraph
+    XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import {
     ConflictException,
@@ -18,7 +17,7 @@ import {
     Optional
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { createHash, randomUUID } from 'crypto'
+import { randomUUID } from 'crypto'
 import { t } from 'i18next'
 import { DataSource, EntityManager, Repository, In, IsNull } from 'typeorm'
 import { environment } from '@xpert-ai/server-config'
@@ -35,10 +34,9 @@ import { RUN_LEASE_KEY, RUN_LEASE_MS, readRunLease, clearRunLease } from './thre
 import { ChatConversationThread } from './conversation-thread.entity'
 import { clearThreadDisplayPause, readThreadDisplayPause } from './thread-display-pause'
 import { recoveryConflict } from './recovery/recovery-error'
+import { threadGraphRevisionMatches } from './thread-graph-revision'
 
-export function threadGraphRevision(graph: TXpertGraph): string {
-    return createHash('sha256').update(JSON.stringify(graph)).digest('hex')
-}
+export { threadGraphRevision } from './thread-graph-revision'
 
 export function threadControlConflict(key: string, defaultValue: string): ConflictException {
     return new ConflictException(t(`server-ai:Error.${key}`, { defaultValue }))
@@ -265,17 +263,32 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    async recordGraph(threadId: string, executionId: string, graphRevision: string): Promise<void> {
-        await this.locked(threadId, async (thread, manager) => {
-            if (thread.runControl?.executionId !== executionId) return
-            if (thread.metadata?.forkGraphRevision && thread.metadata.forkGraphRevision !== graphRevision) {
+    async recordGraph(
+        threadId: string,
+        executionId: string,
+        graphRevision: string,
+        legacyRevision?: string
+    ): Promise<string> {
+        return this.locked(threadId, async (thread, manager) => {
+            if (thread.runControl?.executionId !== executionId) return graphRevision
+            const forkRevision = thread.metadata?.forkGraphRevision
+            if (forkRevision && !threadGraphRevisionMatches(forkRevision, graphRevision, legacyRevision)) {
                 throw recoveryConflict('conversation_graph_changed', thread.error, thread.parentThreadId)
             }
-            if (thread.runControl.graphRevision && thread.runControl.graphRevision !== graphRevision) {
+            if (
+                thread.runControl.graphRevision &&
+                !threadGraphRevisionMatches(thread.runControl.graphRevision, graphRevision, legacyRevision)
+            ) {
                 throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
             }
-            thread.runControl.graphRevision = graphRevision
+            // A resumed execution and its recovery writer must keep the same persisted revision format.
+            const selected = thread.runControl.graphRevision ?? forkRevision ?? graphRevision
+            if (forkRevision && selected !== forkRevision) {
+                throw recoveryConflict('conversation_graph_changed', thread.error, thread.parentThreadId)
+            }
+            thread.runControl.graphRevision = selected
             await manager.save(thread)
+            return selected
         })
     }
 
@@ -330,7 +343,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         threadId: string,
         executionId: string,
         pauseId: string,
-        graphRevision: string
+        graphRevision: string,
+        legacyRevision?: string
     ): Promise<TChatCheckpointReference> {
         const resumed = await this.locked(threadId, async (thread, manager) => {
             const control = thread.runControl
@@ -343,7 +357,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             ) {
                 throw threadControlConflict('ThreadNotPaused', 'This pause is no longer available to resume.')
             }
-            if (control.graphRevision !== graphRevision) {
+            if (!threadGraphRevisionMatches(control.graphRevision, graphRevision, legacyRevision)) {
                 throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
             }
             const checkpoint = await manager.getRepository(CopilotCheckpoint).findOne({

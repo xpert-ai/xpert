@@ -1,4 +1,4 @@
-import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph'
@@ -9,6 +9,8 @@ import { CopilotCheckpointSaver } from './checkpoint-saver'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
+import { legacyThreadGraphRevision, threadGraphRevision } from '../chat-conversation/thread-graph-revision'
 
 const url = process.env.XPERT_RECOVERY_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
@@ -184,6 +186,55 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
     }
     const input = () => ({ ...emptyCheckpoint(), id: randomUUID() })
     const metadata = { source: 'input' as const, step: -1, parents: {} }
+
+    it.each([false, true])(
+        'keeps graph admission and checkpoint recovery writes on the same revision (legacy=%s)',
+        async (legacy) => {
+            const graph: TXpertGraph = {
+                nodes: [
+                    {
+                        key: 'agent',
+                        type: 'agent',
+                        position: { x: 0, y: 0 },
+                        entity: { key: 'agent', prompt: 'same task' }
+                    }
+                ],
+                connections: []
+            }
+            const stored = legacy ? legacyThreadGraphRevision(graph) : threadGraphRevision(graph)
+            const config = await candidate(stored)
+            const repository = database.getRepository(ChatConversationThread)
+            const row = await repository.findOneByOrFail({ threadId: config.configurable.thread_id })
+            await repository.update(row.id, { metadata: { ...row.metadata, forkGraphRevision: stored } })
+            const checkpoint = input()
+            await saver.put(config, checkpoint, metadata)
+            if (!legacy) graph.nodes[0].position.x = 500
+            const control = new ThreadRunControlService(repository, database)
+            const selected = await control.recordGraph(
+                config.configurable.thread_id,
+                config.configurable.executionId,
+                threadGraphRevision(graph),
+                legacyThreadGraphRevision(graph)
+            )
+            expect(selected).toBe(stored)
+            const next = input()
+            await saver.put(
+                {
+                    configurable: { ...config.configurable, xpertGraphRevision: selected, checkpoint_id: checkpoint.id }
+                },
+                next,
+                { source: 'loop', step: 0, parents: {} }
+            )
+            const execution = await database
+                .getRepository(XpertAgentExecution)
+                .findOneByOrFail({ id: config.configurable.executionId })
+            expect(execution.metadata.recovery).toMatchObject({
+                graphRevision: stored,
+                input: { checkpointId: checkpoint.id },
+                latest: { checkpointId: next.id }
+            })
+        }
+    )
 
     it('commits checkpoint, execution recovery and branch selection together, without changing workspace identity', async () => {
         const config = await candidate(),
