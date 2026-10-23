@@ -14,11 +14,21 @@ const manifest: XpertExtensionViewManifest = {
   view: { type: 'table' },
   dataSource: { mode: 'platform' }
 }
+const remoteManifest: XpertExtensionViewManifest = {
+  ...manifest,
+  view: {
+    type: 'remote_component',
+    runtime: 'react',
+    protocolVersion: 1,
+    component: { isolation: 'iframe', entry: 'test-view' },
+    dataSource: { mode: 'platform' }
+  }
+}
 const request = {
   projectId: 'project-b',
   view: { viewKey: manifest.key, selectionId: 'task-b', parameters: { tab: 'tasks' } }
 }
-function setup() {
+function setup(embedded = true) {
   const url = {
     viewKey: signal<string | null>(null),
     projectId: signal<string | null>(null),
@@ -32,6 +42,7 @@ function setup() {
     tabs: signal<ClawXpertWorkspaceTab[]>([]),
     activate: jest.fn(),
     selectProject: jest.fn(async () => false),
+    openEmbedded: embedded ? jest.fn(async () => true) : undefined,
     url,
     onError: jest.fn()
   }
@@ -103,6 +114,37 @@ describe('project View navigation without switching chat', () => {
     expect(h.tabs()[0]).toMatchObject({ projectScope: { projectId: 'project-b' }, query: { selectionId: 'task-b' } })
     expect(h.activate).toHaveBeenCalledWith(h.tabs()[0].id, 'none')
     expect(h.selectProject).not.toHaveBeenCalled()
+  })
+  it('delegates supported Remote Views by default after checking the destination manifest', async () => {
+    const h = setup()
+    await h.open(request)
+    expect(h.openEmbedded).not.toHaveBeenCalled()
+    h.tabs.set([])
+    h.activate.mockClear()
+    h.views.getSlotViews.mockReturnValue(of([remoteManifest]))
+    expect(await h.open(request)).toBe(true)
+    expect(h.openEmbedded).toHaveBeenCalledWith(request, expect.any(Function))
+    expect(h.tabs()).toEqual([])
+    expect(h.activate).not.toHaveBeenCalled()
+  })
+  it('retains Remote View opening for a legacy host without ChatKit integration', async () => {
+    const h = setup(false)
+    h.views.getSlotViews.mockReturnValue(of([remoteManifest]))
+    expect(await h.open(request)).toBe(true)
+    expect(h.tabs()[0]).toMatchObject({ viewKey: manifest.key, projectScope: { projectId: request.projectId } })
+    expect(h.selectProject).not.toHaveBeenCalled()
+  })
+  it('migrates a legacy embedded viewProject link without creating an outer tab', async () => {
+    const h = setup()
+    h.views.getSlotViews.mockReturnValue(of([remoteManifest]))
+    h.url.projectId.set(request.projectId)
+    h.url.viewKey.set(manifest.key)
+    h.url.viewQuery.set({ selectionId: 'task-b', parameters: { tab: 'tasks' } })
+    TestBed.flushEffects()
+    await Promise.resolve()
+    expect(h.openEmbedded).toHaveBeenCalledWith(request, expect.any(Function))
+    expect(h.tabs()).toEqual([])
+    expect(h.activate).not.toHaveBeenCalled()
   })
   it('keeps explicit workspace selection without a View compatible', async () => {
     const h = setup()

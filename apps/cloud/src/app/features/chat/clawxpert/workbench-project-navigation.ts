@@ -1,5 +1,6 @@
 // Project Views retain their own authorized scope. Opening one must never
 // change the chat's Project, thread, composer, or ChatKit session binding.
+// Supported Remote Views delegate through the authorized ChatKit route instead.
 import { effect, untracked, type WritableSignal } from '@angular/core'
 import { AGENT_WORKBENCH_SLOT, type WorkbenchAssistantProjectOpenRequest } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
@@ -7,7 +8,12 @@ import type { ViewExtensionApiService } from '../../../@core/services/view-exten
 import type { ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
 import type { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import type { ClawXpertWorkspaceTab } from './conversation-detail/workspace/tabs'
-import { equalViewQuery, findResolvedViewByKey, resolveI18nText } from './conversation-detail/workspace/fixed-views'
+import {
+  canRenderViewInChatkit,
+  equalViewQuery,
+  findResolvedViewByKey,
+  resolveI18nText
+} from './conversation-detail/workspace/fixed-views'
 
 type ProjectViewOptions = {
   hostId: () => string | null
@@ -17,6 +23,7 @@ type ProjectViewOptions = {
   tabs: WritableSignal<ClawXpertWorkspaceTab[]>
   activate: (id: string, mode: 'push' | 'none') => void
   selectProject: (projectId: string) => Promise<boolean> | void
+  openEmbedded?: (request: WorkbenchAssistantProjectOpenRequest, cancelled: () => boolean) => Promise<boolean | void>
   url: Pick<ClawXpertWorkbenchViewUrlState, 'viewKey' | 'viewQuery' | 'projectId'>
   onError: (error: unknown) => void
 }
@@ -60,6 +67,12 @@ export function createWorkbenchProjectNavigation(options: ProjectViewOptions) {
       }))
     const manifest = findResolvedViewByKey(available, view.viewKey)
     if (!manifest) throw new Error(`Workbench view '${view.viewKey}' is not available.`)
+    if (options.openEmbedded && canRenderViewInChatkit(manifest.view)) {
+      return options.openEmbedded(
+        { ...request, view: { ...view, viewKey: manifest.key } },
+        () => cancelled() || current !== revision || hostId !== options.hostId() || routeKey !== options.routeKey()
+      )
+    }
     const tab: ClawXpertFixedViewTab = {
       id: `project-view:${JSON.stringify([hostId, request.projectId, manifest.key])}`,
       kind: 'fixed-view',
