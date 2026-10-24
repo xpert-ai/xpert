@@ -1,3 +1,4 @@
+import { getAvailableFrameHeight } from './remote-frame-layout'
 import { createRemoteTheme, type RemoteComponentTheme, type RemoteComponentThemeMode } from './remote-component-theme'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import {
@@ -640,6 +641,7 @@ export class RemoteComponentRendererComponent {
     }
 
     return this.#clientCommands.execute(commandKey, message.payload, {
+      instanceId: this.instanceId(),
       hostType: this.hostType(),
       hostId: this.hostId(),
       viewKey: this.manifest().key,
@@ -962,23 +964,4 @@ function createBrowserId() {
   return typeof globalThis.crypto?.randomUUID === 'function'
     ? globalThis.crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function getAvailableFrameHeight(frame?: HTMLIFrameElement, fillAvailableHeight = false) {
-  if (typeof window === 'undefined') {
-    return 720
-  }
-  const viewportHeight = Math.floor(window.visualViewport?.height ?? window.innerHeight ?? 720)
-  const frameTop = frame ? Math.max(0, frame.getBoundingClientRect().top) : 0
-  if (fillAvailableHeight && frame) {
-    const hostOutletBottom = frame.closest('xp-extension-host-outlet')?.getBoundingClientRect().bottom
-    const boundaryBottom =
-      typeof hostOutletBottom === 'number' && Number.isFinite(hostOutletBottom)
-        ? Math.min(viewportHeight, Math.max(frameTop, hostOutletBottom))
-        : viewportHeight - 24
-
-    return Math.max(520, Math.floor(boundaryBottom - frameTop))
-  }
-
-  return Math.max(520, viewportHeight - frameTop - 24)
 }

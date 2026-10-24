@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import { XpertExtensionViewManifest, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
 
 export type ViewClientCommandContext = {
+  instanceId?: string
   hostType: string
   hostId: string
   viewKey: string
@@ -36,8 +37,9 @@ export class ViewClientCommandRegistry {
   }
 
   supportsView(manifest: XpertExtensionViewManifest): boolean {
-    return (manifest.clientCommands ?? []).every((command) => !command.required ||
-      this.#handlers.get(command.key)?.some((entry) => entry.active()))
+    return (manifest.clientCommands ?? []).every(
+      (command) => !command.required || this.#handlers.get(command.key)?.some((entry) => entry.active())
+    )
   }
 
   async execute(commandKey: string, payload: unknown, context: ViewClientCommandContext) {

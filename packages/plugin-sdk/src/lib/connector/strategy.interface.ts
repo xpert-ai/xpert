@@ -1,3 +1,4 @@
+import type { ConnectorDocumentSource } from './documents'
 import type { I18nText, IconDefinition } from '@xpert-ai/contracts'
 
 export type RuntimeI18nText = I18nText
@@ -660,6 +661,8 @@ export type ConnectorAuthorizationPollResult =
     }
 
 export interface ConnectorStrategyRuntime {
+  /** Optional read-only document adapter, independent of knowledge ingestion and remote editing. */
+  documents?: ConnectorDocumentSource
   definition: ConnectorStrategyDefinition
   connect?(input: ConnectorConnectInput): Promise<ConnectorConnectResult>
   exchangeAuthorizationCode?(input: ConnectorAuthorizationCodeInput): Promise<ConnectorCredential>

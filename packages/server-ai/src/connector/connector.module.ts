@@ -1,3 +1,4 @@
+import { ConnectorDocumentsService } from './connector-documents.service'
 import { ResolveTemplateConnectorsHandler } from './template-connectors.handler'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -38,6 +39,7 @@ import { ConnectorIntegrationService } from './integrations/connector-integratio
     ],
     controllers: [ConnectorIntegrationController, ConnectorController],
     providers: [
+        ConnectorDocumentsService,
         ConnectorService,
         ConnectorProviderService,
         ConnectorStrategyRegistry,
