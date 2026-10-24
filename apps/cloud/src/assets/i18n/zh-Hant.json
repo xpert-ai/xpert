@@ -585,7 +585,8 @@
           "Initializing": "初始化中…",
           "ApplyToOrganization": "應用到目前組織",
           "RepairAndReinitialize": "修復並重新初始化",
-          "ContinueConfiguration": "繼續配置"
+          "ContinueConfiguration": "繼續配置",
+          "ApplyToPersonal": "為自己啟用"
         },
         "Preflight": {
           "OrganizationRequired": "請先切換到一個組織，再啟用此組織級應用程式。",
@@ -615,7 +616,9 @@
           "standalone": "獨立助理",
           "workspace": "工作空間",
           "knowledgebase": "知識庫"
-        }
+        },
+        "InstallationTarget": "安裝範圍",
+        "PersonalDataScope": "此安裝及其資料僅屬於你；分享需另行授權。"
       }
     },
     "McpPublication": {

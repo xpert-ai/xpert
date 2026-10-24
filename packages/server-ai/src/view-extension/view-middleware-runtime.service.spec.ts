@@ -31,6 +31,7 @@ import { XpertProfileIdentityService } from '../xpert/xpert-profile-identity.ser
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/middleware-runtime.service'
 import { AgentViewHostDefinition } from './hosts/agent-view-host.definition'
 import { ViewMiddlewareRuntimeService } from './view-middleware-runtime.service'
+import { ApplicationRuntimeService } from '../plugin-resource/application-runtime.service'
 
 const PROVIDER = 'test_maps'
 const FEATURE = 'test_maps.explore'
@@ -101,6 +102,12 @@ async function fixture() {
             { provide: XpertProjectXpertBindingService, useValue: { isSameXpert: jest.fn() } },
             { provide: VOLUME_CLIENT, useValue: {} },
             { provide: CommandBus, useValue: { execute: jest.fn() } },
+            {
+                provide: ApplicationRuntimeService,
+                useValue: {
+                    resolveInstallation: async () => null
+                }
+            },
             {
                 provide: XpertProfileIdentityService,
                 useValue: {

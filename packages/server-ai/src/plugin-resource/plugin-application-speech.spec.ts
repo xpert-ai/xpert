@@ -97,6 +97,7 @@ function fixture(existing = false) {
     }
     const workspaceService = { create: jest.fn(async () => ({ id: 'workspace' })), delete: jest.fn() }
     const service = new PluginApplicationService(
+        {} as never,
         installationRepo as never,
         { findOne: jest.fn(async () => ({ id: 'workspace' })), exists: jest.fn(async () => true) } as never,
         {} as never,
@@ -139,6 +140,10 @@ function fixture(existing = false) {
         ] as never
     )
     Object.assign(service, {
+        applicationAccess: {
+            assertMembership: jest.fn().mockResolvedValue(undefined),
+            assertCanInitialize: jest.fn().mockResolvedValue(undefined)
+        },
         applicationToolsets: {
             preflight: jest.fn(async () => []),
             prepare: jest.fn(async () => []),

@@ -689,7 +689,8 @@
           "Configuring": "待配置"
         },
         "Action": {
-          "ContinueConfiguration": "继续配置"
+          "ContinueConfiguration": "继续配置",
+          "ApplyToPersonal": "为自己启用"
         },
         "Composition": {
           "primary": "入口助手",
@@ -697,7 +698,9 @@
           "standalone": "独立助手",
           "workspace": "工作空间",
           "knowledgebase": "知识库"
-        }
+        },
+        "InstallationTarget": "安装范围",
+        "PersonalDataScope": "此安装及其数据仅属于你；分享需另行授权。"
       }
     },
     "Referral": {

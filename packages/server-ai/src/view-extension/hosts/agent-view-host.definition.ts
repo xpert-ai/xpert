@@ -40,6 +40,7 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime.service'
 
 @Injectable()
 @ViewHostDefinition('agent')
@@ -69,7 +70,9 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly profileIdentity: XpertProfileIdentityService
+        private readonly profileIdentity: XpertProfileIdentityService,
+        @Inject(ApplicationRuntimeService)
+        private readonly applicationRuntime: Pick<ApplicationRuntimeService, 'resolveInstallation'>
     ) {}
 
     async resolve(hostId: string, options?: ViewHostResolutionOptions) {
@@ -116,6 +119,13 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             },
             context: {
+                application: await this.applicationRuntime.resolveInstallation({
+                    tenantId: runtimeXpert.tenantId,
+                    organizationId: runtimeXpert.organizationId,
+                    userId: RequestContext.currentUserId(),
+                    workspaceId: runtimeXpert.workspaceId,
+                    xpertId: runtimeXpert.id
+                }),
                 assistant: await this.profileIdentity.resolve(runtimeXpert),
                 capabilities: agentContext.capabilities,
                 hostState: agentContext.hostState,
@@ -141,10 +151,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             }
         }
 
-        if (RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
-            return true
-        }
-
+        // Global edit permission does not grant access to another user's installed Assistant.
+        // Published Views use the same grants as execution; Studio drafts were checked above.
         try {
             await this.publishedXpertAccessService.getAccessiblePublishedXpert(context.hostId)
             return true

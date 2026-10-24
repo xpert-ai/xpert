@@ -94,6 +94,11 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     const image = parseAvatarUrl(source)
     return image ? { type: 'image', value: image } : null
   }
+  const installationScopes = (app) => {
+    const value = app?.config?.scope ?? app?.scope
+    const choices = Array.isArray(value) ? value : [value]
+    return [...new Set(choices.filter((item) => ['organization', 'personal', 'tenant'].includes(item)))]
+  }
   const application = (value, locale, webUrl) => {
     const localized = (value) => localizedText(value, locale)
     const app = value?.application
@@ -104,6 +109,8 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       id: required(app?.id, 'App ID'),
       pluginName: required(app.pluginName, 'Plugin name'),
       appName: required(app.appName, 'App name'),
+      installationScope: value.status?.installationScope ?? app.scope,
+      installationScopes: installationScopes(app),
       name: localized(app.displayName),
       description: localized(presentation?.tagline) || localized(app.description),
       screenshots: screenshots(presentation?.screenshots, webUrl),
@@ -219,10 +226,21 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     },
     async listCatalog(kind) {
       scope(this)
-      if (kind === 'applications')
-        return list(await this.request('/api/plugin-applications/catalog')).map((item) =>
-          application(item, this.config.locale, this.config.webUrl)
+      if (kind === 'applications') {
+        const defaults = list(await this.request('/api/plugin-applications/catalog'))
+        const personal = defaults.some((item) => installationScopes(item.application).includes('personal'))
+          ? list(await this.request('/api/plugin-applications/catalog?installationScope=personal'))
+          : []
+        return defaults.map((item) =>
+          application(
+            installationScopes(item.application).includes('personal')
+              ? (personal.find((candidate) => candidate.application?.id === item.application?.id) ?? item)
+              : item,
+            this.config.locale,
+            this.config.webUrl
+          )
         )
+      }
       if (!['experts', 'templates'].includes(kind)) throw new ClientError('Invalid catalog type.')
       const items = []
       let offset = 0
@@ -260,10 +278,13 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       scope(this)
       const pluginName = required(input?.pluginName, 'Plugin name')
       const appName = required(input?.appName, 'App name')
-      const detail = await this.request(
-        `/api/plugin-applications/detail?${new URLSearchParams({ pluginName, appName })}`,
-        { scope: 'organization', includeServerMessage: true }
-      )
+      const parameters = { pluginName, appName }
+      if (input?.installationScope !== undefined)
+        parameters.installationScope = choice(input.installationScope, ['organization', 'personal', 'tenant'])
+      const detail = await this.request(`/api/plugin-applications/detail?${new URLSearchParams(parameters)}`, {
+        scope: 'organization',
+        includeServerMessage: true
+      })
       const check = detail?.preflight
       if (!check || typeof check.canInitialize !== 'boolean')
         throw new ClientError('Invalid installation check response.', 502)
@@ -297,6 +318,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const body = {
         pluginName: setup.application.pluginName,
         appName: setup.application.appName,
+        ...(setup.application.installationScope ? { installationScope: setup.application.installationScope } : {}),
         operationId: required(input?.operationId, 'Installation operation ID', 128)
       }
       for (const [field, options, needed] of [
@@ -311,7 +333,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       }
       const toolsets = selectedApplicationToolsets(input?.toolsets, setup.toolsetRequirements, ClientError)
       if (toolsets.length || input?.toolsets !== undefined) body.toolsets = toolsets
-      // The server derives the workspace and organization. Renderer-supplied scope is never forwarded.
+      // Only the installation choice from fresh preflight is forwarded; owner and resource IDs remain server-owned.
       const result = await this.request('/api/plugin-applications/initialize', {
         method: 'POST',
         body,

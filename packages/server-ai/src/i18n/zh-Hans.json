@@ -65,7 +65,6 @@
         "TenantSettingsLookupFailed": "读取租户设置失败",
         "RetentionPreviewExpired": "预览已过期或不可用，请重新预览后再清理。",
         "RetentionCleanupInvalid": "请选择有效的过去时间范围，预览后再确认清理。",
-
         "AnalyticsDefinitionInvalid": "分析定义不可用或配置无效",
         "AnalyticsDefinitionConflict": "已有更新版本发布，请重新加载后再发布。",
         "AnalyticsDefinitionUnavailable": "分析定义不可用。",
@@ -1200,7 +1199,9 @@
         "ArtifactPresentationInputInvalid": "展示请求无效。",
         "ProviderCredentialSchemaMissing": "当前提供商未配置凭据表单。",
         "ProviderCredentialTargetRequired": "请选择支持的模型类型，并填写模型或接入点 ID 以验证凭据。",
-        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。"
+        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。",
+        "ApplicationUserRequired": "请使用登录的个人账户管理应用。",
+        "ApplicationOrganizationAccessDenied": "你已无权访问此组织中的应用。"
     },
     "Mcp": {
         "Test": {

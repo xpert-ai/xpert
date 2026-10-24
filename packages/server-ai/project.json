@@ -26,7 +26,7 @@
                         "includeIgnoredFiles": true
                     },
                     {
-                        "glob": "**/*.(csv|json|js|css|svg|png|jpg|yaml|yml|py|sh|md|txt)",
+                        "glob": "**/*.(csv|json|js|css|svg|png|jpg|yaml|yml|py|sh|sql|md|txt)",
                         "input": "packages/server-ai/",
                         "output": "./"
                     }

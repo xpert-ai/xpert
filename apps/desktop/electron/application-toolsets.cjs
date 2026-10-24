@@ -72,7 +72,11 @@ module.exports = { applicationToolsets, selectedApplicationToolsets }
 // Scope, provider, target Workspace and managed IDs always come from fresh host preflight.
 // Existing secrets never cross IPC; only edited credential fields are accepted from the form.
 module.exports.createApplicationToolsetMethods = function (ClientError) {
-  const appInput = (setup) => ({ pluginName: setup.application.pluginName, appName: setup.application.appName })
+  const appInput = (setup) => ({
+    pluginName: setup.application.pluginName,
+    appName: setup.application.appName,
+    ...(setup.application.installationScope ? { installationScope: setup.application.installationScope } : {})
+  })
   async function context(service, input) {
     const setup = await service.applicationSetup(input)
     if (!setup.canConfigure || ['ready', 'initializing'].includes(setup.application.status))
