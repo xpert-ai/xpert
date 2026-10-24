@@ -1,5 +1,9 @@
 # @xpert-ai/server-config
 
+## 3.26.2
+
+## 3.26.1
+
 ## 3.26.0
 
 ### Patch Changes

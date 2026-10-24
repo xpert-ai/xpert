@@ -1,5 +1,11 @@
 # @xpert-ai/sandbox-runtime
 
+## 1.3.1
+
+### Patch Changes
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+
 ## 1.3.0
 
 ### Minor Changes
