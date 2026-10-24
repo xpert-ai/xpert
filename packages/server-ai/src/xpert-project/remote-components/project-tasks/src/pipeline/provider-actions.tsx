@@ -1,3 +1,4 @@
+import { useViewVisible } from '../view-visibility'
 import { useEffect, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import {
@@ -24,6 +25,7 @@ export function ProviderActions({
     t: PipelineTexts
     reload: () => Promise<void>
 }) {
+    const visible = useViewVisible()
     const [data, setData] = useState<ProjectPipelineProviderActions | null>(null)
     const [form, setForm] = useState<{
         descriptor: ProjectPipelineProviderActionDescriptor
@@ -36,6 +38,7 @@ export function ProviderActions({
     const label = (value: { en_US: string; zh_Hans?: string }) =>
         locale.startsWith('zh') ? (value.zh_Hans ?? value.en_US) : value.en_US
     useEffect(() => {
+        if (!visible) return
         let alive = true
         const load = () =>
             readProviderActions(graph.instance.id, node.id)
@@ -56,7 +59,7 @@ export function ProviderActions({
             alive = false
             window.clearInterval(timer)
         }
-    }, [graph.instance.id, node.id, t.actionFailed])
+    }, [graph.instance.id, node.id, t.actionFailed, visible])
     const dispatchPaused = graph.dispatchEnabled === false || data?.dispatchEnabled === false
     const pending = !!data?.operations.some((operation) =>
         ['queued', 'dispatching', 'pending', 'unknown'].includes(operation.state)

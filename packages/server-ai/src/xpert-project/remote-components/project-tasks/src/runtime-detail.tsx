@@ -1,3 +1,4 @@
+import { isViewVisible } from './view-visibility'
 import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
 import { executionProviderLabel } from './execution-provider'
 import { useEffect, useState } from 'react'
@@ -188,7 +189,7 @@ export function RuntimeDetail({
         setChecks('')
         setSaved(false)
         const load = async () => {
-            if (loading || document.hidden) return
+            if (loading || !isViewVisible()) return
             loading = true
             try {
                 const data = z

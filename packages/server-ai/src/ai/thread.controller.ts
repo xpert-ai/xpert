@@ -56,6 +56,7 @@ import { threadCopySchema, CopyConversationThreadInput } from '../chat-conversat
 import {
     FindAgentExecutionsQuery,
     GetAgentExecutionRunSummaryQuery,
+    GetAgentExecutionRunStatusQuery,
     GetThreadContextUsageQuery,
     TAgentExecutionRunSummary,
     XpertAgentExecutionOneQuery
@@ -417,6 +418,33 @@ export class ThreadsController {
 
         startSseHeartbeat(res)
         return stream
+    }
+
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
+    @Get(':thread_id/runs/:run_id/status')
+    async getThreadRunStatus(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
+        await this.ensureThreadAccess(threadId)
+        const execution = await this.queryBus.execute(new GetAgentExecutionRunStatusQuery(runId))
+        if (execution.threadId !== threadId) throw new ForbiddenException()
+        return {
+            run_id: execution.id,
+            thread_id: execution.threadId,
+            assistant_id: execution.xpertId,
+            created_at: execution.createdAt.toISOString(),
+            updated_at: execution.updatedAt.toISOString(),
+            status: execution.status,
+            metadata: {
+                agentRun: {
+                    id: execution.id,
+                    status: execution.status,
+                    elapsedTime: execution.elapsedTime,
+                    error: execution.error,
+                    businessOutcome: execution.businessOutcome ?? undefined,
+                    updatedAt: execution.updatedAt.toISOString(),
+                    endedAt: execution.completedAt?.toISOString()
+                }
+            }
+        }
     }
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)

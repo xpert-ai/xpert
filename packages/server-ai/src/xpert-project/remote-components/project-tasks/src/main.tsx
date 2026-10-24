@@ -45,8 +45,12 @@ import { TaskDetail, type DetailDraft } from './task-detail'
 import { Empty, IconButton } from './ui'
 import { PipelineView } from './pipeline/view'
 import { pipelineTexts } from './pipeline/i18n'
+import { useViewVisible } from './view-visibility'
+import { GraphAvatarCache } from './graph-avatars'
 
 function App() {
+    const visible = useViewVisible()
+    const avatarCache = useRef(new GraphAvatarCache())
     const [locale, setLocale] = useState('en-US'),
         [ready, setReady] = useState(false)
     const [graph, setGraph] = useState<Graph | null>(null),
@@ -94,8 +98,9 @@ function App() {
         setRefreshing(true)
         const current = ++generation.current
         try {
-            const result = z.object({ item: graphSchema }).parse(await request('requestData', { query: {} }))
+            const response = await request('requestData', { query: avatarCache.current.query() })
             if (current !== generation.current) return
+            const result = { item: avatarCache.current.read(response) }
             setGraph((previous) =>
                 previous?.cursor === result.item.cursor && previous.canEditPlan === result.item.canEditPlan
                     ? previous
@@ -111,7 +116,7 @@ function App() {
         }
     }, [])
     useEffect(() => {
-        if (!ready) return
+        if (!ready || !visible) return
         void load()
         const timer = window.setInterval(() => {
             setNow(Date.now())
@@ -126,7 +131,7 @@ function App() {
             document.removeEventListener('visibilitychange', visibility)
             generation.current++
         }
-    }, [ready, load])
+    }, [ready, visible, load])
     const onGraph = (graph: Graph) => {
         generation.current++
         setGraph(graph)

@@ -1,4 +1,5 @@
 import { projectTaskPlanSchema } from '../project-task-plan.schema'
+import { compactTaskAvatars } from './project-task-avatars'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -9,7 +10,8 @@ import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET, codingExecu
 import type {
     XpertResolvedViewHostContext,
     XpertExtensionViewManifest,
-    XpertViewActionRequest
+    XpertViewActionRequest,
+    XpertViewQuery
 } from '@xpert-ai/contracts'
 import {
     ViewExtensionProvider,
@@ -161,8 +163,14 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
             actor: { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.userId }
         }
     }
-    async getViewData(context: XpertResolvedViewHostContext) {
-        return { item: await this.tasks.graph(this.context(context)) }
+    async getViewData(context: XpertResolvedViewHostContext, _viewKey?: string, query?: XpertViewQuery) {
+        const graph = await this.tasks.graph(this.context(context))
+        if (query?.parameters?.compactAvatars !== true) return { item: graph }
+        const versions = z
+            .array(z.string().regex(/^[a-f0-9]{64}$/))
+            .max(128)
+            .parse(query.parameters.avatarVersions ?? [])
+        return compactTaskAvatars(graph, versions)
     }
     async executeViewAction(
         context: XpertResolvedViewHostContext,
