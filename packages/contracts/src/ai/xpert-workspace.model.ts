@@ -34,6 +34,7 @@ export type TXpertWorkspaceSettings = {
     userId?: string
     pluginName?: string
     appName?: string
+    applicationInstallationId?: string
   }
 }
 export type TXpertWorkspaceStatus = 'active' | 'deprecated' | 'archived'

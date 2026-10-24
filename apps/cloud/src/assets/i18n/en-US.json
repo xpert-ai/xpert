@@ -1026,10 +1026,11 @@
           "Initializing": "Initializing…",
           "ApplyToOrganization": "Apply to current organization",
           "RepairAndReinitialize": "Repair and reinitialize",
-          "ContinueConfiguration": "Continue setup"
+          "ContinueConfiguration": "Continue setup",
+          "ApplyToPersonal": "Install for me"
         },
         "Preflight": {
-          "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
+          "OrganizationRequired": "Select an organization before installing this application.",
           "RoleRequired": "You can view the application details, but an organization administrator must initialize it.",
           "PrimaryModelRequired": "The current organization has no available primary language model. Configure a model first.",
           "EmbeddingModelRequired": "The current organization has no available embedding model. Configure a model first.",
@@ -1056,7 +1057,9 @@
           "standalone": "Standalone assistant",
           "workspace": "Workspace",
           "knowledgebase": "Knowledge base"
-        }
+        },
+        "InstallationTarget": "Install for",
+        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default."
       }
     },
     "AgentEvolution": {

@@ -531,9 +531,14 @@ export function managedPipelineFixture() {
             executorXpertId: input.xpertId,
             executorPublishedVersion: '1'
         }))
-        await db
-            .getRepository(XpertProject)
-            .save({ id: context.projectId, name: 'Neutral assessment', workspaceId, ...context.actor })
+        await db.getRepository(XpertProject).save({
+            id: context.projectId,
+            name: 'Neutral assessment',
+            workspaceId,
+            applicationKey: 'platform',
+            projectTypeKey: 'general',
+            ...context.actor
+        })
         await db
             .getRepository(XpertWorkspace)
             .save({ id: workspaceId, name: 'Authorized Runtime workspace', status: 'active', ...context.actor })

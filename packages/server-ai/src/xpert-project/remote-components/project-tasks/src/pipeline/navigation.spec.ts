@@ -62,3 +62,20 @@ it('never forwards an unacknowledged, foreign or external application destinatio
         expect(call).toHaveBeenCalledTimes(1)
     }
 })
+
+it('preserves the selected historical round through the authorized business View entry', async () => {
+    const parameters = { pipelineInstanceId: projectId, pipelineRoundId: projectId }
+    const entry = { ...target, parameters }
+    call.mockImplementation(async (type) =>
+        type === 'executeAction' ? { success: true, data: entry } : { success: true }
+    )
+    await openProjectWorkspace(projectId, 'application', 'Unavailable', undefined, projectId, projectId)
+    expect(call).toHaveBeenNthCalledWith(1, 'executeAction', {
+        actionKey: 'workspace-target',
+        input: { instanceId: projectId, roundId: projectId }
+    })
+    expect(call).toHaveBeenLastCalledWith('invokeClientCommand', {
+        commandKey: 'workbench.navigation.open',
+        payload: entry
+    })
+})

@@ -3,11 +3,19 @@ import { executionSummary, executionDuration, formatExecutionDuration } from '..
 import { attemptTimes, isRunning } from '../model'
 import { texts, dateTime } from '../i18n'
 import { useState } from 'react'
-import { X, FileText, ExternalLink, ChevronRight } from 'lucide-react'
+import { FileText, ExternalLink } from 'lucide-react'
 import {
     Button,
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogFooter,
+    DialogClose,
+    Badge,
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+    AccordionContent,
     DialogTitle,
     DialogDescription,
     Tabs,
@@ -62,58 +70,30 @@ export function PipelineNodeDialog({
                 if (!open) close()
             }}
         >
-            <DialogContent
-                className="flex h-[min(43rem,90dvh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
-                showCloseButton={false}
-            >
-                <header className="shrink-0 px-6 pb-5 pt-6 sm:px-7">
-                    <div className="flex items-start justify-between gap-4">
-                        <DialogTitle className="min-w-0 break-words text-xl font-semibold leading-7">
-                            {node.projection.title}
-                        </DialogTitle>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="-mr-2 -mt-1 shrink-0"
-                            aria-label={t.close}
-                            onClick={close}
-                        >
-                            <X />
-                        </Button>
-                    </div>
-                    <DialogDescription className="mt-1">
+            <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{node.projection.title}</DialogTitle>
+                    <DialogDescription>
                         {lane?.label ?? t[node.projection.kind]} · {graph.historical ? t.history : t.scope}{' '}
                         {graph.round.sequence}
                     </DialogDescription>
-                </header>
-                <Tabs defaultValue="overview" className="min-h-0 flex-1 gap-0 overflow-hidden">
-                    <div className="shrink-0 px-6 sm:px-7">
-                        <TabsList
-                            variant="line"
-                            className="h-11 w-full justify-start gap-5 border-b p-0"
-                            aria-label={t.nodeDetailsTabs}
-                        >
+                </DialogHeader>
+                <Tabs defaultValue="overview" className="min-h-0 overflow-hidden">
+                    <div className="shrink-0 overflow-x-auto">
+                        <TabsList aria-label={t.nodeDetailsTabs}>
                             {[
                                 { key: 'overview', label: t.overview },
                                 { key: 'attempts', label: t.attempts, count: attempts.length },
                                 { key: 'evidence', label: t.evidence, count: node.projection.evidence.length }
                             ].map((tab) => (
-                                <TabsTrigger
-                                    key={tab.key}
-                                    value={tab.key}
-                                    className="h-full flex-none rounded-none px-1 pb-3 data-[state=active]:text-primary after:bottom-0 after:bg-primary"
-                                >
+                                <TabsTrigger key={tab.key} value={tab.key}>
                                     {tab.label}
-                                    {tab.count !== undefined && (
-                                        <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                                            {tab.count}
-                                        </span>
-                                    )}
+                                    {tab.count !== undefined && <Badge variant="secondary">{tab.count}</Badge>}
                                 </TabsTrigger>
                             ))}
                         </TabsList>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6 sm:px-7">
+                    <div className="min-h-0 overflow-y-auto overscroll-contain">
                         <TabsContent value="overview" forceMount className="space-y-5 data-[state=inactive]:hidden">
                             <section aria-label={t.basicInformation}>
                                 <h3 className="mb-4 text-sm font-semibold">{t.basicInformation}</h3>
@@ -159,7 +139,7 @@ export function PipelineNodeDialog({
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="shrink-0 text-primary"
+                                                className="shrink-0"
                                                 onClick={() => {
                                                     close()
                                                     onTask(task, { ...graph.tasks, canEditPlan: false })
@@ -172,34 +152,33 @@ export function PipelineNodeDialog({
                                     ))}
                                 </div>
                             </section>
-                            <details className="group border-t pt-4 text-sm">
-                                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-sm font-medium focus-visible:outline focus-visible:outline-ring">
-                                    <ChevronRight className="size-4 group-open:rotate-90" />
-                                    {t.versionTechnical}
-                                </summary>
-                                <div className="mt-4 space-y-3">
-                                    <dl className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <dt className="text-xs text-muted-foreground">{t.freshness}</dt>
-                                            <dd>{t[node.projection.state.freshness]}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs text-muted-foreground">{t.details}</dt>
-                                            <dd>{t[node.projection.kind]}</dd>
-                                        </div>
-                                    </dl>
-                                    {!graph.historical &&
-                                        graph.instance.authority === 'provider' &&
-                                        node.projection.presentation && (
-                                            <NodeDiagnostics
-                                                key={`diagnostics:${node.id}`}
-                                                graph={graph}
-                                                node={node}
-                                                t={t}
-                                            />
-                                        )}
-                                </div>
-                            </details>
+                            <Accordion type="single" collapsible>
+                                <AccordionItem value="technical">
+                                    <AccordionTrigger>{t.versionTechnical}</AccordionTrigger>
+                                    <AccordionContent className="space-y-3">
+                                        <dl className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <dt className="text-xs text-muted-foreground">{t.freshness}</dt>
+                                                <dd>{t[node.projection.state.freshness]}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-xs text-muted-foreground">{t.details}</dt>
+                                                <dd>{t[node.projection.kind]}</dd>
+                                            </div>
+                                        </dl>
+                                        {!graph.historical &&
+                                            graph.instance.authority === 'provider' &&
+                                            node.projection.presentation && (
+                                                <NodeDiagnostics
+                                                    key={`diagnostics:${node.id}`}
+                                                    graph={graph}
+                                                    node={node}
+                                                    t={t}
+                                                />
+                                            )}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
                         </TabsContent>
                         <TabsContent value="attempts" forceMount className="space-y-3 data-[state=inactive]:hidden">
                             {!attempts.length && (
@@ -274,16 +253,16 @@ export function PipelineNodeDialog({
                         </TabsContent>
                     </div>
                 </Tabs>
-                <footer className="shrink-0 border-t px-6 py-4 sm:px-7">
+                <div className="shrink-0">
                     {error && (
                         <p role="alert" className="mb-3 text-sm text-destructive">
                             {error}
                         </p>
                     )}
-                    <div className="flex flex-wrap items-start justify-end gap-3">
-                        <Button variant="outline" onClick={close}>
-                            {t.close}
-                        </Button>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline">{t.close}</Button>
+                        </DialogClose>
                         {projectId &&
                             !graph.historical &&
                             node.projection.navigation?.kind === 'project_application' && (
@@ -294,8 +273,8 @@ export function PipelineNodeDialog({
                                     t={t}
                                 />
                             )}
-                    </div>
-                </footer>
+                    </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     )

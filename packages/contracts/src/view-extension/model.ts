@@ -1,3 +1,4 @@
+import type { PluginApplicationScope } from '../plugin-application'
 import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
 import type { XpertViewAssistantIdentity } from './assistant-profile'
@@ -142,6 +143,13 @@ export interface XpertViewRuntimeScope {
 export type XpertViewHostState = Record<string, unknown>
 
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
+  application?: {
+    installationId: string
+    pluginName: string
+    appName: string
+    scope: PluginApplicationScope
+    ownerUserId: string | null
+  } | null
   assistant?: XpertViewAssistantIdentity
   slots: XpertViewSlot[]
   hostSnapshot?: unknown

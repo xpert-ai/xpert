@@ -14,7 +14,13 @@ const hostMessageSchema = z.object({
     scopeRevision: z.number().int().nonnegative().optional(),
     requestId: z.string().optional(),
     locale: z.string().optional(),
-    theme: z.unknown(),
+    theme: z
+        .object({
+            mode: z.string().optional(),
+            density: z.enum(['default', 'compact']).optional(),
+            tokens: z.record(z.union([z.string(), z.number()])).optional()
+        })
+        .optional(),
     data: z.unknown(),
     result: z.unknown(),
     event: z.unknown(),
@@ -144,7 +150,7 @@ export function notify(message: string, level: 'success' | 'error' = 'success') 
     sendToHost('notify', { message, level })
 }
 
-export function applyTheme(theme: any) {
+export function applyTheme(theme: z.infer<typeof hostMessageSchema>['theme']) {
     if (!theme?.tokens) {
         return
     }
@@ -192,7 +198,8 @@ export function connectHost(
             scopeRevision = message.scopeRevision
             setLocale(message.locale)
             applyTheme(message.theme)
-            installShadcnThemeVars({ density: 'compact' })
+            installShadcnThemeVars({ density: message.theme?.density ?? 'compact' })
+            document.documentElement.classList.toggle('dark', message.theme?.mode === 'dark')
             init(message.initialQuery)
             return
         }

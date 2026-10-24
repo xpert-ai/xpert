@@ -14,9 +14,9 @@ Assistant's Workbench. It has no application-specific imports or Bid rules.
 - Host chrome supplies project context. The view starts with its four tabs;
   refresh and last-sync tooltip share that row instead of adding a header.
 
-The iframe derives its HTML root size from the host’s `densityRootFontSize` theme
-token (`--xui-density-root-font-size`), falling back to 14px when absent. It does
-not override the host token or choose a font size based on host type. Text sizes use Tailwind's default rem scale. Task
+The iframe uses the shared shadcn stylesheet and host theme adapter, including
+the host’s `densityRootFontSize` token (`--xui-density-root-font-size`) in compact
+mode. It does not override the shared typography defaults. Text sizes use Tailwind's default rem scale. Task
 rows are 40px, with shared geometry constants for virtual scrolling and Gantt
 dependency paths. Toolbars and detail panels use compact spacing.
 
@@ -75,6 +75,32 @@ Task details open in one centered, responsive Dialog for every view and viewport
 size. The overview, execution history, outputs and existing actions are preserved.
 The content scrolls inside the Dialog; close, Escape and backdrop actions use the
 existing unsaved-plan confirmation. Closing restores focus to the opening control.
+
+### Component styling
+
+Use the current workspace's `@xpert-ai/shadcn-ui` Radix components directly.
+Dialogs compose `DialogHeader`, `DialogTitle`, `DialogDescription` and, when
+needed, `DialogFooter`; retain the default close control, padding, typography,
+border, radius and shadow. Dialogs size to content with only responsive maximum
+width/height and scrolling constraints. Do not add a parallel dialog frame.
+
+Use component variants for Tabs, Buttons and Badges, and shared Checkbox,
+Textarea and Accordion primitives for form fields and disclosure. Color, radius,
+font and density differences come from the existing host-to-shadcn theme variables
+(`--background`, `--foreground`, `--muted`, `--border`, `--ring`, `--radius`, etc.),
+not View-specific component skins or active-state overrides. Canvas geometry,
+virtualized rows, business status indicators and overflow remain View layout concerns.
+
+After building the assets, verify light, dark and narrow layouts, theme variables,
+dialog focus, scrolling and configuration controls with:
+
+```bash
+node --test tools/testing/project-tasks-shadcn.e2e.mjs
+```
+
+Screenshots default to the OS temporary directory under `project-tasks-shadcn`;
+set `PROJECT_TASKS_E2E_OUTPUT` to use another directory. The test uses the in-memory
+preview fixture and does not change a live project's configuration.
 
 ### Delivered files tab
 

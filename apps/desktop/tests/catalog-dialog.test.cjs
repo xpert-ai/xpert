@@ -956,3 +956,32 @@ test('language changes replace cached catalog metadata without reinstalling temp
   assert.doesNotMatch(document.body.textContent, /Office/)
   assert.ok(reads > before)
 })
+
+test('App setup defaults to personal and rechecks the selected installation when its radio changes', async (t) => {
+  const scoped = { ...app, installationScopes: ['organization', 'personal'], installationScope: 'personal' }
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'listCatalog' && input === 'applications') return [scoped]
+    if (method === 'applicationSetup')
+      return {
+        application: { ...scoped, installationScope: input.installationScope },
+        canInitialize: true,
+        canConfigure: true,
+        reason: '',
+        toolsetRequirements: [],
+        embeddingModels: [],
+        visionModels: [],
+        defaultEmbeddingModelId: '',
+        defaultVisionModelId: ''
+      }
+    return defaultResult(method, input)
+  })
+  await view.click('Apps')
+  await view.click('Meetings')
+  assert.equal(document.querySelector('input[value="personal"]').checked, true)
+  await React.act(async () => document.querySelector('input[value="organization"]').click())
+  assert.equal(document.querySelector('input[value="organization"]').checked, true)
+  assert.equal(
+    view.calls.filter((call) => call.method === 'applicationSetup').at(-1).input.installationScope,
+    'organization'
+  )
+})

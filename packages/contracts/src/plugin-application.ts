@@ -27,9 +27,8 @@ export const PLUGIN_APPLICATION_INSTALLATION_STATUS = {
 /**
  * Scope declared by a trusted plugin application contribution.
  *
- * The current host initializer supports `organization`; the other values are
- * stable contract values for discovery and UI gating until their installers
- * are implemented.
+ * Organization and personal installations remain inside the current organization.
+ * Tenant is reserved for discovery until a tenant initializer is implemented.
  */
 export type PluginApplicationScope = (typeof PLUGIN_APPLICATION_SCOPE)[keyof typeof PLUGIN_APPLICATION_SCOPE]
 export type PluginApplicationInstallationStatus =
@@ -52,7 +51,8 @@ export interface PluginMarketplaceAppKnowledgebaseConfig {
   key: string
   name: string | I18nObject
   description?: string | I18nObject
-  permission: 'organization'
+  /** Personal installations always create private knowledge bases. */
+  permission: 'organization' | 'private'
   applicationTags?: string[]
   graphRag?: { enabled: boolean }
 }
@@ -93,7 +93,8 @@ export interface PluginMarketplaceAppAssistantSuite {
  * The host only executes this contract from a loaded plugin contribution.
  */
 export interface PluginMarketplaceAppConfig {
-  scope: PluginApplicationScope
+  /** A single scope or ordered choices. The first choice is the backward-compatible default. */
+  scope: PluginApplicationScope | PluginApplicationScope[]
   assistantTemplateKey: string
   assistantSuite?: PluginMarketplaceAppAssistantSuite
   workspace: {
@@ -146,7 +147,9 @@ export interface PluginTemplateApplicationSummary {
 export interface IPluginApplicationInstallation extends IBasePerTenantAndOrganizationEntityModel {
   pluginName: string
   appName: string
+  /** Actual scope selected for this installation, independent of the App declaration. */
   declaredScope: PluginApplicationScope
+  ownerUserId?: string | null
   scopeKey: string
   status: PluginApplicationInstallationStatus
   pluginVersion?: string | null
@@ -199,6 +202,7 @@ export interface PluginApplicationToolsetSelection {
 /** Read model used by marketplace cards to render installation health and actions. */
 export interface PluginApplicationStatusSummary {
   appId: string
+  installationScope?: PluginApplicationScope
   status: PluginApplicationInstallationStatus | 'not_installed'
   initializationAccess?: 'allowed' | 'organization_required' | 'role_required' | 'unsupported'
   installationId?: string
@@ -274,10 +278,11 @@ export interface PluginApplicationDetail {
 }
 
 /**
- * User-selectable portion of an initialization request. Scope and target
- * resources are intentionally absent and are derived from RequestContext.
+ * Clients select a declared installation scope; identity and target resource IDs
+ * are derived exclusively from the authenticated request context.
  */
 export interface PluginApplicationInitializeInput {
+  installationScope?: PluginApplicationScope
   pluginName: string
   appName: string
   embeddingModelId?: string
@@ -289,6 +294,7 @@ export interface PluginApplicationInitializeInput {
 
 /** Prepares or discards configuration in the current request scope; never accepts a Workspace ID. */
 export interface PluginApplicationSetupInput {
+  installationScope?: PluginApplicationScope
   pluginName: string
   appName: string
 }
@@ -297,4 +303,15 @@ export interface PluginApplicationSetupInput {
 export interface PluginApplicationBindToolsetInput extends PluginApplicationSetupInput {
   key: string
   toolsetId: string
+}
+
+/** Validate portable metadata without inferring a scope from names or presentation text. */
+export function getPluginApplicationScopes(value: unknown): PluginApplicationScope[] {
+  const values = Array.isArray(value) ? value : [value]
+  if (!values.length || !values.every(isPluginApplicationScope)) return []
+  return [...new Set(values)]
+}
+
+export function isPluginApplicationScope(value: unknown): value is PluginApplicationScope {
+  return value === 'organization' || value === 'personal' || value === 'tenant'
 }

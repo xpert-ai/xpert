@@ -15,13 +15,30 @@ jest.mock('./budget-configuration', () => ({ BudgetConfiguration: () => null }))
 jest.mock('@xpert-ai/shadcn-ui', () => {
     const React = jest.requireActual<typeof import('react')>('react')
     const box = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children)
+    const DialogContext = React.createContext(false)
     return {
         Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) =>
             React.createElement('button', props, children),
         Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => React.createElement('input', props),
         Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) =>
-            open ? React.createElement('section', { role: 'dialog' }, children) : null,
-        DialogContent: box,
+            React.createElement(DialogContext.Provider, { value: open }, children),
+        DialogTrigger: box,
+        DialogContent: ({ children }: { children?: React.ReactNode }) =>
+            React.useContext(DialogContext) ? React.createElement('section', { role: 'dialog' }, children) : null,
+        DialogHeader: box,
+        DialogFooter: box,
+        DialogClose: box,
+        Label: (props: React.LabelHTMLAttributes<HTMLLabelElement>) => React.createElement('label', props),
+        Textarea: (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => React.createElement('textarea', props),
+        Checkbox: ({
+            onCheckedChange,
+            ...props
+        }: React.InputHTMLAttributes<HTMLInputElement> & { onCheckedChange: (checked: boolean) => void }) =>
+            React.createElement('input', {
+                ...props,
+                type: 'checkbox',
+                onChange: (event: React.ChangeEvent<HTMLInputElement>) => onCheckedChange(event.target.checked)
+            }),
         DialogTitle: box,
         DialogDescription: box,
         Select: ({

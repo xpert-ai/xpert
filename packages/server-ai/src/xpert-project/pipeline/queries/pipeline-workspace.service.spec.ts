@@ -5,7 +5,12 @@ import { ProjectPipelineWorkspaceService } from './pipeline-workspace.service'
 import { XpertProjectTypeService } from '../../services/project-type.service'
 import { XpertProjectAccessService } from '../../services/project-access.service'
 import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
-import { ProjectPipelineInstanceEntity, ProjectPipelineDefinitionEntity } from '../persistence/pipeline.entity'
+import {
+    ProjectPipelineInstanceEntity,
+    ProjectPipelineDefinitionEntity,
+    ProjectPipelineNodeEntity,
+    ProjectPipelineRunEntity
+} from '../persistence/pipeline.entity'
 
 const context = { projectId: 'project', actor: { tenantId: 'tenant', organizationId: 'org', userId: 'user' } }
 const definition = {
@@ -38,17 +43,25 @@ async function fixture() {
     const resolve = jest.fn().mockReturnValue({ resolveEntry: entry })
     const access = { assertCanRead: jest.fn(), assertCanUseXpert: jest.fn() }
     const instance = jest.fn().mockResolvedValue({
+        id: 'instance',
         authority: 'platform',
         definitionId: 'definition',
         currentRoundId: 'round',
         currentRunId: 'run'
     })
     const round = {
+        runId: 'run',
         subjectVersionSet: [
             { resolverRef: 'neutral.subject@1', objectKey: 'exact-object', version: '1', digest: 'a'.repeat(64) }
         ]
     }
-    const read = jest.fn(async (entity) => (entity === ProjectPipelineDefinitionEntity ? { definition } : round))
+    const read = jest.fn(async (entity) =>
+        entity === ProjectPipelineDefinitionEntity
+            ? { definition }
+            : entity === ProjectPipelineRunEntity
+              ? { definitionId: 'definition' }
+              : round
+    )
     const module = await Test.createTestingModule({
         providers: [
             ProjectPipelineWorkspaceService,
@@ -71,7 +84,7 @@ async function fixture() {
             }
         ]
     }).compile()
-    return { service: module.get(ProjectPipelineWorkspaceService), entry, resolve, access, instance, round }
+    return { service: module.get(ProjectPipelineWorkspaceService), entry, resolve, access, instance, round, read }
 }
 
 it('opens the exact persisted subject through its actor-scoped adapter and checks Assistant assignment', async () => {
@@ -113,3 +126,42 @@ it.each(['project', 'instance', 'subject', 'assistant', 'binding', 'url'])(
         if (['project', 'instance', 'subject'].includes(failure)) expect(f.entry).not.toHaveBeenCalled()
     }
 )
+
+it('keeps instance/round navigation precise and rejects nodes from another round', async () => {
+    const f = await fixture()
+    const entry = await f.service.entry(context, { instanceId: 'instance' })
+    if (entry.kind !== 'assistant') throw Error('Expected Assistant entry')
+    expect(entry.parameters).toMatchObject({ pipelineInstanceId: 'instance', pipelineRoundId: 'round' })
+    f.read.mockImplementation(async (entity) =>
+        entity === ProjectPipelineNodeEntity
+            ? null
+            : entity === ProjectPipelineDefinitionEntity
+              ? { definition }
+              : entity === ProjectPipelineRunEntity
+                ? { definitionId: 'definition' }
+                : f.round
+    )
+    await expect(f.service.entry(context, { instanceId: 'instance', pipelineNodeId: 'foreign-node' })).rejects.toThrow()
+    expect(f.read).toHaveBeenLastCalledWith(ProjectPipelineNodeEntity, {
+        tenantId: 'tenant',
+        organizationId: 'org',
+        projectId: 'project',
+        id: 'foreign-node',
+        roundId: 'round'
+    })
+})
+
+it('keeps the selected historical round and checks its run belongs to this instance', async () => {
+    const f = await fixture()
+    const entry = await f.service.entry(context, { instanceId: 'instance', roundId: 'historical-round' })
+    expect(entry).toMatchObject({ parameters: { pipelineRoundId: 'historical-round' } })
+    expect(f.read).toHaveBeenCalledWith(ProjectPipelineRunEntity, {
+        tenantId: 'tenant',
+        organizationId: 'org',
+        projectId: 'project',
+        id: 'run',
+        instanceId: 'instance'
+    })
+    f.read.mockImplementation(async (entity) => (entity === ProjectPipelineRunEntity ? null : f.round))
+    await expect(f.service.entry(context, { instanceId: 'instance', roundId: 'foreign-round' })).rejects.toThrow()
+})

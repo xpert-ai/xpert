@@ -1,6 +1,8 @@
+import { applicationInstallationScopeSchema } from '../application-scope.schema'
 import { z } from 'zod/v3'
 
 const identity = {
+    installationScope: applicationInstallationScopeSchema,
     pluginName: z.string().trim().min(1).max(255),
     appName: z.string().trim().min(1).max(255)
 }
@@ -9,6 +11,7 @@ export const applicationSetupSchema = z
     .object(identity)
     .strict()
     .transform((input) => ({
+        ...(input.installationScope ? { installationScope: input.installationScope } : {}),
         pluginName: input.pluginName,
         appName: input.appName
     }))
@@ -21,6 +24,7 @@ export const applicationBindToolsetSchema = z
     })
     .strict()
     .transform((input) => ({
+        ...(input.installationScope ? { installationScope: input.installationScope } : {}),
         pluginName: input.pluginName,
         appName: input.appName,
         key: input.key,

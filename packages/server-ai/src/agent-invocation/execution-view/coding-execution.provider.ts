@@ -42,7 +42,7 @@ export class CodingExecutionProvider implements IXpertViewExtensionProvider {
                 key: 'execution',
                 hostType: context.hostType,
                 slot,
-                title: { en_US: 'Coding execution', zh_Hans: 'Coding 执行' },
+                title: { en_US: 'Coding execution', zh_Hans: '编程执行', zh_Hant: '程式執行' },
                 icon: { type: 'emoji', value: '⌘' },
                 source: { provider: 'platform.coding-execution' },
                 ...(context.hostType === 'agent'

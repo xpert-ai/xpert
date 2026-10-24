@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Bot, ExternalLink, Info, GitBranch, ChevronRight } from 'lucide-react'
 import {
     Button,
+    Badge,
     Input,
     Label,
     Tabs,
@@ -141,8 +142,8 @@ export function TaskDetail({
         </Button>
     )
     return (
-        <div className="flex h-full min-h-0 flex-col">
-            <div className="space-y-2 px-4 pb-3 pt-1">
+        <div className="flex min-h-0 flex-col gap-4">
+            <div className="space-y-2">
                 <h2 className="flex items-start gap-2 text-lg font-semibold leading-6">
                     <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
                     <span className="min-w-0 break-words">{task.title}</span>
@@ -154,22 +155,18 @@ export function TaskDetail({
                     </span>
                 </div>
             </div>
-            <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1 gap-0">
-                <TabsList variant="line" aria-label={t.detailLabel} className="w-full justify-start border-b px-4">
+            <Tabs value={tab} onValueChange={setTab} className="min-h-0">
+                <TabsList aria-label={t.detailLabel}>
                     {(['overview', 'history', 'outputs'] as const).map((value) => (
-                        <TabsTrigger
-                            key={value}
-                            value={value}
-                            className="data-[state=active]:text-primary data-[state=active]:after:bg-primary"
-                        >
+                        <TabsTrigger key={value} value={value}>
                             {t[value]}
                             {value === 'history' && attempts.length > 0 && (
-                                <span className="text-xs">{attempts.length}</span>
+                                <Badge variant="secondary">{attempts.length}</Badge>
                             )}
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                <TabsContent value={tab} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+                <TabsContent value={tab} className="min-h-0 space-y-3 overflow-y-auto">
                     {error && (
                         <p
                             role="alert"
@@ -191,17 +188,19 @@ export function TaskDetail({
                                     task.predecessorIds.map((id) => {
                                         const item = graph.tasks.find((task) => task.id === id)
                                         return item ? (
-                                            <button
+                                            <Button
                                                 key={id}
                                                 onClick={() => select(item)}
-                                                className="flex w-full items-center gap-2 rounded py-1 text-left hover:text-primary"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full justify-start"
                                             >
                                                 <GitBranch className="size-3.5 shrink-0" />
                                                 <span className="flex-1 truncate" title={item.title}>
                                                     {item.title}
                                                 </span>
                                                 <ChevronRight className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         ) : null
                                     })
                                 ) : (

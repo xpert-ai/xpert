@@ -1,10 +1,5 @@
 @import '@xpert-ai/shadcn-ui/styles.css';
 @source "./src/**/*.{ts,tsx}";
-/* Follow host typography; override the shared compact fallback only when no token is supplied. */
-:root,
-:root[data-xui-density='compact'] {
-    font-size: var(--xui-density-root-font-size, 14px);
-}
 html,
 body,
 #root {

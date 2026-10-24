@@ -3,7 +3,15 @@ import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon
 import { executionProviderLabel } from './execution-provider'
 import { useEffect, useState } from 'react'
 import { z } from 'zod/v3'
-import { Button, Textarea, Label } from '@xpert-ai/shadcn-ui'
+import {
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+    AccordionContent,
+    Button,
+    Textarea,
+    Label
+} from '@xpert-ai/shadcn-ui'
 import {
     agentInvocationStatusSchema,
     agentRuntimeProgressSchema,
@@ -362,12 +370,16 @@ export function RuntimeDetail({
                             attempt.invocationStatus === 'succeeded' &&
                             !attempt.reviewReport && <p className="text-sm">{t.unknown}</p>}
                         {attempt.result?.text && (
-                            <details>
-                                <summary className="cursor-pointer text-xs">{t.evidence}</summary>
-                                <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">
-                                    {attempt.result.text}
-                                </pre>
-                            </details>
+                            <Accordion type="single" collapsible>
+                                <AccordionItem value="evidence">
+                                    <AccordionTrigger>{t.evidence}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">
+                                            {attempt.result.text}
+                                        </pre>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
                         )}
                         {attempt.result?.artifacts?.map((artifact) => (
                             <p key={artifact.id} className="break-all text-xs">

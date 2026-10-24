@@ -8,6 +8,8 @@ await build({
     outfile: join(root, 'app.js'),
     bundle: true,
     format: 'iife',
+    // Keep the IIFE separate from the host's preceding initialization script.
+    banner: { js: ';' },
     platform: 'browser',
     target: 'es2020',
     minify: true,

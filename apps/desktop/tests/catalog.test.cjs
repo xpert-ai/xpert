@@ -570,3 +570,49 @@ test('blank assistant creation offers and installs Project management with organ
   })
   assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
 })
+
+test('multi-scope App catalog uses personal status and forwards the selected target on every initialization', async () => {
+  const scopedApp = { ...app, scope: 'organization', config: { ...app.config, scope: ['organization', 'personal'] } }
+  const { service, calls } = fixture((path, options, url) => {
+    const selected = url.searchParams.get('installationScope') || 'organization'
+    const value = {
+      ...detail,
+      application: { ...scopedApp, scope: selected },
+      status: {
+        ...detail.status,
+        installationScope: selected,
+        status: selected === 'organization' ? 'ready' : 'not_installed',
+        xpertId: selected === 'organization' ? 'organization-assistant' : null
+      }
+    }
+    if (path.endsWith('/catalog')) return [value]
+    if (path.endsWith('/detail')) return value
+    if (path.endsWith('/initialize')) return { status: 'ready', xpertId: 'personal-assistant' }
+    throw new Error(`Unexpected path: ${path}`)
+  })
+  const [item] = await service.listCatalog('applications')
+  assert.equal(item.installationScope, 'personal')
+  assert.equal(item.status, 'not_installed')
+  assert.equal(item.botId, null)
+  assert.deepEqual(item.installationScopes, ['organization', 'personal'])
+  const setup = await service.applicationSetup({
+    pluginName: app.pluginName,
+    appName: app.appName,
+    installationScope: 'personal'
+  })
+  assert.equal(setup.application.installationScope, 'personal')
+  await service.initializeApplication({
+    pluginName: app.pluginName,
+    appName: app.appName,
+    installationScope: 'personal',
+    operationId: 'personal-operation',
+    embeddingModelId: 'model-1',
+    ownerUserId: 'spoofed'
+  })
+  const initialize = calls.find((call) => call.path.endsWith('/initialize'))
+  assert.equal(initialize.body.installationScope, 'personal')
+  assert.equal(initialize.body.ownerUserId, undefined)
+  await assert.rejects(
+    service.applicationSetup({ pluginName: app.pluginName, appName: app.appName, installationScope: ['personal'] })
+  )
+})

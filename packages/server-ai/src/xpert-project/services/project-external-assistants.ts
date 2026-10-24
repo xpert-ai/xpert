@@ -1,5 +1,9 @@
 import type { IXpert } from '@xpert-ai/contracts'
-import type { ProjectEnsureInput, ProjectExternalAssistantExpectation } from '@xpert-ai/plugin-sdk'
+import type {
+    ProjectAssistantBinding,
+    ProjectEnsureInput,
+    ProjectExternalAssistantExpectation
+} from '@xpert-ai/plugin-sdk'
 import { BadRequestException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
@@ -16,9 +20,9 @@ export async function validateProjectExternalAssistants(
     queryBus: QueryBus,
     requester: IXpert,
     input: ProjectEnsureInput
-): Promise<void> {
+): Promise<ProjectAssistantBinding[]> {
     const expectations = normalizeProjectExternalAssistantExpectations(input.externalAssistantExpectations)
-    if (!expectations.length) return
+    if (!expectations.length) return []
     const requesterAgentKey = requiredProjectText(input.requesterAgentKey ?? '', 'requesterAgentKey', 100)
     if (requester.agent?.key !== requesterAgentKey) {
         throw new BadRequestException(
@@ -45,6 +49,7 @@ export async function validateProjectExternalAssistants(
         descriptor: describeExternalAssistantBinding(requester, candidate)
     }))
 
+    const resolved: ProjectAssistantBinding[] = []
     for (const expectation of expectations) {
         const matches = bindings.filter(({ descriptor }) =>
             matchesExternalAssistantExpectation(descriptor, expectation)
@@ -77,6 +82,7 @@ export async function validateProjectExternalAssistants(
         if (match.descriptor.status !== 'available') {
             throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
         }
+        resolved.push({ ...expectation, xpertId: match.candidate.id })
         // The requester Assistant and its direct graph edge are the
         // authorization anchor for portable role resolution. Re-applying the
         // USER_XPERT token audience to the target here would reject every
@@ -84,6 +90,7 @@ export async function validateProjectExternalAssistants(
         // scoped to the requester only. The candidate has already been fully
         // validated for publication, organization and portable identity.
     }
+    return resolved
 }
 
 export function requiredProjectText(value: string, field: string, maxLength: number): string {

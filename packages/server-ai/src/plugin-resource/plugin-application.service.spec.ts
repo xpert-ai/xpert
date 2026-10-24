@@ -14,6 +14,10 @@ import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/querie
 
 function withToolsets(service: PluginApplicationService) {
     Object.assign(service, {
+        applicationAccess: {
+            assertMembership: jest.fn().mockResolvedValue(undefined),
+            assertCanInitialize: jest.fn().mockResolvedValue(undefined)
+        },
         applicationToolsets: {
             preflight: jest.fn().mockResolvedValue([]),
             prepare: jest.fn().mockResolvedValue([]),
@@ -38,6 +42,7 @@ describe('PluginApplicationService', () => {
     ) {
         return withToolsets(
             new PluginApplicationService(
+                {} as never,
                 { findOne: jest.fn().mockResolvedValue(null) } as never,
                 {} as never,
                 {} as never,
@@ -468,6 +473,7 @@ describe('PluginApplicationService', () => {
         const queryBus = { execute: jest.fn() }
         const service = withToolsets(
             new PluginApplicationService(
+                {} as never,
                 installationRepo as never,
                 workspaceRepo as never,
                 knowledgebaseRepo as never,
@@ -528,6 +534,7 @@ describe('PluginApplicationService', () => {
 
     const initializationCases = [
         'new',
+        'personal',
         'repair-missing-workspace',
         'repair-existing-workspace',
         'repair-knowledgebases',
@@ -538,7 +545,8 @@ describe('PluginApplicationService', () => {
         'suite-failed'
     ]
     it.each(initializationCases)('initializes %s without opening workspace access', async (scenario) => {
-        const isNew = scenario === 'new' || scenario === 'failed-template' || scenario === 'suite-failed'
+        const personal = scenario === 'personal'
+        const isNew = personal || scenario === 'new' || scenario === 'failed-template' || scenario === 'suite-failed'
         const configured = scenario.startsWith('configured')
         const repairsKnowledgebases = scenario.startsWith('repair-knowledgebases')
         const missingMiddle = scenario === 'repair-knowledgebases-missing-middle'
@@ -554,8 +562,9 @@ describe('PluginApplicationService', () => {
             organizationId: 'org-1',
             pluginName: '@acme/plugin-example-app',
             appName: 'example-app',
-            declaredScope: 'organization',
-            scopeKey: 'org-1',
+            declaredScope: personal ? 'personal' : 'organization',
+            ownerUserId: personal ? 'installer-1' : null,
+            scopeKey: personal ? 'personal:org-1:installer-1' : 'org-1',
             status: configured
                 ? PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING
                 : PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED,
@@ -601,6 +610,7 @@ describe('PluginApplicationService', () => {
         }
         const service = withToolsets(
             new PluginApplicationService(
+                {} as never,
                 installationRepo as never,
                 { findOne: jest.fn().mockResolvedValue(hasWorkspace ? existingWorkspace : null) } as never,
                 knowledgebaseRepo as never,
@@ -629,14 +639,22 @@ describe('PluginApplicationService', () => {
                                                     type: 'app',
                                                     name: 'example-app',
                                                     appConfig: {
-                                                        scope: 'organization',
+                                                        scope: ['organization', 'personal'],
                                                         assistantTemplateKey: 'example-assistant',
-                                                        knowledgebases: repairsKnowledgebases
-                                                            ? [1, 2, 3].map((index) => ({
-                                                                  key: `kb-${index}`,
-                                                                  name: `Knowledge ${index}`
-                                                              }))
-                                                            : [],
+                                                        knowledgebases: personal
+                                                            ? [
+                                                                  {
+                                                                      key: 'private',
+                                                                      name: 'Private knowledge',
+                                                                      permission: 'organization'
+                                                                  }
+                                                              ]
+                                                            : repairsKnowledgebases
+                                                              ? [1, 2, 3].map((index) => ({
+                                                                    key: `kb-${index}`,
+                                                                    name: `Knowledge ${index}`
+                                                                }))
+                                                              : [],
                                                         ...(scenario === 'suite-failed'
                                                             ? {
                                                                   assistantSuite: {
@@ -732,9 +750,22 @@ describe('PluginApplicationService', () => {
             service.initialize({
                 pluginName: '@acme/plugin-example-app',
                 appName: 'example-app',
-                operationId: 'repair-1'
+                operationId: 'repair-1',
+                installationScope: personal ? 'personal' : undefined
             })
         ).resolves.toMatchObject({ status: 'ready', xpertId: 'xpert-1', assistantSlug: 'example-app' })
+        if (personal) {
+            expect(installationRepo.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ownerUserId: 'installer-1',
+                    scopeKey: 'personal:org-1:installer-1',
+                    declaredScope: 'personal'
+                })
+            )
+            expect(knowledgebaseService.create).toHaveBeenCalledWith(
+                expect.objectContaining({ workspaceId: 'replacement-workspace', permission: 'private' })
+            )
+        }
         if (repairsKnowledgebases) {
             expect(claimed.knowledgebaseIds).toEqual([
                 'knowledge-1',
@@ -772,6 +803,7 @@ describe('PluginApplicationService', () => {
                         access: { visibility: 'private' },
                         system: {
                             kind: 'plugin-app',
+                            applicationInstallationId: 'installation-1',
                             pluginName: '@acme/plugin-example-app',
                             appName: 'example-app'
                         }

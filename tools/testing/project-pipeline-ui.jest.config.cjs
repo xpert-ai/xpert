@@ -42,6 +42,7 @@ module.exports = {
     '^react/(.*)$': '<rootDir>/node_modules/react/$1',
     '^react-dom(.*)$': '<rootDir>/node_modules/react-dom$1',
     '^@xpert-ai/contracts$': '<rootDir>/packages/contracts/src/index.ts',
+    '^@/(.*)$': '<rootDir>/packages/shadcn-ui/src/$1',
     '^@xpert-ai/shadcn-ui$': '<rootDir>/packages/shadcn-ui/src/index.ts',
     '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/packages/shadcn-ui/src/brand-icons/index.cts'
   },

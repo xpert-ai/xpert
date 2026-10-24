@@ -2757,10 +2757,11 @@
           "Initializing": "初始化中…",
           "ApplyToOrganization": "应用到当前组织",
           "RepairAndReinitialize": "修复并重新初始化",
-          "ContinueConfiguration": "继续配置"
+          "ContinueConfiguration": "继续配置",
+          "ApplyToPersonal": "为我安装"
         },
         "Preflight": {
-          "OrganizationRequired": "请先切换到一个组织，再启用此组织级应用。",
+          "OrganizationRequired": "请选择一个组织后安装此应用。",
           "RoleRequired": "你可以查看应用详情，但需要联系组织管理员完成初始化。",
           "PrimaryModelRequired": "当前组织还没有可用的主语言模型，请先完成模型配置。",
           "EmbeddingModelRequired": "当前组织还没有可用的 Embedding 模型，请先完成模型配置。",
@@ -2787,7 +2788,9 @@
           "standalone": "独立助手",
           "workspace": "工作空间",
           "knowledgebase": "知识库"
-        }
+        },
+        "InstallationTarget": "安装范围",
+        "PersonalDataScope": "在当前组织中创建属于你的应用实例。工作空间、配置和新建知识库默认仅你可访问。"
       },
       "AgentSquare": {
         "UseExpert": "使用专家",

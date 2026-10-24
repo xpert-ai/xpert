@@ -118,6 +118,35 @@ async function harness(definitionSuite = suite) {
 }
 
 describe('application suite standalone Assistant provisioning', () => {
+    it('keeps all suite roles and retry receipts inside each personal installation', async () => {
+        const h = await harness()
+        const app: PluginTemplateApplicationSummary = {
+            ...application,
+            scope: 'personal',
+            config: { ...application.config, scope: ['organization', 'personal'] }
+        }
+        Object.assign(h.installation, { declaredScope: 'personal', ownerUserId: 'alice' })
+        const other = Object.assign(new PluginApplicationInstallation(), h.installation, {
+            id: 'installation-002',
+            workspaceId: 'workspace-002',
+            ownerUserId: 'bob',
+            resourceRefs: {}
+        })
+        const first = await h.service.ensure(app, h.installation, h.installation.workspaceId)
+        const second = await h.service.ensure(app, other, other.workspaceId)
+        expect(first.id).not.toBe(second.id)
+        const firstIds = new Set(Object.values(h.installation.resourceRefs))
+        for (const [key, id] of Object.entries(other.resourceRefs)) {
+            if (key === 'assistant' || key.startsWith('role:')) expect(firstIds.has(id)).toBe(false)
+        }
+        for (const [key, id] of Object.entries(other.resourceRefs)) {
+            if (key === 'assistant' || key.startsWith('role:'))
+                expect(h.teams.get(id).workspaceId).toBe('workspace-002')
+        }
+        await h.service.ensure(app, h.installation, h.installation.workspaceId)
+        expect(h.teams.size).toBe(6)
+    })
+
     it('validates all template provenance before creating resources', async () => {
         const h = await harness()
         await h.service.validate(application)
