@@ -1,0 +1,179 @@
+---
+title: '协作空间：内容平台与插件扩展'
+description: 'Project 文件、内容编辑器、协作发布、ChatKit 生命周期和文档来源的职责与契约。'
+---
+
+Spaces 复用项目协作与文件基础设施。平台提供通用内容能力，插件实现空间视图、具体文档模型和编辑器，ChatKit Workbench 承载导航、保存保护及 Assistant 审阅。
+
+本页描述当前代码契约与运行边界。面向使用者的入口是[协作空间](/zh-Hans/guides/spaces)、[Markdown 协作](/zh-Hans/guides/spaces-markdown)和[文档来源导入](/zh-Hans/guides/spaces-document-sources)。
+
+## 职责划分
+
+| 层                | 职责                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| Project           | 类型、成员与角色、Assistant 连接、归档状态和文件工作区                   |
+| 平台内容服务      | 资源鉴权、编辑器注册与解析、协作持久化、文件发布、版本、提案、评论和引用 |
+| HTTP SDK          | `Client.content` 的有类型请求，复用身份、组织上下文与取消信号            |
+| ChatKit Workbench | 编辑器实例、内部导航、未保存状态协调、链接、Assistant 审阅与上下文交接   |
+| ClawXpert Detail  | 承载 ChatKit；路由离开时调用通用 `prepareLeave()`                        |
+| Spaces 插件       | 空间元数据、列表与目录视图、项目内容入口、子页面关系及导入编排           |
+| Markdown 插件     | Tiptap/Yjs 文档模型、Markdown 解析与序列化、编辑 UI、定位与保存握手      |
+| 连接器插件        | 第三方授权、固定 API 调用、来源搜索、读取与格式降级说明                  |
+
+ClawXpert Detail 不注册另一套内容命令、不维护文档 dirty 状态，也不打开独立的 Angular 文档审阅界面。Spaces View 不承担通用 AI 对话和审阅。其他格式的编辑器应扩展统一契约，而不是把格式语义加入空间列表或平台通用存储服务。
+
+## 项目与资源身份
+
+内置项目类型为 `applicationKey: 'platform'`、`projectTypeKey: 'space'`。`plugin_spaces_space` 按租户、组织和项目唯一关联，保存空间扩展元数据。内容记录通过 `spaceId` 关联该记录，但 `spaceId` 不作为文件 catalog、卷根或授权作用域。
+
+文件引用使用 `catalog: 'projects'`、`projectId` 与 `scopeId: projectId`，映射到逻辑项目根 `/project/<projectId>`。空间不拥有独立 Volume，也不根据 Assistant 创建人选择文件所有者。页面文件、二进制文件和收集的 artifacts 共用项目工作区。
+
+`parentId` 表示物理文件夹；`parentPageId` 表示逻辑页面父级。页面 ID 与资源 ID 在重命名、移动后保持稳定。普通文件版本使用空间历史目录；受管理 Markdown 的权威正文版本由平台内容服务维护，不能在插件内再维护第二个正文 head。
+
+## 授权边界
+
+入口从可信请求构造租户、组织、用户、Assistant 和项目作用域，不接受浏览器传入的身份或文件根覆盖。
+
+- 进入项目后，检查项目成员权限及 Assistant 的项目连接，不额外依赖 Studio 资源容器可见性或全局 Assistant 目录可见性。
+- 尚未选择项目的能力入口检查已发布 Assistant 的目录访问权限。
+- Spaces 的 View、action、工具等入口还验证实际安装并发布的 `spaces` 能力，复用平台的 Assistant middleware 解析。
+- 后续文档操作按资源及操作权限鉴权；不能把移除某个 Assistant 能力理解为删除项目文件或转移其所有权。
+- 协作广播对每个接收者重新鉴权。成员撤销、项目归档或资源失效不能被旧连接绕过。
+
+所有者和管理员可管理，编辑者可写，普通成员只读；归档项目只读。服务端插件处于可信执行环境，Remote View 的 iframe 隔离并不构成服务端插件的安全沙箱。
+
+## 统一编辑器与资源契约
+
+`ContentEditorRegistry` 同时注册文本模型和文件编辑器。`IContentEditorProvider` 使用显式类型区分 `ContentDocumentModel` 与 `ContentFileEditor`，不根据文件名、展示标题或偶然字段猜测能力。
+
+| 契约                   | 用途                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `ContentEditorsApi`    | 编辑器列表、准备、解析，以及文件编辑器的读取和带版本基线的写入                   |
+| `ContentDocumentModel` | 插件提供文本模型初始化、校验、读取、修改与模型升级                               |
+| 内容资源 Provider      | 描述资源、授权及编辑入口，并按需提供文件、引用、页面层级、位置变更和发布投影能力 |
+| `ContentDocumentsApi`  | 受管理文档、版本、提案、评论和可选页面层级操作                                   |
+| `ContentReferencesApi` | 授权的图片、文件、页面引用及预览/下载解析                                        |
+
+文件编辑器提交不透明文件内容与 `expectedRevision`，平台处理授权和冲突。表格单元格、演示页或 Office 格式的内部语义属于对应编辑器插件，不进入平台公共文档模型。
+
+常用运行时能力包括 `platform.project.access`、`platform.project.files`、`platform.content.resources`、`platform.content.editors`、`platform.content.documents`、`platform.content.references`、`platform.project.knowledge`、`platform.connector.documents` 和 `platform.assistant.middleware-access`。插件通过公共契约调用，不从通用 service getter 取得平台内部服务。
+
+## Workbench 导航协议
+
+打开内容分为准备、解析和导航三个步骤：
+
+1. 业务插件按需调用自己的 `document.open` 准备已授权资源；该 action 不执行导航。
+2. 使用 `workbench.content.resolve` 解析资源对应的已注册编辑器。Assistant、Project 和组织由当前 Workbench 提供。
+3. 检查成功结果，把返回的 `navigation` 交给同一个 bridge 的 `workbench.navigation.open`，在当前 ChatKit Workbench 打开标签。
+
+```ts
+// bridgeRequest 代表插件已有的关联请求封装。
+const result = await bridgeRequest('invokeClientCommand', {
+  commandKey: 'workbench.content.resolve',
+  payload: { resourceId, providerKey }
+})
+// 成功结果中 navigation 的形状：
+// { target: 'workbench.view', viewKey: 'markdown.views__markdown.editor',
+//   selectionId: resourceId, parameters: { contentProvider: providerKey } }
+if (result.success && result.navigation) {
+  await bridgeRequest('invokeClientCommand', {
+    commandKey: 'workbench.navigation.open',
+    payload: result.navigation
+  })
+}
+```
+
+请求信封包含 `channel: 'xpertai.remote_component'`、`protocolVersion: 1`、`instanceId`、`scopeRevision`、`requestId`、`type: 'invokeClientCommand'`、`commandKey` 和 `payload`。响应为 `clientCommandResult`，使用相同关联字段，结果位于 `result`。宿主校验来源、实例、当前作用域和 manifest 声明。
+
+Spaces 将 `workbench.content.resolve` 声明为必需命令；Markdown/Office 编辑器将 `workbench.content.status` 声明为必需命令。不满足必需命令的宿主不展示对应入口。`required` 是兼容性声明，不是授权。失败时保留当前文档，不回退到外层 ClawXpert Workbench，也不保留旧 `workbench.content.open` 入口。
+
+## 保存与离开生命周期
+
+每个 Workbench 有独立的编辑器生命周期协调器，原生编辑器和 Remote View 共用它。
+
+1. 插件通过 `workbench.content.status` 报告当前资源状态，只接受匹配实例、作用域和选中资源的事件。
+2. 需要关闭或替换脏资源时，ChatKit 发送 `editorEvent/prepareClose`。
+3. 插件完成保存，返回携带原 `requestId` 和 `scopeRevision` 的 `closePrepared`。
+4. 只有 `ready: true` 且状态干净时才能离开。错误、超时、卸载或过期响应不能视为成功。
+
+对外公开的是 `prepareLeave(): Promise<boolean>`，不是公开 dirty 属性或事件。ClawXpert 路由只处理布尔结果，15 秒未回应时阻止离开。`beforeunload` 提供浏览器关闭提示；它不保证持久离线恢复，也不表示 AI 任务已完成。
+
+`assistant.content.review` 在 ChatKit 打开提案、评论、版本和外部冲突。`workbench.content.link/copyLink` 按配置的公开 `workbench.linkBaseUrl` 生成授权入口；未配置时返回 `link_unavailable`，不拼接当前私有会话 URL。
+
+## 协作、发布与恢复
+
+当前 Markdown 模型为 `markdown.tiptap`，schema 为 `4`，Yjs 文档片段为 `body`。前后端共用模型约束，平台拒绝不支持的 schema 或过期 epoch。模型支持从同系列 schema 1、2、3 升级；这不等于支持旧版独立 Space 数据迁移。
+
+协作更新先持久化，再对有权接收的会话广播。发布到文件采用独立的确认流程：
+
+```mermaid
+flowchart LR
+  A[Yjs 更新持久化] --> B[生成 Markdown 与 Yjs 快照]
+  B --> C[记录 prepared revision]
+  C --> D[文件锁与 hash 基线检查]
+  D --> E[原子替换项目文件]
+  E --> F[确认 head 与已发布序号]
+  F --> G[投影与知识索引]
+```
+
+平台保存 `content_document`、`content_revision`、`content_proposal`、`content_comment`、`content_location_change` 及协作数据。版本文件位于 `.apps/content/versions/<resourceId>/<revisionId>.md` 和对应 `.yjs`；外部冲突副本位于 `.apps/content/external/<resourceId>/<hash>.md`。
+
+恢复任务检查未完成发布：磁盘仍为基线时继续写入，已经是候选内容时只补确认，出现无关内容时进入冲突。不能把已接受的 Yjs 序号当作已发布文件序号。文件移动记录 prepared、committed、projected 阶段，先隔离旧协作 epoch，再执行文件位置变更和投影。
+
+恢复版本、模型升级与外部冲突处理核对基线并更新 epoch；旧客户端不能继续写入。普通文件 API 阻止绕过管理文档发布，但 sandbox 直接写文件仍可能产生外部冲突。
+
+知识索引在文件发布之后执行，失败可重试且不回滚正文。默认项目绑定使用关键词检索；结果重新鉴权并校验索引 hash 与当前文件一致。
+
+## 文档来源适配
+
+连接器通过 `ConnectorStrategyRuntime.documents?: ConnectorDocumentSource` 提供文档来源，平台通过 `platform.connector.documents` 的 sources、search、read 操作协调。作用域来自可信运行时，凭据通过已有连接授权及刷新流程获取，不经 Remote View 传递。
+
+飞书适配器只请求固定 OpenAPI 地址，不直接抓取粘贴的 URL，也不跟随重定向。它检查授权账号、docx/wiki 目标、读取前后版本和文本大小。Spaces 保存导入意图，在确认时重新读取并检查预览基线，再创建文件及内容资源；完成请求可安全重试。
+
+导入来源信息保存在 `SpaceItem.importOrigin`，包括版本、hash、原文链接和降级提示。当前共享连接的文档可见性来自其授权账号；复制后的文件按目标项目权限共享。此契约不包含双向同步或外部文档回写。
+
+## Remote View 主题与国际化
+
+插件视图复用共享 shadcn/ui 控件，包括 Dialog、Select、Dropdown、Button 和 Input。保留组件默认样式，通过宿主 theme vars 调整视觉参数；`--xui-font-size` 与 `--xui-density-root-font-size` 用于派生字体和密度。业务布局不应另外覆盖通用组件的字号、圆角和阴影体系。
+
+界面词条集中维护在插件语言目录/字典中，使用共享 Remote View i18n 层选择语言、插值和回退。英文与 `zh-Hans` 保持词条一致；组件只引用键，服务端业务错误使用平台 i18next 命名空间。文件名、正文和外部来源标题保持原文。
+
+## 发布与部署
+
+当前文档基于源码核对。既有本地测试使用过相邻 SDK 构建包联调，不能代替正式发布依赖组合的浏览器验收。当前 ChatKit 声明的 SDK `0.14.0` 尚无 `Client.content`，仅发布平台的 Angular 移除代码无法完成交付。
+
+发布顺序：
+
+1. 发布包含内容契约的 contracts/plugin-sdk，以及提供 `Client.content` 的 HTTP SDK。
+2. 升级 ChatKit 对正式 SDK 的依赖，构建并发布 ChatKit；不依赖手工修改 `node_modules`。
+3. 升级平台使用的 ChatKit，构建匹配的插件与 Remote View 资产，更新并发布 Assistant 配置。
+4. 结合已部署版本，备份数据库和项目 Volume，并执行适用迁移后再开放写入。
+5. 用正式包组合验证空间打开、文档切换、协作、保存失败阻止离开、恢复、链接、权限撤销和飞书导入。
+
+相关迁移入口：
+
+| 所在仓库      | 路径                                                                                          |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| xpert         | `packages/server-ai/src/xpert-project/migrations/20260920-project-types.sql`                  |
+| xpert         | `packages/server-ai/src/artifacts/migrations/20261015-content-resource-policy.sql`            |
+| xpert         | `packages/server-ai/src/knowledgebase/runtime/migrations/20261020-resource-policy.sql`        |
+| xpert         | `packages/server-ai/src/content-resource/documents/migrations/20261021_content_documents.sql` |
+| xpert-plugins | `xpertai/apps/spaces/migrations/20261023-subpages.sql`                                        |
+| xpert-plugins | `xpertai/apps/spaces/migrations/20261023-document-import-origin.sql`                          |
+
+这些是升级入口，不是一套适用于任意旧数据库的自动迁移脚本；初次安装还需正常初始化插件实体。当前代码不提供旧 Assistant 独立空间到 Project 空间的通用转换流程。
+
+## 验证入口与未覆盖边界
+
+维护时可从以下源码入口定位实现及相邻测试：
+
+| 仓库          | 入口                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| xpert         | `packages/server-ai/src/content-resource/`、`packages/server-ai/src/connector/`、`packages/server-ai/src/xpert-project/` |
+| xpert-sdk     | `packages/core/src/tests/content.test.ts` 及 `Client.content` 实现                                                       |
+| chatkit-js    | `WorkbenchShell.content.test.tsx`、`editor-lifecycle.test.ts`、`RemoteViewFrame.test.tsx`、`ParentMessenger.test.tsx`    |
+| xpert-plugins | `xpertai/apps/spaces/`、`xpertai/apps/markdown-editor/`、`packages/shadcn-ui/`                                           |
+
+已有记录中的协议测试、组件测试和历史浏览器验收只能证明当时的版本。当前最后一轮 ChatKit 职责调整尚需正式包组合验收；Office 插件也需要对齐新版平台依赖后独立验证，不能由 Markdown 验收推导为 Office 可用。
+
+以下边界仍需在面向生产的部署中验证或继续实现：跨节点共享存储与锁故障、数据库和 Volume 联合备份恢复、完整的输入法与双窗口浏览器交互矩阵、持久离线编辑。发布投影目前仍使用对应修订的作者身份，作者权限撤销可能阻塞投影，需要明确的维护身份与恢复策略；当前文档不将其描述为已经解决。

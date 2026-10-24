@@ -1,0 +1,95 @@
+---
+title: 'Collaborative Spaces'
+description: 'Maintain project files, documents, and work artifacts with teammates and multiple Assistants.'
+---
+
+Spaces is an Assistant capability delivered by plugins. Users open a Space in ChatKit Workbench to browse project files, create pages, collect work artifacts, and edit documents with project members. Multiple Assistants can connect to one project and work with the same content.
+
+This documentation describes the current source implementation and replaces the earlier Spaces delivery plans. It requires compatible platform, SDK, ChatKit, and plugin versions. See [architecture and extensions](/en/architecture/spaces-content#release-and-deployment) for the distinction between source validation and a released installation.
+
+## Spaces, projects, and Assistants
+
+A Space uses the built-in `platform/space` project type. The project owns membership, roles, Assistant connections, the file workspace, and archive state. The Spaces plugin supplies the view and additional content metadata.
+
+- Each project has one Space metadata record. Connecting more Assistants does not duplicate its content.
+- Page bodies are Markdown files. Uploaded files and collected artifacts also live in the project file workspace.
+- Space database records hold metadata such as titles, hierarchy, resource identities, and import provenance. They do not introduce a separate Space file volume.
+- Enabling Spaces for an Assistant does not grant its users access to every project.
+
+## Getting started
+
+1. Configure and publish the Spaces capability for an Assistant, and install compatible Space view and Markdown editor plugins.
+2. Create or select a Space project and connect the Assistants that will work on it.
+3. Assign project roles to team members.
+4. Open Spaces in the Assistant's ChatKit Workbench to create a page, upload a file, or import a document.
+5. Select a page to open the Markdown editor inside the same Workbench. Changing Assistants still opens the same document when the project and resource are unchanged.
+
+Select a project first when there is no project context. Spaces does not infer a private folder from the Assistant's name or creator.
+
+## Browsing and organizing
+
+| Feature             | Behavior                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| All content         | Combines Space pages, project files, and collected artifacts with name, type, source, and update time |
+| Pages               | Lists registered Markdown pages and asks the platform to resolve their editor when opened             |
+| Files and artifacts | Lists uploads and collected artifacts; editing depends on the installed editor                        |
+| Folders             | Browses, creates, renames, and moves content in the project file hierarchy                            |
+| Search              | Finds content in the current list scope; body search uses the bound knowledge base                    |
+| Recently updated    | Uses content modification time, rather than a user's last visit                                       |
+| Trash               | Lists trashed content and allows restoration when permitted                                           |
+
+The title, search, create, and access controls share a compact action area. Access information describes the project's sharing boundary; it is not a separate Space invitation system.
+
+Moving or renaming a file preserves its resource identity, so existing document references can still resolve. Destination conflicts reject the operation instead of overwriting another file. Folder moves change physical paths; page parent-child relationships are described under [subpages](/en/guides/spaces-markdown#subpages).
+
+## Creating and collecting content
+
+- **New page**: Start from a blank page or a built-in template and create a Markdown file in the project.
+- **Upload**: Save a file in the current project folder for later reference, download, or opening in a compatible editor.
+- **Collect an artifact**: Copy an authorized artifact version into the project. This does not change access to the original artifact; the resulting copy is shared under project permissions.
+- **Import from a document platform**: Read an authorized source and create a local copy. See [document source imports](/en/guides/spaces-document-sources).
+
+File types without an editor remain manageable or downloadable as files. The content list does not open every format as Markdown.
+
+## Collaboration across people and Assistants
+
+Spaces uses project collaboration and does not maintain a separate membership list.
+
+| Project role or state | Space access                                                    |
+| --------------------- | --------------------------------------------------------------- |
+| Owner or manager      | Read, edit, and perform project and Space management operations |
+| Editor                | Read and edit content                                           |
+| Member                | Read content                                                    |
+| Archived project      | Read-only; writes are blocked                                   |
+
+The server also verifies tenant, organization, project membership, the Assistant's project connection, and the capability required by the entry point. Hiding a UI action is not the only access control. Downloads, reference resolution, collaboration messages, and knowledge search check the relevant resource permissions.
+
+See [Markdown collaboration](/en/guides/spaces-markdown) for live editing, save state, and conflict handling. Assistants and ChatKit own AI generation, change proposals, comments, and general review. The Space view provides content access and organization.
+
+## Document search
+
+A project manager can enable the project's built-in knowledge base. The binding belongs to the project; the knowledge base ID cached by Spaces does not create a separate authorization boundary.
+
+1. Content is saved to project files before publication projections and indexing run.
+2. The default is keyword search, without requiring an embedding model.
+3. Indexing exposes pending, processing, ready, or failed states, with retry after failure.
+4. Search results recheck current resource access and the file version. Invalid or outdated indexed content is not returned as a valid snippet.
+
+An indexing failure does not undo a saved file. Newly saved text may not appear in body search until indexing catches up.
+
+## Interface and language
+
+Remote Views use shared shadcn/ui components and Tailwind CSS. Host theme variables control typography, density, colors, and radii, avoiding repeated component style overrides in individual plugins.
+
+Views maintain centralized English and Simplified Chinese dictionaries for actions, empty states, errors, and accessibility labels. Business components use translation keys rather than inline bilingual JSX branches. User titles and document bodies are not translated automatically.
+
+## Capability boundaries
+
+Current functionality includes project files, Markdown collaboration, resource references, knowledge search, and document imports. It does not establish delivery of the following capabilities:
+
+- Live collaboration for arbitrary Word, spreadsheet, or presentation formats; these require their own editors and format protocols.
+- Two-way synchronization, source writeback, or scheduled updates with Feishu or other external platforms.
+- Durable offline editing queues, cross-project references, or offline export bundles containing all attachments.
+- A separate general-purpose AI conversation, review, or maintenance engine inside Spaces.
+
+For integration details, continue to [platform architecture and extensions](/en/architecture/spaces-content).
