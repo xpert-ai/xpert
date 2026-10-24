@@ -350,7 +350,8 @@ export function PipelineView({
                                 'application',
                                 t.actionFailed,
                                 undefined,
-                                instanceId || undefined
+                                instanceId || undefined,
+                                graph?.roundId || undefined
                             ).catch(() => setError(t.actionFailed))
                         }}
                     >

@@ -174,6 +174,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
             const input = z
                 .object({
                     pipelineNodeId: z.string().uuid().optional(),
+                    roundId: z.string().uuid().optional(),
                     instanceId: z.string().uuid().optional()
                 })
                 .strict()
