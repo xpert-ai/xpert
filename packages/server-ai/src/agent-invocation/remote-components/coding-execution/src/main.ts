@@ -1,3 +1,4 @@
+import { ExecutionI18n } from './i18n/core'
 import { z } from 'zod/v3'
 import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
@@ -27,17 +28,16 @@ const envelope = z.object({
 })
 let instanceId: string | undefined, scopeRevision: number | undefined, selectionId: string | undefined
 installShadcnThemeVars()
-let zh = false,
-    epoch = 0,
+let epoch = 0,
     cursor = 0,
     timer: number | undefined,
     busy = false
 const pending = new Map<string, { resolve(value: unknown): void; reject(error: Error): void; timer: number }>()
-const label = (en: string, cn: string) => (zh ? cn : en)
+const i18n = new ExecutionI18n()
 const view = new ExecutionView(
-    label,
+    i18n,
     async (item, existing) => {
-        if (item.content.kind !== 'tool' || !item.content.outputRef) throw Error('No captured output')
+        if (item.content.kind !== 'tool' || !item.content.outputRef) throw Error(i18n.t('errors.noOutput'))
         const version = epoch
         const prefix = existing?.text ?? item.content.output ?? ''
         const page = z
@@ -55,7 +55,7 @@ const view = new ExecutionView(
                     }
                 })
             ).item.output
-        if (epoch !== version) throw Error('View changed')
+        if (epoch !== version) throw Error(i18n.t('errors.viewChanged'))
         return { ...page, text: prefix + page.text }
     },
     async (file) => {
@@ -65,7 +65,7 @@ const view = new ExecutionView(
             .parse(await request('requestFileAccess', { fileKey: file.id, targetId: selectionId, purpose: 'download' }))
         if (epoch !== version) return
         const url = new URL(grant.url, location.href)
-        if (!['http:', 'https:'].includes(url.protocol)) throw Error('Invalid URL')
+        if (!['http:', 'https:'].includes(url.protocol)) throw Error(i18n.t('errors.invalidDownload'))
         const link = document.createElement('a')
         link.href = url.href
         // Preserve the authorized Web/desktop download bridge and cookie navigation.
@@ -90,7 +90,7 @@ function request(type: string, body: object): Promise<unknown> {
     return new Promise((resolve, reject) => {
         const timeout = window.setTimeout(() => {
             pending.delete(requestId)
-            reject(Error(label('Request timed out', '读取超时')))
+            reject(Error(i18n.t('errors.timeout')))
         }, 30000)
         pending.set(requestId, { resolve, reject, timer: timeout })
         send(type, { ...body, requestId })
@@ -106,17 +106,12 @@ async function load() {
             .parse(await request('requestData', { query: { selectionId, parameters: { after: cursor } } })).item
         if (version !== epoch) return
         cursor = data.activity?.nextCursor ?? cursor
-        view.showError('')
+        view.showError(false)
         view.update(data)
         if (shouldPoll(data)) timer = window.setTimeout(load, data.activity?.hasMore ? 50 : 2000)
     } catch {
         if (version === epoch) {
-            view.showError(
-                label(
-                    'Unable to read activity. Connection or access may have changed; retrying…',
-                    '暂时无法读取过程，连接或权限可能已变化，正在重试…'
-                )
-            )
+            view.showError(true)
             timer = window.setTimeout(load, 5000)
         }
     } finally {
@@ -131,7 +126,7 @@ function reset(id?: string) {
     cursor = 0
     for (const call of pending.values()) {
         clearTimeout(call.timer)
-        call.reject(Error('View changed'))
+        call.reject(Error(i18n.t('errors.viewChanged')))
     }
     pending.clear()
     view.clear()
@@ -150,7 +145,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
             data.initialQuery?.selectionId !== selectionId
         instanceId = data.instanceId
         scopeRevision = data.scopeRevision
-        zh = data.locale?.startsWith('zh') ?? false
+        i18n.setLocale(data.locale)
         for (const [key, value] of Object.entries(data.theme?.tokens ?? {}))
             document.documentElement.style.setProperty(
                 `--xui-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
@@ -158,7 +153,8 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
             )
         installShadcnThemeVars({ density: data.theme?.density ?? 'compact' })
         document.documentElement.classList.toggle('dark', data.theme?.mode === 'dark')
-        document.documentElement.lang = zh ? 'zh-Hans' : 'en'
+        document.documentElement.lang = i18n.locale
+        document.title = i18n.t('header.defaultTitle')
         view.translate()
         if (changed) reset(data.initialQuery?.selectionId)
         else view.flushSelection()
@@ -178,7 +174,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
     if (!call) return
     pending.delete(data.requestId)
     clearTimeout(call.timer)
-    if (data.type === 'error') call.reject(Error(data.message ?? 'Request failed'))
+    if (data.type === 'error') call.reject(Error(data.message ?? i18n.t('errors.requestFailed')))
     else call.resolve(data.data ?? data.result)
 })
 document.addEventListener('selectionchange', () => view.flushSelection())

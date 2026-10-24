@@ -74,3 +74,9 @@ export async function copyText(value: string) {
     }
     if (!copied) await navigator.clipboard.writeText(value)
 }
+
+export function buttonText(node: HTMLButtonElement, value: string) {
+    text(node, value)
+    node.title = value
+    node.setAttribute('aria-label', value)
+}

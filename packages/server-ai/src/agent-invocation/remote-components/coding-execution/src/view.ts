@@ -1,17 +1,10 @@
+import type { ExecutionI18n } from './i18n/core'
 import { buttonVariants } from '@xpert-ai/shadcn-ui'
 import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { ActivityRow } from './activity-row'
 import { ExecutionHeader, type Palette } from './header'
 import { button, copyText, el, hasSelection, icon, text } from './dom'
-import {
-    activityText,
-    isDuplicateSummary,
-    type Activity,
-    type Execution,
-    type Label,
-    type Output,
-    type Snapshot
-} from './model'
+import { activityText, isDuplicateSummary, type Activity, type Execution, type Output, type Snapshot } from './model'
 import { TranscriptSearch } from './search'
 import { ReplyContent } from './reply-content'
 
@@ -48,12 +41,14 @@ export class ExecutionView {
     private locale = ''
     private search: TranscriptSearch
     private toastTimer?: number
+    private toastKey?: 'feedback.copied' | 'feedback.copyUnavailable' | 'feedback.downloadFailed'
+    private connectionError = false
     constructor(
-        private label: Label,
+        private i18n: ExecutionI18n,
         private onOutput: (item: Activity, previous?: Output) => Promise<Output>,
         private onDownload: (file: NonNullable<NonNullable<Execution['result']>['artifacts']>[number]) => Promise<void>
     ) {
-        this.resultReply = new ReplyContent(label, (value) => void this.copy(value))
+        this.resultReply = new ReplyContent(i18n, (value) => void this.copy(value))
         this.result.append(this.resultReply.element)
         this.header = new ExecutionHeader({
             search: () => {
@@ -70,10 +65,10 @@ export class ExecutionView {
                 this.updateHeader()
             }
         })
-        this.search = new TranscriptSearch(this.transcript, label, (query) => {
+        this.search = new TranscriptSearch(this.transcript, i18n, (query) => {
             if (!query) return
             for (const item of this.items.values())
-                if (activityText(item, this.outputFor(item)).toLocaleLowerCase().includes(query))
+                if (activityText(item, this.i18n, this.outputFor(item)).toLocaleLowerCase().includes(query))
                     this.rows.get(item.id)?.reveal()
         })
         this.transcript.append(this.empty, this.gaps)
@@ -108,27 +103,33 @@ export class ExecutionView {
         this.setFollow(true)
     }
     translate() {
-        const locale = this.label('en', 'zh')
+        const locale = this.i18n.locale
         if (locale === this.locale) return
         this.locale = locale
         this.element.lang = locale
-        this.transcript.setAttribute('aria-label', this.label('Execution activity', '执行过程'))
-        this.scroll.setAttribute('aria-label', this.label('Execution transcript', '执行过程流'))
-        text(this.infoTitle, this.label('Technical info', '技术信息'))
-        text(this.shortcuts, this.label('↑↓ Records · Enter Expand · / Search', '↑↓ 记录 · Enter 展开 · / 搜索'))
-        this.latest.replaceChildren(
-            document.createTextNode(this.label('New output · Jump to latest', '有新输出 · 回到最新')),
-            icon('down')
-        )
+        this.transcript.setAttribute('aria-label', this.i18n.t('view.activity'))
+        this.scroll.setAttribute('aria-label', this.i18n.t('view.transcript'))
+        text(this.infoTitle, this.i18n.t('metadata.title'))
+        text(this.shortcuts, this.i18n.t('view.shortcuts'))
+        this.latest.replaceChildren(document.createTextNode(this.i18n.t('view.jumpLatest')), icon('down'))
+        this.latest.title = this.i18n.t('view.jumpLatest')
+        this.latest.setAttribute('aria-label', this.latest.title)
+        this.showError(this.connectionError)
+        if (this.toastKey) text(this.toast, this.i18n.t(this.toastKey))
+        if (!this.current) text(this.empty, this.i18n.t('empty.loading'))
         this.search.translate()
         this.updateFollow()
     }
-    showError(message: string) {
-        this.banner.hidden = !message
-        text(this.banner, message)
+    showError(failed: boolean) {
+        this.connectionError = failed
+        this.banner.hidden = !failed
+        text(this.banner, failed ? this.i18n.t('errors.readActivity') : '')
     }
     clear() {
         this.current = undefined
+        clearTimeout(this.toastTimer)
+        this.toastKey = undefined
+        text(this.toast, '')
         this.items.clear()
         this.outputs.clear()
         this.rows.forEach((row) => row.element.remove())
@@ -138,10 +139,10 @@ export class ExecutionView {
         this.infoFields.forEach((node) => node.remove())
         this.infoFields.clear()
         this.search.hide()
-        text(this.empty, this.label('Loading execution…', '正在读取执行过程…'))
+        text(this.empty, this.i18n.t('empty.loading'))
         this.empty.hidden = false
         this.result.hidden = this.error.hidden = this.gaps.hidden = true
-        this.showError('')
+        this.showError(false)
         this.info.open = false
         this.hasNew = false
         this.setFollow(true)
@@ -176,7 +177,7 @@ export class ExecutionView {
     private paint() {
         const execution = this.current?.execution
         if (!execution) {
-            text(this.empty, this.label('Open an execution card to view its activity.', '请从运行卡片或执行记录打开。'))
+            text(this.empty, this.i18n.t('empty.openExecution'))
             return
         }
         const anchor = !this.follow
@@ -192,7 +193,7 @@ export class ExecutionView {
             if (!row) {
                 row = new ActivityRow(
                     item,
-                    this.label,
+                    this.i18n,
                     async (target) => {
                         const output = await this.onOutput(target, this.outputFor(target))
                         if (target.content.kind === 'tool' && target.content.outputRef)
@@ -212,26 +213,14 @@ export class ExecutionView {
         const activity = this.current?.activity
         this.empty.hidden = !!ordered.length
         const messages = {
-            not_recorded: this.label(
-                'No activity was recorded for this execution. Saved results remain available.',
-                '此执行未采集过程；已有结果仍可查看。'
-            ),
-            expired: this.label(
-                'Activity retention has expired. Saved results remain available.',
-                '过程记录已过保存期；已有结果仍可查看。'
-            ),
-            closed: this.label('No public activity was captured.', '没有捕获到公开过程记录。'),
-            recording: this.label('Waiting for public CLI activity…', '正在等待 CLI 公开活动…')
+            not_recorded: this.i18n.t('empty.notRecorded'),
+            expired: this.i18n.t('empty.expired'),
+            closed: this.i18n.t('empty.closed'),
+            recording: this.i18n.t('empty.recording')
         }
         text(this.empty, messages[activity?.state ?? 'not_recorded'])
         this.gaps.hidden = !activity?.gaps.length
-        text(
-            this.gaps,
-            this.label(
-                'Some activity is missing or truncated. Showing captured records.',
-                '部分过程缺失或被截断，以下展示已捕获记录。'
-            )
-        )
+        text(this.gaps, this.i18n.t('view.gaps'))
         if (!hasSelection(this.error)) {
             text(this.error, execution.error ?? '')
             this.error.hidden = !execution.error
@@ -243,38 +232,36 @@ export class ExecutionView {
         }
         for (const file of execution.result?.artifacts ?? []) {
             const key = `${file.id}:${file.versionId ?? ''}`
-            if (this.artifacts.has(key)) continue
-            const download = button(file.name ?? this.label('Download file', '下载文件'), () => {
-                download.disabled = true
-                void this.onDownload(file)
-                    .catch(() => this.notify(this.label('Download failed. Retry', '下载失败，请重试')))
-                    .finally(() => {
-                        download.disabled = !file.versionId
-                    })
-            })
-            download.prepend(icon('download'))
-            download.disabled = !file.versionId
-            this.artifacts.set(key, download)
-            this.files.append(download)
+            let download = this.artifacts.get(key)
+            if (!download) {
+                const control = button('', () => {
+                    control.disabled = true
+                    void this.onDownload(file)
+                        .catch(() => this.notify('feedback.downloadFailed'))
+                        .finally(() => {
+                            control.disabled = !file.versionId
+                        })
+                })
+                control.append(icon('download'), el('span', '', 'artifact-name'))
+                control.disabled = !file.versionId
+                this.artifacts.set(key, control)
+                this.files.append(control)
+                download = control
+            }
+            if (!hasSelection(download)) {
+                const name = file.name ?? this.i18n.t('files.download')
+                text(download.querySelector<HTMLElement>('.artifact-name')!, name)
+                download.title = name
+                download.setAttribute('aria-label', name)
+            }
         }
         const fields = [
-            ['id', 'ID', execution.id],
-            ['version', this.label('Version', '版本'), execution.tool?.version],
-            ['cwd', this.label('Working directory', '工作目录'), execution.workingDirectory],
-            ['created', this.label('Created', '创建'), new Date(execution.createdAt).toLocaleString(this.locale)],
-            [
-                'observed',
-                this.label('Last observation', '最后观察'),
-                new Date(execution.updatedAt).toLocaleString(this.locale)
-            ],
-            [
-                'boundary',
-                '',
-                this.label(
-                    'Execution success is separate from project task acceptance.',
-                    '执行成功与项目任务验收分别记录。'
-                )
-            ]
+            ['id', this.i18n.t('metadata.id'), execution.id],
+            ['version', this.i18n.t('metadata.version'), execution.tool?.version],
+            ['cwd', this.i18n.t('metadata.directory'), execution.workingDirectory],
+            ['created', this.i18n.t('metadata.created'), this.i18n.formatDate(execution.createdAt)],
+            ['observed', this.i18n.t('metadata.observed'), this.i18n.formatDate(execution.updatedAt)],
+            ['boundary', '', this.i18n.t('metadata.boundary')]
         ]
         for (const [key, title, value] of fields) {
             let field = this.infoFields.get(key ?? '')
@@ -283,7 +270,8 @@ export class ExecutionView {
                 this.infoFields.set(key ?? '', field)
                 this.infoBody.append(field)
             }
-            if (!hasSelection(field)) text(field, value ? `${title ? title + ': ' : ''}${value}` : '')
+            if (!hasSelection(field))
+                text(field, value ? (title ? this.i18n.t('metadata.field', { label: title, value }) : value) : '')
         }
         if (anchor && anchorTop !== undefined && anchor.isConnected)
             this.scroll.scrollTop += anchor.getBoundingClientRect().top - anchorTop
@@ -311,9 +299,9 @@ export class ExecutionView {
             this.followText,
             this.follow
                 ? running
-                    ? this.label('Following output', '正在跟随输出')
-                    : this.label('End of activity', '已到末尾')
-                : this.label('Follow paused', '已暂停跟随')
+                    ? this.i18n.t('follow.following')
+                    : this.i18n.t('follow.end')
+                : this.i18n.t('follow.paused')
         )
         this.latest.hidden = this.follow || !this.hasNew
     }
@@ -321,20 +309,25 @@ export class ExecutionView {
         const execution = this.current?.execution
         this.header.update({
             title: execution
-                ? `${codingToolBrand({ toolId: execution.tool?.id, provider: execution.provider })?.name ?? execution.tool?.id ?? execution.provider} · ${this.label('Execution', '执行过程')}`
-                : this.label('Coding execution', 'Coding 执行过程'),
+                ? this.i18n.t('header.title', {
+                      executor:
+                          codingToolBrand({ toolId: execution.tool?.id, provider: execution.provider })?.name ??
+                          execution.tool?.id ??
+                          execution.provider
+                  })
+                : this.i18n.t('header.defaultTitle'),
             toolId: execution?.tool?.id,
             provider: execution?.provider,
             status: execution?.status,
             following: this.follow,
             palette: this.palette,
-            label: this.label
+            i18n: this.i18n
         })
     }
     private copyAll() {
         const parts = [...this.items.values()]
             .sort((a, b) => a.firstSeq - b.firstSeq)
-            .map((item) => activityText(item, this.outputFor(item)))
+            .map((item) => activityText(item, this.i18n, this.outputFor(item)))
         const summary = this.current?.execution?.result?.text
         if (summary && !isDuplicateSummary(summary, this.items.values())) parts.push(summary)
         return parts.join('\n\n')
@@ -342,15 +335,19 @@ export class ExecutionView {
     private async copy(value: string) {
         try {
             await copyText(value)
-            this.notify(this.label('Copied', '已复制'))
+            this.notify('feedback.copied')
         } catch {
-            this.notify(this.label('Copy unavailable. Select text to copy.', '复制不可用，请选中文字复制。'))
+            this.notify('feedback.copyUnavailable')
         }
     }
-    private notify(value: string) {
+    private notify(key: NonNullable<ExecutionView['toastKey']>) {
         clearTimeout(this.toastTimer)
-        text(this.toast, value)
-        this.toastTimer = window.setTimeout(() => text(this.toast, ''), 3500)
+        this.toastKey = key
+        text(this.toast, this.i18n.t(key))
+        this.toastTimer = window.setTimeout(() => {
+            this.toastKey = undefined
+            text(this.toast, '')
+        }, 3500)
     }
     private onKey(event: KeyboardEvent) {
         const target = event.target

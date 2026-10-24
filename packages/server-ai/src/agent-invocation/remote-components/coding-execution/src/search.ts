@@ -1,9 +1,9 @@
+import type { ExecutionI18n } from './i18n/core'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { Input } from '@xpert-ai/shadcn-ui'
 import { button, el, hasSelection, text } from './dom'
-import type { Label } from './model'
 
 export class TranscriptSearch {
     readonly element = el('div', '', 'search-bar')
@@ -18,7 +18,7 @@ export class TranscriptSearch {
     private returnFocus?: HTMLElement
     constructor(
         private transcript: HTMLElement,
-        private label: Label,
+        private i18n: ExecutionI18n,
         private prepare: (query: string) => void
     ) {
         // Mount the shared uncontrolled Input once; incremental searches keep this DOM node and selection.
@@ -45,17 +45,19 @@ export class TranscriptSearch {
         this.translate()
     }
     translate() {
-        this.input.placeholder = this.label('Search loaded activity…', '搜索已加载的过程…')
+        this.input.placeholder = this.i18n.t('search.placeholder')
         this.input.setAttribute('aria-label', this.input.placeholder)
-        for (const [node, en, cn] of [
-            [this.previous, 'Previous match', '上个匹配'],
-            [this.next, 'Next match', '下个匹配'],
-            [this.close, 'Close search', '关闭搜索']
+        for (const [node, key] of [
+            [this.previous, 'search.previous'],
+            [this.next, 'search.next'],
+            [this.close, 'search.close']
         ] as const) {
-            node.title = this.label(en, cn)
+            node.title = this.i18n.t(key)
             node.setAttribute('aria-label', node.title)
         }
+        this.mark(false)
     }
+
     show() {
         if (document.activeElement instanceof HTMLElement) this.returnFocus = document.activeElement
         this.element.hidden = false
@@ -119,7 +121,10 @@ export class TranscriptSearch {
         text(
             this.count,
             this.input.value
-                ? `${Math.max(0, this.index + 1)} / ${this.matches.length}${this.matches.length === 2000 ? '+' : ''}`
+                ? this.i18n.t(this.matches.length === 2000 ? 'search.countLimit' : 'search.count', {
+                      current: this.i18n.formatNumber(Math.max(0, this.index + 1)),
+                      total: this.i18n.formatNumber(this.matches.length)
+                  })
                 : ''
         )
         this.previous.disabled = this.next.disabled = !this.matches.length

@@ -1,5 +1,6 @@
-import { button, el, hasSelection, text } from './dom'
-import { stateLabel, type Activity, type Label, type Output } from './model'
+import type { ExecutionI18n } from './i18n/core'
+import { button, buttonText, el, hasSelection, text } from './dom'
+import { stateLabel, type Activity, type Output } from './model'
 import { ReplyContent } from './reply-content'
 
 export class ActivityRow {
@@ -32,17 +33,18 @@ export class ActivityRow {
     private captured?: Output
     private full = false
     private loading = false
+    private loadFailed = false
     private appliedSeq = -1
     private appliedOutput?: Output
     private locale = ''
     constructor(
         item: Activity,
-        private label: Label,
+        private i18n: ExecutionI18n,
         private onLoad: (item: Activity) => Promise<Output>,
         private onCopy: (text: string) => void
     ) {
         this.item = item
-        this.reply = new ReplyContent(label, onCopy)
+        this.reply = new ReplyContent(i18n, onCopy)
         this.element.dataset.recordId = item.id
         this.element.tabIndex = 0
         this.summary.append(this.title, this.status)
@@ -56,7 +58,7 @@ export class ActivityRow {
     }
     update(item: Activity, captured?: Output) {
         if (hasSelection(this.element)) return false
-        const locale = this.label('en', 'zh')
+        const locale = this.i18n.locale
         this.item = item
         this.captured = captured
         this.appliedSeq = item.seq
@@ -72,25 +74,31 @@ export class ActivityRow {
         }
         const detail = c.detail
         const changes = {
-            created: this.label('Write', '写入'),
-            modified: this.label('Edit', '编辑'),
-            deleted: this.label('Delete', '删除'),
-            reported: this.label('File', '文件')
-        }
+            created: 'activity.write',
+            modified: 'activity.edit',
+            deleted: 'activity.delete',
+            reported: 'activity.file'
+        } as const
         text(
             this.title,
             detail?.type === 'command'
                 ? `$ ${detail.command}`
                 : detail?.type === 'file_change'
-                  ? detail.files.map((f) => `${changes[f.change]} ${f.path}`).join('\n')
-                  : (c.name ?? this.label('Tool', '工具'))
+                  ? detail.files.map((f) => this.i18n.t(changes[f.change], { path: f.path })).join('\n')
+                  : (c.name ?? this.i18n.t('activity.tool'))
         )
         this.status.dataset.status = c.status
         this.status.hidden = c.status === 'succeeded'
-        text(this.status, stateLabel(c.status, this.label))
-        this.summary.setAttribute('aria-label', `${this.title.textContent} · ${stateLabel(c.status, this.label)}`)
+        text(this.status, stateLabel(c.status, this.i18n))
+        this.summary.setAttribute(
+            'aria-label',
+            this.i18n.t('activity.summary', {
+                title: this.title.textContent ?? '',
+                status: stateLabel(c.status, this.i18n)
+            })
+        )
         this.inputDetails.hidden = !c.input || detail?.type === 'command'
-        text(this.inputLabel, this.label('Input', '输入'))
+        text(this.inputLabel, this.i18n.t('activity.input'))
         text(this.input, c.input ?? '')
         const patch =
             detail?.type === 'file_change'
@@ -115,31 +123,31 @@ export class ActivityRow {
         const output = captured?.text ?? c.output ?? ''
         const preview = output.split('\n').slice(0, 12).join('\n').slice(0, 2400)
         this.output.hidden = c.output === undefined && !captured
-        text(this.output, output ? (this.full ? output : preview) : this.label('(empty output)', '（无输出）'))
+        text(this.output, output ? (this.full ? output : preview) : this.i18n.t('output.empty'))
         this.expand.hidden = output.length <= preview.length
-        text(
-            this.expand,
-            this.full ? this.label('Collapse output', '收起输出') : this.label('Expand output', '展开输出')
-        )
+        buttonText(this.expand, this.full ? this.i18n.t('output.collapse') : this.i18n.t('output.expand'))
         this.copy.hidden = !output
-        text(this.copy, this.label('Copy output', '复制输出'))
+        buttonText(this.copy, this.i18n.t('output.copy'))
         this.more.hidden = !c.outputRef || !(captured?.hasMore ?? true)
         this.more.disabled = this.loading
-        text(this.more, this.loading ? this.label('Loading…', '读取中…') : this.label('Load more', '加载更多'))
+        buttonText(
+            this.more,
+            this.i18n.t(this.loading ? 'output.loading' : this.loadFailed ? 'output.readFailed' : 'output.loadMore')
+        )
         this.notice.hidden = !c.truncated || !!(captured && !captured.hasMore)
-        text(this.notice, this.label('Captured output is truncated', '已捕获输出被截断'))
+        text(this.notice, this.i18n.t('output.truncated'))
         this.exit.hidden = detail?.type !== 'command' || detail.exitCode === undefined
         text(
             this.exit,
             detail?.type === 'command' && detail.exitCode !== undefined
-                ? `${this.label('Exit code', '退出码')} ${detail.exitCode}`
+                ? this.i18n.t('output.exitCode', { code: detail.exitCode })
                 : ''
         )
         this.exit.dataset.status = detail?.type === 'command' && detail.exitCode ? 'failed' : 'succeeded'
         return true
     }
     needsUpdate(item: Activity, output?: Output) {
-        return item.seq !== this.appliedSeq || output !== this.appliedOutput || this.locale !== this.label('en', 'zh')
+        return item.seq !== this.appliedSeq || output !== this.appliedOutput || this.locale !== this.i18n.locale
     }
     reveal() {
         this.full = true
@@ -149,6 +157,7 @@ export class ActivityRow {
     private async loadMore() {
         const target = this.item
         this.loading = true
+        this.loadFailed = false
         this.update(this.item, this.captured)
         try {
             const output = await this.onLoad(target)
@@ -163,7 +172,8 @@ export class ActivityRow {
         } catch {
             this.loading = false
             this.more.disabled = false
-            text(this.more, this.label('Read failed. Retry', '读取失败，重试'))
+            this.loadFailed = true
+            buttonText(this.more, this.i18n.t('output.readFailed'))
         }
     }
 }
