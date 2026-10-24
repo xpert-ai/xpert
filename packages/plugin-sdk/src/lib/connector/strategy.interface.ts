@@ -1,4 +1,4 @@
-import type { ConnectorDocumentSource } from './documents'
+import type { ConnectorDocumentSource } from './document-source'
 import type { I18nText, IconDefinition } from '@xpert-ai/contracts'
 
 export type RuntimeI18nText = I18nText

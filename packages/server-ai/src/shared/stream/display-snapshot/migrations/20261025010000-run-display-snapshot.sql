@@ -1,3 +1,6 @@
+/* xpert-migration
+{"dependsOn":["core.platform.20261020000400-platform-constraints-b"],"phase":"after-sync"}
+*/
 -- Apply before enabling durable display projections. No business execution state is stored here.
 CREATE TABLE IF NOT EXISTS chat_run_display_snapshot (
     "threadId" varchar(100) NOT NULL REFERENCES chat_conversation_thread("threadId") ON DELETE CASCADE,

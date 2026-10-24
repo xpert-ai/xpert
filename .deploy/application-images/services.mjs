@@ -76,7 +76,8 @@ export const services = [
       ...web.packages.map((directory) => `${directory}/`),
       'libs/template-installation/',
       'packages/plugin-sdk/src/connector.ts',
-      'packages/plugin-sdk/src/lib/connector/strategy.interface.ts'
+      'packages/plugin-sdk/src/lib/connector/strategy.interface.ts',
+      'packages/plugin-sdk/src/lib/connector/document-source.ts'
     ],
     shared: [...web.packages.filter((directory) => directory !== 'apps/cloud'), 'packages/plugin-sdk'].map(
       (directory) => `${directory}/package.json`
