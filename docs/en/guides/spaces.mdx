@@ -18,11 +18,13 @@ A Space uses the built-in `platform/space` project type. The project owns member
 
 ## Getting started
 
-1. Configure and publish the Spaces capability for an Assistant, and install compatible Space view and Markdown editor plugins.
+1. Install compatible Spaces and Markdown editor plugins. When creating an Assistant, enable **Collaborative space** under **Assistant capabilities**, select an authorized tool-calling model, and publish. For an existing Assistant, enable it in **Settings → Capabilities**.
 2. Create or select a Space project and connect the Assistants that will work on it.
 3. Assign project roles to team members.
 4. Open Spaces in the Assistant's ChatKit Workbench to create a page, upload a file, or import a document.
 5. Select a page to open the Markdown editor inside the same Workbench. Changing Assistants still opens the same document when the project and resource are unchanged.
+
+The capability is off by default. Enabling it adds the primary Agent middleware and managed instructions without creating a project or changing permissions. It can be removed through Assistant settings; existing Studio-authored middleware remains managed in Studio.
 
 Select a project first when there is no project context. Spaces does not infer a private folder from the Assistant's name or creator.
 

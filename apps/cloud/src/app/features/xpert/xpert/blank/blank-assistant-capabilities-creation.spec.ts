@@ -11,11 +11,11 @@ function fixture() {
   const xpert: IXpert = { id: 'assistant' }
   const draft: TXpertTeamDraft = { team: { id: xpert.id }, nodes: [], connections: [], checklist: [] }
   const configured: IXpert = { ...xpert, draft }
-  const projectManagement = { enabled: signal(true), apply: jest.fn(async () => configured) }
+  const assistantCapabilities = { enabled: signal(true), apply: jest.fn(async () => configured) }
   const publish = jest.fn(async () => configured)
   const component = Object.assign(Object.create(XpertNewBlankComponent.prototype) as XpertNewBlankComponent, {
     completionMode: 'publish',
-    projectManagement,
+    assistantCapabilities,
     isAgentType: () => true,
     initializeDraftIfNeeded: jest.fn(async () => ({
       xpert,
@@ -30,26 +30,26 @@ function fixture() {
     _toastr: { error: jest.fn() },
     xpertService: { getTeam: jest.fn(() => of(configured)) }
   })
-  return { component, xpert, configured, projectManagement, publish }
+  return { component, xpert, configured, assistantCapabilities, publish }
 }
 
 describe('Project management in both Cloud creation flows', () => {
   it.each(['completeCreation', 'completeImportedCreation'] as const)(
     'composes and saves before %s publishes',
     async (method) => {
-      const { component, xpert, configured, projectManagement, publish } = fixture()
+      const { component, xpert, configured, assistantCapabilities, publish } = fixture()
       expect(await component[method](xpert)).toEqual({ xpert: configured, status: 'published' })
-      expect(projectManagement.apply).toHaveBeenCalledWith(xpert)
+      expect(assistantCapabilities.apply).toHaveBeenCalledWith(xpert)
       expect(publish).toHaveBeenCalledWith(configured)
-      expect(projectManagement.apply.mock.invocationCallOrder[0]).toBeLessThan(publish.mock.invocationCallOrder[0])
+      expect(assistantCapabilities.apply.mock.invocationCallOrder[0]).toBeLessThan(publish.mock.invocationCallOrder[0])
     }
   )
 
   it.each(['completeCreation', 'completeImportedCreation'] as const)(
     'never publishes when capability application fails during %s',
     async (method) => {
-      const { component, xpert, projectManagement, publish } = fixture()
-      projectManagement.apply.mockRejectedValue(new Error('Model access revoked'))
+      const { component, xpert, assistantCapabilities, publish } = fixture()
+      assistantCapabilities.apply.mockRejectedValue(new Error('Model access revoked'))
       expect(await component[method](xpert)).toEqual({ xpert, status: 'created' })
       expect(publish).not.toHaveBeenCalled()
       expect(component._toastr.error).toHaveBeenCalledWith('Model access revoked')

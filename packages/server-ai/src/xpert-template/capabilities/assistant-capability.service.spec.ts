@@ -94,7 +94,8 @@ describe('Assistant capabilities (OSS)', () => {
     it('creates a blank Assistant with all capabilities off and lists only explicitly compatible providers', async () => {
         providers.push(createProvider('template-only'), {
             ...createProvider('optional-tool'),
-            availableForBlankAssistant: true
+            availableForBlankAssistant: true,
+            supportsQuickCreation: true
         })
         const blank = service.blankTemplate()
         const draft = parseCapabilityTemplateDraft(blank.export_data)
@@ -103,6 +104,7 @@ describe('Assistant capabilities (OSS)', () => {
         expect(draft.team.features?.sandbox?.enabled).not.toBe(true)
         const check = await service.setup(blank, language)
         expect(check.optionalCapabilities.map(({ key }) => key)).toEqual(['optional-tool'])
+        expect(check.optionalCapabilities[0].supportsQuickCreation).toBe(true)
         expect(check.requiresModel).toBe(true)
         expect(check.models).toHaveLength(2)
         expect(providers[1].check).not.toHaveBeenCalled()

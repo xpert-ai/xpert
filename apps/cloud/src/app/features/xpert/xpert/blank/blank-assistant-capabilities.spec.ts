@@ -13,15 +13,16 @@ import {
 import { of, throwError } from 'rxjs'
 import { XpertAPIService } from '@cloud/app/@core/services/xpert.service'
 import { XpertTemplateService } from '@cloud/app/@core/services/xpert-template.service'
-import { BlankProjectManagement } from './blank-project-management'
-import { BlankProjectManagementComponent } from './blank-project-management.component'
+import { BlankAssistantCapabilities } from './blank-assistant-capabilities'
+import { BlankAssistantCapabilitiesComponent } from './blank-assistant-capabilities.component'
 
 function fixture() {
   const model = { copilotId: 'authorized', model: 'tool-model', modelType: AiModelTypeEnum.LLM }
   const option = {
     key: 'project-tasks',
     label: 'Project management',
-    description: 'Manage tasks in a project conversation.'
+    description: 'Manage tasks in a project conversation.',
+    supportsQuickCreation: true
   }
   const setup: XpertTemplateSetup = {
     canInstall: true,
@@ -45,18 +46,26 @@ function fixture() {
     saveDraft: jest.fn(() => of(draft))
   }
   TestBed.configureTestingModule({
-    imports: [TranslateModule.forRoot(), BlankProjectManagementComponent],
+    imports: [TranslateModule.forRoot(), BlankAssistantCapabilitiesComponent],
     providers: [
-      BlankProjectManagement,
+      BlankAssistantCapabilities,
       { provide: XpertTemplateService, useValue: templates },
       { provide: XpertAPIService, useValue: assistants }
     ]
   })
   TestBed.inject(TranslateService).use('en')
-  return { state: TestBed.inject(BlankProjectManagement), templates, assistants, configuration, setup, model, draft }
+  return {
+    state: TestBed.inject(BlankAssistantCapabilities),
+    templates,
+    assistants,
+    configuration,
+    setup,
+    model,
+    draft
+  }
 }
 
-describe('Cloud project management creation', () => {
+describe('Cloud Assistant capability creation', () => {
   it('keeps capabilities off by default and does not change ordinary creation', async () => {
     const { state, assistants, templates } = fixture()
     const xpert = { id: 'assistant' }
@@ -69,7 +78,7 @@ describe('Cloud project management creation', () => {
 
   it('requires an authorized tool-calling model before creating an Assistant', async () => {
     const { state, templates, model, setup } = fixture()
-    state.enabled.set(true)
+    state.selected.set(['project-tasks'])
     await expect(state.validate(null)).rejects.toThrow('ModelRequired')
     await expect(state.validate({ ...model, copilotId: 'other' })).rejects.toThrow('ModelRequired')
     await expect(state.validate(model)).resolves.toBeUndefined()
@@ -81,7 +90,7 @@ describe('Cloud project management creation', () => {
 
   it('saves the server-composed capability with the current revision, retaining other selections', async () => {
     const { state, assistants, draft } = fixture()
-    state.enabled.set(true)
+    state.selected.set(['project-tasks'])
     expect(await state.apply({ id: 'assistant', title: 'My assistant' })).toEqual({
       id: 'assistant',
       title: 'My assistant',
@@ -94,9 +103,41 @@ describe('Cloud project management creation', () => {
     expect(assistants.saveDraft).toHaveBeenCalledWith('assistant', draft)
   })
 
+  it('discovers plugin capabilities and composes multiple selections without hardcoded keys', async () => {
+    const { state, setup, configuration, assistants, templates, model } = fixture()
+    const spaces = {
+      key: 'spaces',
+      label: 'Collaborative space',
+      description: 'Shared project documents',
+      supportsQuickCreation: true
+    }
+    setup.optionalCapabilities.push(spaces, {
+      key: 'realtime-voice',
+      label: 'Voice',
+      description: 'Requires configuration'
+    })
+    configuration.options.push({ ...spaces, required: false, available: true })
+    await state.load()
+    expect(state.options().map(({ key }) => key)).toEqual(['project-tasks', 'spaces'])
+    state.toggle('realtime-voice', true)
+    expect(state.selected()).toEqual([])
+    state.toggle('spaces', true)
+    state.toggle('project-tasks', true)
+    state.toggle('spaces', true)
+    await state.validate(model)
+    expect(templates.getSetup).toHaveBeenLastCalledWith('xpert-blank-assistant', ['spaces', 'project-tasks'])
+    await state.apply({ id: 'assistant' })
+    expect(assistants.previewAssistantCapabilities).toHaveBeenCalledWith('assistant', {
+      revision: 'revision',
+      capabilities: ['desktop-shell', 'spaces', 'project-tasks']
+    })
+    state.toggle('spaces', false)
+    expect(state.selected()).toEqual(['project-tasks'])
+  })
+
   it('does not save after availability, permission, revision or model validation fails', async () => {
     const { state, assistants, configuration } = fixture()
-    state.enabled.set(true)
+    state.selected.set(['project-tasks'])
     configuration.options[0].available = false
     await expect(state.apply({ id: 'assistant' })).rejects.toThrow('Unavailable')
     expect(assistants.previewAssistantCapabilities).not.toHaveBeenCalled()
@@ -108,7 +149,7 @@ describe('Cloud project management creation', () => {
 
   it('renders a one-click switch with the server label and project-context description', async () => {
     const { state } = fixture()
-    const view = TestBed.createComponent(BlankProjectManagementComponent)
+    const view = TestBed.createComponent(BlankAssistantCapabilitiesComponent)
     view.componentRef.setInput('state', state)
     view.detectChanges()
     await view.whenStable()
@@ -130,12 +171,12 @@ describe('Cloud project management creation', () => {
     view.destroy()
   })
 
-  it('keeps the switch unavailable when a server does not register the capability', async () => {
+  it('hides the section when no quick capabilities are registered', async () => {
     const { state, setup } = fixture()
     setup.optionalCapabilities = []
     await state.load()
-    expect(state.option()).toBeNull()
-    expect(state.error()).toContain('Unavailable')
+    expect(state.options()).toEqual([])
+    expect(state.error()).toBeNull()
     expect(state.enabled()).toBe(false)
   })
 })

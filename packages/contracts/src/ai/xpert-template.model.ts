@@ -158,7 +158,13 @@ export interface XpertTemplateSetup {
   defaultModelId?: string
   realtimeModels?: import('./realtime-voice.model').RealtimeModelOption[]
   requiresModel?: boolean
-  optionalCapabilities: { key: XpertTemplateCapability; label: string; description: string }[]
+  optionalCapabilities: {
+    key: XpertTemplateCapability
+    label: string
+    description: string
+    /** Safe to add through a creation switch without an additional configuration form. */
+    supportsQuickCreation?: boolean
+  }[]
   requiredModelFeatures: ModelFeature[]
   models: XpertTemplateModelOption[]
   canInstall: boolean

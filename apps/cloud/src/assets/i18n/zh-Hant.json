@@ -6869,6 +6869,11 @@
       }
     },
     "Xpert": {
+      "QuickCapabilities": {
+        "Title": "Assistant 能力",
+        "Unavailable": "所選能力已無法使用，請重新載入後選擇。",
+        "ModelRequired": "請選擇有權使用且支援所選能力的模型。"
+      },
       "ProjectManagement": {
         "Title": "專案管理",
         "Description": "拆解專案任務、追蹤進度、委派已授權的執行器並驗收結果。在專案對話中使用。",

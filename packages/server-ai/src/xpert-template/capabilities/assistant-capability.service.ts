@@ -239,7 +239,8 @@ export class AssistantCapabilityService {
                 options.push({
                     key,
                     label: resolveI18nText(provider.label, RequestContext.getLanguageCode()) || key,
-                    description: resolveI18nText(provider.description, RequestContext.getLanguageCode()) || ''
+                    description: resolveI18nText(provider.description, RequestContext.getLanguageCode()) || '',
+                    ...(provider.supportsQuickCreation === true ? { supportsQuickCreation: true } : {})
                 })
             if (required || requested.includes(key)) active.push(provider)
         }

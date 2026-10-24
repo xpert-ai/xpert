@@ -5726,6 +5726,11 @@
       }
     },
     "Xpert": {
+      "QuickCapabilities": {
+        "Title": "Assistant capabilities",
+        "Unavailable": "A selected capability is no longer available. Reload and choose again.",
+        "ModelRequired": "Choose an authorized model that supports the selected capabilities."
+      },
       "ProjectManagement": {
         "Title": "Project management",
         "Description": "Plan project tasks, track progress, delegate to authorized executors and review results. Use in a project conversation.",

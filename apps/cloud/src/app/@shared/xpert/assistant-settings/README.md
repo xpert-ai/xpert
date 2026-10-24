@@ -113,6 +113,8 @@ The panels load on first use, remain mounted across menu changes, and require ex
 
 ## Assistant capabilities
 
+Cloud Assistant creation lists providers that explicitly declare `supportsQuickCreation: true`. These switches default to off and reuse server model validation and revision-checked composition before saving or publishing. Plugin labels and descriptions come from the server; adding a parameter-free capability does not require a Cloud key whitelist. Providers needing extra configuration keep their dedicated setup flow. Spaces registers this entry from its native plugin and remains subject to Project membership and Assistant binding.
+
 The **Capabilities** page uses the same registered capability providers as Desktop creation and editing. Labels, descriptions, runtime availability and model requirements come from the server. Capabilities already present in a Studio-authored workflow are shown as required and read-only; optional capabilities can be enabled or removed.
 
 - `GET /xpert/:id/configuration/capabilities` inspects the authorized Assistant draft. The optional `capabilities` query preflights a candidate selection without composing or saving it.

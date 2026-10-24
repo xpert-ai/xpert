@@ -18,11 +18,13 @@ description: '在项目中与成员和多个 Assistant 共同维护文件、文�
 
 ## 开始使用
 
-1. 为 Assistant 配置并发布协作空间能力，安装匹配的空间视图与 Markdown 编辑器插件。
+1. 安装匹配的 Spaces 与 Markdown 编辑器插件。创建 Assistant 时，在“Assistant 能力”中勾选“协作空间”，选择支持工具调用的授权模型并发布。已有 Assistant 可在“设置 → 能力”中启用。
 2. 创建或选择协作空间类型的项目，将需要共同工作的 Assistant 连接到该项目。
 3. 为团队成员分配项目角色。
 4. 在 Assistant 的 ChatKit Workbench 中打开“协作空间”，创建页面、上传文件或导入文档。
 5. 点击页面，在同一个 Workbench 内打开 Markdown 编辑器。切换 Assistant 后，只要仍访问同一项目和资源，就会进入同一份文档。
+
+能力默认关闭。启用后自动添加主 Agent 中间件和托管使用说明，不创建项目或改变权限。通过能力开关添加的配置可在 Assistant 设置中关闭；原有 Studio 手动配置仍由 Studio 管理。
 
 没有项目上下文时，需要先选择项目。空间不会根据 Assistant 名称或创建人隐式选择一个私人目录。
 

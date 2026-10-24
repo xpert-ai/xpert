@@ -21,6 +21,7 @@ const instructions = `Use Project Tasks to organize work in the current project:
 export class ProjectTasksCapabilityProvider implements IAssistantCapabilityProvider {
     readonly key = PROJECT_TASKS_MIDDLEWARE
     readonly availableForBlankAssistant = true
+    readonly supportsQuickCreation = true
     readonly templates = [{ templateId: 'xpert-bosi-desktop', required: false }]
     readonly requiredModelFeatures = [ModelFeature.TOOL_CALL]
     readonly label = { en_US: 'Project management', zh_Hans: '项目管理' }

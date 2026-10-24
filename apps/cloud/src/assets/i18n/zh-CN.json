@@ -4512,6 +4512,11 @@
       "ProjectUpdated": "项目更新成功"
     },
     "Xpert": {
+      "QuickCapabilities": {
+        "Title": "Assistant 能力",
+        "Unavailable": "所选能力已不可用，请重新加载后选择。",
+        "ModelRequired": "请选择有权使用且支持所选能力的模型。"
+      },
       "ProjectManagement": {
         "Title": "项目管理",
         "Description": "拆解项目任务、跟踪进度、委托已授权的执行器并验收结果。在项目会话中使用。",
