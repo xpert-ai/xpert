@@ -1,3 +1,4 @@
+import { AssistantMiddlewareAccessService } from './middleware-access/assistant-middleware-access.service'
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
 import { TemplatePublicationService } from './template-lifecycle/template-publication.service'
 import { TemplateUpgradeService } from './template-lifecycle/template-upgrade.service'
@@ -165,6 +166,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         AssistantUserPreferenceService,
         AssistantModelSelectionService,
         AssistantFileAccessService,
+        AssistantMiddlewareAccessService,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers

@@ -1,4 +1,7 @@
 import { TenantLibraryAccessService } from './tenant-library/tenant-library-access.service'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
+import { KnowledgeResourceAccessService } from './runtime/knowledge-resource-access.service'
+import { ProjectKnowledgeRuntimeService } from './runtime/project-knowledge-runtime.service'
 import { RagVStoreModule } from '../rag-vstore'
 import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from './tags/document-tag.entity'
@@ -77,6 +80,7 @@ import { KeywordTitleSubscriber } from './analyzer/keyword-title.subscriber'
 
 @Module({
     imports: [
+        XpertProjectAccessModule,
         RagVStoreModule,
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
         TypeOrmModule.forFeature([
@@ -122,6 +126,8 @@ import { KeywordTitleSubscriber } from './analyzer/keyword-title.subscriber'
         KnowledgeParserSettingsService,
         KnowledgeTableContextService,
         KnowledgebaseService,
+        KnowledgeResourceAccessService,
+        ProjectKnowledgeRuntimeService,
         TenantLibraryAccessService,
         KnowledgebaseRuntimeService,
         KnowledgebaseCatalogService,

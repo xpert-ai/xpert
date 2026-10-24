@@ -66,6 +66,11 @@ describe('view extension utils', () => {
 		jest.restoreAllMocks()
 	})
 
+	it('preserves required client commands for host compatibility checks', () => {
+    const normalized = normalizeManifest({ ...manifest, clientCommands: [{ key: 'editor.status', required: true }] }, 'provider_a', context, 'detail.main_tabs')
+    expect(normalized.clientCommands).toEqual([{ key: 'editor.status', required: true }])
+  })
+
 	it('normalizes manifests into public view keys and default action placement', () => {
 		const normalized = normalizeManifest(manifest, 'provider_a', context, 'detail.main_tabs')
 

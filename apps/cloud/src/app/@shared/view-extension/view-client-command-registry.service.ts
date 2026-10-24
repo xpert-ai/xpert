@@ -35,6 +35,11 @@ export class ViewClientCommandRegistry {
     }
   }
 
+  supportsView(manifest: XpertExtensionViewManifest): boolean {
+    return (manifest.clientCommands ?? []).every((command) => !command.required ||
+      this.#handlers.get(command.key)?.some((entry) => entry.active()))
+  }
+
   async execute(commandKey: string, payload: unknown, context: ViewClientCommandContext) {
     const handler = this.#handlers
       .get(commandKey)

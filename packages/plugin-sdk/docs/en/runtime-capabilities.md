@@ -82,3 +82,106 @@ owns binding authorization, persistence, idempotency, waiting and audit history.
 The native Xpert graph and native background Task transports are separate
 strategies behind that same boundary. Providers must not call the Task facade
 back from their own executor.
+
+
+## Artifact source, ownership and resource authorization
+
+`pluginName`, `resourceType`, and `resourceId` are the canonical source identity.
+An optional `authorizationProviderKey` selects a registered content resource provider;
+it authorizes that same `resourceId`. It does not change the owner, hide the artifact
+from lists, or replace the share link's audience policy. Missing providers deny access.
+
+```ts
+await artifacts.createArtifact({
+  source: { pluginName: '@example/documents', resourceType: 'page', resourceId: page.id },
+  authorizationProviderKey: 'example.pages',
+  scope: { projectId, userId: null },
+  kind: 'markdown',
+  title: page.title
+})
+```
+
+Omit `scope.userId` to retain the current runtime user's ownership. Explicitly set it
+to `null` with `projectId` for shared Project ownership. This clears only the stored
+owner; authorization and `createdById` continue using the authenticated actor.
+Project-owned artifacts require current Project read/edit/manage access even without
+a resource provider. Ordinary user-owned artifacts retain their owner restriction
+for management, including when a provider is configured.
+
+Repeated creation preserves the resource authorization policy and Project ownership.
+`findArtifactBySource` first resolves the current user's source identity, then a
+Project-owned match, and reauthorizes it. Lists include currently authorized artifacts
+and calculate pagination and totals after authorization. Provider checks currently
+scan candidates in bounded batches; a future bulk-authorize API can optimize large lists.
+Public/signed links still need their own audience/token checks; they cannot bypass a
+protected resource's current ACL or a shared artifact's Project membership.
+
+
+## Project content capabilities
+
+Content extensions use server-authenticated `RuntimeActor` identities. Organization-bound APIs
+require `OrganizationRuntimeActor`; Project APIs also support tenant-level Projects.
+Never copy actor fields from a view action body. Views derive actors from their resolved host,
+and jobs retain the authorized execution context.
+
+| Capability | Responsibility |
+| --- | --- |
+| `platform.assistant.middleware-access` | `assertAccess({ actor, assistantId, scope, provider, requiredFeature })` checks the exact installed middleware using standalone Assistant access or Project membership + binding. Does not grant file/resource operations. |
+| `platform.project.access` | Human membership, editing/management and explicit Assistant binding. |
+| `platform.project.files` | Authorized Project file facade with CAS writes; shares Volume IO with WorkspaceFiles. |
+| `platform.project.knowledge` | `ensureBinding({ actor, projectId, title })` creates/binds one Project-owned knowledge library. |
+| `platform.content.resources` | Resource authorization, plus an `identities` subinterface for organization principal/directory resolution. |
+| `platform.content.documents` | Model-backed collaborative documents, immutable revisions, publication and Assistant review. |
+| `platform.content.references` | Authorize containing document and target before dispatching reference hooks. |
+| `platform.content.editors` | Editor discovery and resource routing; versioned opaque file IO with Project and source ACL checks. Concrete formats and edit operations belong to plugins. |
+| `platform.connector.documents` | Credential-bound remote document discovery/read; no implicit synchronization or remote write-back. |
+
+`IContentResourceProvider.authorize` is mandatory. Optional `references`, `pages`, `publication`
+and `locations` extension objects are independently composed in the same registration. Registering
+an extension never grants access. The platform authorizes first, and the plugin validates its
+source-specific relationships. Publication/location callbacks must tolerate retry.
+
+`ContentDocumentInput.resourceId` identifies the **platform document**. `ContentSourceInput.sourceResourceId`
+identifies the **provider's source**; never exchange them just because one plugin happens to use
+the same UUID for both. `createChildPage` returns `{ documentId }`, reauthorized in the original Project.
+
+Create/register a Markdown file directly through `ContentDocuments.register`. There is no old
+editor migration API. Markdown model state stays in the platform; Spaces does not own parallel
+collaboration rooms or review tables. Spreadsheet adapters only convert bytes to/from a typed grid;
+callers still own source ACL, file versions and conflict handling.
+
+Knowledge binding uses `platform.project` resource authority, independent of a Spaces installation.
+Provisioning reuses the knowledge pipeline and requires its request/job context to match the explicit
+actor. Project membership changes apply immediately to the bound library.
+
+View providers that need middleware configuration or a scoped runtime use
+`ViewMiddlewareRuntimeCapability.resolve({ context, provider, requiredFeature })`.
+For capability entry points needing only an access assertion (Views, tools or trusted persisted jobs),
+use `AssistantMiddlewareAccessRuntimeCapability.assertAccess` once per invocation:
+
+```ts
+await access.assertAccess({
+  actor, assistantId, provider: 'spaces', requiredFeature: 'spaces',
+  scope: projectId ? { type: 'project', projectId } : { type: 'assistant' }
+})
+```
+
+The actor and scope come from trusted server context, not iframe/tool input. `assistant` scope
+uses the published Assistant catalog policy. `project` scope uses current Project membership
+and the requested Assistant binding, without adding catalog/workspace visibility requirements.
+Project denial never falls back to standalone authority. Both scopes check active organization
+membership and the requested published Assistant's graph. Resource services retain their own
+Project, binding and operation ACLs; do not repeat middleware authorization per document or
+collaboration recipient. Removing a feature disables its entry points, not the Project's documents.
+Both share the same connected-provider/feature resolver; feature flags or a different provider
+advertising the same feature are not authorization. Multiple connections to the requested provider
+are rejected as ambiguous. There is no cross-request authorization cache.
+Explicit-actor access is independent of content-resource identities and the ambient sender's credentials.
+
+### File editors and text collaboration
+
+Register editors with `@ContentEditorProvider(key)`. Metadata identifies the remote view and distinguishes `text-document` (Yjs model) from `file` (versioned binary codec). `ContentEditorRegistry.getTextModel` is reserved for the text collaboration pipeline.
+
+A file editor supplies `create` and `validateFile`; its own service and Remote View implement concrete models and edit operations. The platform has no cell, workbook, slide or format patch protocol. A content resource provider exposes `editor.describe` and optional `editor.files.read/write` hooks. It owns location and atomic revision checks. Every capability call verifies the live actor, Project, Assistant binding and source permissions.
+
+Use `workbench.content.resolve` with `{ resourceId, providerKey }`, then pass the returned `navigation` unchanged to `workbench.navigation.open`. The returned parameters preserve the source provider. Do not navigate the outer host or infer an editor from a filename in the remote UI. Text documents continue to use `platform.content.documents`; raw file writes cannot bypass its collaboration/publication pipeline.

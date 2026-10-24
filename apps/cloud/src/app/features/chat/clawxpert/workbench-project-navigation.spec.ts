@@ -30,6 +30,7 @@ function setup() {
     language: () => 'en',
     views: { getSlotViews: jest.fn(() => of([manifest])) },
     tabs: signal<ClawXpertWorkspaceTab[]>([]),
+    supportsView: jest.fn(() => true),
     activate: jest.fn(),
     selectProject: jest.fn(async () => false),
     url,
@@ -42,6 +43,12 @@ function setup() {
 afterEach(() => TestBed.resetTestingModule())
 
 describe('project View navigation without switching chat', () => {
+  it('does not bypass host requirements through direct project-view navigation', async () => {
+    const h = setup()
+    h.supportsView.mockReturnValue(false)
+    await expect(h.open(request)).rejects.toThrow('not available')
+    expect(h.tabs()).toEqual([])
+  })
   it('opens a scoped tab and leaves chat navigation untouched', async () => {
     const h = setup()
     expect(await h.open(request)).toBe(true)

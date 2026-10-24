@@ -11,6 +11,12 @@ export const GENERAL_PROJECT_TYPE: XpertProjectTypeRef = {
   projectTypeKey: 'general'
 }
 
+/** File-backed collaborative writing workspace using the ordinary Project lifecycle. */
+export const SPACE_PROJECT_TYPE: XpertProjectTypeRef = {
+  applicationKey: 'platform',
+  projectTypeKey: 'space'
+}
+
 export interface XpertProjectTypeDefinition {
   key: string
   title: string | I18nObject

@@ -34,6 +34,8 @@ import { Column, Entity, Index } from 'typeorm'
     { unique: true, where: '"organizationId" IS NULL AND "userId" IS NULL' }
 )
 export class Artifact extends TenantOrganizationBaseEntity implements IArtifact {
+    @Column({ type: 'varchar', nullable: true })
+    authorizationProviderKey?: string | null
     @Column({ type: 'varchar' })
     pluginName: string
 

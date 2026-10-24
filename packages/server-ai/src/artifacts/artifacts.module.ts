@@ -11,10 +11,15 @@ import {
 } from './artifacts.controller'
 import { ArtifactsService } from './artifacts.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
+import { ContentResourceModule } from '../content-resource/content-resource.module'
+import { ArtifactContentAccess } from './artifact-content-access'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 
 @Module({
     imports: [
         RuntimeCapabilityModule,
+        ContentResourceModule,
+        XpertProjectAccessModule,
         TypeOrmModule.forFeature([Artifact, ArtifactVersion, ArtifactLink, ArtifactAccessLog]),
         UserModule,
         UserOrganizationModule,
@@ -22,7 +27,7 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         VolumeModule
     ],
     controllers: [ArtifactsPublicController, ArtifactsShareSessionController, ArtifactsManagementController],
-    providers: [ArtifactsService],
+    providers: [ArtifactsService, ArtifactContentAccess],
     exports: [ArtifactsService]
 })
 export class ArtifactsModule {}

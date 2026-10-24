@@ -419,6 +419,9 @@ function normalizeClientCommands(clientCommands?: XpertViewClientCommandDefiniti
 			throw new BadRequestException(`Duplicate view client command '${command.key}'`)
 		}
 		seenKeys.add(command.key)
+		if (command.required !== undefined && typeof command.required !== 'boolean') {
+			throw new BadRequestException('View client command required must be a boolean')
+		}
 		if (command.label !== undefined) {
 			assertI18nText(command.label, `View client command '${command.key}' has an invalid label`)
 		}

@@ -1,12 +1,10 @@
+import { inspectAssistantMiddlewares } from '../../xpert/middleware-access/assistant-middleware'
 import {
     AIPermissionsEnum,
     CONVERSATION_MAP_FEATURE,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
-    getAgentMiddlewareNodes,
-    IWFNMiddleware,
     IXpert,
-    normalizeMiddlewareProvider,
     resolveRuntimeXpert,
     type TXpertTeamNode,
     TXpertFeatures,
@@ -291,7 +289,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
         const graph = xpert.graph
-        const agentKey = xpert.agent?.key ?? this.findPrimaryAgentKey(graph)
+        const middlewareGraph = inspectAssistantMiddlewares(xpert, this.agentMiddlewareRegistry)
+        const agentKey = middlewareGraph.agent?.key
         const availableAgents = (graph?.nodes ?? [])
             .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
             .map((node) => ({
@@ -305,31 +304,10 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
         const externalAssistants = agentKey ? await this.resolveExternalAssistants(xpert, agentKey) : []
 
-        if (graph && agentKey) {
-            for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
-                const entity = node?.entity as unknown as IWFNMiddleware | undefined
-                const provider = normalizeMiddlewareProvider(entity?.provider)
-                if (!provider) {
-                    continue
-                }
-
-                middlewareProviders.add(provider)
-                if (node.key) {
-                    middlewareNodeKeys.add(node.key)
-                }
-
-                try {
-                    const strategy = this.agentMiddlewareRegistry.get(provider, xpert.organizationId ?? undefined)
-                    for (const feature of strategy.meta.features ?? []) {
-                        if (typeof feature === 'string' && feature.trim()) {
-                            features.add(feature.trim())
-                        }
-                    }
-                } catch {
-                    // A missing strategy should not make the host unavailable. The
-                    // provider name is still exposed so manifests may gate on it.
-                }
-            }
+        for (const middleware of middlewareGraph.middlewares) {
+            middlewareProviders.add(middleware.provider)
+            if (middleware.key) middlewareNodeKeys.add(middleware.key)
+            for (const feature of middleware.features) features.add(feature)
         }
 
         return {
@@ -378,11 +356,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return Object.entries(features)
             .filter(([, value]) => Boolean(value && typeof value === 'object' && 'enabled' in value && value.enabled))
             .map(([key]) => key)
-    }
-
-    private findPrimaryAgentKey(graph?: IXpert['graph'] | null): string | null {
-        const agentNode = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
-        return agentNode?.key ?? agentNode?.entity?.key ?? null
     }
 }
 

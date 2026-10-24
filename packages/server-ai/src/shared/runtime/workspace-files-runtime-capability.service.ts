@@ -1,3 +1,5 @@
+import { readWorkspaceFile } from '../volume/workspace-file-io'
+import { ContentFileOwnershipService } from '../volume/content-file-ownership.service'
 import {
     normalizeOptionalString,
     toWorkspaceRuntimeDescriptor,
@@ -129,6 +131,9 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
      * Middleware tools receive this scoped API so `/workspace/foo` can be read
      * without exposing catalog, scopeId, tenantId, or projectId to the Agent.
      */
+    @Optional() @Inject(ContentFileOwnershipService)
+    private readonly contentOwnership?: ContentFileOwnershipService
+
     createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
         defaults = Object.freeze({ ...defaults })
         const binding = applyRuntimeScopeDefaults<WorkspaceFileScope>({}, defaults)
@@ -181,6 +186,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             normalizeOptionalString(input.folder) ?? '',
             normalizeOptionalString(input.fileName) ?? originalName
         )
+        await this.contentOwnership?.assertUnmanaged(volumeScope.tenantId, volumeScope.projectId, targetPath)
         assertPublicWorkspacePath(targetPath)
         if (catalog === 'projects' && isProjectGovernedContentPath(targetPath)) {
             throw new BadRequestException(
@@ -394,8 +400,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         assertPublicWorkspacePath(filePath)
         const { volumeScope, catalog, scopeId } = await this.resolveVolumeScope(input)
         const volume = this.volumeClient.resolve(volumeScope)
-        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
-        const buffer = await client.readBuffer('', filePath)
+        const { buffer } = await readWorkspaceFile(volume, filePath)
         const fileUrl = volume.exposesDirectFileUrls() ? volume.publicUrl(filePath) : undefined
 
         return {
@@ -486,6 +491,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
                 })
             )
         }
+        await this.contentOwnership?.assertUnmanaged(volumeScope.tenantId, volumeScope.projectId, filePath, true)
         const client = new VolumeSubtreeClient(this.volumeClient.resolve(volumeScope), { allowRootWorkspace: true })
         await client.deleteFile('', filePath)
     }
@@ -671,7 +677,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
     }
 
     private async resolveVolumeScope(
-        input: WorkspaceFileScope,
+        input: WorkspaceFileScope & { filePath?: string; folder?: string | null; fileName?: string | null; originalName?: string },
         operation: 'read' | 'write' | 'delete' = 'read'
     ): Promise<{
         volumeScope: WorkspaceVolumeScopeResolution['volumeScope']
@@ -717,6 +723,17 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         if (resolved.catalog === 'xperts' || resolved.catalog === 'user-xperts') {
             const scope = await authorizeAssistantWorkspace(input, operation, this.commandBus)
             return { volumeScope: scope, catalog: scope.catalog, scopeId: scope.xpertId }
+        }
+        if (resolved.catalog === 'projects') {
+            const access = this.capabilities.get(ProjectAccessRuntimeCapability)
+            const actor = {
+                tenantId,
+                organizationId: RequestContext.getOrganizationId() ?? input.organizationId,
+                userId: actorUserId ?? userId
+            }
+            if (!access || !actor.userId || !(await access.listReadable({
+                actor: { ...actor, userId: actor.userId }, projectIds: [resolved.scopeId]
+            })).length) throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))
         }
         return resolved
     }

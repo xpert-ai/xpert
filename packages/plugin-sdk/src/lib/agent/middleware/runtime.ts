@@ -169,6 +169,9 @@ export type AgentMiddlewareEvent = {
 }
 
 export interface AgentMiddlewareRuntimeApi {
+  /** Resolve the current scope's authorized primary chat model without exposing provider credentials. */
+  getDefaultChatModel?(): Promise<ICopilotModel>
+
   createModelClient<T = AgentMiddlewareModelClient>(
     copilotModel: ICopilotModel,
     options: AgentMiddlewareCreateModelClientOptions

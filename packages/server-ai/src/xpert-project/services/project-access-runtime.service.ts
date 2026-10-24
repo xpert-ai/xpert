@@ -11,11 +11,15 @@ import { Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { RuntimeCapabilityProvider } from '../../shared/runtime'
+import { XpertProjectAccessService } from './project-access.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectAccessRuntimeCapability)
 export class ProjectAccessRuntimeService implements ProjectAccessApi {
-    constructor(@InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>) {}
+    constructor(
+        @InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>,
+        private readonly access: XpertProjectAccessService
+    ) {}
 
     async listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]> {
         const { actor, projectIds } = input
@@ -77,6 +81,13 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         if (!access || access.archived || !['owner', 'manager', 'editor'].includes(access.role)) {
             throw new ForbiddenException(t('server-ai:Error.ProjectEditorRequired'))
         }
+        return access
+    }
+
+    async assertAssistant(input: { actor: ProjectAccessActor; projectId: string; assistantId: string }) {
+        await this.access.assertCanReadXpert(input.projectId, input.assistantId, input.actor)
+        const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
+        if (!access) throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))
         return access
     }
 }

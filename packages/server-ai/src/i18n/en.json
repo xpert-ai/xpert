@@ -53,6 +53,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ArtifactNotFound": "Artifact was not found",
+        "ArtifactPolicyImmutable": "Artifact resource policy and Project ownership cannot be replaced.",
+        "ArtifactSharedProjectRequired": "Project ownership requires projectId.",
+        "ProjectKnowledgeBindingConflict": "The built-in project knowledge library conflicts with an existing resource.",
+        "ContentAccessDenied": "You do not have access to this content.",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
         "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
         "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",

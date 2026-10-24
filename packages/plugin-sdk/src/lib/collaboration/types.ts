@@ -178,7 +178,9 @@ export interface CollaborationApi {
   /** Remove an Agent/system collaborator before its TTL expires. */
   removeVirtualPresence(input: RemoveVirtualPresenceInput): Promise<void>
   /** Stop normal editing while retaining the document. */
-  archiveDocument(input: GetCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
+  archiveDocument(
+    input: GetCollaborationDocumentInput & { expectedSequence?: number }
+  ): Promise<CollaborationDocumentRecord>
   /** Soft-delete the platform document and notify its provider. */
   deleteDocument(input: GetCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
 }
@@ -220,6 +222,8 @@ export type CollaborationMaterializationEvent = CollaborationProviderContext & {
 export interface ICollaborationDocumentProvider {
   /** Authorize the exact resource and requested operation in the supplied platform scope. */
   authorize(context: CollaborationProviderContext): Promise<boolean> | boolean
+  /** Validate the merged state before commit, including updates received through WebSockets. */
+  validateDocument?(context: CollaborationProviderContext & { stateBase64: string }): Promise<void> | void
   /** Return an idempotent initial snapshot without creating a business version. */
   initializeDocument(
     context: CollaborationProviderContext

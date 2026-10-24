@@ -379,6 +379,9 @@ export interface XpertViewActionDefinition {
 }
 
 export interface XpertViewClientCommandDefinition {
+  /** A host must implement this command before mounting the view. Optional actions may omit this. */
+  required?: boolean
+
   key: string
   label?: I18nObject
   description?: I18nObject

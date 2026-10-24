@@ -72,6 +72,8 @@ export interface IArtifactWorkspaceFileReference {
  * this record owns source identity, scope, title, and current-version pointer.
  */
 export interface IArtifact extends IBasePerTenantAndOrganizationEntityModel {
+  /** Optional resource authorization provider; authorizes the existing resourceId in addition to link access. */
+  authorizationProviderKey?: string | null
   pluginName: string
   resourceType: string
   resourceId: string
@@ -85,6 +87,7 @@ export interface IArtifact extends IBasePerTenantAndOrganizationEntityModel {
   workspaceId?: string | null
   projectId?: string | null
   xpertId?: string | null
+  /** Personal owner; null with projectId denotes Project ownership, independent of resource authorization. */
   userId?: string | null
   metadata?: Record<string, unknown> | null
 }

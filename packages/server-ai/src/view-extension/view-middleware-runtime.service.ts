@@ -2,12 +2,6 @@
 // The returned runtime is server-only and must never become part of a View response.
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import {
-    normalizeMiddlewareProvider,
-    WorkflowNodeTypeEnum,
-    type IWFNMiddleware,
-    type TXpertTeamNode
-} from '@xpert-ai/contracts'
-import {
     AgentMiddlewareRegistry,
     RequestContext,
     RuntimeCapabilityProvider,
@@ -17,7 +11,7 @@ import {
     type ViewMiddlewareRuntimeResolver,
     type ViewMiddlewareRuntimeResult
 } from '@xpert-ai/plugin-sdk'
-import { getRuntimeEnabledMiddlewareNodes } from '../shared/agent/middleware'
+import { requireAssistantMiddleware } from '../xpert/middleware-access/assistant-middleware'
 import { getConnectorMiddlewareScope } from '../shared/agent/connector-runtime'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/middleware-runtime.service'
 import { AgentViewHostDefinition } from './hosts/agent-view-host.definition'
@@ -60,22 +54,9 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
         )
             throw new ForbiddenException()
 
-        const graph = xpert.graph
-        const agent =
-            xpert.agent ?? graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')?.entity
-        if (!graph || !agent?.key) throw new ForbiddenException()
-        const nodes = getRuntimeEnabledMiddlewareNodes(graph, agent)
-        const matching = nodes.filter(
-            (node) =>
-                node.type === 'workflow' &&
-                node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE &&
-                normalizeMiddlewareProvider((node.entity as IWFNMiddleware).provider) === provider
+        const { agent, nodes, node, provider: resolvedProvider } = requireAssistantMiddleware(
+            xpert, this.middlewareRegistry, input
         )
-        // Do not silently choose between two differently configured instances.
-        if (matching.length !== 1) throw new ForbiddenException()
-        const node = matching[0].entity as IWFNMiddleware
-        const strategy = this.middlewareRegistry.get(provider, context.organizationId ?? undefined)
-        if (!strategy.meta.features?.includes(requiredFeature)) throw new ForbiddenException()
 
         const { connectorBindingIds, connectorProviders } = getConnectorMiddlewareScope(nodes, [])
         const runtimeScope = resolution.context.runtimeScope
@@ -110,7 +91,7 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
                 conversationId: runtimeScope.conversationId ?? undefined,
                 agentKey: agent.key,
                 knowledgebaseIds: agent.knowledgebaseIds,
-                node: { ...node, provider },
+                node: { ...node, provider: resolvedProvider },
                 tools: new Map(),
                 runtime: this.middlewareRuntime.createScopedApi(scope)
             }

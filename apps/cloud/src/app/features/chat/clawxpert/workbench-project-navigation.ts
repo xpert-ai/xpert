@@ -1,7 +1,7 @@
 // Project Views retain their own authorized scope. Opening one must never
 // change the chat's Project, thread, composer, or ChatKit session binding.
 import { effect, untracked, type WritableSignal } from '@angular/core'
-import { AGENT_WORKBENCH_SLOT, type WorkbenchAssistantProjectOpenRequest } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, type WorkbenchAssistantProjectOpenRequest, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import type { ViewExtensionApiService } from '../../../@core/services/view-extension-api.service'
 import type { ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
@@ -14,6 +14,7 @@ type ProjectViewOptions = {
   routeKey: () => string
   language: () => string
   views: Pick<ViewExtensionApiService, 'getSlotViews'>
+  supportsView?: (manifest: XpertExtensionViewManifest) => boolean
   tabs: WritableSignal<ClawXpertWorkspaceTab[]>
   activate: (id: string, mode: 'push' | 'none') => void
   selectProject: (projectId: string) => Promise<boolean> | void
@@ -53,7 +54,7 @@ export function createWorkbenchProjectNavigation(options: ProjectViewOptions) {
     if (cancelled() || current !== revision || hostId !== options.hostId() || routeKey !== options.routeKey())
       return false
     const available = manifests
-      .filter((manifest) => manifest.visible !== false)
+      .filter((manifest) => manifest.visible !== false && (options.supportsView?.(manifest) ?? true))
       .map((manifest) => ({
         ...manifest,
         viewKey: manifest.key

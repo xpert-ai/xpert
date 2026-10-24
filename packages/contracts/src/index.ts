@@ -111,3 +111,6 @@ export * from './ai/execution-activity.model'
 export * from './setup-plugins'
 
 export * from './default-agent-plugins'
+export * from './content-document.model'
+
+export * from './content-reference.model'

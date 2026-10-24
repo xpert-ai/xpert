@@ -1,3 +1,5 @@
+import { DOCUMENT } from '@angular/common'
+import { ChatkitLifecycleService } from '../../../@core/services/chatkit-lifecycle.service'
 import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
 import {
   installConversationMapLinks,
@@ -246,6 +248,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #hostEvents = inject(ViewHostEventBus)
+  readonly #browserDocument = inject(DOCUMENT)
+  readonly #chatkitLifecycle = inject(ChatkitLifecycleService)
+  private readonly registerChatkitLifecycle = effect((onCleanup) => {
+    const host = this.chatkitHost()?.nativeElement
+    if (host) onCleanup(this.#chatkitLifecycle.register(host))
+  })
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
@@ -383,8 +391,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       collapseProcess: true
     },
     workbench: {
-      // Temporary: enable the embedded Workbench for local ChatKit testing.
       enabled: true,
+      // The embedder supplies an address only; ChatKit resolves and navigates resources.
+      linkBaseUrl: (() => {
+        const base = this.#browserDocument.location.href.match(/^(https?:\/\/[^/]+\/chat\/x\/[^/?#]+)/)?.[1]
+        return base ? `${base}/p/{projectId}/c` : undefined
+      })(),
       viewRail: { enabled: true },
       onClientCommand: createChatkitWorkbenchClientCommandHandler({
         conversations: this.#conversationService,
@@ -582,6 +594,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     routeKey: () => this.#hostChatRouteKey(),
     language: () => this.#translate.currentLang,
     views: this.#viewExtensionApi,
+    supportsView: (manifest) => this.#clientCommands.supportsView(manifest),
     tabs: this.workspaceTabs,
     activate: (id, mode) => {
       this.activateWorkspaceTab(id, mode)
@@ -1941,7 +1954,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       const items = manifests
-        .filter((manifest) => manifest.visible !== false)
+        .filter((manifest) => manifest.visible !== false && this.#clientCommands.supportsView(manifest))
         .map((manifest) => this.toFixedViewMenuItem(manifest))
         .sort((a, b) => a.order - b.order)
 
