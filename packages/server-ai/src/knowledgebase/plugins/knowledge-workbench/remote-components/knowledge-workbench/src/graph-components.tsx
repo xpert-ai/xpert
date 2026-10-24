@@ -325,9 +325,7 @@ export function KnowledgeGraphPanel({
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
             <div className="flex min-h-8 flex-wrap items-center gap-2 text-xs text-muted-foreground/75">
-                <Badge variant="secondary" className="rounded-md">
-                    {graph?.status || 'ready'}
-                </Badge>
+                <Badge variant="secondary">{graph?.status || 'ready'}</Badge>
                 <span>
                     {formatNumber(graph?.entityCount ?? nodes.length)} {t('entities')}
                 </span>
@@ -400,9 +398,9 @@ export function KnowledgeGraphInspector({
     const headerNode = detail?.entity ?? node
     return (
         <>
-            <CardHeader className="flex min-h-14 flex-row items-center justify-between gap-3 border-b px-3 py-2">
+            <CardHeader className="flex flex-row items-center justify-between">
                 <div className="grid min-w-0 gap-1">
-                    <CardTitle className="truncate font-medium">{headerNode?.name || t('graph')}</CardTitle>
+                    <CardTitle className="truncate">{headerNode?.name || t('graph')}</CardTitle>
                     <CardDescription className="truncate">
                         {headerNode
                             ? `${headerNode.type} · ${formatNumber(headerNode.mentionCount ?? headerNode.value ?? 0)} ${t('mentions')}`
@@ -411,9 +409,9 @@ export function KnowledgeGraphInspector({
                 </div>
                 <Network className="size-4 shrink-0 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="min-h-0 flex-1 p-0">
+            <CardContent className="min-h-0 flex-1">
                 <ScrollArea className="h-full min-h-0">
-                    <div className="grid gap-3 p-3">
+                    <div className="grid gap-3">
                         {loading && !graph ? (
                             <div className="grid min-h-28 place-items-center text-muted-foreground">{t('loading')}</div>
                         ) : node ? (
@@ -468,11 +466,9 @@ function GraphOverview({
         <div className="grid gap-4">
             <section className="grid gap-2 border-b pb-3">
                 <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-md">
-                        {graph.status || 'ready'}
-                    </Badge>
+                    <Badge variant="secondary">{graph.status || 'ready'}</Badge>
                     {graph.revision !== undefined && graph.revision !== null ? (
-                        <Badge variant="outline" className="rounded-md">
+                        <Badge variant="outline">
                             {t('revision')} {formatNumber(graph.revision)}
                         </Badge>
                     ) : null}
@@ -570,25 +566,19 @@ function FocusedGraphNodeDetails({
         <div className="grid gap-4">
             <section className="grid gap-2 border-b pb-3">
                 <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-md">
-                        {entity.type}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-md">
+                    <Badge variant="secondary">{entity.type}</Badge>
+                    <Badge variant="outline">
                         {formatNumber(entity.mentionCount ?? entity.value ?? 0)} {t('mentions')}
                     </Badge>
-                    <Badge variant="outline" className="rounded-md">
+                    <Badge variant="outline">
                         {formatNumber(displayEdges.length)} {t('degree')}
                     </Badge>
                     {typeof entity.confidence === 'number' ? (
-                        <Badge variant="outline" className="rounded-md">
+                        <Badge variant="outline">
                             {t('confidence')} {formatPercent(entity.confidence)}
                         </Badge>
                     ) : null}
-                    {detailLoading ? (
-                        <Badge variant="outline" className="rounded-md">
-                            {t('loading')}
-                        </Badge>
-                    ) : null}
+                    {detailLoading ? <Badge variant="outline">{t('loading')}</Badge> : null}
                 </div>
                 <div className="break-words font-medium">{entity.name}</div>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -611,7 +601,7 @@ function FocusedGraphNodeDetails({
                 {detail?.entity.aliases?.length ? (
                     <div className="flex flex-wrap gap-1">
                         {detail.entity.aliases.map((alias) => (
-                            <Badge key={alias} variant="outline" className="rounded-md">
+                            <Badge key={alias} variant="outline">
                                 {alias}
                             </Badge>
                         ))}
@@ -746,7 +736,7 @@ function GraphEvidenceChunkItem({
                 <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 shrink-0"
+                    className="shrink-0"
                     disabled={!chunk.documentId}
                     onClick={() => onOpen(chunk)}
                 >

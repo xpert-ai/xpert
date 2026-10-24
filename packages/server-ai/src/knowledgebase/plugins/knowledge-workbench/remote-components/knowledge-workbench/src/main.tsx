@@ -4,7 +4,9 @@ import { WORKBENCH_FILE_OPEN_COMMAND, type WorkbenchOpenFile } from '@xpert-ai/c
 import {
     Badge,
     Button,
-    Input,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
     ScrollArea,
     Select,
     SelectContent,
@@ -333,6 +335,7 @@ function App() {
     }, [])
 
     React.useEffect(() => {
+        if (!ready) return
         const resize = () =>
             sendToHost('resize', {
                 height: Math.max(620, document.documentElement.scrollHeight),
@@ -593,7 +596,7 @@ function App() {
                             onValueChange={changeKnowledgebase}
                             disabled={!knowledgebases.length}
                         >
-                            <SelectTrigger className="h-9 min-w-0 max-w-[300px] flex-1 bg-card max-[760px]:max-w-none">
+                            <SelectTrigger className="min-w-0 max-w-[300px] flex-1 max-[760px]:max-w-none">
                                 <SelectValue placeholder={t('knowledgebase')} />
                             </SelectTrigger>
                             <SelectContent position="popper">
@@ -605,7 +608,7 @@ function App() {
                             </SelectContent>
                         </Select>
                         {activeKnowledgebase ? (
-                            <Badge variant="secondary" className="shrink-0 rounded-md">
+                            <Badge variant="secondary" className="shrink-0">
                                 {activeKnowledgebase.documentNum ?? 0} {t('docs')}
                             </Badge>
                         ) : null}
@@ -662,18 +665,14 @@ function App() {
                                             setViewMode(value === 'graph' ? 'graph' : 'documents')
                                         }
                                     >
-                                        <TabsList className="h-8" variant="line">
-                                            <TabsTrigger value="documents" className="px-2">
-                                                {t('documentsView')}
-                                            </TabsTrigger>
-                                            <TabsTrigger value="graph" className="px-2">
-                                                {t('graphView')}
-                                            </TabsTrigger>
+                                        <TabsList variant="line">
+                                            <TabsTrigger value="documents">{t('documentsView')}</TabsTrigger>
+                                            <TabsTrigger value="graph">{t('graphView')}</TabsTrigger>
                                         </TabsList>
                                     </Tabs>
                                 ) : null}
                                 {viewMode === 'documents' && selectedRows.length ? (
-                                    <Badge variant="secondary" className="rounded-md">
+                                    <Badge variant="secondary">
                                         {selectedRows.length} {t('selected')}
                                     </Badge>
                                 ) : null}
@@ -681,11 +680,12 @@ function App() {
                             <div className="flex min-w-0 items-center gap-1">
                                 {viewMode === 'graph' ? (
                                     <>
-                                        <div className="relative w-[180px] max-[900px]:w-[136px]">
-                                            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                            <Input
+                                        <InputGroup className="w-[180px] max-[900px]:w-[136px]">
+                                            <InputGroupAddon>
+                                                <Search aria-hidden />
+                                            </InputGroupAddon>
+                                            <InputGroupInput
                                                 value={graphSearch}
-                                                className="h-8 rounded-md border-0 bg-muted/70 pl-8 shadow-none"
                                                 placeholder={t('search')}
                                                 onChange={(event) => {
                                                     setFocusedGraphNodeId(null)
@@ -693,7 +693,7 @@ function App() {
                                                     setGraphSearch(event.target.value)
                                                 }}
                                             />
-                                        </div>
+                                        </InputGroup>
                                         <Select
                                             value={graphEntityType || '__all'}
                                             onValueChange={(value) => {
@@ -703,7 +703,7 @@ function App() {
                                             }}
                                             disabled={!graph?.entityTypes?.length}
                                         >
-                                            <SelectTrigger className="h-8 w-[136px] bg-card">
+                                            <SelectTrigger className="w-[136px]">
                                                 <SelectValue placeholder={t('entityType')} />
                                             </SelectTrigger>
                                             <SelectContent position="popper">
@@ -724,7 +724,7 @@ function App() {
                                             }}
                                             disabled={!graph?.relationTypes?.length}
                                         >
-                                            <SelectTrigger className="h-8 w-[136px] bg-card">
+                                            <SelectTrigger className="w-[136px]">
                                                 <SelectValue placeholder={t('relationType')} />
                                             </SelectTrigger>
                                             <SelectContent position="popper">
@@ -740,7 +740,6 @@ function App() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 rounded-md px-2 text-muted-foreground hover:bg-muted hover:text-foreground"
                                                 onClick={() => {
                                                     setFocusedGraphNodeId(null)
                                                     setFocusedGraphNodeDetail(null)
@@ -762,25 +761,23 @@ function App() {
                                 ) : (
                                     <>
                                         {searchOpen ? (
-                                            <div className="relative w-[170px] max-[900px]:w-[136px]">
-                                                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                                <Input
+                                            <InputGroup className="w-[170px] max-[900px]:w-[136px]">
+                                                <InputGroupAddon>
+                                                    <Search aria-hidden />
+                                                </InputGroupAddon>
+                                                <InputGroupInput
                                                     autoFocus
                                                     value={search}
-                                                    className="h-8 rounded-md border-0 bg-muted/70 pl-8 shadow-none"
                                                     placeholder={t('search')}
                                                     onChange={(event) => setSearch(event.target.value)}
                                                 />
-                                            </div>
+                                            </InputGroup>
                                         ) : null}
                                         <IconButton
                                             title={t('search')}
-                                            variant="ghost"
+                                            variant={searchOpen ? 'secondary' : 'ghost'}
                                             size="icon-xs"
-                                            className={cn(
-                                                'text-muted-foreground hover:bg-muted',
-                                                searchOpen ? 'bg-muted text-foreground' : ''
-                                            )}
+                                            aria-expanded={searchOpen}
                                             onClick={() => setSearchOpen((value) => !value)}
                                         >
                                             <Search className="size-3.5" />
@@ -788,7 +785,6 @@ function App() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 rounded-md px-2 font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                                             onClick={() =>
                                                 setSortMode((value) => (value === 'updated' ? 'name' : 'updated'))
                                             }
@@ -801,7 +797,6 @@ function App() {
                                             title={t('newFolder')}
                                             variant="ghost"
                                             size="icon-xs"
-                                            className="text-muted-foreground hover:bg-muted"
                                             onClick={() => setCreateFolderDialogOpen(true)}
                                             disabled={!activeKnowledgebaseId || loading}
                                         >
@@ -811,7 +806,6 @@ function App() {
                                             title={t('upload')}
                                             variant="ghost"
                                             size="icon-xs"
-                                            className="text-muted-foreground hover:bg-muted"
                                             onClick={() => fileInputRef.current?.click()}
                                             disabled={!activeKnowledgebaseId || loading}
                                         >

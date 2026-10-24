@@ -1,3 +1,4 @@
+import { buttonVariants } from '@xpert-ai/shadcn-ui'
 import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { ActivityRow } from './activity-row'
 import { ExecutionHeader, type Palette } from './header'
@@ -30,7 +31,7 @@ export class ExecutionView {
     private files = el('div', '', 'artifacts')
     private footer = el('footer', '', 'viewer-footer')
     private followText = el('span')
-    private latest = button('', () => this.setFollow(true), 'down')
+    private latest = button('', () => this.setFollow(true))
     private info = el('details', '', 'technical-info')
     private infoTitle = el('summary')
     private infoBody = el('div', '', 'technical-body')
@@ -80,6 +81,11 @@ export class ExecutionView {
         this.transcript.append(this.error, this.result, this.files)
         this.info.append(this.infoTitle, this.infoBody)
         this.footer.append(this.followText, this.toast, this.info, this.shortcuts)
+        this.latest.className = buttonVariants({
+            variant: 'outline',
+            size: 'sm',
+            className: 'absolute bottom-16 right-8'
+        })
         this.surface.append(this.search.element, this.banner, this.scroll, this.latest, this.footer)
         this.element.append(this.header.element, this.surface)
         this.banner.hidden = this.latest.hidden = this.gaps.hidden = this.error.hidden = this.result.hidden = true

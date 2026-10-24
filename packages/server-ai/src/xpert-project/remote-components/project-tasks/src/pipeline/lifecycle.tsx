@@ -1,5 +1,14 @@
 import { useRef, useState } from 'react'
-import { Button, Dialog, DialogContent, DialogTitle, DialogDescription } from '@xpert-ai/shadcn-ui'
+import {
+    Button,
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogFooter,
+    DialogTitle,
+    DialogDescription
+} from '@xpert-ai/shadcn-ui'
 import { changePipelineLifecycle, type PipelineGraph } from './bridge'
 import type { PipelineTexts } from './i18n'
 
@@ -37,38 +46,36 @@ export function PipelineLifecycle({
         }
     }
     return (
-        <>
-            <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-                {title}
-            </Button>
-            <Dialog
-                open={open}
-                onOpenChange={(value) => {
-                    if (!busy) setOpen(value)
-                }}
-            >
-                <DialogContent>
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                if (!busy) setOpen(value)
+            }}
+        >
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+                    {title}
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>{nodeId ? t.retryHint : t.cancelHint}</DialogDescription>
-                    {error && (
-                        <p role="alert" className="text-sm text-destructive">
-                            {t.actionFailed}
-                        </p>
-                    )}
-                    <div className="flex justify-end gap-2">
-                        <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>
-                            {t.keepRunning}
-                        </Button>
-                        <Button
-                            variant={nodeId ? 'default' : 'destructive'}
-                            disabled={busy}
-                            onClick={() => void submit()}
-                        >
-                            {title}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                </DialogHeader>
+                {error && (
+                    <p role="alert" className="text-sm text-destructive">
+                        {t.actionFailed}
+                    </p>
+                )}
+                <DialogFooter>
+                    <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>
+                        {t.keepRunning}
+                    </Button>
+                    <Button variant={nodeId ? 'default' : 'destructive'} disabled={busy} onClick={() => void submit()}>
+                        {title}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }

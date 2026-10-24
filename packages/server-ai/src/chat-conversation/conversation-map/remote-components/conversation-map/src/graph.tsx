@@ -249,7 +249,7 @@ export function NodeMenu({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="nodrag size-6" aria-label={l.actions}>
+                <Button variant="ghost" size="icon-xs" className="nodrag" aria-label={l.actions}>
                     <MoreHorizontal className="size-4" aria-hidden />
                 </Button>
             </DropdownMenuTrigger>

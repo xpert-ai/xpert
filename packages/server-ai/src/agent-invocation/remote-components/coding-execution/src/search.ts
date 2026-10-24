@@ -1,9 +1,13 @@
+import { createElement } from 'react'
+import { createRoot } from 'react-dom/client'
+import { flushSync } from 'react-dom'
+import { Input } from '@xpert-ai/shadcn-ui'
 import { button, el, hasSelection, text } from './dom'
 import type { Label } from './model'
 
 export class TranscriptSearch {
     readonly element = el('div', '', 'search-bar')
-    readonly input = el('input')
+    readonly input: HTMLInputElement
     private count = el('span', '', 'search-count')
     private previous = button('', () => this.move(-1), 'up')
     private next = button('', () => this.move(1), 'down')
@@ -17,10 +21,12 @@ export class TranscriptSearch {
         private label: Label,
         private prepare: (query: string) => void
     ) {
+        // Mount the shared uncontrolled Input once; incremental searches keep this DOM node and selection.
+        const inputMount = el('div', '', 'min-w-0 flex-1')
+        flushSync(() => createRoot(inputMount).render(createElement(Input, { type: 'search', maxLength: 256 })))
+        this.input = inputMount.querySelector('input')!
         this.element.hidden = true
         this.element.setAttribute('role', 'search')
-        this.input.type = 'search'
-        this.input.maxLength = 256
         this.input.oninput = () => {
             this.index = -1
             this.refresh()
@@ -35,7 +41,7 @@ export class TranscriptSearch {
                 this.move(event.shiftKey ? -1 : 1)
             }
         }
-        this.element.append(this.input, this.count, this.previous, this.next, this.close)
+        this.element.append(inputMount, this.count, this.previous, this.next, this.close)
         this.translate()
     }
     translate() {

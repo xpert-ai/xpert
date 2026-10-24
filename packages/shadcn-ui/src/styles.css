@@ -1,5 +1,6 @@
 @import 'tailwindcss' source(none);
 @import 'tw-animate-css';
+@import './styles/shadcn.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -37,10 +38,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: var(--xui-radius-sm, max(0px, calc(var(--radius) - 4px)));
-  --radius-md: var(--xui-radius-md, max(0px, calc(var(--radius) - 2px)));
+  --radius-sm: var(--xui-radius-sm, calc(var(--radius) * 0.6));
+  --radius-md: var(--xui-radius-md, calc(var(--radius) * 0.8));
   --radius-lg: var(--xui-radius-lg, var(--radius));
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
   --font-sans: var(--font-sans);
 }
 

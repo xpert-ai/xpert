@@ -1,3 +1,4 @@
+import { buttonVariants } from '@xpert-ai/shadcn-ui'
 import search from 'remixicon/icons/System/search-line.svg'
 import copy from 'remixicon/icons/Document/file-copy-line.svg'
 import download from 'remixicon/icons/System/download-2-line.svg'
@@ -24,7 +25,8 @@ export function icon(name: keyof typeof icons) {
     return node
 }
 export function button(title: string, action: () => void, name?: keyof typeof icons) {
-    const node = el('button', '', 'quiet-button')
+    const node = el('button', '', buttonVariants({ variant: 'ghost', size: name ? 'icon-sm' : 'sm' }))
+    node.dataset.slot = 'button'
     node.type = 'button'
     node.title = title
     node.setAttribute('aria-label', title)

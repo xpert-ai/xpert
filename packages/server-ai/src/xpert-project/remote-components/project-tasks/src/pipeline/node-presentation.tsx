@@ -1,3 +1,4 @@
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@xpert-ai/shadcn-ui'
 import { dateTime } from '../i18n'
 import type { PipelineNode } from './bridge'
 import type { PipelineTexts } from './i18n'
@@ -25,10 +26,14 @@ export function NodePresentation({ node, locale, t }: { node: PipelineNode; loca
                     </h3>
                     <p>{facts.decision.reason}</p>
                     <p className="text-xs text-muted-foreground">{dateTime(facts.decision.decidedAt, locale)}</p>
-                    <details className="text-xs text-muted-foreground">
-                        <summary>{t.versionEvidence}</summary>
-                        <p className="break-all">{facts.decision.version}</p>
-                    </details>
+                    <Accordion type="single" collapsible>
+                        <AccordionItem value="evidence">
+                            <AccordionTrigger>{t.versionEvidence}</AccordionTrigger>
+                            <AccordionContent>
+                                <p className="break-all">{facts.decision.version}</p>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </section>
             )}
             {facts.operationUnavailableReason && (

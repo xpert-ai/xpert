@@ -13,7 +13,11 @@ const envelope = z.object({
     requestId: z.string().optional(),
     locale: z.string().optional(),
     theme: z
-        .object({ mode: z.string().optional(), tokens: z.record(z.union([z.string(), z.number()])).optional() })
+        .object({
+            mode: z.string().optional(),
+            density: z.enum(['default', 'compact']).optional(),
+            tokens: z.record(z.union([z.string(), z.number()])).optional()
+        })
         .optional(),
     initialQuery: z.object({ selectionId: z.string().optional() }).optional(),
     event: z.unknown().optional(),
@@ -152,6 +156,7 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
                 `--xui-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
                 String(value)
             )
+        installShadcnThemeVars({ density: data.theme?.density ?? 'compact' })
         document.documentElement.classList.toggle('dark', data.theme?.mode === 'dark')
         document.documentElement.lang = zh ? 'zh-Hans' : 'en'
         view.translate()

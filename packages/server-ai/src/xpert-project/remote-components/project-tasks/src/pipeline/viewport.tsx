@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Maximize, Minus, Plus } from 'lucide-react'
+import { Button, Separator } from '@xpert-ai/shadcn-ui'
 import { useDragScroll } from '../drag-scroll'
 import { saveTaskViewState, type PipelineFocus } from '../bridge'
 import type { PipelineTexts } from './i18n'
@@ -80,52 +81,55 @@ export function PipelineViewport({
         setFitting(false)
         setScale(next)
     }
-    const button =
-        'flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-xs hover:bg-muted focus-visible:outline-ring disabled:opacity-40'
     return (
         <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex shrink-0 items-center gap-4 border-b bg-background px-3 py-0.5">
                 {status}
                 <div role="group" aria-label={t.zoom} className="ml-auto flex shrink-0 items-center gap-0.5">
-                    <button
+                    <Button
                         type="button"
-                        className={button}
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={t.zoomOut}
                         title={t.zoomOut}
                         disabled={scale <= minimum}
                         onClick={() => zoom(scale - 0.1)}
                     >
                         <Minus className="size-3.5" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        className={`${button} min-w-14 tabular-nums`}
+                        variant="ghost"
+                        size="sm"
+                        className="tabular-nums"
                         aria-label={t.resetZoom}
                         title={t.resetZoom}
                         onClick={() => zoom(1)}
                     >
                         {Math.round(scale * 100)}%
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        className={button}
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={t.zoomIn}
                         title={t.zoomIn}
                         disabled={scale >= maximum}
                         onClick={() => zoom(scale + 0.1)}
                     >
                         <Plus className="size-3.5" />
-                    </button>
-                    <span className="mx-1 h-4 border-r" />
-                    <button
+                    </Button>
+                    <Separator orientation="vertical" className="mx-1 h-4" />
+                    <Button
                         type="button"
-                        className={`${button} gap-1.5`}
+                        variant="ghost"
+                        size="sm"
                         aria-pressed={fitting}
                         onClick={() => setFitting(true)}
                     >
                         <Maximize className="size-3.5" />
                         {t.fitView}
-                    </button>
+                    </Button>
                 </div>
             </div>
             <div

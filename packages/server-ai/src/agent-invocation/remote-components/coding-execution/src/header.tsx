@@ -44,12 +44,7 @@ function Header({
                 {title}
             </h1>
             <div className="header-actions flex flex-wrap items-center gap-1.5 max-[720px]:w-full">
-                <Badge
-                    variant="outline"
-                    role="status"
-                    className="execution-status gap-1.5 border-0 px-1.5 text-xs"
-                    data-status={status}
-                >
+                <Badge variant="outline" role="status" className="execution-status" data-status={status}>
                     {status && <StatusIcon aria-hidden className="size-3.5" />}
                     {status ? stateLabel(status, label) : null}
                 </Badge>
