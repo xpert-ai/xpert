@@ -46,7 +46,7 @@ export async function ensureManagedProject(
             })
         )
     }
-    await validateProjectExternalAssistants(store.queryBus, xpert, input)
+    const assistantBindings = await validateProjectExternalAssistants(store.queryBus, xpert, input)
 
     // Tenant and organization participate in lookup so retries cannot adopt
     // a same-id Project from a different security boundary.
@@ -104,6 +104,7 @@ export async function ensureManagedProject(
         // but Project persistence and runtime no longer use it.
         workspaceId: input.workspaceId,
         xpertIds: project.xperts?.map((item) => item.id) ?? [],
+        assistantBindings,
         operation
     }
 }

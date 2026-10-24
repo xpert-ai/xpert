@@ -11,6 +11,11 @@ export type ProjectExternalAssistantExpectation = {
   agentKey: string
 }
 
+/** A requested portable role resolved to an authorized Assistant; not proof of Project membership. */
+export type ProjectAssistantBinding = ProjectExternalAssistantExpectation & {
+  xpertId: string
+}
+
 /** Stable identity and desired state for an idempotently provisioned Chat Project. */
 export type ProjectEnsureInput = {
   /** Registered application type. Omission preserves legacy unclassified callers. */
@@ -38,6 +43,8 @@ export type ProjectEnsureResult = {
   workspaceId?: string
   /** Persisted Assistant members; ensure never restores removed members or adds new graph dependencies to an existing Project. */
   xpertIds: string[]
+  /** Bindings for the requested role expectations, not all members. Check xpertIds before assigning an executor. */
+  assistantBindings: ProjectAssistantBinding[]
   /** Whether this call inserted the Project or reconciled an existing one. */
   operation: 'created' | 'updated'
 }
