@@ -13,7 +13,13 @@
 
 在专用文档宿主页调用 `installArtifactDocumentFramePolicy(document)`，再挂载 iframe；未安装时 mount 会拒绝挂载。该策略作用于整个宿主页，禁止子框架的 URL 导航；允许 `srcdoc`。不要装到需要加载其他远程 iframe 的应用根文档。
 
-`mountArtifactDocument(frame, { html, dependencies, context, query, onBusy, onResult, onError })` 返回 `refresh()` 和 `dispose()`。上下文只含 Binding ID（最多 64 个）、默认控件值（最多 24 个）、语言及主题；它在挂载时严格校验并复制，后续修改原对象不会扩大允许的 Binding 集合。Artifact ID、版本和身份由可信回调闭包持有，不交给文档选择。
+`mountArtifactDocument(frame, { html, dependencies, networkPolicy, context, query, onBusy, onResult, onError })` 返回 `refresh()` 和 `dispose()`。上下文只含 Binding ID（最多 64 个）、默认控件值（最多 24 个）、语言及主题；它在挂载时严格校验并复制，后续修改原对象不会扩大允许的 Binding 集合。Artifact ID、版本和身份由可信回调闭包持有，不交给文档选择。
+
+## 可选在线资源
+
+可信宿主可通过 `networkPolicy` 为 `scripts`、`styles`、`fonts`、`images` 分别指定 HTTPS origin 数组；每类最多 16 项。省略时保持原有离线限制。策略不接受通配符、路径、凭据或额外 CSP 指令，不能由 HTML 或页面消息提供。CSP 在作者 HTML 之前生成，页面无法放宽它。`isArtifactDocumentResourceAllowed(policy, resourceType, url)` 可供预检路由复用相同的资源类型和 origin 检查。
+
+例如 `{ scripts: ['https://cdn.tailwindcss.com'] }` 允许该 origin 的 script 标签加载，但不会开放 fetch/XHR、eval、worker、iframe、宿主存储或额外 Binding 权限。调用方负责资源准入和固定版本；在线资源需要网络，内容不具备打包依赖的不可变快照保证。保存前预检与实际展示必须使用同一策略，加载失败应阻止保存。
 
 ## 固定前端依赖
 
@@ -65,7 +71,7 @@ await live.refresh('sales')
 
 ## 隔离边界
 
-HTML 在 `sandbox="allow-scripts"` 内执行，无同源权限、表单、弹窗和下载授权。内容前缀首先安装 CSP，允许内联 JS/CSS 和 data/blob 图片，拒绝网络请求、外部脚本、外部字体、子 iframe、worker、eval、对象和表单。宿主页额外的 frame-src 策略拒绝文档自身导航。
+HTML 在 `sandbox="allow-scripts"` 内执行，无同源权限、表单、弹窗和下载授权。内容前缀首先安装 CSP，允许内联 JS/CSS 和 data/blob 图片。默认拒绝外部资源；可信宿主可显式开启上述 HTTPS 资源白名单。数据网络请求、子 iframe、worker、eval、对象和表单始终拒绝。宿主页额外的 frame-src 策略拒绝文档自身导航。
 
 HTML 格式验证不是 sanitizer，也不证明业务正确性。Agent 代码仍可画出错误图形或阻塞自己的文档；业务口径、数值与实际页面都需要验收。该能力不提供后端写操作、任意网络代理或自动推送。
 

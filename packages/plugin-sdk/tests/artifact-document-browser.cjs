@@ -7,6 +7,7 @@ const { createServer } = require('node:http')
 const { createHash } = require('node:crypto')
 const verifyHostBoundaries = require('./artifact-document-host.cjs')
 const verifyDependencyEnvironments = require('./artifact-document-dependencies.cjs')
+const verifyNetworkPolicy = require('./artifact-document-network.cjs')
 
 async function main() {
   const bundle = await build({
@@ -23,7 +24,7 @@ async function main() {
     !Object.keys(bundle.metafile.inputs).some((path) => path.includes('@noble/hashes')),
     'Artifact browser bundle must not depend on @noble/hashes'
   )
-  const browser = await chromium.launch({ headless: true, channel: 'chrome' })
+  const browser = await chromium.launch({ headless: true })
   let hits = 0
   const trap = createServer((_request, response) => {
     hits++
@@ -159,6 +160,7 @@ async function main() {
     await page.evaluate(() => window.host.dispose())
     const hostChecks = await verifyHostBoundaries(browser, bundle.outputFiles[0].text)
     const dependencyChecks = await verifyDependencyEnvironments(browser, bundle.outputFiles[0].text, dependency)
+    const networkChecks = await verifyNetworkPolicy(browser, bundle.outputFiles[0].text)
     console.log(
       JSON.stringify({
         passed: [
@@ -177,6 +179,7 @@ async function main() {
           'external resources',
           'self navigation',
           ...dependencyChecks,
+          ...networkChecks,
           ...hostChecks
         ]
       })

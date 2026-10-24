@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { RequestContext, type DataSourceActor } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { analyticsErrorDetails } from './analytics-error-details'
 
 export function authorizeAnalyticsActor(actor: DataSourceActor) {
 	if (
@@ -17,20 +18,17 @@ export function authorizeAnalyticsActor(actor: DataSourceActor) {
 		})
 	}
 }
-export class AnalyticsRuntimeError extends BadRequestException {}
+/** Only host-owned diagnostics enter this boundary; provider messages remain redacted. */
+export class AnalyticsRuntimeError extends BadRequestException {
+	constructor(details: { code: string; message: string; retryable?: boolean; stage?: string }) {
+		const diagnostic = { stage: 'dependency', retryable: false, ...details }
+		super(diagnostic)
+		// ToolNode consumes Error.message, whereas HTTP consumes getResponse(). Keep both informative.
+		this.message = JSON.stringify(diagnostic)
+	}
+}
 export function analyticsError(code: string) {
-	return new AnalyticsRuntimeError({
-		code,
-		message:
-			code === 'ANALYTICS_GRAIN_MISMATCH'
-				? t('server-ai:Error.AnalyticsGrainMismatch', {
-						defaultValue:
-							'Returned rows repeat the declared grain. Inspect the actual rows and use a truly unique grain, or an empty grain for an unaggregated table. Do not discard source rows.'
-					})
-				: t('server-ai:Error.AnalyticsQueryInvalid', {
-						defaultValue: 'Analytics query is unavailable or invalid'
-					})
-	})
+	return new AnalyticsRuntimeError(analyticsErrorDetails(code))
 }
 export const SAFE_ANALYTICS_ERRORS = new Set([
 	'ANALYTICS_FIELD_TYPE_MISMATCH',
