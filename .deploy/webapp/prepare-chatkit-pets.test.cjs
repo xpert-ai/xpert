@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } = require('node:fs')
+const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSync } = require('node:fs')
 const path = require('node:path')
 const { tmpdir } = require('node:os')
 const { test } = require('node:test')
@@ -46,6 +46,16 @@ test('supports existing UI deployments and explicit source overrides', (t) => {
   const source = pack(root, 'custom/pets', 'Custom')
   assert.equal(preparePets({ root, source }).source, source)
   assert.throws(() => preparePets({ root, source: 'missing' }), /Missing offline/)
+})
+test('resolves the Cloud build dependency when the UI package has no pet files', (t) => {
+  const root = fixture(t)
+  const directory = 'apps/cloud/node_modules/@xpert-ai/chatkit-assets'
+  const source = pack(root, `${directory}/pets`)
+  writeFileSync(
+    path.join(root, directory, 'package.json'),
+    JSON.stringify({ name: '@xpert-ai/chatkit-assets', version: '0.1.0' })
+  )
+  assert.equal(preparePets({ root }).source, realpathSync(source))
 })
 test('fails builds with missing or incomplete offline assets', (t) => {
   const root = fixture(t)
