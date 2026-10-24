@@ -1,3 +1,4 @@
+import type { PluginApplicationScope } from '../plugin-application'
 import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
 import type { XpertViewAssistantIdentity } from './assistant-profile'
@@ -63,6 +64,8 @@ export interface XpertViewHostCapabilities {
 }
 
 export interface XpertViewRuntimeScopeInput {
+  /** Route through the group boundary; the server resolves and validates its runtime. */
+  groupId?: string | null
   projectId?: string | null
   conversationId?: string | null
 }
@@ -140,6 +143,13 @@ export interface XpertViewRuntimeScope {
 export type XpertViewHostState = Record<string, unknown>
 
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
+  application?: {
+    installationId: string
+    pluginName: string
+    appName: string
+    scope: PluginApplicationScope
+    ownerUserId: string | null
+  } | null
   assistant?: XpertViewAssistantIdentity
   slots: XpertViewSlot[]
   hostSnapshot?: unknown
@@ -424,6 +434,10 @@ export const WORKBENCH_ASSISTANT_EXECUTION_TARGET = 'assistant.execution'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
 export const WORKBENCH_ASSISTANT_PROJECT_TARGET = 'assistant.project'
 export const WORKBENCH_EXTENSION_VIEW_TARGET = 'workbench.view'
+/** Resolve the Project's application entry through its registered type and current access checks. */
+export const WORKBENCH_PROJECT_APPLICATION_TARGET = 'project.application'
+/** Open full Project pipeline management in the configured platform. */
+export const WORKBENCH_PROJECT_PIPELINES_TARGET = 'project.pipelines'
 export const XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE = 'invokeClientCommand'
 
 export interface WorkbenchOpenFileEvidenceBox {
@@ -473,6 +487,8 @@ export type WorkbenchNavigationOpenTarget =
   | typeof WORKBENCH_ASSISTANT_EXECUTION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
   | typeof WORKBENCH_EXTENSION_VIEW_TARGET
+  | typeof WORKBENCH_PROJECT_APPLICATION_TARGET
+  | typeof WORKBENCH_PROJECT_PIPELINES_TARGET
 
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
@@ -497,6 +513,11 @@ export interface WorkbenchNavigationOpenPayload {
   xpertId?: string
   /** Platform Chat Project selected for Project-scoped Assistant navigation. */
   projectId?: string
+  /** Untrusted identity hint; Project application entry reauthorizes the current persisted node. */
+  pipelineNodeId?: string
+  /** Read-only Project pipeline return focus, rechecked when the graph is read. */
+  pipelineInstanceId?: string
+  pipelineRoundId?: string
   viewKey?: string
   selectionId?: string
   parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
@@ -645,6 +666,13 @@ export interface XpertRemoteViewContextChangedEvent extends XpertRemoteViewHostE
     /** Complete target scope. Null means no binding, never a scope still being resolved. */
     runtimeScope: Required<XpertViewRuntimeScopeInput>
   }
+}
+
+/** Credential-free activation signal from the top-level shell to its embedded views. */
+export interface XpertHostLifecycleMessage {
+  channel: 'xpertai.host_lifecycle'
+  protocolVersion: 1
+  type: 'activated'
 }
 
 /**

@@ -2,7 +2,7 @@
 // execution prepares only the selected, scope-authorized package and never creates Connector grants.
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Raw, Repository, type EntityManager } from 'typeorm'
 import {
     PLUGIN_COMPONENT_TYPE,
     type InstalledAgentPlugin,
@@ -21,6 +21,7 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { agentPluginScope, agentPluginScopeWhere, visibleAgentPluginScopes } from './agent-plugin-scope'
 import { importedPluginBinding, installedPluginBindings } from './installed-plugin-catalog'
 import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
+import { readInstalledPluginDetails, readInstalledPluginInventory } from './installed-plugin-inventory'
 
 @Injectable()
 export class AgentPluginInstallationsService {
@@ -31,18 +32,44 @@ export class AgentPluginInstallationsService {
         private readonly connectors: AgentPluginConnectorService
     ) {}
 
-    private async visible() {
+    private async visible(manager?: EntityManager, packageName?: string) {
         const scope = agentPluginScope()
         const where = visibleAgentPluginScopes(scope)
+        const packageRepository = manager?.getRepository(AgentPluginPackage) ?? this.packages
+        const bindingRepository = manager?.getRepository(AgentResourceBinding) ?? this.bindings
+        const packagesPromise = packageRepository.find({
+            where: packageName
+                ? where.map((item) => ({
+                      ...item,
+                      descriptor: Raw((alias) => `${alias} ->> 'name' = :packageName`, { packageName })
+                  }))
+                : where,
+            order: { createdAt: 'DESC', id: 'ASC' }
+        })
         const [packages, bindings] = await Promise.all([
-            this.packages.find({ where, order: { createdAt: 'DESC', id: 'ASC' } }),
-            this.bindings.find({ where, order: { createdAt: 'DESC', id: 'ASC' } })
+            packagesPromise,
+            packageName
+                ? packagesPromise.then((packages) =>
+                      packages.length
+                          ? bindingRepository.find({
+                                where: where.map((item) => ({
+                                    ...item,
+                                    definition: Raw((alias) => `${alias} ->> 'packageId' IN (:...packageIds)`, {
+                                        packageIds: packages.map((pkg) => pkg.id)
+                                    })
+                                })),
+                                order: { createdAt: 'DESC', id: 'ASC' }
+                            })
+                          : []
+                  )
+                : bindingRepository.find({ where, order: { createdAt: 'DESC', id: 'ASC' } })
         ])
         return { scope, packages, bindings }
     }
 
-    async runtimeCatalog(workspaceId: string) {
-        const { scope, packages, bindings } = await this.visible()
+    /** Shared installation inventory: template discovery must not inherit ChatKit filtering. */
+    async installedCatalog(workspaceId?: string, packageName?: string) {
+        const { scope, packages, bindings } = await this.visible(undefined, packageName)
         return installedPluginBindings(packages, bindings, scope, workspaceId).map((binding) => {
             const definition = binding.definition
             return {
@@ -50,6 +77,44 @@ export class AgentPluginInstallationsService {
                 pkg: packages.find((pkg) => definition.kind === 'agent_plugin' && pkg.id === definition.packageId)!
             }
         })
+    }
+
+    /** Browse metadata retains every version for precedence without loading template snapshots or images. */
+    async catalogInventory(workspaceId: string) {
+        const scope = agentPluginScope()
+        const [packages, bindings] = await Promise.all([
+            readInstalledPluginInventory(this.packages, scope),
+            this.bindings.find({ where: visibleAgentPluginScopes(scope), order: { createdAt: 'DESC', id: 'ASC' } })
+        ])
+        const byId = new Map(packages.map((pkg) => [pkg.id, pkg]))
+        return installedPluginBindings(packages, bindings, scope, workspaceId).map((binding) => ({
+            binding,
+            pkg: binding.definition.kind === 'agent_plugin' ? byId.get(binding.definition.packageId)! : undefined
+        }))
+    }
+
+    catalogPackages(ids: string[]) {
+        return readInstalledPluginDetails(this.packages, agentPluginScope(), ids)
+    }
+
+    catalogConnectorReferences(
+        entries: Array<{
+            pkg: AgentPluginPackage
+            binding: Pick<AgentResourceBinding, 'definition' | 'installations'>
+        }>,
+        assistant: Pick<IXpert, 'id' | 'workspaceId'>
+    ) {
+        return this.connectors.runtimeBindingsBatch(
+            entries.map(({ pkg, binding }) => ({
+                pkg,
+                requirements:
+                    binding.definition.kind === 'agent_plugin'
+                        ? (binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {})
+                        : {},
+                previous: binding.installations[assistant.workspaceId]?.connectors
+            })),
+            assistant.id
+        )
     }
 
     /** Backfill only an already scope-authorized, digest-verified immutable package. */
@@ -148,8 +213,8 @@ export class AgentPluginInstallationsService {
         )
     }
 
-    async reference(reference: RuntimeResourceReference, workspaceId?: string) {
-        const { scope, packages, bindings } = await this.visible()
+    async reference(reference: RuntimeResourceReference, workspaceId?: string, manager?: EntityManager) {
+        const { scope, packages, bindings } = await this.visible(manager)
         const binding =
             bindings.find((item) => item.id === reference.bindingId && item.version === reference.version) ??
             packages
@@ -180,6 +245,19 @@ export class AgentPluginInstallationsService {
         return result.pkg
     }
 
+    /** Reserve a selected template dependency before returning its lock; cleanup must see this reference. */
+    async retainTemplateReference(reference: RuntimeResourceReference) {
+        await this.bindings.manager.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${reference.bindingId}`])
+            const resolved = await this.reference(reference, undefined, manager)
+            if (!resolved) throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+            await manager.save(
+                AgentResourceBinding,
+                this.bindings.create({ ...resolved.binding, cleanupEligible: false })
+            )
+        })
+    }
+
     async connectorReferences(
         pkg: AgentPluginPackage,
         binding: Pick<AgentResourceBinding, 'definition' | 'installations'>,
@@ -204,7 +282,7 @@ export class AgentPluginInstallationsService {
     ) {
         await this.bindings.manager.transaction(async (manager) => {
             await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${reference.bindingId}`])
-            const resolved = await this.reference(reference, workspaceId)
+            const resolved = await this.reference(reference, workspaceId, manager)
             if (!resolved) throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
             const binding = resolved.binding
             const previous = binding.installations[workspaceId] ?? { skills: [], toolsets: [] }
@@ -233,7 +311,7 @@ export class AgentPluginInstallationsService {
         return this.bindings.manager.transaction(async (manager) => {
             // Serialize all workspace projections of this reference to preserve the JSON installation map.
             await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${reference.bindingId}`])
-            const resolved = await this.reference(reference, assistant.workspaceId)
+            const resolved = await this.reference(reference, assistant.workspaceId, manager)
             if (!resolved) throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
             const { binding, pkg } = resolved
             const definition = binding.definition

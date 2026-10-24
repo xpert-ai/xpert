@@ -30,6 +30,8 @@ function loadRenderer(file, imports, globals = {}) {
   return exports
 }
 
+const avatarColors = loadRenderer('avatar/color.ts', { '../../electron/theme-defaults.json': defaults })
+
 test('presentation and Assistant/group navigation reuse the frame with isolated options and listeners', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
@@ -65,7 +67,10 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   let appearanceDialog
   let appearanceSaves = 0
   let navigate
+  let workbenchConnection
+  const connectionRequests = []
   const sessionRequests = []
+  let sessionFailure
   const shell = {
     handlers: {},
     dialog: null,
@@ -77,7 +82,15 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
     {
       react: React,
       'react/jsx-runtime': require('react/jsx-runtime'),
-      './WorkspaceConnection': { useWorkspaceConnection: () => ({ connect() {}, status: null }) },
+      './WorkspaceConnection': {
+        useWorkspaceConnection: (_url, assistantId) => ({
+          connect(request) {
+            connectionRequests.push({ assistantId, request })
+            return Promise.resolve({ status: 'connected' })
+          },
+          status: null
+        })
+      },
       './avatar/AssistantAppearanceDialog': {
         AssistantAppearanceDialog: (props) => {
           appearanceDialog = props
@@ -87,8 +100,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       '../electron/connection/urls.mjs': { apiRootUrl: (url) => url },
       './files/DeliveredFile': { useDeliveredFile: () => ({ open() {}, dialog: null }) },
       './workbench': {
-        createWorkbenchHandler: (_botId, _url, onSession) => {
+        createWorkbenchHandler: (_botId, _url, onSession, connection) => {
           navigate = onSession
+          workbenchConnection = connection
           return () => {}
         }
       },
@@ -106,16 +120,29 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       './host': {
         invoke: async (method, id) => {
           sessionRequests.push([method, id])
+          if (sessionFailure) throw sessionFailure
           return { secret: `test-only-${id}` }
         }
       },
-      './theme': theme
+      './theme': theme,
+      './avatar/color': avatarColors
     },
-    { window: dom.window, document: dom.window.document, queueMicrotask, AbortController: dom.window.AbortController }
+    {
+      Error,
+      window: dom.window,
+      document: dom.window.document,
+      queueMicrotask,
+      AbortController: dom.window.AbortController
+    }
   )
   let appearance = structuredClone(defaults.appearance)
   appearance.chatkit.messagePresentation = 'bubbles'
-  let bot = { id: 'test-bot', name: 'Test assistant' }
+  appearance.chatkit.accentPrimary = '#f59e0b'
+  let bot = {
+    id: 'test-bot',
+    name: 'Test assistant',
+    avatar: { appearance: { version: 1, kind: 'character', id: 'bosi', color: '#2563eb' } }
+  }
   let groupId = null
   let selectionVersion = 0
   const reads = []
@@ -137,6 +164,42 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  // A recovered session clears its failure without waiting for another iframe ready event.
+  sessionFailure = new Error('Xpert is restarting. Please reconnect shortly.')
+  await React.act(async () => {
+    await assert.rejects(received[0].api.getClientSecret(), /restarting/)
+  })
+  assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
+  sessionFailure = undefined
+  await React.act(async () => {
+    await received[0].api.getClientSecret()
+  })
+  assert.equal(document.querySelector('[role="alert"]'), null)
+  await React.act(() =>
+    element.dispatchEvent(
+      new dom.window.CustomEvent('chatkit.error', {
+        detail: { error: new Error('An unrelated tool error') }
+      })
+    )
+  )
+  await React.act(async () => {
+    await received[0].api.getClientSecret()
+  })
+  assert.match(document.querySelector('[role="alert"]').textContent, /unrelated tool/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
+  sessionRequests.length = 0
+  assert.equal(workbenchConnection.assistantId(), 'test-bot')
+  const connectionRequest = { assistantId: 'test-bot', bindingId: 'github' }
+  await workbenchConnection.connect(connectionRequest)
+  await received[0].composer.resources.onConnect(connectionRequest)
+  assert.deepEqual(
+    connectionRequests.slice(0, 2),
+    [
+      { assistantId: 'test-bot', request: connectionRequest },
+      { assistantId: 'test-bot', request: connectionRequest }
+    ],
+    'view commands and composer connections share the same flow'
+  )
   await React.act(() =>
     element.dispatchEvent(new dom.window.CustomEvent('chatkit.thread.change', { detail: { threadId: 'new-thread' } }))
   )
@@ -146,8 +209,13 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   )
   assert.deepEqual(sessions.at(-1), { botId: 'test-bot', threadId: null })
   assert.equal(received[0].messagePresentation.mode, 'bubbles')
+  assert.equal(received[0].theme.color.accent.primary, '#2563eb')
   const originalApi = received[0].api
   await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
+  bot = { ...bot, avatar: { appearance: { ...bot.avatar.appearance, color: '#a855f7' } } }
+  await React.act(render)
+  assert.equal(received.at(-1).theme.color.accent.primary, '#a855f7', 'avatar edits update the active frame')
+  assert.equal(received.at(-1).api, originalApi, 'color updates retain the authenticated session')
   for (const mode of ['transcript', 'bubbles']) {
     appearance = { ...appearance, chatkit: { ...appearance.chatkit, messagePresentation: mode } }
     await React.act(render)
@@ -192,6 +260,13 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(() => appearanceDialog.onClose())
   appearanceDialog = undefined
   await React.act(() => navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread' }))
+  assert.equal(workbenchConnection.assistantId(), 'navigated-assistant')
+  await workbenchConnection.connect({ assistantId: 'navigated-assistant', bindingId: 'github' })
+  assert.equal(
+    connectionRequests.at(-1).assistantId,
+    'navigated-assistant',
+    'the view uses the updated connection hook'
+  )
   const beforeDelegated = sessions.length
   await React.act(() =>
     navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread', conversationId: 'delegated' })
@@ -209,10 +284,17 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
 
   const previousSessionKey = received.at(-1).sessionKey
   const previousVoice = voiceBindings.at(-1)
-  bot = { id: 'second-bot', name: 'Second assistant' }
+  const oldConnection = workbenchConnection
+  bot = {
+    id: 'second-bot',
+    name: 'Second assistant',
+    avatar: { appearance: { version: 1, kind: 'character', id: 'custom', color: '#16a34a' } }
+  }
   await React.act(render)
+  assert.equal(oldConnection.assistantId(), undefined, 'disposed view commands cannot authorize another Assistant')
   assert.equal(document.querySelector('xpertai-chatkit'), element, 'Assistant switching preserves the iframe host')
   assert.equal(received.at(-1).api.xpertId, 'second-bot')
+  assert.equal(received.at(-1).theme.color.accent.primary, '#16a34a')
   assert.notEqual(received.at(-1).sessionKey, previousSessionKey)
   await React.act(() => previousVoice.onThread('late-voice-thread'))
   assert.deepEqual(threadChanges, [], 'late voice startup cannot navigate the newly selected Assistant')
@@ -233,6 +315,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
     )
     assert.equal(received.at(-1).group?.id, id ?? undefined)
     assert.equal(received.at(-1).api.xpertId, id ? undefined : 'second-bot')
+    assert.equal(received.at(-1).theme.color.accent.primary, id ? '#f59e0b' : '#16a34a')
     assert.equal(voiceBindings.at(-1).enabled, !id, 'group mode leaves call controls with the app voice provider')
     await received.at(-1).api.getClientSecret(null)
     assert.deepEqual(
@@ -240,6 +323,54 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       id ? ['chatSession', { scope: { kind: 'conversation', conversationId: id } }] : ['chatSession', 'second-bot']
     )
   }
+})
+
+test('Assistant accents preserve theme presets and fall back for avatars without a color', () => {
+  const { getChatKitTheme } = loadRenderer('theme.ts', {
+    '../electron/theme-defaults.json': defaults,
+    './appearance-types': { defaultAppearance: () => structuredClone(defaults.appearance) }
+  })
+  for (const dark of [false, true]) {
+    for (const radius of ['sharp', 'round']) {
+      for (const density of ['compact', 'spacious']) {
+        const appearance = structuredClone(defaults.appearance)
+        Object.assign(appearance.chatkit, { radius, density, accentPrimary: '#f59e0b' })
+        const theme = getChatKitTheme(dark, appearance, '#a855f7')
+        assert.equal(theme.color.accent.primary, '#a855f7')
+        assert.equal(theme.color.accent.level, appearance.chatkit.accentLevel)
+        assert.equal(theme.colorScheme, dark ? 'dark' : 'light')
+        assert.equal(theme.radius, radius)
+        assert.equal(theme.density, density)
+        assert.equal(getChatKitTheme(dark, appearance).color.accent.primary, '#f59e0b')
+        appearance.chatkit.accentPrimary = ''
+        assert.equal(
+          getChatKitTheme(dark, appearance).color.accent.primary,
+          defaults.colors[dark ? 'dark' : 'light'].primary
+        )
+      }
+    }
+  }
+})
+
+test('Assistant accents match custom and generated avatar colors', () => {
+  const { assistantAccentColor, avatarColorIndex } = avatarColors
+  const bot = { id: 'fallback-assistant', avatarUrl: null, avatarEmoji: null }
+  assert.equal(assistantAccentColor(bot), defaults.avatarPalette[avatarColorIndex(bot)])
+  assert.equal(assistantAccentColor({ ...bot, id: 'copy', assistantId: bot.id }), assistantAccentColor(bot))
+  assert.equal(assistantAccentColor({ ...bot, avatar: { background: '#0f766e' } }), '#0f766e')
+  assert.equal(
+    assistantAccentColor({
+      ...bot,
+      avatar: {
+        background: '#0f766e',
+        appearance: { version: 1, kind: 'character', id: 'bosi', color: '#a855f7' }
+      }
+    }),
+    '#a855f7'
+  )
+  assert.equal(assistantAccentColor({ ...bot, avatarUrl: 'https://example.com/avatar.png' }), undefined)
+  assert.equal(assistantAccentColor({ ...bot, avatarEmoji: { id: 'smile' } }), undefined)
+  assert.equal(assistantAccentColor(undefined), undefined)
 })
 
 test('local computer status uses policy and connection state without starting a Shell', () => {

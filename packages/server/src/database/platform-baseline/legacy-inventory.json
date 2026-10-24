@@ -1,0 +1,154 @@
+[
+	{
+		"source": "packages/server-ai/src/graphrag/migrations/20260913-structured-mention-confidence.sql",
+		"sha256": "7f4dd8f7e4ac0b47470a7388e7fce9d4d79c3189270b752bf090e8f67753f98e"
+	},
+	{
+		"source": "packages/server-ai/src/graphrag/migrations/20260913-structured-properties.sql",
+		"sha256": "ab35bf59bf0e9879f5eb852dd1055b91fadb542e7494d99370a1901354368ead"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/migrations/20260920-project-types.sql",
+		"sha256": "87e2315322dcdf0b8b380048e249cdfbeebfb50c396730011dc909bd3a497b03"
+	},
+	{
+		"source": "packages/server-ai/src/agent-plugin/migrations/20260921-agent-plugins.sql",
+		"sha256": "22df72da2e5182abb75fb171a3d614016d44035822d5e096b160d79b42bd98fa"
+	},
+	{
+		"source": "packages/server-ai/src/agent-invocation/migrations/20260922-agent-invocation.sql",
+		"sha256": "292ff6d451f9d7c02243df42253a814d34f587dc19581799c9ee3d442b626778"
+	},
+	{
+		"source": "packages/server-ai/src/chat-conversation/migrations/20260922-conversation-branch.sql",
+		"sha256": "2b764fe0d4a7da2817ab64d7b5b061d9fc1842758c2c5fbf972bf773b59e514a"
+	},
+	{
+		"source": "packages/server-ai/src/desktop-shell/migrations/20260924-desktop-shell.sql",
+		"sha256": "2c888abb7244e69529758fd6414b02aae8b921fbdf72f35de52d4666b4251072"
+	},
+	{
+		"source": "packages/server-ai/src/desktop-shell/migrations/20260928-desktop-shell-approval.sql",
+		"sha256": "01aba416b9d17508d04711fecf96eae0df183dbb59a3485999965b15c0c5e5a8"
+	},
+	{
+		"source": "packages/server-ai/src/mcp-app-runtime/migrations/20260928-middleware-app-audit.sql",
+		"sha256": "9dddcfe1ff3246b990e4f3616a8e6cc868ce3f1886d17d3bfc273c4ab41acb7c"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/migrations/20260929-project-task-graph.sql",
+		"sha256": "1e995040530a07b58fd824e2b8515f986efae1ce1f6541e10754b5ffb1c3baca"
+	},
+	{
+		"source": "packages/server-ai/src/model-execution/migrations/20260930-model-execution.sql",
+		"sha256": "3e0dd5bbe80ffca92966c74680f377ab9513b6762aa8adbd4496c1bbe07906eb"
+	},
+	{
+		"source": "packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql",
+		"sha256": "1396c5fce5772076cb6f9ecb87c54471432e5c705435d7e998fba4992ee02abd"
+	},
+	{
+		"source": "packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql",
+		"sha256": "c5be86a094e795adaaee64d41bc0cdb7cccc2d2d74d89560335e60eacb23fc9a"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/migrations/20261002-project-task-progress.sql",
+		"sha256": "58a0d37b06974756773d7224a0a4ab07ade965f8165044abf6598403b94728ae"
+	},
+	{
+		"source": "packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql",
+		"sha256": "8a227c0a55eb86e856e58b17e71dcdb53943a78e5ddbfbb5a768b63fd005ba88"
+	},
+	{
+		"source": "packages/server-ai/src/assistant-binding/migrations/20261003-bosi-bootstrap.sql",
+		"sha256": "9b3f6d61740231c7af9584e536d4ff703327834d408abe52e41785c9d0f01706"
+	},
+	{
+		"source": "packages/server-ai/src/model-execution/migrations/20261003-shell-launcher.sql",
+		"sha256": "a678e29687e5ee2d7d65ec89b385f089ccb13994b93f471746d9bdfc130fce81"
+	},
+	{
+		"source": "packages/server-ai/src/assistant-binding/migrations/20261004-bosi-onboarding.sql",
+		"sha256": "90d5c92ef9bab8a06841457e6a5cc550951f49b4ab423e52f622adca04ec372f"
+	},
+	{
+		"source": "packages/server-ai/src/chat-message/migrations/20261005-message-envelope.sql",
+		"sha256": "d8ade7c15a503f9ec12485fa13a7ea8ae1a0cb64c87694237c510b6110ce2595"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/migrations/20261006-project-task-decisions.sql",
+		"sha256": "698c37e91b62aa6604e858077d7c7ce10abd7e3389d5993f10e14462f2680017"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/migrations/20261006-project-task-runtime.sql",
+		"sha256": "9f997301d376e35f1bc90341adcbae11eb29e808c912f0b95a2c12a51e5192b4"
+	},
+	{
+		"source": "packages/server-ai/src/handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql",
+		"sha256": "455558a4995fbcf17e5f538f37da3e8f4a32bc55f9c6dde01474a5d3ac419801"
+	},
+	{
+		"source": "packages/server-ai/src/agent-invocation/migrations/20261007-execution-activity.sql",
+		"sha256": "b8a13de2757b3e8c718e4c6d8a64da9ac844f4aa657df66bca3dbdadd6a130a0"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-agent-execution/migrations/20261008-execution-completed-at.sql",
+		"sha256": "2d10d3c984ef3d2bb8da900b0ebb2f421331aad70754e5ceb5e0727ea39ea01a"
+	},
+	{
+		"source": "packages/server-ai/src/agent-plugin/migrations/20261012-agent-plugin-installation-scope.sql",
+		"sha256": "e9d84aca2c218b3fae5641028b6d2373809d829e706a37520ef0158a31389ed7"
+	},
+	{
+		"source": "packages/server-ai/src/mcp-app-runtime/migrations/20261012-mcp-app-history.sql",
+		"sha256": "c581245301fcf25ee681ddf7b83ad3a076d226c8376272fe14f67557c329d19c"
+	},
+	{
+		"source": "packages/server-ai/src/plugin-resource/template-installation/migrations/20261013-template-installation.sql",
+		"sha256": "5ebd1311f7076ff392d4cc2bba10428ff7365bdc9b6ca170abd7e50878144c77"
+	},
+	{
+		"source": "packages/server-ai/src/plugin-resource/template-installation/migrations/20261013-template-dependency-locks.sql",
+		"sha256": "a05f269b4b078fc7a069d18655b9761c728de7c182c07c219b05ab5bdeb27440"
+	},
+	{
+		"source": "packages/server-ai/src/xpert/template-lifecycle/migrations/20261014-template-lifecycle.sql",
+		"sha256": "47bbbeffd0338cd8a99e6443e7c153c6a9b23c522e4e4826f5ccc62e8ebfc372"
+	},
+	{
+		"source": "packages/server-ai/src/agent-plugin/migrations/20261015-agent-plugin-maintenance.sql",
+		"sha256": "d2ca9754155a60c99390fffc56fe087145bd0ad65e9f4e8edcbcf49066219a10"
+	},
+	{
+		"source": "packages/server-ai/src/artifacts/drafts/migrations/20261017-artifact-drafts.sql",
+		"sha256": "cdf9d9e3aa9979af4f5eafff000dc750ce1631b31c477a04ab9bf4912597f008"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261018-project-pipeline.sql",
+		"sha256": "75009ecde5c2ab8f5757425fa420da9cf3a58eed831c230b90b436411359228c"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261018-project-pipeline-runtime.sql",
+		"sha256": "6eb6a4a26d82e56d9007cdd3873fda9d26c38cd34a83a6a18a1d7e0aa82dc4a9"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261019-project-pipeline-resources.sql",
+		"sha256": "763e83752b82d88c49346c558d1cf02142255bdc740fe12e317403eec9a516d4"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261019-project-pipeline-runtime-intent.sql",
+		"sha256": "d6b820fc678702975044aba444f82d3478959a5ec4cf5fe9031275b66882c13e"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261019-project-pipeline-provider-actions.sql",
+		"sha256": "ad4e4711ac414e0c306fbc4071a7d1356ae597eeb514a71c0ff00383b98ab817"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261019-project-pipeline-model-budget.sql",
+		"sha256": "69a73190189dcabd7722406793887414d0c9864ce8e388afe632077b1808dba8"
+	},
+	{
+		"source": "packages/server-ai/src/xpert-project/pipeline/migrations/20261019-project-pipeline-native-grant.sql",
+		"sha256": "cbee47ad100c96247560595224cee0992767e3079c043dda7e2fb9fd128a6c44"
+	}
+]

@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing'
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { AgentPluginTemplateService } from './agent-plugin-template.handler'
@@ -12,6 +13,9 @@ import { AgentPluginPackage } from '../agent-plugin.entity'
 import { importedPluginBinding } from '../installed-plugin-catalog'
 import { parseAgentPlugin } from '../agent-plugin-parser'
 import { portablePackageDigest } from '../agent-plugin-source'
+import * as yaml from 'yaml'
+import * as templateNormalizer from '../../xpert-template/definition/normalize-assistant-template'
+import { paginateTemplateCatalog } from '../../xpert-template/template-catalog'
 
 jest.mock('../agent-plugin.entity', () => ({ AgentPluginPackage: class {}, AgentResourceBinding: class {} }))
 jest.mock('../agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
@@ -20,12 +24,17 @@ jest.mock('../../plugin-resource/plugin-resource-installer.service', () => ({
 }))
 jest.mock('../../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
+jest.mock('yaml', () => {
+    const actual = jest.requireActual<typeof import('yaml')>('yaml')
+    return { ...actual, stringify: jest.fn(actual.stringify) }
+})
 
 describe('Agent Plugin Assistant template adapter', () => {
     let root: string, pkg: AgentPluginPackage, service: AgentPluginTemplateService
     const packages = {
-        runtimeCatalog: jest.fn(),
+        installedCatalog: jest.fn(),
         templatePackage: jest.fn(),
+        retainTemplateReference: jest.fn().mockResolvedValue(undefined),
         reference: jest.fn(),
         saveTemplateCatalog: jest.fn()
     }
@@ -89,7 +98,7 @@ describe('Agent Plugin Assistant template adapter', () => {
             source: { kind: 'zip' }
         }
         const resolved = { pkg, binding: importedPluginBinding(pkg) }
-        packages.runtimeCatalog.mockResolvedValue([resolved])
+        packages.installedCatalog.mockResolvedValue([resolved])
         packages.templatePackage.mockResolvedValue(resolved)
         packages.reference.mockResolvedValue(resolved)
         service = (
@@ -102,9 +111,23 @@ describe('Agent Plugin Assistant template adapter', () => {
         ).get(AgentPluginTemplateService)
     })
     afterEach(async () => {
+        jest.restoreAllMocks()
         jest.clearAllMocks()
         await rm(root, { recursive: true, force: true })
     })
+    it.each([undefined, 'assistant', 'capability', 'subagent'] as const)(
+        'keeps role %p templates in both the marketplace summaries and import details',
+        async (role) => {
+            pkg.descriptor.extension.role = role
+            const summary = await service.templates(undefined, 'en-US', true)
+            const details = await service.templates(summary[0].id)
+            expect(summary).toHaveLength(1)
+            expect(details).toHaveLength(1)
+            expect(summary[0].id).toBe(details[0].id)
+            expect(details[0].dependencies.skills[0].source.digest).toBe(pkg.digest)
+            expect(details[0].export_data).toContain('hello')
+        }
+    )
     it('publishes DSL-derived presentation and pins its own skills without a native owner', async () => {
         const [template] = await service.templates()
         expect(template).toMatchObject({
@@ -145,14 +168,18 @@ describe('Agent Plugin Assistant template adapter', () => {
     it('rechecks visible/enabled installations and localization on every summary request', async () => {
         expect((await service.templates(undefined, 'en-US', true))[0].title).toBe('Desk')
         expect((await service.templates(undefined, 'zh-Hans', true))[0].title).toBe('办公助手')
-        packages.runtimeCatalog.mockResolvedValue([{ pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }])
+        packages.installedCatalog.mockResolvedValue([
+            { pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }
+        ])
         expect(await service.templates(undefined, 'en-US', true)).toEqual([])
-        packages.runtimeCatalog.mockResolvedValue([])
+        packages.installedCatalog.mockResolvedValue([])
         expect(await service.templates(undefined, 'zh-Hans', true)).toEqual([])
     })
     it('backfills old descriptors only after verifying their package', async () => {
         delete pkg.descriptor.templateCatalog
-        await service.templates(undefined, 'en-US', true)
+        const [summary] = await service.templates(undefined, 'en-US', true)
+        expect(summary.export_data).toBe('')
+        expect(summary.dependencies).toBeUndefined()
         expect(packages.saveTemplateCatalog).toHaveBeenCalledWith(
             pkg,
             expect.objectContaining({ desk: expect.objectContaining({ title: 'Desk' }) })
@@ -167,6 +194,113 @@ describe('Agent Plugin Assistant template adapter', () => {
         expect(await service.templates('agent-plugin/example/desk', 'en-US', true)).toHaveLength(1)
         expect(packages.saveTemplateCatalog).not.toHaveBeenCalled()
     })
+    it('limits targeted avatar inventory reads to the package encoded in the template identity', async () => {
+        expect(await service.templates('agent-plugin/example/desk', 'en-US', true)).toHaveLength(1)
+        expect(packages.installedCatalog).toHaveBeenCalledWith(undefined, 'example')
+    })
+    it.each([false, true])('selects only one template from a multi-template package, legacy=%p', async (legacy) => {
+        const body = JSON.stringify({ team: { name: 'Other', type: 'agent' }, nodes: [], connections: [] })
+        await writeFile(join(root, 'templates/other.json'), body)
+        pkg.descriptor.templates.push({ key: 'other', path: 'templates/other.json' })
+        pkg.descriptor.templateCatalog.other = {
+            name: 'Other',
+            title: 'Other',
+            description: '',
+            avatar: null,
+            type: pkg.descriptor.templateCatalog.desk.type
+        }
+        pkg.digest = await portablePackageDigest(root)
+        if (legacy) delete pkg.descriptor.templateCatalog
+        const normalize = jest.spyOn(templateNormalizer, 'normalizeAssistantTemplateDefinition')
+        const serialize = jest.mocked(yaml.stringify).mockClear()
+        const [selected] = await service.templates('agent-plugin/example/other', 'en-US', true)
+        expect(selected).toMatchObject({ id: 'agent-plugin/example/other', title: 'Other', export_data: '' })
+        expect(normalize).toHaveBeenCalledTimes(legacy ? 1 : 0)
+        if (legacy) expect(normalize).toHaveBeenCalledWith({ export_data: body })
+        expect(serialize).not.toHaveBeenCalled()
+        expect(packages.saveTemplateCatalog).not.toHaveBeenCalled()
+        const all = await service.templates(undefined, 'en-US', true)
+        expect(all).toHaveLength(2)
+        expect(all.find((template) => template.id === selected.id)).toEqual(selected)
+        if (legacy)
+            expect(packages.saveTemplateCatalog).toHaveBeenCalledWith(
+                pkg,
+                expect.objectContaining({ desk: expect.any(Object), other: expect.any(Object) })
+            )
+    })
+    it('preserves scoped package identities when narrowing avatar inventory', async () => {
+        pkg.descriptor.name = '@scope/office'
+        const [summary] = await service.templates('agent-plugin/@scope/office/desk', 'en-US', true)
+        expect(summary.id).toBe('agent-plugin/@scope/office/desk')
+        expect(packages.installedCatalog).toHaveBeenCalledWith(undefined, '@scope/office')
+    })
+    it.each(['example/desk', 'agent-plugin/desk', 'agent-plugin//desk', 'agent-plugin/example/'])(
+        'rejects malformed template identity %p before reading installations',
+        async (id) => {
+            expect(await service.templates(id, 'en-US', true)).toEqual([])
+            expect(packages.installedCatalog).not.toHaveBeenCalled()
+            expect(packages.saveTemplateCatalog).not.toHaveBeenCalled()
+        }
+    )
+    it.each([false, true])(
+        'does not serialize summaries while preserving full detail generation, legacy=%p',
+        async (legacy) => {
+            if (legacy) delete pkg.descriptor.templateCatalog
+            const serialize = jest.mocked(yaml.stringify).mockClear()
+            const [summary] = await service.templates(undefined, 'zh-Hans', true)
+            expect(summary).toMatchObject({
+                title: '办公助手',
+                description: '办公事务支持',
+                pluginDisplayName: '办公插件'
+            })
+            expect(serialize).not.toHaveBeenCalled()
+            const [detail] = await service.templates(summary.id, 'zh-Hans')
+            expect(serialize).toHaveBeenCalledTimes(1)
+            expect(detail).toMatchObject({
+                id: summary.id,
+                title: summary.title,
+                description: summary.description,
+                avatar: summary.avatar
+            })
+            expect(detail.export_data).toContain('hello')
+            expect(detail.dependencies.skills[0].source.digest).toBe(pkg.digest)
+        }
+    )
+    it('uses snapshot presentation when localization and optional package metadata are absent', async () => {
+        delete pkg.descriptor.templates[0].presentation
+        delete pkg.descriptor.templates[0].category
+        delete pkg.descriptor.version
+        const [summary] = await service.templates(undefined, 'ja', true)
+        expect(summary).toMatchObject({
+            title: 'Desk',
+            description: '',
+            pluginDisplayName: 'example',
+            category: 'assistant',
+            pluginVersion: pkg.digest
+        })
+    })
+    it.each([false, true])(
+        'keeps missing-type templates visible as Agents in summaries and details, legacy=%p',
+        async (legacy) => {
+            await writeFile(
+                join(root, 'templates/desk.json'),
+                JSON.stringify({
+                    team: { name: 'Desk' },
+                    nodes: [],
+                    connections: [],
+                    template: { schemaVersion: 2, dependencies: {} }
+                })
+            )
+            pkg.digest = await portablePackageDigest(root)
+            delete pkg.descriptor.templateCatalog.desk.type
+            if (legacy) delete pkg.descriptor.templateCatalog
+            const summaries = await service.templates(undefined, 'en-US', true)
+            const [detail] = await service.templates(summaries[0].id)
+            expect(detail.type).toBe(XpertTypeEnum.Agent)
+            expect(summaries[0].type).toBe(detail.type)
+            expect(paginateTemplateCatalog(summaries, { assistantsOnly: true }).items).toHaveLength(1)
+        }
+    )
     it('resolves only the selected component and preserves the target Agent', async () => {
         const resolved = await service.resolve(
             new ResolveAgentPluginTemplateDependencyCommand(
@@ -202,9 +336,39 @@ describe('Agent Plugin Assistant template adapter', () => {
         await expect(service.templates('agent-plugin/example/desk')).rejects.toThrow()
         expect(await service.templates()).toEqual([])
     })
+    it('isolates a missing package from healthy template requests and the bulk catalog', async () => {
+        const healthyRoot = await mkdtemp(join(tmpdir(), 'healthy-template-'))
+        try {
+            await cp(root, healthyRoot, { recursive: true })
+            const healthy = {
+                ...pkg,
+                id: '22222222-2222-4222-8222-222222222222',
+                rootPath: healthyRoot,
+                descriptor: { ...pkg.descriptor, name: 'healthy' }
+            }
+            await rm(root, { recursive: true })
+            packages.installedCatalog.mockResolvedValue([
+                { pkg, binding: importedPluginBinding(pkg) },
+                { pkg: healthy, binding: importedPluginBinding(healthy) }
+            ])
+            expect((await service.templates()).map((item) => item.id)).toEqual(['agent-plugin/healthy/desk'])
+            expect(await service.templates('agent-plugin/healthy/desk')).toHaveLength(1)
+        } finally {
+            await rm(healthyRoot, { recursive: true, force: true })
+        }
+    })
+    it('reports missing replica files as storage missing, never dependency version drift', async () => {
+        expect(await service.templates('agent-plugin/example/desk')).toHaveLength(1)
+        await rm(root, { recursive: true })
+        await expect(service.templates('agent-plugin/example/desk')).rejects.toMatchObject({
+            response: { code: 'AGENT_PLUGIN_STORAGE_MISSING', statusCode: 503 }
+        })
+    })
     it('omits disabled packages and never exposes another template for an unknown id', async () => {
         expect(await service.templates('agent-plugin/example/missing')).toEqual([])
-        packages.runtimeCatalog.mockResolvedValue([{ pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }])
+        packages.installedCatalog.mockResolvedValue([
+            { pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }
+        ])
         expect(await service.templates()).toEqual([])
     })
 })

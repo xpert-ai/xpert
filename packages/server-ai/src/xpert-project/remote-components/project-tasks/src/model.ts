@@ -10,6 +10,7 @@ export interface Filters {
     statuses: string[]
     assignee: string
     kind: string
+    includeInactive?: boolean
 }
 export interface TaskRow {
     type: 'task'
@@ -28,6 +29,7 @@ export type Row = TaskRow | GroupRow
 export const initialFilters: Filters = { search: '', statuses: [], assignee: '', kind: '' }
 export function matches(task: Node, filters: Filters) {
     return (
+        (filters.includeInactive || !task.pipelineDisposition || task.pipelineDisposition === 'active') &&
         (!filters.search || task.title.toLocaleLowerCase().includes(filters.search.trim().toLocaleLowerCase())) &&
         (!filters.statuses.length || filters.statuses.includes(task.status)) &&
         (!filters.assignee || (task.assigneeXpertId ?? 'unassigned') === filters.assignee) &&
@@ -76,7 +78,11 @@ export function buildRows(
             visited = new Set<string>(),
             matched = new Set(matches.map((task) => task.id))
         const visit = (parent: string | null, depth: number) => {
-            const siblings = filteredTasks(children.get(parent) ?? [], initialFilters, sort)
+            const siblings = filteredTasks(
+                children.get(parent) ?? [],
+                { ...initialFilters, includeInactive: true },
+                sort
+            )
             siblings.forEach((task) => {
                 if (visited.has(task.id) || !included.has(task.id)) return
                 visited.add(task.id)
@@ -114,14 +120,17 @@ export function plannedEnd(task: Node) {
     )
 }
 export function attemptTimes(attempt: Attempt) {
+    const observed = !!(attempt.invocationId || attempt.agentExecutionId || attempt.runtimeStatus)
     return {
-        start: attempt.invocationId || attempt.agentExecutionId ? attempt.runtimeStartedAt : attempt.startedAt,
-        end: attempt.invocationId || attempt.agentExecutionId ? attempt.runtimeCompletedAt : attempt.completedAt
+        start: observed ? attempt.runtimeStartedAt : attempt.startedAt,
+        end: observed ? attempt.runtimeCompletedAt : attempt.completedAt
     }
 }
 export function isRunning(attempt: Attempt) {
     if (attempt.invocationId) return attempt.invocationStatus === 'running'
-    return attempt.agentExecutionId ? attempt.runtimeStatus === 'running' : attempt.status === 'running'
+    return attempt.agentExecutionId || attempt.runtimeStatus
+        ? attempt.runtimeStatus === 'running'
+        : attempt.status === 'running'
 }
 export function timelineDomain(dates: Array<string | null | undefined>, scale: Scale, now: number) {
     const valid = dates.flatMap((date) => (date && Number.isFinite(Date.parse(date)) ? [Date.parse(date)] : []))

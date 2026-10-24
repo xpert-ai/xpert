@@ -41,8 +41,19 @@ const WRITE_GENERATION_STATE_SCRIPT = `
 if ARGV[4] ~= '' and redis.call('get', KEYS[3]) ~= ARGV[4] then return 0 end
 local current = redis.call('hget', KEYS[2], 'generation') == ARGV[2]
 if current and redis.call('hget', KEYS[2], 'status') == 'failed' then return 0 end
+local next = cjson.decode(ARGV[1])
+if next['status'] == 'awaiting_restart' then
+  -- Capacity was sampled outside Redis; a rollout may have started or finished since then.
+  if redis.call('get', KEYS[3]) then return 0 end
+  local previous = redis.call('get', KEYS[1])
+  if not previous then return 0 end
+  previous = cjson.decode(previous)
+  -- Keep the operation fence even after its active lock has been released.
+  if previous['restartId'] or
+     (previous['status'] ~= 'in_progress' and previous['status'] ~= 'awaiting_restart') then return 0 end
+end
 redis.call('set', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[3]))
-if current then redis.call('hset', KEYS[2], 'status', cjson.decode(ARGV[1])['status']) end
+if current then redis.call('hset', KEYS[2], 'status', next['status']) end
 return 1
 `
 const START_CATCH_UP_SCRIPT = `
@@ -208,10 +219,13 @@ export class PluginRuntimeGenerationStore {
 	}
 
 	async readPending(): Promise<PluginGenerationChange[]> {
+		// Waiting generations must be reconsidered when healthy capacity returns, without republishing.
+		// Stop at terminal outcomes so failed rollouts still require an explicit new generation.
 		const current = await this.current()
 		let first = current + 1
 		for (let generation = current; generation > 0; generation -= 1) {
-			if ((await this.readState(generation))?.status !== 'in_progress') break
+			const status = (await this.readState(generation))?.status
+			if (status !== 'in_progress' && status !== 'awaiting_restart') break
 			first = generation
 		}
 		return first <= current ? this.readChanges(first, current) : []

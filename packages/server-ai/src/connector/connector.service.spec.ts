@@ -2138,6 +2138,66 @@ describe('ConnectorService', () => {
             }
         )
 
+        it.each(['project-1', 'project-2'])(
+            'authorizes service access in %s without inventing execution identity',
+            async (projectId) => {
+                const binding = await connectTestBinding({ type: 'project', projectId })
+                const scope = {
+                    ...runtimeScope(),
+                    projectId,
+                    conversationId: undefined,
+                    executionId: undefined
+                }
+                await expect(
+                    service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+                ).resolves.toEqual(expect.objectContaining({ bindingId: binding.id }))
+                expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith(projectId, 'xpert-1')
+                expect(runtimeAudits.items).toEqual([
+                    expect.objectContaining({ projectId, conversationId: null, executionId: null, outcome: 'resolved' })
+                ])
+                projectAccess.assertCanUseXpert.mockRejectedValue(new ForbiddenException())
+                await expect(
+                    service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+                ).rejects.toBeInstanceOf(ForbiddenException)
+            }
+        )
+
+        it.each(['conversationId', 'executionId'] as const)(
+            'does not accept a partially populated Agent identity missing %s inside a Project',
+            async (field) => {
+                const scope = { ...runtimeScope(), projectId: 'project-1', [field]: undefined }
+                await expect(
+                    service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+                ).rejects.toBeInstanceOf(BadRequestException)
+            }
+        )
+
+        it.each(['grant', 'tenant', 'user', 'organization', 'assistant', 'project_binding'] as const)(
+            'retains %s authorization for Project services without an Agent execution',
+            async (denied) => {
+                const binding = await connectTestBinding({ type: 'project', projectId: 'project-1' })
+                const scope: ConnectorRuntimeScope = {
+                    ...runtimeScope(),
+                    projectId: 'project-1',
+                    conversationId: undefined,
+                    executionId: undefined,
+                    connectorBindingIds: [binding.id]
+                }
+                if (denied === 'grant') scope.connectorBindingIds = []
+                if (denied === 'tenant') scope.tenantId = 'other-tenant'
+                if (denied === 'user') scope.userId = 'other-user'
+                if (denied === 'organization') scope.organizationId = 'other-organization'
+                if (denied === 'assistant')
+                    publishedXpertAccess.getAccessiblePublishedXpert.mockRejectedValue(new ForbiddenException())
+                if (denied === 'project_binding') scope.projectId = 'other-project'
+                await expect(
+                    service
+                        .createScopedApi(scope)
+                        .getConnectorCredential({ connectorId: binding.id, provider: 'example' })
+                ).rejects.toThrow()
+            }
+        )
+
         it('rejects a View source naming a different Assistant', async () => {
             await connectTestBinding()
             const scope = { ...viewScope(), viewHost: { type: 'agent' as const, id: 'different-assistant' } }

@@ -110,6 +110,23 @@ for (const entry of catalog.images) {
       fail(`${entry.family} Dockerfile model catalog SHA-256 label is stale.`)
     }
   }
+  const artifactCatalog = await readJson(image.artifactCatalogTemplate)
+  if (
+    artifactCatalog.runtimeSuiteVersion !== packageJson.version ||
+    artifactCatalog.version !== 1 ||
+    !Array.isArray(artifactCatalog.artifacts) ||
+    artifactCatalog.artifacts.length !== 1
+  )
+    fail(`${entry.family} artifact catalog must contain exactly one matching Runtime artifact.`)
+  const artifact = artifactCatalog.artifacts[0]
+  if (
+    artifact.runtimeProfile !== image.profileName ||
+    artifact.imageFamily !== image.imageFamily ||
+    artifact.kind !== 'oci-image' ||
+    artifact.reference !== '__IMMUTABLE_IMAGE__' ||
+    artifact.digest !== '__IMAGE_DIGEST__'
+  )
+    fail(`${entry.family} artifact catalog identity does not match the Runtime image.`)
   if ('provider' in runtimeDefinition || 'image' in runtimeDefinition)
     fail(`${entry.family} Runtime Definition must be provider-neutral.`)
   if (/presentation|motion|hyperframes/i.test(JSON.stringify({ image, manifest, runtimeDefinition })))

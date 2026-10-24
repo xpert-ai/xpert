@@ -1,7 +1,8 @@
-/** Invariants: queued changes cannot alter a candidate's admission manifest or inherit outage consent. */
+/** Invariants: queued changes cannot rewrite the operation's snapshot or inherit outage consent. */
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import type { RestartOperationInput, RestartOperationMetadata, RestartTargetState } from './runtime-restart.types'
 import { mergeRuntimeRequirements } from './plugin-runtime-requirements'
+import { hasPluginOutageApproval } from './plugin-convergence-capacity'
 import { operationDeadlineAt, operationDeadlineError, REPLICA_RESTART_TIMEOUT_MS } from './runtime-restart-deadlines'
 
 export const INITIAL_OPERATION_TTL_MS = 15 * 60_000
@@ -28,10 +29,7 @@ export function createRestartMetadata(
 		sourceIp: input.sourceIp,
 		allowDowntime:
 			(input.source === 'interactive' && input.allowDowntime === true) ||
-			(input.pluginChanges.length > 0 &&
-				input.pluginChanges.every(
-					(change) => change.source === 'interactive' && change.allowDowntime === true
-				)),
+			hasPluginOutageApproval(input.pluginChanges),
 		pluginGeneration: input.pluginGeneration,
 		pluginGenerations:
 			input.source === 'plugin-catch-up'

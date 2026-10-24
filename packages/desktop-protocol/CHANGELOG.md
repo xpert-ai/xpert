@@ -1,5 +1,81 @@
 # @xpert-ai/desktop-protocol
 
+## 0.3.8
+
+### Patch Changes
+
+- Updated dependencies [f0590e2]
+- Updated dependencies [23b505e]
+- Updated dependencies [d3ad3a5]
+  - @xpert-ai/contracts@3.26.0
+
+## 0.3.7
+
+### Patch Changes
+
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+  - @xpert-ai/contracts@3.25.0
+
+## 0.3.6
+
+### Patch Changes
+
+- Updated dependencies [c4f9bb3]
+  - @xpert-ai/contracts@3.23.0
+
+## 0.3.5
+
+### Patch Changes
+
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+  - @xpert-ai/contracts@3.22.0
+
+## 0.3.4
+
+### Patch Changes
+
+- Updated dependencies [3b7f2cd]
+  - @xpert-ai/contracts@3.21.3
+
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+  - @xpert-ai/contracts@3.21.2
+
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [e42fc94]
+- Updated dependencies [7de8eae]
+- Updated dependencies [f304e7b]
+- Updated dependencies [d9db433]
+- Updated dependencies [f816d25]
+  - @xpert-ai/contracts@3.21.1
+
+## 0.3.1
+
+### Patch Changes
+
+- 75f1cd3: Support browser microphone recording with optional shared tab audio through declared View client commands and a host permission dialog. Produce independent 24 kHz PCM WAV chunks, preserve ordered retryable delivery in page memory, and carry the initiating View runtime scope to event and file actions. Add translated source selection and upload-lifetime guidance.
+
+  Keep capture state and controls scoped to the initiating identity, View and Project, respect capture ID selection, and stop on device loss, scope changes or recording limits. Confirm meeting creation before starting capture, release devices on failed or cancelled startup, and preserve the final audio block before the stopped event. Add regression coverage for permission cleanup, delivery retries, scope changes, PCM processing and browser/native command separation.
+
 ## 0.3.0
 
 ### Minor Changes

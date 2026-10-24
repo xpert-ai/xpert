@@ -1,12 +1,12 @@
 import { INestApplication, ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { RoleGuard } from '@xpert-ai/server-core'
 import { init } from 'i18next'
 import { PluginApplicationController } from '../plugin-application.controller'
 import { PluginApplicationService } from '../plugin-application.service'
 
 describe('application initialize HTTP validation', () => {
     const service = {
+        getDetail: jest.fn().mockResolvedValue({ status: { status: 'not_installed' } }),
         initialize: jest.fn(),
         prepare: jest.fn(),
         bindToolset: jest.fn(),
@@ -14,7 +14,6 @@ describe('application initialize HTTP validation', () => {
     }
     let app: INestApplication
     let origin: string
-    let allowed = true
     const selection = { key: 'requirement', toolsetId: '11111111-1111-4111-8111-111111111111' }
     const input = { pluginName: '@acme/app', appName: 'example', operationId: 'operation', toolsets: [selection] }
 
@@ -28,16 +27,12 @@ describe('application initialize HTTP validation', () => {
         const module = await Test.createTestingModule({
             controllers: [PluginApplicationController],
             providers: [{ provide: PluginApplicationService, useValue: service }]
-        })
-            .overrideGuard(RoleGuard)
-            .useValue({ canActivate: () => allowed })
-            .compile()
+        }).compile()
         app = module.createNestApplication({ logger: false })
         await app.listen(0, '127.0.0.1')
         origin = await app.getUrl()
     })
     beforeEach(() => {
-        allowed = true
         service.initialize.mockReset().mockResolvedValue({ status: 'ready' })
         service.prepare.mockReset().mockResolvedValue({ status: 'configuring', workspaceId: selection.toolsetId })
         service.bindToolset.mockReset().mockResolvedValue({ status: 'configuring' })
@@ -51,12 +46,36 @@ describe('application initialize HTTP validation', () => {
             body: JSON.stringify(body)
         })
 
+    it('validates the scope selector on the actual detail query boundary', async () => {
+        const params = new URLSearchParams({
+            pluginName: input.pluginName,
+            appName: input.appName,
+            installationScope: 'personal'
+        })
+        expect((await fetch(`${origin}/plugin-applications/detail?${params}`)).status).toBe(200)
+        expect(service.getDetail).toHaveBeenCalledWith(input.pluginName, input.appName, 'personal')
+        params.set('ownerUserId', 'injected')
+        expect((await fetch(`${origin}/plugin-applications/detail?${params}`)).status).toBe(400)
+        params.delete('ownerUserId')
+        params.append('installationScope', 'organization')
+        expect((await fetch(`${origin}/plugin-applications/detail?${params}`)).status).toBe(400)
+    })
+
     it('accepts only source IDs and transforms whitespace through the actual route pipe', async () => {
         expect((await request({ ...input, appName: ' example ' })).status).toBe(201)
         expect(service.initialize).toHaveBeenCalledWith(input)
     })
+    it('accepts and trims the speech model option ID through the route pipe', async () => {
+        expect((await request({ ...input, speechToTextModelId: ' speech-provider/model ' })).status).toBe(201)
+        expect(service.initialize).toHaveBeenCalledWith({ ...input, speechToTextModelId: 'speech-provider/model' })
+    })
     it.each([
+        { ...input, speechToTextModelId: '' },
+        { ...input, speechToTextModelId: { copilotId: 'injected' } },
         { ...input, workspaceId: 'injected' },
+        { ...input, ownerUserId: 'injected' },
+        { ...input, installationScope: ['personal'] },
+        { ...input, installationScope: 'user' },
         { ...input, tenantId: 'injected' },
         { ...input, organizationId: 'injected' },
         { ...input, credentials: { api_key: 'secret' } },
@@ -71,20 +90,20 @@ describe('application initialize HTTP validation', () => {
         expect((await response.json()).message).toBe('Invalid setup request')
         expect(service.initialize).not.toHaveBeenCalled()
     })
+    it('accepts an installation choice without accepting the owner', async () => {
+        expect((await request({ ...input, installationScope: 'personal' })).status).toBe(201)
+        expect(service.initialize).toHaveBeenCalledWith({ ...input, installationScope: 'personal' })
+    })
     it('retains compatibility for applications without toolsets', async () => {
         expect((await request({ pluginName: '@acme/app', appName: 'example', operationId: 'op' })).status).toBe(201)
     })
-    it('preserves role restrictions and business authorization errors', async () => {
-        allowed = false
-        expect((await request(input)).status).toBe(403)
-        expect(service.initialize).not.toHaveBeenCalled()
-        allowed = true
+    it('preserves scope-aware business authorization errors', async () => {
         service.initialize.mockRejectedValueOnce(new ForbiddenException())
         expect((await request(input)).status).toBe(403)
     })
 
     it.each(['prepare', 'bind-toolset', 'discard-configuration'])(
-        'validates scope-free %s requests and restricts roles',
+        'validates %s requests without accepting owner identity',
         async (route) => {
             const body = {
                 pluginName: input.pluginName,
@@ -102,8 +121,6 @@ describe('application initialize HTTP validation', () => {
                 expect((await post({ ...body, [field]: 'injected' })).status).toBe(400)
             }
             if (route === 'bind-toolset') expect((await post({ ...body, toolsetId: 'null' })).status).toBe(400)
-            allowed = false
-            expect((await post(body)).status).toBe(403)
         }
     )
 })

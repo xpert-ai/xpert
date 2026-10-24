@@ -1,18 +1,21 @@
 import { ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IApiPrincipal, IUser } from '@xpert-ai/contracts'
+import { IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { t } from 'i18next'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { assertWorkbenchPrincipal } from './workbench-principal'
+import { assertGroupWorkspaceFileAccess } from '../chat-conversation/workspace-files/group-workspace-file-access'
 
 @Injectable()
 export class WorkbenchFilesAuthGuard extends ApiKeyOrClientSecretAuthGuard {
     constructor(
         reflector: Reflector,
-        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>
+        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
+        private readonly commands: CommandBus
     ) {
         super(reflector)
     }
@@ -22,13 +25,21 @@ export class WorkbenchFilesAuthGuard extends ApiKeyOrClientSecretAuthGuard {
             .switchToHttp()
             .getRequest<{ user?: IUser | IApiPrincipal; params: { conversationId: string } }>()
         if (!request.user) throw new UnauthorizedException()
-        assertWorkbenchPrincipal(request.user)
+        const groupCredential =
+            'principalType' in request.user &&
+            request.user.principalType === 'client_secret' &&
+            request.user.clientSecretBindingType === SecretTokenBindingType.USER_CONVERSATION
+        if (!groupCredential) assertWorkbenchPrincipal(request.user)
         const conversation = await this.conversations.findOneBy({ id: request.params.conversationId })
         if (!conversation)
             throw new NotFoundException(
                 t('server-ai:Error.ConversationNotFound', { defaultValue: 'Conversation not found' })
             )
-        assertWorkbenchPrincipal(request.user, conversation)
+        if (conversation.purpose === 'group_assistant_runtime') {
+            await assertGroupWorkspaceFileAccess(this.commands, conversation)
+        } else {
+            assertWorkbenchPrincipal(request.user, conversation)
+        }
         return true
     }
 }

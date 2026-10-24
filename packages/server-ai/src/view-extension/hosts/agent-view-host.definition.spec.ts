@@ -18,6 +18,16 @@ const createProfileIdentity = () =>
         }))
     }) as never
 
+const createApplicationRuntime = (): jest.Mocked<ConstructorParameters<typeof AgentViewHostDefinition>[8]> => ({
+    resolveInstallation: jest.fn().mockResolvedValue(null)
+})
+
+const createDefinition = (...args: ConstructorParameters<typeof AgentViewHostDefinition>) => {
+    const definition = new AgentViewHostDefinition(...args)
+    Object.assign(definition, { commandBus: { execute: jest.fn().mockResolvedValue(null) } })
+    return definition
+}
+
 describe('AgentViewHostDefinition', () => {
     it('loads the primary agent relation and derives middleware feature capabilities', async () => {
         const xpertService = {
@@ -86,7 +96,16 @@ describe('AgentViewHostDefinition', () => {
                 }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const application = {
+            installationId: 'installation-1',
+            pluginName: 'plugin-1',
+            appName: 'app-1',
+            scope: 'personal' as const,
+            ownerUserId: 'installation-owner'
+        }
+        const applicationRuntime = createApplicationRuntime()
+        applicationRuntime.resolveInstallation.mockResolvedValue(application)
+        const definition = createDefinition(
             xpertService as any,
             {} as any,
             middlewareRegistry as any,
@@ -94,7 +113,8 @@ describe('AgentViewHostDefinition', () => {
             {} as any,
             {} as any,
             {} as any,
-            createProfileIdentity()
+            createProfileIdentity(),
+            applicationRuntime
         )
 
         expect(definition.slots.filter((slot) => slot.key.startsWith('agent.workbench'))).toEqual([
@@ -105,7 +125,19 @@ describe('AgentViewHostDefinition', () => {
                 manifestPolicy: { requireFeatureActivation: true }
             }
         ])
+        const organization = jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('different-header-org')
         const resolved = await definition.resolve('agent-host-1')
+        expect(applicationRuntime.resolveInstallation).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                xpertId: 'agent-host-1'
+            })
+        )
+        expect(resolved?.context.application).toEqual(application)
+        expect(definition['commandBus'].execute).not.toHaveBeenCalled()
+        organization.mockRestore()
 
         expect(xpertService.findOneByIdWithinTenant).toHaveBeenCalledWith('agent-host-1', {
             relations: ['agent']
@@ -169,7 +201,7 @@ describe('AgentViewHostDefinition', () => {
                 graph: { nodes: [], connections: [] }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as never,
             {} as never,
             { get: jest.fn() } as never,
@@ -177,7 +209,8 @@ describe('AgentViewHostDefinition', () => {
             {} as never,
             {} as never,
             {} as never,
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
 
         try {
@@ -220,7 +253,7 @@ describe('AgentViewHostDefinition', () => {
                 project: { id: 'project-1', name: 'Project 1', status: 'active' }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             { findOneByIdWithinTenant: jest.fn().mockResolvedValue(xpert) } as never,
             {} as never,
             { get: jest.fn() } as never,
@@ -228,7 +261,8 @@ describe('AgentViewHostDefinition', () => {
             projectAccessService as never,
             {} as never,
             {} as never,
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
 
         const resolved = await definition.resolve('agent-host-1', {
@@ -282,7 +316,8 @@ describe('AgentViewHostDefinition', () => {
                 access as never,
                 {} as never,
                 {} as never,
-                createProfileIdentity()
+                createProfileIdentity(),
+                createApplicationRuntime()
             )
             const result = definition.resolve(xpert.id, { runtimeScope: { projectId: 'project-1' } })
             if (projectTypeKey !== 'space') await expect(result).rejects.toThrow(ForbiddenException)
@@ -307,7 +342,8 @@ describe('AgentViewHostDefinition', () => {
             access as never,
             {} as never,
             volume as never,
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
         await expect(
             definition.prepareFileAction(
@@ -391,7 +427,7 @@ describe('AgentViewHostDefinition', () => {
         const xpertService = {
             findOneByIdWithinTenant: jest.fn(async (id: string) => (id === requester.id ? requester : executor))
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as any,
             {} as any,
             { get: jest.fn() } as any,
@@ -399,7 +435,8 @@ describe('AgentViewHostDefinition', () => {
             {} as any,
             {} as any,
             {} as any,
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
 
         const resolved = await definition.resolve(requester.id)
@@ -489,7 +526,7 @@ describe('AgentViewHostDefinition', () => {
                 }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             middlewareRegistry as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[2],
@@ -497,7 +534,8 @@ describe('AgentViewHostDefinition', () => {
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[6],
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
 
         const published = await definition.resolve('agent-host-1')
@@ -530,7 +568,7 @@ describe('AgentViewHostDefinition', () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn()
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             publishedXpertAccessService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[2],
@@ -538,7 +576,8 @@ describe('AgentViewHostDefinition', () => {
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[6],
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
         const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         const context = { hostId: 'agent-host-1' } as XpertViewHostContext
@@ -563,6 +602,31 @@ describe('AgentViewHostDefinition', () => {
         permission.mockRestore()
     })
 
+    it.each(['personal', undefined])(
+        'requires published access despite edit permission (App scope: %s)',
+        async (scope) => {
+            const published = { getAccessiblePublishedXpert: jest.fn().mockRejectedValue(new ForbiddenException()) }
+            const definition = createDefinition(
+                {} as never,
+                published as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                createProfileIdentity(),
+                createApplicationRuntime()
+            )
+            const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+            const context = { hostId: 'personal-assistant' } as XpertViewHostContext
+            const resolution = { workspaceId: 'personal-workspace', context: { application: scope ? { scope } : null } }
+            await expect(definition.canRead(context, resolution)).resolves.toBe(false)
+            published.getAccessiblePublishedXpert.mockResolvedValueOnce({ id: 'personal-assistant' })
+            await expect(definition.canRead(context, resolution)).resolves.toBe(true)
+            permission.mockRestore()
+        }
+    )
+
     it('uploads workspace file actions into the xpert workspace before provider execution', async () => {
         const tempRoot = mkdtempSync(join(tmpdir(), 'xpert-view-host-'))
         const volumeClient = {
@@ -586,7 +650,7 @@ describe('AgentViewHostDefinition', () => {
                 workspaceDataScope: 'shared'
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as never,
             {} as never,
             {} as never,
@@ -594,7 +658,8 @@ describe('AgentViewHostDefinition', () => {
             {} as never,
             {} as never,
             volumeClient as never,
-            createProfileIdentity()
+            createProfileIdentity(),
+            createApplicationRuntime()
         )
 
         const commands = {

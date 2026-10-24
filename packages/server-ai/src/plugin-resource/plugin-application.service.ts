@@ -1,7 +1,12 @@
+import { ApplicationAccessService } from './application-access.service'
+import { applicationInitializationAccess, applicationInstallationIdentity } from './application-scope'
+import { claimApplicationInstallation } from './application-installation-claim'
+import { hasApplicationSpeechModel } from '../xpert/publication/speech-model-repair'
+import { XpertPublishCommand } from '../xpert/commands/publish.command'
 import { applicationComposition } from './plugin-application-composition'
 import { effectiveLoadedPlugins } from './effective-loaded-plugins'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
-import { modelSelectionMetadata } from '../copilot-model/model-selection-metadata'
+import { applicationModelOptions } from './application-models'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -13,7 +18,8 @@ import {
     LanguagesEnum,
     ModelFeature,
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
-    PLUGIN_APPLICATION_SCOPE,
+    getPluginApplicationScopes,
+    PluginApplicationScope,
     PluginApplicationCatalogItem,
     PluginApplicationCatalogMetadata,
     PluginApplicationDetail,
@@ -23,9 +29,8 @@ import {
     PluginApplicationModelOption,
     PluginApplicationPreflight,
     PluginApplicationStatusSummary,
-    PluginMarketplaceContribution,
     PluginTemplateApplicationSummary,
-    RolesEnum,
+    PluginTargetAppMarketplaceMetadata,
     resolveI18nText
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -42,9 +47,8 @@ import {
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, LessThan, Repository } from 'typeorm'
-import { CopilotWithProviderDto } from '../copilot/dto'
-import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
+import { Repository } from 'typeorm'
+import { CopilotOneByRoleQuery } from '../copilot/queries'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import { Xpert } from '../xpert/xpert.entity'
@@ -84,14 +88,6 @@ type ResolvedModel = {
     }
 }
 
-/** Result of acquiring (or observing) the per-scope installation row. */
-type InstallationClaim = {
-    installation: PluginApplicationInstallation
-    claimed: boolean
-}
-
-const ORGANIZATION_INITIALIZER_ROLES = new Set<RolesEnum>([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL])
-
 /**
  * Executes the generic, host-owned lifecycle for trusted plugin applications.
  *
@@ -110,6 +106,7 @@ export class PluginApplicationService {
     private readonly applicationSetup: PluginApplicationSetupService
 
     constructor(
+        private readonly applicationAccess: ApplicationAccessService,
         @InjectRepository(PluginApplicationInstallation)
         private readonly installationRepo: Repository<PluginApplicationInstallation>,
         @InjectRepository(XpertWorkspace)
@@ -130,8 +127,13 @@ export class PluginApplicationService {
     ) {}
 
     /** Returns trusted presentation metadata plus scoped health and initialization preflight. */
-    async getDetail(pluginName: string, appName: string): Promise<PluginApplicationDetail> {
-        const resolved = this.resolveApplication(pluginName, appName)
+    async getDetail(
+        pluginName: string,
+        appName: string,
+        installationScope?: PluginApplicationScope
+    ): Promise<PluginApplicationDetail> {
+        await this.applicationAccess.assertMembership()
+        const resolved = this.resolveApplication(pluginName, appName, installationScope)
         return {
             application: resolved.application,
             composition: applicationComposition(resolved.application),
@@ -141,16 +143,20 @@ export class PluginApplicationService {
     }
 
     /** Returns card-sized installation state for every App exposed by effective loaded plugins. */
-    async getStatuses(): Promise<PluginApplicationStatusSummary[]> {
+    async getStatuses(installationScope?: PluginApplicationScope): Promise<PluginApplicationStatusSummary[]> {
+        await this.applicationAccess.assertMembership()
         return Promise.all(
-            this.loadedApplications().map(({ application }) => this.getStatusForApplication(application))
+            this.loadedApplications(installationScope).map(({ application }) =>
+                this.getStatusForApplication(application)
+            )
         )
     }
 
     /** Returns trusted App card metadata with status for the current request scope. */
-    async getCatalog(): Promise<PluginApplicationCatalogItem[]> {
+    async getCatalog(installationScope?: PluginApplicationScope): Promise<PluginApplicationCatalogItem[]> {
+        await this.applicationAccess.assertMembership()
         return Promise.all(
-            this.loadedApplications().map(async ({ application, marketplace }) => ({
+            this.loadedApplications(installationScope).map(async ({ application, marketplace }) => ({
                 application,
                 marketplace,
                 status: await this.getStatusForApplication(application)
@@ -160,31 +166,24 @@ export class PluginApplicationService {
 
     /** Allocates only the configuration Workspace; model/toolset prerequisites belong to activation. */
     async prepare(input: PluginApplicationSetupInput) {
-        const resolved = this.resolveApplication(input.pluginName, input.appName)
-        this.assertInitializationAccess(resolved.application)
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(resolved.application)
         return this.toStatus(await this.applicationSetup.prepare(resolved))
     }
 
     async bindToolset(input: PluginApplicationBindToolsetInput) {
-        const { application } = this.resolveApplication(input.pluginName, input.appName)
-        this.assertInitializationAccess(application)
+        const { application } = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(application)
         return this.toStatus(
             await this.applicationSetup.bind(application, { key: input.key, toolsetId: input.toolsetId })
         )
     }
 
     async discardConfiguration(input: PluginApplicationSetupInput) {
-        const { application } = this.resolveApplication(input.pluginName, input.appName)
-        this.assertInitializationAccess(application)
+        const { application } = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(application)
         await this.applicationSetup.discard(application)
         return this.getStatusForApplication(application)
-    }
-
-    private assertInitializationAccess(application: PluginTemplateApplicationSummary) {
-        const access = this.initializationAccess(application)
-        if (access === 'unsupported') throw new BadRequestException('scope_not_supported')
-        if (access === 'organization_required') throw new BadRequestException('organization_scope_required')
-        if (access === 'role_required') throw new ForbiddenException('role_required')
     }
 
     /**
@@ -193,14 +192,14 @@ export class PluginApplicationService {
      * an idempotent retry does not depend on models that may later be disabled.
      */
     async initialize(input: PluginApplicationInitializeInput): Promise<PluginApplicationStatusSummary> {
-        const resolved = this.resolveApplication(input.pluginName, input.appName)
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         const application = resolved.application
         const operationId = input.operationId?.trim()
         if (!operationId) {
             throw new BadRequestException('operationId is required')
         }
 
-        this.assertInitializationAccess(application)
+        await this.applicationAccess.assertCanInitialize(application)
 
         const existing = await this.findCurrentInstallation(application)
         if (existing?.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) {
@@ -215,6 +214,9 @@ export class PluginApplicationService {
             throw new BadRequestException(preflight.reason ?? 'scope_not_supported')
         }
         if (!preflight.canInitialize) {
+            if (preflight.reason === 'speech_to_text_model_required') {
+                throw new BadRequestException(t('server-ai:Error.ApplicationSpeechModelRequired'))
+            }
             if (preflight.reason === 'toolset_provider_required') {
                 throw new BadRequestException(
                     t('server-ai:Error.ApplicationToolsetProviderRequired', {
@@ -252,12 +254,15 @@ export class PluginApplicationService {
                   preflight.defaultVisionModelId
               )
             : null
+        const speechToTextModel = requirements.speechToText
+            ? await this.resolveRequiredModel(input.speechToTextModelId, AiModelTypeEnum.SPEECH2TEXT)
+            : null
         if (application.config.assistantSuite) {
             if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
             await this.assistantSuites.validate(application)
         }
         const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing)
-        const claim = await this.claimInstallation(resolved, operationId)
+        const claim = await claimApplicationInstallation(this.installationRepo, resolved, operationId)
         const installation = claim.installation
 
         if (installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) {
@@ -287,7 +292,14 @@ export class PluginApplicationService {
         }
         try {
             const workspace = installation.workspaceId
-                ? await this.workspaceRepo.findOne({ where: { id: installation.workspaceId } })
+                ? await this.workspaceRepo.findOne({
+                      where: {
+                          id: installation.workspaceId,
+                          tenantId: installation.tenantId,
+                          organizationId: installation.organizationId,
+                          ...(installation.ownerUserId ? { ownerId: installation.ownerUserId } : {})
+                      }
+                  })
                 : null
             const ensuredWorkspace =
                 workspace ??
@@ -305,7 +317,8 @@ export class PluginApplicationService {
                         system: {
                             kind: 'plugin-app',
                             pluginName: application.pluginName,
-                            appName: application.appName
+                            appName: application.appName,
+                            applicationInstallationId: installation.id
                         }
                     }
                 }))
@@ -321,17 +334,28 @@ export class PluginApplicationService {
             const knowledgebaseIds = [...(installation.knowledgebaseIds ?? [])]
             for (const [index, knowledgebaseConfig] of (application.config.knowledgebases ?? []).entries()) {
                 let knowledgebase = knowledgebaseIds[index]
-                    ? await this.knowledgebaseRepo.findOne({ where: { id: knowledgebaseIds[index] } })
+                    ? await this.knowledgebaseRepo.findOne({
+                          where: {
+                              id: knowledgebaseIds[index],
+                              workspaceId,
+                              tenantId: installation.tenantId,
+                              organizationId: installation.organizationId
+                          }
+                      })
                     : null
                 if (!knowledgebase) {
                     knowledgebase = await this.knowledgebaseService.create({
                         name: await this.uniqueKnowledgebaseName(
-                            this.localized(knowledgebaseConfig.name, 'Application Knowledge')
+                            this.localized(knowledgebaseConfig.name, 'Application Knowledge'),
+                            installation.id
                         ),
                         description: this.localized(knowledgebaseConfig.description, ''),
                         workspaceId,
                         type: KnowledgebaseTypeEnum.Standard,
-                        permission: KnowledgebasePermission.Organization,
+                        permission:
+                            installation.declaredScope === 'personal' || knowledgebaseConfig.permission === 'private'
+                                ? KnowledgebasePermission.Private
+                                : KnowledgebasePermission.Organization,
                         applicationTags: knowledgebaseConfig.applicationTags ?? [],
                         ...(embeddingModel ? { copilotModel: embeddingModel.config } : {}),
                         ...(visionModel ? { visionModel: visionModel.config } : {}),
@@ -357,7 +381,8 @@ export class PluginApplicationService {
                           id: installation.xpertId,
                           latest: true,
                           tenantId: installation.tenantId,
-                          organizationId: installation.organizationId
+                          organizationId: installation.organizationId,
+                          workspaceId: installation.workspaceId
                       }
                   })
                 : null
@@ -377,7 +402,8 @@ export class PluginApplicationService {
                         this.requestLanguage(),
                         {
                             name: assistantName,
-                            title: this.localized(application.displayName, 'Application')
+                            title: this.localized(application.displayName, 'Application'),
+                            ...(speechToTextModel ? { speechToTextModel: speechToTextModel.config } : {})
                         },
                         true
                     )
@@ -390,6 +416,9 @@ export class PluginApplicationService {
                 createdXpertId = xpertId
             }
 
+            if (existingXpert && speechToTextModel && !hasApplicationSpeechModel(existingXpert)) {
+                await this.commandBus.execute(XpertPublishCommand.repairSpeechModel(xpertId, speechToTextModel.config))
+            }
             installation.xpertId = xpertId
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
             installation.errorCode = null
@@ -426,10 +455,14 @@ export class PluginApplicationService {
     }
 
     /** Resolves an App only from the process-local trusted plugin registry. */
-    private resolveApplication(pluginNameInput: string, appNameInput: string): ResolvedApplication {
+    private resolveApplication(
+        pluginNameInput: string,
+        appNameInput: string,
+        installationScope?: PluginApplicationScope
+    ): ResolvedApplication {
         const pluginName = normalizePluginName(pluginNameInput)
         const appName = appNameInput?.trim()
-        const resolved = this.loadedApplications().find(
+        const resolved = this.loadedApplications(installationScope).find(
             ({ application }) => application.pluginName === pluginName && application.appName === appName
         )
         if (!resolved) {
@@ -443,29 +476,25 @@ export class PluginApplicationService {
      * Duplicate declarations within one plugin are collapsed by stable App ID;
      * no marketplace response or localized text participates in resolution.
      */
-    private loadedApplications(): ResolvedApplication[] {
+    private loadedApplications(installationScope?: PluginApplicationScope): ResolvedApplication[] {
         const applications = new Map<string, ResolvedApplication>()
         for (const plugin of this.effectiveLoadedPlugins()) {
             const meta = plugin.instance?.meta
             const pluginName = normalizePluginName(plugin.packageName ?? plugin.name ?? meta?.name ?? '')
             if (!meta || !pluginName) continue
             const metadataEntries = Object.values(meta.targetAppMeta ?? {}) as Array<{
-                marketplace?: {
-                    contents?: PluginMarketplaceContribution[]
-                    category?: PluginApplicationCatalogMetadata['category']
-                    subcategory?: string
-                    featured?: boolean
-                    updatedAt?: string
-                }
+                marketplace?: PluginTargetAppMarketplaceMetadata
             }>
             for (const metadata of metadataEntries) {
                 const marketplace = metadata?.marketplace
                 const contributions = Array.isArray(marketplace?.contents) ? marketplace.contents : []
                 for (const app of contributions) {
                     if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
+                    const scopes = getPluginApplicationScopes(app.appConfig.scope)
+                    if (!scopes.length) continue
                     const id = `${pluginName}:${app.name}`
                     if (applications.has(id)) continue
-                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig, marketplace)
                     // Keep legacy plugin declarations compatible without granting organization-wide authoring.
                     const appConfig = {
                         ...declaredConfig,
@@ -480,7 +509,7 @@ export class PluginApplicationService {
                             description: app.description,
                             icon: app.icon ?? meta.icon,
                             color: app.color,
-                            scope: appConfig.scope,
+                            scope: installationScope ?? scopes[0],
                             assistantTemplateKey: appConfig.assistantTemplateKey,
                             config: appConfig
                         },
@@ -515,14 +544,13 @@ export class PluginApplicationService {
         application: PluginTemplateApplicationSummary,
         existingInstallation?: PluginApplicationInstallation | null
     ): Promise<PluginApplicationPreflight> {
-        const organizationId = RequestContext.getOrganizationId()
         const modelRequirements = application.config.modelRequirements ?? {}
-        const role = RequestContext.currentUser()?.role?.name as RolesEnum | undefined
-        const supported = application.scope === PLUGIN_APPLICATION_SCOPE.ORGANIZATION
+        const access = applicationInitializationAccess(application)
+        const supported = access !== 'unsupported'
         let reason: PluginApplicationPreflight['reason']
         if (!supported) reason = 'scope_not_supported'
-        else if (!organizationId) reason = 'organization_scope_required'
-        else if (!role || !ORGANIZATION_INITIALIZER_ROLES.has(role)) reason = 'role_required'
+        else if (access === 'organization_required') reason = 'organization_scope_required'
+        else if (access === 'role_required') reason = 'role_required'
 
         /** Do not enumerate organization model IDs for callers who cannot initialize the App. */
         if (reason) {
@@ -533,6 +561,7 @@ export class PluginApplicationService {
                 reason,
                 embeddingModels: [],
                 visionModels: [],
+                speechToTextModels: [],
                 defaultEmbeddingModelId: null,
                 defaultVisionModelId: null,
                 primaryModelAvailable: !modelRequirements.primary,
@@ -540,12 +569,13 @@ export class PluginApplicationService {
             }
         }
 
-        const [embeddingModels, visionModels, primaryModels] = await Promise.all([
+        const [embeddingModels, visionModels, primaryModels, speechToTextModels] = await Promise.all([
             modelRequirements.embedding ? this.modelOptions(AiModelTypeEnum.TEXT_EMBEDDING) : Promise.resolve([]),
             modelRequirements.vision
                 ? this.modelOptions(AiModelTypeEnum.LLM, ModelFeature.VISION)
                 : Promise.resolve([]),
-            modelRequirements.primary ? this.modelOptions(AiModelTypeEnum.LLM) : Promise.resolve([])
+            modelRequirements.primary ? this.modelOptions(AiModelTypeEnum.LLM) : Promise.resolve([]),
+            modelRequirements.speechToText ? this.modelOptions(AiModelTypeEnum.SPEECH2TEXT) : Promise.resolve([])
         ])
         const primaryModelAvailable = !modelRequirements.primary || primaryModels.length > 0
         const [defaultEmbeddingModelId, defaultVisionModelId] = await Promise.all([
@@ -559,6 +589,8 @@ export class PluginApplicationService {
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
         else if (modelRequirements.embedding && !embeddingModels.length) reason = 'embedding_model_required'
         else if (modelRequirements.vision && !visionModels.length) reason = 'vision_model_required'
+        if (!reason && modelRequirements.speechToText && !speechToTextModels.length)
+            reason = 'speech_to_text_model_required'
         const toolsetRequirements = await this.applicationToolsets.preflight(
             application,
             existingInstallation === undefined ? await this.findCurrentInstallation(application) : existingInstallation
@@ -580,6 +612,7 @@ export class PluginApplicationService {
             ...(reason ? { reason } : {}),
             embeddingModels,
             visionModels,
+            speechToTextModels,
             defaultEmbeddingModelId,
             defaultVisionModelId,
             primaryModelAvailable,
@@ -593,11 +626,17 @@ export class PluginApplicationService {
     ): Promise<PluginApplicationStatusSummary> {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
-        if (!tenantId || !organizationId || application.scope !== PLUGIN_APPLICATION_SCOPE.ORGANIZATION) {
+        if (
+            !tenantId ||
+            !organizationId ||
+            applicationInitializationAccess(application) === 'unsupported' ||
+            (application.scope === 'personal' && !RequestContext.currentUserId())
+        ) {
             return {
                 appId: application.id,
+                installationScope: application.scope,
                 status: 'not_installed',
-                initializationAccess: this.initializationAccess(application)
+                initializationAccess: applicationInitializationAccess(application)
             }
         }
         const installation = await this.findCurrentInstallation(application)
@@ -605,105 +644,10 @@ export class PluginApplicationService {
             ? this.toStatus(await this.refreshHealth(installation))
             : {
                   appId: application.id,
+                  installationScope: application.scope,
                   status: 'not_installed',
-                  initializationAccess: this.initializationAccess(application)
+                  initializationAccess: applicationInitializationAccess(application)
               }
-    }
-
-    /**
-     * Atomically claims the single installation row for this App and scope.
-     * Failed/degraded rows are repairable, and an initializing row becomes
-     * reclaimable after five minutes so a crashed process cannot deadlock it.
-     */
-    private async claimInstallation(resolved: ResolvedApplication, operationId: string): Promise<InstallationClaim> {
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        if (!tenantId || !organizationId) {
-            throw new BadRequestException('organization_scope_required')
-        }
-        let installation = await this.findCurrentInstallation(resolved.application)
-        let claimed = false
-        if (!installation) {
-            try {
-                installation = await this.installationRepo.save(
-                    this.installationRepo.create({
-                        tenantId,
-                        organizationId,
-                        createdById: RequestContext.currentUserId(),
-                        updatedById: RequestContext.currentUserId(),
-                        pluginName: resolved.application.pluginName,
-                        appName: resolved.application.appName,
-                        declaredScope: resolved.application.scope,
-                        scopeKey: organizationId,
-                        status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING,
-                        pluginVersion: resolved.pluginVersion,
-                        templateId: resolved.templateId,
-                        templateVersion: resolved.templateVersion,
-                        operationId
-                    })
-                )
-                claimed = true
-            } catch {
-                installation = await this.installationRepo.findOne({
-                    where: {
-                        tenantId,
-                        organizationId,
-                        pluginName: resolved.application.pluginName,
-                        appName: resolved.application.appName,
-                        scopeKey: organizationId
-                    }
-                })
-            }
-        }
-        if (!installation) {
-            throw new ConflictException('application_installation_conflict')
-        }
-        if (
-            installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING ||
-            installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED ||
-            installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
-        ) {
-            const result = await this.installationRepo.update(
-                {
-                    id: installation.id,
-                    status: In([
-                        PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING,
-                        PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED,
-                        PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
-                    ])
-                },
-                {
-                    status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING,
-                    operationId,
-                    pluginVersion: resolved.pluginVersion,
-                    templateId: resolved.templateId,
-                    templateVersion: resolved.templateVersion,
-                    errorCode: null,
-                    errorMessage: null
-                }
-            )
-            claimed = result.affected === 1
-        } else if (
-            installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING &&
-            installation.updatedAt &&
-            new Date(installation.updatedAt).getTime() < Date.now() - 5 * 60_000
-        ) {
-            const result = await this.installationRepo.update(
-                {
-                    id: installation.id,
-                    status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING,
-                    updatedAt: LessThan(new Date(Date.now() - 5 * 60_000))
-                },
-                { operationId, errorCode: null, errorMessage: null }
-            )
-            claimed = result.affected === 1
-        }
-        if (!claimed) {
-            const current = await this.installationRepo.findOne({ where: { id: installation.id } })
-            return { installation: current ?? installation, claimed: false }
-        }
-        const current = await this.installationRepo.findOne({ where: { id: installation.id } })
-        return { installation: current ?? installation, claimed: true }
     }
 
     /**
@@ -718,8 +662,8 @@ export class PluginApplicationService {
         let expectedKnowledgebaseCount = installation.knowledgebaseIds?.length ?? 0
         try {
             expectedKnowledgebaseCount =
-                this.resolveApplication(installation.pluginName, installation.appName).application.config.knowledgebases
-                    ?.length ?? 0
+                this.resolveApplication(installation.pluginName, installation.appName, installation.declaredScope)
+                    .application.config.knowledgebases?.length ?? 0
         } catch {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'application_definition_missing'
@@ -732,7 +676,8 @@ export class PluginApplicationService {
                       where: {
                           id: installation.workspaceId,
                           tenantId: installation.tenantId,
-                          organizationId: installation.organizationId
+                          organizationId: installation.organizationId,
+                          ...(installation.declaredScope === 'personal' ? { ownerId: installation.ownerUserId } : {})
                       }
                   })
                 : Promise.resolve(false),
@@ -742,7 +687,8 @@ export class PluginApplicationService {
                           id: installation.xpertId,
                           latest: true,
                           tenantId: installation.tenantId,
-                          organizationId: installation.organizationId
+                          organizationId: installation.organizationId,
+                          workspaceId: installation.workspaceId
                       }
                   })
                 : Promise.resolve(false),
@@ -754,7 +700,8 @@ export class PluginApplicationService {
                               where: {
                                   id,
                                   tenantId: installation.tenantId,
-                                  organizationId: installation.organizationId
+                                  organizationId: installation.organizationId,
+                                  workspaceId: installation.workspaceId
                               }
                           })
                       )
@@ -762,7 +709,11 @@ export class PluginApplicationService {
                       (results) => results.length === expectedKnowledgebaseCount && results.every((exists) => exists)
                   )
         ])
-        const application = this.resolveApplication(installation.pluginName, installation.appName).application
+        const application = this.resolveApplication(
+            installation.pluginName,
+            installation.appName,
+            installation.declaredScope
+        ).application
         const suiteHealthy =
             !application.config.assistantSuite ||
             (this.assistantSuites && (await this.assistantSuites.healthy(application, installation)))
@@ -773,6 +724,21 @@ export class PluginApplicationService {
             installation.errorMessage = 'One or more initialized App resources are missing.'
             return this.installationRepo.save(installation)
         }
+        if (application.config.modelRequirements?.speechToText) {
+            const assistant = await this.xpertRepo.findOne({
+                where: {
+                    id: installation.xpertId,
+                    tenantId: installation.tenantId,
+                    organizationId: installation.organizationId
+                }
+            })
+            if (!hasApplicationSpeechModel(assistant)) {
+                installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
+                installation.errorCode = 'speech_to_text_model_missing'
+                installation.errorMessage = t('server-ai:Error.ApplicationSpeechModelRequired')
+                return this.installationRepo.save(installation)
+            }
+        }
         return installation
     }
 
@@ -782,12 +748,21 @@ export class PluginApplicationService {
     ): Promise<PluginApplicationStatusSummary> {
         const xpert =
             resolvedSlug === undefined && installation.xpertId
-                ? await this.xpertRepo.findOne({ where: { id: installation.xpertId, latest: true } })
+                ? await this.xpertRepo.findOne({
+                      where: {
+                          id: installation.xpertId,
+                          latest: true,
+                          tenantId: installation.tenantId,
+                          organizationId: installation.organizationId,
+                          workspaceId: installation.workspaceId
+                      }
+                  })
                 : null
         return {
             appId: `${installation.pluginName}:${installation.appName}`,
+            installationScope: installation.declaredScope,
             status: installation.status,
-            initializationAccess: this.initializationAccess({ scope: installation.declaredScope }),
+            initializationAccess: applicationInitializationAccess({ scope: installation.declaredScope }),
             installationId: installation.id,
             workspaceId: installation.workspaceId,
             xpertId: installation.xpertId,
@@ -795,38 +770,16 @@ export class PluginApplicationService {
             errorCode: installation.errorCode,
             errorMessage: installation.errorMessage,
             canDiscardConfiguration:
-                this.initializationAccess({ scope: installation.declaredScope }) === 'allowed' &&
+                applicationInitializationAccess({ scope: installation.declaredScope }) === 'allowed' &&
                 canDiscardApplicationConfiguration(installation)
         }
     }
 
-    private initializationAccess(application: Pick<PluginTemplateApplicationSummary, 'scope'>) {
-        if (application.scope !== PLUGIN_APPLICATION_SCOPE.ORGANIZATION) return 'unsupported' as const
-        if (!RequestContext.getOrganizationId()) return 'organization_required' as const
-        const role = RequestContext.currentUser()?.role?.name as RolesEnum | undefined
-        return role && ORGANIZATION_INITIALIZER_ROLES.has(role) ? ('allowed' as const) : ('role_required' as const)
-    }
-
-    /** Returns only models visible through the current request's governed model query. */
     private async modelOptions(
         modelType: AiModelTypeEnum,
         requiredFeature?: ModelFeature
     ): Promise<PluginApplicationModelOption[]> {
-        const copilots = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-            new FindCopilotModelsQuery(modelType)
-        )
-        return copilots.flatMap((copilot) =>
-            copilot.providerWithModels.models
-                .filter((model) => !requiredFeature || model.features?.includes(requiredFeature))
-                .map((model) => ({
-                    id: this.modelOptionId(copilot.id, model.model),
-                    copilotId: copilot.id,
-                    model: model.model,
-                    label: model.label,
-                    modelType: model.model_type,
-                    ...modelSelectionMetadata(copilot, model, RequestContext.getLanguageCode())
-                }))
-        )
+        return applicationModelOptions(this.queryBus, modelType, requiredFeature)
     }
 
     private async resolveRequiredModel(
@@ -840,6 +793,8 @@ export class PluginApplicationService {
             ? (await this.modelOptions(modelType, requiredFeature)).find((item) => item.id === resolvedId)
             : null
         if (!option) {
+            if (modelType === AiModelTypeEnum.SPEECH2TEXT)
+                throw new BadRequestException(t('server-ai:Error.ApplicationSpeechModelRequired'))
             throw new BadRequestException(requiredFeature ? 'invalid_vision_model' : 'invalid_embedding_model')
         }
         return {
@@ -890,11 +845,11 @@ export class PluginApplicationService {
         return language?.toLowerCase().startsWith('zh') ? LanguagesEnum.SimplifiedChinese : LanguagesEnum.English
     }
 
-    private async uniqueKnowledgebaseName(baseName: string) {
+    private async uniqueKnowledgebaseName(baseName: string, installationId: string) {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const existing = await this.knowledgebaseRepo.findOne({ where: { tenantId, organizationId, name: baseName } })
-        return existing ? `${baseName} (${organizationId?.slice(0, 8) ?? 'organization'})` : baseName
+        return existing ? `${baseName} (${installationId})` : baseName
     }
 
     private async uniqueAssistantName(appName: string, organizationId?: string | null) {
@@ -941,7 +896,7 @@ export class PluginApplicationService {
 
     /** Finds the one installation bound to the current tenant and organization. */
     private async findCurrentInstallation(
-        application: Pick<PluginTemplateApplicationSummary, 'pluginName' | 'appName'>
+        application: Pick<PluginTemplateApplicationSummary, 'pluginName' | 'appName' | 'scope'>
     ): Promise<PluginApplicationInstallation | null> {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
@@ -949,13 +904,7 @@ export class PluginApplicationService {
             return null
         }
         return this.installationRepo.findOne({
-            where: {
-                tenantId,
-                organizationId,
-                pluginName: application.pluginName,
-                appName: application.appName,
-                scopeKey: organizationId
-            }
+            where: applicationInstallationIdentity(application)
         })
     }
 }

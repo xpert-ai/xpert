@@ -1,16 +1,15 @@
 import {
     AiModelTypeEnum,
-    AiProviderRole,
     FetchFrom,
     ICopilotProviderModel,
-    ModelFeature,
     ProviderModel,
     isConfiguredModelAvailable,
     usesConfiguredModelCatalog,
-    readModelConfiguration
+    readModelConfiguration,
+    legacyModelFeatures
 } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AIProvidersService } from '../../../ai-model/index'
@@ -46,14 +45,16 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const managementCopilots = await this.service.findAllEnabledCopilotsWithoutMembership(tenantId, organizationId)
-        const copilots =
-            command.catalogMode === CopilotModelCatalogMode.MembershipManagement
-                ? managementCopilots.filter(
-                      (copilot) =>
-                          (copilot.organizationId ?? null) === (organizationId ?? null) &&
-                          (modelTypeForCopilotRole(copilot.role) ?? copilot.copilotModel?.modelType) === command.type
-                  )
-                : managementCopilots
+        const membershipCatalog = command.catalogMode === CopilotModelCatalogMode.MembershipManagement
+        // A Copilot role selects a default use, not the provider's complete capability set.
+        const copilots = membershipCatalog
+            ? managementCopilots.filter(
+                  (copilot) =>
+                      (copilot.organizationId ?? null) === (organizationId ?? null) &&
+                      copilot.enabled === true &&
+                      copilot.modelProvider?.isValid !== false
+              )
+            : managementCopilots
         const copilotSchemas: CopilotWithProviderDto[] = []
         for (const copilot of copilots) {
             if (copilot.modelProvider) {
@@ -61,7 +62,10 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                 if (provider) {
                     // Predefined models
                     const configuredOnly = usesConfiguredModelCatalog(copilot.modelProvider)
-                    const predefinedModels = configuredOnly ? [] : provider.getProviderModels(command.type)
+                    // Even configured-only catalogs need built-in deprecation metadata used by runtime access.
+                    const providerModels =
+                        configuredOnly && !membershipCatalog ? [] : (provider.getProviderModels(command.type) ?? [])
+                    const predefinedModels = configuredOnly ? [] : providerModels
                     // Custom models
                     const customModels = await this.queryBus.execute<
                         GetCopilotProviderModelQuery,
@@ -71,7 +75,16 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                     if (customModels?.length) {
                         models.push(
                             ...customModels
-                                .filter((model) => isConfiguredModelAvailable(copilot.modelProvider, model))
+                                .filter(
+                                    (model) =>
+                                        isConfiguredModelAvailable(copilot.modelProvider, model) &&
+                                        (!membershipCatalog ||
+                                            (model.isValid !== false &&
+                                                !providerModels.some(
+                                                    (predefined) =>
+                                                        predefined.model === model.modelName && predefined.deprecated
+                                                )))
+                                )
                                 .map((model) => {
                                     const configuration = readModelConfiguration(model.modelProperties)
                                     const schema = configuration
@@ -84,7 +97,10 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                                         model_type: model.modelType,
                                         fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
                                         model_properties: schema?.model_properties ?? model.modelProperties,
-                                        features: schema?.features ?? customFeatures(model.modelProperties),
+                                        features:
+                                            configuration?.modelType === AiModelTypeEnum.LLM
+                                                ? configuration.features
+                                                : (schema?.features ?? legacyModelFeatures(model.modelProperties)),
                                         label: {
                                             zh_Hans: model.modelName,
                                             en_US: model.modelName
@@ -95,12 +111,26 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                     }
 
                     predefinedModels?.forEach((model) => {
+                        if (
+                            membershipCatalog &&
+                            (model.deprecated ||
+                                customModels?.some(
+                                    (custom) => custom.modelName === model.model && custom.isValid === false
+                                ))
+                        ) {
+                            return
+                        }
                         if (!models.some((_) => _.model === model.model)) {
                             models.push(model)
                         }
                     })
                     const selectedModel = selectedCopilotModelAsProviderModel(copilot.copilotModel, command.type)
-                    if (!configuredOnly && selectedModel && !models.some((_) => _.model === selectedModel.model)) {
+                    if (
+                        !membershipCatalog &&
+                        !configuredOnly &&
+                        selectedModel &&
+                        !models.some((_) => _.model === selectedModel.model)
+                    ) {
                         models.push(selectedModel)
                     }
 
@@ -170,43 +200,6 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         }
         return copilots.filter((copilot) => copilot.providerWithModels.models.length)
     }
-}
-
-function modelTypeForCopilotRole(role: AiProviderRole | null | undefined): AiModelTypeEnum | null {
-    switch (role) {
-        case AiProviderRole.Primary:
-        case AiProviderRole.Secondary:
-        case AiProviderRole.Reasoning:
-            return AiModelTypeEnum.LLM
-        case AiProviderRole.Embedding:
-            return AiModelTypeEnum.TEXT_EMBEDDING
-        default:
-            return null
-    }
-}
-
-/**
- * Converts custom provider model properties into the feature flags consumed by
- * model selection and model synchronization.
- *
- * @todo move to PLUGINS level
- */
-function customFeatures(modelProperties: Record<string, any>): string[] {
-    const features: ModelFeature[] = []
-    if (modelProperties?.vision_support === 'support') {
-        features.push(ModelFeature.VISION)
-    }
-    if (modelProperties?.function_calling_type === 'tool_call') {
-        features.push(ModelFeature.TOOL_CALL)
-    }
-    if (modelProperties?.function_calling_type === 'multi_tool_call') {
-        features.push(ModelFeature.TOOL_CALL)
-        features.push(ModelFeature.MULTI_TOOL_CALL)
-    }
-    if (modelProperties?.agent_though_support === 'supported') {
-        features.push(ModelFeature.AGENT_THOUGHT)
-    }
-    return features
 }
 
 /**

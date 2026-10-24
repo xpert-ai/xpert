@@ -1,3 +1,6 @@
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { writeTaskProjection } from './task-projection/project-task-projection.writer'
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ProjectTaskProviderRegistry, type ProjectTaskProjection } from '@xpert-ai/plugin-sdk'
@@ -54,7 +57,13 @@ describe('registered task business types', () => {
         })
         const rows: XpertProjectTask[] = [ordinary]
         const manager = {
-            find: jest.fn(async (entity) => (entity === XpertProjectTask ? rows.filter((row) => row.providerKey) : [])),
+            find: jest.fn(async (entity, options) =>
+                entity === XpertProjectTask
+                    ? options.where.providerKey
+                        ? rows.filter((row) => row.providerKey)
+                        : rows
+                    : []
+            ),
             findOne: jest.fn(async () => ({ id: 'project', name: 'Project' })),
             findOneOrFail: jest.fn(async () => Object.assign(new XpertProject(), { id: 'project' })),
             create: jest.fn((_entity, value) => Object.assign(new XpertProjectTask(), value)),
@@ -67,9 +76,15 @@ describe('registered task business types', () => {
         manager.transaction.mockImplementation(async (action) => action(manager))
         const snapshot = jest.fn(async () => ({ revision: 'v1', tasks: [projection] }))
         const provider = { key: 'bid.tasks', taskTypes: [definition], snapshot }
+        let diagnostics: Array<{ providerKey: string; message: string }> = []
         const module = await Test.createTestingModule({
             providers: [
+                { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
                 ProjectTaskGraphService,
+                {
+                    provide: ProjectTaskProjectionService,
+                    useValue: { diagnostics: async () => diagnostics, request: jest.fn() }
+                },
                 { provide: getRepositoryToken(XpertProjectTask), useValue: { manager, find: async () => rows } },
                 {
                     provide: ProjectAccessRuntimeService,
@@ -79,7 +94,16 @@ describe('registered task business types', () => {
             ]
         }).compile()
         const service = module.get(ProjectTaskGraphService)
-        const first = await service.graph(context)
+        async function refreshGraph() {
+            diagnostics = []
+            try {
+                await writeTaskProjection(manager as never, context, provider, await snapshot())
+            } catch (error) {
+                diagnostics = [{ providerKey: provider.key, message: String(error) }]
+            }
+            return service.graph(context)
+        }
+        const first = await refreshGraph()
         expect(first.diagnostics).toEqual([])
         expect(rows[1]).toMatchObject({
             type: definition.key,
@@ -94,17 +118,15 @@ describe('registered task business types', () => {
             status: 'in_progress'
         })
         expect(first.tasks[0]).toMatchObject({ taskType: 'legacy.free-form', presentation: null, kind: 'milestone' })
-        const replay = await service.graph(context)
+        const replay = await refreshGraph()
         expect(replay.tasks).toEqual(first.tasks)
         expect(manager.save).toHaveBeenCalledTimes(1)
         // A legacy provider omitting taskType may not erase an existing persisted type.
         delete projection.taskType
-        await service.graph(context)
+        await refreshGraph()
         expect(rows[1].type).toBe(definition.key)
         projection.taskType = 'other.tasks.illustration'
-        expect((await service.graph(context)).diagnostics).toEqual([
-            expect.objectContaining({ providerKey: 'bid.tasks' })
-        ])
+        expect((await refreshGraph()).diagnostics).toEqual([expect.objectContaining({ providerKey: 'bid.tasks' })])
         expect(rows[1].type).toBe(definition.key)
         expect(ordinary.type).toBe('legacy.free-form')
         await module.close()

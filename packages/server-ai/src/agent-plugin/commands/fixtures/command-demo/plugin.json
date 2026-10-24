@@ -1,0 +1,45 @@
+{
+    "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    "name": "skill-command-demo",
+    "version": "1.1.0",
+    "description": "Skill command and subcommand acceptance fixture",
+    "extensions": {
+        "xpertai": {
+            "version": 2,
+            "interface": {
+                "displayName": "技能命令验收"
+            },
+            "commands": {
+                "bom": {
+                    "description": "计算附件或文本中的物料汇总",
+                    "subcommands": {
+                        "summary": {
+                            "argsHint": "输入物料、数量和单价",
+                            "label": {
+                                "en_US": "Summarize costs",
+                                "zh_Hans": "汇总金额"
+                            }
+                        },
+                        "plan": {
+                            "argsHint": "输入物料整理需求",
+                            "label": {
+                                "en_US": "Review plan",
+                                "zh_Hans": "审核计划"
+                            }
+                        }
+                    },
+                    "label": {
+                        "en_US": "BOM",
+                        "zh_Hans": "BOM 管理"
+                    }
+                },
+                "greeting": {
+                    "label": {
+                        "en_US": "Greeting",
+                        "zh_Hans": "技能问候"
+                    }
+                }
+            }
+        }
+    }
+}

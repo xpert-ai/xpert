@@ -6,16 +6,19 @@ import { ExecutionCancelService } from '../shared/execution/execution-cancel.ser
 import { readThreadDisplayPause } from './thread-display-pause'
 import { ConflictException } from '@nestjs/common'
 import { instanceToPlain } from 'class-transformer'
-import { DataSource, EntityManager, In, Repository } from 'typeorm'
+import { DataSource, EntityManager, FindOneOptions, In, Repository } from 'typeorm'
+import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
-import { ThreadRunControlService } from './thread-run-control.service'
+import { ThreadRunControlService, threadGraphRevision } from './thread-run-control.service'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
-import { XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
+import { TXpertGraph, XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
 
 describe('ThreadRunControlService', () => {
     function setup() {
         const thread = {
             threadId: 'thread',
+            tenantId: 'tenant',
+            organizationId: 'organization',
             status: 'busy',
             runControl: {
                 state: 'running',
@@ -23,11 +26,16 @@ describe('ThreadRunControlService', () => {
                 graphRevision: 'revision'
             }
         } as ChatConversationThread
-        const checkpoint = { checkpoint_id: 'saved' }
+        const checkpointRepository = {
+            findOne: jest
+                .fn<Promise<Pick<CopilotCheckpoint, 'checkpoint_id'> | null>, [FindOneOptions<CopilotCheckpoint>]>()
+                .mockResolvedValue({ checkpoint_id: 'saved' })
+        }
+        const threadRepository = { findOne: jest.fn(async () => thread) }
         const manager = {
-            getRepository: jest.fn((entity: unknown) => ({
-                findOne: jest.fn(async () => (entity === ChatConversationThread ? thread : checkpoint))
-            })),
+            getRepository: jest.fn((entity: unknown) =>
+                entity === ChatConversationThread ? threadRepository : checkpointRepository
+            ),
             update: jest.fn(),
             save: jest.fn(async () => thread)
         } as unknown as EntityManager
@@ -37,10 +45,138 @@ describe('ThreadRunControlService', () => {
             { transaction: async (work: (m: EntityManager) => Promise<unknown>) => work(manager) } as DataSource,
             cancellations as unknown as ExecutionCancelService
         )
-        return { thread, service, manager, cancellations }
+        return { thread, service, manager, cancellations, checkpointRepository, threadRepository }
     }
 
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
+
+    it.each(['position', 'size', 'hash'] as const)(
+        'resumes the saved checkpoint after a %s-only publication',
+        async (field) => {
+            const { thread, service } = setup()
+            const graph: TXpertGraph = {
+                nodes: [
+                    {
+                        key: 'agent',
+                        type: 'agent',
+                        position: { x: 0, y: 0 },
+                        entity: { key: 'agent', prompt: 'same task' }
+                    }
+                ],
+                connections: []
+            }
+            thread.runControl.graphRevision = threadGraphRevision(graph)
+            const pause = await service.requestPause('thread', 'run')
+            const reference = { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' }
+            await service.stageCheckpoint('thread', 'run', reference)
+            await service.finish('thread', 'run', 'interrupted')
+            if (field === 'position') graph.nodes[0].position = { x: 300, y: 200 }
+            if (field === 'size') graph.nodes[0].size = { width: 320, height: 180 }
+            if (field === 'hash') graph.nodes[0].hash = 'new-layout-cache'
+
+            await expect(
+                service.claimResume('thread', 'run', pause.pauseId, threadGraphRevision(graph))
+            ).resolves.toEqual(reference)
+        }
+    )
+
+    it.each(['', 'agent:child'])('resumes using only the checkpoint ID in namespace "%s"', async (checkpointNs) => {
+        const { thread, service, checkpointRepository, threadRepository } = setup()
+        const pause = await service.requestPause('thread', 'run')
+        const reference = { threadId: 'thread', checkpointNs, checkpointId: 'saved' }
+        await service.stageCheckpoint('thread', 'run', reference)
+        await service.finish('thread', 'run', 'interrupted')
+
+        await expect(service.claimResume('thread', 'run', pause.pauseId, 'revision')).resolves.toEqual(reference)
+
+        expect(checkpointRepository.findOne).toHaveBeenCalledWith({
+            select: { checkpoint_id: true },
+            where: {
+                thread_id: 'thread',
+                checkpoint_ns: checkpointNs,
+                checkpoint_id: 'saved',
+                tenantId: 'tenant',
+                organizationId: 'organization'
+            }
+        })
+        expect(threadRepository.findOne).toHaveBeenLastCalledWith({
+            where: { threadId: 'thread' },
+            lock: { mode: 'pessimistic_write' }
+        })
+        expect(thread.status).toBe('busy')
+        expect(thread.runControl.state).toBe('running')
+    })
+
+    it('leaves the thread paused when the saved checkpoint no longer exists', async () => {
+        const { thread, service, manager, checkpointRepository } = setup()
+        const pause = await service.requestPause('thread', 'run')
+        await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
+        await service.finish('thread', 'run', 'interrupted')
+        checkpointRepository.findOne.mockResolvedValue(null)
+        jest.mocked(manager.save).mockClear()
+
+        await expect(service.claimResume('thread', 'run', pause.pauseId, 'revision')).rejects.toThrow(
+            'The saved checkpoint is unavailable.'
+        )
+
+        expect(thread.status).toBe('paused')
+        expect(thread.runControl.state).toBe('paused')
+        expect(manager.save).not.toHaveBeenCalled()
+    })
+
+    it('propagates checkpoint lookup failures without claiming the paused thread', async () => {
+        const { thread, service, manager, checkpointRepository } = setup()
+        const pause = await service.requestPause('thread', 'run')
+        await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
+        await service.finish('thread', 'run', 'interrupted')
+        const error = new Error('Checkpoint database unavailable')
+        checkpointRepository.findOne.mockRejectedValue(error)
+        jest.mocked(manager.save).mockClear()
+
+        await expect(service.claimResume('thread', 'run', pause.pauseId, 'revision')).rejects.toBe(error)
+
+        expect(thread.status).toBe('paused')
+        expect(thread.runControl.state).toBe('paused')
+        expect(manager.save).not.toHaveBeenCalled()
+    })
+
+    it.each(['execution', 'pause', 'revision'] as const)(
+        'rejects a stale %s before reading the checkpoint',
+        async (mismatch) => {
+            const { thread, service, checkpointRepository } = setup()
+            const pause = await service.requestPause('thread', 'run')
+            await service.stageCheckpoint('thread', 'run', {
+                threadId: 'thread',
+                checkpointNs: '',
+                checkpointId: 'saved'
+            })
+            await service.finish('thread', 'run', 'interrupted')
+
+            await expect(
+                service.claimResume(
+                    'thread',
+                    mismatch === 'execution' ? 'other-run' : 'run',
+                    mismatch === 'pause' ? 'other-pause' : pause.pauseId,
+                    mismatch === 'revision' ? 'other-revision' : 'revision'
+                )
+            ).rejects.toBeInstanceOf(ConflictException)
+
+            expect(checkpointRepository.findOne).not.toHaveBeenCalled()
+            expect(thread.status).toBe('paused')
+        }
+    )
+
+    it('releases a rejected run and preserves its error through repeated cleanup', async () => {
+        const { thread, service } = setup()
+        await service.finish('thread', 'run', 'error', 'Model unavailable')
+        expect(thread.runControl).toBeNull()
+        expect(thread.encryptedRunContext).toBeNull()
+        expect(await service.finish('thread', 'run', 'idle')).toBe('error')
+        expect(thread.error).toBe('Model unavailable')
+        await service.start('thread', 'retry')
+        expect(thread.runControl?.executionId).toBe('retry')
+        expect(thread.runControl?.state).toBe('running')
+    })
 
     it('retains a copied graph revision through failed first attempts and clears it on success', async () => {
         const { thread, service } = setup()
@@ -118,6 +254,8 @@ describe('ThreadRunControlService', () => {
     it('recovers an expired process without falsely confirming a staged pause or replaying work', async () => {
         const { thread, service, cancellations, manager } = setup()
         await service.start('thread', 'run')
+        expect(service.displaySnapshotOwner('thread', 'run')).toEqual(expect.any(String))
+        expect(service.displaySnapshotOwner('thread', 'other-run')).toBeUndefined()
         await service.requestPause('thread', 'run')
         await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
         thread.metadata = {
@@ -129,6 +267,7 @@ describe('ThreadRunControlService', () => {
             }
         }
         expect(await service.recoverExpiredRun('thread')).toBe(true)
+        expect(service.displaySnapshotOwner('thread', 'run')).toBeUndefined()
         expect(manager.update).toHaveBeenCalledWith(
             XpertAgentExecution,
             expect.objectContaining({ id: 'run', status: In([ExecutionStatus.RUNNING, ExecutionStatus.PENDING]) }),

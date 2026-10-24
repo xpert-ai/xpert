@@ -7,6 +7,7 @@ import { defaultAppearance, type ColorMode } from './appearance-types'
 import { AppearanceSettings } from './AppearanceSettings'
 import { ChatKitAppearance } from './ChatKitAppearance'
 import { ConnectionFields } from './ConnectionFields'
+import officialConnectionDefaults from '../electron/connection/defaults.json'
 import { ShellSettings } from './shell/ShellSettings'
 import { GeneralSettings } from './settings/GeneralSettings'
 import { ThemeModeChoice } from './settings/ThemeModeChoice'
@@ -23,6 +24,7 @@ const withAppearance = (config: ConnectionConfig) => ({
 
 export function ConnectionSettings({
   config,
+  connectionDefaults = officialConnectionDefaults,
   signedIn,
   userName,
   usageContext,
@@ -32,6 +34,7 @@ export function ConnectionSettings({
   onPreview
 }: {
   config: ConnectionConfig
+  connectionDefaults?: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   signedIn: boolean
   userName?: string
   usageContext?: { key: string; organizationName?: string }
@@ -199,7 +202,7 @@ export function ConnectionSettings({
                       'Changing service URLs requires signing in again. Appearance and language changes keep your session and chats.'
                     )}
                   </p>
-                  <ConnectionFields draft={draft} onChange={updateDraft} />
+                  <ConnectionFields draft={draft} defaults={connectionDefaults} onChange={updateDraft} />
                 </div>
               )}
             </fieldset>

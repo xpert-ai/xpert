@@ -145,7 +145,7 @@ export function DocumentListRow({
                     variant={selected ? 'secondary' : 'ghost'}
                     size="icon-sm"
                     className={cn(
-                        'justify-self-end rounded-full transition-opacity',
+                        'justify-self-end transition-opacity',
                         selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
                     )}
                     aria-label={t('selected')}
@@ -226,13 +226,7 @@ function DocumentStatusBadge({ status }: { status?: DocumentStatus | null }) {
     const statusInfo = DOCUMENT_STATUS_INFO[status]
     const StatusIcon = statusInfo.icon
     return (
-        <Badge
-            variant="outline"
-            className={cn(
-                'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0 text-[11px] leading-5',
-                statusInfo.className
-            )}
-        >
+        <Badge variant="outline" className={cn('shrink-0', statusInfo.className)}>
             <StatusIcon className={cn('size-3', statusInfo.loading ? 'animate-spin' : '')} />
             <span>{t(statusInfo.labelKey)}</span>
         </Badge>
@@ -246,11 +240,7 @@ function DocumentWarningBadge({ metadata }: { metadata?: unknown }) {
     }
 
     return (
-        <Badge
-            variant="outline"
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border-text-warning/40 px-1.5 py-0 text-[11px] leading-5 text-text-warning"
-            title={warning.message}
-        >
+        <Badge variant="outline" className="shrink-0 border-warning/40 text-warning" title={warning.message}>
             <TriangleAlert className="size-3" />
             <span>{t('imageUnderstandingWarning')}</span>
         </Badge>

@@ -4,6 +4,8 @@ import { InjectionToken } from '@angular/core'
 export type WorkspaceConnectorDialogContext = {
   workspaceId: string
   bindingId: string
+  requiredAuthMethodId?: string
+  requiredIntegrationId?: string
   /** Desktop has already opened the system browser; OAuth can use that tab without a popup. */
   authorizationNavigation?: 'current-tab'
 }

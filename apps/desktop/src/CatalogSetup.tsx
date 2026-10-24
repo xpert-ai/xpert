@@ -1,3 +1,4 @@
+import type { PluginApplicationScope } from '@xpert-ai/contracts'
 import { TemplateManifestDetails } from './catalog/TemplateManifestDetails'
 import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 import { TemplateInstallationProgress, useTemplateInstallation } from './catalog/TemplateInstallation'
@@ -45,6 +46,13 @@ export function CatalogSetup({
   onInstalled: () => void
   onItemUpdated: (item: CatalogItem) => void
 }) {
+  const [appScope, setAppScope] = useState<PluginApplicationScope | undefined>(() =>
+    item.kind === 'applications'
+      ? item.installationScopes?.includes('personal')
+        ? 'personal'
+        : item.installationScope
+      : undefined
+  )
   const [setup, setSetup] = useState<ApplicationSetup | null>(null)
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
   const [hasPrimaryLanguageModel, setHasPrimaryLanguageModel] = useState<boolean | null>(null)
@@ -86,8 +94,16 @@ export function CatalogSetup({
       setHasPrimaryLanguageModel(null)
       try {
         if (item.kind === 'applications') {
-          const result = await invoke('applicationSetup', { pluginName: item.pluginName, appName: item.appName })
+          const result = await invoke('applicationSetup', {
+            pluginName: item.pluginName,
+            appName: item.appName,
+            installationScope: appScope
+          })
           if (!active) return
+          if (!appScope && result.application.installationScopes?.includes('personal')) {
+            setAppScope('personal')
+            return
+          }
           onItemUpdated(result.application)
           setSetup(result)
           setEmbedding((current) =>
@@ -97,7 +113,7 @@ export function CatalogSetup({
             result.visionModels.some((model) => model.id === current) ? current : result.defaultVisionModelId
           )
           setToolsets((current) => reconcileApplicationToolsets(result.toolsetRequirements, current))
-          if (result.application.status === 'ready') setInstalled(result.application.botId)
+          setInstalled(result.application.status === 'ready' ? result.application.botId : null)
         } else if (item.kind === 'templates') {
           const result = await invoke('templateSetup', {
             id: item.id,
@@ -110,7 +126,14 @@ export function CatalogSetup({
             result.workspaces.some((workspace) => workspace.id === current) ? current : result.workspaces[0]?.id || ''
           )
           setPreflight(result.preflight ?? null)
-          setTemplateModel((current) => (result.preflight?.models.some((model) => model.id === current) ? current : ''))
+          const defaultModelId = result.preflight?.defaultModelId
+          setTemplateModel((current) =>
+            result.preflight?.models.some((model) => model.id === current)
+              ? current
+              : result.preflight?.models.some((model) => model.id === defaultModelId)
+                ? (defaultModelId ?? '')
+                : ''
+          )
           setHasPrimaryLanguageModel(result.hasPrimaryLanguageModel)
         }
       } catch (error) {
@@ -128,7 +151,7 @@ export function CatalogSetup({
     return () => {
       active = false
     }
-  }, [item, revision, capabilities, onItemUpdated, workspaceId])
+  }, [item, revision, capabilities, onItemUpdated, workspaceId, appScope, installationScope])
   const initializing = setup?.application.status === 'initializing'
   const canSubmit =
     !busy &&
@@ -145,7 +168,9 @@ export function CatalogSetup({
             title.trim() &&
             preflight?.canInstall !== false &&
             (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
-            (preflight?.requiresModel ? !!templateModel : hasPrimaryLanguageModel === true)
+            (preflight?.requiresModel
+              ? preflight.models.some((model) => model.id === templateModel)
+              : hasPrimaryLanguageModel === true)
           : setup?.canInitialize &&
             !initializing &&
             (!setup.requireEmbedding || embedding) &&
@@ -187,6 +212,7 @@ export function CatalogSetup({
       const result = await invoke('initializeApplication', {
         pluginName: item.pluginName,
         appName: item.appName,
+        installationScope: appScope,
         operationId,
         toolsets,
         ...(embedding ? { embeddingModelId: embedding } : {}),
@@ -210,7 +236,8 @@ export function CatalogSetup({
     try {
       const result = await invoke('discardApplicationConfiguration', {
         pluginName: item.pluginName,
-        appName: item.appName
+        appName: item.appName,
+        installationScope: appScope
       })
       setSetup(result)
       setToolsets([])
@@ -244,6 +271,41 @@ export function CatalogSetup({
                   </span>
                 ))}
               </div>
+              {(setup?.application.installationScopes ?? item.installationScopes ?? []).length > 1 && (
+                <fieldset className="space-y-2" disabled={busy || loading || editingToolset}>
+                  <legend className="text-sm font-medium">{t('Install for')}</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {(setup?.application.installationScopes ?? item.installationScopes ?? []).map((scope) => (
+                      <label
+                        key={scope}
+                        className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm focus-within:ring-2 focus-within:ring-ring"
+                      >
+                        <input
+                          type="radio"
+                          name="application-scope"
+                          value={scope}
+                          checked={(appScope ?? setup?.application.installationScope) === scope}
+                          onChange={() => {
+                            setInstalled(null)
+                            setSetup(null)
+                            setEmbedding('')
+                            setVision('')
+                            setToolsets([])
+                            setConfirmDiscard(false)
+                            setAppScope(scope)
+                          }}
+                        />
+                        {t(scope === 'personal' ? 'Only me' : scope === 'organization' ? 'Organization' : 'Tenant')}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+              {appScope === 'personal' && (
+                <p className="text-sm text-muted-foreground">
+                  {t('Your app instance and its new resources are private by default within this organization.')}
+                </p>
+              )}
               <ApplicationScreenshots
                 name={item.name}
                 screenshots={setup?.application.screenshots ?? item.screenshots}
@@ -441,7 +503,11 @@ export function CatalogSetup({
                         </div>
                       )}
                       <ApplicationToolsets
-                        application={{ pluginName: item.pluginName, appName: item.appName }}
+                        application={{
+                          pluginName: item.pluginName,
+                          appName: item.appName,
+                          installationScope: appScope
+                        }}
                         setup={setup}
                         selections={toolsets}
                         onSelections={setToolsets}

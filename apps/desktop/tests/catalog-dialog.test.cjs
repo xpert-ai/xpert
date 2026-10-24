@@ -8,6 +8,7 @@ const ts = require('typescript')
 const React = require('react')
 const { JSDOM } = require('jsdom')
 const { createCatalogCache } = require('../src/catalog/catalog-cache.ts')
+const { subscribeAppActivation } = require('../src/app-activation.ts')
 const { catalogBusinessAreas, matchesBusinessArea } = require('../src/catalog/business-area-filter.ts')
 // Match Vite's React deduplication instead of resolving Radix's nested peer copy in Node.
 const uiRequire = createRequire(join(__dirname, '../../../packages/shadcn-ui/package.json'))
@@ -64,6 +65,13 @@ const library = {
 // Exercise the actual catalog components and Radix tab lifecycle; replace only presentation and host I/O.
 async function mountCatalog(t, handler, onUse = async () => {}) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true })
+  const activations = new Set()
+  dom.window.xpertDesktop = {
+    onWindowActivated: (listener) => {
+      activations.add(listener)
+      return () => activations.delete(listener)
+    }
+  }
   const keys = [
     'window',
     'document',
@@ -159,7 +167,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       './host': host,
       './i18n': { t: (key) => key, getLocale: () => locale, useLocale: () => locale },
       '@xpert-ai/template-installation-client': require('./helpers/template-installation.cjs'),
-      './app-activation': { subscribeAppActivation: () => () => {} },
+      './app-activation': { subscribeAppActivation },
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(
         [
@@ -288,6 +296,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       await render('organization-one')
     },
     dom,
+    activate: () => React.act(async () => activations.forEach((listener) => listener())),
     count: (method, input) =>
       calls.filter((call) => call.method === method && (input === undefined || call.input === input)).length
   }
@@ -299,6 +308,18 @@ function defaultResult(method, input) {
   if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
+
+test('other discovery tabs still update activation-dependent access and installation status', async (t) => {
+  const view = await mountCatalog(t, defaultResult)
+  await view.activate()
+  assert.equal(view.count('listCatalog', 'experts'), 2)
+  await view.click('Apps')
+  await view.activate()
+  assert.equal(view.count('listCatalog', 'applications'), 2)
+  await view.click('Plugins')
+  await view.activate()
+  assert.equal(view.count('pluginLibrary'), 2)
+})
 
 test('dialog caches the installation catalog without workspace controls, refreshes explicitly, and resets with organization', async (t) => {
   const view = await mountCatalog(t, defaultResult)
@@ -564,6 +585,48 @@ const templateResult = (method, input) => {
   if (method === 'listTemplateInstallations') return { items: [], total: 0 }
   return defaultResult(method, input)
 }
+test('native reactivation preserves template cards, filters and scroll without fetching again', async (t) => {
+  const view = await mountCatalog(t, templateResult)
+  await view.click('Agent templates')
+  await view.click('Other sources 1')
+  const card = [...document.querySelectorAll('button')].find((button) => button.textContent === 'View template')
+  const panel = card.closest('[role="tabpanel"]')
+  panel.scrollTop = 320
+  const before = view.calls.length
+  for (let index = 0; index < 5; index++) {
+    await view.activate()
+    view.dom.window.dispatchEvent(new view.dom.window.Event('focus'))
+  }
+  assert.equal(view.calls.length, before)
+  assert.equal(card.isConnected, true)
+  assert.equal(panel.scrollTop, 320)
+  assert.equal(
+    document.querySelector('[aria-label="Template sources"] [aria-pressed="true"]').textContent.trim(),
+    'Other sources 1'
+  )
+  await view.click('Apps')
+  await view.click('Agent templates')
+  assert.equal(view.count('templateCatalogPage'), 1)
+  await view.click('Refresh catalog')
+  assert.equal(view.count('templateCatalogPage'), 2, 'explicit refresh still fetches fresh data')
+})
+
+test('manual template refresh keeps existing cards mounted while the response is pending', async (t) => {
+  let finish
+  let reads = 0
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'templateCatalogPage' && ++reads > 1) return new Promise((resolve) => (finish = resolve))
+    return templateResult(method, input)
+  })
+  await view.click('Agent templates')
+  const card = [...document.querySelectorAll('button')].find((button) => button.textContent === 'View template')
+  await view.click('Refresh catalog')
+  assert.equal(card.isConnected, true)
+  assert.equal(document.querySelector('[aria-label="Refresh catalog"]').disabled, true)
+  await React.act(async () => finish({ items: [template], nextOffset: null }))
+  assert.equal(card.isConnected, true)
+})
+
 test('required missing template dependencies block install and display the selected version and file scope', async (t) => {
   const view = await mountCatalog(t, (method, input) => {
     const result = templateResult(method, input)
@@ -606,6 +669,36 @@ test('required missing template dependencies block install and display the selec
     true
   )
   assert.equal(view.count('createTemplateInstallation'), 0)
+})
+test('template installation preselects an authorized tenant default without a Primary lookup in the renderer', async (t) => {
+  const selected = { copilotId: 'tenant-connection', model: 'eligible', modelType: 'llm' }
+  let submitted
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'createTemplateInstallation') {
+      submitted = input
+      return installation
+    }
+    const result = templateResult(method, input)
+    if (method === 'templateSetup')
+      return {
+        ...result,
+        hasPrimaryLanguageModel: false,
+        preflight: {
+          ...result.preflight,
+          requiresModel: true,
+          defaultModelId: 'tenant-default',
+          models: [{ id: 'tenant-default', label: 'Eligible', copilotModel: selected }]
+        }
+      }
+    return result
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  const button = [...document.querySelectorAll('button')].find((item) => item.textContent.includes('Install & use'))
+  assert.equal(button.disabled, false)
+  await view.click('Install & use')
+  assert.deepEqual(JSON.parse(JSON.stringify(submitted.basic.copilotModel)), selected)
 })
 test('template setup resumes the same failed operation and restores it when reopened without reinstalling', async (t) => {
   let current = installation
@@ -694,6 +787,115 @@ test('source-changed history shows the error without a resume action', async (t)
   )
   assert.equal(view.count('createTemplateInstallation'), 0)
 })
+test('deleted template targets retain successful history and require an explicit new installation', async (t) => {
+  let current = {
+    ...installation,
+    status: 'succeeded',
+    stage: 'completed',
+    retryable: false,
+    error: null,
+    assistantAvailability: 'available'
+  }
+  let opened = 0
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      return templateResult(method, input)
+    },
+    async () => {
+      opened++
+    }
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  await view.click('Back to catalog')
+  current = { ...current, assistantAvailability: 'unavailable' }
+  await view.click('View template')
+  await view.click('Import Assistant')
+  assert.match(document.body.textContent, /Installation complete/)
+  assert.match(document.body.textContent, /deleted or is no longer accessible/)
+  const open = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Open assistant')
+  assert.equal(open.disabled, true)
+  await view.click('Open assistant')
+  await view.click('Refresh status')
+  assert.equal(opened, 0)
+  assert.equal(view.count('createTemplateInstallation'), 1)
+  await view.click('Create another assistant')
+  assert.doesNotMatch(document.body.textContent, /deleted or is no longer accessible/)
+  current = { ...current, id: 'second', assistantId: 'second-assistant', assistantAvailability: 'available' }
+  await view.click('Install & use')
+  const creates = view.calls.filter((call) => call.method === 'createTemplateInstallation')
+  assert.equal(creates.length, 2)
+  assert.notEqual(creates[0].input.idempotencyKey, creates[1].input.idempotencyKey)
+})
+test('opening rechecks the target and clears errors when a new installation is selected', async (t) => {
+  let current = {
+    ...installation,
+    status: 'succeeded',
+    retryable: false,
+    error: null,
+    assistantAvailability: 'available'
+  }
+  let opened = 0
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      if (method === 'listTemplateInstallations') return { items: [current], total: 1 }
+      return templateResult(method, input)
+    },
+    async () => {
+      opened++
+      throw new Error('opening failed')
+    }
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  current = { ...current, assistantAvailability: 'unavailable' }
+  await view.click('Open assistant')
+  assert.equal(opened, 0)
+  assert.match(document.body.textContent, /deleted or is no longer accessible/)
+  current = { ...current, assistantAvailability: 'available' }
+  await view.click('Refresh status')
+  await view.click('Open assistant')
+  assert.match(document.body.textContent, /opening failed/)
+  const record = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('operation'))
+  await React.act(async () => record.click())
+  assert.doesNotMatch(document.body.textContent, /opening failed/)
+  await view.click('Open assistant')
+  assert.match(document.body.textContent, /opening failed/)
+  await view.click('Create another assistant')
+  assert.doesNotMatch(document.body.textContent, /opening failed/)
+})
+test('late opening failures cannot contaminate a new template installation', async (t) => {
+  const current = { ...installation, status: 'succeeded', retryable: false, error: null }
+  let fail
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation' || method === 'getTemplateInstallation') return current
+      return templateResult(method, input)
+    },
+    () =>
+      new Promise((_resolve, reject) => {
+        fail = reject
+      })
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  await view.click('Open assistant')
+  assert.equal(typeof fail, 'function')
+  await view.click('Create another assistant')
+  await React.act(async () => fail(new Error('late opening failure')))
+  assert.doesNotMatch(document.body.textContent, /late opening failure/)
+})
 
 test('template introduction shows four sections without setup or installation until import is requested', async (t) => {
   const calls = []
@@ -753,4 +955,33 @@ test('language changes replace cached catalog metadata without reinstalling temp
   assert.match(document.body.textContent, /办公室/)
   assert.doesNotMatch(document.body.textContent, /Office/)
   assert.ok(reads > before)
+})
+
+test('App setup defaults to personal and rechecks the selected installation when its radio changes', async (t) => {
+  const scoped = { ...app, installationScopes: ['organization', 'personal'], installationScope: 'personal' }
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'listCatalog' && input === 'applications') return [scoped]
+    if (method === 'applicationSetup')
+      return {
+        application: { ...scoped, installationScope: input.installationScope },
+        canInitialize: true,
+        canConfigure: true,
+        reason: '',
+        toolsetRequirements: [],
+        embeddingModels: [],
+        visionModels: [],
+        defaultEmbeddingModelId: '',
+        defaultVisionModelId: ''
+      }
+    return defaultResult(method, input)
+  })
+  await view.click('Apps')
+  await view.click('Meetings')
+  assert.equal(document.querySelector('input[value="personal"]').checked, true)
+  await React.act(async () => document.querySelector('input[value="organization"]').click())
+  assert.equal(document.querySelector('input[value="organization"]').checked, true)
+  assert.equal(
+    view.calls.filter((call) => call.method === 'applicationSetup').at(-1).input.installationScope,
+    'organization'
+  )
 })

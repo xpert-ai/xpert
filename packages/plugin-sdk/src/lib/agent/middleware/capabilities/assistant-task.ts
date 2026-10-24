@@ -1,4 +1,4 @@
-import type { JSONValue, TAvatar } from '@xpert-ai/contracts'
+import type { JSONValue, TAvatar, ProjectPipelineNativeSource } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../../core/runtime-capability'
 
 /** Task lifecycle snapshot. interrupted means paused; unknown does not confirm failure. */
@@ -38,6 +38,21 @@ export type AgentMiddlewareExternalAssistantExpectation = {
   pluginName: string
   templateKey: string
   agentKey: string
+}
+
+export type AgentMiddlewarePublishedAgentTarget = {
+  requesterXpertId: string
+  expectation: AgentMiddlewareExternalAssistantExpectation
+}
+export type AgentMiddlewareResolvedAgent = { xpertId: string; workspaceId: string; agentKey: string }
+
+/** Safe capabilities of the exact accessible published Assistant; no draft or prompt content. */
+export type AgentMiddlewarePublishedContext = {
+  primaryAgentKey: string | null
+  publishedVersion: string
+  templateSource: { pluginName?: string; templateKey: string } | null
+  features: string[]
+  availableAgents: Array<{ key: string; title?: string; role?: string }>
 }
 
 /** Resolve the executor from the requester's required, direct published external-Assistant connections. */
@@ -116,6 +131,8 @@ export type AgentMiddlewareCorrelatedExecution = {
 export type AgentMiddlewareAssistantTaskInput = {
   /** Current/requesting Assistant ID; must match target.requesterXpertId when target is supplied. */
   xpertId: string
+  /** Fail before dispatch if the accessible published executor changed after the caller prepared its intent. */
+  expectedPublishedVersion?: string
   /** Selects the base/Primary model; child Agents retain authored models. */
   modelId?: string
   /** Entry Agent for the current Assistant; external targets use their resolved primary Agent. */
@@ -125,6 +142,8 @@ export type AgentMiddlewareAssistantTaskInput = {
   conversationId?: string | null
   executionId?: string | null
   projectId?: string | null
+  /** Optional Pipeline dispatch provenance. Host revalidates the lease and pins exact native identities before dispatch. */
+  pipelineSource?: ProjectPipelineNativeSource
   taskId?: string
   /** Per-run idempotency key. Otherwise correlation.operationId or executionId is used; taskId alone is insufficient. */
   clientMessageId?: string
@@ -170,6 +189,14 @@ export type AgentMiddlewareAssistantTaskCancelResult = {
 
 /** Host Assistant Task API. Feature-detect optional methods before calling them. */
 export interface AgentMiddlewareAssistantTaskApi {
+  getPublishedContext?(xpertId: string): Promise<AgentMiddlewarePublishedContext>
+  /** Resolve an Agent entrypoint in an accessible published Assistant in the requester's workspace. Ambiguous matches are rejected. */
+  resolvePublishedAgent?(input: AgentMiddlewarePublishedAgentTarget): Promise<AgentMiddlewareResolvedAgent>
+  /** Delegate a trusted plugin operation to the resolved resource with live access checks; preserve the original credential audience. */
+  withPublishedAgent?<T>(
+    input: AgentMiddlewarePublishedAgentTarget,
+    operation: (target: AgentMiddlewareResolvedAgent) => Promise<T>
+  ): Promise<T>
   /**
    * Verify that a running native delegate is the requester's bound external role.
    *
@@ -198,6 +225,8 @@ export interface AgentMiddlewareAssistantTaskApi {
   getModels?(xpertId: string): Promise<import('@xpert-ai/contracts').TAssistantModelsResponse>
   /** Submit once and retain the receipt; use getTaskStatus to follow asynchronous progress. */
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
+  /** Pin a Pipeline task before persisting deferred work. Save the returned input unchanged; this does not start execution. */
+  preparePipelineTask?(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskInput>
   /** List safe binding descriptors without deployed Assistant instance IDs. */
   listExternalAssistantBindings?(
     input: AgentMiddlewareListExternalAssistantBindingsInput

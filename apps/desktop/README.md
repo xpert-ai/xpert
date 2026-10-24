@@ -18,7 +18,10 @@ Sidebar and a Right Content Panel. The right panel embeds the official
 `@xpert-ai/chatkit-web-component`; it does not implement a second chat UI.
 
 The desktop uses an amber primary color (`#f59e0b`) with a 12px radius token
-(10px inputs, 16px cards/dialogs). ChatKit receives the same primary token and
+(10px inputs, 16px cards/dialogs). ChatKit uses the current Assistant's character
+color, solid avatar background or generated fallback avatar color as its accent primary
+when available, otherwise the configured ChatKit
+accent or desktop primary token, and
 its native `round` radius preset; coverage inside the hosted frame depends on ChatKit.
 Both light and dark appearance modes use this theme.
 
@@ -32,7 +35,9 @@ under **Connections & capabilities**. Search filters these destinations by their
 The main content scrolls independently while the back button and save bar stay visible. ChatKit options include its
 native radius/density presets, 14–18px base font size, text/code font families,
 accent color/level, grayscale hue/tint/shade and light/dark surface colors.
-Blank ChatKit accent/font fields inherit the desktop values; other blank colors
+Assistant character colors take priority over the ChatKit accent setting and update
+when switching Assistants or saving their appearance. Group chats use the configured
+ChatKit accent. Blank ChatKit accent/font fields inherit the desktop values; other blank colors
 use their defaults. Fonts must already be installed; this UI does not load font URLs.
 
 Changes preview immediately. **取消更改** restores the saved values; **保存设置**
@@ -161,7 +166,24 @@ and avoids duplicating `/api` for REST and ChatKit requests. Shell connections
 use the server root. Already saved connection settings take precedence over new
 build defaults, so upgrading does not change an existing account's server.
 
+Connection fields may be left blank: their placeholders are the effective defaults
+shipped in this build, and saving or checking certificates uses those same values.
+ChatKit follows the Web URL with `/chatkit` appended unless a custom ChatKit URL is
+entered. A separately hosted ChatKit default supplied at build time is used with
+the build's default Web URL.
+
 ### Customer builds
+
+The **Build Bosi Desktop apps** workflow reads these GitHub Actions repository
+variables under **Settings → Secrets and variables → Actions → Variables**:
+
+- `XPERT_DESKTOP_API_URL`
+- `XPERT_DESKTOP_WEB_URL`
+- `XPERT_DESKTOP_CHATKIT_URL` (optional; leave unset to append `/chatkit` to the Web URL)
+
+Unset or empty variables use the official defaults. Local builds also accept a JSON
+file as described below; an empty environment variable does not override that file.
+These values are embedded at build time for all installer platforms.
 
 Set the three URLs when building installers (macOS/Linux shell, from the repo root):
 
@@ -367,6 +389,22 @@ The opt-in development button reads that credential mechanism inside the host.
 It only works with a loopback API address and is absent from packaged apps.
 `test:local` validates login, organization scope, Bot discovery, two scoped
 ChatKit sessions, JWT refresh, frame assets and logout, without printing secrets.
+
+To check catalog loading and native background/foreground transitions with an isolated
+profile, run these commands from `apps/desktop`:
+
+```sh
+corepack pnpm exec vite build
+corepack pnpm exec electron tests/fixtures/catalog-focus.electron.cjs
+```
+
+This uses the production renderer, preload and native activation bridge with 96
+synthetic templates and 200 ms per page. It reports painted startup/list/tab-return
+times, verifies five native reactivations make no catalog requests, and checks that
+manual refresh keeps cards visible. It does not measure production API latency.
+Closing and reopening discovery starts a fresh scoped catalog; switching between
+its tabs reuses cached data. Set `BOSI_CATALOG_REPORT` and `BOSI_CATALOG_SCREENSHOT`
+to save the JSON measurements and a screenshot.
 
 See [verification.md](docs/verification.md) for the tested local environment and
 remaining integration limits, and [design-qa.md](design-qa.md) for visual QA.

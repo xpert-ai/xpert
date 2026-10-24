@@ -37,6 +37,8 @@ export interface TemplateInstallation {
   stage: TemplateInstallationStage
   attempt: number
   assistantId: string | null
+  /** Current authoring access to the target, independent of the historical installation result. Absent on older servers. */
+  assistantAvailability?: 'available' | 'unavailable'
   publish: boolean
   retryable: boolean
   error: { code: 'INSTALL_FAILED' | 'SOURCE_CHANGED'; message: string } | null
@@ -46,12 +48,18 @@ export interface TemplateInstallation {
   updatedAt: string
 }
 
+export const templateDependencyVersionsSchema = z
+  .array(z.object({ pluginName: z.string().min(1).max(214), version: z.string().min(1).max(100) }).strict())
+  .max(100)
+
 export const templateDependencyLocksSchema = z
   .array(
     z
       .object({
         pluginName: z.string().trim().min(1).max(300),
         version: z.string().trim().min(1).max(300),
+        /** Explicit template requirement, distinct from the automatically recorded installation version. */
+        requiredVersion: z.string().trim().min(1).max(300).optional(),
         source: z
           .object({
             kind: z.literal('agent-plugin'),
@@ -84,3 +92,15 @@ export const templateDependencyLocksSchema = z
   )
   .max(200)
 export type TemplateDependencyLock = z.output<typeof templateDependencyLocksSchema>[number]
+
+/** Advisory drift in an available runtime dependency; never a compatibility guarantee. */
+export interface TemplateDependencyUpdate {
+  pluginName: string
+  installedVersion: string
+  currentVersion: string
+  changedComponents: { type: TemplateDependencyLock['components'][number]['type']; key: string }[]
+}
+
+export interface TemplateRuntimeDependencyReport {
+  updates: TemplateDependencyUpdate[]
+}

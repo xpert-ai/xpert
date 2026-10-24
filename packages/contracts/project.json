@@ -20,11 +20,9 @@
           }
         ],
         "compiler": "swc",
+        "rollupConfig": "packages/contracts/rollup.config.cjs",
         "format": ["cjs", "esm"],
-        "external": [
-          "short-unique-id",
-          "zod"
-        ]
+        "external": ["short-unique-id", "zod"]
       }
     },
     "publish": {

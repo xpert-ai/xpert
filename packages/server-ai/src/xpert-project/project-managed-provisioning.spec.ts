@@ -40,6 +40,8 @@ describe('XpertProjectService managed provisioning', () => {
             status: 'active'
         })
 
+        expect(result.assistantBindings).toEqual([])
+        expect(result).not.toHaveProperty('externalAssistants')
         expect(result.xpertIds).toEqual([requester.id])
         expect(harness.createdProject.xperts).toEqual([requester])
     })
@@ -139,6 +141,7 @@ describe('XpertProjectService managed provisioning', () => {
             status: 'active'
         })
 
+        expect(result.assistantBindings).toEqual([{ ...expectation, xpertId: role.id }])
         expect(result.xpertIds).toEqual([requester.id, role.id])
         expect(harness.repository.insert).toHaveBeenCalledTimes(1)
         expect(harness.createdProject.xperts).toEqual([requester, role])
@@ -324,7 +327,9 @@ describe('XpertProjectService managed provisioning', () => {
         }
         await harness.service.ensureManagedProject(input)
         harness.createdProject.xperts = [root]
-        expect((await harness.service.ensureManagedProject(input)).xpertIds).toEqual([root.id])
+        const result = await harness.service.ensureManagedProject(input)
+        expect(result.xpertIds).toEqual([root.id])
+        expect(result.assistantBindings).toEqual([{ ...expectation, xpertId: role.id }])
         expect(harness.relation.add).toHaveBeenCalledTimes(1)
         expect(harness.repository.save.mock.calls[0][0]).not.toHaveProperty('xperts')
     })

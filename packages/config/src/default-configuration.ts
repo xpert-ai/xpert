@@ -1,79 +1,80 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
+import * as dotenv from 'dotenv'
+dotenv.config()
 import {
-	DEFAULT_API_HOST,
-	DEFAULT_API_PORT,
-	DEFAULT_API_BASE_URL,
-	DEFAULT_GRAPHQL_API_PATH,
-	IPluginConfig
-} from '@xpert-ai/server-common';
-import chalk from 'chalk';
-import path from 'path';
-import { dbConnectionConfig } from './database';
+  DEFAULT_API_HOST,
+  DEFAULT_API_PORT,
+  DEFAULT_API_BASE_URL,
+  DEFAULT_GRAPHQL_API_PATH,
+  IPluginConfig
+} from '@xpert-ai/server-common'
+import chalk from 'chalk'
+import path from 'path'
+import { dbConnectionConfig } from './database'
 
-process.cwd();
+process.cwd()
 
-let assetPath = '';
-let assetPublicPath = '';
-let serverRoot = '';
-let dataPath = '';
+let assetPath = ''
+let assetPublicPath = ''
+let serverRoot = ''
+let dataPath = ''
 
-console.log(chalk.blueBright('Default Config -> __dirname: ' + __dirname));
-console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()));
+console.log(chalk.blueBright('Default Config -> __dirname: ' + __dirname))
+console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()))
 
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
 // for Docker
 if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
-	serverRoot = '/srv/xpert/';
-	assetPath = serverRoot + 'assets';
-	assetPublicPath = serverRoot + 'public';
-	dataPath = '/var/lib/xpert/data/'
+  serverRoot = '/srv/xpert/'
+  assetPath = serverRoot + 'assets'
+  assetPublicPath = serverRoot + 'public'
+  dataPath = '/var/lib/xpert/data/'
 } else if (process.env.NODE_ENV === 'production') {
-	serverRoot = process.cwd()
-	assetPath = path.join(serverRoot, 'assets')
-	assetPublicPath = path.join(serverRoot, '..', 'public')
-	dataPath = '/var/lib/xpert/data/'
+  serverRoot = process.cwd()
+  assetPath = path.join(serverRoot, 'assets')
+  assetPublicPath = path.join(serverRoot, '..', 'public')
+  dataPath = '/var/lib/xpert/data/'
 } else {
-	serverRoot = path.resolve(__dirname, '../../../')
-	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
-	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
-	dataPath = path.join(serverRoot, 'tmp', 'data/')
+  serverRoot = path.resolve(__dirname, '../../../')
+  assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
+  assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
+  dataPath = path.join(serverRoot, 'tmp', 'data/')
 }
 
-console.log(chalk.blueBright('Default Config -> serverRoot: ' + serverRoot));
-console.log(chalk.blueBright('Default Config -> assetPath: ' + assetPath));
-console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublicPath));
+console.log(chalk.blueBright('Default Config -> serverRoot: ' + serverRoot))
+console.log(chalk.blueBright('Default Config -> assetPath: ' + assetPath))
+console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublicPath))
 
 /**
  * The default configurations.
  */
 export const defaultConfiguration: IPluginConfig = {
-	apiConfigOptions: {
-		host: process.env.HOST || DEFAULT_API_HOST,
-		port: process.env.PORT || DEFAULT_API_PORT,
-		baseUrl: process.env.API_BASE_URL || DEFAULT_API_BASE_URL,
-		middleware: [],
-		graphqlConfigOptions: {
-			path: DEFAULT_GRAPHQL_API_PATH,
-			playground: true,
-			debug: true,
-			// apolloServerPlugins: []
-		}
-	},
-	dbConnectionOptions: {
-		...dbConnectionConfig
-	},
-	plugins: [],
-	authOptions: {
-		expressSessionSecret: process.env.SESSION_SECRET || 'metad',
-		userPasswordBcryptSaltRounds: 12,
-		jwtSecret: process.env.JWT_SECRET || 'secretKey'
-	},
-	assetOptions: {
-		assetPath: assetPath,
-		assetPublicPath: assetPublicPath,
-		serverRoot,
-		dataPath
-	}
-};
+  apiConfigOptions: {
+    host: process.env.HOST || DEFAULT_API_HOST,
+    port: process.env.PORT || DEFAULT_API_PORT,
+    baseUrl: process.env.API_BASE_URL || DEFAULT_API_BASE_URL,
+    middleware: [],
+    graphqlConfigOptions: {
+      path: DEFAULT_GRAPHQL_API_PATH,
+      playground: true,
+      debug: true
+      // apolloServerPlugins: []
+    }
+  },
+  dbConnectionOptions: {
+    ...dbConnectionConfig
+  },
+  plugins: [],
+  authOptions: {
+    expressSessionSecret: process.env.SESSION_SECRET || 'metad',
+    userPasswordBcryptSaltRounds: 12,
+    jwtSecret: process.env.JWT_SECRET || 'secretKey'
+  },
+  assetOptions: {
+    assetPath: assetPath,
+    assetPublicPath: assetPublicPath,
+    serverRoot,
+    dataPath,
+    agentPluginPath: process.env.XPERT_AGENT_PLUGIN_PATH || undefined
+  }
+}

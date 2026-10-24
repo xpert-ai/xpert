@@ -1,3 +1,5 @@
+import { publishedAgentDelegation } from './published-agent/with-published-agent'
+import { activeSharingMemberSql, validSharingGroupSql } from './sharing/sharing-policy'
 import {
     IApiPrincipal,
     IXpert,
@@ -36,6 +38,7 @@ type PublishedXpertQueryOptions = {
     order?: Record<string, 'ASC' | 'DESC' | 'asc' | 'desc'>
     take?: number
     skip?: number
+    excludeIds?: string[]
 }
 
 @Injectable()
@@ -372,7 +375,11 @@ export class PublishedXpertAccessService {
         }
     }
 
-    private buildAccessibleQuery(options?: PublishedXpertQueryOptions, resourceParentId?: string, actor?: OrganizationRuntimeActor) {
+    private buildAccessibleQuery(
+        options?: PublishedXpertQueryOptions,
+        resourceParentId?: string,
+        actor?: OrganizationRuntimeActor
+    ) {
         const publicXpertId = actor ? null : this.currentPublicXpertId()
         if (publicXpertId) {
             return this.buildPublicXpertBoundQuery(publicXpertId, options)
@@ -401,7 +408,7 @@ export class PublishedXpertAccessService {
             .leftJoin(
                 'xpert.userGroups',
                 'userGroup',
-                'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId',
+                `userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId AND ${validSharingGroupSql('userGroup', 'xpert')}`,
                 {
                     tenantId,
                     organizationId
@@ -446,7 +453,21 @@ export class PublishedXpertAccessService {
                     .where('xpert.createdById = :userId', { userId })
                     .orWhere('workspace.ownerId = :userId', { userId })
                     .orWhere('workspaceMember.id = :userId', { userId })
-                    .orWhere('member.id = :userId', { userId })
+                    .orWhere(
+                        `member.id = :userId AND ${activeSharingMemberSql(':userId', ':tenantId', ':organizationId')}`,
+                        { userId }
+                    )
+                    .orWhere(
+                        new Brackets((organizationSharedQb) => {
+                            organizationSharedQb
+                                .where('workspace.tenantId = :tenantId', { tenantId })
+                                .andWhere('workspace.organizationId = :organizationId', { organizationId })
+                                .andWhere(
+                                    `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'organization-shared'`
+                                )
+                                .andWhere("(workspace.status IS NULL OR workspace.status <> 'archived')")
+                        })
+                    )
                     .orWhere(
                         new Brackets((tenantSharedQb) => {
                             tenantSharedQb
@@ -560,6 +581,13 @@ export class PublishedXpertAccessService {
             query.addSelect(`xpert.${name}`, `order_${name}`)
         })
 
+        if (options?.excludeIds?.length) {
+            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
+        }
+        // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
+        // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
+        if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
+        query.limit(options?.take).offset(options?.skip)
         const rows = await query.getRawMany<{ id: string }>()
 
         return this.loadByIds(
@@ -615,6 +643,13 @@ export class PublishedXpertAccessService {
         Object.keys(options?.order ?? {}).forEach((name) => {
             query.addSelect(`xpert.${name}`, `order_${name}`)
         })
+        if (options?.excludeIds?.length) {
+            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
+        }
+        // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
+        // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
+        if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
+        query.limit(options?.take).offset(options?.skip)
         const rows = await query.getRawMany<{ id: string }>()
         return this.loadByIds(
             rows.map((row) => row.id),
@@ -641,9 +676,12 @@ export class PublishedXpertAccessService {
         // Explicit actors may outlive their organization membership (jobs and collaboration
         // recipients). Check it in the same ACL query, without resolving content groups.
         const count = await this.buildAccessibleQuery({ where: { id } }, undefined, actor)
-            .innerJoin(UserOrganization, 'actorMembership',
+            .innerJoin(
+                UserOrganization,
+                'actorMembership',
                 'actorMembership.tenantId = :tenantId AND actorMembership.organizationId = :organizationId AND actorMembership.userId = :userId AND actorMembership.isActive = :actorMembershipActive',
-                { actorMembershipActive: true })
+                { actorMembershipActive: true }
+            )
             .getCount()
         if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         const xpert = await this.repository.findOne({
@@ -681,7 +719,14 @@ export class PublishedXpertAccessService {
         // Enforce the token audience before loading the requested assistant so
         // a USER_XPERT secret cannot be replayed against another Xpert id.
         if (userXpertId && userXpertId !== id) {
-            throw new ForbiddenException('You do not have access to this assistant.')
+            const delegated = publishedAgentDelegation()
+            if (delegated?.requesterXpertId !== userXpertId || delegated.xpertId !== id) {
+                throw new ForbiddenException('You do not have access to this assistant.')
+            }
+            // Validate the original audience and current actor access on every delegated read.
+            // The context grants no access to other Assistants and cannot outlive revoked access.
+            await this.getAccessiblePublishedResource(id, userXpertId)
+            return this.getPublishedXpertInTenant(id, options)
         }
 
         const xpert = await this.getPublishedXpertInTenant(id, options)

@@ -8,6 +8,7 @@ import {
     ChatMessageEventTypeEnum,
     WorkflowNodeTypeEnum,
     isMiddlewareToolEnabled,
+    normalizeMiddlewareOptions,
     type IWFNMiddleware,
     type TMcpToolAppMeta
 } from '@xpert-ai/contracts'
@@ -259,9 +260,10 @@ export class MiddlewareMcpAppsService {
         const connectorProviders = graphConnectors.connectorProviders.filter((provider) =>
             source.connectorGrants?.providers.includes(provider)
         )
+        const options = normalizeMiddlewareOptions(entity.options)
         const context: IAgentMiddlewareContext = {
             ...identity,
-            node: entity,
+            node: { ...entity, options },
             xpertFeatures: agent.team.features,
             tools: new Map(),
             runtime: this.runtime.createScopedApi({
@@ -271,7 +273,7 @@ export class MiddlewareMcpAppsService {
                 connectorProviders
             })
         }
-        const middleware = await strategy.createMiddleware(entity.options, context)
+        const middleware = await strategy.createMiddleware(options, context)
         if (!middleware.apps) throw this.denied()
         middleware.tools = (middleware.tools ?? []).filter((tool) => isMiddlewareToolEnabled(entity.tools?.[tool.name]))
         return { middleware, context }

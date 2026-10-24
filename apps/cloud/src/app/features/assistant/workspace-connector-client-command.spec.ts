@@ -2,7 +2,11 @@ import { Dialog, DialogConfig } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import type { ConnectorBinding, ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk/connector'
+import type {
+  ConnectorBinding,
+  ConnectorRuntimeOptions,
+  ConnectorStrategyDefinition
+} from '@xpert-ai/plugin-sdk/connector'
 import type { WorkspaceConnectorConnectResult } from '@xpert-ai/chatkit-types'
 import { of, Subject } from 'rxjs'
 import { XpertConnectorService } from '../../@core/services/xpert-connector.service'
@@ -21,9 +25,10 @@ jest.mock('./workspace-connector-migration-dialog.component', () => ({
 }))
 
 const scope = { type: 'workspace' as const, workspaceId: 'workspace-b' }
+const integrationId = '00000000-0000-4000-8000-000000000001'
 const shared: ConnectorBinding = {
   id: 'binding',
-  provider: 'github',
+  provider: 'example',
   authorizationMode: 'shared',
   status: 'disconnected',
   scopeType: 'workspace',
@@ -48,16 +53,30 @@ async function settle() {
   for (let i = 0; i < 20; i++) await Promise.resolve()
 }
 
-function setup(authorizationMode: 'shared' | 'personal' = 'shared') {
+const definition: ConnectorStrategyDefinition = {
+  provider: 'example',
+  label: 'Example Connector',
+  authMethods: [
+    {
+      id: 'app-oauth',
+      type: 'oauth2',
+      label: 'App OAuth',
+      appCredentials: { integration: { provider: 'example-app', fields: [] } }
+    }
+  ]
+}
+const constrainedPayload = { provider: 'example', authMethodId: 'app-oauth', integrationId }
+
+function setup(authorizationMode: 'shared' | 'personal' = 'shared', connector = definition) {
   const assistantId = signal<string | null>('assistant-b')
-  const binding = { ...shared, authorizationMode }
+  const binding = { ...shared, provider: connector.provider, authorizationMode }
   const options: ConnectorRuntimeOptions = {
     scope,
     canManageWorkspace: true,
     items: [
       {
         bindingId: binding.id,
-        provider: 'github',
+        provider: connector.provider,
         scope,
         authorizationMode,
         status: 'disconnected',
@@ -68,9 +87,10 @@ function setup(authorizationMode: 'shared' | 'personal' = 'shared') {
   }
   const service = {
     runtimeOptions: jest.fn(() => of(options)),
-    scopedDefinitions: jest.fn(() => of([{ provider: 'github' }])),
+    scopedDefinitions: jest.fn(() => of([connector])),
     listBindings: jest.fn(() => of([binding])),
-    createBinding: jest.fn(() => of(binding))
+    createBinding: jest.fn(() => of(binding)),
+    integrationOptions: jest.fn(() => of([{ id: integrationId }]))
   }
   const closed = new Subject<WorkspaceConnectorConnectResult | 'manage' | undefined>()
   const close = jest.fn((value?: WorkspaceConnectorConnectResult | 'manage') => {
@@ -93,7 +113,7 @@ function setup(authorizationMode: 'shared' | 'personal' = 'shared') {
   TestBed.tick()
   const registry = TestBed.inject(ViewClientCommandRegistry)
   const run = (hostId = 'assistant-b') =>
-    registry.execute('workspace.connector.connect', { provider: 'github' }, { ...context, hostId })
+    registry.execute('workspace.connector.connect', { provider: connector.provider }, { ...context, hostId })
   return { assistantId, binding, options, service, close, open, navigate, run, registry }
 }
 
@@ -166,7 +186,7 @@ describe('workspace connector view command', () => {
     service.listBindings.mockReturnValueOnce(of([]))
     const pending = run()
     await settle()
-    expect(service.createBinding).toHaveBeenCalledWith({ scope, provider: 'github', authorizationMode: 'shared' })
+    expect(service.createBinding).toHaveBeenCalledWith({ scope, provider: 'example', authorizationMode: 'shared' })
     close()
     await pending
   })
@@ -177,5 +197,138 @@ describe('workspace connector view command', () => {
     await expect(run()).resolves.toMatchObject({ code: 'workspace_management_required' })
     expect(service.listBindings).not.toHaveBeenCalled()
     expect(open).not.toHaveBeenCalled()
+  })
+
+  it.each(['oauth2', 'api_key'] as const)(
+    'uses declared %s integration support for an arbitrary provider',
+    async (type) => {
+      const credentials = { integration: { provider: 'example-app', fields: [] } }
+      const connector: ConnectorStrategyDefinition = {
+        ...definition,
+        authMethods: [
+          type === 'oauth2'
+            ? { id: 'app-auth', type, label: 'App', appCredentials: credentials }
+            : { id: 'app-auth', type, label: 'App', credentials }
+        ]
+      }
+      const { registry, service, open, close } = setup('shared', connector)
+      const pending = registry.execute(
+        'workspace.connector.connect',
+        { ...constrainedPayload, authMethodId: 'app-auth' },
+        context
+      )
+      await settle()
+      expect(service.integrationOptions).toHaveBeenCalledWith('workspace-b', 'example', 'app-auth')
+      expect(open.mock.calls[0][1].injector?.get(WORKSPACE_CONNECTOR_DIALOG)).toMatchObject({
+        requiredAuthMethodId: 'app-auth',
+        requiredIntegrationId: integrationId
+      })
+      close()
+      await expect(pending).resolves.toMatchObject({ data: { status: 'cancelled' } })
+    }
+  )
+
+  it('supports a declared authentication method without requiring an integration', async () => {
+    const { registry, service, open, close } = setup()
+    const pending = registry.execute(
+      'workspace.connector.connect',
+      { provider: 'example', authMethodId: 'app-oauth' },
+      context
+    )
+    await settle()
+    expect(service.integrationOptions).not.toHaveBeenCalled()
+    expect(open.mock.calls[0][1].injector?.get(WORKSPACE_CONNECTOR_DIALOG)).toEqual({
+      workspaceId: 'workspace-b',
+      bindingId: 'binding',
+      requiredAuthMethodId: 'app-oauth'
+    })
+    close()
+    await pending
+  })
+
+  it.each([
+    { provider: 'example', integrationId },
+    { ...constrainedPayload, integrationId: 'not-a-uuid' },
+    { ...constrainedPayload, authMethodId: '' },
+    { ...constrainedPayload, authMethodId: 42 },
+    { ...constrainedPayload, integrationId: null },
+    { ...constrainedPayload, workspaceId: 'forged-workspace' },
+    { ...constrainedPayload, token: 'unexpected-secret' }
+  ])('rejects invalid authorization intent before resolving host data: %j', async (payload) => {
+    const { registry, service, open } = setup()
+    await expect(registry.execute('workspace.connector.connect', payload, context)).resolves.toMatchObject({
+      code: 'invalid_payload'
+    })
+    expect(service.runtimeOptions).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { connector: { ...definition, unavailable: 'not-installed' }, code: 'connector_not_installed' },
+    {
+      connector: { ...definition, authMethods: [{ id: 'other', type: 'oauth2' as const, label: 'Other' }] },
+      code: 'connector_auth_method_unavailable'
+    },
+    {
+      connector: {
+        ...definition,
+        authMethods: [{ id: 'app-oauth', type: 'oauth2' as const, label: 'Old', deprecated: true }]
+      },
+      code: 'connector_auth_method_unavailable'
+    },
+    {
+      connector: { ...definition, authMethods: [{ id: 'app-oauth', type: 'oauth2' as const, label: 'Inline' }] },
+      code: 'connector_integration_unsupported'
+    }
+  ])('rejects unsupported declarations with $code', async ({ connector, code }) => {
+    const { registry, service, open } = setup('shared', connector)
+    await expect(registry.execute('workspace.connector.connect', constrainedPayload, context)).resolves.toMatchObject({
+      code
+    })
+    expect(service.integrationOptions).not.toHaveBeenCalled()
+    expect(service.listBindings).not.toHaveBeenCalled()
+    expect(service.createBinding).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('rejects an inaccessible integration before creating a binding', async () => {
+    const { registry, service, open } = setup()
+    service.integrationOptions.mockReturnValueOnce(of([]))
+    service.listBindings.mockReturnValueOnce(of([]))
+    await expect(registry.execute('workspace.connector.connect', constrainedPayload, context)).resolves.toMatchObject({
+      code: 'connector_integration_unavailable'
+    })
+    expect(service.listBindings).not.toHaveBeenCalled()
+    expect(service.createBinding).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it.each(['active', 'pending'] as const)(
+    'does not replace a %s shared credential for a different method or integration',
+    async (status) => {
+      const { registry, binding, service, open } = setup()
+      binding.status = status
+      for (const mismatch of [
+        { authMethodId: 'app-oauth', appIntegrationId: 'another-app' },
+        { authMethodId: 'another-method', appIntegrationId: integrationId }
+      ]) {
+        Object.assign(binding, mismatch)
+        await expect(
+          registry.execute('workspace.connector.connect', constrainedPayload, context)
+        ).resolves.toMatchObject({ code: 'connector_connection_mismatch' })
+      }
+      expect(service.createBinding).not.toHaveBeenCalled()
+      expect(open).not.toHaveBeenCalled()
+    }
+  )
+
+  it('allows a matching shared connection and rechecks it in the host dialog', async () => {
+    const { registry, binding, close, open } = setup()
+    Object.assign(binding, { status: 'active', authMethodId: 'app-oauth', appIntegrationId: integrationId })
+    const pending = registry.execute('workspace.connector.connect', constrainedPayload, context)
+    await settle()
+    expect(open).toHaveBeenCalledTimes(1)
+    close({ status: 'connected' })
+    await expect(pending).resolves.toMatchObject({ success: true, data: { status: 'connected' } })
   })
 })

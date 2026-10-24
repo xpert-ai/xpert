@@ -2,6 +2,7 @@ jest.mock('../../utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
 
+import { FakeStreamingChatModel } from '../../../shared/agent/fake-streaming-chat-model'
 import { HumanMessage } from '@langchain/core/messages'
 import {
     AiModelTypeEnum,
@@ -14,7 +15,7 @@ import {
     ParameterRule,
     ParameterType
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ChatOAICompatReasoningModel, getModelContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import {
@@ -27,6 +28,30 @@ import { CopilotModelGetChatModelHandler } from './get-chat-model.handler'
 import { prepareMessagesForModel } from '../../model-capabilities'
 
 describe('CopilotModelGetChatModelHandler', () => {
+    it('preserves the configured window on an OpenAI-compatible client with an endpoint alias', async () => {
+        const f = createFixture([], AiModelTypeEnum.LLM, [], { context_size: 256000, max_tokens: 16384 })
+        const client = new ChatOAICompatReasoningModel({ apiKey: 'test-placeholder', model: 'gpt-6.1-sol' })
+        f.getModelInstance.mockReturnValue(client)
+
+        const result = await f.handler.execute(f.query)
+
+        expect(result).toBe(client)
+        expect(getModelContextSize(client)).toBe(256000)
+        expect(getModelContextSize(f.query.copilotModel)).toBe(256000)
+    })
+
+    it('keeps the primary runtime configuration aligned with a smaller declared provider window', async () => {
+        const f = createFixture([], AiModelTypeEnum.LLM, [], { context_size: 256000 })
+        const client = new ChatOAICompatReasoningModel({ apiKey: 'test-placeholder', model: 'custom-endpoint' })
+        Object.assign(client, { profile: { maxInputTokens: 32768 } })
+        f.getModelInstance.mockReturnValue(client)
+
+        await f.handler.execute(f.query)
+
+        expect(getModelContextSize(client)).toBe(32768)
+        expect(getModelContextSize(f.query.copilotModel)).toBe(32768)
+    })
+
     function createFixture(
         features: ModelFeature[] = [],
         modelType = AiModelTypeEnum.LLM,
@@ -55,7 +80,7 @@ describe('CopilotModelGetChatModelHandler', () => {
                 return undefined
             })
         }
-        const model = { invoke: jest.fn() }
+        const model = new FakeStreamingChatModel({ sleep: 0 })
         const getModelInstance = jest.fn().mockReturnValue(model)
         const getProviderModels = jest.fn().mockReturnValue([
             {
@@ -225,6 +250,27 @@ describe('CopilotModelGetChatModelHandler', () => {
         expect(commandBus.execute.mock.calls.some(([command]) => command instanceof CopilotTokenRecordCommand)).toBe(
             false
         )
+    })
+
+    it('pins each call to the execution active before asynchronous usage persistence', async () => {
+        const { commandBus, getModelInstance, handler, query } = createFixture()
+        let executionId = 'execution-1'
+        query.options.resolveExecutionId = () => executionId
+        query.options.usageCallback = async () => {
+            executionId = 'execution-2'
+        }
+        await handler.execute(query)
+        const modelOptions = getModelInstance.mock.calls[0][2]
+        for (const requestId of ['request-1', 'request-2']) {
+            await modelOptions.handleLLMTokens({ requestId, model: 'qwen3.6-plus', usage: { totalTokens: 120 } })
+        }
+        const records = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .filter((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
+        expect(records.map((record) => [record.input.requestId, record.input.originExecutionId])).toEqual([
+            ['request-1', 'execution-1'],
+            ['request-2', 'execution-2']
+        ])
     })
 
     it('records authoritative specialized-model usage through the unified model ledger', async () => {

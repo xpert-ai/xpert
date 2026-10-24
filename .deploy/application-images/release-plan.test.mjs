@@ -1,90 +1,29 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
-import { services } from './services.mjs'
+import { affectsImage, requiresImageRelease, services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
+import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
-function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
-  const cwd = mkdtempSync(path.join(tmpdir(), 'application-images-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
-  const git = (...args) =>
-    execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
-  const write = (file, content) => {
-    mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true })
-    writeFileSync(path.join(cwd, file), content)
-  }
-  const version = (service, value) =>
-    write(service.manifest, JSON.stringify({ name: service.name, private: true, version: value }))
-  const note = (id, names = [api.name], type = 'patch') =>
-    write(
-      `.changeset/${id}.md`,
-      `---\n${names.map((name) => `'${name}': ${type}`).join('\n')}\n---\nPublish the requested images.\n`
-    )
-  const remove = (id) => rmSync(path.join(cwd, `.changeset/${id}.md`))
-  const commit = () => {
-    git('add', '.')
-    git(
-      '-c',
-      'core.hooksPath=/dev/null',
-      '-c',
-      'user.name=Release tests',
-      '-c',
-      'user.email=test@example.invalid',
-      'commit',
-      '-qm',
-      'fixture'
-    )
-    return git('rev-parse', 'HEAD')
-  }
-  git('init', '-q')
-  for (const service of services) if (!legacy || service !== jail) version(service, '1.0.0')
-  for (const file of new Set(services.flatMap((service) => service.shared))) {
-    const { name } = JSON.parse(readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8'))
-    write(file, JSON.stringify({ name, version: '1.0.0' }))
-  }
-  write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
-  const initial = commit()
-  const plan = (before, after, event = 'push', ref = 'refs/heads/develop', mainSha) =>
-    releasePlan({ cwd, before, after, event, ref, mainSha, retainedChangesetPolicy })
-  return { cwd, git, write, version, note, remove, commit, initial, plan }
-}
-const tags = (image) => image.tags.split('\n').map((tag) => tag.replace('type=raw,value=', ''))
 
-function mainSyncFixture(t) {
-  const f = fixture(t)
-  f.note('released', [api.name, web.name, contracts], 'minor')
-  const fork = f.commit()
-  f.remove('released')
-  f.version(api, '1.1.0')
-  f.version(web, '1.1.0')
-  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
-  f.commit()
-  // Main may contain multiple releases or an intentional version baseline alignment.
-  f.version(api, '1.11.0')
-  const main = f.commit()
-  f.git('checkout', '--detach', fork)
-  f.note('downstream', [api.name, web.name])
-  const before = f.commit()
-  f.git(
-    '-c',
-    'core.hooksPath=/dev/null',
-    '-c',
-    'user.name=Release tests',
-    '-c',
-    'user.email=test@example.invalid',
-    'merge',
-    '--no-ff',
-    '-qm',
-    'Sync main',
-    main
-  )
-  const after = f.git('rev-parse', 'HEAD')
-  return { ...f, main, before, after }
-}
+test('NsJail release and validation track the shared Compute and Document rootfs inputs', () => {
+  for (const file of [
+    'packages/sandbox-runtime/images/compute/runtime/manifest.json',
+    'packages/sandbox-runtime/images/compute/runtime/smoke.mjs',
+    'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json',
+    'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json',
+    'packages/sandbox-runtime/images/document-node/Dockerfile',
+    'packages/sandbox-runtime/images/document-java/requirements.txt',
+    'packages/sandbox-runtime/scripts/install-document-dependencies.mjs',
+    'packages/sandbox-runtime/scripts/install-document-ocr.mjs',
+    'packages/sandbox-runtime/scripts/verify-document-runtime.mjs'
+  ]) {
+    assert.equal(affectsImage(jail, [file]), true, file)
+    assert.equal(requiresImageRelease(jail, [file]), true, file)
+  }
+})
 
 test('newly merged main versions retain downstream notes and authorize only candidates', (t) => {
   const f = mainSyncFixture(t)
@@ -168,6 +107,22 @@ test('main syncs do not make old notes fresh for later documentation-only pushes
   assert.equal(plan.publish, false)
   assert.equal(plan.validate, false)
   assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/develop', 'main'), /Exact main commit SHA/)
+})
+
+test('upstream main baselines require explicit downstream candidate retention', (t) => {
+  const f = mainSyncFixture(t)
+  assert.throws(
+    () =>
+      releasePlan({
+        cwd: f.cwd,
+        before: f.before,
+        after: f.after,
+        event: 'push',
+        ref: 'refs/heads/main',
+        upstreamMainSha: f.main
+      }),
+    /Upstream main baselines require candidate retention/
+  )
 })
 
 test('an API Changeset selects only API and publishes candidate/version/SHA tags', (t) => {
@@ -306,6 +261,70 @@ test('source changes without a release note are validated on PRs and pushes but 
     assert.equal(plan.validationMatrix.include[0].target, 'production')
   }
 })
+test('NsJail runtime edits, deletions and renames require an image declaration on PRs and release branches', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'original')
+  let before = f.commit()
+  for (const change of [
+    () => f.write('.deploy/nsjail-runner/runner.py', 'protocol 3'),
+    () => f.git('mv', '.deploy/nsjail-runner/runner.py', '.deploy/nsjail-runner/runtime.py'),
+    () => f.git('rm', '.deploy/nsjail-runner/runtime.py'),
+    () => f.write('.deploy/nsjail-runner/Dockerfile', 'changed rootfs')
+  ]) {
+    change()
+    const after = f.commit()
+    for (const [event, ref] of [
+      ['pull_request', 'refs/pull/1/merge'],
+      ['push', 'refs/heads/develop'],
+      ['push', 'refs/heads/main']
+    ])
+      assert.throws(
+        () => f.plan(before, after, event, ref),
+        /nsjail-runner: add an application Changeset for changed image runtime inputs/
+      )
+    before = after
+  }
+})
+
+test('a new NsJail declaration publishes a main candidate and a pending note covers later fixes', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
+  f.note('nsjail', [jail.name])
+  const candidate = f.commit()
+  const [image] = f.plan(f.initial, candidate, 'push', 'refs/heads/main').matrix.include
+  assert.equal(image.image_name, 'xpert-nsjail-runner')
+  assert.equal(image.health_check, '.deploy/nsjail-runner/check-image.cjs')
+  assert.deepEqual(tags(image), [
+    `1.0.1-candidate.main.${candidate.slice(0, 12)}`,
+    `sha-${candidate}`,
+    'main-candidate'
+  ])
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3 repair')
+  const repaired = f.plan(candidate, f.commit(), 'push', 'refs/heads/main')
+  assert.equal(repaired.validationMatrix.include[0].publish, true)
+  assert.deepEqual(repaired.matrix.include[0].changesets, ['.changeset/nsjail.md'])
+})
+
+test('NsJail docs and unit tests do not require a release, and API/Web-only consumers stay independent', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/README.md', 'documentation')
+  f.write('.deploy/nsjail-runner/test_runner.py', 'unit test')
+  const tests = f.commit()
+  assert.equal(f.plan(f.initial, tests).publish, false)
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
+  const after = f.commit()
+  const plan = releasePlan({
+    cwd: f.cwd,
+    before: tests,
+    after,
+    event: 'push',
+    ref: 'refs/heads/main',
+    applicationNames: [api.name, web.name]
+  })
+  assert.equal(plan.publish, false)
+  assert.equal(plan.validate, false)
+})
+
 test('a pending-note repair on main remains a candidate, including in its PR', (t) => {
   const f = fixture(t)
   f.note('api')
@@ -352,6 +371,14 @@ test('pipeline changes validate all applications, but publish only declared cand
     plan.matrix.include.map((image) => image.image_name),
     ['xpert-api']
   )
+})
+test('reusable image build changes still validate all applications', (t) => {
+  const f = fixture(t)
+  const before = f.initial
+  f.write('.github/workflows/build-application-images.yml', 'fix')
+  const plan = f.plan(before, f.commit())
+  assert.equal(plan.validationMatrix.include.length, 3)
+  assert.equal(plan.publish, false)
 })
 test('highest pending bump determines a newly requested candidate version', (t) => {
   const f = fixture(t)
@@ -541,6 +568,16 @@ test('a version bump without a previously landed application note cannot publish
   f.note('api')
   assert.throws(() => f.plan(f.initial, f.commit()), /before consuming/)
 })
+test('the default policy does not accept versioning evidence hidden inside an aggregated sync', (t) => {
+  const f = fixture(t)
+  f.note('upstream', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream')
+  assert.throws(() => f.plan(f.initial, f.commit(), 'push', 'refs/heads/main'), /before consuming/)
+})
 test('new shared contracts notes require explicit API and Web image declarations', (t) => {
   const f = fixture(t)
   f.note('shared', [contracts])
@@ -603,4 +640,130 @@ test('tags, missing baselines, manual events and invalid version strings cannot 
   assert.throws(() => f.plan('develop', f.initial), /Exact commit/)
   f.version(api, '1.0.0+metadata')
   assert.throws(() => f.plan(f.initial, f.commit()), /Invalid version/)
+})
+
+function fixedFixture(t) {
+  const f = fixture(t)
+  f.version(web, '1.4.0')
+  f.note('pending', [api.name, web.name], 'minor')
+  const before = f.commit()
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.version(api, '1.4.0')
+  f.note('alignment', [api.name, web.name], 'minor')
+  return { ...f, before }
+}
+
+test('new fixed groups align to the existing maximum without authorizing stable images', (t) => {
+  const f = fixedFixture(t)
+  const after = f.commit()
+  for (const ref of ['refs/heads/develop', 'refs/heads/main']) {
+    const plan = f.plan(f.before, after, 'push', ref)
+    assert.equal(plan.matrix.include.length, 2)
+    for (const image of plan.matrix.include) {
+      assert.equal(image.baseVersion, '1.5.0')
+      assert.equal(image.versioned, false)
+      assert.equal(image.stable, false)
+    }
+  }
+})
+
+test('alignment cannot silently delete pending notes or invent a higher baseline', (t) => {
+  const f = fixedFixture(t)
+  f.remove('pending')
+  assert.throws(() => f.plan(f.before, f.commit()), /version must match/)
+  f.note('pending', [api.name, web.name], 'minor')
+  f.version(api, '1.5.0')
+  f.version(web, '1.5.0')
+  assert.throws(() => f.plan(f.before, f.commit()), /consume all pending/)
+})
+
+test('fixed versions apply the highest group bump while requiring application notes', (t) => {
+  const f = fixedFixture(t)
+  f.commit()
+  f.note('breaking', [web.name], 'major')
+  const before = f.commit()
+  f.remove('pending')
+  f.remove('alignment')
+  f.remove('breaking')
+  f.version(api, '2.0.0')
+  f.version(web, '2.0.0')
+  const after = f.commit()
+  const plan = f.plan(before, after, 'push', 'refs/heads/main')
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => image.stable && image.version === '2.0.0'))
+})
+
+test('fixed groups reject partial versioning and incomplete note consumption', (t) => {
+  const f = fixedFixture(t)
+  const before = f.commit()
+  f.remove('pending')
+  f.remove('alignment')
+  f.version(api, '1.5.0')
+  assert.throws(() => f.plan(before, f.commit()), /must use the same version/)
+  f.version(web, '1.5.0')
+  f.note('pending', [api.name, web.name], 'minor')
+  assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
+})
+
+test('one outgoing batch can merge a published main baseline and introduce a fixed group', (t) => {
+  const f = mainSyncFixture(t)
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.version(web, '1.11.0')
+  f.note('align', [api.name, web.name], 'minor')
+  const after = f.commit()
+  const plan = f.plan(f.before, after, 'push', 'refs/heads/develop', f.main)
+  assert.equal(plan.matrix.include.length, 2)
+  assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.12.0' && !image.stable && !image.versioned))
+  assert.throws(() => f.plan(f.before, after), /consume all pending/)
+  assert.throws(() => f.plan(f.before, after, 'push', 'refs/heads/main', f.main), /consume all pending/)
+  f.remove('downstream')
+  assert.throws(() => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main), /version must match/)
+})
+
+test('batched alignment preserves notes consumed only by the newly merged main ancestor', (t) => {
+  const f = fixture(t)
+  f.note('published', [api.name, web.name])
+  const fork = f.commit()
+  f.remove('published')
+  f.version(api, '1.0.1')
+  f.version(web, '1.0.1')
+  const main = f.commit()
+  f.git('checkout', '--detach', fork)
+  f.note('downstream', [api.name, web.name])
+  const before = f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync main',
+    main
+  )
+  f.write(
+    '.changeset/config.json',
+    JSON.stringify({
+      privatePackages: { version: true },
+      fixed: [[api.name, web.name]]
+    })
+  )
+  f.note('align', [api.name, web.name], 'minor')
+  const plan = f.plan(before, f.commit(), 'push', 'refs/heads/develop', main)
+  assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.1.0' && !image.stable))
 })

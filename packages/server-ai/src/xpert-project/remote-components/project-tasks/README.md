@@ -14,9 +14,9 @@ Assistant's Workbench. It has no application-specific imports or Bid rules.
 - Host chrome supplies project context. The view starts with its four tabs;
   refresh and last-sync tooltip share that row instead of adding a header.
 
-The iframe derives its HTML root size from the host’s `densityRootFontSize` theme
-token (`--xui-density-root-font-size`), falling back to 14px when absent. It does
-not override the host token or choose a font size based on host type. Text sizes use Tailwind's default rem scale. Task
+The iframe uses the shared shadcn stylesheet and host theme adapter, including
+the host’s `densityRootFontSize` token (`--xui-density-root-font-size`) in compact
+mode. It does not override the shared typography defaults. Text sizes use Tailwind's default rem scale. Task
 rows are 40px, with shared geometry constants for virtual scrolling and Gantt
 dependency paths. Toolbars and detail panels use compact spacing.
 
@@ -76,6 +76,32 @@ size. The overview, execution history, outputs and existing actions are preserve
 The content scrolls inside the Dialog; close, Escape and backdrop actions use the
 existing unsaved-plan confirmation. Closing restores focus to the opening control.
 
+### Component styling
+
+Use the current workspace's `@xpert-ai/shadcn-ui` Radix components directly.
+Dialogs compose `DialogHeader`, `DialogTitle`, `DialogDescription` and, when
+needed, `DialogFooter`; retain the default close control, padding, typography,
+border, radius and shadow. Dialogs size to content with only responsive maximum
+width/height and scrolling constraints. Do not add a parallel dialog frame.
+
+Use component variants for Tabs, Buttons and Badges, and shared Checkbox,
+Textarea and Accordion primitives for form fields and disclosure. Color, radius,
+font and density differences come from the existing host-to-shadcn theme variables
+(`--background`, `--foreground`, `--muted`, `--border`, `--ring`, `--radius`, etc.),
+not View-specific component skins or active-state overrides. Canvas geometry,
+virtualized rows, business status indicators and overflow remain View layout concerns.
+
+After building the assets, verify light, dark and narrow layouts, theme variables,
+dialog focus, scrolling and configuration controls with:
+
+```bash
+node --test tools/testing/project-tasks-shadcn.e2e.mjs
+```
+
+Screenshots default to the OS temporary directory under `project-tasks-shadcn`;
+set `PROJECT_TASKS_E2E_OUTPUT` to use another directory. The test uses the in-memory
+preview fixture and does not change a live project's configuration.
+
 ### Delivered files tab
 
 The Outputs tab reads committed `result.artifacts` and `result.export` from the existing authorized `task-detail` response. It lists files by execution, exposes safe export diagnostics, and distinguishes no requested delivery from no delivered files. Working-directory paths and result declarations are not presented as downloadable artifacts. The execution viewer remains the existing download entry. Execution status, reliable-message receipts and acceptance controls belong to History and are not duplicated in Outputs.
@@ -95,3 +121,19 @@ Gantt offers separate hour/day/week granularity and zoom controls. Zoom changes
 the horizontal time scale while preserving the time at the viewport center when
 scroll bounds allow. **Fit all** resets the zoom and **Go to now** locates the current
 time. Zoom and pan only change presentation; they never reschedule or start tasks.
+
+### Refresh recovery and layout regression
+
+The remote view sends `saveViewState` with a small scalar `state` object. The Cloud
+renderer validates and stores it in tab-session storage, scoped to host, view,
+user and runtime context, and returns it as `viewState` during `init`. The remote
+bundle does not access browser storage. Explicit initial query destinations take
+precedence. Configuration dialogs and business actions are never restored.
+Project tasks remembers the selected view, pipeline instance, round, display mode,
+lane filter/highlight, blocked filter and stage viewport. This is per browser tab,
+not server-side or cross-device persistence.
+
+Use `TASKS_PREVIEW_SCENARIO=pipeline-layout` with the preview command above for an
+eight-assistant lane and long configured conditions; select the Pipeline tab.
+Assistant lists scroll inside their role region. Long/bypass conditions reserve
+separate tracks above cards; unrelated rows retain their compact height.

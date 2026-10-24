@@ -1,6 +1,15 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IUser, IUserFindInput, IUserPasswordInput, IUserUpdateInput, UserType } from '@xpert-ai/contracts'
+import {
+  IUser,
+  IUserFindInput,
+  IUserPasswordInput,
+  IUserUpdateInput,
+  UserType,
+  type IPagination,
+  type IUserDirectoryItem,
+  type IUserDirectoryQuery
+} from '@xpert-ai/contracts'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from './constants'
 
@@ -176,6 +185,12 @@ export class UsersService {
         params
       })
       .pipe(map(({ items }) => items))
+  }
+
+  getDirectory(query: IUserDirectoryQuery) {
+    return this.http.get<IPagination<IUserDirectoryItem>>(`${this.API_URL}/directory`, {
+      params: { data: JSON.stringify(query) }
+    })
   }
 
   update(userId: string, updateInput: IUserUpdateInput) {

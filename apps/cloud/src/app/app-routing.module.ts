@@ -18,6 +18,12 @@ const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./artifacts/artifact-share-auth.component').then((m) => m.ArtifactShareAuthComponent)
   },
+  {
+    path: 'artifacts/view/:artifactLinkSlug',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./artifacts/presentation/artifact-share-page.component').then((m) => m.ArtifactSharePageComponent)
+  },
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {
     path: 'x-chatkit',

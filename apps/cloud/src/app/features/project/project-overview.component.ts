@@ -11,7 +11,7 @@ import { XpertProjectFacade } from './project.facade'
   imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ...ZardCardImports],
   template: `
     <section class="mx-auto flex w-full flex-col gap-4 p-4 sm:p-6">
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         @for (metric of metrics(); track metric.label) {
           <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
             ><z-card-content class="p-4"
@@ -61,30 +61,15 @@ import { XpertProjectFacade } from './project.facade'
           <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
             ><z-card-header class="px-5 py-4"
               ><div class="flex items-center justify-between">
-                <z-card-title>{{ 'XP.XProject.ActivePlan' | translate }}</z-card-title
-                ><a z-button zType="ghost" zSize="sm" routerLink="../plan" queryParamsHandling="preserve">{{
-                  'XP.XProject.ViewAll' | translate
-                }}</a>
-              </div></z-card-header
-            ><z-card-content class="space-y-3 px-5 pb-5">
-              @if (!facade.plans().length) {
-                <p class="text-sm text-text-tertiary">{{ 'XP.XProject.CreatePlanHint' | translate }}</p>
-              } @else {
-                @for (plan of facade.plans().slice(0, 4); track plan.id) {
-                  <div class="flex items-center justify-between gap-3">
-                    <span class="truncate text-sm text-text-primary">{{ plan.name }}</span
-                    ><z-badge zType="outline">{{ plan.status }}</z-badge>
-                  </div>
-                }
-              }
-            </z-card-content></z-card
-          ><z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-header class="px-5 py-4"
-              ><div class="flex items-center justify-between">
                 <z-card-title>{{ 'XP.XProject.InProgress' | translate }}</z-card-title
-                ><a z-button zType="ghost" zSize="sm" routerLink="../tasks" queryParamsHandling="preserve">{{
-                  'XP.XProject.OpenTasks' | translate
-                }}</a>
+                ><a
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  [routerLink]="['/project', facade.project()?.id, 'timeline']"
+                  queryParamsHandling="preserve"
+                  >{{ 'XP.XProject.OpenTasks' | translate }}</a
+                >
               </div></z-card-header
             ><z-card-content class="space-y-3 px-5 pb-5">
               @for (task of inProgress(); track task.id) {
@@ -120,13 +105,6 @@ export class XpertProjectOverviewComponent {
       detail: 'XP.XProject.InProgressCount',
       params: { count: this.inProgress().length },
       icon: 'ri-list-check-2-line'
-    },
-    {
-      label: 'XP.XProject.PlansLabel',
-      value: this.facade.plans().length,
-      detail: 'XP.XProject.DeliveryStructure',
-      params: {},
-      icon: 'ri-route-line'
     },
     {
       label: 'XP.XProject.Assets',

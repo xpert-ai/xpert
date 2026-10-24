@@ -1,9 +1,14 @@
+/**
+ * Why this exists: legacy Workbench adapters share this mixed-dialect policy for compatibility.
+ * TODO: move statement classification, function policy and identifier quoting into database plugins;
+ * keep SDK contracts and genuinely dialect-independent helpers separate from those policies.
+ * Retain these guards until each caller has equivalent validation and security regression coverage.
+ * Invariants: lex comments/literals, fail closed on unknown SQL, and disable driver multi-statements.
+ * Validation is defense in depth; database permissions remain an authority boundary.
+ */
 import { lexWorkbenchSql } from './workbench-sql-lexer'
 import { sqlDeclarationPositions } from './workbench-sql-syntax'
-/** Invariants: comments/literals are lexed, never stripped with a keyword regex.
- * This guard is defense in depth; the database principal remains an authority boundary.
- * Unrecognized statements fail closed. Driver multi-statements stay disabled.
- */
+
 export interface SqlStatement {
   sql: string
   words: string[]
@@ -33,20 +38,29 @@ const FORBIDDEN = new Set([
   'ATTACH',
   'DETACH'
 ])
+// Legacy SQL Workbench policy shared by supported database plugins.
+// TODO: separate dialect function policies through plugin-owned strategies; preserve fail-closed checks.
+// Allowlisting permits parsing; the selected database still determines function availability.
 const SAFE_FUNCTIONS = new Set(
-  'ABS ACOS ASIN ATAN ATAN2 AVG CAST CEIL CEILING COALESCE CONCAT CONCAT_WS CONVERT COS COUNT CURDATE CURRENT_DATE CURRENT_TIMESTAMP DATE DATE_ADD DATE_SUB DATE_FORMAT DATEDIFF DAY DAYOFMONTH DAYOFWEEK EXTRACT FLOOR FORMAT GREATEST GROUP_CONCAT IF IFNULL JSON_EXTRACT JSON_LENGTH JSON_UNQUOTE LEAST LEFT LENGTH LN LOG LOWER LPAD LTRIM MAX MD5 MIN MOD MONTH NOW NULLIF POWER RAND REPLACE REVERSE RIGHT ROUND ROW_NUMBER RANK DENSE_RANK LAG LEAD FIRST_VALUE LAST_VALUE LPAD RPAD RTRIM SIGN SIN SQRT STDDEV STDDEV_POP STDDEV_SAMP SUBSTR SUBSTRING SUM TAN TO_CHAR TO_DATE TO_TIMESTAMP TRIM TRUNC UPPER VAR_POP VAR_SAMP VERSION WEEK YEAR DATABASE CURRENT_DATABASE CURRENT_SCHEMA ARRAY_AGG STRING_AGG JSON_AGG JSON_BUILD_OBJECT PG_GET_VIEWDEF'.split(
+  'ABS ACOS ASIN ATAN ATAN2 AVG CAST CEIL CEILING COALESCE CONCAT CONCAT_WS CONVERT COS COUNT CURDATE CURRENT_DATE CURRENT_TIMESTAMP DATE DATE_TRUNC DATE_ADD DATE_SUB DATE_FORMAT DATEDIFF DAY DAYOFMONTH DAYOFWEEK EXTRACT FLOOR FORMAT GREATEST GROUP_CONCAT IF IFNULL JSON_EXTRACT JSON_LENGTH JSON_UNQUOTE LEAST LEFT LENGTH LN LOG LOWER LPAD LTRIM MAX MD5 MIN MOD MONTH NOW NULLIF POWER RAND REPLACE REVERSE RIGHT ROUND ROW_NUMBER RANK DENSE_RANK LAG LEAD FIRST_VALUE LAST_VALUE LPAD RPAD RTRIM SIGN SIN SQRT STDDEV STDDEV_POP STDDEV_SAMP SUBSTR SUBSTRING SUM TAN TO_CHAR TO_DATE TO_TIMESTAMP TRIM TRUNC UPPER VAR_POP VAR_SAMP VERSION WEEK YEAR DATABASE CURRENT_DATABASE CURRENT_SCHEMA ARRAY_AGG STRING_AGG JSON_AGG JSON_BUILD_OBJECT PG_GET_VIEWDEF'.split(
     ' '
   )
 )
-// FROM/JOIN can introduce a parenthesized subquery, not a function call.
+// SQL keywords introduce grouped expressions/subqueries, not function calls.
+// Their contents are still scanned for unsafe or unknown calls (including inside CASE).
+// Compatibility heuristic, not a SQL grammar: migrate with plugin-owned dialect validation.
 const SQL_PARENS = new Set(
-  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH FROM JOIN AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN'.split(
+  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH FROM JOIN AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN WHERE HAVING CASE WHEN THEN ELSE'.split(
     ' '
   )
 )
 const UNSAFE_FUNCTIONS =
   /\b(pg_sleep|sleep|benchmark|dblink\w*|lo_\w+|pg_(?:read|write|ls|stat|terminate|cancel|reload|rotate|log|create|drop|promote|switch|backup|replication|advisory)\w*|get_lock|release_lock|load_file|nextval|setval|set_config|http\w*|s3|hdfs|jdbc|mysql|postgresql|file|url)\s*\(/i
 
+/**
+ * @deprecated Mixed-dialect Workbench policy. New adapters should own dialect-aware statement
+ * validation. Existing callers must retain this guard until an equivalent replacement is in place.
+ */
 export function splitWorkbenchSql(source: string): SqlStatement[] {
   const { masked, tokens } = lexWorkbenchSql(source)
   const statements: SqlStatement[] = []
@@ -116,11 +130,19 @@ export function splitWorkbenchSql(source: string): SqlStatement[] {
   if (!statements.length || statements.length > 50) throw new Error('statement_count_exceeded')
   return statements
 }
+/**
+ * @deprecated Uses the legacy mixed-dialect policy. New adapters should enforce read-only execution
+ * with dialect-aware validation and database permissions. Keep this guard until safely migrated.
+ */
 export function requireReadStatement(sql: string): string {
   const statements = splitWorkbenchSql(sql)
   if (statements.length !== 1 || statements[0].effect !== 'read') throw new Error('read_only_violation')
   return statements[0].sql
 }
+/**
+ * @deprecated Built-in engine switch. New adapters should own dialect-specific identifier quoting
+ * while preserving identifier validation and escaping.
+ */
 export function quoteDatabaseIdentifier(name: string, engine: 'doris' | 'mysql' | 'postgres'): string {
   // eslint-disable-next-line no-control-regex -- intentional: reject control characters in identifiers
   if (!name || name.length > 256 || /[\0-\x1f]/.test(name)) throw new Error('invalid_identifier')

@@ -1,5 +1,250 @@
 # @xpert-ai/server-ai
 
+## 3.26.0
+
+### Minor Changes
+
+- 23b505e: Allow side chats to fork the latest sealed assistant reply while the source keeps running. Validate and copy pinned root, subgraph and ancestor checkpoints without pending work or live Goals. Reuse the created thread when a request is retried after the source advances.
+
+    Expose the same behavior from Conversation Map and return a localized explanation when no sealed reply is available. Keep bodyless legacy copies idle-only and preserve historical input editing. Shared checkpoint references remain a separate, unimplemented architecture proposal.
+
+### Patch Changes
+
+- c9027ea: Prevent new-version Assistant publication from cascading a version-number update into its primary Agent and falsely reporting AgentOutdated when the Agent inherits its model. Preserve stale-Agent checks, transactional version backups and rollback, and cover these paths with PostgreSQL regression tests.
+- 138821f: Allow Assistant templates to select an authorized language model without requiring a Primary configuration. Resolve existing bindings and eligible defaults from the governed model catalog, preserve model options, and revalidate access before installation.
+- 629d5fa: Preserve the current organization when initializing MCP services and connections from tenant-installed plugins. Keep organization instance state and synchronization scoped to that organization.
+- d3ad3a5: Refresh the Cloud assistant sidebar after successful template installation. Preserve installation history while reporting current target availability, disable opening deleted or inaccessible assistants in Cloud and Desktop, and clear stale opening errors when starting another installation. Keep interrupted-request recovery and idempotency intact.
+- 54778dc: Extend the existing schema-sync deployment job with TypeORM SQL migrations. Ordinary tables still synchronize from entities; explicitly SQL-managed tables are excluded. Package module-local SQL and checks, preserve migration checksums, support verified baseline adoption, and serialize host/plugin DDL using a shared PostgreSQL lock.
+
+    Disable API startup DDL in development as well as production. Share installed plugin mounts with Compose migration jobs and fail on incomplete plugin registration. Preserve legitimate undispatched ModelExecution calls during baseline adoption, with regression coverage for independently reconstructed legacy databases.
+
+- Updated dependencies [f0590e2]
+- Updated dependencies [23b505e]
+- Updated dependencies [d3ad3a5]
+- Updated dependencies [54778dc]
+    - @xpert-ai/contracts@3.26.0
+    - @xpert-ai/server-core@3.26.0
+    - @xpert-ai/server-config@3.26.0
+    - @xpert-ai/desktop-protocol@0.3.8
+    - @xpert-ai/plugin-sdk@3.26.0
+    - @xpert-ai/server-auth@3.26.0
+    - @xpert-ai/server-common@3.26.0
+
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
+### Patch Changes
+
+- babce0b: Return typed errors for disallowed or unavailable Assistant model selections. Preserve failed execution and thread error details while releasing the run claim after admission rejection.
+- c2b52ba: Allow published Assistants to continue after ordinary plugin version or resource definition changes, with non-blocking update recommendations. Preserve exact installation snapshots, explicit template version requirements, scoped dependency availability and ownership, immutable artifact integrity, and actionable runtime errors.
+- 4ff6010: Use the resolved model context window consistently for primary calls and context compression. Preserve explicit provider limits and remove model-name guesses that can incorrectly reject summary input for custom endpoints.
+- 0f55121: Preserve explicitly declared streaming tool calls when converting legacy custom model settings. Share the conversion between model catalogs and execution admission, keep saved model configuration features authoritative, and require a separate explicit declaration for multi-tool-call support.
+- 854a4c0: Expose optional business-task concurrency policy on Project type declarations and
+  their catalog. Entity-backed applications enforce it in business dispatch and
+  claim services; generic Agent execution and model configuration are unchanged.
+- 1b5096f: Validate provider credentials before saving by reusing model discovery when supported, or by testing a user-selected model or endpoint. Expose an optional SDK validation policy and typed preview API, show discovered models and actionable authentication errors, and repeat validation on save without persisting the test target.
+- 2aada62: Include runtime entities in standalone schema synchronization so externally managed fresh databases contain Sandbox jobs and managed services, invocation and delivery records, and the other entities already registered by runtime feature modules.
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [4ff6010]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [27fab44]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+- Updated dependencies [1cd5a33]
+    - @xpert-ai/server-auth@3.25.0
+    - @xpert-ai/server-common@3.25.0
+    - @xpert-ai/server-config@3.25.0
+    - @xpert-ai/contracts@3.25.0
+    - @xpert-ai/plugin-sdk@3.25.0
+    - @xpert-ai/server-core@3.25.0
+    - @xpert-ai/desktop-protocol@0.3.7
+
+## 3.14.1
+
+### Patch Changes
+
+- Updated dependencies [2e7af88]
+    - @xpert-ai/plugin-sdk@3.24.0
+    - @xpert-ai/server-core@3.10.9
+
+## 3.14.0
+
+### Minor Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+    Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+### Patch Changes
+
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+    Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- Updated dependencies [c4f9bb3]
+- Updated dependencies [2e488be]
+    - @xpert-ai/contracts@3.23.0
+    - @xpert-ai/server-core@3.10.8
+    - @xpert-ai/desktop-protocol@0.3.6
+    - @xpert-ai/plugin-sdk@3.23.1
+
+## 3.13.0
+
+### Minor Changes
+
+- ddeb74f: Add presentation-only skill command and subcommand metadata to portable Agent Plugins. Resolve shortcuts from pinned selections, re-authorize explicit skill activation, and preserve literal subcommand arguments in task messages and history.
+
+### Patch Changes
+
+- 5afe7d1: Add the optional package-level Agent Plugin role: capability, assistant, or subagent. Hide only assistant-role packages from ChatKit discovery while keeping all valid templates in the Assistant marketplace.
+
+    Support selection-purpose catalog reads so existing conversations retain resource metadata and pinned references. Role changes do not revoke execution access or alter template dependencies. Deploy this API before the matching ChatKit update and import role-bearing packages only after upgrading the parser.
+
+- 94dd967: Add background Agent plugin updates from a selected Git branch and a preview for cleaning unused old versions. Preserve existing Assistant and conversation references, configured versions, and disabled state. Reimports verify and repair missing or damaged files without changing package or binding identities. Retired files use a durable cleanup queue so failures can be retried safely.
+
+    Existing SQL-managed databases must apply the included Agent plugin maintenance migration before deployment; existing bindings remain protected by default.
+
+    Reuse locked database connections for template reference reservations and background maintenance work so concurrent requests cannot starve their lock holders of a connection.
+
+- 8ecf7b0: Expose non-assistant-role package templates as conversation sub-agent capabilities. Preserve package selection and existing skills/MCP tools while adding one lazy delegation tool per template.
+
+    Execute authorized template snapshots through the native Agent invocation runtime without installing or publishing Assistants. Pin dependency/model configuration, isolate task state, files and onboarding, and preserve checkpoint approvals, cancellation and execution ownership. Assistant-only packages and the template marketplace retain their existing behavior.
+
+    Revalidate published Assistant access or Project membership and Assistant binding before invocation, replay and task initialization. Reject revoked access and changed package snapshots before resolving dependencies or writing task files.
+
+    Deploy with the matching SDK and ChatKit template-component changes. Runtime dependencies and shared connections must already be configured; delegation does not install dependencies or schedule template routines.
+
+- 616bab6: Allow automatic context compression during long tasks at complete tool cycle boundaries. Preserve the current user request, recent and in-flight tool calls, and matching tool results so compressed histories remain valid. Keep manual compression at whole-turn boundaries.
+- 94dd967: Run one-click official Agent plugin imports as background jobs so large catalogs no longer keep a single HTTP request open. Persist progress per tenant and organization, show incremental results, and resume the same Git snapshot after page reloads or API restarts without repeating completed imports. Duplicate requests reuse the running job, and partial package failures remain visible.
+- 1a60257: Include published Agents from organization-shared workspaces in group invitation candidates while preserving tenant, organization, group-owner, and authoring permission boundaries. Show only the latest Agent versions and exclude active group members, including other versions of an Agent already in the group, before pagination.
+
+    Apply stable database pagination and let Desktop load all candidate pages. The API keeps its array response and accepts optional limit and offset parameters; the ChatKit load-more interface requires the matching SDK and ChatKit releases.
+
+- 616bab6: Resolve published Assistant environments through runtime authorization so users allowed to run an Assistant can use its configured environment without authoring workspace access. Draft execution retains authoring access checks.
+- 616bab6: Add the SandboxWorkspaceMount contract and optional workspaceMounts provider creation option for mounts resolved after application authorization. Include conversation scope in application-side Sandbox acquisition and cache identity without forwarding business authorization context to providers.
+- ddeb74f: Bind an enabled template sub-agent's unspecified Sandbox provider to the parent Assistant's configured provider before dependency validation and execution snapshotting. Preserve explicit template providers and reject unavailable providers before creating task state.
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [4bf9514]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+    - @xpert-ai/contracts@3.22.0
+    - @xpert-ai/server-core@3.10.7
+    - @xpert-ai/plugin-sdk@3.23.0
+    - @xpert-ai/desktop-protocol@0.3.5
+
+## 3.12.4
+
+### Patch Changes
+
+- 4e29238: Resolve Agent Plugin connector definitions from persisted tenant and organization configuration so catalogs, OAuth callbacks and runtime calls work across API replicas and restarts. Preserve historical connector identities and authentication methods when a native provider replaces generic MCP OAuth.
+
+    Allow supported connectors to select or create a system integration in the connection dialog, remember its ID for reconnects, and resolve application credentials using the connection's persisted scope. Generate integration names automatically and deduplicate retries. GitHub requires the companion GitHub Connector plugin update to expose this flow and replace dynamic client registration.
+
+- ab15014: Fix Conversation Map validation errors when newly created conversations do not yet have a title, with a consistent fallback for missing or blank titles.
+
+    In tree mode, combine uninterrupted message paths into summary nodes and split them at actual message forks. Show only the latest human question and a short AI reply, and open the actual conversation history for message details and individual message actions. Read lightweight ancestry metadata and batch only the message bodies needed for summaries instead of loading complete histories for every branch. Preserve relation graph, list, and search behavior.
+
+- 3b7f2cd: Extend the existing api_key table and authentication flow with USER-bound personal keys in account settings, with one-time secret display, hashed storage, expiration and revocation. Use the same endpoints and authentication flow as existing API keys, restoring the personal key's human owner and current permissions. Preserve ordinary login-only management endpoints and the existing resource-key and ChatKit session flows; no personal-key-specific route opt-in is required.
+
+    Instances that tested the separate-table draft can preserve those credentials with the one-time `packages/server/src/api-key/personal-api-key/migrate-personal-api-keys.sql` script after schema synchronization.
+
+- Updated dependencies [4e29238]
+- Updated dependencies [3b7f2cd]
+- Updated dependencies [2f25689]
+    - @xpert-ai/plugin-sdk@3.22.2
+    - @xpert-ai/server-core@3.10.6
+    - @xpert-ai/contracts@3.21.3
+    - @xpert-ai/desktop-protocol@0.3.4
+
+## 3.12.3
+
+### Patch Changes
+
+- 558b1cd: Add provider model discovery and incremental imports for LLM, embedding, and rerank models. Preserve edited configuration across synchronization, expose model sources and editable limits, and apply the synchronized catalog to model selection and execution access.
+- f60db7b: Remove the legacy Project migration service and its automatic startup backfill. API startup no longer scans existing Projects, rewrites legacy membership or task state, indexes old assets, or disables enabled automations. Keep normal Project creation, content initialization and plan provisioning in their existing business services.
+
+    Deprecate `project.members` in favor of `memberships` and the Project membership API. Legacy membership data is not migrated or used as an authorization fallback.
+
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+    - @xpert-ai/server-core@3.10.5
+    - @xpert-ai/contracts@3.21.2
+    - @xpert-ai/plugin-sdk@3.22.1
+    - @xpert-ai/desktop-protocol@0.3.3
+
+## 3.12.2
+
+### Patch Changes
+
+- e42fc94: Make tenant and organization Agent Plugin installations directly available in the ChatKit Plugins menu. Remove workspace publishing and addition from Cloud and Desktop, prepare selected runtime resources on demand, and retain existing conversation versions, expert mappings and Connector configuration.
+
+    Tenant packages inherit into organizations without sharing Connector credentials. Existing databases created with the original Agent Plugin SQL schema should apply `20261012-agent-plugin-installation-scope.sql` to allow tenant-scoped records.
+
+- 795f24a: Unify managed Assistant application state under WorkspaceFilesRuntimeCapability.appData(). Resolve namespaces from loaded plugin metadata; revalidate the current actor and published Assistant on every operation. Shared workspaces remain supported unless the application requires user isolation. Reuse atomic Volume writes and shared-filesystem locks, and protect .apps from generic Files, downloads, parser inputs and sandbox file uploads. Preserve Studio draft access through explicit authoring authority.
+
+    NsJail Runner protocol 3 masks .apps with an empty read-only mount and blocks file RPC access. Upgrade the Runner before the API; older Runners fail closed. Local Shell is trusted development execution and does not provide OS isolation. No old application data is migrated.
+
+    Pin application handles to their original workspace, and reject private file projections after a switch to shared storage. Renew lock leases only after successful filesystem heartbeats, verify lock ownership before mutations, and preserve replacement owners on release. Reject root aliases into managed data and protect managed descendants during recursive deletion.
+
+- 7de8eae: Update ChatKit packages to 0.14.2 to preserve pending project confirmation when restoring conversations, and synchronize the API, Web and Desktop deployment lockfiles.
+- f304e7b: Expose the current user's ClawXpert initialization status and recover missing or inaccessible bindings through the existing membership bootstrap queue. Recheck active organization membership before delayed jobs run, retain initialization failures for retry, and keep default workspace skill setup independent of ClawXpert creation failures.
+
+    Add an explicit Primary LLM verification endpoint with bounded output and a 20-second deadline, and include the configured model when reading an available Copilot.
+
+- d9db433: Reuse the desktop model cascader across application, template and assistant settings with custom field labels. Preserve authorized provider logos from Xpert, connection, capability and context metadata for model search and comparison without exposing credentials or changing installation selections.
+
+    Keep the portaled model list scrollable inside desktop dialogs while preserving focus and background scroll locking.
+
+- 672810f: Preserve authorized MCP App results after interactive sessions expire and allow explicit recovery without rerunning the original tool. Recheck current message, Assistant and connector access, prevent stale replicas from replacing renewed sessions, and remove saved history with its owning conversation or messages.
+
+    Expose a server-only View middleware runtime capability so plugins can reuse authorized Assistant configuration and connector bindings without inventing an Agent execution. Redact session credentials from HTTP request URLs and query logs.
+
+    When TypeORM schema synchronization is disabled, apply `packages/server-ai/src/mcp-app-runtime/migrations/20261012-mcp-app-history.sql` before deploying the history and recovery endpoints.
+
+- 94ca78f: Enable MCP Apps in all environments without a separate opt-in setting. Remove the global feature gate from App registration, restoration and resource/RPC access so production assistants can present configuration forms by default.
+- 23c94f4: Preserve pending project creation across history restoration and recover affected conversations during authorized App confirmation. Keep existing project bindings and personal conversations immutable.
+- f816d25: Update the ChatKit packages consumed by Xpert to 0.14.1 and synchronize the API, Web and Desktop deployment lockfiles.
+- Updated dependencies [e42fc94]
+- Updated dependencies [795f24a]
+- Updated dependencies [7de8eae]
+- Updated dependencies [f304e7b]
+- Updated dependencies [d9db433]
+- Updated dependencies [a2e5e2c]
+- Updated dependencies [672810f]
+- Updated dependencies [97b58fc]
+- Updated dependencies [f816d25]
+    - @xpert-ai/contracts@3.21.1
+    - @xpert-ai/plugin-sdk@3.22.0
+    - @xpert-ai/server-core@3.10.4
+    - @xpert-ai/desktop-protocol@0.3.2
+
+## 3.12.1
+
+### Patch Changes
+
+- 1435b5b: Expose HTTP API request counts and response-duration histograms by full registered route template, method, status, response type, and completion outcome. Track case-insensitive API paths and parameterized or aliased router mounts without retaining resolved request identifiers. Keep SSE and aborted responses separate, exclude scrapes and health checks, and provide a 500ms bucket for slow API request monitoring.
+- 9178ba1: Fix group Composer resource browsing, selection validation, and connector authorization for conversation-scoped ChatKit sessions. Recheck the live group membership and selected published Assistant before invoking resource services as the authenticated human, preserve Project and resource access checks, and restore the original request context after each operation.
+- ae1fb5f: Add scoped knowledgebase discovery, readiness and action-permission APIs with authorization-aware cursor pagination. Preserve the legacy list behavior with deprecation guidance, and fail indexing when supplied generated-image semantics are invalid instead of indexing placeholder content.
+
+    Clarify runtime and provisioning API responsibilities, and organize the SDK guides into English documentation with updated navigation, branding, package assets and cross-references.
+
+- Updated dependencies [75f1cd3]
+- Updated dependencies [ae1fb5f]
+    - @xpert-ai/desktop-protocol@0.3.1
+    - @xpert-ai/plugin-sdk@3.21.1
+    - @xpert-ai/server-core@3.10.3
+
 ## 3.12.0
 
 ### Minor Changes

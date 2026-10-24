@@ -16,12 +16,17 @@ export const CLAWXPERT_WORKBENCH_ROUTE_ACTIVE = new InjectionToken<() => boolean
 export class ClawXpertWorkbenchViewUrlState {
   readonly #router = inject(Router)
   readonly #routeActive = inject(CLAWXPERT_WORKBENCH_ROUTE_ACTIVE, { optional: true }) ?? (() => true)
+  readonly #viewClosed = signal(
+    this.#router.parseUrl(this.#router.url).queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] === ''
+  )
   readonly #viewKey = signal(readWorkbenchViewKey(this.#router, this.#router.url))
   readonly #viewQuery = signal(readWorkbenchViewQuery(this.#router, this.#router.url))
   readonly #projectId = signal(readWorkbenchViewProject(this.#router, this.#router.url))
   #pendingViewKey: string | null | undefined
   #navigationVersion = 0
 
+  /** An explicit empty view parameter preserves a user dismissal across refresh/history. */
+  readonly viewClosed = this.#viewClosed.asReadonly()
   readonly viewKey = this.#viewKey.asReadonly()
   /** Selection and parameters associated with the active extension view. */
   readonly viewQuery = this.#viewQuery.asReadonly()
@@ -36,6 +41,9 @@ export class ClawXpertWorkbenchViewUrlState {
       .subscribe(() => {
         if (!this.#routeActive()) return
         this.#pendingViewKey = undefined
+        this.#viewClosed.set(
+          this.#router.parseUrl(this.#router.url).queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] === ''
+        )
         this.#viewKey.set(readWorkbenchViewKey(this.#router, this.#router.url))
         this.#viewQuery.set(readWorkbenchViewQuery(this.#router, this.#router.url))
         this.#projectId.set(readWorkbenchViewProject(this.#router, this.#router.url))
@@ -55,7 +63,7 @@ export class ClawXpertWorkbenchViewUrlState {
   setViewState(
     viewKey: string | null,
     query: XpertViewQuery | null,
-    options: { replaceUrl?: boolean; projectId?: string } = {}
+    options: { replaceUrl?: boolean; projectId?: string; closed?: boolean } = {}
   ) {
     if (!this.#routeActive()) return Promise.resolve(false)
     const normalizedViewKey = normalizeWorkbenchViewKey(viewKey)
@@ -69,6 +77,7 @@ export class ClawXpertWorkbenchViewUrlState {
     )
 
     if (
+      this.#viewClosed() === Boolean(options.closed && !normalizedViewKey) &&
       this.#viewKey() === normalizedViewKey &&
       (currentViewKey === normalizedViewKey || this.#pendingViewKey === normalizedViewKey) &&
       equalWorkbenchViewQuery(currentQuery, normalizedQuery) &&
@@ -82,6 +91,8 @@ export class ClawXpertWorkbenchViewUrlState {
     else delete queryParams[CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM]
     if (normalizedViewKey) {
       queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] = normalizedViewKey
+    } else if (options.closed) {
+      queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] = ''
     } else {
       delete queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM]
     }
@@ -98,6 +109,7 @@ export class ClawXpertWorkbenchViewUrlState {
 
     const navigationVersion = ++this.#navigationVersion
     this.#pendingViewKey = normalizedViewKey
+    this.#viewClosed.set(Boolean(options.closed && !normalizedViewKey))
     this.#viewKey.set(normalizedViewKey)
     this.#viewQuery.set(normalizedQuery)
     this.#projectId.set(projectId)
@@ -112,6 +124,9 @@ export class ClawXpertWorkbenchViewUrlState {
         }
 
         this.#pendingViewKey = undefined
+        this.#viewClosed.set(
+          this.#router.parseUrl(this.#router.url).queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] === ''
+        )
         this.#viewKey.set(readWorkbenchViewKey(this.#router, this.#router.url))
         this.#viewQuery.set(readWorkbenchViewQuery(this.#router, this.#router.url))
         this.#projectId.set(readWorkbenchViewProject(this.#router, this.#router.url))

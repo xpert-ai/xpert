@@ -4,7 +4,14 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { AiModelTypeEnum, ICopilotModel, ModelFeature, PluginApplicationToolsetSelection } from '@xpert-ai/contracts'
+import {
+  AiModelTypeEnum,
+  getPluginApplicationScopes,
+  PluginApplicationScope,
+  ICopilotModel,
+  ModelFeature,
+  PluginApplicationToolsetSelection
+} from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, PluginApplicationDetail, PluginApplicationService } from '@cloud/app/@core'
 import { injectPluginAPI, IPluginComponentDefinition } from '@cloud/app/@core/state'
@@ -66,6 +73,13 @@ export class ApplicationDetailComponent {
   readonly #translate = inject(TranslateService)
   readonly #alertDialog = inject(ZardAlertDialogService)
 
+  readonly installationScope = signal<PluginApplicationScope | undefined>(undefined)
+  readonly installationScopes = computed(() => getPluginApplicationScopes(this.application()?.config.scope))
+  readonly applicationInput = computed(() => ({
+    pluginName: this.application()?.pluginName ?? '',
+    appName: this.application()?.appName ?? '',
+    installationScope: this.application()?.scope
+  }))
   readonly loading = signal(true)
   readonly initializing = signal(false)
   readonly detail = signal<PluginApplicationDetail | null>(null)
@@ -73,6 +87,7 @@ export class ApplicationDetailComponent {
   readonly setupOpen = signal(this.#route.snapshot.queryParamMap.get('setup') === '1')
   readonly embeddingModel = model<Partial<ICopilotModel> | null>(null)
   readonly visionModel = model<Partial<ICopilotModel> | null>(null)
+  readonly speechToTextModel = model<Partial<ICopilotModel> | null>(null)
   readonly toolsetSelections = signal<PluginApplicationToolsetSelection[]>([])
   readonly refreshingToolsets = signal(false)
   readonly configuringToolsets = signal(false)
@@ -88,11 +103,13 @@ export class ApplicationDetailComponent {
   readonly modelRequirements = computed(() => this.detail()?.preflight.modelRequirements ?? {})
   readonly embeddingModelId = computed(() => pluginApplicationModelId(this.embeddingModel()))
   readonly visionModelId = computed(() => pluginApplicationModelId(this.visionModel()))
+  readonly speechToTextModelId = computed(() => pluginApplicationModelId(this.speechToTextModel()))
   readonly canSubmit = computed(
     () =>
       !!this.detail()?.preflight.canInitialize &&
       (!this.modelRequirements().embedding || !!this.embeddingModelId()) &&
       (!this.modelRequirements().vision || !!this.visionModelId()) &&
+      (!this.modelRequirements().speechToText || !!this.speechToTextModelId()) &&
       applicationToolsetsSelected(this.toolsetRequirements(), this.toolsetSelections()) &&
       !this.refreshingToolsets() &&
       !this.configuringToolsets() &&
@@ -103,7 +120,7 @@ export class ApplicationDetailComponent {
 
   constructor() {
     effect(() => {
-      const key = this.#scope.key()
+      const key = `${this.#scope.key()}:${this.installationScope() ?? 'default'}`
       untracked(() => {
         if (this.#loadedScopeKey !== null) this.setupOpen.set(false)
         this.#loadedScopeKey = key
@@ -112,6 +129,7 @@ export class ApplicationDetailComponent {
         this.toolsetSelections.set([])
         this.embeddingModel.set(null)
         this.visionModel.set(null)
+        this.speechToTextModel.set(null)
         this.refreshingToolsets.set(false)
         this.initializing.set(false)
         this.discarding.set(false)
@@ -137,8 +155,16 @@ export class ApplicationDetailComponent {
 
     this.loading.set(true)
     try {
-      const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName))
+      const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName, this.installationScope()))
       if (version !== this.#loadVersion) return
+      if (
+        !this.installationScope() &&
+        getPluginApplicationScopes(detail.application.config.scope).includes('personal')
+      ) {
+        this.#loadedScopeKey = null
+        this.installationScope.set('personal')
+        return
+      }
       this.detail.set(detail)
       this.toolsetSelections.update((previous) =>
         reconcileApplicationToolsets(detail.preflight.toolsetRequirements ?? [], previous)
@@ -157,6 +183,13 @@ export class ApplicationDetailComponent {
           detail.preflight.visionModels,
           detail.preflight.defaultVisionModelId,
           AiModelTypeEnum.LLM
+        )
+      )
+      this.speechToTextModel.set(
+        pluginApplicationDefaultCopilotModel(
+          detail.preflight.speechToTextModels ?? [],
+          null,
+          AiModelTypeEnum.SPEECH2TEXT
         )
       )
       if (this.#resumeSetupFromScope !== null && this.#resumeSetupFromScope !== this.#scope.key()) {
@@ -186,7 +219,7 @@ export class ApplicationDetailComponent {
     const version = this.#loadVersion
     this.refreshingToolsets.set(true)
     try {
-      const detail = await firstValueFrom(this.#applications.getDetail(app.pluginName, app.appName))
+      const detail = await firstValueFrom(this.#applications.getDetail(app.pluginName, app.appName, app.scope))
       if (version !== this.#loadVersion) return
       this.detail.set(detail)
       this.toolsetSelections.update((previous) =>
@@ -263,6 +296,8 @@ export class ApplicationDetailComponent {
     if (this.status() === 'initializing') {
       return this.#translate.instant('XP.Explore.Application.Action.Initializing', { Default: 'Initializing…' })
     }
+    if (this.application()?.scope === 'personal')
+      return this.#translate.instant('XP.Explore.Application.Action.ApplyToPersonal')
     return this.#translate.instant('XP.Explore.Application.Action.ApplyToOrganization', {
       Default: 'Apply to current organization'
     })
@@ -305,7 +340,11 @@ export class ApplicationDetailComponent {
       )
       if (!confirmed || version !== this.#loadVersion) return
       await firstValueFrom(
-        this.#applications.discardConfiguration({ pluginName: app.pluginName, appName: app.appName })
+        this.#applications.discardConfiguration({
+          pluginName: app.pluginName,
+          appName: app.appName,
+          installationScope: app.scope
+        })
       )
       if (version !== this.#loadVersion) return
       this.toolsetSelections.set([])
@@ -331,8 +370,10 @@ export class ApplicationDetailComponent {
         this.#applications.initialize({
           pluginName: app.pluginName,
           appName: app.appName,
+          installationScope: app.scope,
           embeddingModelId: this.embeddingModelId() ?? undefined,
           visionModelId: this.visionModelId() ?? undefined,
+          speechToTextModelId: this.speechToTextModelId() ?? undefined,
           toolsets: this.toolsetSelections(),
           operationId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
         })
@@ -372,7 +413,7 @@ export class ApplicationDetailComponent {
         return this.#translate.instant('XP.Explore.Application.Toolsets.ConfigurationsRequired')
       case 'organization_scope_required':
         return this.#translate.instant('XP.Explore.Application.Preflight.OrganizationRequired', {
-          Default: 'Switch to an organization before enabling this organization-scoped application.'
+          Default: 'Switch to an organization before enabling this application.'
         })
       case 'role_required':
         return this.#translate.instant('XP.Explore.Application.Preflight.RoleRequired', {
@@ -386,6 +427,8 @@ export class ApplicationDetailComponent {
         return this.#translate.instant('XP.Explore.Application.Preflight.EmbeddingModelRequired', {
           Default: 'The current organization has no available embedding model. Configure a model first.'
         })
+      case 'speech_to_text_model_required':
+        return this.#translate.instant('XP.Explore.Application.Preflight.SpeechToTextModelRequired')
       case 'vision_model_required':
         return this.#translate.instant('XP.Explore.Application.Preflight.VisionModelRequired', {
           Default: 'The current organization has no model with vision support. Configure a model first.'
@@ -416,8 +459,8 @@ export class ApplicationDetailComponent {
     }
   }
 
-  scopeLabel() {
-    switch (this.application()?.scope) {
+  scopeLabel(scope = this.application()?.scope) {
+    switch (scope) {
       case 'tenant':
         return this.#translate.instant('XP.Explore.Application.Scope.Tenant', { Default: 'Tenant' })
       case 'personal':
@@ -425,6 +468,17 @@ export class ApplicationDetailComponent {
       default:
         return this.#translate.instant('XP.Explore.Application.Scope.Organization', { Default: 'Organization' })
     }
+  }
+
+  selectInstallationScope(scope: PluginApplicationScope) {
+    if (
+      this.initializing() ||
+      this.configuringToolsets() ||
+      this.discarding() ||
+      !this.installationScopes().includes(scope)
+    )
+      return
+    this.installationScope.set(scope)
   }
 
   initializationSteps() {
@@ -474,6 +528,8 @@ export class ApplicationDetailComponent {
       })
     }
     if (this.status() === 'configuring') {
+      if (this.application()?.scope === 'personal')
+        return this.#translate.instant('XP.Explore.Application.Action.ApplyToPersonal')
       return this.#translate.instant('XP.Explore.Application.Action.ApplyToOrganization', {
         Default: 'Apply to current organization'
       })

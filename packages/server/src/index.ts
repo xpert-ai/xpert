@@ -33,3 +33,5 @@ export * from './view-extension/index'
 export * from './runtime-control/index'
 export * from './referral/index'
 export * from './actor-token/index'
+
+export * from './analytics/analytics.module'

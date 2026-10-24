@@ -47,6 +47,7 @@ describe('MembershipAdminComponent', () => {
     getAdminUsers: jest.Mock
     getAdminMembers: jest.Mock
     applyBulkUserAction: jest.Mock
+    updatePlan: jest.Mock
   }
   let alertDialog: { confirm: jest.Mock }
   let toastr: { error: jest.Mock; success: jest.Mock }
@@ -62,7 +63,8 @@ describe('MembershipAdminComponent', () => {
       getModelOptions: jest.fn().mockReturnValue(of([])),
       getAdminUsers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
       getAdminMembers: jest.fn().mockReturnValue(of({ items: [], total: 0 })),
-      applyBulkUserAction: jest.fn().mockReturnValue(of({ succeeded: 1, failed: [] }))
+      applyBulkUserAction: jest.fn().mockReturnValue(of({ succeeded: 1, failed: [] })),
+      updatePlan: jest.fn()
     }
     alertDialog = {
       confirm: jest.fn().mockReturnValue(of(false))
@@ -228,6 +230,41 @@ describe('MembershipAdminComponent', () => {
     expect(component.allowedModels).toEqual([
       { provider: 'tongyi', model: 'qwen3.7-plus', copilotId: options[0].copilotId }
     ])
+  })
+
+  it.each([
+    [AiModelTypeEnum.TTS, 'qwen3-tts-flash'],
+    [AiModelTypeEnum.SPEECH2TEXT, 'qwen3-asr-flash'],
+    [AiModelTypeEnum.REALTIME, 'qwen3.8-omni-flash-realtime']
+  ])('saves and reopens an exact %s selection without granting another Copilot', (type, model) => {
+    membershipService.getModelOptions.mockReturnValue(
+      of(
+        ['primary', 'secondary'].map((id) => ({
+          id,
+          role: AiProviderRole.Primary,
+          providerWithModels: { provider: 'tongyi', models: [{ model, model_type: type }] }
+        }))
+      )
+    )
+    const allowedModels = [{ provider: 'tongyi', model, copilotId: 'primary' }]
+    const savedPlan = { ...targetPlan, allowedModels }
+    membershipService.updatePlan.mockReturnValue(of(savedPlan))
+    membershipService.getPlans.mockReturnValue(of([savedPlan]))
+
+    component.load()
+    component.edit(targetPlan)
+    component.setAllowAllModels(false)
+    const options = component.allowedModelOptions().filter((option) => option.model === model)
+    expect(options).toHaveLength(2)
+    const selected = options.find((option) => option.copilotId === 'primary')
+    component.setAllowedModelValues(selected.value)
+    component.save()
+
+    expect(membershipService.updatePlan).toHaveBeenCalledWith(targetPlan.id, expect.objectContaining({ allowedModels }))
+    component.edit(component.plans().find((plan) => plan.id === targetPlan.id))
+    expect(component.allowedModels).toEqual(allowedModels)
+    expect(component.allowedModelValues()).toEqual([selected.value])
+    expect(component.planForm.controls.allowAllModels.value).toBe(false)
   })
 
   it('round-trips legacy allowed model rules without assigning a Copilot id', () => {

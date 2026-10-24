@@ -51,7 +51,11 @@ export class ClawXpertFixedViewStackComponent {
   readonly slot = input.required<string>()
   readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
   readonly conversationId = input<string | null>(null)
-  readonly conversationScope = computed(() => ({ ...this.runtimeScope(), conversationId: this.conversationId() }))
+  readonly conversationScope = computed(() =>
+    this.runtimeScope()?.groupId
+      ? this.runtimeScope()
+      : { ...this.runtimeScope(), conversationId: this.conversationId() }
+  )
   readonly runtimeUserId = input<string | null>(null)
   readonly activeView = computed(() => this.tabs().find((tab) => tab.id === this.activeTabId()))
   readonly #mountedTabIds = signal<ReadonlySet<string>>(new Set())

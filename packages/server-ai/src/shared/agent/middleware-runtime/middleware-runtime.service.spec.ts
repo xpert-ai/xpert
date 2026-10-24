@@ -1,4 +1,3 @@
-import { ResolveAssistantFileAccessCommand } from '../../../xpert/assistant-files/resolve-assistant-file-access.command'
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
 }))
@@ -88,6 +87,7 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { FakeStreamingChatModel } from '@langchain/core/utils/testing'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -159,17 +159,21 @@ import { ResolveRuntimeSkillPackagesQuery } from '../../../skill-package/queries
 import { AssistantTaskRuntimeService } from '../../../xpert-agent-execution/runtime/assistant-task-runtime.service'
 import { FileRuntimeService } from '../../../file-understanding/runtime/file-runtime.service'
 import { KnowledgebaseRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-runtime.service'
+import type { KnowledgebaseCatalogService } from '../../../knowledgebase/catalog/knowledgebase-catalog.service'
 import { KnowledgebaseDocumentsRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-documents-runtime.service'
 import { KnowledgebaseProvisioningRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-provisioning-runtime.service'
+import {
+    ResolveAssistantFileAccessCommand,
+    type AssistantFileAccess
+} from '../../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { ProjectProvisioningRuntimeService } from '../../../xpert-project/services/project-provisioning-runtime.service'
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
-function assistantFileAccess(command: ResolveAssistantFileAccessCommand) {
+function resolveTestAssistantFileAccess(command: ResolveAssistantFileAccessCommand): AssistantFileAccess {
     return {
         scope: {
             tenantId: 'tenant-1',
-            organizationId: 'org-1',
             userId: 'user-1',
             catalog: 'xperts',
             xpertId: command.assistantId,
@@ -209,7 +213,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         volumeRoot = mkdtempSync(join(tmpdir(), 'xpert-workspace-files-'))
         commandBus = {
             execute: jest.fn(async (command: unknown) =>
-                command instanceof ResolveAssistantFileAccessCommand ? assistantFileAccess(command) : undefined
+                command instanceof ResolveAssistantFileAccessCommand
+                    ? resolveTestAssistantFileAccess(command)
+                    : undefined
             )
         }
         queryBus = {
@@ -326,10 +332,15 @@ describe('AgentMiddlewareRuntimeService', () => {
                 )
             } as never
         )
+        const knowledgebaseCatalog: jest.Mocked<Pick<KnowledgebaseCatalogService, 'query' | 'get' | 'getAccess'>> = {
+            query: jest.fn(),
+            get: jest.fn(),
+            getAccess: jest.fn()
+        }
         platformCapabilities
             .register(
                 KnowledgebaseRuntimeCapability,
-                new KnowledgebaseRuntimeService(commandBus as never, queryBus as never, {} as never)
+                new KnowledgebaseRuntimeService(commandBus as never, queryBus as never, knowledgebaseCatalog as never)
             )
             .register(
                 KnowledgebaseDocumentsRuntimeCapability,
@@ -959,9 +970,8 @@ describe('AgentMiddlewareRuntimeService', () => {
         tokenRecordError?: Error
         parameterRules?: ParameterRule[]
     }) {
-        const modelInstance = {
-            invoke: jest.fn()
-        }
+        // Model fixtures retain the callback contract used by native execution admission.
+        const modelInstance = new FakeStreamingChatModel({ sleep: 0 })
         const getModelInstance = jest.fn().mockReturnValue(modelInstance)
 
         queryBus.execute.mockImplementation(async (query: unknown) => {
@@ -1829,7 +1839,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('uploads workspace files through the volume upload target', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
-            if (command instanceof ResolveAssistantFileAccessCommand) return assistantFileAccess(command)
+            if (command instanceof ResolveAssistantFileAccessCommand) return resolveTestAssistantFileAccess(command)
             if (command instanceof UploadFileCommand) {
                 return {
                     status: 'success',
@@ -1899,7 +1909,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('registers workspace files for file understanding without creating storage files', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
-            if (command instanceof ResolveAssistantFileAccessCommand) return assistantFileAccess(command)
+            if (command instanceof ResolveAssistantFileAccessCommand) return resolveTestAssistantFileAccess(command)
             if (command instanceof CreateWorkspaceFileAssetCommand) {
                 return {
                     id: 'file-asset-1',
@@ -2023,6 +2033,14 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         expect(existsSync(join(volumeRoot, relativePath))).toBe(false)
+        expect(commandBus.execute).toHaveBeenNthCalledWith(
+            1,
+            new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
+        )
+        expect(commandBus.execute).toHaveBeenNthCalledWith(
+            2,
+            new ResolveAssistantFileAccessCommand('xpert-1', 'delete', 'runtime')
+        )
     })
 
     it('resolves sandbox workspace paths through scoped runtime workspace files', async () => {
@@ -2075,6 +2093,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             .readRuntimeBuffer('summary.txt')
 
         expect(result?.buffer.toString()).toBe('summary')
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
+        )
         expect(result?.reference).toEqual(
             expect.objectContaining({
                 catalog: 'xperts',
@@ -2357,6 +2378,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 from: 'job'
             })
         )
+        expect(conversationCommand.entity).not.toHaveProperty('status')
         const executionCommand = commandBus.execute.mock.calls[1][0] as XpertAgentExecutionUpsertCommand
         expect(executionCommand.execution).toEqual(
             expect.objectContaining({

@@ -1,0 +1,280 @@
+<main class="h-full min-h-0 overflow-y-auto bg-background text-text-primary">
+  <div class="mx-auto flex min-h-full w-full max-w-[1600px] flex-col px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+    <header class="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+      <div class="shrink-0">
+        <h1 class="text-3xl font-semibold tracking-tight">{{ 'XP.XProject.WorkspaceTitle' | translate }}</h1>
+        <p class="mt-2 text-sm text-text-secondary">{{ 'XP.XProject.ListView.Subtitle' | translate }}</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <z-search-input
+          class="w-full min-w-0 sm:w-64"
+          [value]="search()"
+          [placeholder]="'XP.XProject.SearchProjects' | translate"
+          [clearLabel]="'XP.XProject.ClearSearch' | translate"
+          (valueChange)="search.set($event)"
+        />
+        <z-segmented
+          [zAriaLabel]="'XP.XProject.StatusFilter' | translate"
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)"
+        >
+          @for (filter of filters; track filter.value) {
+            <z-segmented-item [value]="filter.value" [label]="filter.label | translate" />
+          }
+        </z-segmented>
+        <button z-button type="button" z-menu [zMenuTriggerFor]="createMenu" zPlacement="bottomRight">
+          <z-icon zType="plus" />{{ 'XP.XProject.NewProject' | translate }}
+        </button>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          z-menu
+          [zMenuTriggerFor]="moreMenu"
+          zPlacement="bottomRight"
+          [attr.aria-label]="'XP.XProject.ListView.MoreActions' | translate"
+        >
+          <z-icon zType="ellipsis" />
+        </button>
+      </div>
+    </header>
+
+    <div class="mt-8 flex flex-wrap items-center justify-between gap-3 border-b border-divider-subtle pb-4">
+      <span class="text-sm text-text-tertiary">{{
+        'XP.XProject.ListView.ProjectCount' | translate: { count: facade.projectsTotal() }
+      }}</span>
+      <div class="flex items-center gap-2">
+        <button
+          z-button
+          zType="ghost"
+          type="button"
+          [attr.aria-expanded]="filtersOpen()"
+          aria-controls="project-list-filters"
+          (click)="filtersOpen.set(!filtersOpen())"
+        >
+          <z-icon zType="filter" />{{ 'XP.XProject.ListView.Filters' | translate }}
+          @if (hasFilters()) {
+            <z-icon zType="check" />
+          }
+        </button>
+        <label class="flex items-center gap-2">
+          <span class="sr-only">{{ 'XP.XProject.ListView.SortBy' | translate }}</span>
+          <z-select class="w-36" [zValue]="sort()" (zSelectionChange)="setSort($event)">
+            <z-select-item zValue="updated">{{ 'XP.XProject.ListView.RecentlyUpdated' | translate }}</z-select-item>
+            <z-select-item zValue="created">{{ 'XP.XProject.ListView.RecentlyCreated' | translate }}</z-select-item>
+            <z-select-item zValue="name">{{ 'XP.XProject.ListView.NameOrder' | translate }}</z-select-item>
+          </z-select>
+        </label>
+      </div>
+    </div>
+
+    @if (filtersOpen()) {
+      <div id="project-list-filters" class="flex flex-wrap items-end gap-3 border-b border-divider-subtle py-4">
+        <label class="flex w-full flex-col gap-1.5 sm:w-52">
+          <span class="text-xs text-text-secondary">{{ 'XP.XProject.Application' | translate }}</span>
+          <z-select [zValue]="applicationKey() || '__all'" (zSelectionChange)="setApplication($event)">
+            <z-select-item zValue="__all">{{ 'XP.XProject.AllApplications' | translate }}</z-select-item>
+            <z-select-item zValue="__unclassified">{{ 'XP.XProject.Unclassified' | translate }}</z-select-item>
+            @for (app of applications(); track app.key) {
+              <z-select-item [zValue]="app.key">{{ localized(app.title) }}</z-select-item>
+            }
+          </z-select>
+        </label>
+        <label class="flex w-full flex-col gap-1.5 sm:w-60">
+          <span class="text-xs text-text-secondary">{{ 'XP.XProject.ProjectType' | translate }}</span>
+          <z-select [zValue]="projectTypeKey() || '__all'" (zSelectionChange)="setProjectType($event)">
+            <z-select-item zValue="__all">{{ 'XP.XProject.AllTypes' | translate }}</z-select-item>
+            @for (type of filteredTypes(); track type.applicationKey + ':' + type.projectTypeKey) {
+              <z-select-item [zValue]="type.projectTypeKey">{{ typeLabel(type) }}</z-select-item>
+            }
+          </z-select>
+        </label>
+        <button z-button zType="ghost" type="button" (click)="resetFilters()">
+          {{ 'XP.XProject.ListView.ResetFilters' | translate }}
+        </button>
+      </div>
+    }
+
+    @if (facade.loading()) {
+      <div class="flex min-h-72 items-center justify-center gap-2 text-sm text-text-secondary" role="status">
+        <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+          'XP.XProject.LoadingProjects' | translate
+        }}
+      </div>
+    } @else if (facade.error()) {
+      <div class="flex min-h-72 flex-col items-center justify-center gap-4 text-center">
+        <p role="alert" class="text-sm text-text-destructive">{{ facade.error() }}</p>
+        <button z-button zType="outline" type="button" (click)="page(0)">
+          {{ 'XP.XProject.RetryProject' | translate }}
+        </button>
+      </div>
+    } @else if (!visibleProjects().length) {
+      <div class="flex min-h-72 flex-col items-center justify-center gap-4 text-center">
+        <z-icon zType="folder-open" class="size-8 text-text-tertiary" />
+        <p class="font-medium">{{ 'XP.XProject.NoProjects' | translate }}</p>
+        @if (hasFilters() || search()) {
+          <button z-button zType="outline" type="button" (click)="resetFilters()">
+            {{ 'XP.XProject.ListView.ResetFilters' | translate }}
+          </button>
+        } @else {
+          <button z-button zType="outline" type="button" z-menu [zMenuTriggerFor]="createMenu">
+            {{ 'XP.XProject.CreateProject' | translate }}
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="space-y-8 py-6">
+        @for (group of projectGroups(); track group.key) {
+          <section [attr.aria-labelledby]="'project-group-' + group.key">
+            <h2 [id]="'project-group-' + group.key" class="mb-3 flex items-center gap-2 text-base font-semibold">
+              {{ group.label | translate }}
+              <span class="text-sm font-normal tabular-nums text-text-tertiary">({{ group.projects.length }})</span>
+            </h2>
+            <ul class="divide-y divide-divider-subtle border-y border-divider-subtle">
+              @for (project of group.projects; track project.id) {
+                <li
+                  class="group relative flex items-center gap-3 px-3 transition-colors hover:bg-hover-bg focus-within:bg-hover-bg sm:px-4"
+                >
+                  <div
+                    class="grid min-w-0 flex-1 grid-cols-1 items-center gap-x-5 gap-y-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_100px_180px_150px]"
+                  >
+                    <a
+                      class="min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      [routerLink]="['/project', project.id]"
+                      [attr.aria-label]="('XP.XProject.Open' | translate) + ': ' + project.name"
+                    >
+                      <span class="block truncate text-base font-semibold" [title]="project.name">{{
+                        project.name
+                      }}</span>
+                      <span
+                        class="mt-1.5 block truncate text-sm text-text-secondary"
+                        [title]="project.description || ''"
+                        >{{ project.description || ('XP.XProject.NoDescription' | translate) }}</span
+                      >
+                    </a>
+                    <z-badge zType="secondary" class="hidden justify-self-end sm:inline-flex lg:justify-self-start">{{
+                      projectStatusKey(project) | translate
+                    }}</z-badge>
+                    <div class="min-w-0">
+                      <button
+                        z-button
+                        zType="link"
+                        type="button"
+                        class="h-auto max-w-full justify-start p-0 text-sm text-text-secondary"
+                        [title]="projectLabel(project)"
+                        (click)="filterProject(project); filtersOpen.set(true)"
+                      >
+                        <span class="truncate">{{ projectLabel(project) }}</span>
+                      </button>
+                      @if (project.settings?.managementMode; as mode) {
+                        <p class="mt-1 text-xs text-text-tertiary">
+                          {{ 'XP.XProject.' + (mode === 'advanced' ? 'AdvancedMode' : 'SimpleMode') | translate }}
+                        </p>
+                      }
+                    </div>
+                    <div class="text-left sm:text-right lg:text-left">
+                      <time class="whitespace-nowrap text-sm tabular-nums" [attr.datetime]="project.updatedAt">{{
+                        formatDate(project.updatedAt)
+                      }}</time>
+                      <p class="mt-1 hidden text-xs text-text-tertiary sm:block">
+                        {{ 'XP.XProject.UpdatedColumn' | translate }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex w-20 shrink-0 items-center gap-1">
+                    <a
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      class="shrink-0"
+                      [routerLink]="['/project', project.id]"
+                      [attr.aria-label]="('XP.XProject.ProjectWorkspace' | translate) + ': ' + project.name"
+                      ><z-icon zType="chevron-right"
+                    /></a>
+                    @if (project.applicationKey && project.projectTypeKey) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        class="shrink-0"
+                        z-menu
+                        [zMenuTriggerFor]="projectMenu"
+                        [zMenuTriggerData]="{ project: project }"
+                        zPlacement="bottomRight"
+                        [attr.aria-label]="('XP.XProject.ListView.MoreActions' | translate) + ': ' + project.name"
+                      >
+                        <z-icon zType="ellipsis" />
+                      </button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    }
+
+    <footer class="mt-auto flex flex-wrap items-center justify-end gap-3 border-t border-divider-subtle pt-5">
+      <div class="flex items-center gap-3 text-sm text-text-secondary">
+        <span class="tabular-nums"
+          >{{ visibleProjects().length ? skip() + 1 : 0 }}–{{ skip() + visibleProjects().length }} /
+          {{ facade.projectsTotal() }}</span
+        >
+        <button
+          z-button
+          zType="outline"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.XProject.PreviousPage' | translate"
+          [disabled]="skip() === 0 || facade.loading()"
+          (click)="page(-1)"
+        >
+          <z-icon zType="chevron-left" />
+        </button>
+        <button
+          z-button
+          zType="outline"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.XProject.NextPage' | translate"
+          [disabled]="skip() + 50 >= facade.projectsTotal() || facade.loading()"
+          (click)="page(1)"
+        >
+          <z-icon zType="chevron-right" />
+        </button>
+      </div>
+    </footer>
+  </div>
+</main>
+
+<ng-template #createMenu>
+  <div z-menu-content>
+    @for (type of types(); track type.applicationKey + ':' + type.projectTypeKey) {
+      <button z-menu-item type="button" (menuItemTriggered)="openCreate(type)">{{ typeLabel(type) }}</button>
+    } @empty {
+      <button z-menu-item type="button" (menuItemTriggered)="openCreate()">
+        {{ 'XP.XProject.CreateProject' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+<ng-template #moreMenu>
+  <div z-menu-content>
+    <button z-menu-item type="button" (menuItemTriggered)="openImport()">
+      <z-icon zType="upload" />{{ 'XP.XProject.ImportDSL' | translate }}
+    </button>
+    <button z-menu-item type="button" (menuItemTriggered)="openExecutionAnalysis()">
+      <z-icon zType="account_tree" />{{ 'XP.XProject.Portfolio.Compare' | translate }}
+    </button>
+  </div>
+</ng-template>
+<ng-template #projectMenu let-project="project">
+  <div z-menu-content>
+    <button z-menu-item type="button" (menuItemTriggered)="openApplication(project)">
+      <z-icon zType="open_in_new" />{{ 'XP.XProject.ListView.OpenApplication' | translate }}
+    </button>
+  </div>
+</ng-template>

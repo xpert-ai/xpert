@@ -1,7 +1,7 @@
 import { latestImplementationExecutor } from '../runtime/project-task-executor'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
-// Provider snapshots are replayable read models. Projection never starts Agents,
-// and runtime success does not override a provider's business acceptance status.
+// Task graph reads never acquire projection locks or invoke plugin callbacks.
+// Runtime success does not override a provider's business acceptance status.
 import { createHash } from 'node:crypto'
 import {
     BadRequestException,
@@ -12,15 +12,18 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
-import { In, IsNull, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, Repository } from 'typeorm'
 import {
     validateProjectTaskGraph,
     type ProjectTaskGraph,
     type ProjectTaskNode,
+    type ProjectTaskExecutionTarget,
     type ProjectTaskGraphChange
 } from '@xpert-ai/contracts'
 import {
+    projectPipelineInvocationScopeSchema,
     ProjectTaskProviderRegistry,
+    ProjectPipelineProjectionProviderRegistry,
     ProjectTasksRuntimeCapability,
     type ProjectTaskContext,
     type ProjectTasksApi
@@ -37,16 +40,14 @@ import { projectTaskRuntimeTiming } from './project-task-runtime-timing'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
-import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
-import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
-import { assertProjectTaskProgress } from './project-task-progress'
+import { registeredProjectTaskTypes } from './project-task-types'
+import { ProjectPipelineTaskLinkEntity } from '../pipeline/persistence/pipeline.entity'
+import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../agent-invocation/invocation.entity'
+import { pipelineTaskFacts } from '../pipeline/queries/pipeline-task-facts'
+import { pipelineTaskDispositions } from '../pipeline/queries/pipeline-task-disposition'
 
-export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
-    const hex = createHash('sha256')
-        .update(JSON.stringify([projectId, provider, key]))
-        .digest('hex')
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
-}
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
+export { projectTaskIdentity } from './project-task-identity'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectTasksRuntimeCapability)
@@ -54,7 +55,9 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
     constructor(
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: ProjectAccessRuntimeService,
-        private readonly providers: ProjectTaskProviderRegistry
+        private readonly providers: ProjectTaskProviderRegistry,
+        private readonly projection: ProjectTaskProjectionService,
+        private readonly pipelineProviders: ProjectPipelineProjectionProviderRegistry
     ) {}
 
     private where(context: ProjectTaskContext) {
@@ -73,147 +76,40 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
 
     async graph(context: ProjectTaskContext): Promise<ProjectTaskGraph> {
         const access = await this.assertRead(context)
-        const diagnostics: ProjectTaskGraph['diagnostics'] = []
-        for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
-            try {
-                const taskTypes = registeredProjectTaskTypes(provider)
-                const links = await this.tasks.manager.transaction(async (manager) => {
-                    // Serialize snapshot acquisition too: an older snapshot cannot overwrite a newer one.
-                    await manager.findOneOrFail(XpertProject, {
-                        where: { id: context.projectId, tenantId: context.actor.tenantId },
-                        lock: { mode: 'pessimistic_write' }
-                    })
-                    const snapshot = await provider.snapshot(context)
-                    if (!snapshot) return
-                    const identity = (key: string) => projectTaskIdentity(context.projectId, provider.key, key)
-                    const existing = await manager.find(XpertProjectTask, {
-                        where: { ...this.where(context), providerKey: provider.key }
-                    })
-                    const nodes: ProjectTaskNode[] = snapshot.tasks.map((item) => ({
-                        id: identity(item.key),
-                        title: item.title,
-                        status: item.status,
-                        progress: item.progress ?? null,
-                        kind: item.kind,
-                        taskType: item.taskType ?? null,
-                        parentTaskId: item.parentKey ? identity(item.parentKey) : null,
-                        predecessorIds: item.predecessorKeys.map(identity),
-                        providerKey: provider.key,
-                        sourceKey: item.key,
-                        revision: 0,
-                        plannedStartAt: null,
-                        plannedEndAt: null,
-                        estimatedDurationMs: null,
-                        actualStartAt: null,
-                        actualEndAt: null,
-                        diagnostic: item.diagnostic ?? null,
-                        assigneeXpertId: item.assigneeXpertId ?? null
-                    }))
-                    validateProjectTaskGraph(nodes)
-                    for (const item of snapshot.tasks) {
-                        assertProjectTaskProgress(item.progress)
-                        if (!item.key.trim() || !item.title.trim()) throw Error('PROJECT_TASK_SOURCE_INVALID')
-                        if (item.taskType != null && !taskTypes.has(item.taskType)) throw invalidProjectTaskType()
-                        if (new Set(item.executions.map((execution) => execution.key)).size !== item.executions.length)
-                            throw Error('PROJECT_TASK_ATTEMPT_DUPLICATE')
-                        for (const execution of item.executions) {
-                            if (!execution.key.trim() || !Number.isInteger(execution.attempt) || execution.attempt < 1)
-                                throw Error('PROJECT_TASK_ATTEMPT_INVALID')
-                            for (const date of [execution.startedAt, execution.completedAt]) {
-                                if (date && !Number.isFinite(Date.parse(date)))
-                                    throw Error('PROJECT_TASK_EXECUTION_DATE_INVALID')
-                            }
-                        }
-                    }
-                    for (const [index, item] of snapshot.tasks.entries()) {
-                        const node = nodes[index]
-                        const sourceRevision = createHash('sha256').update(JSON.stringify(item)).digest('hex')
-                        const old = existing.find((task) => task.id === node.id)
-                        if (old?.sourceRevision === sourceRevision) continue
-                        const row =
-                            old ??
-                            manager.create(XpertProjectTask, {
-                                id: node.id,
-                                projectId: context.projectId,
-                                tenantId: context.actor.tenantId,
-                                organizationId: context.actor.organizationId,
-                                createdById: context.actor.userId,
-                                steps: []
-                            })
-                        Object.assign(row, {
-                            name: item.title,
-                            title: item.title,
-                            status: item.status,
-                            ...(item.progress !== undefined ? { progress: item.progress } : {}),
-                            kind: item.kind,
-                            ...(item.taskType !== undefined ? { type: item.taskType } : {}),
-                            providerKey: provider.key,
-                            sourceKey: item.key,
-                            sourceRevision,
-                            parentTaskId: node.parentTaskId,
-                            predecessorIds: node.predecessorIds,
-                            diagnostic: node.diagnostic,
-                            assigneeXpertId: item.assigneeXpertId ?? null
-                        })
-                        await manager.save(row)
-                        for (const execution of item.executions) {
-                            const executionId = projectTaskIdentity(node.id, provider.key, execution.key)
-                            const previous = await manager.findOneBy(XpertProjectTaskExecution, {
-                                id: executionId,
-                                ...this.where(context)
-                            })
-                            await manager.save(
-                                XpertProjectTaskExecution,
-                                manager.create(XpertProjectTaskExecution, {
-                                    ...previous,
-                                    id: executionId,
-                                    ...execution,
-                                    sourceKey: execution.key,
-                                    taskId: node.id,
-                                    projectId: context.projectId,
-                                    tenantId: context.actor.tenantId,
-                                    organizationId: context.actor.organizationId,
-                                    createdById: context.actor.userId,
-                                    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
-                                    completedAt: execution.completedAt ? new Date(execution.completedAt) : null
-                                })
-                            )
-                        }
-                    }
-                    for (const removed of existing.filter((row) => !nodes.some((node) => node.id === row.id))) {
-                        if (removed.status === 'cancelled') continue
-                        removed.status = 'cancelled'
-                        removed.sourceRevision = null
-                        removed.diagnostic = t('server-ai:Error.ProjectTaskRemovedFromPlan')
-                        await manager.save(removed)
-                    }
-                    return nodes.map((node) => ({ sourceKey: node.sourceKey!, taskId: node.id }))
-                })
-                if (links) await provider.linked?.(context, links)
-            } catch (error) {
-                diagnostics.push({
-                    providerKey: provider.key,
-                    message: error instanceof Error ? error.message : String(error)
-                })
-            }
-        }
         return {
-            ...(await this.readGraph(context, diagnostics)),
+            ...(await this.readGraph(context, await this.projection.diagnostics(context))),
+            canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
+        }
+    }
+
+    async refresh(context: ProjectTaskContext) {
+        return this.projection.request(context)
+    }
+
+    /** Used by the Pipeline reader to observe task facts and graph structure in the same MVCC snapshot. */
+    async graphWithinTransaction(context: ProjectTaskContext, manager: EntityManager) {
+        const access = await this.assertRead(context)
+        return {
+            ...(await this.readGraph(context, [], manager)),
             canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
         }
     }
 
     private async readGraph(
         context: ProjectTaskContext,
-        diagnostics: ProjectTaskGraph['diagnostics'] = []
+        diagnostics: ProjectTaskGraph['diagnostics'] = [],
+        manager: EntityManager = this.tasks.manager
     ): Promise<ProjectTaskGraph> {
-        const rows = await this.tasks.find({ where: this.where(context), order: { createdAt: 'ASC' } })
-        const storedExecutions = await this.tasks.manager.find(XpertProjectTaskExecution, {
+        const rows = await manager.find(XpertProjectTask, { where: this.where(context), order: { createdAt: 'ASC' } })
+        const storedExecutions = await manager.find(XpertProjectTaskExecution, {
             where: this.where(context),
             order: { startedAt: 'ASC', attempt: 'ASC' }
         })
+        const pipelineFacts = await pipelineTaskFacts(manager, context, rows, storedExecutions)
+        const dispositions = await pipelineTaskDispositions(manager, context, rows)
+        for (const row of rows) row.assigneeXpertId ??= pipelineFacts.assignees.get(row.id)
         const executions = await observeProjectTaskInvocations(
-            this.tasks.manager,
+            manager,
             {
                 projectId: context.projectId,
                 tenantId: context.actor.tenantId,
@@ -223,7 +119,9 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         )
         const ids = executions.flatMap((item) => (item.agentExecutionId ? [item.agentExecutionId] : []))
         const runtime = ids.length
-            ? await this.tasks.manager.find(XpertAgentExecution, {
+            ? await manager.find(XpertAgentExecution, {
+                  select: ['id', 'status', 'createdAt', 'completedAt'],
+                  loadEagerRelations: false,
                   where: {
                       id: In(ids),
                       tenantId: context.actor.tenantId,
@@ -232,12 +130,15 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
               })
             : []
         const observed = executions.map((item) => {
-            if (item.invocationId) return item
+            const pipelineAttemptKind = pipelineFacts.kinds.get(item.id)
+            if (item.invocationId) return { ...item, pipelineAttemptKind }
             const run = runtime.find((run) => run.id === item.agentExecutionId)
             return {
                 ...item,
+                pipelineAttemptKind,
+                ...(run ? { runtimeProvider: 'xpert-task' } : {}),
                 // Runtime timestamps are separate from domain acceptance/lease timestamps.
-                ...projectTaskRuntimeTiming(run)
+                ...(pipelineFacts.services.get(item.id) ?? projectTaskRuntimeTiming(run))
             }
         })
         const nodes = rows.map((row) =>
@@ -263,14 +164,19 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             )
         )
         const scope = { tenantId: context.actor.tenantId, organizationId: context.actor.organizationId ?? IsNull() }
-        const assigneeIds = [...new Set(rows.flatMap((row) => (row.assigneeXpertId ? [row.assigneeXpertId] : [])))]
+        const assigneeIds = [
+            ...new Set([
+                ...rows.flatMap((row) => (row.assigneeXpertId ? [row.assigneeXpertId] : [])),
+                ...observed.flatMap((attempt) => (attempt.xpertId ? [attempt.xpertId] : []))
+            ])
+        ]
         const [project, assignees] = await Promise.all([
-            this.tasks.manager.findOne(XpertProject, {
+            manager.findOne(XpertProject, {
                 where: { id: context.projectId, ...scope },
                 select: ['id', 'name']
             }),
             assigneeIds.length
-                ? this.tasks.manager.find(Xpert, {
+                ? manager.find(Xpert, {
                       where: { id: In(assigneeIds), ...scope },
                       select: ['id', 'title', 'name', 'avatar']
                   })
@@ -278,7 +184,10 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         ])
         const assistants = new Map(assignees.map((item) => [item.id, item]))
         const typeRegistrations = new Map<string, ReturnType<typeof registeredProjectTaskTypes>>()
-        for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
+        for (const provider of [
+            ...this.providers.list(context.actor.organizationId ?? undefined),
+            ...this.pipelineProviders.listForActor(context.actor)
+        ]) {
             try {
                 typeRegistrations.set(provider.key, registeredProjectTaskTypes(provider))
             } catch {
@@ -289,20 +198,25 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
+                pipelineDisposition: dispositions.get(node.id) ?? node.pipelineDisposition,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
                 executor: latestImplementationExecutor(observed.filter((attempt) => attempt.taskId === node.id)),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }
         })
+        const displayExecutions = observed.map((attempt) => {
+            const executor = attempt.xpertId ? assistants.get(attempt.xpertId) : undefined
+            return { ...attempt, executorName: executor ? executor.title || executor.name : null }
+        })
         const cursor = createHash('sha256')
-            .update(JSON.stringify([project?.name, displayNodes, observed, diagnostics]))
+            .update(JSON.stringify([project?.name, displayNodes, displayExecutions, diagnostics]))
             .digest('hex')
         return {
             projectId: context.projectId,
             projectTitle: project?.name,
             tasks: displayNodes,
-            executions: observed,
+            executions: displayExecutions,
             diagnostics,
             cursor
         }
@@ -322,7 +236,12 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             throw new BadRequestException(error instanceof Error ? error.message : String(error))
         }
         const relationsChanged = input.parentTaskId !== undefined || input.predecessorIds !== undefined
-        if (current.providerKey && relationsChanged) {
+        if (
+            (current.providerKey ||
+                current.pipelineInstanceId ||
+                (current.controlKind && current.controlKind !== 'ordinary')) &&
+            relationsChanged
+        ) {
             throw new BadRequestException(t('server-ai:Error.ProjectTaskProviderCommandRequired'))
         }
         await this.tasks.manager.transaction(async (manager) => {
@@ -344,7 +263,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                         : toProjectTaskNode(item, [])
                 )
             )
-            if (!current.providerKey) {
+            if (!row.providerKey && !row.pipelineInstanceId && (!row.controlKind || row.controlKind === 'ordinary')) {
                 if (input.parentTaskId !== undefined) row.parentTaskId = input.parentTaskId
                 if (input.predecessorIds !== undefined) row.predecessorIds = input.predecessorIds
             }
@@ -358,7 +277,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         return this.graph(context)
     }
 
-    async resolveExecution(context: ProjectTaskContext, taskExecutionId: string) {
+    async resolveExecution(context: ProjectTaskContext, taskExecutionId: string): Promise<ProjectTaskExecutionTarget> {
         await this.assertRead(context)
         const attempt = await this.tasks.manager.findOneBy(XpertProjectTaskExecution, {
             id: taskExecutionId,
@@ -374,6 +293,43 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                 organizationId: context.actor.organizationId ?? IsNull(),
                 ownerId: context.actor.userId
             })
+            if (record?.invocation.scope.callerType === 'project_pipeline') {
+                const parsed = projectPipelineInvocationScopeSchema.safeParse(record.invocation.scope)
+                const source = parsed.success ? parsed.data : null
+                if (
+                    !source ||
+                    source.userId !== context.actor.userId ||
+                    source.tenantId !== context.actor.tenantId ||
+                    source.organizationId !== context.actor.organizationId ||
+                    source.projectId !== context.projectId ||
+                    source.pipelineOrigin.operationId !== attempt.sourceKey ||
+                    record.invocation.request.callId !== attempt.sourceKey ||
+                    record.invocation.id !== attempt.invocationId ||
+                    !(await this.tasks.manager.existsBy(ProjectPipelineTaskLinkEntity, {
+                        ...this.where(context),
+                        taskId: attempt.taskId,
+                        nodeInstanceId: source.pipelineOrigin.nodeInstanceId
+                    }))
+                )
+                    throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
+                const binding = await this.tasks.manager.findOneBy(AgentRuntimeBindingEntity, {
+                    id: record.invocation.request.target.bindingId,
+                    tenantId: source.tenantId,
+                    organizationId: source.organizationId,
+                    enabled: true
+                })
+                if (!binding || !binding.workspaceIds.includes(source.workspaceId))
+                    throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
+                return {
+                    kind: 'runtime_invocation',
+                    projectId: context.projectId,
+                    taskId: attempt.taskId,
+                    taskExecutionId: attempt.id,
+                    invocationId: record.invocation.id,
+                    codingInvocationId:
+                        record.invocation.activity?.presentation === 'coding' ? record.invocation.id : undefined
+                }
+            }
             if (
                 record?.invocation.request.dispatch?.projectTask?.taskExecutionId === attempt.id &&
                 record.invocation.scope.projectId === context.projectId &&
@@ -441,6 +397,9 @@ export function toProjectTaskNode(row: XpertProjectTask, executions: XpertProjec
     const ends = executions.flatMap((item) => (item.completedAt ? [item.completedAt.getTime()] : []))
     return {
         id: row.id,
+        controlKind: row.controlKind ?? (row.providerKey ? 'provider' : 'ordinary'),
+        pipelineInstanceId: row.pipelineInstanceId ?? null,
+        pipelineDisposition: row.pipelineDisposition ?? null,
         title: row.title ?? row.name,
         kind: row.kind ?? 'task',
         taskType: row.type ?? null,

@@ -28,11 +28,11 @@ export function useWorkspaceConnection(webUrl: string, assistantId: string) {
               return
             }
           }
-          throw new Error(t('Could not open the connection page.'))
+          throw new HostError(t('Could not open the connection page.'), 502, 'connection_navigation_failed')
         },
         onProgress: setProgress,
         isFatal: (error) => error instanceof HostError && [400, 401, 403, 404, 408, 409].includes(error.status),
-        invalidRequest: () => new Error(t('This workspace connection is not available.'))
+        invalidRequest: () => new HostError(t('This workspace connection is not available.'), 409)
       }),
     [assistantId, webUrl]
   )

@@ -1,3 +1,5 @@
+import { QueryBus } from '@nestjs/cqrs'
+import { threadGraphRevision } from './thread-run-control.service'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { ConflictException } from '@nestjs/common'
 import { DataSource, EntityManager, Repository } from 'typeorm'
@@ -8,24 +10,29 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ChatConversationThreadService } from './conversation-thread.service'
+import { SideChatForkService } from './side-chat-fork.service'
 
 describe('ChatConversationThreadService', () => {
     function createService({
         threadRepository = {},
         messageRepository = {},
         conversationRepository = {},
-        dataSource = {}
+        dataSource = {},
+        queryBus = { execute: jest.fn().mockResolvedValue({ graph: { nodes: [], connections: [] } }) }
     }: {
         threadRepository?: Partial<Repository<ChatConversationThread>>
         messageRepository?: Partial<Repository<ChatMessage>>
         conversationRepository?: Partial<Repository<ChatConversation>>
         dataSource?: Partial<DataSource>
+        queryBus?: Partial<QueryBus>
     } = {}) {
         return new ChatConversationThreadService(
             threadRepository as Repository<ChatConversationThread>,
             messageRepository as Repository<ChatMessage>,
             conversationRepository as Repository<ChatConversation>,
-            dataSource as DataSource
+            dataSource as DataSource,
+            {} as SideChatForkService,
+            queryBus as QueryBus
         )
     }
 
@@ -398,7 +405,7 @@ describe('ChatConversationThreadService', () => {
                 conversationId: 'conversation',
                 status: 'busy',
                 headMessageId: 'latest-ai',
-                conversation: { id: 'conversation' },
+                conversation: { id: 'conversation', xpertId: 'assistant' },
                 tenantId: 'tenant',
                 organizationId: 'org'
             } as ChatConversationThread
@@ -410,7 +417,7 @@ describe('ChatConversationThreadService', () => {
                     parentId: hasCheckpoint ? 'previous-ai' : null,
                     inputCheckpoint: {
                         version: 1,
-                        graphRevision: 'revision',
+                        graphRevision: threadGraphRevision({ nodes: [], connections: [] }),
                         checkpoint: hasCheckpoint
                             ? {
                                   threadId: 'ancestor',
@@ -472,14 +479,17 @@ describe('ChatConversationThreadService', () => {
                 headMessageId: hasCheckpoint ? 'previous-ai' : null,
                 forkedFromMessageId: 'edited-input',
                 status: 'idle',
-                metadata: { purpose: 'message-edit', forkGraphRevision: 'revision' }
+                metadata: {
+                    purpose: 'message-edit',
+                    forkGraphRevision: threadGraphRevision({ nodes: [], connections: [] })
+                }
             })
             expect(source.status).toBe('busy')
             expect(source.headMessageId).toBe('latest-ai')
-            expect(conversations.save).toHaveBeenCalledWith(
-                expect.objectContaining({ id: 'conversation', threadId: branch.threadId })
-            )
-            expect(branch.conversation).toMatchObject({ id: 'conversation', threadId: branch.threadId })
+            // Preparing a branch is not admission: a later graph check can still reject it.
+            expect(conversations.save).not.toHaveBeenCalled()
+            expect(conversation.threadId).toBe('source')
+            expect(branch.conversation).toMatchObject({ id: 'conversation' })
             if (hasCheckpoint) {
                 expect(checkpoints.findOne).toHaveBeenCalledWith({
                     where: {
@@ -510,4 +520,27 @@ describe('ChatConversationThreadService', () => {
             )
         }
     )
+    it('rejects graph drift before opening a branch transaction', async () => {
+        const transaction = jest.fn()
+        const service = createService({ dataSource: { transaction } })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
+            threadId: 'source',
+            conversationId: 'conversation',
+            conversation: { xpertId: 'assistant' }
+        } as ChatConversationThread)
+        jest.spyOn(service, 'findVisibleMessages').mockResolvedValue({
+            total: 1,
+            items: [
+                {
+                    id: 'human',
+                    role: 'human',
+                    inputCheckpoint: { version: 1, graphRevision: 'old', checkpoint: null }
+                } as ChatMessage
+            ]
+        })
+        await expect(service.copyThread('source', { beforeMessageId: 'human' })).rejects.toMatchObject({
+            response: { code: 'conversation_graph_changed' }
+        })
+        expect(transaction).not.toHaveBeenCalled()
+    })
 })

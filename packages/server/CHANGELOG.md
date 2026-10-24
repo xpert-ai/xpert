@@ -1,5 +1,151 @@
 # @xpert-ai/server-core
 
+## 3.26.0
+
+### Patch Changes
+
+- 54778dc: Extend the existing schema-sync deployment job with TypeORM SQL migrations. Ordinary tables still synchronize from entities; explicitly SQL-managed tables are excluded. Package module-local SQL and checks, preserve migration checksums, support verified baseline adoption, and serialize host/plugin DDL using a shared PostgreSQL lock.
+
+    Disable API startup DDL in development as well as production. Share installed plugin mounts with Compose migration jobs and fail on incomplete plugin registration. Preserve legitimate undispatched ModelExecution calls during baseline adoption, with regression coverage for independently reconstructed legacy databases.
+
+- Updated dependencies [f0590e2]
+- Updated dependencies [23b505e]
+- Updated dependencies [d3ad3a5]
+- Updated dependencies [54778dc]
+    - @xpert-ai/contracts@3.26.0
+    - @xpert-ai/server-config@3.26.0
+    - @xpert-ai/plugin-sdk@3.26.0
+    - @xpert-ai/server-common@3.26.0
+
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
+### Patch Changes
+
+- 27fab44: Resume pending plugin rollouts when API capacity recovers, preserve last-replica outage approval and generation fencing, and keep the plugin settings page tracking waiting releases until completion.
+- Updated dependencies [3e0460d]
+- Updated dependencies [babce0b]
+- Updated dependencies [c2b52ba]
+- Updated dependencies [ba77738]
+- Updated dependencies [4ff6010]
+- Updated dependencies [0f55121]
+- Updated dependencies [8a0c256]
+- Updated dependencies [854a4c0]
+- Updated dependencies [1b5096f]
+- Updated dependencies [1cd5a33]
+    - @xpert-ai/server-common@3.25.0
+    - @xpert-ai/server-config@3.25.0
+    - @xpert-ai/contracts@3.25.0
+    - @xpert-ai/plugin-sdk@3.25.0
+
+## 3.10.9
+
+### Patch Changes
+
+- Updated dependencies [2e7af88]
+    - @xpert-ai/plugin-sdk@3.24.0
+
+## 3.10.8
+
+### Patch Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+    Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+    Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- Updated dependencies [c4f9bb3]
+    - @xpert-ai/contracts@3.23.0
+    - @xpert-ai/plugin-sdk@3.23.1
+
+## 3.10.7
+
+### Patch Changes
+
+- 4bf9514: Allow integrations without a registered strategy, including GitHub, to be updated and deleted. Reuse the existing scoped registry lookup for optional validation and lifecycle hooks, while preserving lookup errors and failures from registered hooks. Required strategy operations remain unchanged.
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+    - @xpert-ai/contracts@3.22.0
+    - @xpert-ai/plugin-sdk@3.23.0
+
+## 3.10.6
+
+### Patch Changes
+
+- 4e29238: Resolve Agent Plugin connector definitions from persisted tenant and organization configuration so catalogs, OAuth callbacks and runtime calls work across API replicas and restarts. Preserve historical connector identities and authentication methods when a native provider replaces generic MCP OAuth.
+
+    Allow supported connectors to select or create a system integration in the connection dialog, remember its ID for reconnects, and resolve application credentials using the connection's persisted scope. Generate integration names automatically and deduplicate retries. GitHub requires the companion GitHub Connector plugin update to expose this flow and replace dynamic client registration.
+
+- 3b7f2cd: Extend the existing api_key table and authentication flow with USER-bound personal keys in account settings, with one-time secret display, hashed storage, expiration and revocation. Use the same endpoints and authentication flow as existing API keys, restoring the personal key's human owner and current permissions. Preserve ordinary login-only management endpoints and the existing resource-key and ChatKit session flows; no personal-key-specific route opt-in is required.
+
+    Instances that tested the separate-table draft can preserve those credentials with the one-time `packages/server/src/api-key/personal-api-key/migrate-personal-api-keys.sql` script after schema synchronization.
+
+- 2f25689: Distinguish validated view host types and view keys in HTTP request metric routes so Grafana can rank individual views. Keep host IDs and query values out of metric labels, and preserve generic route templates for unresolved or unauthorized views.
+- Updated dependencies [4e29238]
+- Updated dependencies [3b7f2cd]
+    - @xpert-ai/plugin-sdk@3.22.2
+    - @xpert-ai/contracts@3.21.3
+
+## 3.10.5
+
+### Patch Changes
+
+- f60db7b: Exclude expired and unready replica registrations from plugin rollouts, validate returning replicas before admitting traffic, and restart one candidate at a time. Preserve healthy peers on failure, add bounded plugin startup diagnostics and an event-loop-independent watchdog, and restore verified last-known-good plugin configurations without retrying failed recovery indefinitely.
+
+    Protect the last healthy replica unless an authorized operator explicitly permits downtime. Pin replacement admission to the active generation's cumulative plugin manifest so queued updates cannot block the current rollout or inherit outage consent.
+
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+    - @xpert-ai/contracts@3.21.2
+    - @xpert-ai/plugin-sdk@3.22.1
+
+## 3.10.4
+
+### Patch Changes
+
+- 795f24a: Unify managed Assistant application state under WorkspaceFilesRuntimeCapability.appData(). Resolve namespaces from loaded plugin metadata; revalidate the current actor and published Assistant on every operation. Shared workspaces remain supported unless the application requires user isolation. Reuse atomic Volume writes and shared-filesystem locks, and protect .apps from generic Files, downloads, parser inputs and sandbox file uploads. Preserve Studio draft access through explicit authoring authority.
+
+    NsJail Runner protocol 3 masks .apps with an empty read-only mount and blocks file RPC access. Upgrade the Runner before the API; older Runners fail closed. Local Shell is trusted development execution and does not provide OS isolation. No old application data is migrated.
+
+    Pin application handles to their original workspace, and reject private file projections after a switch to shared storage. Renew lock leases only after successful filesystem heartbeats, verify lock ownership before mutations, and preserve replacement owners on release. Reject root aliases into managed data and protect managed descendants during recursive deletion.
+
+- a2e5e2c: Check required permissions by membership instead of counting matching role records. Duplicate enabled grants no longer deny Project catalogs or substitute for a different missing permission. Apply the same behavior to the server and Plugin SDK request contexts.
+- 672810f: Preserve authorized MCP App results after interactive sessions expire and allow explicit recovery without rerunning the original tool. Recheck current message, Assistant and connector access, prevent stale replicas from replacing renewed sessions, and remove saved history with its owning conversation or messages.
+
+    Expose a server-only View middleware runtime capability so plugins can reuse authorized Assistant configuration and connector bindings without inventing an Agent execution. Redact session credentials from HTTP request URLs and query logs.
+
+    When TypeORM schema synchronization is disabled, apply `packages/server-ai/src/mcp-app-runtime/migrations/20261012-mcp-app-history.sql` before deploying the history and recovery endpoints.
+
+- 97b58fc: Restrict plugin installation schema synchronization to the current plugin's tables and owned join tables while retaining reference metadata for foreign keys. Prevent runtime entity registration from synchronizing the whole database, so installing one plugin does not alter host tables or unrelated plugins such as DOCX Editor.
+- Updated dependencies [e42fc94]
+- Updated dependencies [795f24a]
+- Updated dependencies [7de8eae]
+- Updated dependencies [f304e7b]
+- Updated dependencies [d9db433]
+- Updated dependencies [a2e5e2c]
+- Updated dependencies [672810f]
+- Updated dependencies [f816d25]
+    - @xpert-ai/contracts@3.21.1
+    - @xpert-ai/plugin-sdk@3.22.0
+
+## 3.10.3
+
+### Patch Changes
+
+- Updated dependencies [ae1fb5f]
+    - @xpert-ai/plugin-sdk@3.21.1
+
 ## 3.10.2
 
 ### Patch Changes

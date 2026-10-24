@@ -1,3 +1,4 @@
+const { runtimeRequest } = require('./runtime-recovery.cjs')
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
 const {
   MessageError,
@@ -10,7 +11,7 @@ const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
 const { AssistantActivity } = require('./assistant-activity.cjs')
-const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
+const { apiRootUrl, chatkitUrl, resolveConnectionUrls } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
   ...require('./connection/defaults.json'),
@@ -49,8 +50,9 @@ function webUrl(value) {
   return url.href.replace(/\/$/, '')
 }
 
-function parseConfig(value) {
+function parseConfig(value, connectionDefaults) {
   if (!value || typeof value !== 'object') throw new ClientError('Invalid connection settings.')
+  if (connectionDefaults) value = { ...value, ...resolveConnectionUrls(value, connectionDefaults) }
   const apiUrl = webUrl(value.apiUrl)
   const web = webUrl(value.webUrl)
   const frame = webUrl(value.frameUrl || chatkitUrl(web))
@@ -138,6 +140,7 @@ class DesktopService {
   constructor({
     storage,
     fetcher = fetch,
+    recoveryWait,
     localLogin,
     certificateProbe,
     defaultConfig = DEFAULT_CONFIG,
@@ -145,10 +148,16 @@ class DesktopService {
   } = {}) {
     this.storage = storage || { read: () => null, write: () => {} }
     this.fetcher = fetcher
+    this.recoveryWait = recoveryWait
     this.localLogin = localLogin
     this.certificateProbe = certificateProbe
     const saved = this.storage.read()
     const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig, locale: resolveSystemLocale(systemLanguages) })
+    this.connectionDefaults = Object.freeze({
+      apiUrl: defaults.apiUrl,
+      webUrl: defaults.webUrl,
+      frameUrl: defaults.frameUrl
+    })
     const savedConfig = saved?.config || defaults
     let validSavedConfig = Boolean(saved?.config)
     let appearance
@@ -181,7 +190,12 @@ class DesktopService {
   }
 
   snapshot() {
-    return { config: this.config, profile: this.profile, localLoginAvailable: this.canLoginLocal() }
+    return {
+      config: this.config,
+      connectionDefaults: this.connectionDefaults,
+      profile: this.profile,
+      localLoginAvailable: this.canLoginLocal()
+    }
   }
 
   canLoginLocal() {
@@ -205,7 +219,7 @@ class DesktopService {
   }
 
   configure(value) {
-    const next = parseConfig(value)
+    const next = parseConfig(value, this.connectionDefaults)
     const connectionChanged = connectionPolicyKey(next) !== connectionPolicyKey(this.config)
     if (connectionChanged) this.logout()
     this.config = next
@@ -216,6 +230,7 @@ class DesktopService {
   async checkConnectionCertificates(input) {
     if (!input || typeof input !== 'object') throw new ClientError('Invalid connection settings.')
     if (!this.certificateProbe) throw new ClientError('Unsupported operation.')
+    input = resolveConnectionUrls(input, this.connectionDefaults)
     const groups = new Map()
     const invalid = []
     for (const field of ['apiUrl', 'webUrl', 'frameUrl']) {
@@ -416,7 +431,8 @@ class DesktopService {
       timeout = 20000,
       responseType = 'json',
       errorMessages,
-      includeServerMessage = false
+      includeServerMessage = false,
+      runtimeRecoveryBudget = { remaining: 2, deadline: Date.now() + 15_000 }
     } = {}
   ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
@@ -435,15 +451,30 @@ class DesktopService {
     const multipart = typeof FormData !== 'undefined' && body instanceof FormData
     if (multipart) delete headers['Content-Type']
     let response
+    let runtime
     try {
-      response = await this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
-        method,
-        headers,
-        ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
-        signal: AbortSignal.timeout(timeout),
-        redirect: 'error'
-      })
+      const result = await runtimeRequest(
+        () =>
+          this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
+            method,
+            headers,
+            ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
+            signal: AbortSignal.timeout(timeout),
+            redirect: 'error'
+          }),
+        {
+          safe: method === 'GET' || method === 'HEAD' || (method === 'POST' && path === '/api/ai/v1/chatkit/sessions'),
+          assertCurrent: () => {
+            if (generation !== this.generation) throw new ClientError('The session changed. Please retry.', 409)
+          },
+          budget: runtimeRecoveryBudget,
+          wait: this.recoveryWait
+        }
+      )
+      response = result.response
+      runtime = result.runtime
     } catch (error) {
+      if (error instanceof ClientError) throw error
       if (method === 'POST' && timeout > 20000)
         throw new ClientError(
           'The installation result is not available yet. Refresh the catalog or check the workspace before retrying.',
@@ -469,10 +500,22 @@ class DesktopService {
         timeout,
         responseType,
         errorMessages,
-        includeServerMessage
+        includeServerMessage,
+        runtimeRecoveryBudget
       })
     }
     if (!response.ok) {
+      if (runtime) {
+        const failure = new ClientError(
+          runtime.errorCode === 'RUNTIME_DRAINING'
+            ? 'Xpert is restarting. Please reconnect shortly.'
+            : 'Xpert is temporarily unavailable. Please reconnect shortly.',
+          503
+        )
+        failure.errorCode = runtime.errorCode
+        failure.retryAfterMs = runtime.retryAfterMs
+        throw failure
+      }
       if (response.status === 401)
         throw new ClientError(
           auth ? 'Your session expired. Please sign in again.' : 'Incorrect email or password.',

@@ -1,4 +1,5 @@
-jest.mock('../core/context', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+	...jest.requireActual('@xpert-ai/plugin-sdk'),
 	RequestContext: {
 		currentUserId: jest.fn(),
 		currentTenantId: jest.fn(),
@@ -66,7 +67,7 @@ jest.mock('./events', () => ({
 	}
 }))
 
-const { RequestContext } = require('../core/context')
+const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { BadRequestException } = require('@nestjs/common')
 const { RolesEnum, UserType } = require('@xpert-ai/contracts')
 const { ExternalIdentityBinding } = require('../account-binding/external-identity-binding.entity')
@@ -155,6 +156,20 @@ describe('UserService', () => {
 			relations: ['role', 'role.rolePermissions', 'employee']
 		})
 		expect(result).toBe(user)
+	})
+
+	it('loads third-party authentication with current database role permissions', async () => {
+		const user = { id: 'user-1' }
+		const query = {
+			where: jest.fn().mockReturnThis(),
+			leftJoinAndSelect: jest.fn().mockReturnThis(),
+			getOne: jest.fn().mockResolvedValue(user)
+		}
+		userRepository.createQueryBuilder.mockReturnValue(query)
+		expect(await service.getIfExistsThirdParty('sso-user')).toBe(user)
+		expect(query.where).toHaveBeenCalledWith('user.thirdPartyId = :thirdPartyId', { thirdPartyId: 'sso-user' })
+		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('user.role', 'role')
+		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('role.rolePermissions', 'rolePermissions')
 	})
 
 	it('loads current user with core relations by default', async () => {
@@ -406,22 +421,21 @@ describe('UserService', () => {
 		}
 
 		cacheManager.get.mockResolvedValue(undefined)
-		service.findOne = jest.fn().mockResolvedValue(coreUser)
+		service.findOne = jest
+			.fn()
+			.mockResolvedValueOnce({ ...coreUser, organizations: undefined })
+			.mockResolvedValueOnce({ id: coreUser.id, organizations: coreUser.organizations })
 		featureOrganizationRepository.find
 			.mockResolvedValueOnce([tenantFeature])
 			.mockResolvedValueOnce([organizationFeature])
 
 		const result = await service.findCurrentUser('user-1', featureHydrationRelations)
 
-		expect(service.findOne).toHaveBeenCalledWith('user-1', {
-			relations: [
-				'employee',
-				'role',
-				'role.rolePermissions',
-				'tenant',
-				'organizations',
-				'organizations.organization'
-			]
+		expect(service.findOne).toHaveBeenNthCalledWith(1, 'user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant']
+		})
+		expect(service.findOne).toHaveBeenNthCalledWith(2, 'user-1', {
+			relations: ['organizations', 'organizations.organization']
 		})
 		expect(result.tenant.featureOrganizations).toEqual([tenantFeature])
 		expect(result.organizations[0].organization.featureOrganizations).toEqual([organizationFeature])
@@ -476,19 +490,18 @@ describe('UserService', () => {
 				organizationFeatureOrganizations: [cachedOrganizationFeature]
 			}
 		})
-		service.findOne = jest.fn().mockResolvedValue(freshUser)
+		service.findOne = jest
+			.fn()
+			.mockResolvedValueOnce({ ...freshUser, organizations: undefined })
+			.mockResolvedValueOnce({ id: freshUser.id, organizations: freshUser.organizations })
 
 		const result = await service.findCurrentUser('user-1', featureHydrationRelations)
 
-		expect(service.findOne).toHaveBeenCalledWith('user-1', {
-			relations: [
-				'employee',
-				'role',
-				'role.rolePermissions',
-				'tenant',
-				'organizations',
-				'organizations.organization'
-			]
+		expect(service.findOne).toHaveBeenNthCalledWith(1, 'user-1', {
+			relations: ['employee', 'role', 'role.rolePermissions', 'tenant']
+		})
+		expect(service.findOne).toHaveBeenNthCalledWith(2, 'user-1', {
+			relations: ['organizations', 'organizations.organization']
 		})
 		expect(result.tenant.name).toBe('Updated tenant')
 		expect(result.role.rolePermissions).toEqual([{ permission: 'updated' }])

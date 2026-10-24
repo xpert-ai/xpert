@@ -14,6 +14,7 @@ import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
+import { assistantAccentColor } from './avatar/color'
 import type { DesktopLastSession } from './assistant-list-types'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
@@ -35,12 +36,13 @@ export function ChatPanel({
   config: ConnectionConfig
   dark: boolean
   initialThread: string | null
-  initialVoice?: { assistantId: string; conversationId: string } | null
+  initialVoice?: DesktopLastSession['conversation'] | null
   onConversationRead: (botId: string, threadId: string | null) => void
   onSessionChange?: (session: DesktopLastSession) => void
   onAppearanceSaved: () => Promise<void>
 }) {
   const botId = bot?.id ?? ''
+  const accentColor = assistantAccentColor(groupId ? undefined : bot)
   const name = groupId ? t('Group conversation') : (bot?.name ?? '')
   const sessionKey = JSON.stringify([groupId, botId, selectionVersion])
   const activeSessionKey = useRef(sessionKey)
@@ -51,6 +53,7 @@ export function ChatPanel({
   // The frame load event precedes ChatKit's own session/data loading state.
   const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
+  const sessionError = useRef('')
   const [retry, setRetry] = useState(0)
   const [customizeId, setCustomizeId] = useState<string | null>(null)
   const delivery = useDeliveredFile(sessionKey)
@@ -89,15 +92,19 @@ export function ChatPanel({
     instance.current = element
     setFrameReady(false)
     setError('')
+    sessionError.current = ''
     element.addEventListener('chatkit.ready', () => {
       if (!disposed) {
         setFrameReady(true)
         setError('')
+        sessionError.current = ''
       }
     })
     element.addEventListener('chatkit.error', (event) => {
-      if (!disposed)
-        setError(event.detail.error.message || t('ChatKit could not connect. Check your connection settings.'))
+      if (!disposed) {
+        const message = event.detail.error.message || t('ChatKit could not connect. Check your connection settings.')
+        setError(message)
+      }
     })
     // StrictMode's discarded effect must not start an iframe navigation.
     queueMicrotask(() => {
@@ -136,6 +143,7 @@ export function ChatPanel({
     setThreadId(activeThread)
     setCustomizeId(null)
     setError('')
+    sessionError.current = ''
     const header = {
       enabled: true,
       windowDrag: !!window.xpertDesktop,
@@ -147,19 +155,27 @@ export function ChatPanel({
       viewRail: { enabled: true },
       onClientCommand: groupId
         ? undefined
-        : createWorkbenchHandler(botId, config.webUrl, (session) => {
-            if (!disposed) {
-              activeAssistant = session.assistantId
-              activeThread = session.threadId
-              activeConversation =
-                session.conversationId && session.threadId
-                  ? { assistantId: session.assistantId, conversationId: session.conversationId }
-                  : undefined
-              setShellAssistantId(session.assistantId)
-              setThreadId(session.threadId)
-              remember()
+        : createWorkbenchHandler(
+            botId,
+            config.webUrl,
+            (session) => {
+              if (!disposed) {
+                activeAssistant = session.assistantId
+                activeThread = session.threadId
+                activeConversation =
+                  session.conversationId && session.threadId
+                    ? { assistantId: session.assistantId, conversationId: session.conversationId }
+                    : undefined
+                setShellAssistantId(session.assistantId)
+                setThreadId(session.threadId)
+                remember()
+              }
+            },
+            {
+              assistantId: () => (disposed ? undefined : activeAssistant),
+              connect: (request) => connectRef.current(request)
             }
-          })
+          )
     }
     const options: ChatKitOptions = {
       ...(!groupId ? shell.handlers : {}),
@@ -172,30 +188,46 @@ export function ChatPanel({
       api: {
         apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
         xpertId: activeAssistant || undefined,
+        projectId: initialThread ? initialVoice?.projectId : undefined,
         getClientSecret: async () => {
+          const recovered = <T,>(value: T): T => {
+            if (!disposed && activeSessionKey.current === sessionKey) {
+              const previous = sessionError.current
+              setError((current) => (previous && current === previous ? '' : current))
+              sessionError.current = ''
+            }
+            return value
+          }
           try {
             if (groupId)
-              return await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
+              return recovered(
+                await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
+              )
             if (initialVoice && initialThread) {
               const session = await invoke('workbenchSession', {
                 botId,
                 target: 'assistant.conversation',
                 conversationId: initialVoice.conversationId,
+                projectId: initialVoice.projectId,
                 threadId: initialThread
               })
               if (session.assistantId !== initialVoice.assistantId)
                 throw new Error(t('Could not create a chat session.'))
-              return { secret: session.secret, organizationId: session.organizationId }
+              return recovered({ secret: session.secret, organizationId: session.organizationId })
             }
-            return await invoke('chatSession', botId)
+            return recovered(await invoke('chatSession', botId))
           } catch (error) {
-            if (!disposed) setError(error instanceof Error ? error.message : t('Could not create a chat session.'))
+            if (!disposed && activeSessionKey.current === sessionKey) {
+              const message = error instanceof Error ? error.message : t('Could not create a chat session.')
+              sessionError.current = message
+              setError(message)
+            }
             throw error
           }
         }
       },
       locale: config.locale,
-      theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance),
+      theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance, accentColor),
       messagePresentation: groupId ? { mode: 'bubbles' } : getChatKitMessagePresentation(config.appearance),
       layout: { maxWidth: 960 },
       initialThread: activeThread,
@@ -203,7 +235,7 @@ export function ChatPanel({
       history: { enabled: true },
       taskSummary: { enabled: true },
       composer: {
-        projects: { enabled: true },
+        projects: { enabled: true, locked: Boolean(initialThread && initialVoice?.projectId) },
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }
@@ -274,7 +306,7 @@ export function ChatPanel({
 
   useEffect(() => {
     if (frameReady && instance.current && optionsRef.current) {
-      const theme = getChatKitTheme(dark, config.appearance)
+      const theme = getChatKitTheme(dark, config.appearance, accentColor)
       const messagePresentation = groupId
         ? { mode: 'bubbles' as const }
         : getChatKitMessagePresentation(config.appearance)
@@ -301,7 +333,7 @@ export function ChatPanel({
       optionsRef.current = options
       instance.current.setOptions(options)
     }
-  }, [dark, frameReady, config.appearance, config.locale, name, groupId, computerState])
+  }, [dark, frameReady, config.appearance, config.locale, name, groupId, computerState, accentColor])
 
   useEffect(() => {
     if (!frameReady || !instance.current || !optionsRef.current) return

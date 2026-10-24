@@ -142,14 +142,18 @@ export type TChatThreadPurpose = (typeof ChatThreadPurpose)[keyof typeof ChatThr
 
 /** Machine-readable keys stored in `ChatConversationThread.metadata`. */
 export type TChatThreadMetadata = {
+  /** Server-owned admission for historical-message edits. */
+  editAdmission?: import('./chat-recovery.model').TMessageEditAdmission
   /** User-editable branch label, independent of the conversation title. */
   title?: string
   primary?: boolean
   purpose?: TChatThreadPurpose
-  /** Graph revision the edited input was captured on; cleared after the first successful run. */
+  /** Graph revision captured for a fork; cleared after the first successful run. */
   forkGraphRevision?: string
   /** Client-provided idempotency key for branch creation. */
   forkRequestId?: string
+  /** Explicit copy semantics for validating idempotent retries. */
+  forkMode?: 'latest-sealed-reply'
   [key: string]: unknown
 }
 export type TToolCallType = 'agent' | 'tool'
@@ -199,6 +203,8 @@ export type TSensitiveOperation = {
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
+  /** Optimistic concurrency token for the persisted working-thread selection. */
+  workingThreadRevision?: number
   /**
    * `private`: ordinary chat; `group`: shared public transcript; `group_assistant_runtime`:
    * one member Assistant's isolated execution history. Optional for legacy DTOs (treated as private).

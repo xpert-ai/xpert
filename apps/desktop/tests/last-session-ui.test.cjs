@@ -159,3 +159,21 @@ test('startup waits for restore and still starts normal onboarding when there is
   assert.equal(view.chat.bot.id, 'a')
   assert.equal(view.chat.initialThread, 'welcome-thread')
 })
+
+test('restored delegated conversation passes its authorized Project to ChatKit without resetting the thread', async (t) => {
+  const restored = {
+    botId: 'b',
+    threadId: 'role-thread',
+    conversation: {
+      assistantId: 'role',
+      conversationId: 'role-conversation',
+      projectId: 'project'
+    }
+  }
+  const { view, reopen } = await mount(t, { restored })
+  assert.deepEqual(view.chat.initialVoice, restored.conversation)
+  assert.equal(view.chat.initialThread, 'role-thread')
+  await reopen()
+  assert.deepEqual(view.chat.initialVoice, restored.conversation)
+  assert.equal(view.chat.initialThread, 'role-thread')
+})

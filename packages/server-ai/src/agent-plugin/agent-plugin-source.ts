@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile, lstat } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, relative, isAbsolute, dirname } from 'node:path'
 import unzipper from 'unzipper'
@@ -97,65 +96,4 @@ export async function stagePortableGit(url: string, ref: string, subdirectory = 
     }
 }
 
-/** Walk only contained regular files. Broken/escaping links are isolated like invalid components. */
-async function walkPortablePackage(
-    root: string,
-    file: (path: string, data: Buffer) => Promise<void>,
-    skipped?: (path: string) => void
-) {
-    let bytes = 0
-    let count = 0
-    const visit = async (path: string, ancestors: Set<string>) => {
-        if (++count > MAX_FILES) throw new Error('Plugin contains too many files')
-        let real: string
-        try {
-            real = await containedPath(root, path)
-        } catch {
-            skipped?.(path)
-            return
-        }
-        if (ancestors.has(real)) {
-            skipped?.(path)
-            return
-        }
-        const info = await lstat(real)
-        if (info.isDirectory()) {
-            const next = new Set([...ancestors, real])
-            for (const name of (await readdir(real)).sort()) {
-                if (name !== '.git') await visit(join(path, name), next)
-            }
-        } else if (info.isFile()) {
-            bytes += info.size
-            if (bytes > MAX_BYTES) throw new Error('Plugin exceeds size limit')
-            const data = await readFile(real)
-            if (data.length !== info.size) throw new Error('Plugin changed during import')
-            await file(path, data)
-        } else {
-            skipped?.(path)
-        }
-    }
-    await visit('.', new Set())
-}
-
-export async function portablePackageDigest(root: string) {
-    const digest = createHash('sha256')
-    await walkPortablePackage(root, async (path, data) => {
-        digest.update(path).update('\0').update(data).update('\0')
-    })
-    return digest.digest('hex')
-}
-
-/** Never dereference a link until its real path has passed the package boundary check. */
-export async function copyPortablePackage(root: string, destination: string) {
-    const skipped: string[] = []
-    await walkPortablePackage(
-        root,
-        async (path, data) => {
-            const target = join(destination, path)
-            await mkdir(dirname(target), { recursive: true })
-            await writeFile(target, data, { flag: 'wx' })
-        },
-        (path) => skipped.push(path)
-    )
-    return skipped
-}
+export { portablePackageDigest, copyPortablePackage } from './portable-package-files'

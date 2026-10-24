@@ -19,6 +19,61 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('opens only known Project routes and rejects path injection or cancelled navigation', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    for (const destination of ['application', 'pipelines']) {
+      expect(
+        await registry.execute(
+          WORKBENCH_NAVIGATION_OPEN_COMMAND,
+          { target: `project.${destination}`, projectId: 'project-1', url: 'https://unrelated.example' },
+          context
+        )
+      ).toMatchObject({ success: true })
+      expect(navigate).toHaveBeenLastCalledWith(['/project', 'project-1', destination])
+      navigate.mockClear()
+      expect(
+        await registry.execute(
+          WORKBENCH_NAVIGATION_OPEN_COMMAND,
+          { target: `project.${destination}`, projectId: '../settings' },
+          context
+        )
+      ).toMatchObject({ success: false })
+      expect(navigate).not.toHaveBeenCalled()
+    }
+    navigate.mockResolvedValueOnce(false)
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'project.application', projectId: 'project-1' },
+        context
+      )
+    ).toMatchObject({ success: false, code: 'navigation_cancelled' })
+  })
+  it('forwards a node identity only to the governed Project application route', async () => {
+    const registry = new ViewClientCommandRegistry(),
+      navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    const pipelineNodeId = '45123b96-3d55-4321-91d3-9123acb31380'
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'project.application', projectId: 'project', pipelineNodeId },
+        context
+      )
+    ).toMatchObject({ success: true })
+    expect(navigate).toHaveBeenLastCalledWith(['/project', 'project', 'application'], {
+      queryParams: { pipelineNodeId }
+    })
+    for (const input of [
+      { target: 'project.pipelines', pipelineNodeId: '../other' },
+      { target: 'project.application', pipelineNodeId: '../other' }
+    ])
+      expect(
+        await registry.execute(WORKBENCH_NAVIGATION_OPEN_COMMAND, { projectId: 'project', ...input }, context)
+      ).toMatchObject({ success: false })
+  })
   it('preserves an exact message anchor and the originating view while retaining old requests', async () => {
     const registry = new ViewClientCommandRegistry()
     const openAssistantConversation = jest.fn(async (request) => request)
@@ -170,6 +225,18 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       })
     )
     expect(JSON.stringify((navigate.mock.calls[0]?.[1] as any)?.queryParams)).not.toContain('power factor')
+  })
+
+  it('does not report a cancelled View navigation as opened', async () => {
+    const registry = new ViewClientCommandRegistry()
+    registerWorkbenchNavigationOpenCommand(registry, { openWorkbenchView: async () => false })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: WORKBENCH_EXTENSION_VIEW_TARGET, viewKey: 'bid.studio' },
+        context
+      )
+    ).toEqual({ success: false, code: 'navigation_cancelled' })
   })
 
   it('opens a fixed workbench view with a selected business record', async () => {

@@ -1,6 +1,11 @@
 import { Logger } from '@nestjs/common'
 import { getConfig, setConfig } from '@xpert-ai/server-config'
-import { loadOrganizationPluginConfigs, registerPluginsAsync } from '@xpert-ai/server-core'
+import {
+  getEntitiesFromPlugins,
+  loadOrganizationPluginConfigs,
+  PluginStartupTimeoutError,
+  registerPluginsAsync
+} from '@xpert-ai/server-core'
 import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import { preBootstrapPlugins } from './index'
 
@@ -35,7 +40,7 @@ const pluginName = '@xpert-ai/plugin-local-shell-sandbox'
 const loadConfigs = jest.mocked(loadOrganizationPluginConfigs)
 const register = jest.mocked(registerPluginsAsync)
 
-describe('preBootstrapPlugins local shell opt-in', () => {
+describe('preBootstrapPlugins built-in plugins', () => {
   const originalEnabled = process.env.XPERT_LOCAL_SANDBOX_ENABLED
   const originalPlugins = process.env.PLUGINS
 
@@ -61,6 +66,27 @@ describe('preBootstrapPlugins local shell opt-in', () => {
     else process.env.PLUGINS = originalPlugins
     jest.restoreAllMocks()
   })
+
+  it.each([undefined, '@xpert-ai/plugin-github-integration,@xpert-ai/plugin-github-integration@0.1.0'])(
+    'registers GitHub automatically once in system scope with PLUGINS=%s',
+    async (plugins) => {
+      if (plugins) process.env.PLUGINS = plugins
+      await preBootstrapPlugins()
+      const registrations = register.mock.calls.flatMap(([group]) =>
+        group.plugins
+          .filter((plugin) => plugin.name === '@xpert-ai/plugin-github-integration')
+          .map((plugin) => ({ scopeKey: group.scopeKey, ...plugin }))
+      )
+      expect(registrations).toEqual([
+        {
+          scopeKey: SYSTEM_GLOBAL_SCOPE,
+          name: '@xpert-ai/plugin-github-integration',
+          source: 'code',
+          level: 'system'
+        }
+      ])
+    }
+  )
 
   it.each([undefined, '', 'false', '1'])('does not enable host shell implicitly for %s', async (value) => {
     if (value !== undefined) process.env.XPERT_LOCAL_SANDBOX_ENABLED = value
@@ -115,5 +141,64 @@ describe('preBootstrapPlugins local shell opt-in', () => {
     register.mockRejectedValueOnce(new Error('Optional package is missing'))
     await expect(preBootstrapPlugins()).resolves.toBeUndefined()
     expect(setConfig).toHaveBeenCalled()
+  })
+
+  it('keeps successful modules and entities when individual plugins fail during schema preparation', async () => {
+    class CoreEntity {}
+    class WorkingPluginEntity {}
+    class WorkingPluginModule {}
+    const modules = [{ module: WorkingPluginModule }]
+    jest.mocked(getConfig).mockReturnValue({
+      ...getConfig(),
+      dbConnectionOptions: { type: 'postgres', entities: [CoreEntity] }
+    })
+    jest.mocked(getEntitiesFromPlugins).mockReturnValueOnce([WorkingPluginEntity])
+    register.mockResolvedValueOnce({
+      modules,
+      organizationId: 'global',
+      scopeKey: 'system:global',
+      tenantId: null,
+      errors: [
+        { organizationId: 'global', pluginName: '@fixture/missing', error: 'Cannot find module' },
+        {
+          organizationId: 'global',
+          pluginName: '@fixture/invalid',
+          error: 'Module does not export a valid XpertPlugin'
+        }
+      ]
+    })
+    await expect(preBootstrapPlugins({ failOnPluginGroupError: true })).resolves.toBeUndefined()
+    expect(register).toHaveBeenCalledTimes(2)
+    expect(getEntitiesFromPlugins).toHaveBeenCalledWith(modules)
+    expect(setConfig).toHaveBeenCalledWith({
+      plugins: modules,
+      dbConnectionOptions: { autoLoadEntities: true, entities: [CoreEntity, WorkingPluginEntity] }
+    })
+  })
+
+  it('propagates a failed registration group before schema migration', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    jest.spyOn(Logger, 'error').mockImplementation(() => undefined)
+    register.mockRejectedValueOnce(new Error('Plugin discovery failed'))
+    await expect(preBootstrapPlugins({ failOnPluginGroupError: true })).rejects.toThrow('Plugin discovery failed')
+    expect(setConfig).not.toHaveBeenCalled()
+  })
+
+  it('does not migrate when the persisted plugin list cannot be read', async () => {
+    loadConfigs.mockRejectedValueOnce(new Error('Plugin configuration database is unavailable'))
+    await expect(preBootstrapPlugins({ failOnPluginGroupError: true })).rejects.toThrow(
+      'Plugin configuration database is unavailable'
+    )
+    expect(register).not.toHaveBeenCalled()
+    expect(setConfig).not.toHaveBeenCalled()
+  })
+
+  it.each([false, true])('keeps startup timeouts fatal with strict groups = %s', async (failOnPluginGroupError) => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    jest.spyOn(Logger, 'error').mockImplementation(() => undefined)
+    const error = new PluginStartupTimeoutError('Plugin registration timed out')
+    register.mockRejectedValueOnce(error)
+    await expect(preBootstrapPlugins({ failOnPluginGroupError })).rejects.toBe(error)
+    expect(setConfig).not.toHaveBeenCalled()
   })
 })

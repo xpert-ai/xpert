@@ -16,6 +16,8 @@ module.exports.createTemplateInstallationMethods = function (ClientError) {
       !Number.isInteger(value.attempt) ||
       typeof value.publish !== 'boolean' ||
       typeof value.retryable !== 'boolean' ||
+      (value.assistantAvailability !== undefined &&
+        !['available', 'unavailable'].includes(value.assistantAvailability)) ||
       !Array.isArray(value.resourceInstallationIds) ||
       !Array.isArray(value.pendingAuthInstallationIds)
     )
@@ -29,6 +31,7 @@ module.exports.createTemplateInstallationMethods = function (ClientError) {
       attempt: value.attempt,
       publish: value.publish,
       assistantId: value.assistantId ? required(value.assistantId) : null,
+      ...(value.assistantAvailability === undefined ? {} : { assistantAvailability: value.assistantAvailability }),
       retryable: value.retryable,
       resourceInstallationIds: value.resourceInstallationIds.map(required),
       pendingAuthInstallationIds: value.pendingAuthInstallationIds.map(required),

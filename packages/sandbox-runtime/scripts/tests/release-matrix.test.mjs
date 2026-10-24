@@ -8,11 +8,24 @@ import { test } from 'node:test'
 
 const suiteRoot = fileURLToPath(new URL('../../', import.meta.url))
 const readJson = async (file) => JSON.parse(await readFile(file, 'utf8'))
-const run = (root, script) =>
-  execFileSync(process.execPath, [path.join(root, 'scripts', script)], {
+const run = (root, script, args = []) =>
+  execFileSync(process.execPath, [path.join(root, 'scripts', script), ...args], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   })
+
+test('a targeted repair publishes only the requested family and rejects unknown or missing families', () => {
+  const all = JSON.parse(run(suiteRoot, 'build-matrix.mjs')).include
+  const { include } = JSON.parse(run(suiteRoot, 'build-matrix.mjs', ['--family', 'compute']))
+  assert.deepEqual(
+    include,
+    all.filter((image) => image.family === 'compute')
+  )
+  assert.equal(include.length, 1)
+  for (const args of [['--family'], ['--family', 'unknown'], ['--family', 'compute,browser']]) {
+    assert.throws(() => run(suiteRoot, 'build-matrix.mjs', args), /Unknown Runtime image family/)
+  }
+})
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), 'runtime-release-'))
@@ -37,7 +50,8 @@ test('release matrix preserves existing tags and publishes Python with its pinne
     document: `${version}-lo7`,
     'document-python': `${version}-py3.12.10`,
     'document-node': version,
-    'document-java': version
+    'document-java': version,
+    compute: version
   })
 })
 
@@ -80,9 +94,33 @@ test('suite patch synchronization keeps the matrix and runtime definitions align
   run(root, 'verify-catalog.mjs')
   const { include } = JSON.parse(run(root, 'build-matrix.mjs'))
   assert.equal(include.find((image) => image.family === 'document-python').versionTag, '1.2.3-py3.12.10')
+  assert.equal(include.find((image) => image.family === 'compute').versionTag, '1.2.3')
   const definition = await readJson(
     path.join(root, '../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-python-3.12-v1.json')
   )
   assert.equal(definition.sandboxRuntimeVersion, '1.2.3')
   assert.equal(definition.expectedManifest.sandboxRuntimeVersion, '1.2.3')
 })
+
+for (const family of ['document-node', 'document-java', 'document-python']) {
+  test(`${family} catalog and renderer reject a mislabeled production binding`, async (t) => {
+    const root = await fixture(t)
+    const file = path.join(root, 'images', family, 'artifact-catalog.template.json')
+    const template = await readJson(file)
+    template.artifacts[0].imageFamily = 'document'
+    await writeFile(file, JSON.stringify(template))
+    assert.throws(() => run(root, 'verify-catalog.mjs'), /artifact catalog identity/)
+    assert.throws(
+      () =>
+        run(root, 'render-artifact-catalog.mjs', [
+          '--family',
+          family,
+          '--image',
+          `example.invalid/runtime@sha256:${'a'.repeat(64)}`,
+          '--output',
+          path.join(root, 'artifact.json')
+        ]),
+      /Artifact catalog identity/
+    )
+  })
+}

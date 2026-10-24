@@ -1,25 +1,36 @@
-import { TemplateRequirementsComponent } from './template-requirements.component'
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal, untracked } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked
+} from '@angular/core'
 import { DialogRef } from '@angular/cdk/dialog'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Store, API_PREFIX } from '@cloud/app/@core/state'
-import {
-  AiProviderRole,
-  CopilotServerService,
-  getErrorMessage,
-  XpertAPIService,
-  XpertTemplateService,
-  XpertWorkspaceService
-} from '@cloud/app/@core'
+import { getErrorMessage, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
 import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import type { IXpertWorkspace, TemplateInstallation, XpertTemplateSetup, TXpertTemplate } from '@xpert-ai/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import type {
+  ICopilotModel,
+  IXpertWorkspace,
+  TemplateInstallation,
+  XpertTemplateSetup,
+  TXpertTemplate
+} from '@xpert-ai/contracts'
+import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
 import {
   createInstallationClient,
+  canOpenInstalledAssistant,
   installationStageLabels,
   installationStatusLabel,
   type InstallationSnapshot
@@ -38,12 +49,13 @@ const empty: InstallationSnapshot = {
   selector: 'xp-template-installation',
   standalone: true,
   imports: [
-    TemplateRequirementsComponent,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     ...XpDialogFrameImports,
     ZardButtonComponent,
-    ZardInputDirective
+    ZardInputDirective,
+    CopilotModelSelectComponent
   ],
   templateUrl: './template-installation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,7 +71,6 @@ export class TemplateInstallationComponent {
   private readonly templates = inject(XpertTemplateService)
   private readonly workspacesService = inject(XpertWorkspaceService)
   private readonly xperts = inject(XpertAPIService)
-  private readonly copilots = inject(CopilotServerService)
   private readonly router = inject(Router)
   private readonly dialog = inject(DialogRef)
   readonly translate = inject(TranslateService)
@@ -70,86 +81,132 @@ export class TemplateInstallationComponent {
   readonly template = signal<TXpertTemplate | null>(null)
   readonly setup = signal<XpertTemplateSetup | null>(null)
   readonly state = signal<InstallationSnapshot>(empty)
-  readonly loading = signal(false)
-  readonly primaryAvailable = signal(false)
+  private readonly templateLoading = signal(false)
+  private readonly workspacesLoading = signal(false)
+  readonly loading = computed(() => this.templateLoading() || this.workspacesLoading())
+  private readonly templateReload = signal(0)
+  private readonly workspaceReload = signal(0)
   readonly revision = signal(0)
-  readonly error = signal('')
+  private readonly templateError = signal('')
+  private readonly workspaceError = signal('')
+  private readonly setupError = signal('')
+  readonly error = computed(() => this.templateError() || this.workspaceError() || this.setupError())
+  readonly openingError = signal('')
+  readonly opening = signal(false)
+  private openingGeneration = 0
   readonly capabilities = signal<string[]>([])
   readonly form = new FormGroup({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
-    model: new FormControl('', { nonNullable: true }),
+    model: new FormControl('', {
+      nonNullable: true,
+      validators: [
+        (control) => {
+          const setup = this.setup()
+          if (!setup) return { modelUnavailable: true }
+          if (!control.value)
+            return setup.requiresModel || setup.requiredModelFeatures.length ? { required: true } : null
+          return setup.models.some((option) => option.id === control.value) ? null : { modelUnavailable: true }
+        }
+      ]
+    }),
     voiceModel: new FormControl('', { nonNullable: true }),
     voice: new FormControl('', { nonNullable: true })
   })
+  readonly modelType = AiModelTypeEnum.LLM
+  private readonly selectedModelId = toSignal(this.form.controls.model.valueChanges, { initialValue: '' })
+  readonly selectedModel = computed(
+    () => this.setup()?.models.find((option) => option.id === this.selectedModelId())?.copilotModel ?? null
+  )
+  // Setup already applies template capability rules, including multi-tool-call compatibility.
+  readonly allowedModels = computed(() => this.setup()?.models.map((option) => option.copilotModel) ?? [])
   readonly statusLabel = installationStatusLabel
   readonly stages = installationStageLabels
+  readonly canOpen = canOpenInstalledAssistant
   client: ReturnType<typeof createInstallationClient> | null = null
   constructor() {
     effect((cleanup) => {
       const id = this.templateId(),
         organization = this.organizationId(),
         user = this.user()
-      const preferred = this.initialWorkspaceId()
+      this.templateReload()
       let active = true
       cleanup(() => {
         active = false
       })
-      this.workspaceId.set('')
-      this.workspaces.set([])
       this.template.set(null)
-      this.error.set('')
+      this.templateError.set('')
+      this.templateLoading.set(false)
+      untracked(() => this.form.controls.model.reset(''))
       if (!organization || !user?.id) return
-      this.loading.set(true)
-      void Promise.all([
-        firstValueFrom(this.templates.getTemplate(id, this.translate.currentLang)),
-        firstValueFrom(this.workspacesService.getAllMy(undefined, { purpose: 'authoring' }))
-      ])
-        .then(([template, result]) => {
+      this.templateLoading.set(true)
+      void firstValueFrom(this.templates.getTemplate(id, this.translate.currentLang))
+        .then((template) => {
           if (!active) return
           this.template.set(template)
           this.form.controls.title.setValue(typeof template.title === 'string' ? template.title : template.name)
+        })
+        .catch((error) => {
+          if (active) this.templateError.set(getErrorMessage(error))
+        })
+        .finally(() => {
+          if (active) this.templateLoading.set(false)
+        })
+    })
+    effect((cleanup) => {
+      const organization = this.organizationId(),
+        user = this.user(),
+        preferred = this.initialWorkspaceId()
+      this.workspaceReload()
+      let active = true
+      cleanup(() => {
+        active = false
+      })
+      this.workspaces.set([])
+      this.workspaceId.set('')
+      this.workspaceError.set('')
+      this.workspacesLoading.set(false)
+      if (!organization || !user?.id) return
+      this.workspacesLoading.set(true)
+      void firstValueFrom(this.workspacesService.getAllMy(undefined, { purpose: 'authoring' }))
+        .then((result) => {
+          if (!active) return
           const workspaces = result.items.filter((item) => item.capabilities?.canWrite)
           this.workspaces.set(workspaces)
           this.workspaceId.set(workspaces.some((item) => item.id === preferred) ? preferred : (workspaces[0]?.id ?? ''))
         })
         .catch((error) => {
-          if (active) this.error.set(getErrorMessage(error))
+          if (active) this.workspaceError.set(getErrorMessage(error))
         })
         .finally(() => {
-          if (active) this.loading.set(false)
+          if (active) this.workspacesLoading.set(false)
         })
     })
     effect((cleanup) => {
       const id = this.templateId(),
         capabilities = this.capabilities(),
-        organization = this.organizationId()
+        organization = this.organizationId(),
+        workspaceId = this.workspaceId(),
+        user = this.user()
       this.revision()
       let active = true
       cleanup(() => {
         active = false
       })
+      const template = this.template()
       this.setup.set(null)
-      if (!organization) return
-      this.primaryAvailable.set(false)
-      this.error.set('')
-      void firstValueFrom(this.templates.getSetup(id, capabilities, this.workspaceId() || undefined))
-        .then(async (setup) => {
-          const primary =
-            setup.requiresModel || setup.requiredModelFeatures.length
-              ? null
-              : await firstValueFrom(this.copilots.getAvailableByRole(AiProviderRole.Primary))
+      this.setupError.set('')
+      if (!template || !organization || !workspaceId || !user?.id) return
+      void firstValueFrom(this.templates.getSetup(id, capabilities, workspaceId))
+        .then((setup) => {
           if (!active) return
-          this.primaryAvailable.set(
-            !!primary?.id &&
-              !!primary.copilotModel?.model?.trim() &&
-              (!primary.copilotModel.modelType || primary.copilotModel.modelType === 'llm')
-          )
           this.setup.set(setup)
-          if (!setup.models.some((model) => model.id === this.form.controls.model.value))
-            this.form.controls.model.setValue(setup.defaultModelId ?? '')
+          if (!setup.models.some((model) => model.id === this.form.controls.model.value)) {
+            this.form.controls.model.setValue(setup.models.find((model) => model.id === setup.defaultModelId)?.id ?? '')
+          }
+          this.form.controls.model.updateValueAndValidity()
         })
         .catch((error) => {
-          if (active) this.error.set(getErrorMessage(error))
+          if (active) this.setupError.set(getErrorMessage(error))
         })
     })
     effect((cleanup) => {
@@ -158,24 +215,61 @@ export class TemplateInstallationComponent {
         organization = this.organizationId(),
         user = this.user()
       this.state.set(empty)
+      this.resetOpening()
       this.client = null
       if (!workspaceId || !organization || !user?.id) return
+      const notified = new Set<string>()
+      let selectedId: string | undefined
       const client = createInstallationClient({
         transport: this.service,
         storage: localStorage,
         scope: JSON.stringify([API_PREFIX, user.tenantId, user.id, organization]),
         workspaceId,
         templateId,
-        changed: (state) => this.state.set(state),
+        changed: (state) => {
+          if (state.operation?.id !== selectedId) {
+            selectedId = state.operation?.id
+            this.resetOpening()
+          }
+          this.state.set(state)
+          const operation = state.operation
+          if (operation?.status === 'succeeded' && !notified.has(operation.id)) {
+            notified.add(operation.id)
+            untracked(() => this.xperts.refresh())
+          }
+        },
         errorMessage: getErrorMessage
       })
       this.client = client
-      cleanup(() => client.dispose())
+      cleanup(() => {
+        client.dispose()
+        this.resetOpening()
+      })
       untracked(() => void client.restore().then(() => client.history()))
     })
   }
+  refreshSettings() {
+    if (this.state().busy || this.loading()) return
+    if (!this.template()) this.templateReload.update((value) => value + 1)
+    if (this.workspaceError()) this.workspaceReload.update((value) => value + 1)
+    this.revision.update((value) => value + 1)
+  }
   selectWorkspace(event: Event) {
     if (event.target instanceof HTMLSelectElement) this.workspaceId.set(event.target.value)
+  }
+  selectModel(value: Partial<ICopilotModel> | null) {
+    if (this.state().busy || this.loading() || !this.setup()) return
+    const option =
+      value &&
+      this.setup().models.find(
+        ({ copilotModel }) =>
+          copilotModel.copilotId === value.copilotId &&
+          copilotModel.model === value.model &&
+          copilotModel.modelType === value.modelType
+      )
+    this.form.controls.model.setValue(option?.id ?? '')
+    this.form.controls.model.markAsTouched()
+    if (value && !option) this.form.controls.model.setErrors({ modelUnavailable: true })
   }
   toggleCapability(key: string, event: Event) {
     if (!(event.target instanceof HTMLInputElement)) return
@@ -186,6 +280,8 @@ export class TemplateInstallationComponent {
     const setup = this.setup()
     return (
       !!this.client &&
+      !!this.template() &&
+      !this.error() &&
       !this.loading() &&
       !this.state().busy &&
       !this.state().operation &&
@@ -193,9 +289,9 @@ export class TemplateInstallationComponent {
       this.form.valid &&
       !!this.form.controls.title.value.trim() &&
       setup?.canInstall &&
-      (setup.requiresModel || setup.requiredModelFeatures.length
+      (this.form.controls.model.value
         ? setup.models.some((model) => model.id === this.form.controls.model.value)
-        : this.primaryAvailable()) &&
+        : !setup.requiresModel && !setup.requiredModelFeatures.length) &&
       (!this.capabilities().includes('realtime-voice') ||
         (!!this.form.controls.voiceModel.value && !!this.form.controls.voice.value))
     )
@@ -220,24 +316,48 @@ export class TemplateInstallationComponent {
       }
     })
   }
-  async manageDependencies() {
-    await this.router.navigate(['/plugins'], {
-      queryParams: { organizationId: this.organizationId(), workspaceId: this.workspaceId(), category: 'agent-plugins' }
-    })
+  async viewDetails() {
+    await this.router.navigate(['/explore/templates', this.templateId()])
     this.dialog.close()
   }
+  private resetOpening() {
+    this.openingGeneration++
+    this.openingError.set('')
+    this.opening.set(false)
+  }
+  newInstance() {
+    this.resetOpening()
+    this.client?.newInstance()
+  }
+  async select(operation: TemplateInstallation) {
+    this.resetOpening()
+    await this.client?.select(operation)
+  }
   async open(operation: TemplateInstallation, configure = false) {
-    if (!operation.assistantId || operation.status !== 'succeeded') return
+    const client = this.client
+    if (!client || !this.canOpen(operation) || this.opening() || this.state().busy) return
+    this.resetOpening()
+    this.opening.set(true)
+    const generation = this.openingGeneration
+    const current = () =>
+      this.client === client && generation === this.openingGeneration && this.state().operation?.id === operation.id
     try {
+      const latest = await client.refresh()
+      if (!current() || !latest || !this.canOpen(latest)) return
       if (configure) {
-        await this.router.navigate(['/xpert/w', operation.workspaceId, 'connectors'])
-        this.dialog.close()
+        await this.router.navigate(['/xpert/w', latest.workspaceId, 'connectors'])
+        if (current()) this.dialog.close()
         return
       }
-      const xpert = await firstValueFrom(this.xperts.getById(operation.assistantId))
-      this.completed.emit({ xpert, status: operation.publish ? 'published' : 'created' })
+      const xpert = await firstValueFrom(this.xperts.getById(latest.assistantId))
+      if (current()) this.completed.emit({ xpert, status: latest.publish ? 'published' : 'created' })
     } catch (error) {
-      this.error.set(getErrorMessage(error))
+      if (!current()) return
+      // The target can disappear between the receipt check and opening it.
+      const latest = await client.refresh()
+      if (current() && latest?.assistantAvailability !== 'unavailable') this.openingError.set(getErrorMessage(error))
+    } finally {
+      if (current()) this.opening.set(false)
     }
   }
 }

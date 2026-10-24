@@ -34,6 +34,43 @@ describe('template file initialization in real Volumes', () => {
         await rm(root, { recursive: true, force: true })
     })
 
+    it.each(['seed.txt', 'notes/nested/seed.txt'])(
+        'creates %s under a scoped root and preserves existing content',
+        async (filePath) => {
+            const scopedRoot = path.join(root, 'tenant', 'assistant')
+            const scopedVolume = new VolumeHandle(volume.scope, scopedRoot, scopedRoot, '', root)
+            await expect(scopedVolume.writeFile(filePath, 'seed', { createOnly: true })).resolves.toBe(true)
+            await expect(scopedVolume.writeFile(filePath, 'replacement', { createOnly: true })).resolves.toBe(false)
+            await expect(
+                VolumeHandle.writeFile(scopedRoot, filePath, 'replacement', { createOnly: true })
+            ).resolves.toBe(false)
+            expect(await readFile(path.join(scopedRoot, filePath), 'utf8')).toBe('seed')
+        }
+    )
+    ;(process.platform === 'linux' ? it : it.skip)(
+        'does not trust a public root string merely because it is an FD path',
+        async () => {
+            const openedRoot = await VolumeHandle.openExistingFile(root)
+            try {
+                await expect(
+                    VolumeHandle.writeFile(openedRoot.descriptorPath, 'seed.txt', 'seed', { createOnly: true })
+                ).rejects.toMatchObject({ code: 'ENOTDIR', path: openedRoot.descriptorPath })
+                await expect(readFile(path.join(root, 'seed.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+            } finally {
+                await openedRoot.fileHandle.close()
+            }
+        }
+    )
+
+    it('rejects an untrusted root symlink', async () => {
+        const alias = path.join(root, 'alias')
+        await symlink(root, alias)
+        await expect(VolumeHandle.writeFile(alias, 'seed.txt', 'seed', { createOnly: true })).rejects.toMatchObject({
+            path: alias
+        })
+        await expect(readFile(path.join(root, 'seed.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+    })
+
     it('creates directories and versioned empty ledgers; retries preserve edits and deletions', async () => {
         await initializeTemplateFiles(volume, files)
         expect(JSON.parse(await readFile(path.join(root, 'ledger.json'), 'utf8'))).toMatchObject({
@@ -66,10 +103,15 @@ describe('template file initialization in real Volumes', () => {
         await writeFile(path.join(root, 'outside', 'data'), 'safe')
         await symlink(path.join(root, 'outside', 'data'), path.join(root, 'ledger.json'))
         await expect(initializeTemplateFiles(volume, files)).rejects.toThrow()
+        // Initialization must reach the final symlink after successfully writing the preceding entry.
+        expect(await readFile(path.join(root, 'notes/start.md'), 'utf8')).toBe('seed')
         expect(await readFile(path.join(root, 'outside', 'data'), 'utf8')).toBe('safe')
         await rm(path.join(root, 'notes'), { recursive: true, force: true })
         await symlink(path.join(root, 'outside'), path.join(root, 'notes'))
-        await expect(volume.writeFile('notes/new', 'bad', { createOnly: true })).rejects.toThrow()
+        await expect(volume.writeFile('notes/new', 'bad', { createOnly: true })).rejects.toMatchObject({
+            path: expect.stringMatching(/\/notes$/)
+        })
+        await expect(readFile(path.join(root, 'outside', 'new'))).rejects.toMatchObject({ code: 'ENOENT' })
     })
     it('recovers only its own interrupted temporary hard link', async () => {
         const temporary = path.join(root, '.workspace-write-aaaaaaaa-bbbb.tmp')

@@ -1,0 +1,32 @@
+name: Verify schema synchronization and migrations
+on:
+  pull_request:
+    paths:
+      - 'packages/server/src/database/**'
+      - 'packages/server-ai/src/**/migrations/**'
+      - 'apps/api/src/schema-*.ts'
+      - 'apps/api/src/bootstrap/**'
+      - 'apps/api/src/plugin-config.ts'
+      - 'packages/config/src/database.ts'
+      - 'packages/server/src/main.ts'
+      - '.deploy/api/database-migrations.json'
+      - '.deploy/api/schema-compose.test.cjs'
+      - 'docker-compose.yml'
+      - 'docker/docker-compose*.yml'
+      - 'tools/scripts/test-schema-migrations.cjs'
+      - 'tools/scripts/schema-migration-legacy-fixture.cjs'
+      - '.github/workflows/database-migrations.yml'
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: node tools/scripts/test-schema-migrations.cjs
+      - run: node --test .deploy/api/schema-compose.test.cjs .deploy/api/health-diagnostics.test.cjs
+      - run: corepack pnpm exec jest --config apps/api/jest.config.ts --runInBand --runTestsByPath apps/api/src/schema-sync.spec.ts apps/api/src/bootstrap/plugins.spec.ts apps/api/src/bootstrap/schema-sync-bootstrap.spec.ts
+      - run: corepack pnpm exec jest --config packages/server/jest.config.ts --runInBand --runTestsByPath packages/server/src/database/application-data-source.spec.ts packages/server/src/plugin/plugin-schema-sync.service.spec.ts

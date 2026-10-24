@@ -20,6 +20,6 @@
         "strictNullChecks": true,
         "lib": ["es2022", "dom", "dom.iterable"]
     },
-    "exclude": ["src/**/*.spec.ts"],
+    "exclude": ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
     "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

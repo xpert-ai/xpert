@@ -82,6 +82,18 @@ describe('settings skills and middleware forms', () => {
     expect(component.choices().map(({ meta }) => meta.name)).toEqual(['review'])
     expect(component.formContext().workspaceId).toBe('workspace')
   })
+  it.each([undefined, null].map((options) => ({ options })))(
+    'defaults only omitted configuration when editing a historical node: $options',
+    async ({ options }) => {
+      const { component, draft } = setup()
+      draft.update((value) =>
+        saveMiddleware(value, 'primary', 'review', { title: 'Review', provider: 'review', options })
+      )
+      await component.load()
+      component.edit(component.assigned()[0])
+      expect(component.form.controls.options.value).toEqual(options === undefined ? {} : options)
+    }
+  )
   it('keeps new forms unapplied, prevents losing edits on target changes and cancels without creating a node', async () => {
     const { component, draft } = setup()
     await component.load()

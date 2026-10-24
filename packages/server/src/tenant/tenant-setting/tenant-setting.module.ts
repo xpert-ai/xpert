@@ -1,27 +1,23 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { RouterModule } from '@nestjs/core';
-import { TenantSettingController } from './tenant-setting.controller';
-import { TenantSetting } from './tenant-setting.entity';
-import { TenantSettingService } from './tenant-setting.service';
-import { CommandHandlers } from './commands/handlers';
+import { forwardRef, Module } from '@nestjs/common'
+import { CqrsModule } from '@nestjs/cqrs'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { RouterModule } from '@nestjs/core'
+import { TenantSettingController } from './tenant-setting.controller'
+import { TenantSetting } from './tenant-setting.entity'
+import { TenantSettingService } from './tenant-setting.service'
+import { CommandHandlers } from './commands/handlers'
+import { TenantSettingMutationGuard } from './tenant-setting-mutation.guard'
 // import { TenantModule } from '../tenant.module';
 
 @Module({
 	imports: [
-		RouterModule.register([
-			{ path: '/tenant-setting', module: TenantSettingModule }
-		]),
-		TypeOrmModule.forFeature([ TenantSetting ]),
+		RouterModule.register([{ path: '/tenant-setting', module: TenantSettingModule }]),
+		TypeOrmModule.forFeature([TenantSetting]),
 		// forwardRef(() => TenantModule),
 		CqrsModule
 	],
 	controllers: [TenantSettingController],
-	providers: [
-		TenantSettingService,
-		...CommandHandlers
-	],
+	providers: [TenantSettingService, TenantSettingMutationGuard, ...CommandHandlers],
 	exports: [TenantSettingService]
 })
 export class TenantSettingModule {}

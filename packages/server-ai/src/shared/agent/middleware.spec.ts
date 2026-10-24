@@ -111,7 +111,7 @@ describe('getAgentMiddlewares', () => {
         expect(middlewares).toHaveLength(2)
         expect(createMiddleware).toHaveBeenNthCalledWith(
             1,
-            undefined,
+            {},
             expect.objectContaining({
                 xpertFeatures: {
                     sandbox: {

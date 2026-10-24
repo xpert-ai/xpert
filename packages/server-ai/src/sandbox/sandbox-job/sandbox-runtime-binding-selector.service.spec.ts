@@ -1,6 +1,7 @@
 import type { ISandboxRuntimeProvider, SandboxRuntimeBinding } from '@xpert-ai/plugin-sdk'
 import { SandboxRuntimeBindingSelector } from './sandbox-runtime-binding-selector.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
+import { LocalBrowserRuntimeProvider } from './local-browser-runtime.provider'
 
 const definition = new SandboxRuntimeDefinitionRegistry().require('browser/playwright-1.61/v1')
 
@@ -68,6 +69,53 @@ describe('SandboxRuntimeBindingSelector', () => {
         })
     })
 
+    it('requires a read-only workspace for a regular binding that declares it', async () => {
+        process.env.NODE_ENV = 'development'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const localBinding = {
+            ...binding('compute', 'compute-runtime', 0),
+            runtimeProfile: compute.name
+        }
+        const runtime = provider('compute-runtime', [localBinding])
+        await expect(createSelector([runtime]).inspect(compute)).resolves.toMatchObject({ available: false })
+        runtime.capabilities = { ...runtime.capabilities, readOnlyWorkspace: true }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({ binding: { id: 'compute' } })
+    })
+
+    it.each(['isolation', 'resourceLimits', 'networkPolicy', 'readOnlyRootFilesystem'] as const)(
+        'requires a regular compute binding to satisfy its %s requirement',
+        async (field) => {
+            process.env.NODE_ENV = 'development'
+            const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+            const runtime = provider('compute-runtime', [
+                { ...binding('compute', 'compute-runtime', 0), runtimeProfile: compute.name }
+            ])
+            runtime.capabilities = {
+                ...runtime.capabilities,
+                readOnlyWorkspace: true,
+                ...(field === 'isolation' ? { isolation: 'process' as const } : { [field]: false })
+            }
+            await expect(createSelector([runtime]).inspect(compute)).resolves.toMatchObject({ available: false })
+        }
+    )
+
+    it('selects a compatible compute Provider in production only with an immutable artifact', async () => {
+        process.env.NODE_ENV = 'production'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const computeBinding = {
+            ...binding('compute', 'compute-runtime', 0),
+            runtimeProfile: compute.name,
+            artifact: {
+                kind: 'oci-image' as const,
+                reference: `example/compute@sha256:${'a'.repeat(64)}`,
+                digest: `sha256:${'a'.repeat(64)}`
+            }
+        }
+        const runtime = provider('compute-runtime', [computeBinding])
+        runtime.capabilities = { ...runtime.capabilities, readOnlyWorkspace: true }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({ binding: { id: 'compute' } })
+    })
+
     it('filters Providers that cannot guarantee the Definition security requirements', async () => {
         const unsafe = provider('process-provider', [binding('unsafe', 'process-provider', 0)])
         unsafe.capabilities = { ...unsafe.capabilities, isolation: 'process', readOnlyRootFilesystem: false }
@@ -93,6 +141,42 @@ describe('SandboxRuntimeBindingSelector', () => {
         await expect(createSelector([local]).require(definition)).resolves.toMatchObject({
             provider: { type: 'local-browser-runtime' },
             binding: { id: 'local', developmentOnly: true }
+        })
+    })
+
+    it.each(['document/libreoffice-v1', 'document/python-3.12/v1'])(
+        'selects the built-in local binding for %s in development',
+        async (profile) => {
+            process.env.NODE_ENV = 'development'
+            const runtime = new LocalBrowserRuntimeProvider()
+            jest.spyOn(runtime, 'getBindingHealth').mockResolvedValue({ available: true })
+            const document = new SandboxRuntimeDefinitionRegistry().require(profile)
+
+            await expect(createSelector([runtime]).require(document)).resolves.toMatchObject({
+                binding: { runtimeProfile: profile, developmentOnly: true }
+            })
+        }
+    )
+
+    it('applies the development fallback consistently to profiles with workspace requirements', async () => {
+        process.env.NODE_ENV = 'development'
+        const compute = new SandboxRuntimeDefinitionRegistry().require('compute/node-python/v1')
+        const runtime = provider('development-runtime', [
+            {
+                ...binding('development', 'development-runtime', 10_000),
+                runtimeProfile: compute.name,
+                developmentOnly: true
+            }
+        ])
+        runtime.capabilities = {
+            isolation: 'process',
+            ephemeral: true,
+            resourceLimits: false,
+            networkPolicy: false,
+            readOnlyRootFilesystem: false
+        }
+        await expect(createSelector([runtime]).require(compute)).resolves.toMatchObject({
+            binding: { id: 'development' }
         })
     })
 

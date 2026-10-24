@@ -213,6 +213,24 @@
           </div>
         </section>
       </z-tab>
+      <z-tab [label]="'XP.Installation.Requirements' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        @if (scope.isTenant()) {
+          <button z-button zType="outline" type="button" (click)="scope.choose(true)">
+            {{ 'XP.Scope.SelectOrganization' | translate }}
+          </button>
+        } @else if (requirementsLoading()) {
+          <p role="status" class="text-muted-foreground">{{ 'TemplateOverview.Loading' | translate }}</p>
+        } @else if (requirementsError()) {
+          <div role="alert" class="space-y-4">
+            <p>{{ requirementsError() }}</p>
+            <button z-button zType="outline" type="button" (click)="loadRequirements()">
+              {{ 'TemplateOverview.Retry' | translate }}
+            </button>
+          </div>
+        } @else {
+          <xp-template-requirements [readiness]="readiness()" (manage)="manageDependencies()" />
+        }
+      </z-tab>
     </z-tab-group>
   }
 </main>

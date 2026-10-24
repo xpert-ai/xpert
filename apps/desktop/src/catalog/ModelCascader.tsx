@@ -82,7 +82,7 @@ export function ModelCascader({
                   {selected?.label || t('Select a model')}
                 </span>
                 {selected?.id === defaultModelId && (
-                  <span className="shrink-0 text-xs text-muted-foreground">{t('Organization default')}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{t('Default model')}</span>
                 )}
               </span>
               {selected && (
@@ -202,7 +202,7 @@ export function ModelCascader({
                                   {t('Recommended for cloud computer')}
                                 </span>
                               )}
-                              {model.id === defaultModelId && <span>{t('Organization default')}</span>}
+                              {model.id === defaultModelId && <span>{t('Default model')}</span>}
                             </span>
                           )}
                         </span>

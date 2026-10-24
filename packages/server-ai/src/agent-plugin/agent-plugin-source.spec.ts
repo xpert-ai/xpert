@@ -18,10 +18,17 @@ describe('portable package storage boundaries', () => {
         await writeFile(join(source, 'plugin.json'), '{}')
         await symlink('/etc/hosts', join(source, 'escape'))
         await symlink(source, join(source, 'loop'))
+        await symlink(join(source, 'missing'), join(source, 'broken'))
         const skipped = await copyPortablePackage(source, target)
-        expect(skipped).toEqual(['escape', 'loop'])
+        expect(skipped).toEqual(['broken', 'escape', 'loop'])
         expect(await readdir(target)).toEqual(['plugin.json'])
         expect(await portablePackageDigest(source)).toBe(await portablePackageDigest(target))
+    })
+    it('rejects an absent root instead of returning the empty-package digest', async () => {
+        await expect(portablePackageDigest(join(root, 'missing'))).rejects.toMatchObject({ code: 'ENOENT' })
+        await expect(copyPortablePackage(join(root, 'missing'), join(root, 'copy'))).rejects.toMatchObject({
+            code: 'ENOENT'
+        })
     })
     it('uses relative paths in content identity and includes supporting files', async () => {
         const a = join(root, 'a'),

@@ -397,7 +397,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         })
         if (!execution) return null
         const task = await this.repository.findOneByOrFail({ id: execution.taskId, projectId })
-        if (task.providerKey) return null
+        if (task.providerKey || task.pipelineInstanceId || (task.controlKind && task.controlKind !== 'ordinary'))
+            return null
         execution.agentExecutionId = input.agentExecutionId
         execution.status = 'running'
         execution.startedAt ??= new Date()

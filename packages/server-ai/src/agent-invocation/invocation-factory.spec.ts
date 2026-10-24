@@ -1,3 +1,4 @@
+import { AuthorizeProjectPipelineRuntimeCommand } from '../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -6,6 +7,7 @@ import { AssistantTaskRuntimeStrategy } from './assistant-task-adapter'
 import { ExecuteGroupTaskCommand, ResolveGroupTaskTargetCommand } from '../chat-group/group-project/group-task.commands'
 import {
     AgentExecutionRunner,
+    projectPipelineInvocationScopeSchema,
     AgentExecutionRunnerCapability,
     AgentExecutionRunnerFactoryCapability,
     AgentInvocationScope,
@@ -252,6 +254,112 @@ describe('Agent invocation factory and controller boundaries', () => {
         ).rejects.toThrow()
         expect(f.provider.start).not.toHaveBeenCalled()
         expect(runner.start).not.toHaveBeenCalled()
+    })
+
+    it('requires durable Pipeline origin authorization before resolving and rechecks it before start', async () => {
+        const f = fixture(),
+            operationId = randomUUID(),
+            projectId = randomUUID(),
+            workspaceId = randomUUID()
+        const origin = {
+            operationId,
+            instanceId: randomUUID(),
+            runId: randomUUID(),
+            roundId: randomUUID(),
+            nodeInstanceId: randomUUID(),
+            generation: 1,
+            inputDigest: 'a'.repeat(64)
+        }
+        const scope: AgentInvocationScope = {
+            tenantId: randomUUID(),
+            organizationId: randomUUID(),
+            userId: randomUUID(),
+            projectId,
+            workspaceId,
+            callerType: 'project_pipeline',
+            callerAgentKey: 'pipeline_node',
+            parentExecutionId: `pipeline-operation:${operationId}`,
+            pipelineOrigin: origin
+        }
+        f.binding.workspaceIds = [workspaceId]
+        const commands = { execute: jest.fn(async () => undefined) }
+        const factory = new AgentInvocationFactoryService(
+            f.repository as unknown as Repository<AgentRuntimeBindingEntity>,
+            f.query as unknown as QueryBus,
+            f.runtime,
+            f.capabilities,
+            undefined,
+            commands as unknown as CommandBus
+        )
+        const api = factory.createCapturedApi(scope),
+            target = await api.resolve(bindingId)
+        expect(commands.execute).toHaveBeenCalledWith(
+            new AuthorizeProjectPipelineRuntimeCommand(projectPipelineInvocationScopeSchema.parse(scope), bindingId)
+        )
+        expect(f.query.execute).not.toHaveBeenCalled()
+        const request = { target, callId: operationId, input: { prompt: 'Read neutral input' } }
+        await expect(api.start({ ...request, callId: randomUUID() })).rejects.toThrow()
+        expect(f.provider.start).not.toHaveBeenCalled()
+        const first = await api.start(request)
+        expect(first.scope).toEqual(scope)
+        commands.execute.mockImplementationOnce(async () => {
+            request.input.prompt = 'Mutated during authorization'
+        })
+        await expect(api.start(request)).resolves.toMatchObject({
+            request: { input: { prompt: 'Read neutral input' } }
+        })
+        expect(f.provider.start).toHaveBeenCalledTimes(1)
+        commands.execute.mockRejectedValue(new Error('origin revoked'))
+        await expect(api.start(request)).rejects.toThrow()
+        expect(f.provider.start).toHaveBeenCalledTimes(1)
+        await expect(f.factory.createCapturedApi(scope).resolve(bindingId)).rejects.toThrow()
+    })
+    it('rejects forged Pipeline origins and Computer targets without a delegated conversation', async () => {
+        const f = fixture(),
+            operationId = randomUUID(),
+            workspaceId = randomUUID()
+        const scope: AgentInvocationScope = {
+            tenantId: randomUUID(),
+            organizationId: randomUUID(),
+            userId: randomUUID(),
+            projectId: randomUUID(),
+            workspaceId,
+            callerType: 'project_pipeline',
+            callerAgentKey: 'pipeline_node',
+            parentExecutionId: `pipeline-operation:${operationId}`,
+            pipelineOrigin: {
+                operationId,
+                instanceId: randomUUID(),
+                runId: randomUUID(),
+                roundId: randomUUID(),
+                nodeInstanceId: randomUUID(),
+                generation: 1,
+                inputDigest: 'a'.repeat(64)
+            }
+        }
+        f.binding.workspaceIds = [workspaceId]
+        const commands = { execute: jest.fn(async () => undefined) }
+        const factory = new AgentInvocationFactoryService(
+            f.repository as unknown as Repository<AgentRuntimeBindingEntity>,
+            f.query as unknown as QueryBus,
+            f.runtime,
+            f.capabilities,
+            undefined,
+            commands as unknown as CommandBus
+        )
+        for (const patch of [
+            { callerXpertId: randomUUID() },
+            { conversationId: randomUUID() },
+            { parentExecutionId: 'fabricated' }
+        ])
+            await expect(factory.createCapturedApi({ ...scope, ...patch }).resolve(bindingId)).rejects.toThrow()
+        expect(commands.execute).not.toHaveBeenCalled()
+        f.binding.target.configuration = Object.assign(
+            { profileVersion: '1' },
+            { executionEnvironment: { type: 'computer' } }
+        )
+        await expect(factory.resolveBackgroundTarget(scope, bindingId)).rejects.toThrow()
+        expect(f.provider.start).not.toHaveBeenCalled()
     })
 
     it('resolves workspace-authorized immutable bindings and rejects modified configuration', async () => {

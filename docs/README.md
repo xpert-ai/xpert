@@ -44,3 +44,53 @@ Local `mint dev` preview may not provide Git or deployment dates. In that case, 
 `docs.json` 中的 `metadata.timestamp: true` 全局开启最后更新日期，默认使用文档源文件最近一次 Git 提交的时间，表示最近维护时间，不是首次撰写日期，无需逐页填写。导入文档的 Git 历史与实际更新时间不符时，可以用带引号的 `lastUpdatedDate: "YYYY-MM-DD"` 覆盖。日期取值顺序为：该字段、Git 提交日期、最近部署时间。个别页面需要隐藏日期时使用 `timestamp: false`。
 
 本地 `mint dev` 预览可能不提供 Git 或部署日期，此时即使开启配置也不会显示日期。可以用带 `lastUpdatedDate` 的临时页面验证渲染，验证后删除临时页面；自动日期仍需在部署站点确认。
+
+## Artifacts Dashboard functional documentation
+
+Current behavior is documented under `en/guides/artifacts-dashboard/` and
+`zh-Hans/guides/artifacts-dashboard/`, with matching routes in both language menus.
+Read these as feature documentation rather than a delivery plan:
+
+| Page                       | Maintained content                                                    |
+| -------------------------- | --------------------------------------------------------------------- |
+| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership |
+| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation            |
+| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing            |
+| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                |
+
+Keep historical plans and acceptance reports as dated evidence. Do not copy commit
+batches, local machine context or future proposals into the current feature pages.
+The separate product-docs repository maintains task-oriented instructions under
+`{language}/ai/live-dashboard/`, in the standalone AI → Live Dashboard (实时看板)
+section, and maintains its navigation order configuration.
+
+## Project Pipeline functional documentation
+
+Maintain implemented pipeline behavior in `en/guides/project-pipelines/` and
+`zh-Hans/guides/project-pipelines/`, with matching navigation routes:
+
+- `overview`: concepts, shared views, execution ownership, history, and analytics.
+- `architecture`: data model, atomic projection, coordination, and plugin boundaries.
+- `operations`: authorization, recovery, compatibility, and verification limits.
+
+Keep plans and review evidence under `plans/project-pipeline/`; see its README for
+current-document links. Documentation conversion does not close pending release or
+business acceptance gates. The separate product-docs repository maintains user
+instructions at `{language}/ai/projects/pipelines/` under Projects & Tasks.
+
+## Database migration implementation plan
+
+[统一数据库迁移执行机制：需求与实施计划](./plans/2026-10-20-unified-database-migrations.md)
+describes the proposed migration manifest, runner, database baseline adoption,
+deployment integration, plugin migration lifecycle, and acceptance criteria.
+It is a delivery plan, not documentation of implemented behavior.
+
+## Runtime Control architecture
+
+Maintain the overall design in [中文架构与实施计划](./zh-Hans/architecture/runtime-control.md)
+and [English architecture and implementation plan](./en/architecture/runtime-control.md).
+These pages cover plugin convergence, admission monitoring, replica lifecycle,
+ingress withdrawal and recovery, diagnostics, Desktop recovery, and remaining
+ingress acknowledgement work. Keep implemented behavior separate from deployment
+migration and proposed capabilities. Process cleanup details remain in the
+existing graceful API shutdown guides.

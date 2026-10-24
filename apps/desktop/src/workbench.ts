@@ -1,5 +1,5 @@
 import { isAudioCaptureCommand } from '@xpert-ai/desktop-protocol'
-import type { ChatKitWorkbenchClientCommandRequest } from '@xpert-ai/chatkit-types'
+import type { ChatKitWorkbenchClientCommandRequest, WorkspaceConnectorConnectHandler } from '@xpert-ai/chatkit-types'
 import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 import { invoke, HostError } from './host'
 import type { WorkbenchSession } from './types'
@@ -10,12 +10,44 @@ function value(payload: unknown, key: string): string | undefined {
   return typeof item === 'string' && item.trim() ? item.trim() : undefined
 }
 
-export function createWorkbenchHandler(botId: string, webUrl: string, onSession: (session: WorkbenchSession) => void) {
+export function createWorkbenchHandler(
+  botId: string,
+  webUrl: string,
+  onSession: (session: WorkbenchSession) => void,
+  connection?: { assistantId: () => string | undefined; connect: WorkspaceConnectorConnectHandler }
+) {
   let lastSessionScope: string | undefined
   let activeAssistantId: string | undefined
+  let connecting: { assistantId: string; provider: string; result: Promise<unknown> } | undefined
   return async (request: ChatKitWorkbenchClientCommandRequest) => {
     const { commandKey, payload } = request
     try {
+      if (commandKey === 'workspace.connector.connect') {
+        if (!connection) return { success: false, code: 'unsupported' }
+        const provider = value(payload, 'provider')
+        if (request.hostType !== 'agent' || !provider || !/^[a-z][a-z0-9_-]{0,63}$/.test(provider))
+          return { success: false, code: 'invalid_payload' }
+        const assistantId = connection.assistantId()
+        if (!assistantId || request.hostId !== assistantId) return { success: false, code: 'context_changed' }
+        if (connecting)
+          return connecting.assistantId === assistantId && connecting.provider === provider
+            ? await connecting.result
+            : { success: false, code: 'connection_in_progress' }
+        const result = (async () => {
+          const prepared = await invoke('preparePluginConnection', { assistantId, provider })
+          if (connection.assistantId() !== assistantId) return { success: false, code: 'context_changed' }
+          if (!prepared.success) return prepared
+          const data = await connection.connect(prepared.data)
+          if (connection.assistantId() !== assistantId) return { success: false, code: 'context_changed' }
+          return { success: true, data }
+        })()
+        connecting = { assistantId, provider, result }
+        try {
+          return await result
+        } finally {
+          connecting = undefined
+        }
+      }
       if (isAudioCaptureCommand(commandKey)) {
         if (!window.xpertDesktop?.audioCapture) return { success: false, code: 'desktop_required' }
         // Activation is supplied by ChatKit's trusted shell, never by an iframe payload.
@@ -36,7 +68,8 @@ export function createWorkbenchHandler(botId: string, webUrl: string, onSession:
             botId,
             target,
             // Only the authenticated host response may change the active Assistant.
-            ...(target === 'assistant.project' ? { assistantId: activeAssistantId } : {}),
+            // Restored conversations already have a canonical Assistant before this handler navigates once.
+            ...(target === 'assistant.project' ? { assistantId: activeAssistantId ?? connection?.assistantId() } : {}),
             conversationId: value(payload, 'conversationId'),
             projectId: value(payload, 'projectId'),
             threadId: value(payload, 'threadId')
@@ -79,9 +112,24 @@ export function createWorkbenchHandler(botId: string, webUrl: string, onSession:
     } catch (error) {
       return {
         success: false,
-        code: error instanceof HostError && error.status === 403 ? 'forbidden' : 'navigation_failed',
+        code:
+          commandKey === 'workspace.connector.connect'
+            ? connectionErrorCode(error)
+            : error instanceof HostError && error.status === 403
+              ? 'forbidden'
+              : 'navigation_failed',
         message: error instanceof Error ? error.message : undefined
       }
     }
   }
+}
+
+function connectionErrorCode(error: unknown) {
+  if (!(error instanceof HostError)) return 'connection_failed'
+  if (error.key === 'connection_navigation_failed') return error.key
+  if (error.status === 401) return 'authentication_required'
+  if (error.status === 403) return 'forbidden'
+  if (error.status === 408) return 'connection_timeout'
+  if (error.status === 409) return 'context_changed'
+  return 'connection_failed'
 }

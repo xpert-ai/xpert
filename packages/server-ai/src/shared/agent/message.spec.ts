@@ -1,3 +1,4 @@
+import { ResourceSkillInstructionsQuery } from '../../agent-plugin/commands/resource-skill-instructions.query'
 jest.mock('@xpert-ai/server-core', () => {
     return {
         FileStorage: class FileStorage {
@@ -26,6 +27,40 @@ import { ResolvePromptWorkflowInvocationQuery } from './queries/resolve-prompt-w
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 
 describe('createHumanMessage', () => {
+    it('loads an explicit plugin skill while keeping /plan as skill text instead of a global workflow', async () => {
+        const queryBus = {
+            execute: jest.fn().mockImplementation(async (query) => {
+                if (query instanceof ResourceSkillInstructionsQuery) return 'Skill instructions: route /plan here'
+                throw new Error('Unexpected global command expansion')
+            })
+        }
+        const references = [{ bindingId: 'binding', version: 'version', skillKey: 'bom' }]
+        const selection = { revision: 0, resources: [{ bindingId: 'binding', version: 'version' }] }
+        const message = await createHumanMessage(
+            { execute: jest.fn() } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            { human: { input: '/plan my BOM', resourceSkills: references } },
+            undefined,
+            {
+                xpert: { id: 'assistant', workspaceId: 'workspace' },
+                resourceSkillContext: { selection, projectId: 'project' }
+            }
+        )
+        expect(message.content).toContain('/plan my BOM')
+        expect(message.content).toContain('Skill instructions: route /plan here')
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            new ResourceSkillInstructionsQuery('assistant', selection, references, 'project')
+        )
+        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+    })
+    it('does not load dynamically selected parent skills in a child without resource context', async () => {
+        const queryBus = { execute: jest.fn() }
+        await createHumanMessage({ execute: jest.fn() } as unknown as CommandBus, queryBus as unknown as QueryBus, {
+            human: { input: 'Task', resourceSkills: [{ bindingId: 'binding', version: 'version', skillKey: 'bom' }] }
+        })
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
     it('expands raw prompt workflow invocations before creating the agent human message', async () => {
         const queryBus = {
             execute: jest.fn().mockResolvedValue({

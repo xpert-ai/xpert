@@ -1,9 +1,13 @@
+import { runtimeAdmissionMonitorProvider, runtimePluginAdmissionProvider } from './runtime-admission.providers'
+import { RuntimeAdmissionMonitor } from './runtime-admission-monitor'
+import { readRuntimeTrafficOptions, RuntimeTrafficOptions } from './runtime-traffic-options'
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import { RuntimeProcessSignaler } from './runtime-process-signaler'
 import { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
 import type { RestartRegistry } from './runtime-plugin-admission'
+import type { PluginGenerationState } from './runtime-restart.types'
 
 type Listener = (message: string) => void
 
@@ -63,8 +67,16 @@ export class FakeRedis {
 			const desired = await this.hGetAll(options.keys[1])
 			const current = desired.generation === generation
 			if (current && desired.status === 'failed') return 0
+			const next: PluginGenerationState = JSON.parse(value)
+			if (next.status === 'awaiting_restart') {
+				if (await this.get(options.keys[2])) return 0
+				const previousValue = await this.get(options.keys[0])
+				if (!previousValue) return 0
+				const previous: PluginGenerationState = JSON.parse(previousValue)
+				if (previous.restartId || !['in_progress', 'awaiting_restart'].includes(previous.status)) return 0
+			}
 			await this.set(options.keys[0], value, { EX: Number(ttl) })
-			if (current) await this.hSet(options.keys[1], 'status', JSON.parse(value).status)
+			if (current) await this.hSet(options.keys[1], 'status', next.status)
 			return 1
 		}
 		if (script.includes('xpert-start-plugin-catch-up')) {
@@ -81,6 +93,8 @@ export class FakeRedis {
 				(await this.get(options.keys[1])) !== restartId ||
 				this.hashes.get(options.keys[0])?.get(replicaId) !== previous
 			)
+				return 0
+			if (options.arguments[5] !== '' && ((await this.get(options.keys[3])) ?? '0') !== options.arguments[5])
 				return 0
 			await this.hSet(options.keys[0], replicaId, next)
 			if (Number(options.arguments[4]) > 0) await this.hSet(options.keys[2], replicaId, options.arguments[4])
@@ -183,6 +197,9 @@ export type RuntimeNode = {
 	replicaId: string
 	bootId: string
 	coordinator: RuntimeRestartCoordinatorService
+	admissionMonitor: RuntimeAdmissionMonitor
+	registry: RestartRegistry
+	destroy: () => Promise<void>
 	signaler: RuntimeProcessSignaler
 	lifecycle: RuntimeLifecycleService
 	reportPluginState: (state: RuntimePluginState) => void
@@ -200,7 +217,8 @@ export async function createNode(
 	replicaId: string,
 	bootId: string,
 	initialState: RuntimePluginState | null,
-	start = true
+	start = true,
+	trafficOptions: RuntimeTrafficOptions = readRuntimeTrafficOptions({})
 ): Promise<RuntimeNode> {
 	redis.members.set(replicaId, { instanceId: replicaId, bootId, ready: false, readyUntil: Date.now() + 45_000 })
 	const registry = {
@@ -220,9 +238,20 @@ export async function createNode(
 	} satisfies RestartRegistry
 	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
 	const lifecycle = new RuntimeLifecycleService()
-	const coordinator = new RuntimeRestartCoordinatorService(redis, signaler, lifecycle, registry)
+	const admission = await runtimePluginAdmissionProvider.useFactory(registry, lifecycle)
+	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission)
+	const coordinator = new RuntimeRestartCoordinatorService(
+		redis,
+		signaler,
+		lifecycle,
+		registry,
+		admission,
+		admissionMonitor,
+		trafficOptions
+	)
 	if (start) {
 		await coordinator.onModuleInit()
+		admissionMonitor.onApplicationBootstrap()
 		coordinator.onApplicationBootstrap()
 		await advance(0)
 	}
@@ -230,6 +259,12 @@ export async function createNode(
 		replicaId,
 		bootId,
 		coordinator,
+		admissionMonitor,
+		registry,
+		destroy: async () => {
+			admissionMonitor.onModuleDestroy()
+			await coordinator.onModuleDestroy()
+		},
 		signaler,
 		lifecycle,
 		reportPluginState: (state) => {

@@ -4,7 +4,8 @@ import {
   ICopilotModel,
   ProviderModel,
   AIModelEntity,
-  DiscoveredModel
+  DiscoveredModel,
+  ProviderCredentialValidationPolicy
 } from '@xpert-ai/contracts'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { Embeddings } from '@langchain/core/embeddings'
@@ -16,6 +17,8 @@ import type { NativeModelClientFactory } from './native-model'
 export interface IAIModelProviderStrategy {
   /** Fetch account-visible models without persisting them or invoking model inference. */
   discoverModels?(credentials: Record<string, unknown>): Promise<DiscoveredModel[]>
+  /** Used when discovery is unavailable; never pick a fixed inference model for all credentials. */
+  readonly credentialValidation?: ProviderCredentialValidationPolicy
   getNativeModelClient?: NativeModelClientFactory
   /**
    * Provider metadata

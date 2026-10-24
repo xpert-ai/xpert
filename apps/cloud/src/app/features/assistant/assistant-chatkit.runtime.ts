@@ -92,7 +92,7 @@ type AssistantHostedRuntimeInput = {
   taskSummary?: CreateChatKitOptions['taskSummary']
   /** Host-specific presentation policy; execution state and persisted history remain unchanged. */
   messagePresentation?: CreateChatKitOptions['messagePresentation']
-  workbench?: CreateChatKitOptions['workbench']
+  workbench?: ReactiveChatKitOption<CreateChatKitOptions['workbench']>
   startScreen?: Signal<CreateChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
   titleKey: string
@@ -382,7 +382,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       messagePresentation: group
         ? { ...input.messagePresentation, mode: 'bubbles' as const }
         : input.messagePresentation,
-      workbench: input.workbench,
+      workbench: readReactiveChatKitOption(input.workbench),
       ...(mcpApps ? { mcpApps } : {}),
       toolOutputAttachments: {
         onRequestPreview: async ({ attachment }) => {

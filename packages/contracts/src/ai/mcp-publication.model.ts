@@ -2,6 +2,30 @@ import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.mo
 import type { JSONValue } from '../core.model'
 import type { McpApiKeySubjectType } from './mcp-auth.model'
 import type { McpCapabilityDescriptor, McpCapabilityType } from './mcp-capability.model'
+import type { I18nObject } from '../types'
+import type { JsonSchemaObjectType } from './types'
+
+export interface McpPublicationPluginSource {
+  toolsetId: string
+  name: string
+  provider: string
+  pluginName: string
+}
+
+/** A configuration tab edits the existing bound source; it never creates a toolset. */
+export interface McpPublicationConfigurationTab extends McpPublicationPluginSource {
+  title: I18nObject
+  schema: JsonSchemaObjectType
+  canEdit: boolean
+}
+
+/** Opaque form placeholder. Array secrets append a source reference; clients must return it unchanged. */
+export const MCP_CONFIGURATION_SECRET_MASK = '__xpert_mcp_secret_unchanged__'
+
+export interface McpPublicationConfiguration {
+  values: Record<string, JSONValue>
+  revision: string
+}
 
 export const MCP_PROTOCOL_VERSION = '2026-07-28' as const
 export const MCP_TASK_EXTENSION_ID = 'io.modelcontextprotocol/tasks' as const

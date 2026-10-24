@@ -4,6 +4,7 @@ import {
     IWFNMiddleware,
     isRequiredMiddleware,
     IXpertAgent,
+    normalizeMiddlewareOptions,
     normalizeMiddlewareProvider,
     TAgentMiddlewareMeta,
     TXpertGraph,
@@ -147,15 +148,14 @@ export async function createAgentMiddlewareEntries(
             continue
         }
 
+        const middlewareOptions = normalizeMiddlewareOptions(entity.options)
+        const middlewareContext: IAgentMiddlewareContext = {
+            ...context,
+            xpertFeatures: context.xpertFeatures ?? null,
+            node: { ...entity, provider, options: middlewareOptions }
+        }
         let middleware = inheritMiddlewareToolDisplayMetadata(
-            await strategy.createMiddleware(entity.options, {
-                ...context,
-                xpertFeatures: context.xpertFeatures ?? null,
-                node: {
-                    ...(middlewareNode.entity as IWFNMiddleware),
-                    provider
-                }
-            }),
+            await strategy.createMiddleware(middlewareOptions, middlewareContext),
             strategy.meta
         )
         if (middleware?.tools?.length) {
@@ -167,7 +167,7 @@ export async function createAgentMiddlewareEntries(
                 options?.toolPreferences
             )
         }
-        if (middleware && bindApps) middleware = bindApps(middleware, { ...context, node: { ...entity, provider } })
+        if (middleware && bindApps) middleware = bindApps(middleware, middlewareContext)
         if (middleware) result.push({ key: middlewareNode.key, middleware })
     }
 

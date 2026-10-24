@@ -52,6 +52,28 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     TestBed.resetTestingModule()
   })
 
+  it('preserves explicit dismissal across refresh and Back/Forward without reopening the default View', async () => {
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    const previous = router.url
+    await state.setViewState(null, null, { closed: true })
+    expect(state.viewKey()).toBeNull()
+    expect(state.viewClosed()).toBe(true)
+    expect(router.parseUrl(router.url).queryParams.view).toBe('')
+    const closed = router.url
+    router.url = previous
+    navigationEvents.next(new NavigationEnd(2, previous, previous))
+    expect(state.viewKey()).toBe('review')
+    expect(state.viewClosed()).toBe(false)
+    router.url = closed
+    navigationEvents.next(new NavigationEnd(3, closed, closed))
+    expect(state.viewClosed()).toBe(true)
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({ providers: [{ provide: Router, useValue: router }] })
+    const refreshed = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    expect(refreshed.viewKey()).toBeNull()
+    expect(refreshed.viewClosed()).toBe(true)
+  })
+
   it('reads the selected extension view from the current URL', () => {
     const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
 

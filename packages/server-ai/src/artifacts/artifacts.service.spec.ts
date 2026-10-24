@@ -595,6 +595,13 @@ describe('ArtifactsService', () => {
             })
         ).resolves.toEqual(expect.objectContaining({ buffer: expect.any(Buffer) }))
 
+        membership.mockResolvedValueOnce({ isActive: false })
+        await expect(
+            runAsUser({ id: 'member-1', tenantId: 'tenant-1' }, () =>
+                authorizedService.resolveDescriptorForAuthenticatedAccess({ slug: organizationLink.slug })
+            )
+        ).rejects.toThrow('do not have access')
+
         const clock = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 16 * 60 * 1000)
         try {
             await expect(

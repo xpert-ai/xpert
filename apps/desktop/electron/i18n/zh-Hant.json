@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "請為此助手選擇相容的模型。",
   "Invalid template capabilities.": "範本能力參數無效。",
+  "Invalid template requirements response.": "範本要求回應格式無效。",
   "The template is not ready to install.": "此範本尚未符合初始化條件。",
   "Invalid tool output attachment.": "工具輸出附件無效。",
   "The image preview does not match the requested attachment.": "圖片預覽與請求的附件不符。",
@@ -353,6 +354,7 @@
   "Enter a valid email address.": "請輸入有效的電子郵件地址。",
   "Enter a valid URL.": "請輸入有效的 URL。",
   "Invalid input.": "輸入值無效。",
+  "Invalid response.": "回應格式無效。",
   "Choose your desktop language. ChatKit follows where supported.": "選擇桌面語言；ChatKit 將在其版本支援的範圍內跟隨。",
   "Desktop Shell": "桌面 Shell",
   "Shell": "Shell",
@@ -961,7 +963,7 @@
   "All providers": "全部供應商",
   "Other providers": "其他供應商",
   "No matching models": "沒有符合的模型",
-  "Organization default": "組織預設",
+  "Default model": "預設模型",
   "Recommended for cloud computer": "雲端電腦推薦",
   "Cloud computer works best with vision and tool calling. Compatible models are recommended below.": "雲端電腦需要視覺和工具呼叫能力，以下推薦可用的相容模型。",
   "Vision models can understand screenshots and operate the cloud computer.": "視覺模型可以理解螢幕截圖，協助操作雲端電腦。",
@@ -1188,6 +1190,7 @@
   "Updates are not available in this build.": "此版本不支援應用程式內更新。",
   "Bosi is up to date.": "Bosi 已是最新版本。",
   "Bosi {{version}} is available.": "Bosi {{version}} 已可更新。",
+  "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.": "此助理已被刪除或無法再存取。請建立另一個助理以重新安裝此範本。",
   "Template installations": "範本安裝",
   "Importing assistant": "正在匯入助手",
   "Installing dependencies": "正在安裝依賴",
@@ -1358,5 +1361,10 @@
   "Shared templates": "共用範本",
   "Other sources": "其他來源",
   "Agent Plugins": "智慧體外掛",
-  "Xpert Plugins": "Xpert 外掛"
+  "Xpert Plugins": "Xpert 外掛",
+  "Xpert is restarting. Please reconnect shortly.": "Xpert 正在重新啟動，請稍後重新連線。",
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert 暫時無法使用，請稍後重新連線。",
+  "Install for": "安裝範圍",
+  "Only me": "僅自己",
+  "Your app instance and its new resources are private by default within this organization.": "在目前組織中，你的應用程式執行個體及其新建資源預設為私人。"
 }

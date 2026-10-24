@@ -32,6 +32,7 @@ export function createCatalogCache(
     },
     async load(kind: CatalogDataKind, refresh = false) {
       if (!refresh && entries.has(kind)) return
+      const keepItems = refresh && !!entries.get(kind)?.items.length
       const request = Symbol()
       requests.set(kind, request)
       entries.set(kind, { items: entries.get(kind)?.items || [], loading: true, error: '' })
@@ -44,9 +45,12 @@ export function createCatalogCache(
             const page = await fetchTemplatePage(offset)
             if (requests.get(kind) !== request) return
             items.push(...page.items)
-            entries.set(kind, { items: [...items], loading: false, loadingMore: page.nextOffset !== null, error: '' })
-            notify()
             if (page.nextOffset !== null && page.nextOffset <= offset) throw new Error('Invalid catalog pagination.')
+            // Initial loads stream pages; a refresh replaces the visible catalog only when complete.
+            if (!keepItems || page.nextOffset === null) {
+              entries.set(kind, { items: [...items], loading: false, loadingMore: page.nextOffset !== null, error: '' })
+              notify()
+            }
             offset = page.nextOffset
           }
           return

@@ -35,5 +35,7 @@ export class AgentResourceBinding extends TenantOrganizationBaseEntity {
     }
     @Column({ type: 'jsonb', default: {} }) expertVersions: { [id: string]: string }
     @Column({ type: 'boolean', default: true }) enabled: boolean
+    /** Only automatic catalog defaults may be collected; selecting a template reserves the reference. */
+    @Column({ type: 'boolean', default: false }) cleanupEligible?: boolean
     @Column({ type: 'uuid', nullable: true }) supersededById?: string | null
 }

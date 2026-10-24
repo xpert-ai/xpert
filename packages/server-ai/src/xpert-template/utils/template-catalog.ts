@@ -1,3 +1,4 @@
+import { getPluginApplicationScopes } from '@xpert-ai/contracts'
 import {
     LanguagesEnum,
     PluginMarketplaceContribution,
@@ -151,6 +152,8 @@ export function resolveTemplateApplication(
         return null
     }
     const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+    const scopes = getPluginApplicationScopes(appConfig.scope)
+    if (!scopes.length) return null
     return {
         id: `${pluginName}:${app.name}`,
         pluginName,
@@ -159,7 +162,7 @@ export function resolveTemplateApplication(
         description: app.description,
         icon: app.icon ?? plugin.instance?.meta?.icon,
         color: app.color,
-        scope: appConfig.scope,
+        scope: scopes[0],
         assistantTemplateKey: appConfig.assistantTemplateKey,
         config: appConfig
     }

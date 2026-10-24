@@ -1,10 +1,23 @@
+# PR merge refs can disappear before queued jobs start. Validate the event's
+# source SHA, and never substitute the current branch tip for that revision.
 name: Validate NsJail Runner
 
 on:
   pull_request:
     paths:
       - '.deploy/nsjail-runner/**'
+      - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/document-node/**'
+      - 'packages/sandbox-runtime/images/document-java/**'
+      - 'packages/sandbox-runtime/scripts/*document*'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
+      - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
+      - '.github/tests/nsjail-checkout.test.mjs'
+      - '.github/tests/nsjail-disk.test.mjs'
+      - '.github/scripts/prepare-nsjail-disk.sh'
       - 'package.json'
   push:
     branches:
@@ -12,7 +25,18 @@ on:
       - main
     paths:
       - '.deploy/nsjail-runner/**'
+      - 'packages/sandbox-runtime/images/compute/**'
+      - 'packages/sandbox-runtime/images/document-node/**'
+      - 'packages/sandbox-runtime/images/document-java/**'
+      - 'packages/sandbox-runtime/scripts/*document*'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
+      - 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
+      - 'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
       - '.github/workflows/nsjail-runner-validate.yml'
+      - '.github/tests/nsjail-checkout.test.mjs'
+      - '.github/tests/nsjail-disk.test.mjs'
+      - '.github/scripts/prepare-nsjail-disk.sh'
       - 'package.json'
 
 permissions:
@@ -22,7 +46,7 @@ jobs:
   validate:
     name: Validate xpert-nsjail-runner
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       RUN_PRIVILEGED_PROBE: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
@@ -30,22 +54,32 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          [[ "$CHECKOUT_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
           git init .
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
-          basic_credential="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 --wrap=0)"
+          basic_credential="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
           echo "::add-mask::$basic_credential"
           git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic ${basic_credential}" \
-            fetch --no-tags --depth=1 origin "$GITHUB_REF"
+            fetch --no-tags --depth=1 origin "$CHECKOUT_SHA"
           unset basic_credential
           git checkout --detach FETCH_HEAD
+          [[ "$(git rev-parse HEAD)" == "$CHECKOUT_SHA" ]] || exit 1
+
+      - name: Test CI checkout and disk preparation
+        run: node --test .github/tests/nsjail-*.test.mjs
 
       - name: Run Runner unit tests
         run: corepack pnpm run test:nsjail-runner
 
+      - name: Reserve disk space for Runner rootfs builds
+        if: env.RUN_PRIVILEGED_PROBE == 'true'
+        run: bash .github/scripts/prepare-nsjail-disk.sh
+
       - name: Build temporary Runner image
         if: env.RUN_PRIVILEGED_PROBE == 'true'
-        run: docker build --file .deploy/nsjail-runner/Dockerfile --tag xpert-nsjail-runner:ci .
+        run: docker build --progress=plain --file .deploy/nsjail-runner/Dockerfile --tag xpert-nsjail-runner:ci .
 
       - name: Run Runner isolation probe
         if: env.RUN_PRIVILEGED_PROBE == 'true'
@@ -79,6 +113,15 @@ jobs:
           done
           [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
           docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
+          docker exec xpert-nsjail-runner-ci python3 /app/verify_compute.py
+          docker exec xpert-nsjail-runner-ci python3 /app/verify_documents.py
+
+      - name: Report Runner build disk usage
+        if: always() && env.RUN_PRIVILEGED_PROBE == 'true'
+        run: |
+          df -h /
+          docker system df || true
+          docker builder du || true
 
       - name: Clean up Runner isolation probe
         if: always() && env.RUN_PRIVILEGED_PROBE == 'true'

@@ -128,6 +128,50 @@ describe('Integration lifecycle', () => {
 		expect(service.update).toHaveBeenCalledWith(previous.id, expect.objectContaining({ provider: 'replacement' }))
 	})
 
+	it('awaits provider preparation before validation and persistence', async () => {
+		previous.options = { secret: 'saved-fixture' }
+		let finish: (options: unknown) => void = () => undefined
+		const preparation = new Promise<unknown>((resolve) => {
+			finish = resolve
+		})
+		const prepareConfig = jest.fn(() => preparation)
+		const validateConfig = jest.fn().mockResolvedValue(undefined)
+		register({ prepareConfig, validateConfig })
+		const patch = { label: 'Renamed' }
+		const operation = upsert.execute(new IntegrationUpsertCommand({ id: previous.id, options: patch }))
+		await Promise.resolve()
+		expect(prepareConfig).toHaveBeenCalledWith(patch, previous.options)
+		expect(validateConfig).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+		const normalized = { ...previous.options, ...patch }
+		finish(normalized)
+		await operation
+		expect(validateConfig).toHaveBeenCalledWith(normalized, expect.objectContaining({ options: normalized }))
+		expect(service.update).toHaveBeenCalledWith(previous.id, expect.objectContaining({ options: normalized }))
+	})
+
+	it.each(['create', 'provider change'])('does not pass previous provider options during %s', async (operation) => {
+		previous.options = { secret: 'previous-provider-fixture' }
+		const prepareConfig = jest.fn().mockResolvedValue({ normalized: true })
+		register({ prepareConfig }, 'replacement')
+		await upsert.execute(
+			new IntegrationUpsertCommand({
+				...(operation === 'create' ? {} : { id: previous.id }),
+				provider: 'replacement',
+				options: { submitted: true }
+			})
+		)
+		expect(prepareConfig).toHaveBeenCalledWith({ submitted: true }, undefined)
+	})
+
+	it('stops an invalid prepared configuration before persistence', async () => {
+		register({ prepareConfig: jest.fn().mockRejectedValue(new Error('Invalid options')) })
+		await expect(upsert.execute(new IntegrationUpsertCommand({ provider: 'github', options: {} }))).rejects.toThrow(
+			new BadRequestException('Invalid options')
+		)
+		expect(service.create).not.toHaveBeenCalled()
+	})
+
 	it('supports registered strategies without optional lifecycle hooks', async () => {
 		register()
 		await remove.execute(new IntegrationDelCommand(previous.id))

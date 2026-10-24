@@ -1,5 +1,5 @@
-import { ConnectionOptions } from 'typeorm';
-import { bootstrap } from './bootstrap';
+import { ConnectionOptions } from 'typeorm'
+import { bootstrap } from './bootstrap'
 
 // async function bootstrap() {
 //   const entities = await registerAllEntities({});
@@ -22,32 +22,29 @@ import { bootstrap } from './bootstrap';
 // bootstrap();
 
 bootstrap({
-  dbConnectionOptions: {
-	// synchronize: true,
-    ...getDbConfig()
-	},
+	dbConnectionOptions: {
+		// synchronize: true,
+		...getDbConfig()
+	}
 }).catch((error) => {
-	console.log(error);
-	process.exit(1);
-});
-
+	console.log(error)
+	process.exit(1)
+})
 
 export function getDbConfig(): ConnectionOptions {
 	const dbType = 'postgres'
-		// process.env.DB_TYPE && process.env.DB_TYPE === 'postgres'
-		// 	? 'postgres'
-		// 	: 'sqlite';
+	// process.env.DB_TYPE && process.env.DB_TYPE === 'postgres'
+	// 	? 'postgres'
+	// 	: 'sqlite';
 
 	switch (dbType) {
 		case 'postgres':
-			const ssl = process.env.DB_SSL_MODE === 'true' ? true : undefined;
+			const ssl = process.env.DB_SSL_MODE === 'true' ? true : undefined
 
 			return {
 				type: dbType,
 				host: process.env.DB_HOST || 'localhost',
-				port: process.env.DB_PORT
-					? parseInt(process.env.DB_PORT, 10)
-					: 5432,
+				port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
 				database: process.env.DB_NAME || 'postgres',
 				username: process.env.DB_USER || 'postgres',
 				password: process.env.DB_PASS || 'root',
@@ -55,9 +52,10 @@ export function getDbConfig(): ConnectionOptions {
 				ssl: ssl,
 				// Removes console logging, instead logs all queries in a file ormlogs.log
 				logger: 'file',
-				synchronize: true,
+				// All environments use schema-sync, which protects SQL-managed tables.
+				synchronize: false,
 				uuidExtension: 'pgcrypto'
-			};
+			}
 
 		// case 'sqlite':
 		// 	const sqlitePath =

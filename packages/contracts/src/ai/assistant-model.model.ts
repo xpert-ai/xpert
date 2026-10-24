@@ -26,6 +26,15 @@ export type TAssistantModelPreferenceInput = {
   model_id: string | null
 }
 
+/** HTTP 400 admission/preference error; clients refresh choices without bypassing model access. */
+export type TAssistantModelSelectionError = {
+  statusCode: 400
+  error: 'Bad Request'
+  code: 'ASSISTANT_MODEL_NOT_ALLOWED' | 'ASSISTANT_MODEL_UNAVAILABLE'
+  modelId: string
+  message: string
+}
+
 export type TAssistantPrimaryModelSelectionSource = 'explicit' | 'preference' | 'default' | 'retry' | 'fallback'
 
 export type TAssistantPrimaryModelSelection = {

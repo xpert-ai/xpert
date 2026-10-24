@@ -17,9 +17,10 @@ import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
 import type { SettingsSection } from './settings/sections'
 import { BosiOnboarding } from './bosi/BosiOnboarding'
-import { subscribeAppActivation } from './app-activation'
+import { notifyEmbeddedAppActivation, subscribeAppActivation } from './app-activation'
 
 export function App() {
+  useEffect(() => subscribeAppActivation(() => notifyEmbeddedAppActivation()), [])
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [createGroup, setCreateGroup] = useState(false)
   const [groupRevision, setGroupRevision] = useState(0)
@@ -31,7 +32,7 @@ export function App() {
   const navigationVersion = useRef(0)
   const restorePending = useRef(true)
   const [navigationReady, setNavigationReady] = useState(false)
-  const [initialVoice, setInitialVoice] = useState<{ assistantId: string; conversationId: string } | null>(null)
+  const [initialVoice, setInitialVoice] = useState<DesktopLastSession['conversation'] | null>(null)
   const [initialThread, setInitialThread] = useState<string | null>(null)
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
@@ -401,6 +402,7 @@ export function App() {
       {settings && (
         <ConnectionSettings
           config={state.config}
+          connectionDefaults={state.connectionDefaults}
           signedIn={!!state.profile}
           userName={state.profile?.user.name}
           usageContext={

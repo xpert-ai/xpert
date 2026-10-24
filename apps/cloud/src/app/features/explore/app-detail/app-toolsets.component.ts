@@ -45,8 +45,8 @@ export class ApplicationToolsetsComponent {
     if (this.disabled() || this.configuring() || !requirement.providerAvailable) return
     this.configuring.set(true)
     try {
-      const { pluginName, appName } = this.application()
-      const app = { pluginName, appName }
+      const { pluginName, appName, installationScope } = this.application()
+      const app = { pluginName, appName, ...(installationScope ? { installationScope } : {}) }
       const prepared = await firstValueFrom(this.#applications.prepare(app))
       if (!prepared.workspaceId || !['configuring', 'failed', 'degraded'].includes(prepared.status)) {
         throw new Error(this.#translate.instant('XP.Explore.Application.Toolsets.SetupChanged'))

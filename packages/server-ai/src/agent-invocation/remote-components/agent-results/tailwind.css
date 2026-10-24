@@ -1,13 +1,2 @@
-@import 'tailwindcss' source(none);
+@import '@xpert-ai/shadcn-ui/styles.css';
 @source './src';
-@theme inline {
-    --color-muted: var(--xui-color-muted);
-    --color-muted-foreground: var(--xui-color-muted-foreground);
-    --color-destructive: var(--xui-color-destructive);
-    --color-border: var(--xui-color-border);
-}
-@layer base {
-    * {
-        border-color: var(--xui-color-border);
-    }
-}

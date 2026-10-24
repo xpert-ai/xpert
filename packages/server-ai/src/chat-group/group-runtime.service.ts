@@ -1,3 +1,4 @@
+import { legacyThreadGraphRevision } from '../chat-conversation/thread-graph-revision'
 // Invariants: reserve exactly one writer per Assistant runtime; never re-execute an ambiguous started run.
 // Busy inputs use the existing persisted steer path, while public messages remain in the group timeline.
 import { GroupComposerService } from './group-composer.service'
@@ -282,7 +283,8 @@ export class GroupRuntimeService {
                 member.runtimeThreadId,
                 receipt.executionId,
                 receipt.control.pauseId,
-                threadGraphRevision(graph.graph)
+                threadGraphRevision(graph.graph, undefined, graph.agent?.team),
+                legacyThreadGraphRevision(graph.graph)
             )
             await this.db
                 .getRepository(XpertAgentExecution)

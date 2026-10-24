@@ -4,6 +4,9 @@ import type { ProjectTaskTypePresentation } from './project-task-type.model'
 
 /** Stable logical work identity. Attempts and conversations never substitute for a task. */
 export interface ProjectTaskNode {
+  controlKind?: 'ordinary' | 'provider' | 'pipeline'
+  pipelineInstanceId?: string | null
+  pipelineDisposition?: 'active' | 'removed' | 'excluded' | 'superseded' | null
   id: string
   title: string
   status: TXpertProjectTaskStatus
@@ -41,7 +44,11 @@ export interface ProjectTaskGraph {
   canEditPlan?: boolean
   cursor: string
   tasks: ProjectTaskNode[]
-  executions: IXpertProjectTaskExecution[]
+  executions: Array<
+    IXpertProjectTaskExecution & {
+      /** Actual recorded executor, not the current task assignee. */ executorName?: string | null
+    }
+  >
   /** Provider failures remain visible; a partial refresh must not look complete. */
   diagnostics: Array<{ providerKey: string; message: string }>
 }
@@ -58,7 +65,20 @@ export interface ProjectTaskGraphChange {
 
 export type { ProjectTaskForecast } from './project-task-schedule'
 
-export interface ProjectTaskExecutionTarget {
+export type ProjectTaskExecutionTarget =
+  | ProjectTaskAssistantExecutionTarget
+  | {
+      kind: 'runtime_invocation'
+      projectId: string
+      taskId: string
+      taskExecutionId: string
+      invocationId: string
+      codingInvocationId?: string
+    }
+export interface ProjectTaskAssistantExecutionTarget {
+  kind?: 'assistant_execution'
+  invocationId?: string
+  codingInvocationId?: string
   projectId: string
   taskId: string
   taskExecutionId: string

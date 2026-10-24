@@ -1,7 +1,22 @@
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
-import { isNil } from '@xpert-ai/contracts'
+import { FormControl } from '@angular/forms'
+import {
+  COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
+  COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+  isNil
+} from '@xpert-ai/contracts'
 import { DataSourceTypesService } from '@cloud/app/@core/state'
-import { TenantService, ToastrService } from '../../../../@core'
+import { TenantService, ToastrService, getErrorMessage } from '../../../../@core'
+import { jsonSyntaxValidator } from './setting-json-editor.component'
+
+const retentionSettingNames = new Set<string>([
+  COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING,
+  COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING
+])
 
 interface ItemData {
   id?: string
@@ -22,7 +37,8 @@ export class SettingsComponent implements OnInit {
   pageIndex = 0
   pageSize = 20
   i = 0
-  editCache: { [key: string]: { edit: boolean; data: ItemData } } = {}
+  editCache: { [key: string]: { edit: boolean; data: ItemData; jsonControl?: FormControl<string>; saving?: boolean } } =
+    {}
 
   listOfData: ItemData[] = []
   constructor(
@@ -33,7 +49,7 @@ export class SettingsComponent implements OnInit {
   async ngOnInit() {
     const settings = await this.tenantService.getSettings()
     Object.keys(settings)
-      .filter((name) => !isNil(settings[name]))
+      .filter((name) => !isNil(settings[name]) && !retentionSettingNames.has(name))
       .forEach((name) => {
         this.add({ name, value: settings[name] })
       })
@@ -46,7 +62,7 @@ export class SettingsComponent implements OnInit {
       {
         id: `${++this.i}`,
         name: item?.name || '',
-        value: item?.value || ''
+        value: item?.value ?? ''
       }
     ]
     this.updateEditCache()
@@ -59,7 +75,27 @@ export class SettingsComponent implements OnInit {
   }
 
   startEdit(id: string): void {
-    this.editCache[id].edit = true
+    const draft = this.editCache[id]
+    draft.edit = true
+    try {
+      const parsed: unknown = typeof draft.data.value === 'string' ? JSON.parse(draft.data.value) : draft.data.value
+      if (parsed !== null && typeof parsed === 'object') {
+        draft.jsonControl = new FormControl(JSON.stringify(parsed, null, 2), {
+          nonNullable: true,
+          validators: [jsonSyntaxValidator]
+        })
+      }
+    } catch {
+      // Plain text stays editable without imposing JSON syntax.
+    }
+  }
+
+  editAsJson(id: string): void {
+    const draft = this.editCache[id]
+    draft.jsonControl = new FormControl(draft.data.value === '' ? '{}' : String(draft.data.value ?? '{}'), {
+      nonNullable: true,
+      validators: [jsonSyntaxValidator]
+    })
   }
 
   cancelEdit(id: string): void {
@@ -71,13 +107,35 @@ export class SettingsComponent implements OnInit {
   }
 
   async saveEdit(id: string) {
-    const index = this.listOfData.findIndex((item) => item.id === id)
-    Object.assign(this.listOfData[index], this.editCache[id].data)
-    this.editCache[id].edit = false
+    const draft = this.editCache[id]
+    if (draft.saving) return
+    if (draft.jsonControl?.invalid) {
+      draft.jsonControl.markAsTouched()
+      this.#toastr.error('XP.SettingsValue.InvalidJson')
+      return
+    }
+    const row = this.listOfData.find((item) => item.id === id)
+    const data = { ...draft.data, value: draft.jsonControl?.value ?? draft.data.value }
+    if (retentionSettingNames.has(data.name)) {
+      this.#toastr.error('XP.MENU.TENANT.RETENTION_MANAGED_SETTING', undefined, {
+        Default: 'Cleanup policies can only be configured under Data Management in the default tenant.'
+      })
+      return
+    }
 
-    await this.tenantService.saveSettings({
-      [this.editCache[id].data.name]: this.editCache[id].data.value
-    })
+    try {
+      draft.saving = true
+      await this.tenantService.saveSettings({ [data.name]: data.value })
+      Object.assign(row, data)
+      draft.data = { ...data }
+      draft.edit = false
+      draft.jsonControl = undefined
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      draft.saving = false
+      this._cdr.markForCheck()
+    }
   }
 
   async deleteRow(id: string) {
@@ -91,8 +149,8 @@ export class SettingsComponent implements OnInit {
 
   updateEditCache(): void {
     this.listOfData.forEach((item) => {
-      this.editCache[item.id] = {
-        ...(this.editCache[item.id] ?? { edit: false }),
+      this.editCache[item.id] ??= {
+        edit: false,
         data: { ...item }
       }
     })

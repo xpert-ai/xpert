@@ -2,6 +2,7 @@ import {
     IXpert,
     SecretTokenBindingType,
     TAssistantModelsResponse,
+    TAssistantModelSelectionError,
     TAssistantPrimaryModelSelection,
     TAssistantPrimaryModelSelectionSource,
     TCopilotModel,
@@ -115,20 +116,12 @@ export class AssistantModelSelectionService {
 
         const candidate = candidates.find((item) => item.id === normalizedModelId)
         if (!candidate) {
-            throw new BadRequestException(
-                t('server-ai:Error.AssistantModelNotAllowed', {
-                    defaultValue: 'The requested model is not allowed by this Assistant.'
-                })
-            )
+            throw this.selectionError(normalizedModelId, 'ASSISTANT_MODEL_NOT_ALLOWED')
         }
 
         const availableIds = await this.getAvailableIds(xpert, [candidate])
         if (!availableIds.has(candidate.id)) {
-            throw new BadRequestException(
-                t('server-ai:Error.AssistantModelUnavailable', {
-                    defaultValue: 'The requested model is not available for the current user.'
-                })
-            )
+            throw this.selectionError(candidate.id, 'ASSISTANT_MODEL_UNAVAILABLE')
         }
 
         await this.userPreferenceService.setDomain(assistantId, 'modelSelection', {
@@ -170,12 +163,11 @@ export class AssistantModelSelectionService {
         const explicitModelId = options.explicitModelId?.trim()
         if (explicitModelId) {
             const explicit = candidates.find((candidate) => candidate.id === explicitModelId)
-            if (!explicit || !availableIds.has(explicit.id)) {
-                throw new BadRequestException(
-                    t('server-ai:Error.AssistantModelUnavailable', {
-                        defaultValue: 'The requested model is not available for this Assistant.'
-                    })
-                )
+            if (!explicit) {
+                throw this.selectionError(explicitModelId, 'ASSISTANT_MODEL_NOT_ALLOWED')
+            }
+            if (!availableIds.has(explicit.id)) {
+                throw this.selectionError(explicitModelId, 'ASSISTANT_MODEL_UNAVAILABLE')
             }
             return { id: explicit.id, model: explicit.model, source: 'explicit' }
         }
@@ -209,6 +201,24 @@ export class AssistantModelSelectionService {
         }
 
         return { id: primary.id, model: primary.model, source: 'default' }
+    }
+
+    private selectionError(modelId: string, code: TAssistantModelSelectionError['code']) {
+        const message =
+            code === 'ASSISTANT_MODEL_NOT_ALLOWED'
+                ? t('server-ai:Error.AssistantModelNotAllowed', {
+                      defaultValue: 'The requested model is not allowed by this Assistant.'
+                  })
+                : t('server-ai:Error.AssistantModelUnavailable', {
+                      defaultValue: 'The requested model is not available for this Assistant.'
+                  })
+        return new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            code,
+            modelId,
+            message
+        } satisfies TAssistantModelSelectionError)
     }
 
     getModelId(model: Pick<TCopilotModel, 'copilotId' | 'modelType' | 'model'>): string {

@@ -1,5 +1,5 @@
 import { Command } from '@nestjs/cqrs'
-import type { TemplateReadiness, TXpertTemplate } from '@xpert-ai/contracts'
+import type { IXpert, TemplateReadiness, TXpertTemplate } from '@xpert-ai/contracts'
 
 export class ReconcileTemplateSkillReferencesCommand extends Command<import('@xpert-ai/contracts').TXpertTeamDraft> {
     constructor(
@@ -16,14 +16,17 @@ export class ReconcileTemplateSkillReferencesCommand extends Command<import('@xp
 export class InspectTemplateReadinessCommand extends Command<TemplateReadiness> {
     constructor(
         readonly template: TXpertTemplate,
-        readonly workspaceId?: string
+        readonly workspaceId?: string,
+        readonly installedAssistant?: IXpert
     ) {
         super()
     }
 }
 
-/** Revalidate installed dependency locks before execution, using the Assistant's file authority. */
-export class AssertAssistantTemplateDependenciesCommand extends Command<void> {
+/** Check runtime availability and explicit requirements; ordinary drift returns update recommendations. */
+export class AssertAssistantTemplateDependenciesCommand extends Command<
+    import('@xpert-ai/contracts').TemplateRuntimeDependencyReport
+> {
     constructor(
         readonly assistantId: string,
         readonly entry: 'runtime' | 'authoring'

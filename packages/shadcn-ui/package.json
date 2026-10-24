@@ -33,7 +33,10 @@
     "src/styles.css",
     "src/brand-icons",
     "components.json",
-    "!**/*.tsbuildinfo"
+    "!**/*.tsbuildinfo",
+    "src/styles",
+    "LICENSE.shadcn.md",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",

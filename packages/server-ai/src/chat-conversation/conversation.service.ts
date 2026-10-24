@@ -1,3 +1,5 @@
+import { assertGroupWorkspaceFileAccess } from './workspace-files/group-workspace-file-access'
+import { createConversationWorkspaceVolumeClient } from './workspace-files/conversation-workspace-volume'
 import { isGroupRuntime } from '../chat-group/group-runtime-context'
 import { BaseStore } from '@langchain/langgraph'
 import {
@@ -27,15 +29,12 @@ import {
     GetOwnedStorageFileQuery,
     ResolveAuthorizedFileAssetQuery
 } from '../file-understanding/queries'
-import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient } from '../shared/volume'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { ChatConversation } from './conversation.entity'
-import {
-    ResolveAssistantFileAccessCommand,
-    AssistantFileOperation
-} from '../xpert/assistant-files/resolve-assistant-file-access.command'
+import { AssistantFileOperation } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 import { ChatConversationThreadService } from './conversation-thread.service'
@@ -575,7 +574,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async getAttachments(id: string) {
-        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read', ['attachments'])
+        await this.assertAccess(id, 'read')
+        const conversation = await this.findOne(id, { relations: ['xpert', 'attachments'] })
         const attachments: StorageFile[] = []
         for (const attachment of conversation.attachments ?? []) {
             try {
@@ -657,7 +657,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     async getWorkspaceFileCapabilities(id: string, filePath: string) {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
         return workspaceFileCapabilities(async () => {
-            await this.assertAccess(conversation, 'contribute')
+            await this.getAuthorizedWorkspaceConversation(id, 'contribute')
             await this.assertCanMutateWorkspace(conversation)
             this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
             await this.createWorkspaceVolumeClient(conversation, 'write')
@@ -696,51 +696,18 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         await client.deleteFile(scopePath, filePath)
     }
 
-    private async createWorkspaceVolumeClient(conversation: ChatConversation, operation: AssistantFileOperation) {
-        if (conversation.projectId) {
-            return {
-                client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
-                    allowRootWorkspace: true
-                }),
-                scopePath: ''
-            }
-        }
-
-        const sandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim()
-        if (sandboxEnvironmentId) {
-            return {
-                client: new VolumeSubtreeClient(
-                    this.createEnvironmentVolumeHandle(conversation, sandboxEnvironmentId),
-                    {
-                        allowRootWorkspace: true
-                    }
-                ),
-                scopePath: ''
-            }
-        }
-
-        if (conversation.xpertId) {
-            const access = await this.commandBus.execute(
-                new ResolveAssistantFileAccessCommand(conversation.xpertId, operation, 'runtime')
-            )
-            return {
-                client: new VolumeSubtreeClient(this.volumeClient.resolve(access.scope), {
-                    allowRootWorkspace: true
-                }),
-                scopePath: ''
-            }
-        }
-
-        throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
+    private createWorkspaceVolumeClient(conversation: ChatConversation, operation: AssistantFileOperation) {
+        return createConversationWorkspaceVolumeClient(conversation, operation, this.commandBus, this.volumeClient)
     }
 
-    private async getAuthorizedWorkspaceConversation(
-        id: string,
-        operation: 'read' | 'contribute',
-        relations: string[] = []
-    ) {
+    private async getAuthorizedWorkspaceConversation(id: string, operation: 'read' | 'contribute') {
+        const conversation = await this.findOneInOrganizationOrTenant(id, { relations: ['xpert'] })
+        if (conversation?.purpose === 'group_assistant_runtime') {
+            await assertGroupWorkspaceFileAccess(this.commandBus, conversation)
+            return conversation
+        }
         await this.assertAccess(id, operation)
-        return this.findOne(id, { relations: Array.from(new Set(['xpert', ...relations])) })
+        return this.findOne(id, { relations: ['xpert'] })
     }
 
     private async assertCanMutateWorkspace(conversation: ChatConversation) {
@@ -967,24 +934,6 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         }
 
         return value instanceof Date ? value : new Date(value)
-    }
-
-    private createEnvironmentVolumeHandle(conversation: ChatConversation, sandboxEnvironmentId: string) {
-        return this.volumeClient.resolve({
-            tenantId: conversation.tenantId,
-            catalog: 'environment',
-            environmentId: sandboxEnvironmentId,
-            userId: conversation.createdById
-        })
-    }
-
-    private createProjectVolumeHandle(conversation: ChatConversation) {
-        return this.volumeClient.resolve({
-            tenantId: conversation.tenantId,
-            catalog: 'projects',
-            projectId: conversation.projectId,
-            userId: conversation.createdById
-        })
     }
 }
 

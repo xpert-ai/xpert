@@ -1,9 +1,13 @@
-import { normalizeAssistantTemplate } from './normalize-assistant-template'
+import { normalizeAssistantTemplate, normalizeAssistantTemplateDefinition } from './normalize-assistant-template'
 import { summarizeAssistantDefinition } from './assistant-capability-structure'
 import { stringify } from 'yaml'
 import { instanceToPlain } from 'class-transformer'
 import { XpertDraftDslDTO } from '../../xpert/dto'
 import { templateManifestSchema } from '@xpert-ai/contracts'
+jest.mock('yaml', () => {
+    const actual = jest.requireActual<typeof import('yaml')>('yaml')
+    return { ...actual, stringify: jest.fn(actual.stringify) }
+})
 const graph = {
     team: { type: 'agent', features: { sandbox: { enabled: true } } },
     nodes: [
@@ -38,6 +42,25 @@ const metadata = {
 }
 
 describe('portable Assistant definition', () => {
+    afterEach(() => jest.clearAllMocks())
+    it('normalizes the same definition and metadata without serializing until an export is requested', () => {
+        const input = { export_data: JSON.stringify({ ...graph, template: metadata }) }
+        const normalizeOnly = normalizeAssistantTemplateDefinition(input)
+        expect(stringify).not.toHaveBeenCalled()
+        const exported = normalizeAssistantTemplate(input)
+        expect(stringify).toHaveBeenCalledTimes(1)
+        expect(exported).toEqual({ ...normalizeOnly, exportData: expect.any(String) })
+        expect(exported.exportData).toContain('office.md')
+        expect(normalizeAssistantTemplateDefinition({ export_data: exported.exportData })).toEqual(normalizeOnly)
+    })
+    it('retains declaration validation in the definition-only path', () => {
+        expect(() =>
+            normalizeAssistantTemplateDefinition({
+                export_data: JSON.stringify({ ...graph, template: metadata }),
+                dependencies: { skills: [] }
+            })
+        ).toThrow()
+    })
     it('derives skills once, seed memories and sandbox from their owning structures', () => {
         const normalized = normalizeAssistantTemplate({ export_data: stringify({ ...graph, template: metadata }) })
         const summary = summarizeAssistantDefinition(normalized.definition)

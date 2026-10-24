@@ -68,10 +68,12 @@ describe('group request boundaries', () => {
         for (const query of [{ limit: 101 }, { before: 0 }, { before: 1.5 }, { after: 1 }]) {
             expect(groupHistorySchema.safeParse(query).success).toBe(false)
         }
-        expect(groupCandidatesSchema.parse({})).toEqual({ kind: 'assistant', search: '' })
+        expect(groupCandidatesSchema.parse({})).toEqual({ kind: 'assistant', search: '', limit: 50, offset: 0 })
         expect(groupCandidatesSchema.parse({ kind: 'user', search: ' Alice ' })).toEqual({
             kind: 'user',
-            search: 'Alice'
+            search: 'Alice',
+            limit: 50,
+            offset: 0
         })
     })
 

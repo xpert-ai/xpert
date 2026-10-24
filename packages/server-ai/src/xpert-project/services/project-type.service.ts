@@ -7,6 +7,7 @@ import {
     IXpert,
     XpertProjectClassification,
     XpertProjectEntry,
+    XpertProjectViewSelection,
     XpertProjectTypeRef,
     XpertProjectTypeSummary
 } from '@xpert-ai/contracts'
@@ -28,6 +29,7 @@ import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectAccessService } from './project-access.service'
 import { parseResourceCard } from '@xpert-ai/contracts'
+import { pipelineEntryFocus } from '../pipeline/queries/pipeline-entry-focus'
 
 type RegisteredType = XpertProjectTypeSummary & { pluginName?: string; appName?: string; scopeKey?: string }
 
@@ -84,6 +86,7 @@ export class XpertProjectTypeService {
                         title: definition.title,
                         icon: definition.icon,
                         binding: definition.binding,
+                        taskConcurrency: definition.taskConcurrency,
                         available: true,
                         pluginName,
                         appName: app.name,
@@ -278,11 +281,27 @@ export class XpertProjectTypeService {
             throw new BadRequestException(t('server-ai:Error.ProjectApplicationWorkflowRequired'))
     }
 
+    /** Resolve persisted classification after authorization; a View cannot choose an app or Assistant. */
+    async entryForProject(projectId: string, input: { xpertId?: string; pipelineNodeId?: string } = {}) {
+        const { project } = await this.access.assertCanRead(projectId)
+        if (!project.applicationKey || !project.projectTypeKey)
+            throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+        return this.entry(
+            { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
+            { ...input, projectId }
+        )
+    }
+
     /**
      * Resolve a governed creation/opening destination rather than accepting a browser-provided URL.
      * Existing Projects require read access before provider resolution and access to the connected Assistant.
      */
-    async entry(ref: XpertProjectTypeRef, input: { projectId?: string; xpertId?: string }): Promise<XpertProjectEntry> {
+    async entry(
+        ref: XpertProjectTypeRef,
+        input: { projectId?: string; xpertId?: string; pipelineNodeId?: string }
+    ): Promise<XpertProjectEntry> {
+        if (input.pipelineNodeId && !input.projectId)
+            throw new BadRequestException(t('server-ai:Error.ProjectPipelineNotFound'))
         let project: XpertProject | undefined
         if (input.projectId) {
             project = (await this.access.assertCanRead(input.projectId)).project
@@ -291,7 +310,11 @@ export class XpertProjectTypeService {
             }
         }
         const type = this.resolve(ref)
-        if (type.binding.kind === 'project') return { kind: 'project', projectId: input.projectId, projectType: ref }
+        if (type.binding.kind === 'project') {
+            if (input.pipelineNodeId)
+                throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+            return { kind: 'project', projectId: input.projectId, projectType: ref }
+        }
         const classification = project ?? (await this.classification(ref))
         const installation = classification.applicationInstallationId
             ? await this.installations.findOneBy({
@@ -312,13 +335,36 @@ export class XpertProjectTypeService {
         if ((xpert.organizationId ?? null) !== (RequestContext.getOrganizationId() ?? null))
             throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
         if (input.projectId) await this.access.assertCanUseXpert(input.projectId, xpert.id)
+        let selection: XpertProjectViewSelection = {
+            viewKey: binding.viewKey,
+            selectionId: binding.selectionId,
+            ...(binding.parameters ? { parameters: binding.parameters } : {})
+        }
+        if (input.pipelineNodeId) {
+            if (!provider.resolveNodeEntry)
+                throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+            const focus = await pipelineEntryFocus(
+                this.installations.manager,
+                {
+                    projectId: input.projectId!,
+                    actor: {
+                        tenantId: context.tenantId,
+                        organizationId: context.organizationId,
+                        userId: context.userId
+                    }
+                },
+                input.pipelineNodeId
+            )
+            selection = await provider.resolveNodeEntry(context, input.projectId!, focus)
+        }
         return {
             kind: 'assistant',
             xpertId: xpert.id,
             slug: xpert.slug,
             projectId: input.projectId,
-            viewKey: binding.viewKey,
-            selectionId: binding.selectionId
+            viewKey: selection.viewKey,
+            selectionId: selection.selectionId,
+            ...(selection.parameters ? { parameters: selection.parameters } : {})
         }
     }
 }

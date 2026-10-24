@@ -1,3 +1,4 @@
+import { omit } from 'lodash'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { collectMcpAppComponentData } from '../mcp-app-runtime/mcp-app-history-component'
 import {
@@ -9,9 +10,12 @@ import {
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
 import { DataSource, EntityManager, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
-import { threadControlConflict } from './thread-run-control.service'
+import { threadControlConflict, threadGraphRevision } from './thread-run-control.service'
+import { recoveryConflict } from './recovery/recovery-error'
+import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -19,12 +23,9 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { messageAncestorPath } from './message-path'
-
-export type CopyConversationThreadInput = {
-    metadata?: Record<string, unknown>
-    beforeMessageId?: string
-    requestId?: string
-}
+import { SideChatForkService } from './side-chat-fork.service'
+import type { CopyConversationThreadInput } from './thread-copy.schema'
+export type { CopyConversationThreadInput } from './thread-copy.schema'
 
 export type FindVisibleThreadMessagesOptions = {
     where?: FindOptionsWhere<ChatMessage>
@@ -47,7 +48,9 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         private readonly messageRepository: Repository<ChatMessage>,
         @InjectRepository(ChatConversation)
         private readonly conversationRepository: Repository<ChatConversation>,
-        private readonly dataSource: DataSource
+        private readonly dataSource: DataSource,
+        private readonly sideChats: SideChatForkService,
+        private readonly queryBus: QueryBus
     ) {
         super(repository)
     }
@@ -122,6 +125,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
 
     async copyThread(sourceThreadId: string, input: CopyConversationThreadInput = {}): Promise<ChatConversationThread> {
         const source = await this.requireByThreadId(sourceThreadId)
+        if (input.mode === 'latest-sealed-reply') return this.sideChats.copy(source, input)
         const childThreadId = uuidv4()
         const editedMessage = input.beforeMessageId
             ? (await this.findVisibleMessages(sourceThreadId)).items.find(
@@ -136,6 +140,19 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 'MessageCheckpointUnavailable',
                 'This message has no saved input checkpoint and cannot be edited into a branch.'
             )
+        }
+
+        if (editedMessage) {
+            const anchor = editedMessage.inputCheckpoint
+            if (anchor.version !== 1 || !anchor.graphRevision || !source.conversation?.xpertId)
+                throw recoveryConflict('conversation_recovery_unavailable', source.error, sourceThreadId)
+            const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+                new GetXpertWorkflowQuery(source.conversation.xpertId)
+            )
+            if (
+                threadGraphRevision(workflow.graph, anchor.graphRevision, workflow.agent?.team) !== anchor.graphRevision
+            )
+                throw recoveryConflict('conversation_graph_changed', source.error, sourceThreadId)
         }
 
         return this.dataSource.transaction(async (manager) => {
@@ -155,6 +172,11 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                     .andWhere(`thread.metadata ->> 'forkRequestId' = :requestId`, { requestId: input.requestId })
                     .getOne()
                 if (existing) {
+                    if (existing.metadata.forkMode)
+                        throw threadControlConflict(
+                            'BranchRequestInvalid',
+                            'Branch mode does not match the original request.'
+                        )
                     if (
                         (existing.metadata.purpose === ChatThreadPurpose.MessageEdit
                             ? existing.forkedFromMessageId
@@ -164,10 +186,8 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                             'BranchRequestInvalid',
                             'Branch request does not match its source message.'
                         )
-                    existing.conversation = editedMessage
-                        ? ((await this.promoteWorkingThread(manager, source.conversationId, existing.threadId)) ??
-                          source.conversation)
-                        : source.conversation
+                    // Retrying a lost copy response never changes the selected branch.
+                    existing.conversation = source.conversation
                     return existing
                 }
             }
@@ -177,6 +197,17 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             }
 
             const anchor = editedMessage?.inputCheckpoint
+            const workingConversation = editedMessage
+                ? await manager.getRepository(ChatConversation).findOne({
+                      where: {
+                          id: source.conversationId,
+                          tenantId: source.tenantId,
+                          organizationId: source.organizationId ?? IsNull()
+                      },
+                      lock: { mode: 'pessimistic_write' }
+                  })
+                : null
+            if (editedMessage && !workingConversation) throw new NotFoundException('Conversation not found')
             const pinnedCheckpoint = anchor?.checkpoint
                 ? await manager.getRepository(CopilotCheckpoint).findOne({
                       where: {
@@ -204,13 +235,19 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 metadata: {
                     purpose: ChatThreadPurpose.SideChat,
                     primary: false,
-                    ...(input.metadata ?? {}),
+                    ...omit(input.metadata ?? {}, ['editAdmission', 'forkGraphRevision', 'forkRequestId']),
                     ...(input.requestId ? { forkRequestId: input.requestId } : {}),
                     ...(editedMessage
                         ? {
                               purpose: ChatThreadPurpose.MessageEdit,
                               forkGraphRevision: anchor.graphRevision,
-                              forkRequestId: input.requestId
+                              forkRequestId: input.requestId,
+                              editAdmission: {
+                                  version: 1,
+                                  state: 'pending',
+                                  workingThreadId: workingConversation.threadId,
+                                  workingThreadRevision: workingConversation.workingThreadRevision ?? 0
+                              }
                           }
                         : {})
                 },
@@ -312,16 +349,23 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 )
             }
 
-            savedThread.conversation = editedMessage
-                ? ((await this.promoteWorkingThread(manager, lockedSource.conversationId, childThreadId)) ??
-                  source.conversation)
-                : source.conversation
+            savedThread.conversation = workingConversation ?? source.conversation
             return savedThread
         })
     }
 
     async claimForRun(threadId: string): Promise<ChatConversationThread> {
         const source = await this.requireByThreadId(threadId)
+        if (source.metadata?.forkGraphRevision) {
+            const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+                new GetXpertWorkflowQuery(source.conversation.xpertId)
+            )
+            if (
+                threadGraphRevision(workflow.graph, source.metadata.forkGraphRevision, workflow.agent?.team) !==
+                source.metadata.forkGraphRevision
+            )
+                throw recoveryConflict('conversation_graph_changed', source.error, source.parentThreadId)
+        }
         return this.dataSource.transaction(async (manager) => {
             const thread = await manager.getRepository(ChatConversationThread).findOne({
                 where: { id: source.id },
@@ -461,24 +505,6 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         conversation.error = thread.error ?? undefined
         conversation.operation = thread.operation ?? undefined
         return conversation
-    }
-
-    // Why this exists: conversation.threadId is the latest working branch. Message-edit
-    // replaces it so history, /by-thread, and refresh open the branch instead of the abandoned primary.
-    private async promoteWorkingThread(
-        manager: EntityManager,
-        conversationId: string,
-        threadId: string
-    ): Promise<ChatConversation | null> {
-        const conversations = manager.getRepository(ChatConversation)
-        const conversation = await conversations.findOne({
-            where: { id: conversationId },
-            lock: { mode: 'pessimistic_write' }
-        })
-        if (!conversation) return null
-        if (conversation.threadId === threadId) return conversation
-        conversation.threadId = threadId
-        return conversations.save(conversation)
     }
 
     private normalizeThreadId(threadId: string): string {

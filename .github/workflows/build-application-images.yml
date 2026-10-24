@@ -1,0 +1,95 @@
+# Invariants: callers separate trusted cache writers from read-only PR builds.
+# Application images are loaded and health-checked before the publication artifact is saved.
+name: Build application images
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      matrix:
+        required: true
+        type: string
+      write-cache:
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    name: Build and verify ${{ matrix.image_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    env:
+      LOCAL_IMAGE: ${{ matrix.image_name }}:check-${{ inputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to build cache registry
+        if: inputs.write-cache && github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          build-args: |
+            NODE_OPTIONS=${{ matrix.node_options }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          provenance: false
+          cache-from: |
+            ${{ inputs.write-cache && format('type=registry,ref=ghcr.io/{0}-buildcache:{1}-linux-amd64-develop', github.repository, matrix.image_name) || '' }}
+            ${{ inputs.write-cache && format('type=registry,ref=ghcr.io/{0}-buildcache:{1}-linux-amd64-main', github.repository, matrix.image_name) || '' }}
+          cache-to: ${{ inputs.write-cache && github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && format('type=registry,ref=ghcr.io/{0}-buildcache:{1}-linux-amd64-{2},mode=max', github.repository, matrix.image_name, github.ref_name) || '' }}
+          tags: ${{ env.LOCAL_IMAGE }}
+          labels: |
+            org.opencontainers.image.revision=${{ inputs.sha }}
+            org.opencontainers.image.version=${{ matrix.version }}
+      - name: Check image startup and health
+        id: health
+        if: matrix.health_check != ''
+        env:
+          HEALTH_CHECK: ${{ matrix.health_check }}
+          API_HEALTH_DIAGNOSTICS_DIR: ${{ runner.temp }}/api-health-diagnostics
+        run: node "$HEALTH_CHECK" "$LOCAL_IMAGE"
+      - name: Upload sanitized API failure diagnostics
+        if: failure() && steps.health.outcome == 'failure' && matrix.image_name == 'xpert-api'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-health-diagnostics-${{ inputs.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/api-health-diagnostics/*.log
+            ${{ runner.temp }}/api-health-diagnostics/containers.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Save verified image for publication
+        if: matrix.publish
+        run: |
+          docker image inspect "$LOCAL_IMAGE" --format '{{.Id}}' > "$RUNNER_TEMP/image.id"
+          docker save "$LOCAL_IMAGE" -o "$RUNNER_TEMP/image.tar"
+      - uses: actions/upload-artifact@v4
+        if: matrix.publish
+        with:
+          name: verified-${{ matrix.image_name }}-${{ inputs.sha }}
+          path: |
+            ${{ runner.temp }}/image.tar
+            ${{ runner.temp }}/image.id
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: true

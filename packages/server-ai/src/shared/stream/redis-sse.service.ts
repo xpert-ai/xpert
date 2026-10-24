@@ -6,10 +6,17 @@ import { randomUUID } from 'crypto'
 import { Observable } from 'rxjs'
 import { share } from 'rxjs/operators'
 import { serializeRunStreamPayload } from './run-stream-payload'
+import { DisplaySnapshotCapture } from './display-snapshot/display-snapshot.capture'
+import {
+    DisplaySnapshotScope,
+    DisplaySnapshotWriter,
+    RunDisplaySnapshotStore
+} from './display-snapshot/display-snapshot.store'
 
 const SSE_COMPLETE_EVENT = 'complete'
 const APPEND_EVENT_SCRIPT = `
-local id = redis.call('XADD', KEYS[1], 'MAXLEN', '~', ARGV[1], '*', 'data', ARGV[2])
+local id = redis.call('XADD', KEYS[1], '*', 'data', ARGV[2])
+redis.call('XTRIM', KEYS[1], 'MAXLEN', '~', ARGV[1])
 if tonumber(ARGV[3]) > 0 then
     redis.call('EXPIRE', KEYS[1], ARGV[3])
 end
@@ -36,10 +43,13 @@ interface CreateSseStreamOptions {
     owner?: SseConnectionOwnerCandidate
     requireReplayStart?: boolean
     isRunFinished?: () => Promise<boolean>
+    snapshotScope?: DisplaySnapshotScope
 }
 
 export interface RedisStreamPersistenceTarget {
     transport: 'redis-stream'
+    snapshotOwner?: string
+    snapshotScope?: DisplaySnapshotScope
     threadId?: string | null
     runId?: string | null
 }
@@ -73,7 +83,10 @@ export interface SseConnectionOwner extends SseConnectionOwnerCandidate {
 export class RedisSseStreamService {
     readonly #logger = new Logger(RedisSseStreamService.name)
 
-    constructor(@Inject(REDIS_CLIENT) private readonly redis: RedisClientType) {}
+    constructor(
+        @Inject(REDIS_CLIENT) private readonly redis: RedisClientType,
+        private readonly snapshots: RunDisplaySnapshotStore
+    ) {}
 
     getStreamKey(threadId: string, runId: string) {
         return `ai:sse:thread:${threadId}:run:${runId}`
@@ -87,9 +100,9 @@ export class RedisSseStreamService {
         return `ai:sse:connection:thread:${threadId}:run:${runId}:${connectionId}`
     }
 
-    async appendEvent(threadId: string, runId: string, data: unknown) {
+    async appendEvent(threadId: string, runId: string, data: unknown, protectedTail = false) {
         const streamKey = this.getStreamKey(threadId, runId)
-        const maxLen = this.getStreamMaxLen()
+        const maxLen = this.getStreamMaxLen() * (protectedTail ? 4 : 1)
         const ttlSeconds = this.getStreamTtlSeconds()
 
         try {
@@ -130,13 +143,55 @@ export class RedisSseStreamService {
         // Observers can leave without cancelling the admitted model execution.
         return new Observable<MessageEvent>((subscriber) => {
             let failed = false
-            let writes = this.appendEvent(threadId, runId, { type: 'stream_start' }).then((id) => {
+            let writer: DisplaySnapshotWriter | null = null
+            let revision = 0
+            let lastWrittenId: string | null = null
+            let savedRevision = 0
+            let retryClaimAt = 0
+            const capture = new DisplaySnapshotCapture()
+            const protectedTail = Boolean(target.snapshotOwner && target.snapshotScope)
+            const claimWriter = async () => {
+                if (!protectedTail || writer || Date.now() < retryClaimAt) return
+                retryClaimAt = Infinity
+                try {
+                    writer = await this.snapshots.begin(target.snapshotScope, threadId, runId, target.snapshotOwner)
+                } catch {
+                    retryClaimAt = Date.now() + 1000
+                    this.#logger.warn('Display snapshot initialization failed; retaining the bounded uncovered tail')
+                }
+            }
+            const saveDisplay = async (
+                display: ReturnType<DisplaySnapshotCapture['capture']>,
+                version: number,
+                id: string | null
+            ) => {
+                if (!display || !id || failed || version <= savedRevision) return
+                await claimWriter()
+                if (!writer) return
+                try {
+                    const saved = await this.snapshots.save(writer, version, id, display)
+                    if (saved) {
+                        savedRevision = version
+                        await this.trimCoveredEvents(threadId, runId, id)
+                    }
+                } catch {
+                    this.#logger.warn('Display snapshot persistence failed; retaining the bounded uncovered tail')
+                }
+            }
+            let writes = (async () => {
+                await claimWriter()
+                const id = protectedTail
+                    ? await this.appendEvent(threadId, runId, { type: 'stream_start' }, true)
+                    : await this.appendEvent(threadId, runId, { type: 'stream_start' })
                 failed ||= !id
-            })
+            })()
             const enqueue = (data: unknown, event?: MessageEvent) => {
                 let snapshot: unknown
+                let display: ReturnType<DisplaySnapshotCapture['capture']> = null
+                const eventRevision = ++revision
                 try {
                     snapshot = JSON.parse(JSON.stringify(serializeRunStreamPayload(data) ?? null))
+                    display = protectedTail ? capture.capture(snapshot) : null
                 } catch {
                     failed = true
                     this.#logger.warn('SSE event could not be serialized; readers will reconcile committed messages')
@@ -146,16 +201,47 @@ export class RedisSseStreamService {
                     return
                 }
                 writes = writes.then(async () => {
-                    const id = await this.appendEvent(threadId, runId, snapshot)
+                    const id = protectedTail
+                        ? await this.appendEvent(threadId, runId, snapshot, true)
+                        : await this.appendEvent(threadId, runId, snapshot)
                     failed ||= !id
+                    lastWrittenId = id
+                    await saveDisplay(display, eventRevision, id)
                     if (event) subscriber.next(event)
                 })
             }
+            // A quiet long-running tool still gets its last display saved after a transient DB outage.
+            // Capture now, then queue the write after exactly the events represented by this projection.
+            const flushTimer = protectedTail
+                ? setInterval(() => {
+                      if (revision <= savedRevision) return
+                      let display: ReturnType<DisplaySnapshotCapture['capture']>
+                      try {
+                          display = capture.capture({ type: 'complete' })
+                      } catch {
+                          return
+                      }
+                      const version = revision
+                      writes = writes.then(() => saveDisplay(display, version, lastWrittenId))
+                  }, 1000)
+                : null
+            flushTimer?.unref()
             const finish = (error?: unknown) => {
+                if (flushTimer) clearInterval(flushTimer)
+                // Completion is also a synchronous boundary; drain the final coalesced text before closing the transport.
+                let finalDisplay: ReturnType<DisplaySnapshotCapture['capture']> = null
+                try {
+                    finalDisplay = protectedTail ? capture.capture({ type: 'complete' }) : null
+                } catch {
+                    failed = true
+                }
+                const finalRevision = ++revision
                 writes = writes
                     .then(async () => {
+                        await saveDisplay(finalDisplay, finalRevision, lastWrittenId)
                         if (failed) await this.appendEvent(threadId, runId, { type: 'stream_resync' })
-                        await this.appendCompleteEvent(threadId, runId)
+                        if (protectedTail) await this.appendEvent(threadId, runId, { type: SSE_COMPLETE_EVENT }, true)
+                        else await this.appendCompleteEvent(threadId, runId)
                         if (error) subscriber.error(error)
                         else subscriber.complete()
                     })
@@ -252,31 +338,55 @@ export class RedisSseStreamService {
                     }
                     await checkAccess()
                     const resync = () => {
-                        subscriber.next({ data: { type: 'stream_resync' } })
+                        subscriber.next({
+                            data: { type: 'stream_resync', ...(options.snapshotScope ? { retryable: !finished } : {}) }
+                        })
                         subscriber.next({ type: SSE_COMPLETE_EVENT, data: { type: SSE_COMPLETE_EVENT } })
                         subscriber.complete()
                         active = false
                     }
-                    if (options.requireReplayStart) {
+                    const repairGap = async (): Promise<boolean> => {
                         const first = (await this.readRange(client, streamKey, '0-0', 1))[0]
-                        if (
-                            first &&
-                            (options.lastEventId
-                                ? compareStreamIds(first.id, options.lastEventId) > 0
-                                : !isStreamStart(first.data))
-                        ) {
-                            resync()
-                            return
+                        const missing = first
+                            ? lastId !== '0-0'
+                                ? compareStreamIds(first.id, lastId) > 0
+                                : !isStreamStart(first.data)
+                            : true
+                        if (!missing) return true
+                        if (options.snapshotScope) {
+                            const saved = await this.snapshots.read(options.snapshotScope, threadId, runId)
+                            if (saved && compareStreamIds(saved.cursor, startId) >= 0) {
+                                // Retain the cursor entry itself as the continuity anchor; never infer adjacent Redis ids.
+                                const anchor = (await client.sendCommand([
+                                    'XRANGE',
+                                    streamKey,
+                                    saved.cursor,
+                                    saved.cursor,
+                                    'COUNT',
+                                    '1'
+                                ])) as unknown[]
+                                const continuous = Boolean(anchor?.length)
+                                subscriber.next({
+                                    id: saved.cursor,
+                                    data: { type: 'stream_snapshot', snapshot: saved, continuous }
+                                })
+                                lastId = saved.cursor
+                                if (continuous) return true
+                            }
                         }
-                        if (!first && finished) {
+                        if (first || finished || options.snapshotScope) {
                             resync()
-                            return
+                            return false
                         }
+                        return true
                     }
+                    if (options.requireReplayStart && !(await repairGap())) return
                     if (lastId !== '$') {
                         const replayEntries = await this.readRange(client, streamKey, lastId, readCount)
+                        if (options.requireReplayStart && !(await repairGap())) return
                         for (const entry of replayEntries) {
                             if (!active) return
+                            if (compareStreamIds(entry.id, lastId) <= 0) continue
                             if (emitEntry(entry)) {
                                 return
                             }
@@ -285,6 +395,7 @@ export class RedisSseStreamService {
 
                     while (active) {
                         await checkAccess()
+                        if (options.requireReplayStart && !(await repairGap())) return
                         const entries = await this.readNewEntries(client, streamKey, lastId, readCount, readBlockMs)
                         if (!entries.length) {
                             if (await checkAccess()) {
@@ -293,8 +404,10 @@ export class RedisSseStreamService {
                             }
                             continue
                         }
+                        if (options.requireReplayStart && !(await repairGap())) return
                         for (const entry of entries) {
                             if (!active) return
+                            if (compareStreamIds(entry.id, lastId) <= 0) continue
                             if (emitEntry(entry)) {
                                 return
                             }
@@ -320,6 +433,17 @@ export class RedisSseStreamService {
         })
 
         return { connectionId, owner, ttlMs: connectionTtl, stream }
+    }
+
+    private async trimCoveredEvents(threadId: string, runId: string, cursor: string) {
+        await this.redis.eval(
+            `
+            if redis.call('XLEN', KEYS[1]) > tonumber(ARGV[1]) then
+                return redis.call('XTRIM', KEYS[1], 'MINID', '=', ARGV[2])
+            end
+            return 0`,
+            { keys: [this.getStreamKey(threadId, runId)], arguments: [String(this.getStreamMaxLen()), cursor] }
+        )
     }
 
     async releaseConnection(threadId: string, runId: string, connectionId: string) {

@@ -1,3 +1,8 @@
+import { randomUUID } from 'node:crypto'
+import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../agent-invocation/invocation.entity'
+import { ProjectPipelineTaskLinkEntity } from '../pipeline/persistence/pipeline.entity'
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { ProjectTaskGraphService, projectTaskIdentity } from './project-task-graph.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -16,7 +21,9 @@ async function fixture() {
     const providers = { list: jest.fn().mockReturnValue([]) }
     const module = await Test.createTestingModule({
         providers: [
+            { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
             ProjectTaskGraphService,
+            { provide: ProjectTaskProjectionService, useValue: { diagnostics: async () => [], request: jest.fn() } },
             { provide: getRepositoryToken(XpertProjectTask), useValue: { manager } },
             { provide: ProjectAccessRuntimeService, useValue: access },
             { provide: ProjectTaskProviderRegistry, useValue: providers }
@@ -43,6 +50,63 @@ describe('project task execution identity and navigation', () => {
         await expect(f.service.resolveExecution(context, 'attempt')).rejects.toThrow()
         expect(f.providers.list).not.toHaveBeenCalled()
         expect(f.manager.findOneBy).not.toHaveBeenCalled()
+    })
+    it('opens an owned Pipeline Invocation through its exact task link without inventing a conversation', async () => {
+        const f = await fixture(),
+            id = randomUUID(),
+            operationId = randomUUID()
+        const c = { projectId: id, actor: { tenantId: id, organizationId: id, userId: id } }
+        const attempt = { id, invocationId: id, taskId: id, sourceKey: operationId }
+        const invocation = {
+            id,
+            scope: {
+                tenantId: id,
+                organizationId: id,
+                userId: id,
+                projectId: id,
+                workspaceId: id,
+                callerType: 'project_pipeline',
+                callerAgentKey: 'pipeline_node',
+                parentExecutionId: `pipeline-operation:${operationId}`,
+                pipelineOrigin: {
+                    instanceId: id,
+                    runId: id,
+                    roundId: id,
+                    nodeInstanceId: id,
+                    operationId,
+                    generation: 1,
+                    inputDigest: 'a'.repeat(64)
+                }
+            },
+            request: { callId: operationId, target: { bindingId: id } }
+        }
+        f.manager.findOneBy.mockImplementation(async (entity) =>
+            entity === XpertProjectTaskExecution
+                ? attempt
+                : entity === AgentInvocationEntity
+                  ? { invocation }
+                  : entity === AgentRuntimeBindingEntity
+                    ? { workspaceIds: [id] }
+                    : null
+        )
+        f.manager.existsBy.mockImplementation(
+            async (entity, where) =>
+                entity === ProjectPipelineTaskLinkEntity && where.nodeInstanceId === id && where.taskId === id
+        )
+        expect(await f.service.resolveExecution(c, id)).toEqual({
+            kind: 'runtime_invocation',
+            projectId: id,
+            taskId: id,
+            taskExecutionId: id,
+            invocationId: id,
+            codingInvocationId: undefined
+        })
+        expect(f.manager.findOneBy.mock.calls.some(([entity]) => entity === ChatConversation)).toBe(false)
+        f.manager.existsBy.mockResolvedValue(false)
+        await expect(f.service.resolveExecution(c, id)).rejects.toThrow()
+        f.manager.existsBy.mockResolvedValue(true)
+        invocation.scope.userId = randomUUID()
+        await expect(f.service.resolveExecution(c, id)).rejects.toThrow()
     })
     it('resolves nested expert attempts through the real root message rather than the latest conversation', async () => {
         const f = await fixture()

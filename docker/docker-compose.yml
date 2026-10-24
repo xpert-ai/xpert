@@ -26,16 +26,17 @@ services:
       - overlay
 
   api:
-    image: ghcr.io/xpert-ai/xpert-api:latest
+    image: ${XPERT_API_IMAGE:-ghcr.io/xpert-ai/xpert-api:latest}
     deploy:
       replicas: ${API_REPLICAS:-1}
-    environment:
+    environment: &api-environment
       # HOST: ${API_HOST:-api}
       # PORT: ${API_PORT:-3000}
       NODE_OPTIONS: '--max-old-space-size=8192'
       NODE_ENV: ${NODE_ENV:-development}
       IS_DOCKER: true
       DB_HOST: db
+      DB_SCHEMA_SYNC_MODE: external
       REDIS_HOST: redis
       REDIS_PORT: 6379
       OLAP_HOST: olap
@@ -45,6 +46,7 @@ services:
       DEEP_RESEARCH_URL: ${DEEP_RESEARCH_URL:-https://research.xpertai.cn/}
       DATA_ONTOLOGY_URL: ${DATA_ONTOLOGY_URL:-https://data.xpertai.cn/}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      RUNTIME_TRAFFIC_WITHDRAWAL_MS: ${RUNTIME_TRAFFIC_WITHDRAWAL_MS:-5000}
       NPM_CONFIG_CACHE: /var/lib/xpert/data/npm-cache
     env_file:
       - .env
@@ -58,17 +60,50 @@ services:
     command: ['pm2-runtime', 'main.js']
     restart: unless-stopped
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      schema-sync:
+        condition: service_completed_successfully
     links:
       - db:${DB_HOST:-db}
     expose:
       - '3000'
-    volumes:
+    volumes: &api-volumes
       - ./volumes/api/public:/srv/xpert/public
       - ./volumes/api/sandbox/:/sandbox/
       - ./volumes/api/plugins:/srv/xpert/plugins
       - ./volumes/api/data/:/var/lib/xpert/data/
+    networks:
+      - overlay
+
+  schema-sync:
+    image: ${XPERT_API_IMAGE:-ghcr.io/xpert-ai/xpert-api:latest}
+    # Plugin discovery must see the same packages and configuration as the API.
+    environment: *api-environment
+    volumes: *api-volumes
+    env_file:
+      - .env
+    entrypoint: './entrypoint.compose.sh'
+    command: ['node', 'main.js', '--command', 'schema-sync']
+    restart: 'no'
+    depends_on:
+      - db
+      - redis
+    networks:
+      - overlay
+
+  # All API clients must use this readiness-aware hop, including an external Nginx.
+  api-ingress:
+    image: ${XPERT_INGRESS_IMAGE:-haproxy:3.2.26-alpine}
+    restart: unless-stopped
+    volumes:
+      - ./runtime-ingress/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - api
+    expose:
+      - '3000'
     networks:
       - overlay
 
@@ -89,7 +124,7 @@ services:
       DEFAULT_LATITUDE: ${DEFAULT_LATITUDE:-42.6459136}
       DEFAULT_LONGITUDE: ${DEFAULT_LONGITUDE:-23.3332736}
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USD}
-      API_HOST: api
+      API_HOST: api-ingress
       API_PORT: 3000
     entrypoint: './entrypoint.compose.sh'
     command: ['nginx', '-g', 'daemon off;']
@@ -97,9 +132,9 @@ services:
       - .env
     restart: on-failure
     links:
-      - api:${API_HOST:-api}
+      - api-ingress
     depends_on:
-      - api
+      - api-ingress
     ports:
       - ${WEB_PORT:-80}:80
       - ${API_PORT:-3000}:3000

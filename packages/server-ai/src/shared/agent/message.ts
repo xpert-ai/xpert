@@ -1,3 +1,5 @@
+import { ResourceSkillInstructionsQuery } from '../../agent-plugin/commands/resource-skill-instructions.query'
+import type { RuntimeResourcesSelection } from '@xpert-ai/contracts'
 import { HumanMessage } from '@langchain/core/messages'
 import { _TFile, IStorageFile, IXpert, STATE_VARIABLE_SYS, TXpertAgentOptions } from '@xpert-ai/contracts'
 import { FileStorage } from '@xpert-ai/server-core'
@@ -37,6 +39,7 @@ type ResolvedFile = Omit<_TFile, 'filePath'> & {
 }
 
 type CreateHumanMessageOptions = {
+    resourceSkillContext?: { selection: RuntimeResourcesSelection; projectId?: string }
     xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
 }
 
@@ -274,7 +277,21 @@ export async function createHumanMessage(
 ) {
     const { human } = state
     const fileAssetAuthority = resolveFileAssetAuthority(state)
-    const agentHuman = await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
+    const resourceSkillInstructions =
+        options?.resourceSkillContext && options.xpert && human?.resourceSkills !== undefined
+            ? await queryBus.execute(
+                  new ResourceSkillInstructionsQuery(
+                      options.xpert.id,
+                      options.resourceSkillContext.selection,
+                      human.resourceSkills,
+                      options.resourceSkillContext.projectId
+                  )
+              )
+            : null
+    // A slash argument after a skill chip belongs to that skill, never the global command registry.
+    const agentHuman = resourceSkillInstructions
+        ? human
+        : await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
     const normalizedReferences = normalizeReferences(agentHuman?.references)
     const originalReferencePrompt = buildReferencedPrompt(normalizedReferences)
@@ -297,7 +314,10 @@ export async function createHumanMessage(
     } else {
         finalTextWithoutSkills = `${input.trimEnd()}\n\n${referencePrompt}`
     }
-    const finalText = appendPromptSection(finalTextWithoutSkills, selectedSkillsPrompt)
+    const taskText = appendPromptSection(finalTextWithoutSkills, selectedSkillsPrompt)
+    const finalText = resourceSkillInstructions
+        ? `The following skill instructions were explicitly selected for this task:\n<selected_resource_skills>\n${resourceSkillInstructions}\n</selected_resource_skills>\n\nTask for the selected skill(s):\n${taskText || 'Use the selected skill.'}`
+        : taskText
     const imageReferences = references.filter(
         (reference): reference is Extract<(typeof references)[number], { type: 'image' }> => reference.type === 'image'
     )

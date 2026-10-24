@@ -11,6 +11,10 @@ export const SANDBOX_JOB_ERROR_CODES = [
   'SANDBOX_VERSION_MISMATCH',
   'SANDBOX_CAPACITY_UNAVAILABLE',
   'SANDBOX_START_FAILED',
+  'SANDBOX_DEPENDENCY_MISSING',
+  'EXPORT_CONVERSION_FAILED',
+  'EXPORT_TEXT_EXTRACTION_FAILED',
+  'SANDBOX_INVOCATION_FAILED',
   'BROWSER_LAUNCH_FAILED',
   'EXPORT_TIMEOUT',
   'EXPORT_OOM',
@@ -139,6 +143,40 @@ export type SandboxJobSnapshot = {
   finishedAt?: Date | string | null
 }
 
+/**
+ * Host callbacks available only for one execution attempt. This configuration is never
+ * serialized into a Job or exposed to the script. An attached caller cannot replace it.
+ */
+export type SandboxJobInvocation = {
+  /** Exact operation names the script may request; names carry no built-in business meaning. */
+  operations: readonly string[]
+  /** Positive integer request limit, including queued requests; Core caps it at 32. */
+  maxCalls: number
+  /** Positive integer budget for UTF-8 request lines and response JSON combined; capped at 8 MB. */
+  maxBytes: number
+  /**
+   * Runs in the initiating host context. The plugin validates the operation payload and
+   * rechecks resource access; the operation allowlist is not business authorization.
+   * Honor signal to stop child work. Return only data permitted to enter the script workspace.
+   */
+  handle(operation: string, payload: JSONValue, context: { jobId: string; signal: AbortSignal }): Promise<JSONValue>
+}
+
+/** Live execution controls; kept separate from the persisted, JSON-only RunInput. */
+export type SandboxJobRunOptions = {
+  /** Cancels an owned attempt; on reattachment, cancels only this caller's wait. */
+  signal?: AbortSignal
+  invocation?: SandboxJobInvocation
+}
+
+/**
+ * Stdout frame: prefix + JSON { id, operation, payload } + newline.
+ * Core writes { id, value } to <workspaceRoot>/invocations/<id>.json after validation.
+ * IDs are unique per attempt and restricted to 1–64 ASCII letters, digits, '_' or '-'.
+ * The bridge has no network endpoint and gives the script no host credentials.
+ */
+export const SANDBOX_JOB_INVOCATION_PREFIX = 'XPERT_SANDBOX_INVOKE '
+
 /** Successful `run()` result; failed executions reject with SandboxJobRuntimeError. */
 export type SandboxJobRunResult = SandboxJobSnapshot & {
   status: 'succeeded'
@@ -175,7 +213,7 @@ export type SandboxJobActionHealth = {
  */
 export interface SandboxJobsApi {
   /** Starts, reattaches, or reuses a successful execution by tenant-scoped idempotency key. */
-  run(input: SandboxJobRunInput): Promise<SandboxJobRunResult>
+  run(input: SandboxJobRunInput, options?: SandboxJobRunOptions): Promise<SandboxJobRunResult>
   /** Cancels the logical Job and terminates its active Runtime when one exists. */
   cancel(input: { jobId: string }): Promise<SandboxJobSnapshot>
   /** Returns the active tenant's persisted Job snapshot, or null when inaccessible or absent. */

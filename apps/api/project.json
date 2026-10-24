@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "dependsOn": ["^build", "build-agent-results", "build-coding-execution", "build-conversation-map"],
+      "dependsOn": ["^build"],
       "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
@@ -42,35 +42,45 @@
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/chat-conversation/conversation-map/remote-components",
             "output": "remote-components"
+          },
+          {
+            "glob": "**/migrations/**/*.{sql,json}",
+            "input": "packages/server/src",
+            "output": "database-migrations/core"
+          },
+          {
+            "glob": "**/migrations/**/*.{sql,json}",
+            "input": "packages/server-ai/src",
+            "output": "database-migrations/ai"
+          },
+          {
+            "glob": "database/platform-baseline/{current,types}.sql",
+            "input": "packages/server/src",
+            "output": "database-migrations/core"
+          },
+          {
+            "glob": "database-migrations.json",
+            "input": ".deploy/api",
+            "output": "database-migrations"
           }
         ],
         "webpackConfig": "apps/api/config/webpack.config.js"
       },
       "configurations": {
         "development": {},
-        "production": {}
+        "production": {
+          "buildLibsFromSource": false
+        }
       }
     },
     "build-agent-results": {
-      "executor": "nx:run-commands",
-      "cache": true,
-      "inputs": [
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/src/**/*",
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/build.mjs",
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/tailwind.css",
-        "{workspaceRoot}/packages/plugin-sdk/src/agent-results.ts",
-        "{workspaceRoot}/packages/plugin-sdk/src/lib/agent/runtime/results.ts",
-        "{workspaceRoot}/tsconfig.base.json",
-        "{workspaceRoot}/package.json",
-        "{workspaceRoot}/pnpm-lock.yaml"
-      ],
-      "outputs": [
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/app.js",
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/app.css"
-      ],
-      "options": {
-        "command": "node packages/server-ai/src/agent-invocation/remote-components/agent-results/build.mjs"
-      }
+      "executor": "nx:noop",
+      "dependsOn": [
+        {
+          "target": "build-remote-components",
+          "projects": ["server-ai"]
+        }
+      ]
     },
     "serve": {
       "executor": "@nx/js:node",
@@ -102,44 +112,22 @@
       }
     },
     "build-coding-execution": {
-      "executor": "nx:run-commands",
-      "cache": true,
-      "inputs": [
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/**/*",
-        "{workspaceRoot}/packages/contracts/src/ai/execution-activity.model.ts",
-        "{workspaceRoot}/packages/server-ai/src/shared/coding-tools/**/*",
-        "{workspaceRoot}/packages/shadcn-ui/src/**/*",
-        "{workspaceRoot}/packages/server-ai/scripts/build-remote-react.mjs"
-      ],
-      "outputs": [
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/app.js",
-        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/app.css"
-      ],
-      "options": {
-        "command": "node packages/server-ai/src/agent-invocation/remote-components/coding-execution/build.mjs"
-      }
+      "executor": "nx:noop",
+      "dependsOn": [
+        {
+          "target": "build-remote-components",
+          "projects": ["server-ai"]
+        }
+      ]
     },
     "build-conversation-map": {
-      "executor": "nx:run-commands",
-      "cache": true,
-      "inputs": [
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/src/**/*",
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/build.mjs",
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/tailwind.css",
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/schema.ts",
-        "{workspaceRoot}/packages/server-ai/scripts/build-remote-react.mjs",
-        "{workspaceRoot}/pnpm-lock.yaml",
-        "{workspaceRoot}/packages/shadcn-ui/src/**/*",
-        "{workspaceRoot}/packages/server-ai/package.json",
-        "{workspaceRoot}/tsconfig.base.json"
-      ],
-      "outputs": [
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/app.js",
-        "{workspaceRoot}/packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/app.css"
-      ],
-      "options": {
-        "command": "node packages/server-ai/src/chat-conversation/conversation-map/remote-components/conversation-map/build.mjs"
-      }
+      "executor": "nx:noop",
+      "dependsOn": [
+        {
+          "target": "build-remote-components",
+          "projects": ["server-ai"]
+        }
+      ]
     }
   },
   "tags": []

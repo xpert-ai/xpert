@@ -7,6 +7,7 @@ on:
       - '.deploy/desktop/**'
       - '.github/workflows/desktop-release.yml'
       - 'apps/desktop/**'
+      - 'libs/template-installation/**'
       - 'packages/desktop-protocol/**'
       - 'packages/contracts/**'
       - 'packages/shadcn-ui/**'
@@ -74,6 +75,9 @@ jobs:
     env:
       DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
       DESKTOP_TARGET: ${{ matrix.id }}
+      XPERT_DESKTOP_API_URL: ${{ vars.XPERT_DESKTOP_API_URL }}
+      XPERT_DESKTOP_WEB_URL: ${{ vars.XPERT_DESKTOP_WEB_URL }}
+      XPERT_DESKTOP_CHATKIT_URL: ${{ vars.XPERT_DESKTOP_CHATKIT_URL }}
     steps:
       - uses: actions/checkout@v4
         with:

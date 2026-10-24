@@ -9,7 +9,9 @@ export function navigateProjectEntry(router: Router, entry: XpertProjectEntry) {
   return router.navigate(commands, {
     queryParams: {
       view: entry.viewKey,
-      viewSelection: entry.selectionId
+      viewSelection: entry.selectionId,
+      viewProject: entry.projectId,
+      ...(entry.parameters ? { viewParameters: JSON.stringify(entry.parameters) } : {})
     }
   })
 }

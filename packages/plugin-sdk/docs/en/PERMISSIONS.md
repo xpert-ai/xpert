@@ -171,3 +171,27 @@ console.log(result[0].docs[0].pageContent)
 The plugin declares its permission requirements and provider/model configuration; the host supplies the appropriate client without requiring plugin-specific OpenAI initialization logic.
 
 A shared permission-request interface, such as `ILLMPermissionRequest`, can give OCR, vision-model and embedding plugins a common way to declare dependencies.
+
+## Integration configuration reads
+
+Resolve `INTEGRATION_PERMISSION_SERVICE_TOKEN` through `PluginContext.resolve()` and
+call `readConfiguration(integrationId)` for a plugin configuration reference. The
+host binds this method to the installed plugin scope, independently of HTTP request
+headers and later mutations to the plugin context.
+
+- System plugins can read tenant-level integrations in the Default tenant.
+- Tenant plugins can read tenant-level integrations in their owning tenant.
+- Organization plugins can read integrations in their own organization or inherited
+  tenant-level integrations, within the same tenant.
+- The declared `integration.service`, `operations` and optional ID `scope` constrain
+  this read. An explicit `service: '*'` permits any provider in the allowed scope.
+- Missing scope, disallowed references and deleted integrations return `null`.
+
+The method is optional for source compatibility with existing capability mocks and
+older hosts. Plugins that require it must detect its absence and report unavailable;
+do not fall back to the legacy runtime lookup for configuration references.
+
+`read(id, options)`, `readForConnector`, listing and webhook credential methods retain
+their existing contracts. Runtime integrations such as multi-tenant callback handlers
+continue to enforce their existing signature and actor authorization. This addition
+does not change those callback APIs or require existing plugins to adopt a new method.

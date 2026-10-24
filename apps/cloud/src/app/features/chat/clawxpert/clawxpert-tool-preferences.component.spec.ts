@@ -234,6 +234,15 @@ describe('ClawXpertToolPreferencesComponent', () => {
     jest.clearAllMocks()
   })
 
+  it('preserves explicit null options for middleware validation', async () => {
+    const facade = createFacadeMock()
+    const draft = createDraft()
+    Object.assign(draft.nodes.find((node) => node.key === 'middleware-node').entity, { options: null })
+    facade.triggerDraft.set(draft)
+    const { agentService } = await configureComponent({ facade })
+    expect(agentService.getAgentMiddleware).toHaveBeenCalledWith('scheduler', null, 'xpert-1')
+  })
+
   it('switches tabs, loads workspace skills, filters out xpert-disabled tools, and delegates toggles to the facade', async () => {
     const skillPackageService = {
       getAllByWorkspace: jest.fn(() => of({ items: [createSkillPackage()] })),
@@ -245,7 +254,7 @@ describe('ClawXpertToolPreferencesComponent', () => {
     })
 
     expect(toolsetService.getOneById).toHaveBeenCalledWith('toolset-1', { relations: ['tools'] })
-    expect(agentService.getAgentMiddleware).toHaveBeenCalledWith('scheduler', {}, 'xpert-1')
+    expect(agentService.getAgentMiddleware).toHaveBeenCalledWith('scheduler', undefined, 'xpert-1')
     expect(component.toolItems()).toHaveLength(2)
 
     component.selectTab('tools')

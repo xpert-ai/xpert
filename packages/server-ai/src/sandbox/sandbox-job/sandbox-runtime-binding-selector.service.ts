@@ -157,6 +157,7 @@ function isBindingEligible(
 function satisfiesRequirements(provider: ISandboxRuntimeProvider, definition: SandboxRuntimeDefinition): boolean {
     const available = provider.capabilities
     const required = definition.requirements
+    if (required.readOnlyWorkspace && !available.readOnlyWorkspace) return false
     if (required.isolation === 'hardened' && available.isolation !== 'hardened') return false
     return (
         (!required.ephemeral || available.ephemeral) &&

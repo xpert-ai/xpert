@@ -54,10 +54,13 @@ export * from './user-organization.model'
 export * from './user-group.model'
 export * from './user-me-context.model'
 export * from './user.model'
+export * from './user-directory.model'
 
 export * from './custom-smtp.model'
 export * from './date-picker.model'
 export * from './data-source.model'
+export * from './analytics-query.model'
+export * from './analytics-source.model'
 export * from './data-source-type.model'
 export * from './integration.model'
 export * from './invite.model'
@@ -83,14 +86,22 @@ export * from './view-extension'
 export * from './runtime-control'
 export type {
   RuntimeResourceKind,
+  AgentPluginRole,
+  RuntimeResourceCatalogPurpose,
   RuntimeResourceStatus,
   RuntimeResourceReference,
+  TemplateAgentSource,
   RuntimeResourcesSelection,
   AgentPluginDiagnostic,
+  AgentPluginStorageErrorCode,
   RuntimeResourceCatalogItem,
   RuntimeResourceView,
   RuntimeResourceCatalog,
   AgentPluginXpertExtension,
+  AgentPluginCommand,
+  AgentPluginCommandPresentation,
+  RuntimeResourceCommand,
+  RuntimeResourceSkillReference,
   AgentPluginConnectorAuth,
   AgentPluginConnectorBinding,
   RuntimeResourceDefinition,
@@ -114,3 +125,12 @@ export * from './default-agent-plugins'
 export * from './content-document.model'
 
 export * from './content-reference.model'
+
+export * from './agent-plugin-maintenance'
+
+export * from './assistant-sharing.model'
+export * from './artifact-presentation.model'
+
+export * from './analytics-definition.model'
+
+export * from './data-retention.model'

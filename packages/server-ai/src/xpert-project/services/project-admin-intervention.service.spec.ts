@@ -1,5 +1,6 @@
 import { PermissionsEnum, UserType } from '@xpert-ai/contracts'
-import { RequestContext, User, UserOrganization } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { User, UserOrganization } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { XpertProject } from '../entities/project.entity'

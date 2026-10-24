@@ -1,4 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { createHash } from 'node:crypto'
 import {
 	BadRequestException,
 	ForbiddenException,
@@ -40,7 +41,6 @@ import {
 	RolesEnum,
 	UserType
 } from '@xpert-ai/contracts'
-import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
@@ -48,15 +48,18 @@ import { UserOrganization } from '../user-organization/user-organization.entity'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 import { FeatureOrganization } from '../feature/feature-organization.entity'
 import { ExternalIdentityBinding } from '../account-binding/external-identity-binding.entity'
+import { CurrentUserCacheService } from './current-user-cache.service'
 import {
 	buildCurrentUserFeatureCacheKey,
 	CURRENT_USER_FEATURE_CACHE_TTL_MS,
 	getCurrentUserFeatureCacheVersion,
 	hashCurrentUserRelations
 } from './current-user-feature-cache'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 const CURRENT_USER_CORE_RELATIONS = ['employee', 'role', 'role.rolePermissions', 'tenant'] as const
+const CURRENT_USER_CACHEABLE_CORE_RELATIONS: ReadonlySet<string> = new Set(CURRENT_USER_CORE_RELATIONS)
 const CURRENT_USER_BOOTSTRAP_RELATIONS = ['organizations', 'organizations.organization'] as const
 const CURRENT_USER_LIMITABLE_ORGANIZATION_RELATIONS: ReadonlySet<string> = new Set(CURRENT_USER_BOOTSTRAP_RELATIONS)
 const CURRENT_USER_FEATURE_RELATIONS = [
@@ -166,7 +169,9 @@ export class UserService extends TenantAwareCrudService<User> {
 		private readonly featureOrganizationRepository?: Repository<FeatureOrganization>,
 		@Optional()
 		@Inject(CACHE_MANAGER)
-		private readonly cacheManager?: Cache
+		private readonly cacheManager?: Cache,
+		@Optional()
+		private readonly currentUserCache?: CurrentUserCacheService
 	) {
 		super(userRepository)
 	}
@@ -180,10 +185,30 @@ export class UserService extends TenantAwareCrudService<User> {
 			return this.findCurrentUserWithLimitedOrganizations(id, relations, options)
 		}
 
-		return this.findOne(id, {
+		const query = {
 			relations: resolveCurrentUserRelations(relations),
 			...(options?.select ? { select: options.select } : {})
-		})
+		}
+		// Only cache known display relations; other callers retain the original query semantics.
+		return (relations ?? []).every((relation) => CURRENT_USER_CACHEABLE_CORE_RELATIONS.has(relation))
+			? this.readCurrentUserLayer('core', id, query, () => this.findOne(id, query))
+			: this.findOne(id, query)
+	}
+
+	private readCurrentUserLayer(
+		layer: 'core' | 'organizations',
+		id: string,
+		query: object,
+		load: () => Promise<User>
+	) {
+		const tenantId = RequestContext.currentTenantId()
+		// API principals can carry per-token restrictions. They must never share a user's display cache.
+		return this.currentUserCache &&
+			tenantId &&
+			id === RequestContext.currentUserId() &&
+			!RequestContext.currentApiPrincipal()
+			? this.currentUserCache.read(layer, tenantId, id, query, load)
+			: load()
 	}
 
 	private async findCurrentUserWithLimitedOrganizations(
@@ -192,16 +217,33 @@ export class UserService extends TenantAwareCrudService<User> {
 		options?: CurrentUserFindOptions
 	) {
 		const { baseSelect, organizationSelect } = splitCurrentUserSelect(options?.select)
-		const user = await this.findOne(id, {
+		const query = {
 			relations: resolveCurrentUserRelations(resolveBaseCurrentUserRelations(relations)),
 			...(baseSelect ? { select: baseSelect } : {})
-		})
-		user.organizations = await this.findCurrentUserBootstrapOrganizations(
-			user,
+		}
+		const load = () => this.findOne(id, query)
+		const user = query.relations.every((relation) => CURRENT_USER_CACHEABLE_CORE_RELATIONS.has(relation))
+			? await this.readCurrentUserLayer('core', id, query, load)
+			: await load()
+		const organizationContext = await this.readCurrentUserLayer(
+			'organizations',
 			id,
-			options?.currentOrganizationId,
-			organizationSelect
+			{
+				limitOrganizations: true,
+				currentOrganizationId: options?.currentOrganizationId,
+				select: organizationSelect
+			},
+			async () =>
+				Object.assign(new User(), {
+					organizations: await this.findCurrentUserBootstrapOrganizations(
+						user,
+						id,
+						options?.currentOrganizationId,
+						organizationSelect
+					)
+				})
 		)
+		user.organizations = organizationContext.organizations
 		return user
 	}
 
@@ -252,17 +294,30 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	private async findCurrentUserFeatureContext(id: string, relations: string[]) {
-		const user = await this.findOne(id, {
-			relations: resolveCurrentUserRelations([...CURRENT_USER_BOOTSTRAP_RELATIONS])
-		})
+		const coreQuery = { relations: resolveCurrentUserRelations() }
+		const user = await this.readCurrentUserLayer('core', id, coreQuery, () => this.findOne(id, coreQuery))
+		// Keep both reads scoped through findOne, without multiplying memberships by role permissions.
+		const organizationQuery = { relations: [...CURRENT_USER_BOOTSTRAP_RELATIONS] }
+		const organizationContext = await this.readCurrentUserLayer(
+			'organizations',
+			id,
+			organizationQuery,
+			async () => {
+				const context = await this.findOne(id, organizationQuery)
+				return Object.assign(new User(), { organizations: context.organizations })
+			}
+		)
+		user.organizations = organizationContext.organizations
 
 		const tenantId = RequestContext.currentTenantId() ?? user.tenantId ?? user.tenant?.id
 		if (!tenantId || !this.featureOrganizationRepository) {
 			return user
 		}
 
-		const cacheKey = await this.buildFeatureContextCacheKey(id, tenantId, relations)
-		const cachedContext = cacheKey ? await this.cacheManager?.get<CurrentUserFeatureContext>(cacheKey) : null
+		const cacheKey = await this.buildFeatureContextCacheKey(id, tenantId, relations, user.organizations)
+		const cachedContext = cacheKey
+			? await Promise.resolve(this.cacheManager?.get<CurrentUserFeatureContext>(cacheKey)).catch(() => null)
+			: null
 
 		if (cachedContext) {
 			this.attachFeatureOrganizationsToCurrentUser(
@@ -275,22 +330,41 @@ export class UserService extends TenantAwareCrudService<User> {
 
 		const featureContext = await this.loadCurrentUserFeatureContext(user)
 
-		if (featureContext) {
-			await this.cacheManager?.set(cacheKey, featureContext, CURRENT_USER_FEATURE_CACHE_TTL_MS)
+		if (featureContext && cacheKey) {
+			await Promise.resolve(
+				this.cacheManager?.set(cacheKey, featureContext, CURRENT_USER_FEATURE_CACHE_TTL_MS)
+			).catch(() => {
+				Logger.warn('Current-user feature cache write failed', 'UserService')
+			})
 		}
 
 		return user
 	}
 
-	private async buildFeatureContextCacheKey(userId: string, tenantId: string, relations: string[]) {
+	private async buildFeatureContextCacheKey(
+		userId: string,
+		tenantId: string,
+		relations: string[],
+		memberships: User['organizations']
+	) {
 		const relationsHash = hashCurrentUserRelations(relations)
-		const version = await getCurrentUserFeatureCacheVersion(this.cacheManager, tenantId, userId)
+		// Bind features to the membership snapshot used to load them, even during concurrent membership edits.
+		const organizationIds = (memberships ?? [])
+			.map((item) => item.organizationId ?? item.organization?.id)
+			.filter(Boolean)
+		const membershipHash = createHash('sha256')
+			.update(JSON.stringify([...new Set(organizationIds)].sort()))
+			.digest('hex')
+		const version = await getCurrentUserFeatureCacheVersion(this.cacheManager, tenantId, userId).catch(() => null)
+		if (version === null) return null
+		const dependencyVersion = this.currentUserCache ? await this.currentUserCache.version('features', tenantId) : ''
+		if (dependencyVersion === null) return null
 
 		return buildCurrentUserFeatureCacheKey({
 			tenantId,
 			userId,
 			relationsHash,
-			version
+			version: `${version}:${dependencyVersion}:${membershipHash}`
 		})
 	}
 
@@ -515,6 +589,7 @@ export class UserService extends TenantAwareCrudService<User> {
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
 			.leftJoinAndSelect('user.role', 'role')
+			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne()
 	}

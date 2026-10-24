@@ -2,6 +2,20 @@ import { instanceToPlain } from 'class-transformer'
 import { XpertDraftDslDTO } from './xpert-dsl.dto'
 
 describe('XpertDraftDslDTO', () => {
+    it('does not export server-owned publication recovery checkpoints', () => {
+        const dto = new XpertDraftDslDTO({
+            team: {
+                options: {
+                    pendingPublication: { version: '2', previousGraph: { nodes: [], connections: [] } },
+                    modelSelection: { allowedModels: [] }
+                }
+            },
+            nodes: [],
+            connections: []
+        })
+        expect(instanceToPlain(dto)).toMatchObject({ team: { options: { modelSelection: { allowedModels: [] } } } })
+        expect(instanceToPlain(dto).team.options.pendingPublication).toBeUndefined()
+    })
     it('keeps copilot model identifiers in exported draft DSL', () => {
         const dto = new XpertDraftDslDTO({
             team: {

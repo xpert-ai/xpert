@@ -1,4 +1,5 @@
 import { projectTaskPlanSchema } from '../project-task-plan.schema'
+import { compactTaskAvatars } from './project-task-avatars'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -9,7 +10,8 @@ import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET, codingExecu
 import type {
     XpertResolvedViewHostContext,
     XpertExtensionViewManifest,
-    XpertViewActionRequest
+    XpertViewActionRequest,
+    XpertViewQuery
 } from '@xpert-ai/contracts'
 import {
     ViewExtensionProvider,
@@ -19,7 +21,26 @@ import {
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
 import { ProjectTaskRuntimeReadService } from '../runtime/project-task-runtime-read.service'
 import { ProjectTaskDecisionService } from '../runtime/project-task-decision.service'
-import { projectTaskDecisionInputSchema } from '@xpert-ai/contracts'
+import {
+    projectTaskDecisionInputSchema,
+    projectPipelineDecisionSchema,
+    projectPipelineNextRoundSchema,
+    projectPipelineEvidenceRefSchema,
+    projectPipelineCancelSchema,
+    projectPipelineRetrySchema,
+    projectPipelineCatalogConfigureSchema,
+    projectPipelineProviderActionCommandSchema,
+    projectPipelineAnalyticsInputSchema,
+    projectPipelineCatalogRequestSchema
+} from '@xpert-ai/contracts'
+import { ProjectPipelineProviderActionsService } from '../pipeline/provider-actions/provider-actions.service'
+import { ProjectPipelineCatalogService } from '../pipeline/configuration/pipeline-catalog.service'
+import { pipelineBindingsPageInput } from '../pipeline/configuration/pipeline-bindings.service'
+import { ProjectPipelineQueryService } from '../pipeline/queries/pipeline-query.service'
+import { ProjectPipelineAnalyticsService } from '../pipeline/queries/pipeline-analytics.service'
+import { ProjectPipelineCommandsService } from '../pipeline/runtime/pipeline-commands.service'
+import { ProjectPipelineEvidenceAccessService } from '../pipeline/runtime/pipeline-evidence-access.service'
+import { ProjectPipelineWorkspaceService } from '../pipeline/queries/pipeline-workspace.service'
 
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 const requireHere = createRequire(__filename)
@@ -29,7 +50,14 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
     constructor(
         private readonly tasks: ProjectTaskGraphService,
         private readonly runtime: ProjectTaskRuntimeReadService,
-        private readonly decisions: ProjectTaskDecisionService
+        private readonly decisions: ProjectTaskDecisionService,
+        private readonly pipelines: ProjectPipelineQueryService,
+        private readonly pipelineCommands: ProjectPipelineCommandsService,
+        private readonly pipelineEvidence: ProjectPipelineEvidenceAccessService,
+        private readonly pipelineCatalog: ProjectPipelineCatalogService,
+        private readonly providerActions: ProjectPipelineProviderActionsService,
+        private readonly pipelineAnalytics: ProjectPipelineAnalyticsService,
+        private readonly workspaces: ProjectPipelineWorkspaceService
     ) {}
     supports(context: XpertResolvedViewHostContext) {
         return context.hostType === 'project' || context.hostType === 'agent'
@@ -65,10 +93,47 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                     component: { isolation: 'iframe', entry: 'project-tasks' },
                     dataSource: { mode: 'platform' }
                 },
-                dataSource: { mode: 'platform', cache: { enabled: false } },
-                clientCommands: [{ key: 'workbench.navigation.open', label: text('Open execution', '打开执行') }],
+                dataSource: { mode: 'platform', querySchema: { supportsParameters: true }, cache: { enabled: false } },
+                clientCommands: [
+                    { key: 'workbench.navigation.open', label: text('Open execution', '打开执行') },
+                    ...(agent
+                        ? [{ key: 'assistant.context.set', label: text('Set pipeline context', '设置流水线上下文') }]
+                        : [])
+                ],
                 actions: [
-                    ...['task-detail', 'decide-task', 'cancel-attempt', 'request-check'].map((key) => ({
+                    {
+                        key: 'pipeline-configure',
+                        label: text('Save pipeline configuration', '保存流水线配置'),
+                        actionType: 'invoke',
+                        requiredHostAccess: 'manage'
+                    },
+                    {
+                        key: 'pipeline-configurations',
+                        label: text('Saved pipeline configurations', '已保存配置'),
+                        actionType: 'invoke',
+                        requiredHostAccess: 'manage'
+                    },
+                    ...[
+                        'task-detail',
+                        'workspace-target',
+                        'decide-task',
+                        'cancel-attempt',
+                        'request-check',
+                        'pipeline-list',
+                        'pipeline-rounds',
+                        'pipeline-graph',
+                        'pipeline-refresh',
+                        'pipeline-analytics',
+                        'pipeline-decision',
+                        'pipeline-next-round',
+                        'pipeline-evidence',
+                        'pipeline-cancel',
+                        'pipeline-retry',
+                        'pipeline-catalog',
+                        'pipeline-provider-actions',
+                        'pipeline-provider-node-details',
+                        'pipeline-provider-action'
+                    ].map((key) => ({
                         key,
                         label: text('Task result', '任务结果'),
                         actionType: 'invoke' as const,
@@ -98,8 +163,14 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
             actor: { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.userId }
         }
     }
-    async getViewData(context: XpertResolvedViewHostContext) {
-        return { item: await this.tasks.graph(this.context(context)) }
+    async getViewData(context: XpertResolvedViewHostContext, _viewKey?: string, query?: XpertViewQuery) {
+        const graph = await this.tasks.graph(this.context(context))
+        if (query?.parameters?.compactAvatars !== true) return { item: graph }
+        const versions = z
+            .array(z.string().regex(/^[a-f0-9]{64}$/))
+            .max(128)
+            .parse(query.parameters.avatarVersions ?? [])
+        return compactTaskAvatars(graph, versions)
     }
     async executeViewAction(
         context: XpertResolvedViewHostContext,
@@ -107,6 +178,184 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         actionKey: string,
         request: XpertViewActionRequest
     ) {
+        if (actionKey === 'workspace-target') {
+            const input = z
+                .object({
+                    pipelineNodeId: z.string().uuid().optional(),
+                    roundId: z.string().uuid().optional(),
+                    instanceId: z.string().uuid().optional()
+                })
+                .strict()
+                .parse(request.input)
+            const { projectId } = this.context(context)
+            // Resolve the registered business entry through live Project and Assistant authorization.
+            const entry = await this.workspaces.entry(this.context(context), {
+                ...input,
+                ...(context.hostType === 'agent' ? { xpertId: context.hostId } : {}),
+                ...(input.pipelineNodeId ? { pipelineNodeId: input.pipelineNodeId } : {})
+            })
+            if (entry.kind !== 'assistant' || (context.hostType === 'agent' && entry.xpertId !== context.hostId))
+                throw Error(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+            return {
+                success: true,
+                data: {
+                    target: context.hostType === 'agent' ? 'workbench.view' : 'assistant.project',
+                    projectId,
+                    xpertId: entry.xpertId,
+                    viewKey: entry.viewKey,
+                    selectionId: entry.selectionId,
+                    parameters: entry.parameters
+                }
+            }
+        }
+        if (actionKey === 'pipeline-provider-node-details') {
+            const input = z
+                .object({ instanceId: z.string().uuid(), nodeInstanceId: z.string().uuid() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.providerActions.describe(this.context(context), {
+                    instanceId: input.instanceId,
+                    nodeInstanceId: input.nodeInstanceId
+                })
+            }
+        }
+        if (actionKey === 'pipeline-provider-actions') {
+            const input = z
+                .object({ instanceId: z.string().uuid(), nodeInstanceId: z.string().uuid() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.providerActions.list(this.context(context), {
+                    instanceId: input.instanceId,
+                    nodeInstanceId: input.nodeInstanceId
+                })
+            }
+        }
+        if (actionKey === 'pipeline-provider-action')
+            return {
+                success: true,
+                data: await this.providerActions.submit(
+                    this.context(context),
+                    projectPipelineProviderActionCommandSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-catalog') {
+            return {
+                success: true,
+                data: await this.pipelineCatalog.list(
+                    this.context(context),
+                    projectPipelineCatalogRequestSchema.parse(request.input)
+                )
+            }
+        }
+        if (actionKey === 'pipeline-configure')
+            return {
+                success: true,
+                data: await this.pipelineCatalog.configure(
+                    this.context(context),
+                    projectPipelineCatalogConfigureSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-configurations')
+            return {
+                success: true,
+                data: await this.pipelineCatalog.bindings(
+                    this.context(context),
+                    pipelineBindingsPageInput.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-analytics')
+            return {
+                success: true,
+                data: await this.pipelineAnalytics.read(
+                    this.context(context),
+                    projectPipelineAnalyticsInputSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-list') {
+            const input = z.object({ after: z.string().uuid().optional() }).strict().parse(request.input)
+            return { success: true, data: await this.pipelines.list(this.context(context), input) }
+        }
+        if (actionKey === 'pipeline-rounds') {
+            const input = z
+                .object({ instanceId: z.string().uuid(), after: z.string().uuid().optional() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.pipelines.rounds(this.context(context), input.instanceId, { after: input.after })
+            }
+        }
+        if (actionKey === 'pipeline-graph') {
+            const input = z
+                .object({ instanceId: z.string().uuid(), roundId: z.string().uuid().optional() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.pipelines.graph(this.context(context), input.instanceId, { roundId: input.roundId })
+            }
+        }
+        if (actionKey === 'pipeline-refresh') {
+            const input = z.object({ instanceId: z.string().uuid() }).strict().parse(request.input)
+            const contextScope = this.context(context)
+            const graph = await this.pipelines.graph(contextScope, input.instanceId)
+            if (graph.instance.authority === 'platform') return { success: true, data: { status: 'ready' } }
+            return {
+                success: true,
+                data: await this.pipelines.refresh(contextScope, {
+                    providerRef: graph.instance.ownerRef,
+                    sourceKey: graph.instance.sourceKey
+                })
+            }
+        }
+        if (actionKey === 'pipeline-decision')
+            return {
+                success: true,
+                refresh: true,
+                data: await this.pipelineCommands.decide(
+                    this.context(context),
+                    projectPipelineDecisionSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-next-round')
+            return {
+                success: true,
+                refresh: true,
+                data: await this.pipelineCommands.nextRound(
+                    this.context(context),
+                    projectPipelineNextRoundSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-cancel')
+            return {
+                success: true,
+                refresh: true,
+                data: await this.pipelineCommands.cancel(
+                    this.context(context),
+                    projectPipelineCancelSchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-retry')
+            return {
+                success: true,
+                refresh: true,
+                data: await this.pipelineCommands.retry(
+                    this.context(context),
+                    projectPipelineRetrySchema.parse(request.input)
+                )
+            }
+        if (actionKey === 'pipeline-evidence')
+            return {
+                success: true,
+                data: await this.pipelineEvidence.read(
+                    this.context(context),
+                    projectPipelineEvidenceRefSchema.parse(request.input)
+                )
+            }
         if (actionKey === 'task-detail') {
             const input = z.object({ taskId: z.string().uuid() }).strict().parse(request.input)
             return { success: true, data: await this.runtime.get(this.context(context).projectId, input.taskId) }
@@ -146,6 +395,19 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                 .strict()
                 .parse(request.input)
             const target = await this.tasks.resolveExecution(this.context(context), input.taskExecutionId!)
+            if (target.kind === 'runtime_invocation') {
+                if (input.destination === 'conversation')
+                    throw Error(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
+                return {
+                    success: true,
+                    data: {
+                        target: 'assistant.project',
+                        projectId: target.projectId,
+                        viewKey: target.codingInvocationId ? codingExecutionViewKey : 'platform.agent-results__results',
+                        selectionId: target.invocationId
+                    }
+                }
+            }
             if (input.destination === 'conversation')
                 return {
                     success: true,

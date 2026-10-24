@@ -1,0 +1,80 @@
+---
+title: '数据协议与页面渲染'
+description: '不同查询格式如何通过 Dataset/Binding 接入标准图表与隔离 HTML 页面。'
+---
+
+来源 Provider 保留自己的查询语言，通过统一结果契约向看板提供数据。图表绑定不要求所有来源转换成 SQL。
+
+## Binding 与 Dataset
+
+| 对象                | 核心内容                                                                                          | 责任                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `AnalyticsBinding`  | `schemaVersion: 1`、`id`、`dataSourceId`、`providerId`、`operation`、`contractVersion`、`payload` | 声明来源和原生操作；只有来源插件解释 `payload` |
+| `parameters`        | 参数名、控件 ID、标量类型、默认值、可空性与可选值                                                 | 将用户筛选映射到受校验的原生参数               |
+| `output`            | Dataset ID、稳定字段 ID、原生字段或语义引用、类型、单位与粒度                                     | 将不同来源结果转换为相同字段契约               |
+| `AnalyticalDataset` | `fields`、`rows`、`grain`、`completeness`、`freshness`、`provenance`                              | 同时服务标准图表、表格和自定义页面             |
+
+页面使用稳定字段 ID，不根据展示名称推断字段身份。`decimal` 和 `int64` 保持精确字符串，空结果仍携带字段定义。非空 `grain` 必须唯一；部分、抽样、分页或截断结果不能作为完整业务总额。
+
+`sourceFetchedAt` 表示来源取数时间，不能当作业务数据最后修改时间。只有来源明确提供时才包含 `dataAsOf`。执行 ID、上游执行 ID 和审计引用用于追踪查询，不授予权限。
+
+## 数据源插件
+
+| Provider                 | 原生操作                                 | 插件                                          |
+| ------------------------ | ---------------------------------------- | --------------------------------------------- |
+| `postgres.sql`           | 受控只读 SQL 与参数                      | `@xpert-ai/plugin-analytics-postgres`         |
+| `mysql.sql`、`doris.sql` | 各自的只读 SQL 契约，共用现有 MySQL 驱动 | `@xpert-ai/plugin-analytics-mysql`            |
+| `data-xpert.ontology`    | 已发布且允许执行的本体只读 Action        | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | 平台现有 MCP 连接中获准查询的工具        | `@xpert-ai/plugin-analytics-mcp`              |
+| `rest.json`              | 已有 OpenAPI 连接中批准的只读 JSON 操作  | `@xpert-ai/plugin-analytics-rest`             |
+| `workspace_script.query` | 已登记脚本定义的精确 Artifact/version    | `@xpert-ai/plugin-analytics-workspace-script` |
+| `file.table`             | CSV/JSON/XLSX 声明式筛选、聚合与排序     | `@xpert-ai/plugin-analytics-files`            |
+
+`file.table` 复用 WorkspaceFiles，通过管理员配置的文件目录、显式格式与字段口径提供声明式查询。每次刷新重新读取文件并检查当前访问者权限，文件路径、读取配置与身份不能由 Binding 或控件覆盖。支持 CSV/JSON/XLSX 的筛选、分组、sum/count/min/max 和排序；复杂清洗及跨来源组合继续使用脚本。XLSX 不执行公式，显式缓存模式仅使用已有结果。Artifact 版本固定查询定义，不冻结源文件数据。输入超限直接失败，返回结果截断保留完整性标记。
+
+Provider 实现发现与执行，平台校验注册、数据源权限、参数和返回结果。发现返回 `items`、`inspectRequest`、`nextRequest` 以及原生 `queryContract`；Agent 必须使用返回的身份和格式，不根据名称猜测来源。
+
+SQL Provider 使用平台驱动；本体 Provider 使用当前访问者的受限身份；脚本只能访问已声明的文件和来源别名。连接凭据不进入 Binding 或浏览器。
+
+MCP Provider 复用平台 `McpClientRuntimeApi.tools.list/call` 的只读调用能力，由数据源配置声明数据集、获准的工具和结果字段映射。
+访问者需要数据源权限以及 MCP 连接所属工作区的读取权限。Agent 根据实时 Tool Schema 和业务说明
+填写参数，优先使用 `structuredContent`；纯文本 JSON 必须显式配置。工具错误、契约变化和撤销权限
+都会拒绝查询。刷新重新调用工具，分页结果保留部分数据标记。此适配器需要配套的新 SDK/平台能力；
+本地协议测试不代表已经完成部署后的 SSO 或 Agent 验收。
+
+平台入口为 `GET /api/data-source/analytics/sources`、`POST /api/data-source/analytics/discover` 和 `POST /api/data-source/analytics/query`。这些是需要授权的能力接口，不是生成页面的直接取数入口。
+
+REST/JSON 适配器复用平台 `RestClientRuntimeApi.operations.list/call` 和已有 OpenAPI 工具集的连接、认证及工作区权限。管理员配置操作目录、字段语义、JSON 映射和分页策略，Agent 只声明符合操作契约的参数。支持 GET 和显式声明 `x-xpert-read-only: true` 的 JSON POST，以及有界 offset/cursor 分页；页数或行数上限触发时保留部分结果标识。端点、方法、凭据和结果映射不能由 Binding 覆盖；重定向、契约变化和权限撤销会拒绝查询。需配套新 SDK 和平台运行时，旧版本不能仅安装插件使用。
+
+## 标准渲染与 HTML 渲染
+
+标准模式通过 `charts`、`tables` 引用 Dataset 字段，复用 Data Analytics renderer。当前图表类型为 bar、line、area、pie、scatter。分类图的 `x`/`color` 必须覆盖全部粒度维度；渲染器不隐式聚合，总计需要适当聚合后的 Binding。
+
+HTML 模式保存完整 HTML/CSS/JavaScript 与同一组 Binding。平台 SDK 的 `artifact-document` 子入口提供隔离文档宿主，插件提供查询回调和生命周期。布局和图形由页面代码决定；取数只经过已保存的 Binding。
+
+```javascript
+const live = window.xpertLiveArtifact
+live.subscribe('sales', (dataset) => render(dataset))
+await live.ready()
+await live.query('sales', { region: null })
+// 筛选后刷新沿用该 Binding 最近一次控件值。
+await live.refresh('sales')
+```
+
+该片段放在异步函数中；Binding、字段和控件必须来自实际预览。订阅要先于首次查询，避免工具栏刷新无法更新页面。`bindSelect` 可维护带类型的下拉选项；候选值来自已返回数据，不是新的数据访问权限。`bindSelect` 只查询一个 Binding；跨来源共用筛选须向每个受影响 Binding 传递相同的带类型控件值，并分别更新图表、总额和明细。多个 Binding 使用同名 controlId 不会自动广播查询。
+
+原生数据筛选 `<select>` 使用 `data-dashboard-control="<controlId>"` 显式关联声明的控件；只改变图表类型等展示选项使用 `data-dashboard-presentation`。预检会检查筛选是否实际触发关联 Binding 查询，不能仅过滤浏览器已有行。现有已保存页面仍可打开；修改后重新保存时，应补齐这些标记。自定义控件仍需单独验收。
+
+## 前端依赖
+
+平台提供通用依赖锁、摘要校验、大小限制和隔离注入。看板插件提供允许列表、源码、许可证以及 `dashboard_libraries` 工具。目前打包 ECharts 5.6.0 和 Three.js 0.185.1 核心库。
+
+保存包 `xpert.live-dashboard.package/v1` 包含 `manifest` 与实际依赖源码。历史版本从自己的快照加载库，修改省略 `libraries` 时保留原快照。显式更换依赖需要重新预检和保存；不通过 CDN 或外部 import 加载。
+
+## 查询边界
+
+浏览器只提交已保存目标、Binding ID 和声明过的控件值。看板服务从当前草稿或正式版本读取 Binding，重新检查访问者权限，拒绝 SQL、Provider、数据源、Binding 内容及未知控件覆盖。
+
+HTML 在 `sandbox="allow-scripts"` 和无网络 CSP 下运行。允许内联 JavaScript；外部脚本和 `eval` 被 CSP 禁止。依赖注入不会开放父 DOM、Web Storage、直接网络或宿主通用 Actions。页面可以改变自己的显示，但不能扩大数据权限。
+
+HTML 保存前使用相同文档 SDK、依赖快照和真实预览数据执行预检：每个声明 Binding 必须发出初始查询，在限定数量的可见、可用原生下拉框和按钮上执行交互，检查下拉值类型、共享控件传播与工具栏刷新时的运行错误。这些交互复用默认预览数据，实际筛选结果仍需通过真实查询单独验证。预检不是业务口径认证，也不穷举全部交互和筛选组合。页面轮询可调用 `live.refresh(bindingId)`；目前没有统一自动刷新调度或数据变更推送。

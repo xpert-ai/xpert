@@ -1,3 +1,4 @@
+import type { ExecutionI18n, MessageKey } from './i18n/core'
 import { z } from 'zod/v3'
 import { agentTaskResultSchema } from '@xpert-ai/plugin-sdk/agent-results'
 import { executionActivityItemSchema } from '../../../../../../contracts/src/ai/execution-activity.model'
@@ -42,7 +43,6 @@ export type Snapshot = z.infer<typeof response>
 export type Activity = NonNullable<Snapshot['activity']>['items'][number]
 export type Execution = NonNullable<Snapshot['execution']>
 export type Output = { text: string; nextOffset: number; hasMore: boolean }
-export type Label = (en: string, cn: string) => string
 
 /** JSON is a presentation format only. Business summaries still require the versioned SDK contract. */
 export function publicReply(value: string): { text: string; raw?: string; json?: string; data?: JsonValue } {
@@ -64,20 +64,21 @@ export function publicReply(value: string): { text: string; raw?: string; json?:
     }
 }
 
-export function stateLabel(value: string, label: Label) {
-    const states: { [key: string]: [string, string] } = {
-        queued: ['Queued', '等待执行'],
-        running: ['Running', '执行中'],
-        waiting: ['Waiting for input', '等待输入'],
-        cancelling: ['Stopping', '停止中'],
-        succeeded: ['Succeeded', '执行成功'],
-        failed: ['Failed', '执行失败'],
-        cancelled: ['Stopped', '已停止'],
-        unknown: ['Unknown', '状态未知']
-    }
-    return states[value] ? label(...states[value]) : value
+const statusKeys = {
+    queued: 'status.queued',
+    running: 'status.running',
+    waiting: 'status.waiting',
+    cancelling: 'status.cancelling',
+    succeeded: 'status.succeeded',
+    failed: 'status.failed',
+    cancelled: 'status.cancelled',
+    unknown: 'status.unknown'
+} as const satisfies Record<string, MessageKey>
+export function stateLabel(value: string, i18n: ExecutionI18n) {
+    const key = Object.entries(statusKeys).find(([status]) => status === value)?.[1] ?? 'status.unknown'
+    return i18n.t(key)
 }
-export function activityText(item: Activity, output?: Output) {
+export function activityText(item: Activity, i18n: ExecutionI18n, output?: Output) {
     const c = item.content
     if (c.kind !== 'tool') return c.kind === 'message' ? publicReply(c.text).text || c.text : c.text
     const detail = c.detail
@@ -88,7 +89,9 @@ export function activityText(item: Activity, output?: Output) {
             ? detail.files.map((f) => [f.path, f.patch].filter(Boolean).join('\n')).join('\n')
             : '',
         output?.text ?? c.output,
-        detail?.type === 'command' && detail.exitCode !== undefined ? `Exit code: ${detail.exitCode}` : ''
+        detail?.type === 'command' && detail.exitCode !== undefined
+            ? i18n.t('output.exitCode', { code: detail.exitCode })
+            : ''
     ]
         .filter(Boolean)
         .join('\n')

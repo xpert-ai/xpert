@@ -232,19 +232,13 @@
                 </div>
               </div>
               @if (canManageMcp()) {
-                <button
-                  z-button
-                  type="button"
-                  [zType]="selected.status === 'active' ? 'destructive' : 'secondary'"
-                  [zDisabled]="saving()"
-                  (click)="togglePublicationStatus()"
-                >
-                  {{
-                    selected.status === 'active'
-                      ? ('XP.McpPublication.Disable' | translate: { Default: 'Disable' })
-                      : ('XP.McpPublication.Enable' | translate: { Default: 'Enable' })
-                  }}
-                </button>
+                <xp-mcp-publication-actions
+                  [publication]="selected"
+                  [organizationId]="organizationId()"
+                  [busy]="saving()"
+                  (statusChangeRequested)="togglePublicationStatus()"
+                  (deleteRequested)="deletePublication($event)"
+                />
               }
             </header>
 
@@ -265,10 +259,20 @@
                   {{ 'XP.McpPublication.Section.' + section.key | translate: { Default: section.defaultLabel } }}
                 </button>
               }
+              <xp-mcp-publication-plugin-tabs
+                #pluginTabs
+                [publication]="publication()"
+                [active]="activeSection() === 'plugin'"
+                (activate)="setSection('plugin')"
+                (reset)="activeSection() === 'plugin' && setSection('basic')"
+              />
             </nav>
 
             <div class="min-h-0 flex-1 overflow-auto p-4">
               @switch (activeSection()) {
+                @case ('plugin') {
+                  <ng-container [ngTemplateOutlet]="pluginTabs.contentTemplate()" />
+                }
                 @case ('basic') {
                   <form class="w-full space-y-4" [formGroup]="basicForm" (ngSubmit)="saveBasicInformation()">
                     <div class="grid gap-4 md:grid-cols-2">

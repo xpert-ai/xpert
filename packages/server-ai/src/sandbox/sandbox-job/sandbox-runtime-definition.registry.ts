@@ -6,6 +6,7 @@ import type {
     SandboxRuntimeResources,
     SandboxRuntimeSecurity
 } from '@xpert-ai/plugin-sdk'
+import computeDefinition from './runtime-definitions/compute-node-python-v1.json'
 import browserDefinition from './runtime-definitions/browser-playwright-1.61-v1.json'
 import browserAiDefinition from './runtime-definitions/browser-ai-playwright-1.61-v1.json'
 import browserVideoDefinition from './runtime-definitions/browser-video-playwright-1.61-v1.json'
@@ -13,6 +14,9 @@ import documentDefinition from './runtime-definitions/document-libreoffice-v1.js
 import documentNodeDefinition from './runtime-definitions/document-node-20-v1.json'
 import documentJavaDefinition from './runtime-definitions/document-java-17-v1.json'
 import documentPythonDefinition from './runtime-definitions/document-python-3.12-v1.json'
+
+/** Offline Python/JavaScript execution with immutable inputs and bounded temporary outputs. */
+export const COMPUTE_RUNTIME_PROFILE = 'compute/node-python/v1'
 
 /** Stable Browser Runtime profile embedded in the provider-neutral OSS Core catalog. */
 export const DEFAULT_BROWSER_RUNTIME_PROFILE = 'browser/playwright-1.61/v1'
@@ -38,6 +42,7 @@ export class SandboxRuntimeDefinitionRegistry {
     private readonly definitions = new Map<string, SandboxRuntimeDefinition>()
 
     constructor() {
+        this.register(parseDefinition(computeDefinition, 'Compute Runtime Definition'))
         this.register(parseDefinition(browserDefinition, 'Browser Runtime Definition'))
         this.register(parseDefinition(browserAiDefinition, 'Browser AI Runtime Definition'))
         this.register(parseDefinition(browserVideoDefinition, 'Browser Video Runtime Definition'))
@@ -101,6 +106,11 @@ function parseDefinition(value: unknown, source: string): SandboxRuntimeDefiniti
     requireManifestValue(expectedManifest, 'profileName', name, source)
     requireManifestValue(expectedManifest, 'contractVersion', contractVersion, source)
     requireManifestValue(expectedManifest, 'sandboxRuntimeVersion', sandboxRuntimeVersion, source)
+    const security = parseSecurity(definition.security, source)
+    const requirements = parseRequirements(definition.requirements, source)
+    if (Boolean(security.readOnlyWorkspace) !== Boolean(requirements.readOnlyWorkspace)) {
+        throw new Error(`${source}.security.readOnlyWorkspace must match requirements.readOnlyWorkspace.`)
+    }
     return {
         name,
         command: commandValue(definition.command, `${source}.command`),
@@ -110,8 +120,8 @@ function parseDefinition(value: unknown, source: string): SandboxRuntimeDefiniti
         hardDeadlineMs,
         resources: parseResources(definition.resources, source),
         networkPolicy: parseNetworkPolicy(definition.networkPolicy, source),
-        security: parseSecurity(definition.security, source),
-        requirements: parseRequirements(definition.requirements, source),
+        security,
+        requirements,
         expectedManifest
     }
 }
@@ -147,7 +157,7 @@ function parseSecurity(value: unknown, source: string): SandboxRuntimeSecurity {
     const security = objectValue(value, `${source}.security`)
     onlyKeys(
         security,
-        ['runAsNonRoot', 'readOnlyRootFilesystem', 'noNewPrivileges', 'dropCapabilities'],
+        ['runAsNonRoot', 'readOnlyRootFilesystem', 'noNewPrivileges', 'dropCapabilities', 'readOnlyWorkspace'],
         `${source}.security`
     )
     if (
@@ -162,7 +172,10 @@ function parseSecurity(value: unknown, source: string): SandboxRuntimeSecurity {
         runAsNonRoot: true,
         readOnlyRootFilesystem: true,
         noNewPrivileges: true,
-        dropCapabilities: 'all'
+        dropCapabilities: 'all',
+        ...(security.readOnlyWorkspace === undefined
+            ? {}
+            : { readOnlyWorkspace: booleanValue(security.readOnlyWorkspace, `${source}.security.readOnlyWorkspace`) })
     }
 }
 
@@ -170,13 +183,21 @@ function parseRequirements(value: unknown, source: string): SandboxRuntimeProvid
     const requirements = objectValue(value, `${source}.requirements`)
     onlyKeys(
         requirements,
-        ['isolation', 'ephemeral', 'resourceLimits', 'networkPolicy', 'readOnlyRootFilesystem'],
+        ['isolation', 'ephemeral', 'resourceLimits', 'networkPolicy', 'readOnlyRootFilesystem', 'readOnlyWorkspace'],
         `${source}.requirements`
     )
     if (requirements.isolation !== 'process' && requirements.isolation !== 'hardened') {
         throw new Error(`${source}.requirements.isolation is invalid.`)
     }
     return {
+        ...(requirements.readOnlyWorkspace === undefined
+            ? {}
+            : {
+                  readOnlyWorkspace: booleanValue(
+                      requirements.readOnlyWorkspace,
+                      `${source}.requirements.readOnlyWorkspace`
+                  )
+              }),
         isolation: requirements.isolation,
         ephemeral: booleanValue(requirements.ephemeral, `${source}.requirements.ephemeral`),
         resourceLimits: booleanValue(requirements.resourceLimits, `${source}.requirements.resourceLimits`),

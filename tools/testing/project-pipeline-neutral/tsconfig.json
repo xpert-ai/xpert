@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": true,
+    "types": ["node"],
+    "noEmit": true,
+    "paths": {
+      "@xpert-ai/contracts": ["packages/contracts/dist/src/index.d.ts"],
+      "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/dist/src/index.d.ts"]
+    }
+  },
+  "include": ["*.ts"]
+}

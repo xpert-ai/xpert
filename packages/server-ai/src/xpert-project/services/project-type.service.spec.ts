@@ -8,6 +8,7 @@ import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectAccessService } from './project-access.service'
 import { XpertProjectTypeService } from './project-type.service'
+import * as nodeEntry from '../pipeline/queries/pipeline-entry-focus'
 import { projectApplicationDefinitions } from './project-type-metadata'
 
 const ref = { applicationKey: '@example/automotive:cases', projectTypeKey: 'case' }
@@ -16,7 +17,12 @@ const definition = {
     type: 'app',
     name: 'cases',
     projectTypes: [
-        { key: 'case', title: 'Automotive Case', binding: { kind: 'entity', providerKey: 'automotive-case' } }
+        {
+            key: 'case',
+            title: 'Automotive Case',
+            binding: { kind: 'entity', providerKey: 'automotive-case' },
+            taskConcurrency: { maxConcurrentTasks: 4 }
+        }
     ]
 }
 const xpert = { id: 'assistant', organizationId: 'org', slug: 'automotive' } as IXpert
@@ -54,6 +60,13 @@ function fixture() {
 }
 
 describe('application Project types', () => {
+    it('publishes business capacity in the type catalog without configuring an Agent', () => {
+        expect(
+            fixture()
+                .service.catalog()
+                .find((type) => type.projectTypeKey === 'case')
+        ).toMatchObject({ taskConcurrency: { maxConcurrentTasks: 4 } })
+    })
     beforeEach(() => {
         jest.restoreAllMocks()
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'owner', tenantId: 'tenant' } as IUser)
@@ -62,6 +75,84 @@ describe('application Project types', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
 
+    it('resolves a Workbench destination using persisted Project classification and live access', async () => {
+        const f = fixture()
+        f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })
+        await expect(f.service.entryForProject('project', { xpertId: 'assistant' })).resolves.toMatchObject({
+            kind: 'assistant',
+            projectId: 'project',
+            xpertId: 'assistant',
+            viewKey: 'automotive__cases',
+            selectionId: 'case'
+        })
+        expect(f.access.assertCanUseXpert).toHaveBeenCalledWith('project', 'assistant')
+        jest.mocked(f.provider.resolve).mockClear()
+        f.access.assertCanRead.mockRejectedValue(Error('revoked'))
+        await expect(f.service.entryForProject('project')).rejects.toThrow('revoked')
+        expect(f.provider.resolve).not.toHaveBeenCalled()
+    })
+
+    it('authorizes the Project and canonical Assistant before resolving an opt-in node entry', async () => {
+        const f = fixture()
+        f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            viewKey: 'automotive__cases',
+            xpertId: 'assistant'
+        })
+        const focus = {
+            instanceId: 'instance',
+            ownerRef: 'neutral.pipeline@1',
+            sourceKey: 'case',
+            node: {
+                key: 'step',
+                nodeKey: 'step',
+                expansionKey: 'item',
+                title: 'Step',
+                kind: 'work' as const,
+                laneKey: 'work',
+                stageKey: 'work',
+                taskKeys: [],
+                evidence: [],
+                state: {
+                    lifecycle: 'active' as const,
+                    readiness: 'ready' as const,
+                    applicability: 'selected' as const,
+                    freshness: 'current' as const,
+                    runtime: 'none' as const
+                }
+            }
+        }
+        const resolve = jest.spyOn(nodeEntry, 'pipelineEntryFocus').mockResolvedValue(focus)
+        f.provider.resolveNodeEntry = jest.fn(async () => ({
+            viewKey: 'automotive__case',
+            selectionId: 'case',
+            parameters: { tab: 'validation' }
+        }))
+        await expect(f.service.entry(ref, { projectId: 'project', pipelineNodeId: 'node' })).resolves.toMatchObject({
+            kind: 'assistant',
+            xpertId: 'assistant',
+            projectId: 'project',
+            viewKey: 'automotive__case',
+            parameters: { tab: 'validation' }
+        })
+        expect(resolve).toHaveBeenCalledWith(
+            undefined,
+            { projectId: 'project', actor: { tenantId: 'tenant', organizationId: 'org', userId: 'owner' } },
+            'node'
+        )
+        expect(f.provider.resolveNodeEntry).toHaveBeenCalledWith(
+            expect.objectContaining({ purpose: 'open' }),
+            'project',
+            focus
+        )
+        resolve.mockClear()
+        f.access.assertCanRead.mockRejectedValue(new Error('Access revoked'))
+        await expect(f.service.entry(ref, { projectId: 'project', pipelineNodeId: 'node' })).rejects.toThrow(
+            'Access revoked'
+        )
+        expect(resolve).not.toHaveBeenCalled()
+    })
     it('creates ordinary Projects with an explicit built-in type', async () => {
         await expect(fixture().service.forCreate()).resolves.toMatchObject({
             applicationKey: 'platform',

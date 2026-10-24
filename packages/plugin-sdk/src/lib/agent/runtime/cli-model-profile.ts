@@ -22,7 +22,7 @@ export interface CliModelConfigurationInput {
   /** @deprecated Legacy input only. Use the selected model's catalog metadata. */
   limits?: Partial<ModelExecutionLimits> & { maxOutputTokens?: number }
   managed: boolean
-  /** Host-resolved background approval policy; omitted preserves interactive/shell behavior. */
+  /** Host-resolved CLI approval policy; omitted preserves the profile's default behavior. */
   permissionMode?: CliPermissionMode
 }
 /** Installed trusted code; neither an executable path nor a model permission comes from this adapter. */

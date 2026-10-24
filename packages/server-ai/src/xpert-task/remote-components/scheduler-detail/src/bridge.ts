@@ -14,7 +14,13 @@ const envelope = z.object({
     message: z.string().optional(),
     locale: z.string().optional(),
     initialQuery: z.object({ selectionId: z.string().optional() }).optional(),
-    theme: z.object({ mode: z.string().optional(), tokens: z.record(z.union([z.string(), z.number()])) }).optional(),
+    theme: z
+        .object({
+            mode: z.string().optional(),
+            density: z.enum(['default', 'compact']).optional(),
+            tokens: z.record(z.union([z.string(), z.number()])).optional()
+        })
+        .optional(),
     debug: z.object({ enabled: z.boolean().optional() }).optional()
 })
 let instanceId: string | null = null
@@ -40,7 +46,7 @@ export function connect(init: (selectionId: string | null, locale: string) => vo
                     `--xui-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
                     String(value)
                 )
-            installShadcnThemeVars({ density: 'compact' })
+            installShadcnThemeVars({ density: message.theme?.density ?? 'compact' })
             document.documentElement.classList.toggle('dark', message.theme?.mode === 'dark')
             document.documentElement.lang = message.locale ?? 'en-US'
             if (message.debug?.enabled)

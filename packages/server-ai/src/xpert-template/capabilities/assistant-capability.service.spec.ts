@@ -81,14 +81,14 @@ describe('Assistant capabilities (OSS)', () => {
             }
         ])
     })
-    it('works without any distribution providers and leaves ordinary templates unchanged', async () => {
+    it('offers models without distribution providers and leaves ordinary template composition unchanged', async () => {
         expect(await service.setup(template, language)).toMatchObject({
             canInstall: true,
             optionalCapabilities: [],
             requiredModelFeatures: []
         })
         expect(await service.compose(template, language, [], jest.fn())).toBe(template)
-        expect(query.execute).not.toHaveBeenCalled()
+        expect(query.execute).toHaveBeenCalled()
         await expect(service.setup(template, language, ['missing'])).rejects.toThrow()
     })
     it('creates a blank Assistant with all capabilities off and lists only explicitly compatible providers', async () => {
@@ -161,7 +161,7 @@ describe('Assistant capabilities (OSS)', () => {
             optionalCapabilities: [{ key: provider.key }]
         })
         expect(provider.check).not.toHaveBeenCalled()
-        expect(query.execute).not.toHaveBeenCalled()
+        expect(query.execute).toHaveBeenCalled()
         await service.setup(template, language, [provider.key])
         expect(provider.check).toHaveBeenCalledTimes(1)
     })
@@ -373,7 +373,7 @@ describe('Assistant capabilities (OSS)', () => {
         providers.push(provider)
         const draft = parseCapabilityTemplateDraft(template.export_data)
         draft.team.workspaceId = 'selected-workspace'
-        await service.prepareInstallation(template, draft, language, ['workspace-tool'], undefined, [])
+        await service.prepareInstallation(template, draft, language, ['workspace-tool'], model, [])
         expect(provider.check).toHaveBeenCalledWith(
             expect.objectContaining({
                 draft: expect.objectContaining({ team: expect.objectContaining({ workspaceId: 'selected-workspace' }) })

@@ -1,12 +1,11 @@
 import { DataSourceProtocolEnum, DataSourceSyntaxEnum } from '@xpert-ai/contracts'
 import { environment as env } from '@xpert-ai/server-config'
-import { RequestContext } from '../core/context'
 import { TenantAwareCrudService } from '../core/crud'
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
+import { RequestContext, DataSourceStrategyRegistry, DBQueryRunner } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
 
 @Injectable()
@@ -21,6 +20,17 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 		dsTypeRepository: Repository<DataSourceType>
 	) {
 		super(dsTypeRepository)
+	}
+
+	/** Only registered database drivers may appear in the connection type catalog. */
+	async available() {
+		const types = this.dataSourceStrategyRegistry.list().map((strategy) => new (strategy.getClassType())().type)
+		if (!types.length) return { items: [], total: 0 }
+		const items = await this.repository.find({
+			where: { tenantId: RequestContext.currentTenantId(), type: In(types) },
+			order: { name: 'ASC' }
+		})
+		return { items, total: items.length }
 	}
 
 	async sync() {

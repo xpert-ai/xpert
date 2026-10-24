@@ -37,7 +37,8 @@ and never selects a CLI from its provider's display name.
 
 Qwen, Codex, OpenCode, Claude and CodeBuddy profiles declare
 `permissionModes: ['allow', 'restricted']`.
-For background invocations the host passes `permissionMode` from the tenant's
+For background invocations and Xpert Pro Computer Codex launches (desktop and managed
+Shell), the host passes `permissionMode` from the tenant's
 `modelExecutionPolicy.cliPermissions` (default `allow`, optional tool-ID overrides).
 Qwen maps `allow` to YOLO; `restricted` retains auto-edit plus Node shell approval.
 Codex maps it to noninteractive full-access/workspace-write sandbox arguments.
@@ -47,7 +48,15 @@ apply in both modes. Evidence-only review retains the host's stronger deny-all
 override. These are CLI approval controls within an authorized Computer, not new
 platform grants or mounted filesystem access.
 
-`permissionMode` is optional for compatibility: interactive/managed shell launches
+In Xpert Pro, Codex defaults to `allow` inside the authorized Computer container. Its inner sandbox
+is disabled explicitly; the outer non-root, unprivileged container and its mounts/security
+policy remain the isolation boundary. A tenant's `restricted` selection still uses
+`workspace-write`, and failures never trigger a retry with `allow`. Managed Shell examples
+inherit this policy instead of supplying competing flags. Codex configuration is unique
+per launch under the Computer HOME's private `.xpert-cli` directory, outside `/tmp`,
+and is removed on exit/cancellation along with the transport's cleanup receipt.
+
+`permissionMode` is optional for compatibility: other interactive/managed shell launches
 that omit it keep their prior behavior. Custom profiles must explicitly advertise
 and implement each supported mode; the host rejects unsupported selections.
 
@@ -59,7 +68,7 @@ Bash/Read/Write/Edit/Glob/Grep for this workflow.
 Kimi uses a private agent file, empty skills directory and no subagents; its
 prompt mode forces automatic approval, so it advertises **only `allow`**.
 The host must reject `restricted` before launch instead of silently weakening it.
-Interactive launches that omit `permissionMode` retain their original configuration.
+Other interactive launches that omit `permissionMode` retain their original configuration.
 
 These declarations require a matching host transport and Runtime adapter. Installing
 the profile package alone does not provide Computer execution. Profile revisions are

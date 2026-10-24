@@ -2,6 +2,91 @@ import { requireReadStatement, splitWorkbenchSql } from './workbench-sql'
 import { SqlDatabaseWorkbenchAdapter } from './workbench-adapter'
 import type { DatabaseResult } from './workbench'
 
+describe('issue #1223: parenthesized read-only expressions', () => {
+  const filteredAggregate = [
+    'SELECT region, SUM(sales_amount) AS sales_amount FROM sales_demo',
+    'WHERE (? IS NULL OR ordered_at >= ?)',
+    'AND (? IS NULL OR region = ?) AND (? IS NULL OR category = ?)',
+    'GROUP BY region HAVING (SUM(sales_amount) > 0)'
+  ].join('\n')
+
+  it.each([
+    'SELECT 1 AS n',
+    'SELECT 1 AS n WHERE 1=1',
+    'SELECT 1 AS n WHERE (1=1)',
+    'select 1 where/* predicate */((1=1) and (2=2))',
+    'SELECT 1 WHERE -- predicate\n(1=1)',
+    'SELECT 1 WHERE (EXISTS (SELECT 1 WHERE (1=1)))',
+    'SELECT COUNT(*) FROM sales_demo HAVING (COUNT(*) > 0)',
+    'SELECT CASE WHEN (1=1) THEN (1) ELSE (0) END',
+    'SELECT CASE (1) WHEN (1) THEN (1) ELSE (0) END',
+    filteredAggregate
+  ])('accepts parenthesized expressions: %s', (sql) => {
+    expect(splitWorkbenchSql(sql)[0].effect).toBe('read')
+    expect(requireReadStatement(sql)).toBe(sql)
+  })
+
+  it.each([
+    'SELECT 1 WHERE (SLEEP(1) = 0)',
+    'SELECT 1 WHERE (my_custom_mutator() = 0)',
+    'SELECT by(1)',
+    'SELECT 1 WHERE (EXISTS (SELECT my_custom_mutator()))',
+    'SELECT 1 WHERE (custom.count(1) = 1)',
+    'SELECT 1 WHERE ("where"(1) = 1)',
+    'SELECT 1 WHERE (`where`(1) = 1)',
+    'SELECT COUNT(*) FROM sales_demo HAVING (my_custom_mutator() = 0)',
+    'SELECT CASE WHEN (my_custom_mutator() = 0) THEN 1 ELSE 0 END',
+    'SELECT CASE WHEN (1=1) THEN (my_custom_mutator()) ELSE 0 END',
+    'SELECT CASE WHEN (1=1) THEN 1 ELSE (my_custom_mutator()) END',
+    'SELECT CASE (my_custom_mutator()) WHEN 1 THEN 1 END',
+    'SELECT region FROM sales_demo ORDER BY (my_custom_mutator())',
+    'SELECT 1 WHERE (EXISTS (DELETE FROM sales_demo RETURNING region))',
+    "SELECT 1 WHERE (1=1) INTO OUTFILE '/tmp/out'",
+    'SELECT * FROM sales_demo WHERE (1=1) FOR UPDATE',
+    'SELECT 1 WHERE (1=1); DELETE FROM sales_demo',
+    'SELECT 1 WHERE (1=1); SELECT 2',
+    "SELECT 1 WHERE (1=1) /*!50000 INTO OUTFILE '/tmp/out' */"
+  ])('preserves read-only restrictions inside and after parentheses: %s', (sql) => {
+    expect(() => requireReadStatement(sql)).toThrow()
+  })
+
+  it('executes the filtered aggregate through the MySQL adapter with parameters and read-only transaction', async () => {
+    const result: DatabaseResult = {
+      columns: [
+        { id: 'region', name: 'region' },
+        { id: 'sales_amount', name: 'sales_amount' }
+      ],
+      rows: [['East', '120.00']],
+      durationMs: 1,
+      hasMore: false,
+      truncated: false,
+      outcome: 'succeeded',
+      diagnostics: []
+    }
+    const execute = jest.fn().mockResolvedValue(result)
+    const adapter = new SqlDatabaseWorkbenchAdapter('mysql', { execute, close: async () => {} })
+    const parameters = [null, null, 'East', 'East', null, null]
+    await expect(adapter.query({ mode: 'read', sql: filteredAggregate, parameters, limit: 10 })).resolves.toEqual(
+      result
+    )
+    expect(execute.mock.calls.map(([sql]) => sql)).toEqual([
+      'START TRANSACTION READ ONLY',
+      `${filteredAggregate}\nLIMIT 11 OFFSET 0`,
+      'ROLLBACK'
+    ])
+    expect(execute.mock.calls[1][1]).toEqual(parameters)
+  })
+
+  it('rejects an unsafe parenthesized query before transport execution', async () => {
+    const execute = jest.fn()
+    const adapter = new SqlDatabaseWorkbenchAdapter('mysql', { execute, close: async () => {} })
+    await expect(adapter.query({ mode: 'read', sql: 'SELECT 1 WHERE (SLEEP(1) = 0)' })).rejects.toThrow(
+      'read_only_violation'
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+})
+
 describe('workbench derived-table read classification', () => {
   const profile = [
     'SELECT COUNT(*) AS sample_rows,',
@@ -70,6 +155,7 @@ describe('workbench syntax positions are not function calls', () => {
     'WITH q(id) AS (SELECT 1), r(id) AS (SELECT id FROM q) SELECT * FROM r',
     'WITH `q`(`id`) AS (SELECT 1) SELECT * FROM `q`',
     'SELECT * FROM (WITH q(id) AS (SELECT 1) SELECT * FROM q) s',
+    "SELECT TO_CHAR(DATE_TRUNC('month', ordered_at), 'YYYY-MM') AS month FROM orders",
     'SELECT CAST(1 AS DECIMAL(10,2))',
     'SELECT"column"FROM"table"',
     'SELECT CAST(COALESCE(amount, 0) AS NUMERIC(10,2)) FROM orders',

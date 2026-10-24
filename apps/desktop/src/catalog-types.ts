@@ -1,6 +1,7 @@
 import type { Bot } from './types'
 import type { ModelOption } from './catalog/model-options'
 import type {
+  PluginApplicationScope,
   PluginApplicationStatusSummary,
   PluginApplicationToolsetRequirement,
   PluginApplicationToolsetSelection
@@ -18,9 +19,11 @@ export interface ExpertItem extends CatalogBase {
 }
 export interface ApplicationItem extends CatalogBase {
   kind: 'applications'
+  installationScopes?: PluginApplicationScope[]
   icon: { type: 'image' | 'emoji'; value: string } | null
   pluginName: string
   appName: string
+  installationScope?: PluginApplicationScope
   status: PluginApplicationStatusSummary['status']
   botId: string | null
   initializationAccess: string
@@ -56,6 +59,7 @@ export type ApplicationToolsetSelection = PluginApplicationToolsetSelection
 export interface ApplicationInput {
   pluginName: string
   appName: string
+  installationScope?: PluginApplicationScope
 }
 export interface InitializeApplicationInput extends ApplicationInput {
   operationId: string

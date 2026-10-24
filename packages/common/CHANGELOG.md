@@ -1,5 +1,13 @@
 # @xpert-ai/server-common
 
+## 3.26.0
+
+## 3.25.0
+
+### Minor Changes
+
+- 3e0460d: Align the core platform packages on a shared release line. API, Cloud, Contracts, SDK and server foundations move together to the next minor version.
+
 ## 3.10.0
 
 ### Minor Changes

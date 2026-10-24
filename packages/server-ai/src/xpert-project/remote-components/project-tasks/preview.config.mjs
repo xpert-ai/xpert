@@ -1,5 +1,17 @@
+import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+    createPipelinePreview,
+    createPipelineHistoryPreview,
+    createPipelineConfigurationPreview
+} from './pipeline.preview.mjs'
+const {
+    projectPipelineStatistics,
+    projectPipelineCatalogSchema,
+    projectPipelineCatalogConfigureSchema,
+    configureProjectPipelineFromForm
+} = createRequire(import.meta.url)('../../../../../contracts/dist/index.cjs.js')
 const root = dirname(fileURLToPath(import.meta.url))
 const anchor = Math.floor(Date.now() / 3600000) * 3600000 - 2 * 3600000
 const at = (minutes) => new Date(anchor + minutes * 60000).toISOString()
@@ -29,7 +41,7 @@ const assistant = (id, assigneeName) => ({
     assigneeAvatar: { emoji: { id: 'memo', unified: '1f4dd' }, background: 'var(--accent)' }
 })
 const graph = {
-    projectId: 'preview',
+    projectId: createPipelinePreview().projectId,
     projectTitle: '客户服务知识库升级',
     canEditPlan: true,
     cursor: '1',
@@ -190,13 +202,165 @@ export default {
             }
         }
     },
-    state: { graph, navigation: null },
+    state: {
+        graph,
+        pipeline: createPipelinePreview(),
+        history: createPipelineHistoryPreview(createPipelinePreview()),
+        catalog: projectPipelineCatalogSchema.parse({
+            ...createPipelineConfigurationPreview(),
+            ...(process.env.TASKS_PREVIEW_CREDENTIAL === 'scoped'
+                ? { commandCapability: { allowed: false, reason: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' } }
+                : {})
+        }),
+        bindings: [],
+        navigation: null
+    },
     exposeState: true,
     async handleRequest(message, { state }) {
         if (message.type === 'requestData') return { data: { item: state.graph } }
         if (message.type === 'executeAction') {
+            if (message.actionKey === 'pipeline-catalog') return { data: { success: true, data: state.catalog } }
+            if (message.actionKey === 'pipeline-configurations')
+                return { data: { success: true, data: { items: state.bindings, next: null } } }
+            if (message.actionKey === 'pipeline-configure') {
+                const input = projectPipelineCatalogConfigureSchema.parse(message.input)
+                const item = state.catalog.items.find(
+                    (item) =>
+                        item.contributionKey === input.contributionKey &&
+                        item.configuration.binding.templateRef === input.templateRef
+                )
+                const configuration = configureProjectPipelineFromForm(item.configuration, item.form, input)
+                if (!state.bindings.some((item) => item.id === input.requestId))
+                    state.bindings.unshift({
+                        id: input.requestId,
+                        revision: 1,
+                        createdAt: new Date().toISOString(),
+                        configuration
+                    })
+                return { data: { success: true, data: { bindingId: input.requestId, revision: 1 } } }
+            }
+            if (message.actionKey === 'pipeline-list')
+                return { data: { success: true, data: { items: [state.pipeline.instance], next: null } } }
+            if (message.actionKey === 'pipeline-refresh') return { data: { success: true, data: { status: 'queued' } } }
+            if (message.actionKey === 'pipeline-provider-actions') {
+                const graph = state.pipeline
+                const attention = graph.attentions.find(
+                    (item) => item.nodeInstanceId === message.input.nodeInstanceId && item.source === 'provider_action'
+                )
+                return {
+                    data: {
+                        success: true,
+                        data: {
+                            target: {
+                                instanceId: graph.instance.id,
+                                nodeInstanceId: message.input.nodeInstanceId,
+                                roundId: graph.roundId,
+                                expectedRevision: graph.instance.revision,
+                                generation: graph.round.generation,
+                                inputDigest: graph.round.inputDigest
+                            },
+                            items: [],
+                            operations: attention
+                                ? [
+                                      {
+                                          id: attention.id,
+                                          nodeInstanceId: attention.nodeInstanceId,
+                                          actionRef: 'neutral.verify@1',
+                                          state: 'unknown',
+                                          reasonCode: attention.reasonCode,
+                                          createdAt: graph.instance.updatedAt,
+                                          updatedAt: graph.instance.updatedAt,
+                                          projectionPending: false
+                                      }
+                                  ]
+                                : []
+                        }
+                    }
+                }
+            }
+            if (message.actionKey === 'pipeline-rounds') {
+                const old = state.history
+                return {
+                    data: {
+                        success: true,
+                        data: {
+                            items: [
+                                {
+                                    id: state.pipeline.roundId,
+                                    runId: state.pipeline.runId,
+                                    ...state.pipeline.round,
+                                    current: true,
+                                    createdAt: state.pipeline.instance.updatedAt
+                                },
+                                {
+                                    id: old.roundId,
+                                    runId: old.runId,
+                                    ...old.round,
+                                    current: false,
+                                    createdAt: old.snapshotAt
+                                }
+                            ],
+                            next: null
+                        }
+                    }
+                }
+            }
+            if (message.actionKey === 'pipeline-graph') {
+                const graph = message.input?.roundId ? state.history : state.pipeline
+                return {
+                    data: {
+                        success: true,
+                        data: {
+                            ...graph,
+                            statistics: projectPipelineStatistics(graph.nodes, graph.tasks.executions, graph.historical)
+                        }
+                    }
+                }
+            }
+            if (message.actionKey === 'pipeline-evidence')
+                return {
+                    data: {
+                        success: true,
+                        data: {
+                            summary: '资料版本和引用已复核，等待人工确认归档。',
+                            checkedDocuments: 4,
+                            missingReferences: 0
+                        }
+                    }
+                }
+            if (message.actionKey === 'pipeline-cancel') {
+                if (message.input.expectedRevision !== state.pipeline.instance.revision) throw Error('流水线已更新')
+                state.pipeline.runState = state.pipeline.round.state = 'cancelled'
+                state.pipeline.actions.cancel = false
+                for (const attention of state.pipeline.attentions) attention.state = 'superseded'
+                for (const node of state.pipeline.nodes)
+                    if (node.projection.state.lifecycle !== 'completed') {
+                        node.projection.state.lifecycle = 'cancelled'
+                        node.projection.state.readiness = 'blocked'
+                    }
+                state.pipeline.instance.revision++
+                state.pipeline.cursor = `preview-${state.pipeline.instance.revision}`
+                return { data: { success: true, data: { revision: state.pipeline.instance.revision } } }
+            }
+            if (message.actionKey === 'pipeline-decision') {
+                const attention = state.pipeline.attentions.find((item) => item.id === message.input.attentionId)
+                if (!attention || attention.state !== 'open' || attention.revision !== message.input.expectedRevision)
+                    throw Error('待办已更新')
+                attention.state = 'resolved'
+                attention.revision++
+                const node = state.pipeline.nodes.find((item) => item.id === attention.nodeInstanceId)
+                node.projection.state.lifecycle = 'completed'
+                state.pipeline.round.state = message.input.outcome === 'publish' ? 'completed' : 'awaiting_new_subject'
+                state.pipeline.runState = message.input.outcome === 'publish' ? 'completed' : 'waiting'
+                state.pipeline.actions.cancel = message.input.outcome !== 'publish'
+                state.pipeline.instance.revision++
+                state.pipeline.cursor = `preview-${state.pipeline.instance.revision}`
+                return { data: { success: true, data: { decisionId: attention.id } } }
+            }
             if (message.actionKey === 'execution-target') {
-                const attempt = state.graph.executions.find((item) => item.id === message.input.taskExecutionId)
+                const attempt = [...state.graph.executions, ...state.pipeline.tasks.executions].find(
+                    (item) => item.id === message.input.taskExecutionId
+                )
                 if (!attempt?.agentExecutionId) throw Error('找不到关联的执行记录。')
                 return {
                     data: {

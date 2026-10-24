@@ -1,3 +1,4 @@
+import { projectPipelinePortfolioSchema, type ProjectPipelinePortfolioInput } from '@xpert-ai/contracts'
 import type {
   XpertProjectListFilter,
   XpertProjectTypeCatalog,
@@ -38,7 +39,7 @@ import type {
   TFileDirectory
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
-import { Subject, tap } from 'rxjs'
+import { Subject, tap, map } from 'rxjs'
 
 export interface XpertProjectOverview {
   project: IXpertProject
@@ -71,18 +72,36 @@ export type XpertProjectConversationTarget = {
   xpertId?: string
 }
 
+export type XpertProjectListQuery = XpertProjectListFilter & {
+  status?: string
+  skip?: number
+  take?: number
+  sort?: 'updated' | 'created' | 'name'
+}
+
 @Injectable({ providedIn: 'root' })
 export class XpertProjectApiService {
   readonly #http = inject(HttpClient)
   readonly #projectsChanged = new Subject<void>()
   readonly projectsChanged$ = this.#projectsChanged.asObservable()
 
-  list(params: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
+  pipelinePortfolio(input: ProjectPipelinePortfolioInput) {
+    return this.#http
+      .post<unknown>(`${API_XPERT_PROJECT}/pipelines/analytics/portfolio`, input)
+      .pipe(map((response) => projectPipelinePortfolioSchema.parse(response)))
+  }
+
+  list(params: XpertProjectListQuery = {}) {
     const data = {
       // The workspace owns the status filter, including archived projects.
       // Legacy callers still use the server's active-only default.
       where: params.status ? { status: params.status } : { status: 'all' },
-      order: { updatedAt: 'DESC' },
+      order:
+        params.sort === 'name'
+          ? { name: 'ASC', id: 'ASC' }
+          : params.sort === 'created'
+            ? { createdAt: 'DESC', id: 'ASC' }
+            : { updatedAt: 'DESC', id: 'ASC' },
       skip: params.skip ?? 0,
       take: params.take ?? 50
     }
@@ -101,10 +120,14 @@ export class XpertProjectApiService {
     })
   }
 
-  typeEntry(type: XpertProjectTypeRef, options: { projectId?: string; xpertId?: string } = {}) {
+  typeEntry(
+    type: XpertProjectTypeRef,
+    options: { projectId?: string; xpertId?: string; pipelineNodeId?: string } = {}
+  ) {
     let params = new HttpParams().set('applicationKey', type.applicationKey).set('projectTypeKey', type.projectTypeKey)
     if (options.projectId) params = params.set('projectId', options.projectId)
     if (options.xpertId) params = params.set('xpertId', options.xpertId)
+    if (options.pipelineNodeId) params = params.set('pipelineNodeId', options.pipelineNodeId)
     return this.#http.get<XpertProjectEntry>(`${API_XPERT_PROJECT}/type-entry`, { params })
   }
 

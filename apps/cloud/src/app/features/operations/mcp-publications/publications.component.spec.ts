@@ -10,7 +10,7 @@ import type {
 import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { of } from 'rxjs'
+import { of, throwError } from 'rxjs'
 import { environment } from '../../../../environments/environment'
 
 jest.mock('../../../@core', () => {
@@ -41,6 +41,7 @@ async function setup(options?: { oauthEnabled?: boolean }) {
     list: jest.fn(() => of([publicationSummary('publication-1')])),
     get: jest.fn(() => of(publication('publication-1'))),
     create: jest.fn(() => of(publication('publication-2'))),
+    remove: jest.fn(() => of({ id: 'publication-1', deleted: true })),
     availableCapabilitySources: jest.fn(() =>
       of([
         {
@@ -155,7 +156,7 @@ async function setup(options?: { oauthEnabled?: boolean }) {
     await fixture.componentInstance.loadScope()
     fixture.detectChanges()
 
-    return { component: fixture.componentInstance, publicationService, toolsetService, clipboard }
+    return { component: fixture.componentInstance, publicationService, toolsetService, clipboard, toastr }
   } finally {
     environment.mcpOAuthEnabled = originalOAuthEnabled
   }
@@ -164,9 +165,53 @@ async function setup(options?: { oauthEnabled?: boolean }) {
 describe('XpertMcpPublicationsComponent', () => {
   afterEach(() => TestBed.resetTestingModule())
 
+  it('selects a remaining service after deleting the selected service', async () => {
+    const { component, publicationService } = await setup()
+    publicationService.list.mockReturnValue(of([publicationSummary('publication-2')]))
+    publicationService.get.mockImplementation(() => of(publication('publication-2')))
+    component.publication.update((current) => ({ ...current, status: 'disabled' }))
+    await component.deletePublication('publication-1')
+    expect(component.selectedPublicationId()).toBe('publication-2')
+    expect(component.publications().map(({ id }) => id)).toEqual(['publication-2'])
+  })
+
+  it('clears details after deleting the last service', async () => {
+    const { component, publicationService } = await setup()
+    publicationService.list.mockReturnValue(of([]))
+    component.publication.update((current) => ({ ...current, status: 'disabled' }))
+    await component.deletePublication('publication-1')
+    expect(component.selectedPublicationId()).toBeNull()
+    expect(component.publication()).toBeNull()
+    expect(component.publications()).toEqual([])
+    expect(component.connectionInfo()).toBeNull()
+  })
+
+  it('retains the service and releases the busy state if deletion fails', async () => {
+    const { component, publicationService, toastr } = await setup()
+    component.publication.update((current) => ({ ...current, status: 'disabled' }))
+    publicationService.remove.mockReturnValue(throwError(() => new Error('Delete denied')))
+    await component.deletePublication('publication-1')
+    expect(component.selectedPublicationId()).toBe('publication-1')
+    expect(component.publication()?.id).toBe('publication-1')
+    expect(component.saving()).toBe(false)
+    expect(toastr.error).toHaveBeenCalledWith('Delete denied')
+  })
+
+  it('does not delete an enabled service even if the handler is called directly', async () => {
+    const { component, publicationService } = await setup()
+    component.publication.update((current) => ({ ...current, status: 'active' }))
+    await component.deletePublication('publication-1')
+    expect(publicationService.remove).not.toHaveBeenCalled()
+  })
+
   it('ships MCP publication translations for every supported locale', () => {
     const locales = ['en', 'zh-Hans', 'zh-Hant']
     const requiredPaths = [
+      'Delete',
+      'DeleteTitle',
+      'DeleteConfirm',
+      'DeleteSharedConfirm',
+      'Deleted',
       'Title',
       'Description',
       'Create',

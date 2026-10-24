@@ -2,7 +2,8 @@ import type {
   AgentInvocationStatus,
   AgentRuntimeProgress,
   ModelExecutionEnvironment,
-  ExecutionActivityCapabilities
+  ExecutionActivityCapabilities,
+  ProjectPipelineWorkContext
 } from '@xpert-ai/contracts'
 export type { AgentInvocationStatus, AgentRuntimeProgress } from '@xpert-ai/contracts'
 import type { AgentInvocationDispatchContext } from './dispatch'
@@ -26,7 +27,9 @@ export interface AgentInvocationScope {
   /** Calling Agent key or host-assigned background-task entry. */
   callerAgentKey: string
   /** Omitted preserves existing Assistant callers. Project general agents have no fabricated Assistant ID. */
-  callerType?: 'xpert' | 'project_agent'
+  callerType?: 'xpert' | 'project_agent' | 'project_pipeline'
+  /** Exact durable Pipeline work, reauthorized by the host before resolving or controlling a binding. */
+  pipelineOrigin?: ProjectPipelineWorkContext
   callerXpertId?: string
 }
 

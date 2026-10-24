@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-sdk",
-  "version": "3.21.0",
+  "version": "3.26.0",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
@@ -12,6 +12,11 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "exports": {
+    "./analytics": {
+      "types": "./dist/analytics.d.ts",
+      "import": "./dist/analytics.esm.js",
+      "default": "./dist/analytics.cjs.js"
+    },
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,6 +32,11 @@
       "types": "./dist/data-workbench.d.ts",
       "import": "./dist/data-workbench.esm.js",
       "default": "./dist/data-workbench.cjs.js"
+    },
+    "./artifact-document": {
+      "types": "./dist/artifact-document.d.ts",
+      "import": "./dist/artifact-document.esm.js",
+      "default": "./dist/artifact-document.cjs.js"
     }
   },
   "publishConfig": {

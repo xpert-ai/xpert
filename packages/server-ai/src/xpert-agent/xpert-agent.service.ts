@@ -7,6 +7,7 @@ import {
     TChatOptions,
     TXpertAgentChatRequest,
     isUserAddableAgentMiddleware,
+    normalizeMiddlewareOptions,
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import {
@@ -202,14 +203,16 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         const strategy = this.agentMiddlewareRegistry.get(provider)
         const draftContext = await this.getDraftXpertMiddlewareContext(body?.xpertId)
         const runtime = this.createDraftXpertMiddlewareRuntime(draftContext)
-        const middleware = await strategy.createMiddleware(body?.options, {
+        const options = normalizeMiddlewareOptions(body?.options)
+        const middleware = await strategy.createMiddleware(options, {
             tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             userId: RequestContext.currentUserId(),
             xpertId: draftContext.xpertId,
             workspaceId: draftContext.workspaceId,
             workspaceDataScope: draftContext.workspaceDataScope,
             xpertFeatures: draftContext.xpertFeatures,
-            node: this.createMiddlewareNode(provider, body?.options),
+            node: this.createMiddlewareNode(provider, options),
             tools: new Map(),
             runtime
         })
@@ -232,14 +235,16 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         const strategy = this.agentMiddlewareRegistry.get(provider)
         const draftContext = await this.getDraftXpertMiddlewareContext(body?.xpertId)
         const runtime = this.createDraftXpertMiddlewareRuntime(draftContext)
-        const middleware = await strategy.createMiddleware(body?.options, {
+        const options = normalizeMiddlewareOptions(body?.options)
+        const middleware = await strategy.createMiddleware(options, {
             tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             userId: RequestContext.currentUserId(),
             xpertId: draftContext.xpertId,
             workspaceId: draftContext.workspaceId,
             workspaceDataScope: draftContext.workspaceDataScope,
             xpertFeatures: draftContext.xpertFeatures,
-            node: this.createMiddlewareNode(provider, body?.options),
+            node: this.createMiddlewareNode(provider, options),
             tools: new Map(),
             runtime
         })

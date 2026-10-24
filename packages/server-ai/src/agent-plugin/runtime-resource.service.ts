@@ -1,4 +1,5 @@
 import { dirname, join } from 'node:path'
+import { runtimeTemplateDescriptors, type RuntimeTemplateDescriptor } from './templates/runtime-template'
 import { connectorMcpAuth, matchesPortableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
@@ -12,8 +13,10 @@ import type {
     IWFNMiddleware,
     IXpert,
     RuntimeResourceCatalog,
+    RuntimeResourceCatalogPurpose,
     RuntimeResourceCatalogItem,
     RuntimeResourceKind,
+    AgentPluginConnectorBinding,
     RuntimeResourcesSelection
 } from '@xpert-ai/contracts'
 import { t } from 'i18next'
@@ -40,6 +43,7 @@ export interface ResolvedRuntimeResources {
     toolsetIds: string[]
     middlewares: Array<{ key: string; entity: IWFNMiddleware }>
     experts: IXpert[]
+    templates?: RuntimeTemplateDescriptor[]
 }
 export const emptyRuntimeResources = (): ResolvedRuntimeResources => ({
     selection: { revision: 0, resources: [] },
@@ -75,78 +79,96 @@ export class RuntimeResourceService {
 
     async catalog(
         assistantId: string,
-        query: { projectId?: string; search?: string; kind?: RuntimeResourceKind; offset?: number; limit?: number }
+        query: {
+            projectId?: string
+            search?: string
+            kind?: RuntimeResourceKind
+            purpose?: RuntimeResourceCatalogPurpose
+            offset?: number
+            limit?: number
+        }
     ): Promise<RuntimeResourceCatalog> {
         const assistant = await this.assistant(assistantId, query.projectId)
-        const managed = await this.plugins.bindings.find({
-            where: resourceScope(),
-            order: { title: 'ASC', id: 'ASC' }
-        })
+        const managed =
+            query.kind === 'agent_plugin'
+                ? []
+                : await this.plugins.bindings.find({
+                      where: resourceScope(),
+                      order: { title: 'ASC', id: 'ASC' }
+                  })
         const installed =
             !query.kind || query.kind === 'agent_plugin'
-                ? await this.installations.runtimeCatalog(assistant.workspaceId)
+                ? await this.installations.catalogInventory(assistant.workspaceId)
                 : []
         const bindings = [
             ...managed.filter((binding) => binding.definition.kind !== 'agent_plugin'),
             ...installed.map(({ binding }) => binding)
         ]
+        const inventory = new Map(installed.map(({ binding, pkg }) => [binding.id, pkg]))
+        const candidates: RuntimeResourceBinding[] = bindings.filter((binding) => {
+            const pkg = inventory.get(binding.id)
+            return (
+                binding.enabled &&
+                !binding.supersededById &&
+                !isResourceInGraph(binding, assistant) &&
+                (binding.definition.kind === 'agent_plugin' || binding.workspaceIds.includes(assistant.workspaceId)) &&
+                (!query.kind || binding.definition.kind === query.kind) &&
+                (query.purpose === 'selection' || pkg?.descriptor.extension?.role !== 'assistant')
+            )
+        })
+        const discovered = await this.discover(assistant, bindings, query.kind, true)
+        const matching = [...candidates, ...discovered].filter(
+            (binding) =>
+                !query.search ||
+                `${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
+        )
+        matching.sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id))
+        const offset = query.offset ?? 0
+        const page = matching.slice(offset, offset + (query.limit ?? 50))
+        const packageIds = page.flatMap(({ definition }) =>
+            definition.kind === 'agent_plugin' ? [definition.packageId] : []
+        )
+        const packages = new Map((await this.installations.catalogPackages(packageIds)).map((pkg) => [pkg.id, pkg]))
+        const pluginEntries = page.flatMap((binding) => {
+            if (binding.definition.kind !== 'agent_plugin') return []
+            const pkg = packages.get(binding.definition.packageId)
+            return pkg ? [{ binding, pkg }] : []
+        })
+        const connectorReferences = await this.installations.catalogConnectorReferences(pluginEntries, assistant)
         const items: RuntimeResourceCatalogItem[] = []
-        for (const binding of bindings) {
-            if (
-                !binding.enabled ||
-                binding.supersededById ||
-                isResourceInGraph(binding, assistant) ||
-                (binding.definition.kind !== 'agent_plugin' && !binding.workspaceIds.includes(assistant.workspaceId)) ||
-                (query.kind && binding.definition.kind !== query.kind)
-            )
-                continue
-            if (
-                query.search &&
-                !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
-            )
-                continue
+        const discoveredIds = new Set(discovered.map(({ id }) => id))
+        for (const binding of page) {
+            const pkg =
+                binding.definition.kind === 'agent_plugin' ? packages.get(binding.definition.packageId) : undefined
             const item = await this.describe(
                 binding,
                 assistant,
-                installed.find((item) => item.binding.id === binding.id)?.pkg
+                pkg,
+                pkg ? (connectorReferences.get(pkg.id) ?? {}) : undefined
             )
-            try {
-                if (binding.definition.kind === 'agent_plugin') {
-                    items.push(item)
-                    continue
-                }
-                const resolved = await this.resolve(
-                    assistantId,
-                    { revision: 0, resources: [{ bindingId: binding.id, version: binding.version }] },
-                    query.projectId
-                )
-                if (binding.definition.kind === 'external_xpert') item.avatar = resolved.experts[0]?.avatar
-            } catch {
-                item.status = 'unavailable'
-                item.diagnostics.push({
-                    component: binding.id,
-                    code: 'unavailable',
-                    message: t('server-ai:Error.AgentResourceUnavailable', {
-                        defaultValue: 'This resource is no longer available.'
+            if (binding.definition.kind !== 'agent_plugin' && !discoveredIds.has(binding.id)) {
+                try {
+                    const resolved = await this.resolve(
+                        assistantId,
+                        { revision: 0, resources: [{ bindingId: binding.id, version: binding.version }] },
+                        query.projectId
+                    )
+                    if (binding.definition.kind === 'external_xpert') item.avatar = resolved.experts[0]?.avatar
+                } catch {
+                    item.status = 'unavailable'
+                    item.diagnostics.push({
+                        component: binding.id,
+                        code: 'unavailable',
+                        message: t('server-ai:Error.AgentResourceUnavailable', {
+                            defaultValue: 'This resource is no longer available.'
+                        })
                     })
-                })
+                }
             }
             items.push(item)
         }
-        const discovered = await this.discover(assistant, bindings, query.kind, true)
-        for (const binding of discovered) {
-            if (
-                query.search &&
-                !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
-            )
-                continue
-            items.push(await this.describe(binding, assistant))
-        }
-        items.sort((a, b) => a.title.localeCompare(b.title) || a.bindingId.localeCompare(b.bindingId))
-        const offset = query.offset ?? 0
-        const page = items.slice(offset, offset + (query.limit ?? 50))
-        await this.describeMiddlewareViews(page, [...bindings, ...discovered], assistantId, query.projectId)
-        return { items: page, total: items.length }
+        await this.describeMiddlewareViews(items, [...bindings, ...discovered], assistantId, query.projectId)
+        return { items, total: matching.length }
     }
 
     private async describeMiddlewareViews(
@@ -218,7 +240,8 @@ export class RuntimeResourceService {
     private async describe(
         binding: RuntimeResourceBinding,
         assistant: IXpert,
-        pkg?: AgentPluginPackage
+        pkg?: AgentPluginPackage,
+        catalogReferences?: { [server: string]: AgentPluginConnectorBinding }
     ): Promise<RuntimeResourceCatalogItem> {
         const { workspaceId, id: assistantId } = assistant
         const base: RuntimeResourceCatalogItem = {
@@ -254,6 +277,15 @@ export class RuntimeResourceService {
             base.icon = pkg.descriptor.extension?.interface?.icon
             base.status = base.diagnostics.length ? 'partial' : 'ready'
             base.components = [
+                ...(pkg.descriptor.extension?.role === 'assistant'
+                    ? []
+                    : (pkg.descriptor.templates ?? []).map(({ key }) => ({
+                          key,
+                          kind: 'assistant_template' as const,
+                          title: pkg.descriptor.templateCatalog?.[key]?.title || key,
+                          description: pkg.descriptor.templateCatalog?.[key]?.description,
+                          status: 'ready' as const
+                      }))),
                 ...pkg.descriptor.skills.map(({ key }) => ({ key, kind: 'skill' as const, status: 'ready' as const })),
                 ...pkg.descriptor.servers.map(({ key }) => ({ key, kind: 'mcp' as const, status: 'ready' as const })),
                 ...(pkg.descriptor.extension?.middlewares ?? []).map(({ key }) => ({
@@ -269,9 +301,11 @@ export class RuntimeResourceService {
             ]
             if (!base.components.length) base.status = 'unavailable'
             const requirements = binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {}
-            const references = await this.installations
-                .connectorReferences(pkg, binding, { id: assistantId, workspaceId })
-                .catch(() => ({}))
+            const references =
+                catalogReferences ??
+                (await this.installations
+                    .connectorReferences(pkg, binding, { id: assistantId, workspaceId })
+                    .catch(() => ({})))
             for (const key of Object.keys(requirements)) {
                 const reference = references[key]
                 const status = reference
@@ -429,6 +463,8 @@ export class RuntimeResourceService {
                     throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
                 packages.set(definition.packageId, definition)
                 const pkg = await this.installations.package(binding, assistant.workspaceId)
+                result.templates ??= []
+                result.templates.push(...(await runtimeTemplateDescriptors(pkg, reference)))
                 for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
                     addMiddleware(`resource_${binding.id}_${middleware.key}`, middleware.provider, middleware.options)
                 for (const expert of pkg.descriptor.extension?.experts ?? [])

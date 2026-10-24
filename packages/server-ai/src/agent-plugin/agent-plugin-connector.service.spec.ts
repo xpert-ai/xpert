@@ -9,6 +9,7 @@ import {
     type McpConsumerAuthProviderRequest
 } from '../mcp-consumer/auth/mcp-consumer-auth.registry'
 import { portableMcpSchema, connectorMcpAuth } from './agent-plugin-mcp'
+import { resolveMcpClientAuthProvider } from '../mcp-consumer/auth/mcp-client-auth'
 
 jest.mock('../connector/connector.service', () => ({ ConnectorService: class {} }))
 jest.mock('../connector/mcp-oauth.strategy', () => ({
@@ -179,6 +180,29 @@ describe('Agent Plugin Connector binding boundary', () => {
         ).resolves.toEqual(previous)
     })
 
+    it('shares one authorized snapshot across a page but refreshes it on the next request', async () => {
+        jest.spyOn(service, 'register').mockReturnValue(new Map([['test', 'canva']]))
+        runtimeOptions.mockResolvedValue({
+            items: [{ ...reference, authorizationMode: 'shared' }]
+        })
+        const entries = ['first', 'second'].map((id) => ({
+            pkg: { id } as AgentPluginPackage,
+            requirements: { test: requirement }
+        }))
+        const result = await service.runtimeBindingsBatch(entries, 'assistant')
+        expect(result.get('first')).toEqual({ test: reference })
+        expect(result.get('second')).toEqual({ test: reference })
+        expect(runtimeOptions).toHaveBeenCalledTimes(1)
+        expect(runtimeOptions).toHaveBeenCalledWith('assistant')
+        expect(credential).not.toHaveBeenCalled()
+
+        runtimeOptions.mockResolvedValue({ items: [] })
+        const revoked = await service.runtimeBindingsBatch(entries, 'assistant')
+        expect(revoked.get('first')).toEqual({})
+        expect(revoked.get('second')).toEqual({})
+        expect(runtimeOptions).toHaveBeenCalledTimes(2)
+    })
+
     it('passes only the exact dependency binding and validated actor to Connector', async () => {
         const provider = await resolveMcpConsumerAuthProvider(request)
         expect((await provider.tokens()).access_token).toBe('test-only')
@@ -188,6 +212,53 @@ describe('Agent Plugin Connector binding boundary', () => {
             allowWorkspaceBindingsInProject: true
         })
     })
+    it('authorizes the shared client context through the real Connector boundary', async () => {
+        const provider = await resolveMcpClientAuthProvider({
+            toolset,
+            serverName: request.serverName,
+            server: request.server,
+            runtimeContext: scope
+        })
+        expect((await provider.tokens()).access_token).toBe('test-only')
+        expect(credential).toHaveBeenLastCalledWith(reference, {
+            ...scope,
+            workspaceId: 'workspace',
+            connectorBindingIds: ['connector'],
+            allowWorkspaceBindingsInProject: true
+        })
+    })
+
+    it.each(['xpertId', 'conversationId', 'executionId'] as const)(
+        'does not invent a missing %s when resolving shared client authorization',
+        async (field) => {
+            await expect(
+                resolveMcpClientAuthProvider({
+                    toolset,
+                    serverName: request.serverName,
+                    server: request.server,
+                    runtimeContext: { ...scope, [field]: undefined }
+                })
+            ).rejects.toThrow()
+            expect(credential).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['tenantId', 'organizationId', 'userId'] as const)(
+        'rejects a foreign %s even when trusted fallback identity is supplied',
+        async (field) => {
+            await expect(
+                resolveMcpClientAuthProvider({
+                    toolset,
+                    serverName: request.serverName,
+                    server: request.server,
+                    runtimeContext: { ...scope, [field]: 'foreign' },
+                    fallbackIdentity: { tenantId: scope.tenantId, userId: scope.userId }
+                })
+            ).rejects.toThrow()
+            expect(credential).not.toHaveBeenCalled()
+        }
+    )
+
     it('rechecks package revocation even for an existing MCP connection', async () => {
         const provider = await resolveMcpConsumerAuthProvider(request)
         owners.mockResolvedValue([])

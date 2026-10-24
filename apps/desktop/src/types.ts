@@ -41,6 +41,7 @@ export interface Profile {
 }
 export interface AppState {
   config: ConnectionConfig
+  connectionDefaults: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   profile: Profile | null
   localLoginAvailable: boolean
 }
@@ -57,7 +58,15 @@ export interface Bot {
 }
 export type HostResult<T> =
   | { ok: true; value: T }
-  | { ok: false; message: string; status: number; key?: string; params?: MessageParams }
+  | {
+      ok: false
+      message: string
+      status: number
+      key?: string
+      params?: MessageParams
+      errorCode?: 'RUNTIME_DRAINING' | 'RUNTIME_NOT_READY'
+      retryAfterMs?: number
+    }
 export interface DesktopShellState {
   policy: ShellPolicy
   available: boolean
@@ -149,6 +158,10 @@ export interface HostMethods {
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: undefined; output: PluginLibrary }
 
+  preparePluginConnection: {
+    input: { assistantId: string; provider: string }
+    output: { success: true; data: { assistantId: string; bindingId: string } } | { success: false; code: string }
+  }
   pluginConnection: {
     input: { assistantId: string; bindingId: string }
     output: {

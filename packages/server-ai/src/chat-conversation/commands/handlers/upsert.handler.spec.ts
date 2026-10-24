@@ -235,4 +235,27 @@ describe('ChatConversationUpsertHandler', () => {
         )
         expect(service.update).not.toHaveBeenCalled()
     })
+    it('fences a late source finalizer with the selected thread id', async () => {
+        const current = {
+            id: 'conversation',
+            threadId: 'new-branch',
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1'
+        }
+        const service = {
+            repository: { findOne: jest.fn().mockResolvedValue(current) },
+            assertAccess: jest.fn(),
+            update: jest.fn().mockResolvedValue({ affected: 0 })
+        }
+        const handler = new ChatConversationUpsertHandler(service as never)
+        await expect(
+            handler.execute(
+                new ChatConversationUpsertCommand({ id: 'conversation', status: 'idle' }, undefined, 'old-source')
+            )
+        ).resolves.toBe(current)
+        expect(service.update).toHaveBeenCalledWith(
+            { id: 'conversation', tenantId: 'tenant-1', organizationId: 'organization-1', threadId: 'old-source' },
+            { status: 'idle' }
+        )
+    })
 })

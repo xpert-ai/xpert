@@ -20,24 +20,28 @@ export class XpertAgentChatCommand implements ICommand {
         public readonly state: TXpertChatState,
         public readonly agentKey: string,
         public readonly xpert: IXpert,
-        public readonly options: TChatOptions & TXpertAgentRuntimeOptions & {
-            // Use xpert's draft
-            isDraft: boolean
-            /**
-             * Long-term memory store
-             */
-            store: BaseStore
-            /**
-             * Use this execution or create a new record
-             */
-            execution?: IXpertAgentExecution
+        public readonly options: TChatOptions &
+            TXpertAgentRuntimeOptions & {
+                // Use xpert's draft
+                isDraft: boolean
+                /**
+                 * Long-term memory store
+                 */
+                store: BaseStore
+                /**
+                 * Use this execution or create a new record
+                 */
+                execution?: IXpertAgentExecution
 
-            resume?: {
-                decision: TXpertChatResumeDecision
-                patch?: TXpertChatInterruptPatch
+                /** Verified execution input boundary; never a pause/resume loop checkpoint. */
+                retryInputCheckpointId?: string
+
+                resume?: {
+                    decision: TXpertChatResumeDecision
+                    patch?: TXpertChatInterruptPatch
+                }
+
+                memories?: SearchItem[]
             }
-
-            memories?: SearchItem[]
-        }
     ) {}
 }

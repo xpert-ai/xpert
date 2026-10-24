@@ -1,13 +1,10 @@
-import { inspectAssistantMiddlewares } from '../../xpert/middleware-access/assistant-middleware'
+import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
 import {
     AIPermissionsEnum,
-    CONVERSATION_MAP_FEATURE,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
     IXpert,
     resolveRuntimeXpert,
-    type TXpertTeamNode,
-    TXpertFeatures,
     XpertResolvedViewHostContext,
     XpertViewActionRequest,
     XpertViewHostContext,
@@ -43,6 +40,7 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime.service'
 
 @Injectable()
 @ViewHostDefinition('agent')
@@ -72,7 +70,9 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly profileIdentity: XpertProfileIdentityService
+        private readonly profileIdentity: XpertProfileIdentityService,
+        @Inject(ApplicationRuntimeService)
+        private readonly applicationRuntime: Pick<ApplicationRuntimeService, 'resolveInstallation'>
     ) {}
 
     async resolve(hostId: string, options?: ViewHostResolutionOptions) {
@@ -119,6 +119,13 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             },
             context: {
+                application: await this.applicationRuntime.resolveInstallation({
+                    tenantId: runtimeXpert.tenantId,
+                    organizationId: runtimeXpert.organizationId,
+                    userId: RequestContext.currentUserId(),
+                    workspaceId: runtimeXpert.workspaceId,
+                    xpertId: runtimeXpert.id
+                }),
                 assistant: await this.profileIdentity.resolve(runtimeXpert),
                 capabilities: agentContext.capabilities,
                 hostState: agentContext.hostState,
@@ -144,10 +151,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             }
         }
 
-        if (RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
-            return true
-        }
-
+        // Global edit permission does not grant access to another user's installed Assistant.
+        // Published Views use the same grants as execution; Studio drafts were checked above.
         try {
             await this.publishedXpertAccessService.getAccessiblePublishedXpert(context.hostId)
             return true
@@ -298,43 +303,25 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
     }> {
-        const features = new Set<string>([CONVERSATION_MAP_FEATURE, ...this.getEnabledXpertFeatures(xpert.features)])
-        const middlewareProviders = new Set<string>()
-        const middlewareNodeKeys = new Set<string>()
-        const graph = xpert.graph
-        const middlewareGraph = inspectAssistantMiddlewares(xpert, this.agentMiddlewareRegistry)
-        const agentKey = middlewareGraph.agent?.key
-        const availableAgents = (graph?.nodes ?? [])
-            .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
-            .map((node) => ({
-                key: node.entity?.key ?? node.key,
-                title: node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key,
-                role:
-                    node.entity?.description ?? node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key
-            }))
-            .filter((agent) => Boolean(agent.key))
-            .sort((left, right) => left.key.localeCompare(right.key))
+        const { agentKey, features, availableAgents, middlewareProviders, middlewareNodeKeys } = agentCapabilities(
+            xpert,
+            this.agentMiddlewareRegistry
+        )
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
         const externalAssistants = agentKey ? await this.resolveExternalAssistants(xpert, agentKey) : []
-
-        for (const middleware of middlewareGraph.middlewares) {
-            middlewareProviders.add(middleware.provider)
-            if (middleware.key) middlewareNodeKeys.add(middleware.key)
-            for (const feature of middleware.features) features.add(feature)
-        }
 
         return {
             agentKey,
             capabilities: {
-                features: Array.from(features).sort()
+                features
             },
             hostState: {
                 agent: {
                     key: agentKey,
                     availableAgents,
                     ...(externalAssistants.length ? { externalAssistants } : {}),
-                    middlewareProviders: Array.from(middlewareProviders).sort(),
-                    middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
+                    middlewareProviders,
+                    middlewareNodeKeys,
                     connections: knowledgebaseIds.map((id) => ({
                         type: 'knowledgebase',
                         id
@@ -359,16 +346,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return candidates
             .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
             .map((candidate) => safeExternalAssistantBinding(describeExternalAssistantBinding(xpert, candidate)))
-    }
-
-    private getEnabledXpertFeatures(features?: TXpertFeatures | null): string[] {
-        if (!features) {
-            return []
-        }
-
-        return Object.entries(features)
-            .filter(([, value]) => Boolean(value && typeof value === 'object' && 'enabled' in value && value.enabled))
-            .map(([key]) => key)
     }
 }
 

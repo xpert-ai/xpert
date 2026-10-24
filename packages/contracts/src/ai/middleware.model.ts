@@ -15,6 +15,7 @@ export interface IWFNMiddleware extends IWorkflowNode {
    * Required middlewares are always loaded at runtime and hidden from user-facing runtime selectors.
    */
   required?: boolean
+  /** Omission uses an empty configuration; explicit values are validated by the middleware. */
   options?: Record<string, any>
   tools?: Record<string, TMiddlewareToolConfig | boolean>
 }
@@ -32,6 +33,11 @@ export function isMiddlewareToolEnabled(config?: TMiddlewareToolConfig | boolean
 
 export function isRequiredMiddleware(entity?: Pick<IWFNMiddleware, 'required'> | null) {
   return entity?.required === true
+}
+
+/** Default only omitted options. Preserve null and other invalid values for provider validation. */
+export function normalizeMiddlewareOptions<T>(options: T | undefined): T | Record<string, never> {
+  return options === undefined ? {} : options
 }
 
 export function genXpertMiddlewareKey() {

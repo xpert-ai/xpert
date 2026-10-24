@@ -1,3 +1,5 @@
+import { ManualRetentionModule } from './data-retention/manual-retention.module'
+import { AnalyticsDefinitionModule } from './analytics/analytics-definition.module'
 import { ModelExecutionModule } from './model-execution/model-execution.module'
 import { DesktopShellModule } from './desktop-shell/desktop-shell.module'
 import { UserModule } from '@xpert-ai/server-core'
@@ -104,6 +106,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         MembershipModule,
         ModelAccessModule,
         ModelGatewayModule,
+        ManualRetentionModule,
         ModelExecutionModule,
         MobileModule,
         DesktopShellModule,
@@ -134,6 +137,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         RagWebModule,
         SandboxModule,
         ArtifactsModule,
+        AnalyticsDefinitionModule,
         ActorTokenRuntimeModule,
         CollaborationModule,
         ContentResourceModule,

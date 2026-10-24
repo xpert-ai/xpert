@@ -1,17 +1,20 @@
+import { applicationInstallationScopeSchema } from '../application-scope.schema'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
 
 const identifier = z.string().trim().min(1).max(255)
 
-/** Only option IDs are accepted. Credentials and target scope stay in their owning APIs. */
+/** Only option IDs are accepted. Credentials and ownership stay in their owning APIs. The selected scope is validated against trusted metadata. */
 export const applicationInitializeSchema = z
     .object({
+        installationScope: applicationInstallationScopeSchema,
         pluginName: identifier,
         appName: identifier,
         operationId: identifier,
         embeddingModelId: identifier.optional(),
         visionModelId: identifier.optional(),
+        speechToTextModelId: identifier.optional(),
         toolsets: z
             .array(z.object({ key: identifier, toolsetId: z.string().uuid() }).strict())
             .max(100)
@@ -21,11 +24,13 @@ export const applicationInitializeSchema = z
     .refine((input) => new Set(input.toolsets?.map((item) => item.key)).size === (input.toolsets?.length ?? 0))
     // Explicit output properties retain required fields even in host builds without strictNullChecks.
     .transform((input) => ({
+        ...(input.installationScope ? { installationScope: input.installationScope } : {}),
         pluginName: input.pluginName,
         appName: input.appName,
         operationId: input.operationId,
         ...(input.embeddingModelId ? { embeddingModelId: input.embeddingModelId } : {}),
         ...(input.visionModelId ? { visionModelId: input.visionModelId } : {}),
+        ...(input.speechToTextModelId ? { speechToTextModelId: input.speechToTextModelId } : {}),
         ...(input.toolsets
             ? { toolsets: input.toolsets.map((item) => ({ key: item.key, toolsetId: item.toolsetId })) }
             : {})

@@ -11,6 +11,12 @@ import { AgentPluginPackage, AgentResourceBinding } from '../../agent-plugin/age
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
+import { SandboxJobEntity } from '../../sandbox/sandbox-job/sandbox-job.entity'
+import { SandboxManagedServiceEntity } from '../../sandbox/sandbox-managed-service.entity'
+import { AGENT_EVOLUTION_ENTITIES } from '../../agent-evolution/entities'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import ts from 'typescript'
 
 class MetadataDataSource extends DataSource {
     buildMetadata() {
@@ -25,9 +31,46 @@ describe('ALL_AI_ENTITIES', () => {
         ['MCP publication', MCP_PUBLICATION_ENTITIES],
         ['model usage delivery', [ModelUsageDeliveryReceipt]],
         ['agent plugins', [AgentPluginPackage, AgentResourceBinding]],
-        ['group chat', GROUP_ENTITIES]
+        ['group chat', GROUP_ENTITIES],
+        ['sandbox runtime', [SandboxJobEntity, SandboxManagedServiceEntity]],
+        ['agent evolution', AGENT_EVOLUTION_ENTITIES]
     ])('registers %s entities for standalone schema-sync', (_name, entities) => {
-        expect(ALL_AI_ENTITIES).toEqual(expect.arrayContaining(entities))
+        for (const entity of entities) expect(ALL_AI_ENTITIES).toContain(entity)
+    })
+
+    it('includes entities explicitly registered by runtime TypeORM feature modules', () => {
+        const registered = new Set([...coreEntities, ...ALL_AI_ENTITIES].map((entity) => entity.name))
+        const missing: string[] = []
+        const visitDirectory = (directory: string) => {
+            for (const entry of readdirSync(directory, { withFileTypes: true })) {
+                const file = join(directory, entry.name)
+                if (entry.isDirectory()) {
+                    visitDirectory(file)
+                } else if (entry.name.endsWith('.module.ts')) {
+                    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
+                    const visit = (node: ts.Node) => {
+                        if (
+                            ts.isCallExpression(node) &&
+                            ts.isPropertyAccessExpression(node.expression) &&
+                            node.expression.expression.getText(source) === 'TypeOrmModule' &&
+                            node.expression.name.text === 'forFeature' &&
+                            node.arguments[0] &&
+                            ts.isArrayLiteralExpression(node.arguments[0])
+                        ) {
+                            for (const entity of node.arguments[0].elements) {
+                                if (ts.isIdentifier(entity) && !registered.has(entity.text)) {
+                                    missing.push(`${file}: ${entity.text}`)
+                                }
+                            }
+                        }
+                        ts.forEachChild(node, visit)
+                    }
+                    visit(source)
+                }
+            }
+        }
+        visitDirectory(resolve(__dirname, '../..'))
+        expect(missing).toEqual([])
     })
 
     it('builds the missing deployment tables and MCP secret column without duplicate entities', async () => {
@@ -53,7 +96,9 @@ describe('ALL_AI_ENTITIES', () => {
                 'agent_resource_binding',
                 'chat_group_participant',
                 'chat_message_recipient',
-                'chat_group_interaction'
+                'chat_group_interaction',
+                'sandbox_job',
+                'sandbox_managed_service'
             ])
         )
         expect(dataSource.getMetadata(McpApiKey).findColumnWithPropertyName('encryptedSecret')).toMatchObject({

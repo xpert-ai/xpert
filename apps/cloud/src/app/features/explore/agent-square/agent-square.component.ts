@@ -1,3 +1,4 @@
+import { getPluginApplicationScopes } from '@xpert-ai/contracts'
 import { lastValueFrom, tap } from 'rxjs'
 import { injectLanguage } from '@cloud/app/@core/providers/translate'
 import { Dialog } from '@angular/cdk/dialog'
@@ -228,7 +229,10 @@ export class ExploreAgentSquareComponent {
       if (statuses.length && !statuses.includes(item.status.status)) {
         return false
       }
-      if (scopes.length && !scopes.includes(item.application.scope)) {
+      if (
+        scopes.length &&
+        !getPluginApplicationScopes(item.application.config.scope).some((scope) => scopes.includes(scope))
+      ) {
         return false
       }
       return !search || this.applicationSearchText(item).includes(search)

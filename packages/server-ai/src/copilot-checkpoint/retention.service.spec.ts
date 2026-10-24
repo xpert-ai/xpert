@@ -4,6 +4,7 @@ import {
     DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS,
     MAX_COPILOT_CHECKPOINT_RETENTION_DAYS
 } from '@xpert-ai/contracts'
+import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { CopilotCheckpoint } from './copilot-checkpoint.entity'
 import { CopilotCheckpointRetentionService } from './retention.service'
@@ -59,12 +60,16 @@ function createService(manager = createManager(), transactionalManager = createM
     }
 }
 
+const defaultTenantId = '00000000-0000-0000-0000-000000000100'
+
 describe('CopilotCheckpointRetentionService', () => {
     beforeEach(() => {
+        setDefaultTenantId(defaultTenantId)
         jest.spyOn(Date, 'now').mockReturnValue(1_000)
     })
 
     afterEach(() => {
+        setDefaultTenantId(null)
         jest.restoreAllMocks()
     })
 
@@ -131,7 +136,7 @@ describe('CopilotCheckpointRetentionService', () => {
         expect(queryRunner.release).toHaveBeenCalledTimes(1)
     })
 
-    it('does not delete or dry-run when cleanup is disabled for every tenant', async () => {
+    it('does not delete or dry-run when cleanup is disabled in the default tenant', async () => {
         const { service, manager } = createService()
 
         manager.query.mockResolvedValueOnce([])
@@ -180,7 +185,8 @@ describe('CopilotCheckpointRetentionService', () => {
             COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
             DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS,
             MAX_COPILOT_CHECKPOINT_RETENTION_DAYS,
-            2
+            2,
+            defaultTenantId
         ])
         expect(manager.transaction).toHaveBeenCalledTimes(1)
         expect(transactionalManager.query.mock.calls[0][0]).toContain('DELETE FROM copilot_checkpoint_writes')
@@ -197,8 +203,8 @@ describe('CopilotCheckpointRetentionService', () => {
 
         await service.execute({ batchSize: 1 })
 
-        expect(manager.query.mock.calls[0][0]).toContain('te."tenantId" IS NOT DISTINCT FROM c."tenantId"')
-        expect(manager.query.mock.calls[0][0]).toContain('td."tenantId" IS NOT DISTINCT FROM c."tenantId"')
+        expect(manager.query.mock.calls[0][0]).toContain('te."tenantId" = $6::uuid')
+        expect(manager.query.mock.calls[0][0]).toContain('td."tenantId" = te."tenantId"')
         expect(transactionalManager.query.mock.calls[0][0]).toContain('"tenantId"')
         expect(transactionalManager.query.mock.calls[0][0]).toContain('"organizationId"')
         expect(transactionalManager.query.mock.calls[0][0]).toContain('w."tenantId" IS NOT DISTINCT FROM c."tenantId"')
@@ -247,8 +253,17 @@ describe('CopilotCheckpointRetentionService', () => {
             COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
             DEFAULT_COPILOT_CHECKPOINT_RETENTION_DAYS,
             MAX_COPILOT_CHECKPOINT_RETENTION_DAYS,
-            1000
+            1000,
+            defaultTenantId
         ])
+    })
+
+    it('skips queries when the default tenant identity is unavailable', async () => {
+        setDefaultTenantId(null)
+        const { service, manager } = createService()
+        expect(await service.execute()).toMatchObject({ deletedCheckpointCount: 0, batches: 0 })
+        expect(manager.query).not.toHaveBeenCalled()
+        expect(manager.transaction).not.toHaveBeenCalled()
     })
 
     it('does not report success when a batch transaction fails', async () => {

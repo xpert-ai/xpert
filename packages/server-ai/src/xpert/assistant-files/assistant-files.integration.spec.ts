@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
-import { CommandBus, CqrsModule } from '@nestjs/cqrs'
+import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import {
     ApiKeyBindingType,
@@ -7,7 +7,8 @@ import {
     IUser,
     RolesEnum,
     SecretTokenBindingType,
-    templateManifestSchema
+    templateManifestSchema,
+    type TemplateAgentSource
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -22,9 +23,15 @@ import { Xpert } from '../xpert.entity'
 import { XpertService } from '../xpert.service'
 import { XpertWorkspaceFilesService } from '../xpert-workspace-files.service'
 import { AssistantFileAccessService } from './assistant-file-access.service'
+import { ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
 import { AssistantFilesService } from './assistant-files.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
+import {
+    AuthorizeTemplateExecutionCommand,
+    AuthorizeTemplateExecutionHandler
+} from '../../agent-plugin/templates/resolve-template-execution.command'
+import type { RuntimeResourceService } from '../../agent-plugin/runtime-resource.service'
 
 // Bind legacy consumers to the same test actor without introducing another deprecated context import.
 jest.mock('@xpert-ai/server-core', () => ({
@@ -34,6 +41,9 @@ jest.mock('@xpert-ai/server-core', () => ({
 
 // Persistence is a fixture; published ACL, workspace ACL, Studio access, command dispatch,
 // file operations and filesystem containment use their production implementations.
+// Skill indexing is unrelated to file authority and is not bootstrapped by this fixture.
+jest.mock('../../skill-package/skill-package.service', () => ({ SkillPackageService: class {} }))
+
 describe('Assistant file authority integration', () => {
     let module: TestingModule
     let root: string
@@ -198,6 +208,44 @@ describe('Assistant file authority integration', () => {
         await expect(runtime.read('private.txt')).resolves.toMatchObject({ contents: 'A private' })
     })
 
+    it('preserves explicit requirements in old publications without promoting automatic pins or draft requirements', async () => {
+        const locks = [{ pluginName: '@test/dep', version: '1.0.0', components: [] }]
+        assistant.options = {
+            templateDependencyLocks: locks,
+            templateDefinition: {
+                schemaVersion: 2,
+                dependencies: { versions: [{ pluginName: '@test/dep', version: '1.0.0' }] }
+            }
+        }
+        const access = module.get(AssistantFileAccessService)
+        const result = await access.execute(
+            new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime')
+        )
+        expect(result.dependencyLocks).toEqual([{ ...locks[0], requiredVersion: '1.0.0' }])
+        expect(locks[0]).not.toHaveProperty('requiredVersion')
+        assistant.options = { templateDependencyLocks: locks }
+        assistant.draft = {
+            team: {
+                options: {
+                    templateDefinition: {
+                        schemaVersion: 2,
+                        dependencies: { versions: [{ pluginName: '@test/dep', version: '2.0.0' }] }
+                    }
+                }
+            },
+            nodes: [],
+            connections: []
+        }
+        expect(
+            (await access.execute(new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime')))
+                .dependencyLocks
+        ).toEqual(locks)
+        groupGrant = false
+        await expect(
+            access.execute(new ResolveAssistantFileAccessCommand(assistant.id, 'capabilities', 'runtime'))
+        ).rejects.toThrow(ForbiddenException)
+    })
+
     it.each(['shared', 'user'] as const)(
         'initializes %s template files through the real group ACL and current user scope',
         async (scope) => {
@@ -317,6 +365,78 @@ describe('Assistant file authority integration', () => {
         groupGrant = true
         await expect(runtime.list()).rejects.toThrow(ForbiddenException)
     })
+
+    function templateAuthority() {
+        const source: TemplateAgentSource = {
+            kind: 'agent_plugin_template',
+            bindingId: 'package-binding',
+            version: 'version-one',
+            digest: 'digest-one',
+            packageName: 'reviewers',
+            templateKey: 'reviewer'
+        }
+        const resources = { resolve: jest.fn(async () => ({ templates: [source] })) }
+        const queries = { execute: jest.fn(async () => ({ agent: { team: assistant } })) }
+        const handler = new AuthorizeTemplateExecutionHandler(
+            resources as unknown as RuntimeResourceService,
+            queries as unknown as QueryBus,
+            module.get(CommandBus)
+        )
+        const authorize = (requested = source, assistantId = assistant.id) =>
+            handler.execute(
+                new AuthorizeTemplateExecutionCommand(
+                    assistantId,
+                    { revision: 1, resources: [{ bindingId: source.bindingId, version: source.version }] },
+                    requested
+                )
+            )
+        return { authorize, source, resources, queries }
+    }
+
+    it('reauthorizes template delegation and cached replay against the live delegated user grant', async () => {
+        await expect(workspaceAccess.assertCanAuthor(workspace.id)).rejects.toThrow(ForbiddenException)
+        principal = {
+            ...actor,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: assistant.id }
+        } as IApiPrincipal
+        const task = templateAuthority()
+        await expect(task.authorize()).resolves.toBe(assistant)
+        groupGrant = false
+        // The immutable session audience alone still passes ordinary metadata access.
+        await expect(published.getAccessiblePublishedXpert(assistant.id)).resolves.toBe(assistant)
+        task.resources.resolve.mockClear()
+        task.queries.execute.mockClear()
+        await expect(task.authorize()).rejects.toThrow(ForbiddenException)
+        expect(task.resources.resolve).not.toHaveBeenCalled()
+        expect(task.queries.execute).not.toHaveBeenCalled()
+        expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it.each(['tenant', 'organization', 'assistant', 'unpublished'] as const)(
+        'rejects template delegation with a mismatched %s authority before resource preparation',
+        async (scope) => {
+            const task = templateAuthority()
+            if (scope === 'tenant') actor = { ...actor, tenantId: 'tenant-other' }
+            if (scope === 'organization') assistant.organizationId = 'org-other'
+            if (scope === 'unpublished') assistant.publishAt = null
+            await expect(
+                task.authorize(task.source, scope === 'assistant' ? 'other-assistant' : assistant.id)
+            ).rejects.toThrow()
+            expect(task.resources.resolve).not.toHaveBeenCalled()
+            expect(task.queries.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['bindingId', 'version', 'digest', 'packageName', 'templateKey'] as const)(
+        'rejects a forged template %s even with valid Assistant access',
+        async (field) => {
+            const task = templateAuthority()
+            await expect(task.authorize({ ...task.source, [field]: 'forged' })).rejects.toThrow()
+            expect(task.queries.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('retains traversal protection in authorized file operations', async () => {
         const runtime = files.forRuntime(assistant.id)

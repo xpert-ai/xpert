@@ -2,7 +2,12 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const api = require('../api/dependencies.cjs')
 const web = require('../webapp/dependencies.cjs')
-const pipelineInputs = ['.dockerignore', '.deploy/application-images/', '.github/workflows/docker-publish.yml']
+const pipelineInputs = [
+  '.dockerignore',
+  '.deploy/application-images/',
+  '.github/workflows/docker-publish.yml',
+  '.github/workflows/build-application-images.yml'
+]
 const nodeInputs = [
   ...pipelineInputs,
   'package.json',
@@ -14,6 +19,18 @@ const nodeInputs = [
   'nx.json',
   'tsconfig.base.json',
   'wait'
+]
+const nsjailRuntimeInputs = [
+  'packages/sandbox-runtime/images/compute/',
+  'packages/sandbox-runtime/images/document-node/',
+  'packages/sandbox-runtime/images/document-java/',
+  'packages/sandbox-runtime/scripts/install-document-dependencies.mjs',
+  'packages/sandbox-runtime/scripts/install-document-ocr.mjs',
+  'packages/sandbox-runtime/scripts/verify-document-runtime.mjs',
+  'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json',
+  'packages/server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json'
 ]
 
 // The Docker dependency profiles own the list of shared source packages. Web
@@ -71,8 +88,9 @@ export const services = [
     image_name: 'xpert-nsjail-runner',
     dockerfile: '.deploy/nsjail-runner/Dockerfile',
     node_options: '',
-    health_check: '',
-    inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/'],
+    health_check: '.deploy/nsjail-runner/check-image.cjs',
+    inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/', ...nsjailRuntimeInputs],
+    requiredReleaseInputs: ['.deploy/nsjail-runner/', ...nsjailRuntimeInputs],
     shared: []
   }
 ]
@@ -82,5 +100,12 @@ export function affectsImage(service, files) {
     (file) =>
       !/(^|\/)(README|CHANGELOG|AGENTS)\.md$/.test(file) &&
       service.inputs.some((input) => (input.endsWith('/') ? file.startsWith(input) : file === input))
+  )
+}
+
+export function requiresImageRelease(service, files) {
+  return affectsImage(
+    { inputs: service.requiredReleaseInputs ?? [] },
+    files.filter((file) => !/(^|\/)test_[^/]+\.py$/.test(file))
   )
 }

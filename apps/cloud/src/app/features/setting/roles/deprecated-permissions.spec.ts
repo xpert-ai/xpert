@@ -6,24 +6,32 @@ import {
 } from './deprecated-permissions'
 
 describe('deprecated role permissions', () => {
-  it('marks legacy permission list items as deprecated instead of removing them', () => {
-    const deprecatedPermissions = [
-      PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-      PermissionsEnum.ORG_INVITE_VIEW,
-      PermissionsEnum.VIEW_ALL_EMAILS,
-      PermissionsEnum.ORG_DEMO_EDIT,
-      AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
-      AIPermissionsEnum.COPILOT_VIEW,
-      PermissionsEnum.DATA_SOURCE_VIEW,
-      PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
-      PermissionsEnum.SUPER_ADMIN_EDIT,
-      PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-      PermissionsEnum.ACCESS_DELETE_ALL_DATA
-    ]
+  const deprecatedPermissions = [
+    PermissionsEnum.ADMIN_DASHBOARD_VIEW,
+    PermissionsEnum.VIEW_ALL_EMAILS,
+    PermissionsEnum.ORG_DEMO_EDIT,
+    AIPermissionsEnum.COPILOT_VIEW,
+    PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
+    PermissionsEnum.ACCESS_DELETE_ACCOUNT
+  ]
+  const activePermissions = [
+    PermissionsEnum.ORG_INVITE_VIEW,
+    AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
+    PermissionsEnum.DATA_SOURCE_VIEW,
+    PermissionsEnum.SUPER_ADMIN_EDIT,
+    PermissionsEnum.ACCESS_DELETE_ALL_DATA
+  ]
 
-    expect(DEPRECATED_ROLE_PERMISSIONS).toEqual(expect.arrayContaining(deprecatedPermissions))
+  it('keeps only unused legacy permissions on the deprecated list', () => {
+    expect([...DEPRECATED_ROLE_PERMISSIONS]).toEqual(deprecatedPermissions)
     deprecatedPermissions.forEach((permission) => {
       expect(isDeprecatedRolePermission(permission)).toBe(true)
+    })
+  })
+
+  it('keeps runtime-enforced permissions in the normal catalog', () => {
+    activePermissions.forEach((permission) => {
+      expect(isDeprecatedRolePermission(permission)).toBe(false)
     })
   })
 

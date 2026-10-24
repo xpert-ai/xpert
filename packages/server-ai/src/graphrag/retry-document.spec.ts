@@ -91,6 +91,40 @@ describe('Graph document retry', () => {
         )
     })
 
+    it('copies the completed extraction into the retry job after identity correction is exhausted', async () => {
+        const { retry, latest, jobs } = fixture()
+        latest.extractionId = 'saved-extraction'
+        latest.extractionSnapshot = {
+            entities: [
+                {
+                    candidateId: 'team',
+                    name: 'North Team',
+                    type: 'organization',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'organization',
+                        description: 'North operations team.',
+                        scope: 'north',
+                        identifiers: []
+                    },
+                    evidence: [{ chunkId: 'chunk' }]
+                }
+            ],
+            relations: []
+        }
+        latest.stage = 'persistence'
+        latest.error = 'Graph identity resolution returned invalid model output after one corrective attempt.'
+        await retry()
+        expect(jobs.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                extractionId: latest.extractionId,
+                extractionSnapshot: latest.extractionSnapshot,
+                status: KnowledgeGraphIndexJobStatus.QUEUED
+            })
+        )
+        expect(latest.status).toBe(KnowledgeGraphIndexJobStatus.FAILED)
+    })
+
     it.each([
         KnowledgeGraphIndexJobStatus.SUCCESS,
         KnowledgeGraphIndexJobStatus.QUEUED,

@@ -1,3 +1,7 @@
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { XpertAgentExecution } from './agent-execution.entity'
+import { Repository } from 'typeorm'
 import { XpertAgentExecutionService } from './agent-execution.service'
 
 describe('XpertAgentExecutionService', () => {
@@ -59,4 +63,48 @@ describe('XpertAgentExecutionService', () => {
         expect(manager.increment).toHaveBeenCalledWith(expect.any(Function), { id: 'execution-1' }, 'tokens', 12)
         expect(manager.update).not.toHaveBeenCalled()
     })
+})
+
+it('preserves committed recovery references when a stale finalizer saves status and metadata', async () => {
+    const recovery = {
+        version: 1 as const,
+        graphRevision: 'graph',
+        input: { threadId: 'thread', checkpointNs: '', checkpointId: 'input' },
+        latest: { threadId: 'thread', checkpointNs: '', checkpointId: 'latest' }
+    }
+    const current = Object.assign(new XpertAgentExecution(), {
+        id: 'run',
+        tenantId: 'tenant',
+        organizationId: 'org',
+        status: XpertAgentExecutionStatusEnum.RUNNING,
+        checkpointId: 'latest',
+        checkpointNs: '',
+        metadata: { recovery }
+    })
+    const lookup = jest.spyOn(TenantOrganizationAwareCrudService.prototype, 'findOne').mockResolvedValue(current)
+    const manager = {
+        findOne: jest.fn().mockResolvedValue(current),
+        save: jest.fn(async (value: XpertAgentExecution) => value)
+    }
+    const service = new XpertAgentExecutionService({
+        manager: {
+            transaction: async (work: (value: typeof manager) => Promise<unknown>) => work(manager)
+        }
+    } as unknown as Repository<XpertAgentExecution>)
+    try {
+        await service.update('run', {
+            status: XpertAgentExecutionStatusEnum.ERROR,
+            error: 'original failure',
+            checkpointId: 'stale',
+            metadata: {}
+        })
+        expect(current).toMatchObject({
+            status: XpertAgentExecutionStatusEnum.ERROR,
+            error: 'original failure',
+            checkpointId: 'latest',
+            metadata: { recovery }
+        })
+    } finally {
+        lookup.mockRestore()
+    }
 })

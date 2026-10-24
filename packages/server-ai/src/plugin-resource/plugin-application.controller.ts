@@ -1,6 +1,11 @@
-import { RolesEnum } from '@xpert-ai/contracts'
-import { RoleGuard, Roles, TransformInterceptor, ZodValidationPipe } from '@xpert-ai/server-core'
-import { BadRequestException, Body, Controller, Get, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import {
+    applicationDetailQuerySchema,
+    applicationScopeQuerySchema,
+    ApplicationDetailQuery,
+    ApplicationScopeQuery
+} from './application-scope.schema'
+import { TransformInterceptor, ZodValidationPipe } from '@xpert-ai/server-core'
+import { Body, Controller, Get, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PluginApplicationService } from './plugin-application.service'
 import {
@@ -24,26 +29,30 @@ export class PluginApplicationController {
     constructor(private readonly applications: PluginApplicationService) {}
 
     @Get('status')
-    getStatuses() {
-        return this.applications.getStatuses()
+    getStatuses(
+        @Query(new ZodValidationPipe(applicationScopeQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationScopeQuery
+    ) {
+        return this.applications.getStatuses(query.installationScope)
     }
 
     @Get('catalog')
-    getCatalog() {
-        return this.applications.getCatalog()
+    getCatalog(
+        @Query(new ZodValidationPipe(applicationScopeQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationScopeQuery
+    ) {
+        return this.applications.getCatalog(query.installationScope)
     }
 
     @Get('detail')
-    getDetail(@Query('pluginName') pluginName: string, @Query('appName') appName: string) {
-        if (!pluginName?.trim() || !appName?.trim()) {
-            throw new BadRequestException('pluginName and appName are required')
-        }
-        return this.applications.getDetail(pluginName, appName)
+    getDetail(
+        @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationDetailQuery
+    ) {
+        return this.applications.getDetail(query.pluginName, query.appName, query.installationScope)
     }
 
     @Post('initialize')
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL)
     initialize(
         @Body(new ZodValidationPipe(applicationInitializeSchema, invalidApplicationInitializeRequest))
         body: ApplicationInitializeInput
@@ -52,8 +61,6 @@ export class PluginApplicationController {
     }
 
     @Post('prepare')
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL)
     prepare(
         @Body(new ZodValidationPipe(applicationSetupSchema, invalidApplicationInitializeRequest))
         body: ApplicationSetupInput
@@ -62,8 +69,6 @@ export class PluginApplicationController {
     }
 
     @Post('bind-toolset')
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL)
     bindToolset(
         @Body(new ZodValidationPipe(applicationBindToolsetSchema, invalidApplicationInitializeRequest))
         body: ApplicationBindToolsetInput
@@ -72,8 +77,6 @@ export class PluginApplicationController {
     }
 
     @Post('discard-configuration')
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL)
     discard(
         @Body(new ZodValidationPipe(applicationSetupSchema, invalidApplicationInitializeRequest))
         body: ApplicationSetupInput

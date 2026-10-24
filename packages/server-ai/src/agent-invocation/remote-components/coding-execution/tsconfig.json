@@ -17,5 +17,5 @@
         "strictNullChecks": true,
         "lib": ["es2022", "dom", "dom.iterable"]
     },
-    "include": ["src/**/*.ts", "src/**/*.tsx"]
+    "include": ["src/**/*.ts", "src/**/*.tsx", "test/*.ts"]
 }

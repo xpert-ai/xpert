@@ -1,3 +1,5 @@
+import { legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
+
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
 }))
@@ -1858,7 +1860,8 @@ describe('RunCreateStreamHandler execute', () => {
                 execute: jest.fn(async (query) => {
                     if (query instanceof AssertXpertAgentExecutionAccessQuery)
                         return { id: 'old-run', threadId: 'branch', agentKey: 'agent' }
-                    if (query.constructor.name === 'GetXpertWorkflowQuery') return { graph: { nodes: [] } }
+                    if (query.constructor.name === 'GetXpertWorkflowQuery')
+                        return { graph: { nodes: [], connections: [] } }
                     return null
                 })
             }
@@ -1880,7 +1883,13 @@ describe('RunCreateStreamHandler execute', () => {
                     input: { action: 'resume', target: { executionId: 'old-run' }, decision: { type: 'confirm' } }
                 }
             } as never)
-            expect(control.claimResume).toHaveBeenCalledWith('branch', 'old-run', 'token', 'graph-v1')
+            expect(control.claimResume).toHaveBeenCalledWith(
+                'branch',
+                'old-run',
+                'token',
+                'graph-v1',
+                legacyThreadGraphRevision({ nodes: [], connections: [] })
+            )
             expect(control.bindResumedExecution).toHaveBeenCalledWith('branch', 'token', 'new-run')
             expect(threads.claimForRun).not.toHaveBeenCalled()
             expect(result.execution.id).toBe('new-run')

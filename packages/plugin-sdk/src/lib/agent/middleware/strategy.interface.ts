@@ -35,5 +35,10 @@ export interface IAgentMiddlewareStrategy<T = unknown> {
   /** Static Tool names exposed by this Middleware, for capability summaries without creating a runtime instance. */
   getToolNames?(options: T): readonly string[]
 
+  /**
+   * The host defaults omitted options to {} in preview and runtime, including context.node.options.
+   * Explicit values (including null) remain subject to provider validation.
+   * Providers with optional configuration should also handle omission from legacy hosts.
+   */
   createMiddleware(options: T, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware>
 }

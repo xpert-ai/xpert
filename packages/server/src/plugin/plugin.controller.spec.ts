@@ -1,5 +1,6 @@
 import { z } from 'zod/v3'
 import { BadRequestException } from '@nestjs/common'
+import { PluginConfigError } from './errors'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -630,6 +631,23 @@ describe('PluginController', () => {
 				configurationError: null
 			})
 		)
+	})
+
+	it('rejects invalid configuration as a client error without persisting or exposing schema input', async () => {
+		const plugin = {
+			name: '@xpert-ai/plugin-config-demo',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: { config: {} }
+		}
+		;(pluginManagementService.findLoadedPlugin as jest.Mock).mockReturnValue(plugin)
+		;(buildConfig as jest.Mock).mockImplementationOnce(() => {
+			throw new PluginConfigError(plugin.name, 'validation failure containing private input')
+		})
+		await expect(controller.saveConfiguration({ pluginName: plugin.name, config: {} })).rejects.toMatchObject({
+			status: 400,
+			message: 'Invalid plugin configuration'
+		})
+		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
 	})
 
 	it('rejects system plugin configuration from non-default tenants', async () => {

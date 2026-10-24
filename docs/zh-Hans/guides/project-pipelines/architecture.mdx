@@ -1,0 +1,80 @@
+---
+title: '流水线架构与插件接入'
+description: '公共数据模型、Task 原子投影、执行协调、插件接口以及 BOM 和 Code Review 的接入职责。'
+---
+
+Contracts 定义共享协议与校验，SDK 提供目录、Provider 和运行适配器注册，Server AI 持久化与协调，公共远程组件呈现图与交互。领域条件、对象解析和工作台路由由插件拥有。
+
+## 数据流与组件
+
+```mermaid
+flowchart LR
+  A[插件目录与配置] --> B[项目绑定]
+  B --> C[Provider 投影或平台协调]
+  C --> D[Task 与 Pipeline 原子持久化]
+  D --> E[作用域查询与统计]
+  E --> F[公共泳道与节点详情]
+  F --> G[宿主执行查看与业务导航]
+```
+
+| 代码入口                                                                            | 职责                                                   |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `packages/contracts/src/ai/project-pipeline`                                        | 定义、绑定、状态、投影、命令、能力与统计 schema        |
+| `packages/plugin-sdk/src/lib/project-pipeline`                                      | Contribution、Provider、运行适配器、Runtime Capability |
+| `packages/server-ai/src/xpert-project/pipeline`                                     | 配置、持久化、投影、协调、查询与 API                   |
+| `packages/server-ai/src/xpert-project/remote-components/project-tasks/src/pipeline` | 布局、阶段图标、统计、节点详情、配置交互               |
+| Cloud Project 与 Workbench、Desktop Workbench                                       | 授权后的业务导航、执行查看和视图状态恢复               |
+
+## 身份、版本与原子投影
+
+Project Binding、Instance、Run、Round、Node Instance 使用租户、组织和项目作用域。定义保存版本与摘要；Run 固定绑定快照；Round 固定输入摘要和 Subject Version 集合。业务对象、版本、内容摘要和 schema 引用形成证据引用，引用本身不是访问凭据。
+
+Provider 投影的 `sourceKey`、`sourceEpoch` 和 `sourceSequence` 标识来源及顺序。一次完整快照仅覆盖一个实例的一轮；Task、节点、边、执行归属及投影检查点在平台事务内提交。重复回执可幂等处理，过时来源不能回退当前事实，旧轮次不能覆盖新的活动轮次。
+
+删除、排除和取代通过明确的 tombstone 表达。快照中缺少一个任务或节点不等于取消它；历史轮次保留原业务事实与执行关系。
+
+事务边界不覆盖插件自己的数据库或外部系统。插件先保存自己的业务结果，再请求同步；领域写入与平台投影之间需要可恢复的回执。`synchronize()` 等待投影及链接回执，不派发工作；`refresh()` 排入持久刷新请求，读取 Provider 事实，不重跑 Agent。
+
+## 执行协调
+
+平台托管定义支持 `work`、`fork`、`join`、`router`、`human_gate`、`external_wait` 和 `terminal`。每轮为有界 DAG；分支结果匹配机器 outcome，汇合等待选中且完成的前置路径。
+
+协调器先持久化操作与派发意图，再调用执行器。操作绑定节点、轮次、输入摘要和 generation，Worker 的租约及 fencing 防止过期回调修改新状态。外部结果不明确时保留 `unknown`，通过原操作和幂等键检查，不自动重复执行副作用。
+
+原生 Assistant 和 Runtime 执行由宿主固定真实身份、已发布版本、工作空间与稳定执行标识。插件的 `prepare()` 只生成有界业务输入；`collect()` 在真实执行成功后收集类型化证据。插件不能覆盖用户、项目、模型授权或执行目标。业务完成仍由 Completion Evaluator 或 Provider 判断。
+
+资源声明只协调已解析的实际资源占用，不构成操作系统沙箱。执行器仍需落实文件、进程及资源身份隔离。此机制不保证外部副作用“恰好一次”，也不保证所有未知结果都能自动恢复。
+
+## 插件扩展接口
+
+| 扩展                                 | 职责与约束                                                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ProjectPipelineContributor`         | 注册 configurations、descriptors、forms；只声明元数据，不在目录校验时执行领域回调                             |
+| `IProjectPipelineProjectionProvider` | `snapshot()` 提供只读事实；`linked()` 接收平台链接；`describeNode()` 提供当前用户可见诊断                     |
+| Provider Actions                     | `actions()` 返回定义允许的操作；`executeAction()` 与 `inspectAction()` 成对实现，提交时重新检查领域权限与版本 |
+| Subject / Evidence Resolver          | 解析精确对象和不可变版本；读取证据时再次授权并校验摘要和 schema                                               |
+| `ProjectPipelineNodeHandler`         | 服务操作的 execute、inspect 及可选 cancel；副作用按稳定幂等键恢复                                             |
+| Assistant / Runtime Operation        | prepare 提供业务输入，collect 收集成功后的输出；执行身份由宿主选择                                            |
+| Completion / Policy Evaluator        | 判断业务完成或分支结果；策略重算不能执行领域写入，人工决定须重新授权                                          |
+| Resource Resolver                    | 只读地授权并规范化实际资源身份，不在解析时创建资源或写外部系统                                                |
+
+目录声明与运行适配器分别注册，按调用者及插件来源作用域解析。模板引用采用 `key@version`，可编辑字段通过 form 允许列表公开。缺少适配器、绑定、宿主协议或能力时明确拒绝，不静默替换为另一个模板或执行器。
+
+SDK 的公共能力包括 `ProjectPipelinesRuntimeCapability`、`ProjectPipelineCatalogRuntimeCapability`、`ProjectPipelineConfigurationRuntimeCapability`、`ProjectPipelineCommandsRuntimeCapability`、Provider Actions、Evidence、Analytics 与 Portfolio。API 与视图接口使用同一共享 schema；操作者和组织范围从可信宿主上下文取得，不能信任客户端自行提交的身份。
+
+外部插件的流水线贡献校验失败时，将从目录排除，不阻断 API 启动。隔离覆盖 `ProjectPipelineContributor` 构造期间的校验和目录发现期间的校验。注册表以 `PIPELINE_CONTRIBUTION_INVALID` 记录插件、来源作用域和字段路径，并通过 `getRegistrationFailures()` 提供诊断，不记录输入值。模板仍必须明确声明 `projectTypes`，缺失不代表允许所有项目使用。显式注册、平台内置代码错误及非校验类初始化异常仍严格报错。
+
+## 领域接入方式
+
+| 接入点     | BOM                                                  | Code Review                                    |
+| ---------- | ---------------------------------------------------- | ---------------------------------------------- |
+| 执行权     | Provider 保留现有流程引擎                            | 平台协调模板中的依赖与分工                     |
+| Subject    | 业务 Case 和资料版本                                 | 固定版本的本地 Git 输入，或独立配置的 PR 输入  |
+| 配置       | 将业务模板的角色、泳道和阶段投影，绑定项目 Assistant | 配置审查、复核、人工角色与允许的审查参数       |
+| 领域逻辑   | BOM 匹配、主数据、变更规则、物料、报价和合同         | diff 解析、审查规则、发现项合并、复核和交付    |
+| 展示与操作 | 中文分支标签、受阻原因、场景和节点工作台入口         | 审查证据、结果摘要、确认和平台内交付入口       |
+| 平台复用   | Task 投影、执行归属、历史轮次、泳道、统计与导航      | 相同公共模型、协调、人工决定、执行查看和证据链 |
+
+BOM 适配器复用领域模板，不在公共组件内复制节点清单；业务入口通过 Provider 的展示与宿主导航桥接。Code Review 的本地 Git 模式将结果留在平台；外部评论发布需要独立配置、权限和明确操作，公共流水线不默认发布 GitHub 评论。
+
+这些接入方式说明职责，不替代部署中的插件验收。示例 `*.proposed.json` 仍是历史设计材料，不应直接当成生产配置。实现扩展时可参考仓库的 `tools/testing/project-pipeline-neutral` 中性夹具，并对实际宿主和插件产物单独验证。

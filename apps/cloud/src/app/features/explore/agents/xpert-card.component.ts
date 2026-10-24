@@ -126,7 +126,7 @@ export class ExploreXpertCardComponent {
   }
 
   applicationInitializationLabel() {
-    return this.application()?.scope === 'organization'
+    return ['organization', 'personal'].includes(this.application()?.scope)
       ? this.#translate.instant('XP.Explore.Application.GovernedInitialization', {
           Default: 'Governed initialization'
         })

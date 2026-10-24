@@ -120,6 +120,22 @@ export interface IArtifactVersion extends IBasePerTenantAndOrganizationEntityMod
   metadata?: Record<string, unknown> | null
 }
 
+/** Persisted mutable working copy, separate from immutable Artifact versions. */
+export interface IArtifactDraft extends IBasePerTenantAndOrganizationEntityModel {
+  artifactId: string
+  revision: number
+  baseVersionId: string | null
+  publishedRevision: number | null
+  publishedVersionId: string | null
+  content: {
+    workspaceFileRef: IArtifactWorkspaceFileReference
+    mimeType: string
+    title?: string | null
+    sha256?: string | null
+    metadata?: Record<string, unknown> | null
+  }
+}
+
 /**
  * Access entrypoint for an Artifact.
  *

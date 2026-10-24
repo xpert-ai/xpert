@@ -1,3 +1,4 @@
+import { ThreadRecoveryService } from './recovery/thread-recovery.service'
 import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { FileChangeStatsService } from './file-change-stats.service'
@@ -38,6 +39,8 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
 import { ThreadReferenceService } from './thread-reference.service'
 import { ThreadCursorStore } from './thread-cursor.store'
 import { ConversationInitializerRegistry } from './conversation-initializer.registry'
+import { SideChatForkService } from './side-chat-fork.service'
+import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
 
 @Module({
     imports: [
@@ -57,6 +60,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         SharedModule,
         RedisModule,
         CqrsModule,
+        CopilotCheckpointModule,
 
         BullModule.registerQueue({
             name: 'conversation-summary'
@@ -80,7 +84,9 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         ChatConversationService,
         ChatConversationSidebarService,
         ChatConversationThreadService,
+        SideChatForkService,
         ThreadRunControlService,
+        ThreadRecoveryService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
         FileChangeStatsService,
@@ -95,6 +101,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         ThreadReferenceService,
         MessageCheckpointService,
         ThreadRunControlService,
+        ThreadRecoveryService,
         ChatConversationService,
         ChatConversationThreadService,
         ChatConversationGoalService,

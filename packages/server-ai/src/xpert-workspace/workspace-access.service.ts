@@ -1,3 +1,4 @@
+import { activeSharingMemberSql, validSharingGroupSql } from '../xpert/sharing/sharing-policy'
 import {
     IApiPrincipal,
     IUser,
@@ -296,6 +297,8 @@ export class XpertWorkspaceAccessService {
                 organizationId: input.organizationId
             })
             .andWhere('xpert."publishAt" IS NOT NULL')
+            .andWhere(activeSharingMemberSql(':userId', ':tenantId', ':organizationId'))
+            .andWhere(validSharingGroupSql('ug', 'xpert'))
             .getCount()
 
         return count > 0

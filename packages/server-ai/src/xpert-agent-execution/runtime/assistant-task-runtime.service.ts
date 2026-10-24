@@ -40,6 +40,11 @@ import { Observable } from 'rxjs'
 import { In } from 'typeorm'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
+import {
+    AuthorizePipelineNativeExecutionCommand,
+    PreparePipelineNativeExecutionCommand
+} from '../../xpert-project/pipeline/runtime/pipeline-native-grant.command'
+import { assistantTaskInputDigest } from './assistant-task-input-digest'
 import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 import { XpertAgentExecutionUpsertCommand } from '../commands/upsert.command'
@@ -57,6 +62,10 @@ import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
 
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
+import { ResolvePublishedAgentQuery } from '../../xpert/published-agent/resolve-published-agent.query'
+import { PublishedAgentContextQuery } from '../../xpert/published-agent/published-agent-context.query'
+import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
+import { runWithIndependentWorkspaceLeases } from '../../shared/volume/workspace-storage-lock'
 
 @Injectable()
 @RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
@@ -68,6 +77,24 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         private readonly queryBus: QueryBus,
         private readonly moduleRef: ModuleRef
     ) {}
+
+    resolvePublishedAgent(input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0]) {
+        return this.queryBus.execute(new ResolvePublishedAgentQuery(input))
+    }
+
+    getPublishedContext(xpertId: string) {
+        return this.queryBus.execute(new PublishedAgentContextQuery(xpertId))
+    }
+
+    async withPublishedAgent<T>(
+        input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0],
+        operation: (
+            target: Awaited<ReturnType<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>>
+        ) => Promise<T>
+    ) {
+        const target = await this.resolvePublishedAgent(input)
+        return runWithPublishedAgent(input.requesterXpertId, target, operation)
+    }
 
     async getModels(xpertId: string) {
         const access = this.moduleRef.get(PublishedXpertAccessService, { strict: false })
@@ -226,6 +253,57 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         }
     }
 
+    async preparePipelineTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskInput> {
+        if (
+            !input.xpertId ||
+            !input.prompt?.trim() ||
+            !input.pipelineSource ||
+            (input.target && input.target.requesterXpertId !== input.xpertId)
+        )
+            throw invocationError('InvalidRequest')
+        const target = input.target
+            ? await this.resolveExternalAssistantTarget(input.target)
+            : await this.resolveAssistantExecutionDescriptor(input.xpertId)
+        if (!target || target.status !== 'available' || !target.workspaceId) throw invocationError('NotFound')
+        const revision = target.publishedVersion || target.xpertId || input.xpertId
+        if (input.expectedPublishedVersion && input.expectedPublishedVersion !== revision)
+            throw invocationError('CallConflict')
+        const prepared = { ...input, expectedPublishedVersion: revision }
+        await this.commandBus.execute(
+            new PreparePipelineNativeExecutionCommand(
+                this.pipelineGrantInput(prepared, {
+                    id: target.xpertId || input.xpertId,
+                    workspaceId: target.workspaceId,
+                    revision
+                })
+            )
+        )
+        return prepared
+    }
+
+    private pipelineGrantInput(
+        input: AgentMiddlewareAssistantTaskInput,
+        target: { id: string; workspaceId: string; revision: string }
+    ) {
+        if (!input.pipelineSource || !input.projectId || !input.executionId || !input.conversationId)
+            throw invocationError('InvalidScope')
+        return {
+            actor: {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                userId: RequestContext.currentUserId()
+            },
+            projectId: input.projectId,
+            source: input.pipelineSource,
+            executionId: input.executionId,
+            conversationId: input.conversationId,
+            xpertId: target.id,
+            workspaceId: target.workspaceId,
+            publishedVersion: target.revision,
+            inputDigest: assistantTaskInputDigest(input)
+        }
+    }
+
     /** Starts a task on the current Assistant or one deterministically resolved external Assistant. */
     async startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
         if (!input.xpertId || !input.prompt?.trim()) throw invocationError('InvalidRequest')
@@ -239,20 +317,38 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         if (!descriptor.workspaceId) throw invocationError('InvalidScope')
         const targetId = descriptor.xpertId || input.xpertId
         const revision = descriptor.publishedVersion || targetId
+        if (input.expectedPublishedVersion && input.expectedPublishedVersion !== revision)
+            throw invocationError('CallConflict')
+        const taskInput = input.pipelineSource === undefined ? input : { ...input, expectedPublishedVersion: revision }
         return invokeAssistantTask(
             this.moduleRef.get(AgentInvocationRuntime, { strict: false }),
-            input,
+            taskInput,
             { id: targetId, revision, workspaceId: descriptor.workspaceId },
             {
-                start: (operationId, checkpoint) =>
-                    this.dispatchTask(
-                        {
-                            ...input,
-                            executionId: input.executionId || operationId,
-                            conversationId: input.conversationId || operationId
-                        },
-                        checkpoint
-                    ),
+                start: async (operationId, checkpoint) => {
+                    if (input.pipelineSource !== undefined) {
+                        await this.commandBus.execute(
+                            new AuthorizePipelineNativeExecutionCommand(
+                                this.pipelineGrantInput(taskInput, {
+                                    id: targetId,
+                                    workspaceId: descriptor.workspaceId,
+                                    revision
+                                })
+                            )
+                        )
+                    }
+                    // Creation and subscription both spawn work that outlives the dispatch receipt.
+                    return runWithIndependentWorkspaceLeases(() =>
+                        this.dispatchTask(
+                            {
+                                ...taskInput,
+                                executionId: input.executionId || operationId,
+                                conversationId: input.conversationId || operationId
+                            },
+                            checkpoint
+                        )
+                    )
+                },
                 inspect: (handle) =>
                     this.getTaskStatus({ executionId: handle.runId, conversationId: handle.sessionId }),
                 cancel: async (handle) => {
@@ -294,6 +390,11 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         const xpertId = externalBinding?.xpertId ?? requesterXpertId
         const agentKey = externalBinding?.primaryAgentKey ?? normalizeOptionalString(input.agentKey)
         const executionAssistant = externalBinding ?? (await this.resolveAssistantExecutionDescriptor(xpertId))
+        if (
+            input.expectedPublishedVersion &&
+            input.expectedPublishedVersion !== (executionAssistant?.publishedVersion || xpertId)
+        )
+            throw invocationError('CallConflict')
 
         const primaryModelId = normalizeOptionalString(input.modelId)
         if (primaryModelId) {

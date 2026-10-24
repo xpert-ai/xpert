@@ -1,0 +1,645 @@
+import { useEffect, useRef, useState } from 'react'
+import { Settings2 } from 'lucide-react'
+import {
+    Button,
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogFooter,
+    Checkbox,
+    Textarea,
+    Label,
+    DialogTitle,
+    DialogDescription,
+    Input,
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem
+} from '@xpert-ai/shadcn-ui'
+import {
+    checkProjectPipelineHostCompatibility,
+    configureProjectPipelineFromForm,
+    projectPipelineCatalogSchema,
+    projectPipelineConfigurationPageSchema,
+    type ProjectPipelineCatalog,
+    type ProjectPipelineNativeModelBudget,
+    type ProjectPipelineConfiguration,
+    type ProjectPipelineSavedConfiguration,
+    type ProjectPipelineJsonValue,
+    type ProjectPipelineParameterField,
+    type ProjectPipelineRuntimeSelection
+} from '@xpert-ai/contracts'
+import { z } from 'zod'
+import { request } from '../bridge'
+import { openProjectWorkspace } from './navigation'
+import { RuntimeConfiguration } from './runtime-configuration'
+import { initialRuntimeSelections, runtimeSelectionState } from './runtime-selection'
+import { BudgetConfiguration } from './budget-configuration'
+import { PipelineCommandAccess } from './command-access'
+import { pipelineConfigurationTexts } from './configuration-i18n'
+
+type Label = { en_US: string; zh_Hans?: string }
+const label = (value: Label, locale: string) => (locale.startsWith('zh') ? (value.zh_Hans ?? value.en_US) : value.en_US)
+const itemKey = (item: ProjectPipelineCatalog['items'][number]) =>
+    JSON.stringify([item.contributionKey, item.configuration.binding.templateRef])
+
+export function PipelineConfiguration({
+    locale,
+    projectId,
+    initialOpen = false
+}: {
+    locale: string
+    projectId?: string
+    initialOpen?: boolean
+}) {
+    const t = pipelineConfigurationTexts(locale)
+    const [catalog, setCatalog] = useState<ProjectPipelineCatalog | null>(null),
+        [open, setOpen] = useState(initialOpen)
+    const [selected, setSelected] = useState(''),
+        [assistants, setAssistants] = useState<Record<string, string>>({})
+    const [runtimes, setRuntimes] = useState<Record<string, ProjectPipelineRuntimeSelection>>({})
+    const [parameters, setParameters] = useState<Record<string, ProjectPipelineJsonValue>>({})
+    const [nativeModelBudget, setNativeModelBudget] = useState<ProjectPipelineNativeModelBudget>()
+    const [formRevision, setFormRevision] = useState(0)
+    const [error, setError] = useState(''),
+        [busy, setBusy] = useState(false),
+        [saved, setSaved] = useState(false)
+    const [bindings, setBindings] = useState<ProjectPipelineSavedConfiguration[]>([]),
+        [next, setNext] = useState<string | null>(null)
+    const requestKey = useRef<{ input: string; id: string } | null>(null)
+    const commandUnavailable = catalog?.commandCapability?.allowed !== true
+    useEffect(() => {
+        let active = true
+        void request('executeAction', { actionKey: 'pipeline-catalog', input: { protocol: 3 } })
+            .then((value) => {
+                const result = z.object({ success: z.literal(true), data: projectPipelineCatalogSchema }).parse(value)
+                if (active) {
+                    setCatalog(result.data)
+                    setError('')
+                }
+            })
+            .catch(() => {
+                if (active) setError(t.unavailable)
+            })
+        return () => {
+            active = false
+        }
+    }, [open, t.unavailable])
+    useEffect(() => {
+        if (!open || !catalog?.canManage) return
+        let active = true
+        void request('executeAction', { actionKey: 'pipeline-configurations', input: { protocol: 3 } })
+            .then((value) => {
+                const page = z
+                    .object({ success: z.literal(true), data: projectPipelineConfigurationPageSchema })
+                    .parse(value).data
+                if (active) {
+                    setBindings(page.items)
+                    setNext(page.next)
+                }
+            })
+            .catch(() => {
+                if (active) setError(t.unavailable)
+            })
+        return () => {
+            active = false
+        }
+    }, [open, catalog?.canManage, saved, t.unavailable])
+    const item = catalog?.items.find((item) => itemKey(item) === selected)
+    const incompatible =
+        !!item &&
+        checkProjectPipelineHostCompatibility(
+            item.configuration.template,
+            item.configuration.binding,
+            catalog?.hostCapabilities ?? { protocols: [], features: {} }
+        ).length > 0
+    const unavailableSlots =
+        item?.form?.assistantSlots.filter(
+            (field) =>
+                assistants[field.slot] &&
+                !catalog?.assistants.some((assistant) => assistant.id === assistants[field.slot])
+        ) ?? []
+    const incompleteSelection = item?.form?.assistantSlots.some((field) => !assistants[field.slot]) ?? false
+    const runtimeState =
+        item?.form && catalog
+            ? runtimeSelectionState(item.form, runtimes, catalog)
+            : { unavailable: [], incomplete: false }
+    const choose = (key: string, copy?: ProjectPipelineConfiguration) => {
+        const selected = catalog?.items.find((item) => itemKey(item) === key)
+        const configuration = copy ?? selected?.configuration
+        requestKey.current = null
+        setSelected(key)
+        setSaved(false)
+        setError('')
+        setFormRevision((revision) => revision + 1)
+        setNativeModelBudget(
+            selected?.form?.nativeModelBudget ? configuration?.binding.limits?.nativeModelBudget : undefined
+        )
+        setParameters(
+            Object.fromEntries(
+                (selected?.form?.parameters ?? []).map((field) => [
+                    field.key,
+                    configuration!.binding.parameters[field.key]
+                ])
+            )
+        )
+        setAssistants(
+            Object.fromEntries(
+                (selected?.form?.assistantSlots ?? []).map((field) => {
+                    const id = configuration!.binding.executorBindings?.[field.slot].selectionKey
+                    return [
+                        field.slot,
+                        copy ? (id ?? '') : catalog?.assistants.some((item) => item.id === id) ? id! : ''
+                    ]
+                })
+            )
+        )
+        setRuntimes(
+            selected?.form && configuration && catalog
+                ? initialRuntimeSelections(configuration, selected.form, catalog, !!copy)
+                : {}
+        )
+    }
+    const save = async () => {
+        if (
+            !item?.form ||
+            commandUnavailable ||
+            incompatible ||
+            busy ||
+            saved ||
+            unavailableSlots.length ||
+            incompleteSelection ||
+            runtimeState.unavailable.length ||
+            runtimeState.incomplete
+        )
+            return
+        try {
+            configureProjectPipelineFromForm(item.configuration, item.form, {
+                assistants,
+                runtimes,
+                parameters,
+                nativeModelBudget
+            })
+            const input = {
+                contributionKey: item.contributionKey,
+                templateRef: item.configuration.binding.templateRef,
+                assistants,
+                runtimes,
+                parameters,
+                ...(item.form.nativeModelBudget ? { nativeModelBudget } : {})
+            }
+            const key = JSON.stringify(input)
+            if (requestKey.current?.input !== key) requestKey.current = { input: key, id: crypto.randomUUID() }
+            setBusy(true)
+            setError('')
+            z.object({
+                success: z.literal(true),
+                data: z.object({ bindingId: z.string().uuid(), revision: z.number().int().positive() })
+            }).parse(
+                await request('executeAction', {
+                    actionKey: 'pipeline-configure',
+                    input: { ...input, requestId: requestKey.current.id }
+                })
+            )
+            setSaved(true)
+        } catch {
+            setError(t.failed)
+            // A session may change after discovery. Recheck the same server policy without discarding form input.
+            try {
+                const result = z
+                    .object({ success: z.literal(true), data: projectPipelineCatalogSchema })
+                    .parse(await request('executeAction', { actionKey: 'pipeline-catalog', input: { protocol: 3 } }))
+                setCatalog(result.data)
+                if (result.data.commandCapability?.allowed === false) setError('')
+            } catch {
+                // Keep the original failure and the user's input when discovery is unavailable.
+            }
+        } finally {
+            setBusy(false)
+        }
+    }
+    if (
+        catalog &&
+        (!catalog.canManage ||
+            (catalog.items.length > 0 &&
+                catalog.items.every((item) => item.configuration.template.executionAuthority === 'provider')))
+    )
+        return null
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                if (!busy) setOpen(value)
+            }}
+        >
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+                    <Settings2 />
+                    {t.configure}
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>{t.configure}</DialogTitle>
+                    <DialogDescription>{t.description}</DialogDescription>
+                </DialogHeader>
+                <div className="min-h-0 space-y-5 overflow-y-auto">
+                    {catalog && (
+                        <PipelineCommandAccess
+                            capability={catalog.commandCapability}
+                            projectId={projectId}
+                            locale={locale}
+                        />
+                    )}
+                    {error && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {error}
+                        </p>
+                    )}
+                    {!catalog && !error && <p className="text-sm text-muted-foreground">{t.loading}</p>}
+                    {catalog && !catalog.items.length && <p className="text-sm text-muted-foreground">{t.empty}</p>}
+                    {!!catalog?.items.length && (
+                        <Select value={selected} disabled={busy || commandUnavailable} onValueChange={choose}>
+                            <SelectTrigger aria-label={t.choose}>
+                                <SelectValue placeholder={t.choose} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {catalog.items
+                                    .filter((item) => item.configuration.template.executionAuthority === 'platform')
+                                    .map((item) => (
+                                        <SelectItem key={itemKey(item)} value={itemKey(item)}>
+                                            {item.configuration.template.title} · {item.configuration.template.version}
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    {item && (
+                        <>
+                            {incompatible && (
+                                <p role="alert" className="text-sm text-destructive">
+                                    {locale.startsWith('zh')
+                                        ? '当前服务未确认支持此模板所需的流水线能力。请由管理员完成服务升级后重试，原有配置和执行记录会保留。'
+                                        : 'This service has not confirmed support for the pipeline capabilities required by this template. Ask an administrator to finish the service upgrade, then retry. Saved configurations and executions are preserved.'}
+                                </p>
+                            )}
+                            {item.form ? (
+                                <>
+                                    <p className="text-sm text-muted-foreground">
+                                        {label(item.form.description, locale)}
+                                    </p>
+                                    {!!item.form.assistantSlots.length && (
+                                        <section className="space-y-3">
+                                            <h3 className="text-sm font-medium">{t.assistants}</h3>
+                                            {!catalog?.assistants.length && (
+                                                <p className="text-sm text-muted-foreground">{t.noAssistants}</p>
+                                            )}
+                                            {!!unavailableSlots.length && (
+                                                <p role="alert" className="text-sm text-destructive">
+                                                    {t.unavailableBindings}{' '}
+                                                    {unavailableSlots
+                                                        .map((field) => label(field.label, locale))
+                                                        .join('、')}
+                                                </p>
+                                            )}
+                                            {!!unavailableSlots.length && projectId && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        void openProjectWorkspace(
+                                                            projectId,
+                                                            'pipelines',
+                                                            t.unavailable
+                                                        ).catch(() => setError(t.unavailable))
+                                                    }}
+                                                >
+                                                    {locale.startsWith('zh')
+                                                        ? '在平台管理流水线'
+                                                        : 'Manage pipelines in platform'}
+                                                </Button>
+                                            )}
+                                            {item.form.assistantSlots.map((field) => (
+                                                <div key={field.slot} className="space-y-1.5">
+                                                    <Label id={`slot-${field.slot}`}>
+                                                        {label(field.label, locale)}
+                                                    </Label>
+                                                    <Select
+                                                        value={
+                                                            unavailableSlots.some(
+                                                                (unavailable) => unavailable.slot === field.slot
+                                                            )
+                                                                ? ''
+                                                                : assistants[field.slot]
+                                                        }
+                                                        disabled={busy || commandUnavailable}
+                                                        onValueChange={(value) => {
+                                                            setAssistants((previous) => ({
+                                                                ...previous,
+                                                                [field.slot]: value
+                                                            }))
+                                                            setSaved(false)
+                                                        }}
+                                                    >
+                                                        <SelectTrigger aria-labelledby={`slot-${field.slot}`}>
+                                                            <SelectValue placeholder={t.chooseAssistant} />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {catalog?.assistants.map((assistant) => (
+                                                                <SelectItem key={assistant.id} value={assistant.id}>
+                                                                    {assistant.name} · {assistant.publishedVersion}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {field.description && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {label(field.description, locale)}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </section>
+                                    )}
+                                    {!!runtimeState.unavailable.length && (
+                                        <p role="alert" className="text-sm text-destructive">
+                                            {locale.startsWith('zh')
+                                                ? '已保存的 Runtime 或工作空间当前不可用，请重新选择。原配置未更改。'
+                                                : 'A saved Runtime or workspace is unavailable. Select an available grant. The saved configuration is unchanged.'}
+                                        </p>
+                                    )}
+                                    <RuntimeConfiguration
+                                        form={item.form}
+                                        catalog={catalog!}
+                                        selections={runtimes}
+                                        locale={locale}
+                                        disabled={busy || commandUnavailable}
+                                        onChange={(slot, selection) => {
+                                            setRuntimes((previous) => ({ ...previous, [slot]: selection }))
+                                            setSaved(false)
+                                        }}
+                                    />
+                                    {item.form.nativeModelBudget && (
+                                        <BudgetConfiguration
+                                            value={nativeModelBudget}
+                                            maximum={item.form.nativeModelBudget}
+                                            locale={locale}
+                                            disabled={busy || commandUnavailable}
+                                            onChange={(value) => {
+                                                setNativeModelBudget(value)
+                                                setSaved(false)
+                                            }}
+                                        />
+                                    )}
+                                    {!!item.form.runtimeSlots?.length &&
+                                        !catalog?.runtimeBindings?.length &&
+                                        projectId && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    void openProjectWorkspace(
+                                                        projectId,
+                                                        'pipelines',
+                                                        t.unavailable
+                                                    ).catch(() => setError(t.unavailable))
+                                                }}
+                                            >
+                                                {locale.startsWith('zh')
+                                                    ? '在平台管理流水线'
+                                                    : 'Manage pipelines in platform'}
+                                            </Button>
+                                        )}
+                                    {!!item.form.parameters.length && (
+                                        <section className="space-y-3 border-t pt-4">
+                                            <h3 className="text-sm font-medium">{t.parameters}</h3>
+                                            {item.form.parameters.map((field) => (
+                                                <ParameterField
+                                                    key={`${selected}:${formRevision}:${field.key}`}
+                                                    field={field}
+                                                    value={parameters[field.key]}
+                                                    locale={locale}
+                                                    disabled={busy || commandUnavailable}
+                                                    onChange={(value) => {
+                                                        setParameters((previous) => ({
+                                                            ...previous,
+                                                            [field.key]: value
+                                                        }))
+                                                        setSaved(false)
+                                                    }}
+                                                />
+                                            ))}
+                                        </section>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">{t.provider}</p>
+                            )}
+                        </>
+                    )}
+                    {saved && (
+                        <p role="status" className="text-sm text-primary">
+                            {t.saved}
+                        </p>
+                    )}
+                    {!!bindings.length && (
+                        <section className="space-y-2 border-t pt-4">
+                            <h3 className="text-sm font-medium">{t.savedList}</h3>
+                            {bindings.map((binding) => {
+                                const source = catalog?.items.find(
+                                    (item) =>
+                                        item.configuration.binding.templateRef ===
+                                        binding.configuration.binding.templateRef
+                                )
+                                return (
+                                    <div
+                                        key={binding.id}
+                                        className="flex items-center justify-between gap-3 border-b py-2 text-sm"
+                                    >
+                                        <div>
+                                            {binding.configuration.template.title}
+                                            <p className="text-xs text-muted-foreground">
+                                                {binding.configuration.template.version} ·{' '}
+                                                {new Date(binding.createdAt).toLocaleString(locale)}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            disabled={busy || !source?.form}
+                                            onClick={() => {
+                                                if (source) choose(itemKey(source), binding.configuration)
+                                            }}
+                                        >
+                                            {t.copy}
+                                        </Button>
+                                    </div>
+                                )
+                            })}
+                            {next && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={busy}
+                                    onClick={() => {
+                                        setBusy(true)
+                                        void request('executeAction', {
+                                            actionKey: 'pipeline-configurations',
+                                            input: { after: next, protocol: 3 }
+                                        })
+                                            .then((value) => {
+                                                const page = z
+                                                    .object({
+                                                        success: z.literal(true),
+                                                        data: projectPipelineConfigurationPageSchema
+                                                    })
+                                                    .parse(value).data
+                                                setBindings((previous) => [
+                                                    ...previous,
+                                                    ...page.items.filter(
+                                                        (item) => !previous.some((saved) => saved.id === item.id)
+                                                    )
+                                                ])
+                                                setNext(page.next)
+                                            })
+                                            .catch(() => setError(t.unavailable))
+                                            .finally(() => setBusy(false))
+                                    }}
+                                >
+                                    {t.more}
+                                </Button>
+                            )}
+                        </section>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>
+                        {t.close}
+                    </Button>
+                    {item?.form && (
+                        <Button
+                            disabled={
+                                commandUnavailable ||
+                                incompatible ||
+                                busy ||
+                                saved ||
+                                incompleteSelection ||
+                                !!unavailableSlots.length ||
+                                runtimeState.incomplete ||
+                                !!runtimeState.unavailable.length
+                            }
+                            onClick={() => void save()}
+                        >
+                            {busy ? t.saving : t.save}
+                        </Button>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export function ParameterField({
+    field,
+    value,
+    locale,
+    disabled,
+    onChange
+}: {
+    field: ProjectPipelineParameterField
+    value: ProjectPipelineJsonValue
+    locale: string
+    disabled: boolean
+    onChange: (value: ProjectPipelineJsonValue) => void
+}) {
+    const name = label(field.label, locale),
+        id = `parameter-${field.key}`,
+        list = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+    return (
+        <div className="space-y-1.5">
+            <Label id={`${id}-label`} htmlFor={id}>
+                {name}
+            </Label>
+            {field.type === 'boolean' ? (
+                <Checkbox
+                    id={id}
+                    className="ml-3"
+                    checked={value === true}
+                    disabled={disabled}
+                    onCheckedChange={(checked) => onChange(checked === true)}
+                />
+            ) : field.type === 'choice' ? (
+                <Select value={typeof value === 'string' ? value : ''} disabled={disabled} onValueChange={onChange}>
+                    <SelectTrigger id={id} aria-labelledby={`${id}-label`}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {field.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {label(option.label, locale)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            ) : field.type === 'multi_choice' ? (
+                <div role="group" aria-labelledby={`${id}-label`} className="flex flex-wrap gap-3">
+                    {field.options.map((option) => (
+                        <Label key={option.value}>
+                            <Checkbox
+                                disabled={disabled}
+                                checked={list.includes(option.value)}
+                                onCheckedChange={(checked) =>
+                                    onChange(
+                                        checked === true
+                                            ? [...list, option.value]
+                                            : list.filter((value) => value !== option.value)
+                                    )
+                                }
+                            />
+                            {label(option.label, locale)}
+                        </Label>
+                    ))}
+                </div>
+            ) : field.type === 'string_list' ? (
+                <>
+                    <Textarea
+                        id={id}
+                        disabled={disabled}
+                        className="min-h-24"
+                        defaultValue={list.join('\n')}
+                        onChange={(event) =>
+                            onChange(
+                                event.target.value
+                                    .split('\n')
+                                    .map((value) => value.trim())
+                                    .filter(Boolean)
+                            )
+                        }
+                    />
+                    <p className="text-xs text-muted-foreground">{pipelineConfigurationTexts(locale).lines}</p>
+                </>
+            ) : (
+                <Input
+                    id={id}
+                    disabled={disabled}
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    value={typeof value === 'string' || typeof value === 'number' ? value : ''}
+                    {...(field.type === 'number'
+                        ? { min: field.min, max: field.max, step: field.integer ? 1 : 'any' }
+                        : { maxLength: field.maxLength })}
+                    onChange={(event) =>
+                        onChange(
+                            field.type === 'number' && event.target.value !== ''
+                                ? Number(event.target.value)
+                                : event.target.value
+                        )
+                    }
+                />
+            )}
+            {field.description && <p className="text-xs text-muted-foreground">{label(field.description, locale)}</p>}
+        </div>
+    )
+}

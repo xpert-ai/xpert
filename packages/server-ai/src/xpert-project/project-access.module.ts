@@ -8,10 +8,30 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectAccessService } from './services/project-access.service'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { CqrsModule } from '@nestjs/cqrs'
+import { AssertProjectAssistantAccessHandler } from './commands/assert-project-assistant-access.command'
+import { HasProjectTaskConversationHandler } from './queries/has-project-task-conversation.query'
+import { XpertProjectTaskExecution } from './entities/project-task-execution.entity'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert])],
-    providers: [ProjectContentResourceProvider, ProjectFilesRuntimeService, ProjectAccessRuntimeService, XpertProjectXpertBindingService, XpertProjectAccessService],
-    exports: [ProjectFilesRuntimeService, ProjectAccessRuntimeService, XpertProjectXpertBindingService, XpertProjectAccessService]
+    imports: [
+        CqrsModule,
+        TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert, XpertProjectTaskExecution])
+    ],
+    providers: [
+        ProjectContentResourceProvider,
+        ProjectFilesRuntimeService,
+        AssertProjectAssistantAccessHandler,
+        HasProjectTaskConversationHandler,
+        ProjectAccessRuntimeService,
+        XpertProjectXpertBindingService,
+        XpertProjectAccessService
+    ],
+    exports: [
+        ProjectFilesRuntimeService,
+        ProjectAccessRuntimeService,
+        XpertProjectXpertBindingService,
+        XpertProjectAccessService
+    ]
 })
 export class XpertProjectAccessModule {}

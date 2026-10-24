@@ -91,9 +91,9 @@ type ProviderActivationRollback = {
 
 /**
  * Runtime MCP definitions are trusted only after registry provenance checks.
- * Tenant/system plugins own one tenant Publication with organization access grants;
- * organization plugins own one Publication per organization. Activation preserves
- * the last valid catalog and endpoint until every managed resource can be committed.
+ * MCP instances belong to their initialization scope, independently of plugin level.
+ * Synchronization retains each installation's persisted tenant and organization.
+ * Activation preserves the last valid catalog and endpoint until every managed resource can be committed.
  */
 @Injectable()
 export class PluginMcpServerService implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy {
@@ -141,7 +141,9 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             } catch {
                 return
             }
-            queueMicrotask(() => void this.synchronizeEnabled(source.pluginName, componentKey, source.scopeKey))
+            queueMicrotask(
+                () => void this.synchronizeRegisteredProvider(source.pluginName, componentKey, source.scopeKey)
+            )
         })
     }
 
@@ -213,7 +215,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         let accessWasEnabled = false
         try {
             accessWasEnabled =
-                ownership.level !== PLUGIN_LEVEL.ORGANIZATION && accessOrganizationId
+                !ownership.organizationId && accessOrganizationId
                     ? await this.publicationAccess.isEnabled(
                           activated.publication.id,
                           activated.publication.tenantId,
@@ -223,7 +225,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             const connectionInfo = await this.runInProviderScope(ownership, () =>
                 this.connectionInfoFor(activated.publication.id)
             )
-            if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && accessOrganizationId) {
+            if (!ownership.organizationId && accessOrganizationId) {
                 await this.publicationAccess.enable(activated.publication, accessOrganizationId)
             }
             const activeKeys = accessOrganizationId
@@ -257,7 +259,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
                 ...(createdApiKey ? { createdApiKey } : {})
             }
         } catch (error) {
-            if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && accessOrganizationId && !accessWasEnabled) {
+            if (!ownership.organizationId && accessOrganizationId && !accessWasEnabled) {
                 await this.publicationAccess
                     .disable(activated.publication, accessOrganizationId)
                     .catch((rollbackError) => this.logRollbackFailure('organization access', rollbackError))
@@ -341,7 +343,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
                 artifactNamespace: ownership.artifactNamespace,
                 provider: ownership.provider,
                 pluginLevel: ownership.level,
-                publicationScope: ownership.level === PLUGIN_LEVEL.ORGANIZATION ? 'organization' : 'tenant',
+                publicationScope: ownership.organizationId ? 'organization' : 'tenant',
                 syncError: null,
                 syncFailedAt: null
             })
@@ -408,7 +410,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         const resolved = await this.runInProviderScope(ownership, () =>
             this.requireProviderPublication(pluginName, componentKey)
         )
-        if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && requestingOrganizationId) {
+        if (!ownership.organizationId && requestingOrganizationId) {
             await this.publicationAccess.disable(resolved.publication, requestingOrganizationId)
             return resolved.installation
         }
@@ -425,7 +427,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         const resolved = await this.runInProviderScope(ownership, () =>
             this.requireProviderPublication(pluginName, componentKey)
         )
-        if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && requestingOrganizationId) {
+        if (!ownership.organizationId && requestingOrganizationId) {
             await this.publicationAccess.assertEnabled(resolved.publication, requestingOrganizationId)
         }
         if (resolved.publication.status !== 'active') {
@@ -440,7 +442,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         const resolved = await this.runInProviderScope(ownership, () =>
             this.requireProviderPublication(pluginName, componentKey)
         )
-        if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && requestingOrganizationId) {
+        if (!ownership.organizationId && requestingOrganizationId) {
             await this.publicationAccess.assertEnabled(resolved.publication, requestingOrganizationId)
         }
         if (resolved.publication.status !== 'active') {
@@ -650,7 +652,9 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         const organizationId =
             level === PLUGIN_LEVEL.ORGANIZATION
                 ? (managementScope?.organizationId ?? loaded.organizationId ?? registration.source.scopeKey)
-                : null
+                : managementScope
+                  ? managementScope.organizationId
+                  : (RequestContext.getOrganizationId() ?? null)
         if (level === PLUGIN_LEVEL.ORGANIZATION && isGlobalScopeKey(organizationId)) {
             throw new BadRequestException(`Organization plugin '${normalizedPluginName}' has no organization scope.`)
         }
@@ -732,7 +736,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         ownership: RuntimeProviderOwnership,
         requestingOrganizationId: string | null | undefined
     ) {
-        if (ownership.level === PLUGIN_LEVEL.ORGANIZATION || !requestingOrganizationId) return
+        if (ownership.organizationId || !requestingOrganizationId) return
         const legacyInstallation = await this.findInstallation(ownership.source.pluginName, ownership.componentKey)
         const publicationId = readConfigString(legacyInstallation?.config, 'publicationId')
         const publicationScope = readConfigString(legacyInstallation?.config, 'publicationScope')

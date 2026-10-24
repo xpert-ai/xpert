@@ -7,7 +7,7 @@ import {
     type ProjectHumanAccess
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { Repository } from 'typeorm'
+import { EntityManager, Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { RuntimeCapabilityProvider } from '../../shared/runtime'
@@ -24,27 +24,7 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
     async listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]> {
         const { actor, projectIds } = input
         if (!actor.tenantId || !actor.userId || projectIds?.length === 0) return []
-        const query = this.projects
-            .createQueryBuilder('project')
-            .leftJoin(
-                XpertProjectMembership,
-                'membership',
-                'membership.projectId = project.id AND membership.tenantId = project.tenantId AND membership.organizationId IS NOT DISTINCT FROM project.organizationId AND membership.userId = :userId AND membership.deletedAt IS NULL AND membership.removedAt IS NULL',
-                { userId: actor.userId }
-            )
-            .where('project.tenantId = :tenantId', { tenantId: actor.tenantId })
-            .andWhere(
-                actor.organizationId ? 'project.organizationId = :organizationId' : 'project.organizationId IS NULL',
-                { organizationId: actor.organizationId }
-            )
-            .andWhere('(project.ownerId = :userId OR membership.id IS NOT NULL)', { userId: actor.userId })
-            .select('project.id', 'projectId')
-            .addSelect('project.name', 'name')
-            .addSelect('project.status', 'status')
-            .addSelect('project.applicationKey', 'applicationKey')
-            .addSelect('project.projectTypeKey', 'projectTypeKey')
-            .addSelect("CASE WHEN project.ownerId = :userId THEN 'owner' ELSE membership.role END", 'role')
-        if (projectIds) query.andWhere('project.id IN (:...projectIds)', { projectIds })
+        const query = this.readableQuery(input, this.projects)
         const rows = await query.getRawMany<ProjectHumanAccess & { status: string }>()
         const bindings = rows.length
             ? await this.projects
@@ -72,10 +52,62 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         }))
     }
 
+    /** All selected Projects are authorized in the same MVCC snapshot as the portfolio facts. */
+    async assertAllReadableWithinTransaction(actor: ProjectAccessActor, projectIds: string[], manager: EntityManager) {
+        if (!actor.tenantId || !actor.userId || !projectIds.length)
+            throw new ForbiddenException(t('server-ai:Error.ProjectTaskAccessDenied'))
+        const rows = await this.readableQuery({ actor, projectIds }, manager.getRepository(XpertProject))
+            .select('project.id', 'projectId')
+            .getRawMany<{ projectId: string }>()
+        if (new Set(rows.map((row) => row.projectId)).size !== projectIds.length)
+            throw new ForbiddenException(t('server-ai:Error.ProjectTaskAccessDenied'))
+    }
+
+    private readableQuery(
+        input: { actor: ProjectAccessActor; projectIds?: string[] },
+        projects: Repository<XpertProject>
+    ) {
+        const { actor, projectIds } = input
+        const query = projects
+            .createQueryBuilder('project')
+            .leftJoin(
+                XpertProjectMembership,
+                'membership',
+                'membership.projectId = project.id AND membership.tenantId = project.tenantId AND membership.organizationId IS NOT DISTINCT FROM project.organizationId AND membership.userId = :userId AND membership.deletedAt IS NULL AND membership.removedAt IS NULL',
+                { userId: actor.userId }
+            )
+            .where('project.tenantId = :tenantId', { tenantId: actor.tenantId })
+            .andWhere(
+                actor.organizationId ? 'project.organizationId = :organizationId' : 'project.organizationId IS NULL',
+                { organizationId: actor.organizationId }
+            )
+            .andWhere('(project.ownerId = :userId OR membership.id IS NOT NULL)', { userId: actor.userId })
+            .select('project.id', 'projectId')
+            .addSelect('project.name', 'name')
+            .addSelect('project.status', 'status')
+            .addSelect('project.applicationKey', 'applicationKey')
+            .addSelect('project.projectTypeKey', 'projectTypeKey')
+            .addSelect("CASE WHEN project.ownerId = :userId THEN 'owner' ELSE membership.role END", 'role')
+        if (projectIds) query.andWhere('project.id IN (:...projectIds)', { projectIds })
+        return query
+    }
+
     async assertManage(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {
         const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
         if (!access?.canManage) throw new ForbiddenException(t('server-ai:Error.ProjectManagerRequired'))
         return access
+    }
+
+    async assertManageWithinTransaction(
+        input: { actor: ProjectAccessActor; projectId: string },
+        manager: EntityManager
+    ) {
+        const access = await this.readableQuery(
+            { actor: input.actor, projectIds: [input.projectId] },
+            manager.getRepository(XpertProject)
+        ).getRawOne<{ role: string; status: string }>()
+        if (!access || access.status === 'archived' || !['owner', 'manager'].includes(access.role))
+            throw new ForbiddenException(t('server-ai:Error.ProjectManagerRequired'))
     }
 
     async assertEdit(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {

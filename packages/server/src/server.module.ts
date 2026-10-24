@@ -46,6 +46,7 @@ import { ManagedQueueModule } from './managed-queue'
 import { RuntimeControlModule } from './runtime-control'
 import { ReferralModule } from './referral'
 import { DataSourceModule } from './data-source'
+import { AnalyticsModule } from './analytics/analytics.module'
 import { DataSourceTypeModule } from './data-source-type'
 import { BusinessAreaModule } from './business-area'
 
@@ -102,6 +103,7 @@ import { BusinessAreaModule } from './business-area'
 		ManagedQueueModule,
 		DataSourceTypeModule,
 		DataSourceModule,
+		AnalyticsModule,
 		BusinessAreaModule
 	],
 	controllers: [AppController],

@@ -111,7 +111,9 @@ describe('runtime resource authorization and persistence', () => {
             } as unknown as AgentPluginService,
             { get: (type: unknown) => dependencies.get(type) } as ModuleRef,
             {
-                runtimeCatalog: jest.fn().mockResolvedValue([]),
+                catalogInventory: jest.fn().mockResolvedValue([]),
+                catalogPackages: jest.fn().mockResolvedValue([]),
+                catalogConnectorReferences: jest.fn().mockResolvedValue(new Map()),
                 reference: jest.fn().mockResolvedValue(null)
             } as unknown as AgentPluginInstallationsService
         )

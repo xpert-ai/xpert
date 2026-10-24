@@ -49,8 +49,16 @@ It preserves the nested publish roots of contracts/plugin-sdk and includes the
 uncompiled desktop-protocol JavaScript package. Docker and local packaging use
 the same assembly path. Missing outputs, mismatched package versions, or
 compiler-added dependencies missing from source declarations fail.
-Docker validates the assembled layout, then installs production dependencies
-with `--frozen-lockfile`; its build-stage installs use the build lock likewise.
+Docker validates the assembled layout against the production lock. Both build
+and production installs use their respective locks with `--frozen-lockfile`.
+
+Docker installs production dependencies in a separate Debian stage using only
+source workspace manifests, workspace configuration and the production lock.
+The final stage overlays the validated runtime assembly without reinstalling
+dependencies. This keeps code-only changes from invalidating the install layer
+and lets it run alongside the Alpine build. Native modules are never copied from
+Alpine into Debian. Installation runs as `node`, avoiding a recursive ownership
+change after every build. The final image still checks its native bindings.
 
 Do not generate or repair deployment locks during the image build: the resolved
 dependency graph must be reviewed with the source changes.
@@ -67,10 +75,20 @@ corepack pnpm run api:image:check
 
 This builds the production image, then checks `/api/health/ready` and
 `/api/health` in a disposable Compose project with its own Postgres and Redis.
+Before API startup it runs the image's `schema-sync` command and the ordered
+Project Pipeline SQL migrations against that disposable database. API startup
+uses `DB_SCHEMA_SYNC_MODE=external` so ORM synchronization cannot remove the
+migration-owned constraints. A schema or migration failure stops acceptance.
 It publishes no host ports, uses generated temporary secrets, and removes only
 its own containers and volumes afterward. Existing services and `.env` files
-are untouched. API/database/cache/Redis must all be healthy. On failure, private
-diagnostic paths are printed; application logs are not streamed to CI output.
+are untouched. API/database/cache/Redis must all be healthy. On failure,
+sanitized Compose errors and container health states are printed. Bounded API,
+Postgres and Redis logs, including the last health probe outputs, are saved in
+a separate diagnostics directory. Generated credentials and sensitive values
+are redacted before output or persistence; container configuration and `.env`
+files are never exported. CI uploads only these sanitized files on failure
+with a seven-day retention. Set `API_HEALTH_DIAGNOSTICS_DIR` to choose the output
+directory locally.
 
 To check an already-built image:
 

@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "このアシスタントに対応したモデルを選択してください。",
   "Invalid template capabilities.": "テンプレートの機能設定が無効です。",
+  "Invalid template requirements response.": "テンプレート要件の応答形式が無効です。",
   "The template is not ready to install.": "テンプレートを初期化する準備ができていません。",
   "Invalid tool output attachment.": "ツール出力の添付ファイルが無効です。",
   "The image preview does not match the requested attachment.": "画像プレビューが要求された添付ファイルと一致しません。",
@@ -353,6 +354,7 @@
   "Enter a valid email address.": "有効なメールアドレスを入力してください。",
   "Enter a valid URL.": "有効な URL を入力してください。",
   "Invalid input.": "入力値が無効です。",
+  "Invalid response.": "応答形式が無効です。",
   "Choose your desktop language. ChatKit follows where supported.": "デスクトップの言語を選択します。ChatKit は対応する言語に切り替わります。",
   "Desktop Shell": "デスクトップ Shell",
   "Shell": "Shell",
@@ -961,7 +963,7 @@
   "All providers": "すべてのプロバイダー",
   "Other providers": "その他のプロバイダー",
   "No matching models": "一致するモデルがありません",
-  "Organization default": "組織のデフォルト",
+  "Default model": "デフォルトモデル",
   "Recommended for cloud computer": "クラウドコンピューター推奨",
   "Cloud computer works best with vision and tool calling. Compatible models are recommended below.": "クラウドコンピューターには画像認識とツール呼び出しが必要です。対応モデルを以下に表示します。",
   "Vision models can understand screenshots and operate the cloud computer.": "画像認識モデルはスクリーンショットを理解し、クラウドコンピューターを操作できます。",
@@ -1188,6 +1190,7 @@
   "Updates are not available in this build.": "このビルドではアップデートを利用できません。",
   "Bosi is up to date.": "Bosi は最新です。",
   "Bosi {{version}} is available.": "Bosi {{version}} にアップデートできます。",
+  "This assistant was deleted or is no longer accessible. Create another assistant to install this template again.": "このアシスタントは削除されたか、アクセスできなくなりました。別のアシスタントを作成して、このテンプレートを再インストールしてください。",
   "Template installations": "テンプレートのインストール",
   "Importing assistant": "アシスタントをインポート中",
   "Installing dependencies": "依存関係をインストール中",
@@ -1358,5 +1361,10 @@
   "Shared templates": "共有テンプレート",
   "Other sources": "その他の提供元",
   "Agent Plugins": "Agent Plugins",
-  "Xpert Plugins": "Xpert Plugins"
+  "Xpert Plugins": "Xpert Plugins",
+  "Xpert is restarting. Please reconnect shortly.": "Xpert は再起動中です。しばらくしてから再接続してください。",
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert は一時的に利用できません。しばらくしてから再接続してください。",
+  "Install for": "インストール範囲",
+  "Only me": "自分のみ",
+  "Your app instance and its new resources are private by default within this organization.": "この組織内のアプリと新しいリソースは、既定で非公開です。"
 }

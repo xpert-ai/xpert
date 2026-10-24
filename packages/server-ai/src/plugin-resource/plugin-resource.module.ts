@@ -1,3 +1,5 @@
+import { ApplicationAccessService } from './application-access.service'
+import { PrepareTemplateExecutionHandler } from './template-installation/prepare-template-execution.command'
 import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
 import { ReconcileTemplateSkillReferencesHandler } from './template-installation/reconcile-template-skills.handler'
 import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
@@ -83,6 +85,8 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        ApplicationAccessService,
+        PrepareTemplateExecutionHandler,
         ReconcileTemplateSkillReferencesHandler,
         AssistantTemplateToolsetBinder,
         PrepareAssistantDefinitionHandler,

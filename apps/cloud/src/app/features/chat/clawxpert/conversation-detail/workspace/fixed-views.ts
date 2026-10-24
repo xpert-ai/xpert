@@ -1,4 +1,4 @@
-import type { IconDefinition, I18nObject, XpertViewQuery } from '@xpert-ai/contracts'
+import type { IconDefinition, I18nObject, XpertViewQuery, XpertViewSchema } from '@xpert-ai/contracts'
 import type { ClawXpertFixedViewTab } from '../../clawxpert-fixed-view-stack.component'
 
 export const DEFAULT_FIXED_VIEW_ICON = {
@@ -13,6 +13,7 @@ export type ClawXpertFixedViewMenuItem = {
   description: string | null
   icon: IconDefinition | null
   order: number
+  view?: XpertViewSchema
   openMode?: 'auto' | 'on-demand'
   contextScope?: 'project' | 'conversation'
   menuEnabled?: boolean
@@ -87,4 +88,9 @@ export function initiallyOpenViews<T extends { viewKey: string; openMode?: 'auto
   return items.filter(
     (item) => item.openMode !== 'on-demand' || openedKeys.includes(item.viewKey) || item === requested
   )
+}
+
+/** Match ChatKit's current iframe renderer; other schemas retain legacy host rendering. */
+export function canRenderViewInChatkit(view: XpertViewSchema | undefined) {
+  return view?.type === 'remote_component' && view.component.isolation === 'iframe'
 }

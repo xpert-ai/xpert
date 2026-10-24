@@ -1,4 +1,4 @@
-import type { XpertProjectListFilter } from '@xpert-ai/contracts'
+import type { XpertProjectListQuery } from './project-api.service'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import {
   OrderTypeEnum,
@@ -55,7 +55,7 @@ export class XpertProjectFacade {
   #projectsLoadSequence = 0
   #projectLoadSequence = 0
 
-  async loadProjects(query: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
+  async loadProjects(query: XpertProjectListQuery = {}) {
     const sequence = ++this.#projectsLoadSequence
     this.loading.set(true)
     this.error.set(null)

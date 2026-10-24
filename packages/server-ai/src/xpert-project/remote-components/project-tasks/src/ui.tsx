@@ -16,7 +16,6 @@ import {
     Tooltip,
     TooltipTrigger,
     TooltipContent,
-    buttonVariants,
     cn,
     Select,
     SelectTrigger,
@@ -48,7 +47,24 @@ const statusIcon = {
     done: CircleCheck,
     cancelled: CircleX
 }
-export function Status({ value, progress, t }: { value: Node['status']; progress?: number | null; t: Texts }) {
+export function Status({
+    value,
+    progress,
+    disposition,
+    t
+}: {
+    value: Node['status']
+    progress?: number | null
+    disposition?: Node['pipelineDisposition']
+    t: Texts
+}) {
+    if (disposition && disposition !== 'active')
+        return (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-muted-foreground">
+                <CircleDashed aria-hidden className="size-3.5 shrink-0" />
+                {t[disposition]}
+            </span>
+        )
     const Icon = statusIcon[value]
     return (
         <span
@@ -72,12 +88,10 @@ export function IconButton({
 }: React.ComponentProps<'button'> & { label: string; tooltip?: string }) {
     return (
         <Tooltip>
-            <TooltipTrigger
-                aria-label={label}
-                className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), className)}
-                {...props}
-            >
-                {children}
+            <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={label} className={className} {...props}>
+                    {children}
+                </Button>
             </TooltipTrigger>
             <TooltipContent>{tooltip ?? label}</TooltipContent>
         </Tooltip>

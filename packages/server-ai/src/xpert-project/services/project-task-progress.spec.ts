@@ -1,3 +1,6 @@
+import { ProjectPipelineProjectionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { writeTaskProjection } from './task-projection/project-task-projection.writer'
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ProjectTaskProviderRegistry, type ProjectTaskProjection } from '@xpert-ai/plugin-sdk'
@@ -20,6 +23,8 @@ async function fixture() {
         executions: []
     }
     const rows: XpertProjectTask[] = []
+    const provider = { key: 'test.tasks', snapshot: async () => ({ revision: 'v1', tasks: [projection] }) }
+    let diagnostics: Array<{ providerKey: string; message: string }> = []
     const manager = {
         find: jest.fn(async (entity: typeof XpertProjectTask) => (entity === XpertProjectTask ? rows : [])),
         findOne: jest.fn(async () => ({ id: 'project', name: 'Project' })),
@@ -37,7 +42,12 @@ async function fixture() {
     manager.transaction.mockImplementation(async (action) => action(manager))
     const module = await Test.createTestingModule({
         providers: [
+            { provide: ProjectPipelineProjectionProviderRegistry, useValue: { listForActor: () => [] } },
             ProjectTaskGraphService,
+            {
+                provide: ProjectTaskProjectionService,
+                useValue: { diagnostics: async () => diagnostics, request: jest.fn() }
+            },
             { provide: getRepositoryToken(XpertProjectTask), useValue: { manager, find: async () => rows } },
             {
                 provide: ProjectAccessRuntimeService,
@@ -56,7 +66,17 @@ async function fixture() {
             }
         ]
     }).compile()
-    return { module, service: module.get(ProjectTaskGraphService), projection, rows, manager }
+    const service = module.get(ProjectTaskGraphService)
+    async function refreshGraph() {
+        diagnostics = []
+        try {
+            await writeTaskProjection(manager as never, context, provider, await provider.snapshot())
+        } catch (error) {
+            diagnostics = [{ providerKey: provider.key, message: String(error) }]
+        }
+        return service.graph(context)
+    }
+    return { module, service, refreshGraph, projection, rows, manager }
 }
 
 describe('project task completion progress', () => {
@@ -67,22 +87,22 @@ describe('project task completion progress', () => {
     it('persists and refreshes measured progress without changing task status or replaying unchanged writes', async () => {
         const f = await fixture()
         try {
-            const first = await f.service.graph(context)
+            const first = await f.refreshGraph()
             expect(first.diagnostics).toEqual([])
             expect(first.tasks[0]).toMatchObject({ progress: 25, status: 'in_progress' })
             expect(f.rows[0].progress).toBe(25)
-            await f.service.graph(context)
+            await f.refreshGraph()
             expect(f.manager.save).toHaveBeenCalledTimes(1)
             for (const progress of [67.5, 100, 0]) {
                 f.projection.progress = progress
-                const next = await f.service.graph(context)
+                const next = await f.refreshGraph()
                 expect(next.tasks[0]).toMatchObject({ progress, status: 'in_progress' })
                 expect(next.cursor).not.toBe(first.cursor)
             }
             delete f.projection.progress
-            expect((await f.service.graph(context)).tasks[0].progress).toBe(0)
+            expect((await f.refreshGraph()).tasks[0].progress).toBe(0)
             f.projection.progress = null
-            expect((await f.service.graph(context)).tasks[0].progress).toBeNull()
+            expect((await f.refreshGraph()).tasks[0].progress).toBeNull()
         } finally {
             await f.module.close()
         }
@@ -93,9 +113,9 @@ describe('project task completion progress', () => {
         async (progress) => {
             const f = await fixture()
             try {
-                await f.service.graph(context)
+                await f.refreshGraph()
                 Object.assign(f.projection, { progress })
-                const graph = await f.service.graph(context)
+                const graph = await f.refreshGraph()
                 expect(graph.diagnostics).toEqual([expect.objectContaining({ providerKey: 'test.tasks' })])
                 expect(graph.tasks[0].progress).toBe(25)
                 expect(f.manager.save).toHaveBeenCalledTimes(1)

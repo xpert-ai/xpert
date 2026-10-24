@@ -19,8 +19,9 @@ import { installMcpToolAppMetadataBridge, installMcpUiClientCapabilitiesBridge }
 import { resolvePluginManagedMcpSchema } from './plugin-managed-runtime'
 import { McpStdioRuntimeHandle, mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
-import { resolveMcpConsumerAuthProvider } from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
+import { resolveMcpClientAuthProvider } from '../../../mcp-consumer/auth/mcp-client-auth'
 import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
+import { resolveMcpServerName } from './server-name'
 
 export async function createMCPClient(
     toolset: Partial<IXpertToolset>,
@@ -38,27 +39,16 @@ export async function createMCPClient(
     // Connect to a remote server via SSE or HTTP
     for await (const serverName of Object.keys(servers)) {
         server = servers[serverName]
-        const name = serverName || toolset.name || 'default'
+        const name = resolveMcpServerName(serverName, toolset.name)
         const transport = server.type?.toLowerCase()
         if (transport === MCPServerType.HTTP) {
             const headers = await resolveRemoteHeaders(server, envState, xpertId)
-            const authProvider = await resolveMcpConsumerAuthProvider({
+            const authProvider = await resolveMcpClientAuthProvider({
                 toolset,
                 serverName: name,
                 server,
-                tenantId: runtimeContext.tenantId ?? toolset.tenantId,
-                organizationId: runtimeContext.organizationId ?? toolset.organizationId,
-                userId: runtimeContext.userId,
-                runtimeScope: {
-                    tenantId: runtimeContext.tenantId ?? toolset.tenantId,
-                    organizationId: runtimeContext.organizationId ?? toolset.organizationId,
-                    userId: runtimeContext.userId,
-                    xpertId: runtimeContext.xpertId ?? xpertId,
-                    workspaceId: toolset.workspaceId,
-                    projectId: runtimeContext.projectId,
-                    conversationId: runtimeContext.conversationId,
-                    executionId: runtimeContext.executionId
-                }
+                runtimeContext,
+                xpertId
             })
             const remoteServer = withoutConsumerAuth(server)
             mcpServers[name] = omitBy(

@@ -8,6 +8,7 @@ import { visibleAgentPluginScopes } from '../agent-plugin-scope'
 import { importedPluginBinding, installedPluginBindings } from '../installed-plugin-catalog'
 import { agentPluginConnectorProviders } from '../agent-plugin-connector-providers'
 import { ResolvePluginConnectorsQuery } from './resolve-plugin-connectors.query'
+import { readInstalledPluginDetails, readInstalledPluginInventory } from '../installed-plugin-inventory'
 
 @QueryHandler(ResolvePluginConnectorsQuery)
 export class ResolvePluginConnectorsHandler implements IQueryHandler<ResolvePluginConnectorsQuery> {
@@ -21,19 +22,35 @@ export class ResolvePluginConnectorsHandler implements IQueryHandler<ResolvePlug
     async execute({ scope, workspaceId, provider }: ResolvePluginConnectorsQuery): Promise<ConnectorStrategyRuntime[]> {
         if (!scope.tenantId) return []
         const where = visibleAgentPluginScopes(scope)
-        const [packages, bindings] = await Promise.all([this.packages.find({ where }), this.bindings.find({ where })])
+        const [packages, bindings] = await Promise.all([
+            readInstalledPluginInventory(this.packages, scope),
+            this.bindings.find({ where })
+        ])
         const providers = new Map<string, ConnectorStrategyRuntime>()
         // Existing accounts and OAuth sessions retain their exact provider even after
         // a package upgrade or disable. Only the discovery catalog selects active versions.
         const candidates = provider
             ? [...bindings, ...packages.map((pkg) => importedPluginBinding(pkg))]
             : installedPluginBindings(packages, bindings, scope, workspaceId)
-        for (const binding of candidates) {
-            if ((!provider && !binding.enabled) || binding.definition.kind !== 'agent_plugin') continue
-            const packageId = binding.definition.packageId
-            const pkg = packages.find((item) => item.id === packageId)
+        const byId = new Map(packages.map((pkg) => [pkg.id, pkg]))
+        const eligible = candidates.flatMap((binding) => {
+            if ((!provider && !binding.enabled) || binding.definition.kind !== 'agent_plugin') return []
+            const pkg = byId.get(binding.definition.packageId)
+            const requirements = binding.definition.connectorServers ?? pkg?.descriptor.extension?.connectors ?? {}
+            return pkg && Object.keys(requirements).length ? [{ binding, pkg, requirements }] : []
+        })
+        const details = new Map(
+            (
+                await readInstalledPluginDetails(
+                    this.packages,
+                    scope,
+                    eligible.map(({ pkg }) => pkg.id)
+                )
+            ).map((pkg) => [pkg.id, pkg])
+        )
+        for (const { pkg: inventory, requirements } of eligible) {
+            const pkg = details.get(inventory.id)
             if (!pkg) continue
-            const requirements = binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {}
             for (const [key, requirement] of Object.entries(requirements)) {
                 try {
                     const strategy = agentPluginConnectorProviders(

@@ -7,6 +7,7 @@ import { bootstrap } from './bootstrap'
 import { prepare } from './prepare'
 import { runKnowledgeFilterV2MigrationCli } from './knowledge-filter-v2-migration-cli'
 import { runSchemaSync } from './schema-sync'
+import { loadSchemaMigrations } from './schema-migrations'
 
 // if (process.env.NODE_ENV !== 'production') {
 //   installPlugins()
@@ -42,8 +43,22 @@ if (command === 'seedModule') {
       console.error(error)
       process.exit(1)
     })
+} else if (command === 'schema-check') {
+  loadSchemaMigrations()
+    .then((bundle) => {
+      console.log(
+        `Packaged SQL migrations: ${bundle.migrations.length}; SQL-managed tables: ${bundle.managedTables.length}`
+      )
+      process.exit(0)
+    })
+    .catch((error: unknown) => {
+      console.error(error)
+      process.exit(1)
+    })
 } else if (command === 'schema-sync') {
-  runSchemaSync(pluginConfig)
+  const action = argv.action ?? 'apply'
+  if (!['apply', 'verify', 'baseline'].includes(action)) throw new Error('Invalid schema-sync action')
+  runSchemaSync(pluginConfig, undefined, action)
     .then(() => process.exit(0))
     .catch((error: unknown) => {
       console.error(error)

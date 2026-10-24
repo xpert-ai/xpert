@@ -67,70 +67,45 @@ jobs:
       sha: ${{ needs.prepare.outputs.sha }}
 
   build:
-    name: Build and verify ${{ matrix.image_name }}
     needs: [prepare, validate-api, validate-web]
     if: >-
-      ${{ always() && !cancelled() && needs.prepare.result == 'success' &&
+      ${{ github.event_name == 'push' && always() && !cancelled() && needs.prepare.result == 'success' &&
           needs.prepare.outputs.validate == 'true' &&
           (needs.validate-api.result == 'success' || needs.validate-api.result == 'skipped') &&
           (needs.validate-web.result == 'success' || needs.validate-web.result == 'skipped') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare.outputs.validation_matrix) }}
-    env:
-      LOCAL_IMAGE: ${{ matrix.image_name }}:check-${{ needs.prepare.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - uses: docker/setup-buildx-action@v3
-      - name: Build image without publishing
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          target: ${{ matrix.target }}
-          build-args: |
-            NODE_OPTIONS=${{ matrix.node_options }}
-          platforms: linux/amd64
-          load: true
-          push: false
-          provenance: false
-          tags: ${{ env.LOCAL_IMAGE }}
-          labels: |
-            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
-            org.opencontainers.image.version=${{ matrix.version }}
-      - name: Check image startup and health
-        if: matrix.health_check != ''
-        env:
-          HEALTH_CHECK: ${{ matrix.health_check }}
-        run: node "$HEALTH_CHECK" "$LOCAL_IMAGE"
-      - name: Save verified image for publication
-        if: matrix.publish
-        run: |
-          docker image inspect "$LOCAL_IMAGE" --format '{{.Id}}' > "$RUNNER_TEMP/image.id"
-          docker save "$LOCAL_IMAGE" -o "$RUNNER_TEMP/image.tar"
-      - uses: actions/upload-artifact@v4
-        if: matrix.publish
-        with:
-          name: verified-${{ matrix.image_name }}-${{ needs.prepare.outputs.sha }}
-          path: |
-            ${{ runner.temp }}/image.tar
-            ${{ runner.temp }}/image.id
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
-          overwrite: true
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-application-images.yml
+    with:
+      sha: ${{ needs.prepare.outputs.sha }}
+      matrix: ${{ needs.prepare.outputs.validation_matrix }}
+      write-cache: true
+
+  build-pr:
+    needs: [prepare, validate-api, validate-web]
+    if: >-
+      ${{ github.event_name == 'pull_request' && always() && !cancelled() && needs.prepare.result == 'success' &&
+          needs.prepare.outputs.validate == 'true' &&
+          (needs.validate-api.result == 'success' || needs.validate-api.result == 'skipped') &&
+          (needs.validate-web.result == 'success' || needs.validate-web.result == 'skipped') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-application-images.yml
+    with:
+      sha: ${{ needs.prepare.outputs.sha }}
+      matrix: ${{ needs.prepare.outputs.validation_matrix }}
+      write-cache: false
 
   publish:
     name: Publish ${{ matrix.image_name }}
     needs: [prepare, build]
-    if: github.event_name == 'push' && needs.prepare.outputs.publish == 'true'
+    # Optional dependency validators may be skipped for API-only/Web-only pushes.
+    # Require the completed build explicitly, without inheriting their skipped status.
+    if: >-
+      always() && !cancelled() && github.event_name == 'push' &&
+      needs.prepare.result == 'success' && needs.build.result == 'success' &&
+      needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:

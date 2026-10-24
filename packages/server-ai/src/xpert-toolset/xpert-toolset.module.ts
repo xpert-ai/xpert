@@ -1,3 +1,5 @@
+import { RestClientRuntimeService } from './runtime/rest-client-runtime.service'
+import { RestClientTransport } from './runtime/rest-client.transport'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
 import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
@@ -39,6 +41,8 @@ import {
     McpConsumerOAuthSession
 } from '../mcp-consumer/auth'
 import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } from '../mcp-consumer'
+import { McpClientConnectionService } from '../mcp-consumer/runtime/mcp-client-connection.service'
+import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runtime.service'
 
 @Module({
     imports: [
@@ -81,6 +85,10 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         McpAppToolApprovalService,
         McpConsumerOAuthService,
         McpConsumerCapabilitiesService,
+        McpClientRuntimeService,
+        RestClientRuntimeService,
+        RestClientTransport,
+        McpClientConnectionService,
         McpSubscriptionService,
         ToolRuntimeService,
         ToolsetRegistry,

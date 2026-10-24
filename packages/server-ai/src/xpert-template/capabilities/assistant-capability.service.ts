@@ -9,6 +9,7 @@ import {
     TCopilotModel,
     TXpertTeamDraft,
     TXpertTemplate,
+    XpertTypeEnum,
     XpertTemplateSetup,
     resolveI18nText
 } from '@xpert-ai/contracts'
@@ -19,7 +20,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { RealtimeModelCatalog } from './realtime-voice.capability'
 import { t } from 'i18next'
 import { stringify } from 'yaml'
-import { CopilotWithProviderDto } from '../../copilot/dto'
+import { CopilotWithProviderDto } from '../../copilot/dto/copilot-with-provider'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import {
     capabilityTemplateId,
@@ -30,6 +31,7 @@ import { parseCapabilityTemplateDraft } from './template-draft'
 import { recordCapabilityState } from './capability-state'
 import { blankAssistantTemplate } from './blank-assistant-template'
 import { templateModelOption } from './template-model-option'
+import { findAvailableLlmSelection, findDefaultLlmSelection } from '../../copilot/llm-selection'
 
 @Injectable()
 export class AssistantCapabilityService {
@@ -91,6 +93,16 @@ export class AssistantCapabilityService {
         sandboxProviders?: { type: string }[],
         installationDraft?: TXpertTeamDraft
     ): Promise<XpertTemplateSetup> {
+        return (await this.resolveSetup(template, language, selected, sandboxProviders, installationDraft)).setup
+    }
+
+    private async resolveSetup(
+        template: TXpertTemplate,
+        language: LanguagesEnum,
+        selected: string[],
+        sandboxProviders?: { type: string }[],
+        installationDraft?: TXpertTeamDraft
+    ): Promise<{ setup: XpertTemplateSetup; copilots: CopilotWithProviderDto[] }> {
         const { active, options } = this.resolve(template, selected)
         let manifestValue = template.manifest
         if (!manifestValue && template.export_data) {
@@ -110,44 +122,72 @@ export class AssistantCapabilityService {
             models: [],
             canInstall: true
         }
-        result.requiresModel = template.requiresModelSelection === true || result.requiredModelFeatures.length > 0
-        if (!active.length && !result.requiresModel) return result
+        const draft = installationDraft ?? parseCapabilityTemplateDraft(template.export_data)
+        // Model requirements constrain the catalog; omitting them must not hide model selection for Assistants.
+        result.requiresModel =
+            template.requiresModelSelection === true ||
+            result.requiredModelFeatures.length > 0 ||
+            template.type === XpertTypeEnum.Agent ||
+            template.type === XpertTypeEnum.Copilot ||
+            draft.nodes.some((node) => node.type === 'agent')
+        if (!active.length && !result.requiresModel) return { setup: result, copilots: [] }
         if (!RequestContext.currentTenantId() || !RequestContext.getOrganizationId()) {
             throw new BadRequestException(t('server-ai:Error.TemplateCapabilityOrganizationRequired'))
         }
-        const draft = installationDraft ?? parseCapabilityTemplateDraft(template.export_data)
         for (const provider of active) {
             const availability = await provider.check({ template, draft, language, sandboxProviders })
             if (!availability.available)
                 return {
-                    ...result,
-                    canInstall: false,
-                    reason:
-                        availability.reason ??
-                        t('server-ai:Error.TemplateCapabilityUnavailable', { capability: provider.key })
+                    setup: {
+                        ...result,
+                        canInstall: false,
+                        reason:
+                            availability.reason ??
+                            t('server-ai:Error.TemplateCapabilityUnavailable', { capability: provider.key })
+                    },
+                    copilots: []
                 }
         }
         if (active.some((provider) => provider.key === 'realtime-voice'))
             result.realtimeModels = await this.realtimeCatalog.list()
-        if (!result.requiresModel) return result
+        if (!result.requiresModel) return { setup: result, copilots: [] }
         const copilots = await this.queries.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM)
         )
-        result.models = copilots.flatMap((copilot) =>
-            copilot.providerWithModels.models
-                .filter((model) =>
-                    result.requiredModelFeatures.every(
-                        (feature) =>
-                            model.features?.includes(feature) ||
-                            (feature === ModelFeature.TOOL_CALL &&
-                                model.features?.includes(ModelFeature.MULTI_TOOL_CALL))
-                    )
-                )
-                .map((model) => templateModelOption(copilot, model, RequestContext.getLanguageCode()))
+        const eligible = copilots.map(
+            (copilot) =>
+                new CopilotWithProviderDto({
+                    ...copilot,
+                    providerWithModels: {
+                        ...copilot.providerWithModels,
+                        models: copilot.providerWithModels.models.filter((model) =>
+                            result.requiredModelFeatures.every(
+                                (feature) =>
+                                    model.features?.includes(feature) ||
+                                    (feature === ModelFeature.TOOL_CALL &&
+                                        model.features?.includes(ModelFeature.MULTI_TOOL_CALL))
+                            )
+                        )
+                    }
+                })
         )
-        return result.models.length
-            ? result
-            : { ...result, canInstall: false, reason: t('server-ai:Error.TemplateCapabilityModelRequired') }
+        result.models = eligible.flatMap((copilot) =>
+            copilot.providerWithModels.models.map((model) =>
+                templateModelOption(copilot, model, RequestContext.getLanguageCode())
+            )
+        )
+        const preferred =
+            findAvailableLlmSelection(eligible, draft.team.copilotModel) ?? findDefaultLlmSelection(eligible)
+        result.defaultModelId = result.models.find(
+            (option) =>
+                option.copilotModel.copilotId === preferred?.copilotId && option.copilotModel.model === preferred?.model
+        )?.id
+        return {
+            setup: result.models.length
+                ? result
+                : { ...result, canInstall: false, reason: t('server-ai:Error.TemplateCapabilityModelRequired') },
+            copilots: eligible
+        }
     }
 
     async prepareInstallation(
@@ -159,19 +199,32 @@ export class AssistantCapabilityService {
         sandboxProviders: { type: string }[]
     ) {
         // Re-query runtime and governed models immediately before import. Never trust the UI preflight.
-        const check = await this.setup(template, language, selected, sandboxProviders, draft)
+        const { setup: check, copilots } = await this.resolveSetup(
+            template,
+            language,
+            selected,
+            sandboxProviders,
+            draft
+        )
         if (!check.canInstall) throw new BadRequestException(check.reason)
         if (!check.requiresModel) return
-        const choice = check.models.find(
-            (item) =>
-                item.copilotModel.copilotId === model?.copilotId &&
-                item.copilotModel.model === model?.model &&
-                (!model?.modelType || model.modelType === AiModelTypeEnum.LLM)
-        )
+        const preferred =
+            findAvailableLlmSelection(copilots, draft.team.copilotModel) ?? findDefaultLlmSelection(copilots)
+        const choice = model !== undefined ? findAvailableLlmSelection(copilots, model) : preferred
         if (!choice) throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
-        draft.team.copilotModel = choice.copilotModel
+        // The selector returns only model identity; retain server-side options when that identity is unchanged.
+        draft.team.copilotModel =
+            model?.options === undefined &&
+            preferred?.copilotId === choice.copilotId &&
+            preferred.model === choice.model
+                ? { ...preferred, ...choice }
+                : choice
         const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
-        if (primary?.type === 'agent') primary.entity.copilotModel = null
+        if (
+            primary?.type === 'agent' &&
+            (model !== undefined || !findAvailableLlmSelection(copilots, primary.entity.copilotModel))
+        )
+            primary.entity.copilotModel = null
     }
 
     async configureRealtimeVoice(draft: TXpertTeamDraft, selection?: RealtimeVoiceSelection) {

@@ -27,6 +27,13 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
 - Ensure clearer boundaries of responsibilities.
 
+### Environment variables and configuration
+
+- Manage environment variables in `@xpert-ai/server-config` (`packages/config`): read and normalize them at the configuration/bootstrap boundary and map them to typed configuration fields. Backend business services and helpers must use `import { getConfig } from '@xpert-ai/server-config'` and read those fields; do not read or write `process.env` or load `.env` files directly in business code.
+- Add new settings to `IPluginConfig` or its nested interfaces and wire their environment mapping in the shared configuration loader. Keep development and production behavior consistent with their existing configuration sources; do not maintain a second environment parser in a consumer.
+- Derive storage subdirectories from the existing `getConfig().assetOptions.dataPath`, rather than duplicating `/var/lib/xpert/data` or adding unnecessary deployment variables. Read effective configuration when the operation runs so bootstrap overrides through `setConfig()` are respected.
+- Business tests should mock `getConfig()` or use `setConfig()` with configuration restored afterward. Restrict environment mutation to configuration-boundary tests and test-runner setup; verify environment-to-config mapping separately from business behavior.
+
 ### Subfeature organization
 
 - A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.
@@ -35,13 +42,22 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 ### Dependency injection and service boundaries
 
 - Declare ordinary service dependencies through constructor injection and explicit module `imports`/`exports`. Do not use generic `ModuleRef.get(..., { strict: false })` helpers or string-based service lookup to hide static dependencies; missing providers should fail during module initialization.
-- For shared operations across domains, prefer an existing typed CQRS entry point or define a focused Command/Query and Handler in the owning domain. Follow the Shared CQRS operations guidance below; keep authorization policy with the capability that owns it.
+- For shared operations across domains within the platform server container, prefer an existing typed CQRS entry point or define a focused Command/Query and Handler in the owning domain. Follow the Shared CQRS operations guidance below; keep authorization policy with the capability that owns it.
 - Controllers and business callers must invoke concrete business methods. Do not expose public `service<T>()`, `resources()` or similar getters that return underlying service instances and turn a business service into a general-purpose service locator.
 - Resolve circular dependencies by reviewing module boundaries, extracting cohesive shared capabilities, or moving operations to their owning domain. Do not use `strict: false` to conceal a dependency cycle. Verify module wiring with dependency-injection tests when changing these boundaries.
 
+### Plugin SDK to platform runtime boundary
+
+- Decide whether to expose a Runtime Capability by its consumers: use it for APIs consumed by external plugins. Platform-internal services and factories use NestJS constructor injection and explicit module `imports`/`exports`; do not register them as Capabilities or export them from the plugin SDK merely to decouple internal modules or reuse functionality.
+- Default to not adding SDK `Capability` APIs. Introduce one only for a concrete external plugin requirement that existing public APIs or typed execution/View context cannot satisfy; identify the consumer and the missing operation. Reuse existing interfaces and context fields first. Do not add Capability APIs, factory interfaces or registry entries merely for architectural symmetry, abstraction or hypothetical future consumers.
+- Do not expose or invoke platform functionality across the SDK/plugin boundary through CQRS Command/Query classes or plugin-side CommandBus/QueryBus dispatch. The host and a plugin can load separate copies of the SDK or `@nestjs/cqrs`; identical class names do not guarantee the same constructor, handler metadata or bus instance.
+- For plugin-facing APIs, expose typed Runtime Capability interfaces keyed by stable string IDs, resolve them through the host-provided capability registry, and invoke the provided API methods directly. Do not use class identity or `instanceof` for cross-package capability lookup.
+- For identity-scoped APIs, a platform-internal NestJS service or factory captures trusted execution/View scope and supplies the bound Runtime capability to the plugin. Scope binding alone does not justify a separate Factory Capability; keep host-only factories internal. Plugin operations must not let tool input override the API's bound tenant, organization, owner or Assistant identity. A capability still enforces its own authorization; resolving installation metadata alone is not an access grant.
+- CQRS remains permitted behind the capability implementation for platform-internal calls using the platform's own module/container. Keep those Command/Query contracts and dispatch inside the host; do not export them from the SDK as a plugin-to-platform bridge. Test cross-copy capability resolution and per-invocation identity isolation when changing this boundary.
+
 ### Shared CQRS operations
 
-- When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
+- Within the platform server container, when a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
 - Keep reusable policy decisions, including role-specific exceptions, inside the owning capability. Business callers supply trusted scope, handle the result using their domain errors, and retain their action and resource authorization checks.
 - Keep Command JSDoc brief: describe purpose, when to use the command, and essential responsibility boundaries. Let types express inputs and results; avoid detailed Returns sections, error inventories, and Handler implementation details such as database queries or branching rules. Document non-obvious implementation constraints in the Handler when needed.
 - Keep small, single-entry API usage guidance in the Command comments and general design principles in this guide. Add a separate feature document only when it provides material beyond those two sources.
@@ -122,6 +138,13 @@ Rationale: keep simple cases concise, and complex cases structured and maintaina
 
 - Run targeted tests when possible; otherwise state when not run.
 - Validate forms with Angular `Validators`, show errors via Toastr and `getErrorMessage`.
+
+### Assistant dependency compatibility
+
+- Installation and publication preparation use exact dependency snapshots to detect concurrent source changes. Keep this check separate from the published Assistant's runtime availability check.
+- Automatically recorded plugin versions and resource hashes are provenance, not compatibility requirements. Ordinary drift should recommend an update without stopping a run or rewriting the Assistant's graph, models, tools or resources. Do not infer breaking changes from version segments alone.
+- Preserve explicit template version requirements, actual resource/provider availability and ownership, scoped authorization, and verification of immutable agent-plugin artifacts. Report the specific dependency and reason when execution must stop; do not describe every failure as a version mismatch.
+- Plugin deployment, optional Assistant upgrades and fresh business acceptance are separate release facts. A compatible plugin update does not require republishing every Assistant, and API health alone does not establish business acceptance.
 
 ## UX Notes
 

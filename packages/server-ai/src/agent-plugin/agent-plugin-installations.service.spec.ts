@@ -22,12 +22,31 @@ jest.mock('../skill-package/skill-package.entity', () => ({ SkillPackage: class 
 jest.mock('../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 jest.mock('../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))
 
-type ScopedRecord = { id?: string; tenantId?: string; organizationId?: string; version?: string; enabled?: boolean }
+type ScopedRecord = {
+    id?: string
+    tenantId?: string
+    organizationId?: string
+    version?: string
+    enabled?: boolean
+    descriptor?: AgentPluginPackage['descriptor']
+    definition?: AgentResourceBinding['definition']
+}
 type Where = { [key in keyof ScopedRecord]?: ScopedRecord[key] | FindOperator<string> }
 function matches(record: ScopedRecord, where: Where) {
     return Object.entries(where).every(([key, value]) => {
         const actual = record[key as keyof ScopedRecord]
-        return value instanceof FindOperator && value.type === 'isNull' ? actual == null : actual === value
+        if (value instanceof FindOperator) {
+            if (value.type === 'isNull') return actual == null
+            if (value.type === 'in') return typeof actual === 'string' && value.value.includes(actual)
+            if (value.type === 'raw' && key === 'descriptor')
+                return record.descriptor?.name === value.objectLiteralParameters.packageName
+            if (value.type === 'raw' && key === 'definition')
+                return (
+                    record.definition?.kind === 'agent_plugin' &&
+                    value.objectLiteralParameters.packageIds.includes(record.definition.packageId)
+                )
+        }
+        return actual === value
     })
 }
 
@@ -50,7 +69,10 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     let workspaceUpdate: jest.Mock
     let lock: jest.Mock
     let assistantAccess: jest.Mock
+    let findPackages: jest.Mock
+    let findBindings: jest.Mock
     let manager: {
+        getRepository: jest.Mock
         query: jest.Mock
         findOneBy: jest.Mock
         save: jest.Mock
@@ -97,13 +119,14 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             .mockImplementation(async (_component, workspaceId) => ({ runtimeId: `skill-${workspaceId}` }))
         connectorReferences = jest.fn().mockResolvedValue({})
         assistantAccess = jest.fn().mockResolvedValue(assistant)
-        const findPackages = jest.fn(async ({ where }: { where: Where | Where[] }) =>
+        findPackages = jest.fn(async ({ where }: { where: Where | Where[] }) =>
             packages.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
-        const findBindings = jest.fn(async ({ where }: { where: Where | Where[] }) =>
+        findBindings = jest.fn(async ({ where }: { where: Where | Where[] }) =>
             records.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
         manager = {
+            getRepository: jest.fn((entity) => ({ find: entity === AgentPluginPackage ? findPackages : findBindings })),
             query: lock,
             findOneBy: jest.fn(async (_type, where) => records.find((record) => matches(record, where)) ?? null),
             save: jest.fn(async (_type, record: AgentResourceBinding) => {
@@ -120,6 +143,19 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         }
         const packageRepository = {
             find: findPackages,
+            createQueryBuilder: () => {
+                let where: Where | Where[]
+                const query = {
+                    select: () => query,
+                    addSelect: () => query,
+                    where: (value: Where | Where[]) => {
+                        where = value
+                        return query
+                    },
+                    getRawMany: () => findPackages({ where })
+                }
+                return query
+            },
             manager: { getRepository: () => ({ update: workspaceUpdate }) }
         } as unknown as Repository<AgentPluginPackage>
         const bindingRepository = {
@@ -132,7 +168,10 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             packageRepository,
             bindingRepository,
             { installRuntimeComponent: install } as unknown as PluginResourceInstallerService,
-            { runtimeBindings: connectorReferences } as unknown as AgentPluginConnectorService
+            {
+                runtimeBindings: connectorReferences,
+                runtimeBindingsBatch: jest.fn().mockResolvedValue(new Map())
+            } as unknown as AgentPluginConnectorService
         )
         const dependencies = new Map<unknown, unknown>([
             [AgentMiddlewareRegistry, { get: () => ({ meta: {} }), list: () => [] }],
@@ -153,6 +192,83 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
+    it('loads and describes only the sorted page while preserving filtered totals and scope precedence', async () => {
+        const original = packages[0]
+        packages = ['c-visible', 'a-hidden', 'b-visible', 'd-visible'].map((name, index) => ({
+            ...original,
+            id: `package-${index}`,
+            descriptor: {
+                ...original.descriptor,
+                name,
+                extension: { version: 2, role: index === 1 ? 'assistant' : 'capability' }
+            }
+        }))
+        const details = jest.spyOn(installations, 'catalogPackages')
+        const connectors = jest.spyOn(installations, 'catalogConnectorReferences')
+        const result = await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 1, limit: 1 })
+        expect(result.total).toBe(3)
+        expect(result.items.map(({ title }) => title)).toEqual(['c-visible'])
+        expect(details).toHaveBeenCalledWith(['package-0'])
+        expect(connectors.mock.calls[0][0].map(({ pkg }) => pkg.id)).toEqual(['package-0'])
+        await runtime.catalog('assistant', { kind: 'agent_plugin', search: 'no-match', limit: 1 })
+        expect(details).toHaveBeenLastCalledWith([])
+    })
+
+    it('narrows targeted inventory reads while retaining organization overrides and immediate revocation', async () => {
+        const organization = packages[0]
+        const tenant = { ...organization, id: 'tenant-package', organizationId: null }
+        const unrelated = {
+            ...organization,
+            id: 'unrelated',
+            descriptor: { ...organization.descriptor, name: 'other' }
+        }
+        packages.push(tenant, unrelated, { ...organization, id: 'hidden', organizationId: 'other-org' })
+        records.push(importedPluginBinding(organization), importedPluginBinding(unrelated))
+        expect((await installations.installedCatalog(undefined, 'documents')).map(({ pkg }) => pkg.id)).toEqual([
+            'package'
+        ])
+        expect(await findPackages.mock.results[0].value).toHaveLength(2)
+        expect(await findBindings.mock.results[0].value).toHaveLength(1)
+        records[0].enabled = false
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].binding.enabled).toBe(false)
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].pkg.id).toBe(organization.id)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('different-org')
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].pkg.id).toBe(tenant.id)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('different-tenant')
+        expect(await installations.installedCatalog(undefined, 'documents')).toEqual([])
+    })
+
+    it('skips binding queries when no package with the requested name is visible', async () => {
+        expect(await installations.installedCatalog(undefined, 'missing')).toEqual([])
+        expect(findBindings).not.toHaveBeenCalled()
+    })
+
+    it('selects the same version and legacy workspace binding with a package filter as with the full inventory', async () => {
+        const older = packages[0]
+        const newer = { ...older, id: 'newer', digest: 'newer-digest', createdAt: new Date('2026-10-02') }
+        packages.push(newer, { ...older, id: 'unrelated', descriptor: { ...older.descriptor, name: 'unrelated' } })
+        const legacy = {
+            ...importedPluginBinding(older),
+            id: 'legacy',
+            workspaceIds: ['workspace'],
+            definition: { kind: 'agent_plugin' as const, packageId: older.id, experts: {} }
+        }
+        records.push(legacy)
+        const targeted = () => installations.installedCatalog('workspace', 'documents')
+        const full = async () =>
+            (await installations.installedCatalog('workspace')).filter(({ pkg }) => pkg.descriptor.name === 'documents')
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].pkg.id).toBe(newer.id)
+        const configured = { ...importedPluginBinding(newer), enabled: false }
+        records.push(configured)
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].binding.enabled).toBe(false)
+        packages.splice(packages.indexOf(newer), 1)
+        records.splice(records.indexOf(configured), 1)
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].binding.id).toBe(legacy.id)
+    })
+
     const selected = (binding: AgentResourceBinding) => ({
         revision: 3,
         resources: [{ bindingId: binding.id, version: binding.version }]
@@ -166,6 +282,108 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(install).not.toHaveBeenCalled()
         expect(manager.save).not.toHaveBeenCalled()
         expect(JSON.stringify(result)).not.toMatch(/rootPath|tenantId|organizationId|connectorServers/)
+    })
+    it('offers a template-only package and lists each template without provisioning', async () => {
+        packages[0].descriptor.skills = []
+        packages[0].descriptor.templates = [
+            { key: 'reviewer', path: 'reviewer.json' },
+            { key: 'writer', path: 'writer.json' }
+        ]
+        packages[0].descriptor.templateCatalog = {
+            reviewer: {
+                name: 'reviewer',
+                title: 'Reviewer',
+                description: 'Review evidence',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            },
+            writer: {
+                name: 'writer',
+                title: 'Writer',
+                description: 'Write a report',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            }
+        }
+        const result = await runtime.catalog('assistant', { kind: 'agent_plugin' })
+        expect(result.items[0]).toMatchObject({
+            status: 'ready',
+            components: [
+                {
+                    kind: 'assistant_template',
+                    key: 'reviewer',
+                    title: 'Reviewer',
+                    description: 'Review evidence',
+                    status: 'ready'
+                },
+                {
+                    kind: 'assistant_template',
+                    key: 'writer',
+                    title: 'Writer',
+                    description: 'Write a report',
+                    status: 'ready'
+                }
+            ]
+        })
+        expect(install).not.toHaveBeenCalled()
+    })
+    it.each([undefined, 'capability', 'assistant', 'subagent'] as const)(
+        'filters only assistant role %p from candidates without changing installed or selected resources',
+        async (role) => {
+            packages[0].descriptor.extension = { version: 2, role }
+            const binding = importedPluginBinding(packages[0])
+            const reference = selected(binding)
+            const candidates = await runtime.catalog('assistant', { kind: 'agent_plugin' })
+            expect(candidates.total).toBe(role === 'assistant' ? 0 : 1)
+            expect(candidates.items).toHaveLength(candidates.total)
+            expect((await installations.catalog()).items).toHaveLength(1)
+            expect(await installations.installedCatalog()).toHaveLength(1)
+            const restored = await runtime.catalog('assistant', { purpose: 'selection' })
+            expect(restored.items[0]).toMatchObject({
+                bindingId: binding.id,
+                version: binding.version,
+                title: 'documents',
+                status: 'ready'
+            })
+            const resolved = await runtime.resolve('assistant', reference)
+            expect(resolved.selection).toEqual(reference)
+            expect(resolved.skillIds).toEqual(['skill-new-workspace'])
+        }
+    )
+    it('filters assistant-role candidates before search totals and pagination', async () => {
+        const original = packages[0]
+        packages = ['a-template', 'b-visible', 'c-template', 'd-visible'].map((name, index) => ({
+            ...original,
+            id: `package-${index}`,
+            descriptor: {
+                ...original.descriptor,
+                name,
+                extension: { version: 2, role: index % 2 === 0 ? 'assistant' : 'capability' }
+            }
+        }))
+        const page = await runtime.catalog('assistant', { offset: 1, limit: 1 })
+        expect(page.total).toBe(2)
+        expect(page.items.map((item) => item.title)).toEqual(['d-visible'])
+        expect(await runtime.catalog('assistant', { search: 'template' })).toEqual({ items: [], total: 0 })
+        expect((await runtime.catalog('assistant', { purpose: 'selection', search: 'template' })).total).toBe(2)
+    })
+    it('keeps a conversation pinned to its old package after an assistant-role upgrade', async () => {
+        const previous = packages[0]
+        const reference = selected(importedPluginBinding(previous))
+        await runtime.resolve('assistant', reference)
+        packages.unshift({
+            ...previous,
+            id: 'assistant-upgrade',
+            digest: 'new-digest',
+            createdAt: new Date('2026-10-02'),
+            descriptor: { ...previous.descriptor, extension: { version: 2, role: 'assistant' } }
+        })
+        expect(await runtime.catalog('assistant', { kind: 'agent_plugin' })).toEqual({ items: [], total: 0 })
+        expect((await runtime.resolve('assistant', reference)).selection).toEqual(reference)
+        expect((await installations.reference(reference.resources[0])).pkg.id).toBe(previous.id)
+        expect(install).toHaveBeenCalledTimes(1)
+        records.push({ ...importedPluginBinding(packages[0]), enabled: false })
+        await expect(runtime.resolve('assistant', reference)).rejects.toThrow()
     })
     it('prepares only the selected plugin without workspace editor permissions and reuses the result', async () => {
         const binding = importedPluginBinding(packages[0])
@@ -197,6 +415,15 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(workspaceUpdate).toHaveBeenLastCalledWith(
             { ...scope, organizationId: 'second-org', id: 'skill-second' },
             expect.anything()
+        )
+    })
+    it('reserves automatic template references without changing their identity or version', async () => {
+        const original = { ...importedPluginBinding(packages[0]), cleanupEligible: true }
+        records.push(original)
+        await installations.retainTemplateReference({ bindingId: original.id, version: original.version })
+        expect(manager.save).toHaveBeenCalledWith(
+            AgentResourceBinding,
+            expect.objectContaining({ id: original.id, version: original.version, cleanupEligible: false })
         )
     })
     it('preserves old conversation IDs, versions and existing installations', async () => {

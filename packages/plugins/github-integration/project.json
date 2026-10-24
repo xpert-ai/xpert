@@ -1,0 +1,40 @@
+{
+  "name": "github-integration",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/github-integration/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/github-integration",
+        "main": "packages/plugins/github-integration/src/index.ts",
+        "tsConfig": "packages/plugins/github-integration/tsconfig.lib.json",
+        "assets": [
+          {
+            "glob": "README.md",
+            "input": "packages/plugins/github-integration",
+            "output": "."
+          },
+          {
+            "glob": "**/*",
+            "input": "packages/plugins/github-integration/docs",
+            "output": "docs"
+          }
+        ],
+        "project": "packages/plugins/github-integration/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"],
+        "external": ["@nestjs/common", "@nestjs/core", "@xpert-ai/contracts", "@xpert-ai/plugin-sdk", "i18next", "zod"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "options": {
+        "jestConfig": "packages/plugins/github-integration/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

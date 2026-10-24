@@ -10,6 +10,8 @@ import { Observable } from 'rxjs'
 
 export interface XpertChatStreamPersistenceOptions {
     transport: 'redis-stream'
+    snapshotOwner?: string
+    snapshotScope?: { tenantId: string; organizationId?: string | null }
     threadId?: string | null
     runId?: string | null
 }

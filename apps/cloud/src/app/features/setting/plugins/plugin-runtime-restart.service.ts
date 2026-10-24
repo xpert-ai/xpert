@@ -1,3 +1,7 @@
+/**
+ * Waiting for restart approval retains the generation and continues polling: capacity can recover automatically.
+ * Automatic convergence and manual restart entries stay separate so one completion cannot clear unrelated work.
+ */
 import { HttpErrorResponse } from '@angular/common/http'
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { getErrorMessage, injectUser } from '@cloud/app/@core'
@@ -11,7 +15,7 @@ import {
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
-import { catchError, filter, firstValueFrom, map, of, switchMap, take, throwError, timer } from 'rxjs'
+import { catchError, filter, firstValueFrom, map, of, switchMap, take, takeWhile, throwError, timer } from 'rxjs'
 
 const STORAGE_KEY = 'xpert:plugins:runtime-restart-required:v1'
 const CONVERGENCE_STORAGE_KEY = 'xpert:plugins:runtime-convergence:v1'
@@ -22,6 +26,7 @@ export interface PendingPluginRuntimeRestart {
   requestedAt: string
   restartId?: string
   generation?: number
+  awaitingRestart?: boolean
   runtimeRequirements?: IRuntimePluginRequirement[]
   error?: string
 }
@@ -35,6 +40,7 @@ interface PendingPluginRuntimeConvergence {
   pluginNames: string[]
   requestedAt: string
   generation: number
+  awaitingRestart?: boolean
   runtimeRequirements: IRuntimePluginRequirement[]
 }
 
@@ -52,13 +58,13 @@ export class PluginRuntimeRestartService {
   readonly completedRevision = signal(0)
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
   readonly requiresManualRestart = computed(
-    () => !!this.pending() && !this.pending()?.restartId && !this.pending()?.generation
+    () => !this.hasActiveRestart() && (!!this.pending() || this.convergence()?.awaitingRestart === true)
   )
   readonly showManualRestart = computed(
     () => this.#currentUser()?.role?.name === RolesEnum.SUPER_ADMIN && this.requiresManualRestart()
   )
   readonly isApplyingInBackground = computed(
-    () => !!this.convergence() || !!this.pending()?.restartId || !!this.pending()?.generation
+    () => (!!this.convergence() && !this.convergence()?.awaitingRestart) || this.hasActiveRestart()
   )
   readonly lastError = computed(() => this.pending()?.error ?? null)
   readonly backgroundPluginNames = computed(() =>
@@ -77,7 +83,14 @@ export class PluginRuntimeRestartService {
         return 'XP.Plugin.RestartAdminRequired'
     }
   })
-  readonly pendingPluginNames = computed(() => this.pending()?.pluginNames ?? [])
+  readonly pendingPluginNames = computed(() =>
+    Array.from(
+      new Set([
+        ...(this.pending()?.pluginNames ?? []),
+        ...(this.convergence()?.awaitingRestart ? this.convergence()!.pluginNames : [])
+      ])
+    )
+  )
 
   #prompting = false
 
@@ -137,7 +150,7 @@ export class PluginRuntimeRestartService {
   }
 
   async prompt() {
-    if (!this.canRestart() || this.#prompting || this.pending()?.restartId || this.pending()?.generation) {
+    if (!this.canRestart() || this.#prompting || this.hasActiveRestart()) {
       return
     }
 
@@ -163,7 +176,7 @@ export class PluginRuntimeRestartService {
   }
 
   async confirmAndRestart() {
-    if (!this.canRestart() || this.pending()?.restartId || this.pending()?.generation) {
+    if (!this.canRestart() || this.hasActiveRestart()) {
       return
     }
 
@@ -182,7 +195,8 @@ export class PluginRuntimeRestartService {
         maskClosable: false
       })
     )
-    if (!confirmed) {
+    // Capacity may have recovered and completed this release while the confirmation dialog was open.
+    if (!confirmed || !this.requiresManualRestart()) {
       return
     }
 
@@ -199,6 +213,8 @@ export class PluginRuntimeRestartService {
   }
 
   private async startRestartInBackground() {
+    const waiting = this.convergence()
+    if (waiting?.awaitingRestart) this.convertConvergenceToManualRestart(waiting.generation)
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
@@ -221,6 +237,7 @@ export class PluginRuntimeRestartService {
     if (pending) {
       const current = { ...pending }
       delete current.error
+      delete current.awaitingRestart
       this.setPending({ ...current, generation })
     }
     void this.monitorPendingGeneration(generation)
@@ -231,6 +248,7 @@ export class PluginRuntimeRestartService {
     if (pending) {
       const current = { ...pending }
       delete current.error
+      delete current.awaitingRestart
       this.setPending({ ...current, restartId })
     }
     void this.monitorRestart(restartId, initialDelay)
@@ -255,12 +273,17 @@ export class PluginRuntimeRestartService {
 
   private async monitorPluginConvergence(generation: number) {
     try {
-      const status = await this.pollPluginConvergence(generation)
-      if (status.status === 'awaiting_restart') {
-        this.convertConvergenceToManualRestart(generation)
-        return
-      }
-      if (this.convergence()?.generation === generation) {
+      const status = await this.pollPluginConvergence(
+        generation,
+        () => this.convergence()?.generation === generation,
+        (awaitingRestart) => {
+          const current = this.convergence()
+          if (current?.generation === generation && !!current.awaitingRestart !== awaitingRestart) {
+            this.setConvergence({ ...current, awaitingRestart })
+          }
+        }
+      )
+      if (status && this.convergence()?.generation === generation) {
         this.setConvergence(null)
         this.completedRevision.update((revision) => revision + 1)
       }
@@ -291,14 +314,17 @@ export class PluginRuntimeRestartService {
 
   private async monitorPendingGeneration(generation: number) {
     try {
-      const status = await this.pollPluginConvergence(generation)
-      if (status.status === 'awaiting_restart' && this.pending()?.generation === generation) {
-        const pending = { ...this.pending()! }
-        delete pending.generation
-        this.setPending(pending)
-        return
-      }
-      if (this.pending()?.generation === generation) {
+      const status = await this.pollPluginConvergence(
+        generation,
+        () => this.pending()?.generation === generation,
+        (awaitingRestart) => {
+          const current = this.pending()
+          if (current?.generation === generation && !!current.awaitingRestart !== awaitingRestart) {
+            this.setPending({ ...current, awaitingRestart })
+          }
+        }
+      )
+      if (status && this.pending()?.generation === generation) {
         this.clearPending()
         this.completedRevision.update((revision) => revision + 1)
       }
@@ -307,14 +333,26 @@ export class PluginRuntimeRestartService {
       if (current?.generation === generation) {
         const retryable = { ...current, error: getErrorMessage(error) }
         delete retryable.generation
+        delete retryable.awaitingRestart
         this.setPending(retryable)
       }
     }
   }
 
-  private async pollPluginConvergence(generation: number) {
+  private hasActiveRestart() {
+    const pending = this.pending()
+    return !!pending?.restartId || (!!pending?.generation && !pending.awaitingRestart)
+  }
+
+  private async pollPluginConvergence(
+    generation: number,
+    isCurrent: () => boolean,
+    updateWaiting: (waiting: boolean) => void
+  ) {
     return await firstValueFrom(
       timer(0, RESTART_POLL_MS).pipe(
+        // Superseded generations no longer own UI state; stop their polling instead of retaining orphan timers.
+        takeWhile(isCurrent),
         switchMap(() =>
           this.#runtimeControlAPI
             .pluginConvergenceStatus(generation)
@@ -324,11 +362,14 @@ export class PluginRuntimeRestartService {
           if (status?.status === 'failed') {
             throw new Error(status.error || 'Plugin runtime convergence failed')
           }
-          return status?.status === 'completed' || status?.status === 'awaiting_restart' ? status : null
+          // Awaiting restart is actionable but nonterminal; only completion or failure ends tracking.
+          if (status && isCurrent()) updateWaiting(status.status === 'awaiting_restart')
+          return status?.status === 'completed' ? status : null
         }),
         filter((status) => status !== null),
         take(1)
-      )
+      ),
+      { defaultValue: null }
     )
   }
 
@@ -465,6 +506,7 @@ export class PluginRuntimeRestartService {
         requestedAt: parsed.requestedAt,
         ...(typeof parsed.restartId === 'string' ? { restartId: parsed.restartId } : {}),
         ...(typeof parsed.generation === 'number' ? { generation: parsed.generation } : {}),
+        ...(parsed.awaitingRestart === true ? { awaitingRestart: true } : {}),
         ...(typeof parsed.error === 'string' ? { error: parsed.error } : {}),
         ...(Array.isArray(parsed.runtimeRequirements)
           ? { runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[] }
@@ -493,6 +535,7 @@ export class PluginRuntimeRestartService {
         pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
         requestedAt: parsed.requestedAt,
         generation: parsed.generation,
+        ...(parsed.awaitingRestart === true ? { awaitingRestart: true } : {}),
         runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[]
       }
     } catch {

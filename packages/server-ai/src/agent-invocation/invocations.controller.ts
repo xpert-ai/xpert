@@ -49,7 +49,8 @@ export class AgentInvocationsController {
         const entity = await this.records.findOneBy({ id, ownerId, tenantId, organizationId })
         if (
             !entity ||
-            (!entity.invocation.scope.callerXpertId && entity.invocation.scope.callerType !== 'project_agent')
+            (!entity.invocation.scope.callerXpertId &&
+                !['project_agent', 'project_pipeline'].includes(entity.invocation.scope.callerType))
         )
             throw invocationError('NotFound')
         const scope = entity.invocation.scope

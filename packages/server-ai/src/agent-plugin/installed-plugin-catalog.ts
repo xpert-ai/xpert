@@ -2,10 +2,11 @@ import { resolveI18nText } from '@xpert-ai/contracts'
 // Package imports are scope installations. Legacy bindings retain their exact references
 // and per-workspace configuration; workspace membership no longer controls plugin visibility.
 import { createHash } from 'node:crypto'
-import type { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
+import type { AgentResourceBinding } from './agent-plugin.entity'
 import type { AgentPluginScope } from './agent-plugin-scope'
+import type { InstalledPluginInventoryPackage } from './installed-plugin-inventory'
 
-export function importedPluginBinding(pkg: AgentPluginPackage, language?: string): AgentResourceBinding {
+export function importedPluginBinding(pkg: InstalledPluginInventoryPackage, language?: string): AgentResourceBinding {
     const key = createHash('sha256').update(`installed-agent-plugin:${pkg.tenantId}:${pkg.id}`).digest('hex')
     const id = `${key.slice(0, 8)}-${key.slice(8, 12)}-5${key.slice(13, 16)}-8${key.slice(17, 20)}-${key.slice(20, 32)}`
     const definition: AgentResourceBinding['definition'] = {
@@ -42,13 +43,13 @@ function newest(a: { createdAt?: Date; id?: string }, b: { createdAt?: Date; id?
 }
 
 export function installedPluginBindings(
-    packages: AgentPluginPackage[],
+    packages: InstalledPluginInventoryPackage[],
     bindings: AgentResourceBinding[],
     scope: AgentPluginScope,
     workspaceId?: string,
     language?: string
 ): AgentResourceBinding[] {
-    const groups = new Map<string, AgentPluginPackage[]>()
+    const groups = new Map<string, InstalledPluginInventoryPackage[]>()
     for (const pkg of [...packages].sort(newest)) {
         if (pkg.tenantId !== scope.tenantId || (pkg.organizationId && pkg.organizationId !== scope.organizationId))
             continue

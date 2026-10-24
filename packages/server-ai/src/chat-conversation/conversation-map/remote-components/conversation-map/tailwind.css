@@ -1,11 +1,8 @@
-@import 'tailwindcss';
-@import '../../../../../../shadcn-ui/src/styles.css';
+@import '@xpert-ai/shadcn-ui/styles.css';
 @import '@xyflow/react/dist/style.css';
 @source './src';
-@source '../../../../../../shadcn-ui/src';
 @custom-variant dark (&:where(.dark, .dark *));
 :root {
-    font-family: Inter, system-ui, sans-serif;
     color-scheme: light;
 }
 :root.dark {

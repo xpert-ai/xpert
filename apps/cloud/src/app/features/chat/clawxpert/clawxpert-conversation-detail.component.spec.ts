@@ -1,3 +1,4 @@
+import { registerWorkbenchCompatibilityTests } from './clawxpert-workbench-compatibility.test-cases'
 import { createFileArtifactTab, type WorkbenchArtifactTab } from './workbench-artifact-tabs'
 import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
 
@@ -60,6 +61,7 @@ jest.mock('../../../@core', () => ({
     .ChatConversationService,
   ViewExtensionApiService: class ViewExtensionApiService {},
   Store: class Store {},
+  GroupWorkbenchApiService: class GroupWorkbenchApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
     warning: jest.fn(),
@@ -332,6 +334,7 @@ import {
   AiThreadService,
   ArtifactService,
   ChatConversationService,
+  GroupWorkbenchApiService,
   IChatConversation,
   ViewExtensionApiService,
   Store
@@ -443,7 +446,7 @@ type MockChatKitRuntimeInput = {
   composer?: () => { projects?: { enabled?: boolean } }
   layout?: CreateChatKitOptions['layout']
   taskSummary?: CreateChatKitOptions['taskSummary']
-  workbench?: CreateChatKitOptions['workbench']
+  workbench?: () => CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onProjectChange?: (event: {
@@ -535,6 +538,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     xpertId: ReturnType<typeof signal<string | null>>
+    group: ReturnType<typeof signal<{ id: string } | null>>
     initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
     defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
@@ -571,6 +575,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   let viewExtensionApi: {
     getSlotViews: jest.Mock
   }
+  let groupWorkbenchApi: { getContext: jest.Mock }
   let skillTrialIntent: {
     peek: jest.Mock
     consume: jest.Mock
@@ -578,6 +583,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     clear: jest.Mock
   }
   let workbenchViewUrlState: {
+    viewClosed: ReturnType<typeof signal<boolean>>
     projectId: ReturnType<typeof signal<string | null>>
     viewKey: ReturnType<typeof signal<string | null>>
     viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
@@ -587,6 +593,19 @@ describe('ClawXpertConversationDetailComponent', () => {
   let hostEvents: ViewHostEventBus
   let projectApi: { availableForXpert: jest.Mock; create: jest.Mock }
   let projectPermissions: { userRolePermissions$: BehaviorSubject<[]>; hasPermission: jest.Mock }
+
+  registerWorkbenchCompatibilityTests(() => ({
+    manifests: (views) => viewExtensionApi.getSlotViews.mockReturnValue(of(views)),
+    manifest: buildFixedViewManifest,
+    projectId: facade.projectId,
+    defaultViewKey: facade.defaultViewKey,
+    viewKey: workbenchViewUrlState.viewKey,
+    viewQuery: workbenchViewUrlState.viewQuery,
+    workbench: () => getRuntimeInput().workbench?.(),
+    selectProject: facade.onChatProjectChange,
+    create: () => TestBed.createComponent(ClawXpertConversationDetailComponent),
+    settle
+  }))
 
   beforeEach(async () => {
     clearWorkbenchLayoutTestStorage()
@@ -601,6 +620,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const viewKey = signal<string | null>(null)
     const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
+      viewClosed: signal(false),
       projectId: viewProjectId,
       viewKey,
       viewQuery,
@@ -633,6 +653,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
+      group: signal<{ id: string } | null>(null),
       initialLayout: signal<XpertWorkbenchInitialLayoutEnum | null>(XpertWorkbenchInitialLayoutEnum.TwoColumns),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
@@ -724,6 +745,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
     }
+    groupWorkbenchApi = { getContext: jest.fn() }
     projectApi = {
       availableForXpert: jest.fn(() => of({ items: [], total: 0 })),
       create: jest.fn(() => of({ id: 'project-created', name: 'Launch project' }))
@@ -756,6 +778,10 @@ describe('ClawXpertConversationDetailComponent', () => {
           useValue: viewExtensionApi
         },
         {
+          provide: GroupWorkbenchApiService,
+          useValue: groupWorkbenchApi
+        },
+        {
           provide: XpertProjectApiService,
           useValue: projectApi
         },
@@ -780,6 +806,39 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.clearAllMocks()
   })
 
+  it('waits for the dedicated group context before discovering shared views', async () => {
+    const response = new Subject<{ assistantId: string; conversationId: string; projectId: string | null }>()
+    groupWorkbenchApi.getContext.mockReturnValue(response)
+    facade.group.set({ id: 'group-1' })
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(groupWorkbenchApi.getContext).toHaveBeenCalledWith('group-1')
+    expect(fixture.componentInstance.fixedViewHostId()).toBeNull()
+    expect(viewExtensionApi.getSlotViews).not.toHaveBeenCalled()
+
+    response.next({ assistantId: 'assistant-1', conversationId: 'shared-runtime', projectId: null })
+    await settle(fixture)
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
+      runtimeScope: { groupId: 'group-1', projectId: null, conversationId: 'shared-runtime' }
+    })
+    expect(fixture.componentInstance.fixedViewHostId()).toBe('assistant-1')
+  })
+
+  it('does not discover personal views after group context access is denied', async () => {
+    const response = new Subject<never>()
+    groupWorkbenchApi.getContext.mockReturnValue(response)
+    facade.group.set({ id: 'group-1' })
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    response.error(new Error('Forbidden'))
+    await settle(fixture)
+    expect(fixture.componentInstance.fixedViewHostId()).toBeNull()
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({ groupId: 'group-1' })
+    expect(viewExtensionApi.getSlotViews).not.toHaveBeenCalled()
+  })
+
   it('uses the configured two-column layout without opening the files tab while resolving conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -796,7 +855,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
-    expect(getRuntimeInput().workbench).toEqual({
+    expect(getRuntimeInput().workbench?.()).toEqual({
+      navigation: { projectId: null, view: null },
+      onNavigationChange: expect.any(Function),
       enabled: true,
       viewRail: { enabled: true },
       onClientCommand: expect.any(Function),
@@ -2403,20 +2464,22 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.onChatThreadChange.mockClear()
     facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
-    const result = await getRuntimeInput().workbench?.onClientCommand?.({
-      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      hostType: 'agent',
-      hostId: 'assistant-1',
-      viewKey: 'platform.project-tasks__timeline',
-      payload: {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
-        conversationId: 'job-conversation-1',
-        threadId: 'job-thread-1',
-        executionId: 'job-execution-1',
-        xpertId: 'spoofed-role-assistant',
-        projectId: 'case-project-1'
-      }
-    })
+    const result = await getRuntimeInput()
+      .workbench?.()
+      ?.onClientCommand?.({
+        commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'platform.project-tasks__timeline',
+        payload: {
+          target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+          conversationId: 'job-conversation-1',
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1',
+          xpertId: 'spoofed-role-assistant',
+          projectId: 'case-project-1'
+        }
+      })
     await settle(fixture)
 
     expect(result).toEqual({
@@ -2466,18 +2529,20 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
 
-    await getRuntimeInput().workbench?.onClientCommand?.({
-      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      hostType: 'agent',
-      hostId: 'role-assistant-current',
-      viewKey: 'platform.project-tasks__timeline',
-      payload: {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
-        conversationId: 'job-conversation-1',
-        threadId: 'job-thread-1',
-        executionId: 'job-execution-1'
-      }
-    })
+    await getRuntimeInput()
+      .workbench?.()
+      ?.onClientCommand?.({
+        commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        hostType: 'agent',
+        hostId: 'role-assistant-current',
+        viewKey: 'platform.project-tasks__timeline',
+        payload: {
+          target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+          conversationId: 'job-conversation-1',
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1'
+        }
+      })
     await settle(fixture)
     expect(getRuntimeInput().requestContext?.()).toEqual(
       expect.objectContaining({

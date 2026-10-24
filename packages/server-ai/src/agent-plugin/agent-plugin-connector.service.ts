@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { ConnectorStrategyRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import { ConnectorStrategyRegistry, RequestContext, type ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk'
 import type { AgentPluginConnectorAuth, AgentPluginConnectorBinding } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
@@ -124,6 +124,42 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         const providers = this.register(pkg, requirements, RequestContext.getOrganizationId())
         if (!providers.size) return {}
         const options = await this.connectors.runtimeOptions(assistantId)
+        return this.matchRuntimeBindings(providers, options, previous)
+    }
+
+    /** One fresh, authorized Connector snapshot per catalog request; never cache across actors or requests. */
+    async runtimeBindingsBatch(
+        entries: Array<{
+            pkg: AgentPluginPackage
+            requirements: { [server: string]: AgentPluginConnectorAuth }
+            previous?: { [server: string]: AgentPluginConnectorBinding }
+        }>,
+        assistantId: string
+    ) {
+        const prepared = entries.map((entry) => {
+            try {
+                return {
+                    ...entry,
+                    providers: this.register(entry.pkg, entry.requirements, RequestContext.getOrganizationId())
+                }
+            } catch {
+                return { ...entry, providers: new Map<string, string>() }
+            }
+        })
+        const result = new Map<string, { [server: string]: AgentPluginConnectorBinding }>()
+        if (!prepared.some(({ providers }) => providers.size)) return result
+        const options = await this.connectors.runtimeOptions(assistantId).catch(() => null)
+        if (!options) return result
+        for (const { pkg, providers, previous } of prepared)
+            result.set(pkg.id, this.matchRuntimeBindings(providers, options, previous))
+        return result
+    }
+
+    private matchRuntimeBindings(
+        providers: Map<string, string>,
+        options: ConnectorRuntimeOptions,
+        previous: { [server: string]: AgentPluginConnectorBinding } = {}
+    ) {
         const result: { [server: string]: AgentPluginConnectorBinding } = {}
         for (const [key, provider] of providers) {
             const existing = previous[key]

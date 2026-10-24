@@ -102,3 +102,30 @@ it('retains timeout diagnostics and retries after the shorter failure cache expi
     await provider.getBindingHealth(request)
     expect(run).toHaveBeenCalledTimes(4)
 })
+
+it('checks the complete LibreOffice preview dependency chain and preserves missing-tool diagnostics', async () => {
+    const previous = process.env.XPERT_LOCAL_LIBREOFFICE_PATH
+    process.env.XPERT_LOCAL_LIBREOFFICE_PATH = process.execPath
+    try {
+        const provider = new LocalBrowserRuntimeProvider()
+        const request = input(provider, 'document/libreoffice-v1')
+        const normalRun = run.getMockImplementation()
+        run.mockImplementation(async (command, args, options) =>
+            args.includes('--manifest')
+                ? normalRun(command, args, options)
+                : { ...success, exitCode: 1, output: 'SANDBOX_DEPENDENCY_MISSING: pdftotext ENOENT' }
+        )
+        expect(await provider.getBindingHealth(request)).toMatchObject({
+            available: false,
+            reason: expect.stringContaining('pdftotext ENOENT')
+        })
+        expect(run).toHaveBeenLastCalledWith(
+            expect.any(String),
+            [expect.stringContaining('verify-document-preview.mjs')],
+            expect.objectContaining({ timeoutMs: 60000 })
+        )
+    } finally {
+        if (previous === undefined) delete process.env.XPERT_LOCAL_LIBREOFFICE_PATH
+        else process.env.XPERT_LOCAL_LIBREOFFICE_PATH = previous
+    }
+})

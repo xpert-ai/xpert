@@ -1,8 +1,17 @@
 // Readiness is recomputed before writes. Loaded packages never imply that all their resources are selected.
-import { TemplateDependencyLock, TXpertTemplate, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import {
+    IXpert,
+    TemplateDependencyLock,
+    TemplateRequirementCheck,
+    TemplateRuntimeDependencyReport,
+    templateDependencyVersionsSchema,
+    TXpertTemplate,
+    XpertToolsetCategoryEnum,
+    XpertTemplatePluginToolsetDependency
+} from '@xpert-ai/contracts'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -20,15 +29,13 @@ import {
     InspectTemplateReadinessCommand
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
+import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
 import {
     ResolveAgentPluginTemplateDependencyCommand,
     AssertAgentPluginTemplateDependencyCommand
 } from '../../agent-plugin/templates/agent-plugin-template.command'
-
-const versionsSchema = z
-    .array(z.object({ pluginName: z.string().min(1).max(214), version: z.string().min(1).max(100) }).strict())
-    .max(100)
 
 @Injectable()
 export class TemplateReadinessService {
@@ -44,13 +51,56 @@ export class TemplateReadinessService {
         private readonly commands: CommandBus
     ) {}
 
-    async inspect(template: TXpertTemplate, workspaceId?: string) {
+    async inspect(template: TXpertTemplate, workspaceId?: string, installedAssistant?: IXpert) {
         if (workspaceId) await this.workspaces.assertCanAuthor(workspaceId)
+        if (installedAssistant && installedAssistant.workspaceId !== workspaceId) {
+            throw new BadRequestException('Installed Assistant workspace does not match template inspection')
+        }
+        return this.inspectRequirements(template, workspaceId, undefined, installedAssistant)
+    }
+
+    /** Runtime access is checked separately from authoring; run-only users can delegate templates. */
+    async prepareRuntime(
+        template: TXpertTemplate,
+        assistantId: string,
+        workspaceId: string,
+        expected?: TemplateDependencyLock[],
+        projectId?: string,
+        sandboxProvider?: string
+    ) {
+        await this.commands.execute(
+            projectId
+                ? new AssertProjectAssistantAccessCommand(projectId, assistantId)
+                : new ResolveAssistantFileAccessCommand(assistantId, 'capabilities', 'runtime')
+        )
+        const result = await this.inspectRequirements(template, workspaceId, { sandboxProvider })
+        if (expected && installationHash(expected) !== installationHash(result.readiness.dependencies))
+            throw new InstallationSourceChangedError()
+        if (!result.readiness.canInstall) {
+            const check = result.readiness.checks.find(
+                (check) => check.required && !['ready', 'pending-configuration'].includes(check.status)
+            )
+            throw new BadRequestException(
+                t('server-ai:Error.TemplateSubagentDependencyUnavailable', {
+                    dependency: check?.key,
+                    status: check?.status
+                })
+            )
+        }
+        return result
+    }
+
+    private async inspectRequirements(
+        template: TXpertTemplate,
+        workspaceId?: string,
+        runtime?: { sandboxProvider?: string },
+        installedAssistant?: IXpert
+    ) {
         const result = inspectTemplateManifest(template)
         const { readiness, manifest, normalized } = result
         const components: RuntimeComponent[] = []
         const dependencies = normalized?.dependencies ?? template.dependencies
-        const parsedVersions = versionsSchema.safeParse(dependencies?.versions ?? [])
+        const parsedVersions = templateDependencyVersionsSchema.safeParse(dependencies?.versions ?? [])
         if (!parsedVersions.success) {
             readiness.checks.push(requirementCheck('manifest', 'dependency-versions', 'incompatible'))
             readiness.canInstall = false
@@ -106,10 +156,22 @@ export class TemplateReadinessService {
             const sandbox = normalized.definition.team.features?.sandbox
             if (sandbox?.enabled) {
                 const providers = await this.xperts.getSandboxProviders()
-                const provider = sandbox.provider || providers.find((item) => item.type !== 'local-shell-sandbox')?.type
-                if (!provider || provider === 'local-shell-sandbox')
+                const provider =
+                    sandbox.provider ||
+                    (runtime
+                        ? runtime.sandboxProvider
+                        : providers.find((item) => item.type !== 'local-shell-sandbox')?.type)
+                if (
+                    !provider ||
+                    provider === 'local-shell-sandbox' ||
+                    (runtime && !providers.some((item) => item.type === provider))
+                )
                     readiness.checks.push(requirementCheck('execution', 'server-sandbox', 'missing'))
-                else addProvider('sandbox', provider, () => this.sandbox.getSource(this.sandbox.get(provider)))
+                else {
+                    // Pin the same effective provider that readiness validates and the child graph will execute.
+                    if (runtime) sandbox.provider = provider
+                    addProvider('sandbox', provider, () => this.sandbox.getSource(this.sandbox.get(provider)))
+                }
             }
         }
         for (const pluginName of [...names].sort()) {
@@ -128,9 +190,13 @@ export class TemplateReadinessService {
                 const providers = providerOwners
                     .filter((item) => item.pluginName === pluginName)
                     .map(({ kind, key }) => ({ kind, key }))
+                const requiredVersion = parsedVersions.data.find(
+                    (item) => normalizePluginName(item.pluginName) === pluginName
+                )?.version
                 readiness.dependencies.push({
                     pluginName,
                     version,
+                    ...(requiredVersion ? { requiredVersion } : {}),
                     components: [],
                     ...(providers.length ? { providers } : {})
                 })
@@ -167,7 +233,8 @@ export class TemplateReadinessService {
                                     existing.components.push(component)
                         } else readiness.dependencies.push(resolved.lock)
                         readiness.checks.push(requirementCheck('resource', `${kind}:${selector.componentKey}`, 'ready'))
-                    } catch {
+                    } catch (error) {
+                        if (error instanceof AgentPluginStorageException) throw error
                         readiness.checks.push(
                             requirementCheck('resource', `${kind}:${selector.componentKey}`, 'missing')
                         )
@@ -217,26 +284,7 @@ export class TemplateReadinessService {
             }
         }
         for (const selector of dependencies?.toolsets ?? []) {
-            const available = workspaceId
-                ? await this.toolsets.find({
-                      where: {
-                          workspaceId,
-                          tenantId: RequestContext.currentTenantId(),
-                          organizationId: RequestContext.getOrganizationId(),
-                          category: XpertToolsetCategoryEnum.BUILTIN,
-                          type: selector.provider,
-                          ...(selector.instanceName ? { name: selector.instanceName } : {})
-                      },
-                      select: ['id']
-                  })
-                : []
-            readiness.checks.push(
-                requirementCheck(
-                    'resource',
-                    `toolset:${selector.provider}`,
-                    workspaceId ? (available.length === 1 ? 'ready' : 'missing') : 'pending-configuration'
-                )
-            )
+            readiness.checks.push(await this.inspectToolsetDependency(selector, workspaceId, installedAssistant))
         }
         if (
             readiness.legacy &&
@@ -261,6 +309,48 @@ export class TemplateReadinessService {
         return { manifest, readiness, components, normalized }
     }
 
+    /**
+     * Check a built-in tool dependency within the current organization and workspace.
+     * Refreshes validate the existing binding by ID, so other provider instances cannot replace it.
+     * Without a binding, require one unique candidate; without a workspace, defer configuration.
+     */
+    private async inspectToolsetDependency(
+        selector: XpertTemplatePluginToolsetDependency,
+        workspaceId?: string,
+        installedAssistant?: IXpert
+    ): Promise<TemplateRequirementCheck> {
+        const key = `toolset:${selector.provider}`
+        if (!workspaceId) return requirementCheck('resource', key, 'pending-configuration')
+
+        const available = await this.toolsets.find({
+            where: {
+                workspaceId,
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                type: selector.provider,
+                ...(selector.instanceName ? { name: selector.instanceName } : {})
+            },
+            select: ['id']
+        })
+        const nodes = installedAssistant?.draft?.nodes ?? installedAssistant?.graph?.nodes ?? []
+        const boundIds = new Set(
+            nodes.flatMap((node) =>
+                node.type === 'toolset' &&
+                node.entity.type === selector.provider &&
+                node.entity.category === XpertToolsetCategoryEnum.BUILTIN &&
+                (!selector.instanceName || node.entity.name === selector.instanceName) &&
+                node.entity.id
+                    ? [node.entity.id]
+                    : []
+            )
+        )
+        const ready = boundIds.size
+            ? boundIds.size === 1 && available.some((toolset) => boundIds.has(toolset.id))
+            : available.length === 1
+        return requirementCheck('resource', key, ready ? 'ready' : 'missing')
+    }
+
     async prepare(template: TXpertTemplate, workspaceId: string, expected?: TemplateDependencyLock[] | null) {
         const result = await this.inspect(template, workspaceId)
         if (expected && installationHash(expected) !== installationHash(result.readiness.dependencies))
@@ -274,6 +364,7 @@ export class TemplateReadinessService {
         return z.object({ meta: z.object({ version: z.string().min(1) }) }).parse(plugin.instance).meta.version
     }
 
+    /** Installation uses exact snapshots to detect changes between preparation and resource writes. */
     async assertDependencies(locks: TemplateDependencyLock[]) {
         for (const lock of locks) {
             try {
@@ -304,10 +395,111 @@ export class TemplateReadinessService {
                     if (current.length !== 1 || current[0].component.definitionHash !== component.hash)
                         throw new Error('Component changed')
                 }
-            } catch {
+            } catch (error) {
+                if (error instanceof AgentPluginStorageException) throw error
                 throw new BadRequestException(t('server-ai:Error.TemplateDependencyChanged'))
             }
         }
+    }
+
+    /**
+     * Published Assistants keep their graph and installed resources across compatible plugin updates.
+     * A package version or definition hash is provenance, not proof of a breaking change.
+     * Immutable agent-plugin references still verify their pinned artifact, not the latest package.
+     */
+    async inspectRuntimeDependencies(locks: TemplateDependencyLock[]): Promise<TemplateRuntimeDependencyReport> {
+        const updates: TemplateRuntimeDependencyReport['updates'] = []
+        for (const lock of locks) {
+            if (lock.source?.kind === 'agent-plugin') {
+                await this.commands.execute(new AssertAgentPluginTemplateDependencyCommand(lock))
+                continue
+            }
+            let version: string
+            try {
+                version = this.pluginVersion(lock.pluginName)
+            } catch {
+                this.runtimeUnavailable(lock.pluginName, 'plugin-unavailable')
+            }
+            if (lock.requiredVersion && version !== lock.requiredVersion) {
+                this.runtimeUnavailable(lock.pluginName, 'version-required', lock.requiredVersion, version)
+            }
+            for (const provider of lock.providers ?? []) {
+                const dependency = `${lock.pluginName}/${provider.kind}:${provider.key}`
+                try {
+                    const source =
+                        provider.kind === 'middleware'
+                            ? this.middleware.getSource(this.middleware.get(provider.key))
+                            : provider.kind === 'sandbox'
+                              ? this.sandbox.getSource(this.sandbox.get(provider.key))
+                              : this.toolsetRegistry.getSource(this.toolsetRegistry.get(provider.key))
+                    if (source.kind !== 'plugin' || normalizePluginName(source.pluginName) !== lock.pluginName)
+                        this.runtimeUnavailable(dependency, 'provider-owner-changed')
+                    // A registration from a different *loaded* version is a partially activated runtime,
+                    // not an old Assistant binding. Do not execute mismatched code during a rollout.
+                    if (source.pluginVersion && source.pluginVersion !== version)
+                        this.runtimeUnavailable(dependency, 'provider-not-ready', version, source.pluginVersion)
+                } catch (error) {
+                    if (error instanceof HttpException && error.getStatus() !== 404) throw error
+                    this.runtimeUnavailable(dependency, 'provider-unavailable')
+                }
+            }
+            const changedComponents: TemplateRuntimeDependencyReport['updates'][number]['changedComponents'] = []
+            for (const component of lock.components) {
+                const dependency = `${lock.pluginName}/${component.type}:${component.key}`
+                let current: RuntimeComponent[]
+                try {
+                    current = await this.installer.resolveRuntimeComponents(lock.pluginName, [
+                        { componentType: component.type, componentKey: component.key }
+                    ])
+                } catch (error) {
+                    // Preserve actual access denials and storage failures instead of calling them version drift.
+                    if (error instanceof NotFoundException) this.runtimeUnavailable(dependency, 'resource-unavailable')
+                    throw error
+                }
+                if (current.length !== 1) this.runtimeUnavailable(dependency, 'resource-unavailable')
+                if (current[0].pluginVersion !== version)
+                    this.runtimeUnavailable(dependency, 'resource-not-ready', version, current[0].pluginVersion)
+                if (current[0].component.definitionHash !== component.hash)
+                    changedComponents.push({ type: component.type, key: component.key })
+            }
+            if (version !== lock.version || changedComponents.length) {
+                updates.push({
+                    pluginName: lock.pluginName,
+                    installedVersion: lock.version,
+                    currentVersion: version,
+                    changedComponents
+                })
+            }
+        }
+        return { updates }
+    }
+
+    private runtimeUnavailable(
+        dependency: string,
+        reason:
+            | 'plugin-unavailable'
+            | 'version-required'
+            | 'provider-owner-changed'
+            | 'provider-not-ready'
+            | 'provider-unavailable'
+            | 'resource-unavailable'
+            | 'resource-not-ready',
+        expectedVersion?: string,
+        actualVersion?: string
+    ): never {
+        throw new BadRequestException({
+            code: 'ASSISTANT_DEPENDENCY_UNAVAILABLE',
+            dependency,
+            reason,
+            ...(expectedVersion ? { expectedVersion } : {}),
+            ...(actualVersion ? { actualVersion } : {}),
+            message: t(`server-ai:Error.AssistantDependency.${reason}`, {
+                interpolation: { escapeValue: false },
+                dependency,
+                expectedVersion,
+                actualVersion
+            })
+        })
     }
 }
 
@@ -315,7 +507,8 @@ export class TemplateReadinessService {
 export class InspectTemplateReadinessHandler implements ICommandHandler<InspectTemplateReadinessCommand> {
     constructor(private readonly readiness: TemplateReadinessService) {}
     async execute(command: InspectTemplateReadinessCommand) {
-        return (await this.readiness.inspect(command.template, command.workspaceId)).readiness
+        return (await this.readiness.inspect(command.template, command.workspaceId, command.installedAssistant))
+            .readiness
     }
 }
 
@@ -329,6 +522,6 @@ export class AssertAssistantTemplateDependenciesHandler implements ICommandHandl
         const access = await this.commands.execute(
             new ResolveAssistantFileAccessCommand(command.assistantId, 'capabilities', command.entry)
         )
-        await this.readiness.assertDependencies(access.dependencyLocks ?? [])
+        return this.readiness.inspectRuntimeDependencies(access.dependencyLocks ?? [])
     }
 }

@@ -33,6 +33,7 @@ class AudioCaptureController {
     this.voiceActive = false
     this.scopeChanging = 0
     this.starting = null
+    this.startingRecord = null
     this.draining = null
     this.epoch = 0
   }
@@ -68,6 +69,7 @@ class AudioCaptureController {
           return { success: true, data: await this.starting }
         } finally {
           this.starting = null
+          this.startingRecord = null
         }
       }
       const active = this.active
@@ -88,6 +90,15 @@ class AudioCaptureController {
         }
       if (!this.supported) return { success: true, data: this.publicState(null, 'idle') }
       const record = (await this.cache.list(scope)).find((item) => !payload.captureId || item.id === payload.captureId)
+      // A cached start is not a server-side capture yet. Check after the async cache read, too.
+      const starting = this.startingRecord
+      if (
+        input.commandKey === 'desktop.audio.capture.state' &&
+        starting &&
+        JSON.stringify(starting.scope) === JSON.stringify(scope) &&
+        (!payload.captureId || payload.captureId === starting.id)
+      )
+        return { success: true, data: this.publicState(null, 'starting') }
       if (!record) return { success: true, data: this.publicState(null, 'idle') }
       if (input.commandKey === 'desktop.audio.capture.retry') {
         if (active || this.starting || this.draining) throw new Error('recording_active')
@@ -140,6 +151,7 @@ class AudioCaptureController {
       createdDelivered: false,
       startedDelivered: false
     }
+    this.startingRecord = record
     let saved = false
     const assertStart = () => {
       this.delivery.assertCurrent(record)
