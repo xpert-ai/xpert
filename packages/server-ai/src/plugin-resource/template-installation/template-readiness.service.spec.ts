@@ -15,6 +15,8 @@ import {
     SYSTEM_GLOBAL_SCOPE
 } from '@xpert-ai/plugin-sdk'
 import {
+    IXpert,
+    XpertToolsetCategoryEnum,
     TXpertTemplate,
     XpertTypeEnum,
     type TXpertSandboxFeature,
@@ -97,6 +99,63 @@ describe('scoped template dependency preparation', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('preserves an installed toolset among same-provider accounts without relaxing new installation checks', async () => {
+        const { service, module } = await harness()
+        const repository = module.get(getRepositoryToken(XpertToolset))
+        repository.find.mockResolvedValue([{ id: 'selected' }, { id: 'other' }])
+        const template = {
+            ...base,
+            dependencies: {
+                toolsets: [
+                    {
+                        pluginName: '@test/dep',
+                        provider: 'images',
+                        templateNodeKey: 'template-images'
+                    }
+                ]
+            }
+        }
+        const installed = (ids: string[]): IXpert =>
+            ({
+                id: 'assistant',
+                workspaceId: 'workspace',
+                graph: {
+                    nodes: ids.map((id) => ({
+                        key: id,
+                        type: 'toolset',
+                        position: { x: 0, y: 0 },
+                        entity: {
+                            id,
+                            name: 'images',
+                            type: 'images',
+                            category: XpertToolsetCategoryEnum.BUILTIN
+                        }
+                    })),
+                    connections: []
+                }
+            }) as IXpert
+        const check = async (assistant?: IXpert) =>
+            (await service.inspect(template, 'workspace', assistant)).readiness.checks.find(
+                (item) => item.key === 'toolset:images'
+            )?.status
+        expect(await check()).toBe('missing')
+        expect(await check(installed(['selected']))).toBe('ready')
+        expect(await check(installed(['selected', 'other']))).toBe('missing')
+        repository.find.mockResolvedValue([{ id: 'other' }])
+        expect(await check(installed(['selected']))).toBe('missing')
+        expect(repository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    workspaceId: 'workspace',
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    type: 'images'
+                })
+            })
+        )
+        await expect(service.inspect(template, 'different', installed(['selected']))).rejects.toThrow('workspace')
+    })
 
     const sandboxTemplate = (sandbox: TXpertSandboxFeature): TXpertTemplate => ({
         ...base,
