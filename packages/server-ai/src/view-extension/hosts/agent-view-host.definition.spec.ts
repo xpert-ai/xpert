@@ -254,6 +254,89 @@ describe('AgentViewHostDefinition', () => {
         })
     })
 
+    it.each(['space', 'general'])(
+        'opens archived %s projects only when their type permits a read-only Space',
+        async (projectTypeKey) => {
+            const xpert = {
+                id: 'agent-host-1',
+                type: XpertTypeEnum.Agent,
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                active: true,
+                name: 'Assistant',
+                agent: { key: 'Agent_Project' },
+                graph: { nodes: [], connections: [] }
+            }
+            const access = {
+                assertCanUseXpert: jest.fn().mockRejectedValue(new ForbiddenException()),
+                assertCanReadXpert: jest.fn().mockResolvedValue({
+                    role: 'owner',
+                    project: { id: 'project-1', status: 'archived', applicationKey: 'platform', projectTypeKey }
+                })
+            }
+            const definition = new AgentViewHostDefinition(
+                { findOneByIdWithinTenant: jest.fn().mockResolvedValue(xpert) } as never,
+                {} as never,
+                { get: jest.fn() } as never,
+                {} as never,
+                access as never,
+                {} as never,
+                {} as never,
+                createProfileIdentity()
+            )
+            const result = definition.resolve(xpert.id, { runtimeScope: { projectId: 'project-1' } })
+            if (projectTypeKey !== 'space') await expect(result).rejects.toThrow(ForbiddenException)
+            else
+                expect((await result)?.context.runtimeScope?.projectAccess).toMatchObject({
+                    canRead: true,
+                    canEdit: false,
+                    canManage: false,
+                    canUse: false
+                })
+        }
+    )
+
+    it('rejects uploads before resolving a read-only or archived Project volume', async () => {
+        const volume = { resolve: jest.fn() }
+        const access = { assertCanEdit: jest.fn().mockRejectedValue(new ForbiddenException()) }
+        const definition = new AgentViewHostDefinition(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            access as never,
+            {} as never,
+            volume as never,
+            createProfileIdentity()
+        )
+        await expect(
+            definition.prepareFileAction(
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    hostType: 'agent',
+                    hostId: 'agent-1',
+                    slots: [],
+                    runtimeScope: {
+                        projectId: 'project-1',
+                        conversationId: null,
+                        dataScopeKey: 'project:project-1',
+                        workspaceFiles: { catalog: 'projects', scopeId: 'project-1', projectId: 'project-1' }
+                    }
+                },
+                { input: { workspaceUploadPath: 'uploads' } },
+                {
+                    originalname: 'note.md',
+                    buffer: Buffer.from('text'),
+                    mimetype: 'text/markdown',
+                    size: 4
+                }
+            )
+        ).rejects.toThrow(ForbiddenException)
+        expect(volume.resolve).not.toHaveBeenCalled()
+    })
+
     it('projects only safe direct external Assistant binding metadata into host state', async () => {
         const requester = {
             id: 'orchestrator-1',

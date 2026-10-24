@@ -40,7 +40,12 @@ describe('Project invocation model policy source', () => {
         }
         const row = { invocation: { scope, status: 'running', request: { target } } }
         const invocations = { findOneBy: jest.fn(async () => row) }
-        const projects = { assertEdit: jest.fn(), assertManage: jest.fn(), listReadable: jest.fn() }
+        const projects = {
+            assertAssistant: jest.fn(),
+            assertEdit: jest.fn(),
+            assertManage: jest.fn(),
+            listReadable: jest.fn()
+        }
         const bindings = { findOneBy: jest.fn(async () => ({ target, workspaceIds: [scope.workspaceId] })) }
         const registry = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
         const module = await Test.createTestingModule({

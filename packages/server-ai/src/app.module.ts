@@ -63,6 +63,7 @@ import { ModelGatewayModule } from './model-gateway'
 import { ArtifactsModule } from './artifacts'
 import { ActorTokenRuntimeModule } from './actor-token/actor-token-runtime.module'
 import { CollaborationModule } from './collaboration'
+import { ContentResourceModule } from './content-resource/content-resource.module'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
 import { McpPublicationModule } from './mcp-publication'
@@ -135,6 +136,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         ArtifactsModule,
         ActorTokenRuntimeModule,
         CollaborationModule,
+        ContentResourceModule,
         WorkspaceFileAccessModule,
         AgentEvolutionModule,
         McpPublicationModule

@@ -56,8 +56,12 @@
         "ArtifactNotFound": "Artifact was not found",
         "ArtifactPolicyImmutable": "Artifact resource policy and Project ownership cannot be replaced.",
         "ArtifactSharedProjectRequired": "Project ownership requires projectId.",
+        "ConnectorDocumentAccessDenied": "Document source access is denied or the connection is no longer active.",
+        "ConnectorDocumentInvalidInput": "Invalid document query.",
         "ProjectKnowledgeBindingConflict": "The built-in project knowledge library conflicts with an existing resource.",
         "ContentAccessDenied": "You do not have access to this content.",
+        "ProjectFileChanged": "The project file changed or the destination already exists. Refresh before saving.",
+        "ProjectFileTooLarge": "The project file exceeds the 25 MiB limit.",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
         "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
         "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",
@@ -1084,7 +1088,14 @@
         "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
-        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "ContentVersionImmutable": "Content file versions are immutable",
+        "ContentDocumentTooLarge": "Document exceeds the supported size limit.",
+        "ContentMutationConflict": "The operation identifier was already used for different content.",
+        "ContentVersionConflict": "The document or file changed. Reload and review the current version.",
+        "ContentEditorUnavailable": "The document editor plugin is unavailable.",
+        "ContentOperationInvalid": "Invalid document operation.",
+        "ContentEditorWriteRequired": "This file is managed by a collaborative editor. Use a document proposal or the editor to save."
     },
     "Mcp": {
         "Test": {

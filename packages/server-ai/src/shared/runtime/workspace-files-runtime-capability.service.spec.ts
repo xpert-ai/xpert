@@ -116,7 +116,14 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const service = new WorkspaceFilesRuntimeCapabilityService(
             commandBus,
             { resolve: jest.fn().mockReturnValue({ exposesDirectFileUrls: () => false }) },
-            new DefaultRuntimeCapabilityRegistry()
+            new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+                listReadable: jest
+                    .fn()
+                    .mockResolvedValue([{ projectId: 'project-1', role: 'member', canManage: false, archived: false }]),
+                assertEdit: jest.fn(),
+                assertManage: jest.fn(),
+                assertAssistant: jest.fn()
+            })
         )
 
         await expect(
@@ -404,7 +411,10 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             { execute: jest.fn() },
             { resolve: jest.fn().mockReturnValue(volume) },
             new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
-                listReadable: jest.fn().mockResolvedValue([]),
+                listReadable: jest
+                    .fn()
+                    .mockResolvedValue([{ projectId: 'project-1', role: 'editor', canManage: false, archived: false }]),
+                assertAssistant: jest.fn(),
                 assertEdit: jest
                     .fn()
                     .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false }),

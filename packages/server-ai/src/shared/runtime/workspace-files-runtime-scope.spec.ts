@@ -39,3 +39,35 @@ describe('personal Workspace Files runtime boundary', () => {
         expect(() => applyRuntimeScopeDefaults({}, { ...defaults, scopeId: 'other-user' })).toThrow()
     })
 })
+
+describe('shared Project portable references', () => {
+    const defaults: WorkspaceFileScope = {
+        tenantId: 'tenant',
+        organizationId: 'org',
+        userId: 'editor',
+        projectId: 'project'
+    }
+    it('binds file paths and version snapshots to the same Project on portable replay', () => {
+        for (const filePath of ['docs/page.md', '.space-history/item/version/page.md']) {
+            const reference = applyRuntimeScopeDefaults<WorkspaceFileScope & { filePath: string }>(
+                { filePath },
+                defaults
+            )
+            expect(reference).toMatchObject({ ...defaults, catalog: 'projects', scopeId: 'project', filePath })
+            expect(applyRuntimeScopeDefaults(reference, defaults)).toEqual(reference)
+        }
+    })
+    it('retains the file storage identity while constraining the Project', () => {
+        expect(
+            applyRuntimeScopeDefaults({ catalog: 'projects', projectId: 'project', userId: 'owner' }, defaults)
+        ).toMatchObject({ catalog: 'projects', projectId: 'project', userId: 'owner', scopeId: 'project' })
+    })
+    it.each<WorkspaceFileScope>([
+        { catalog: 'projects', projectId: 'other', userId: 'owner' },
+        { catalog: 'users', userId: 'owner' },
+        { catalog: 'projects', tenantId: 'other', userId: 'owner' },
+        { catalog: 'projects', organizationId: 'other', userId: 'owner' }
+    ])('does not permit authority changes through a shared reference: %j', (input) => {
+        expect(() => applyRuntimeScopeDefaults(input, defaults)).toThrow()
+    })
+})

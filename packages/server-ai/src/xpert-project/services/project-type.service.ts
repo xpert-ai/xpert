@@ -3,6 +3,7 @@
 import { projectApplicationDefinitions } from './project-type-metadata'
 import {
     GENERAL_PROJECT_TYPE,
+    SPACE_PROJECT_TYPE,
     IXpert,
     XpertProjectClassification,
     XpertProjectEntry,
@@ -48,6 +49,13 @@ export class XpertProjectTypeService {
                 ...GENERAL_PROJECT_TYPE,
                 applicationTitle: { en_US: 'Platform', zh_Hans: '平台' },
                 title: { en_US: 'General project', zh_Hans: '通用项目' },
+                binding: { kind: 'project' },
+                available: true
+            },
+            {
+                ...SPACE_PROJECT_TYPE,
+                applicationTitle: { en_US: 'Platform', zh_Hans: '平台' },
+                title: { en_US: 'Writing space', zh_Hans: '协作空间' },
                 binding: { kind: 'project' },
                 available: true
             }

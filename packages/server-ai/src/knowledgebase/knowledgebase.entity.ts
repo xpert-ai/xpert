@@ -1,4 +1,5 @@
 import type { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import type { ContentResourceReference } from '@xpert-ai/plugin-sdk'
 import {
     ICopilotModel,
     IIntegration,
@@ -38,6 +39,8 @@ const bigintNumberTransformer = {
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
 export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase {
+    @Column({ type: 'jsonb', nullable: true, update: false })
+    resourceRef?: ContentResourceReference | null
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @Column()

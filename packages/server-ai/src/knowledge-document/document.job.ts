@@ -122,10 +122,11 @@ export class KnowledgeDocumentConsumer {
 
     async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<KnowledgeDocumentMetadata>[], job: Job) {
         const copilot = knowledgebase?.copilotModel?.copilot
+        const keywordOnly = knowledgebase.recall?.mode === 'keyword'
         let vectorStore: KnowledgeDocumentStore
         try {
             // const doc = job.data.docs[0]
-            vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase, true)
+            vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase, !keywordOnly)
         } catch (err) {
             const processBeginAt = new Date()
             await Promise.all(
@@ -251,7 +252,7 @@ export class KnowledgeDocumentConsumer {
                     await this.updateDocumentProcessingMetadata(
                         document.id,
                         {
-                            status: KBDocumentStatusEnum.EMBEDDING,
+                            status: keywordOnly ? KBDocumentStatusEnum.SPLITTED : KBDocumentStatusEnum.EMBEDDING,
                             progress: 0,
                             draft: null,
                             processingHash,
@@ -263,7 +264,7 @@ export class KnowledgeDocumentConsumer {
                     )
                     const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
                     let count = 0
-                    while (batchSize * count < chunks.length) {
+                    while (!keywordOnly && batchSize * count < chunks.length) {
                         if (tableState) await this.tableMetadata.assertIndexCurrent(document, tableState)
                         const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
                         // Embedding usage may count searchContent; source chunk statistics always count pageContent.

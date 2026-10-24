@@ -203,6 +203,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
 
     private async createWorkspaceVolumeClient(context: XpertResolvedViewHostContext) {
         const projectId = context.runtimeScope?.projectId
+        if (projectId) await this.projectAccessService.assertCanEdit(projectId)
         const scope = projectId
             ? { tenantId: context.tenantId, catalog: 'projects' as const, projectId }
             : (await this.commandBus.execute(new ResolveAssistantFileAccessCommand(context.hostId, 'write', 'runtime')))
@@ -242,7 +243,19 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         if (projectId) {
             const access = conversationId
                 ? await this.projectAccessService.assertCanReadXpert(projectId, xpert.id)
-                : await this.projectAccessService.assertCanUseXpert(projectId, xpert.id)
+                : await this.projectAccessService
+                      .assertCanUseXpert(projectId, xpert.id)
+                      .catch(async (error: unknown) => {
+                          if (!(error instanceof ForbiddenException)) throw error
+                          const readable = await this.projectAccessService.assertCanReadXpert(projectId, xpert.id)
+                          if (
+                              readable.project.status !== 'archived' ||
+                              readable.project.applicationKey !== 'platform' ||
+                              readable.project.projectTypeKey !== 'space'
+                          )
+                              throw error
+                          return readable
+                      })
             return {
                 projectId,
                 conversationId,

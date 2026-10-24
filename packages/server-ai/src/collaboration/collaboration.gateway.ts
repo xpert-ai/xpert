@@ -8,7 +8,7 @@ import {
     WebSocketGateway,
     WebSocketServer
 } from '@nestjs/websockets'
-import type { CollaborationPresencePatch } from '@xpert-ai/plugin-sdk'
+import { als, type CollaborationPresencePatch } from '@xpert-ai/plugin-sdk'
 import type { Server, Socket } from 'socket.io'
 import type { CollaborationBroadcast, CollaborationSession } from './collaboration.service'
 import { CollaborationService } from './collaboration.service'
@@ -21,10 +21,18 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     @WebSocketServer() private readonly server: Server
     private readonly logger = new Logger(CollaborationGateway.name)
     private readonly clients = new WeakMap<Socket, ClientState>()
+    private readonly connected = new Set<Socket>()
     private readonly stopBroadcast: () => void
 
     constructor(private readonly collaboration: CollaborationService) {
-        this.stopBroadcast = this.collaboration.onBroadcast((event) => this.broadcast(event))
+        this.stopBroadcast = this.collaboration.onBroadcast((event) => {
+            // Local events inherit the HTTP writer's request context. Fan-out must authorize
+            // each recipient from its authenticated session, not compare it to that writer.
+            // Detach only this delivery boundary; live membership checks below still run.
+            als.exit(() => {
+                void this.broadcast(event)
+            })
+        })
     }
 
     onModuleDestroy() {
@@ -45,18 +53,28 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
             client.disconnect(true)
             return
         }
-        this.clients.set(client, { session })
-        await client.join(room(session.documentId))
-        client.emit('sync', await this.collaboration.getStateForSession(session))
-        client.emit('presence-snapshot', {
-            selfClientId: client.id,
-            items: await this.collaboration.listPresenceForSession(session)
-        })
+        try {
+            const initial = await this.collaboration.getStateForSession(session)
+            this.clients.set(client, { session })
+            this.connected.add(client)
+            await client.join(room(session.documentId))
+            client.emit('sync', initial)
+            client.emit('presence-snapshot', {
+                selfClientId: client.id,
+                items: await this.collaboration.listPresenceForSession(session)
+            })
+        } catch {
+            this.connected.delete(client)
+            this.clients.delete(client)
+            client.disconnect(true)
+        }
     }
 
     async handleDisconnect(client: Socket) {
+        this.connected.delete(client)
         const state = this.clients.get(client)
-        if (state) await this.collaboration.removePresenceForSession(state.session, client.id)
+        this.clients.delete(client)
+        if (state) await this.collaboration.removePresenceForSession(state.session, client.id).catch(() => undefined)
     }
 
     @SubscribeMessage('update')
@@ -84,10 +102,14 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
         const state = this.clients.get(client)
         if (!state) return
         const input = objectValue(data)
-        client.emit(
-            'sync',
-            await this.collaboration.getStateForSession(state.session, stringValue(input.stateVectorBase64))
-        )
+        try {
+            client.emit(
+                'sync',
+                await this.collaboration.getStateForSession(state.session, stringValue(input.stateVectorBase64))
+            )
+        } catch {
+            client.disconnect(true)
+        }
     }
 
     @SubscribeMessage('presence')
@@ -103,9 +125,22 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     }
 
     /** Fan out a local or cross-node event to clients of exactly one document. */
-    private broadcast(event: CollaborationBroadcast) {
+    private async broadcast(event: CollaborationBroadcast) {
         const eventName = event.type === 'presence-remove' ? 'presence-remove' : event.type
-        this.server?.to(room(event.documentId)).emit(eventName, event.payload)
+        await Promise.all(
+            [...this.connected].map(async (client) => {
+                const state = this.clients.get(client)
+                if (!state || state.session.documentId !== event.documentId) return
+                try {
+                    await this.collaboration.assertSessionReadable(state.session)
+                    client.emit(eventName, event.payload)
+                } catch {
+                    this.connected.delete(client)
+                    this.clients.delete(client)
+                    client.disconnect(true)
+                }
+            })
+        )
     }
 }
 

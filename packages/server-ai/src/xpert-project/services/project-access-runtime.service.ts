@@ -39,6 +39,7 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
             )
             .andWhere('(project.ownerId = :userId OR membership.id IS NOT NULL)', { userId: actor.userId })
             .select('project.id', 'projectId')
+            .addSelect('project.name', 'name')
             .addSelect('project.status', 'status')
             .addSelect('project.applicationKey', 'applicationKey')
             .addSelect('project.projectTypeKey', 'projectTypeKey')
@@ -62,6 +63,7 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
                 .filter((binding) => binding.projectId === row.projectId)
                 .map((binding) => binding.assistantId),
             projectId: row.projectId,
+            name: row.name,
             applicationKey: row.applicationKey,
             projectTypeKey: row.projectTypeKey,
             role: row.role,

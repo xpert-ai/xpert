@@ -15,13 +15,15 @@ jest.mock('@xpert-ai/server-config', () => ({
 
 import { normalizeFileName, resolveVolumeTarget } from './utils'
 import { IUploadFileVolumeTarget } from '@xpert-ai/contracts'
-import { createRuntimeVolumeClient } from '../volume'
+import { createRuntimeVolumeClient } from '../volume/volume'
 
 describe('resolveVolumeTarget', () => {
     const originalHome = process.env.HOME
     const originalUserProfile = process.env.USERPROFILE
+    const originalSandboxVolume = process.env.SANDBOX_VOLUME
 
     beforeEach(() => {
+        delete process.env.SANDBOX_VOLUME
         mockEnvironment.envName = 'dev'
         mockEnvironment.env.SANDBOX_VOLUME_LAYOUT = undefined
         mockEnvironment.sandboxConfig = {
@@ -32,6 +34,8 @@ describe('resolveVolumeTarget', () => {
     })
 
     afterAll(() => {
+        if (originalSandboxVolume === undefined) delete process.env.SANDBOX_VOLUME
+        else process.env.SANDBOX_VOLUME = originalSandboxVolume
         process.env.HOME = originalHome
         process.env.USERPROFILE = originalUserProfile
     })

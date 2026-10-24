@@ -55,7 +55,12 @@ function fixture() {
     const registry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
     registry.register('remote', provider, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
     const runtime = new AgentInvocationRuntime(new MemoryInvocationStore(), registry)
-    const projects = { assertEdit: jest.fn(), assertManage: jest.fn(), listReadable: jest.fn() }
+    const projects = {
+        assertAssistant: jest.fn(),
+        assertEdit: jest.fn(),
+        assertManage: jest.fn(),
+        listReadable: jest.fn()
+    }
     const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
     const factory = new AgentInvocationFactoryService(
         repository as unknown as Repository<AgentRuntimeBindingEntity>,

@@ -1,5 +1,5 @@
-jest.mock('@xpert-ai/server-core', () => {
-    const actual = jest.requireActual('@xpert-ai/server-core')
+jest.mock('@xpert-ai/plugin-sdk', () => {
+    const actual = jest.requireActual('@xpert-ai/plugin-sdk')
     return {
         ...actual,
         RequestContext: {
@@ -10,7 +10,7 @@ jest.mock('@xpert-ai/server-core', () => {
     }
 })
 
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ConflictException, ForbiddenException } from '@nestjs/common'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { FileAssetAccessService } from './file-asset-access.service'

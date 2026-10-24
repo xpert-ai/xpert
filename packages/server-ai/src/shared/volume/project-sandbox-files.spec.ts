@@ -54,7 +54,10 @@ describe('Project Sandbox and business file paths', () => {
                 conversationId: 'expert-chat'
             })
             const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
-                listReadable: jest.fn().mockResolvedValue([]),
+                listReadable: jest
+                    .fn()
+                    .mockResolvedValue([{ projectId: 'project-1', role: 'editor', canManage: false, archived: false }]),
+                assertAssistant: jest.fn(),
                 assertEdit: jest.fn().mockResolvedValue({
                     projectId: scope.projectId,
                     role: 'editor',

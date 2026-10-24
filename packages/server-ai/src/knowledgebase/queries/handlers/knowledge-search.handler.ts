@@ -123,13 +123,16 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
         const topK = k ?? 1000
 
-        const result = await this.knowledgebaseService.findAll({
-            where: {
-                tenantId,
-                organizationId,
-                id: knowledgebases ? In(knowledgebases) : Not(IsNull())
-            }
-        })
+        const result = await this.knowledgebaseService.findAll(
+            {
+                where: {
+                    tenantId,
+                    organizationId,
+                    id: knowledgebases ? In(knowledgebases) : Not(IsNull())
+                }
+            },
+            knowledgebases
+        )
         const _knowledgebases = result.items
 
         const documents: DocumentInterface<DocumentMetadata>[] = []

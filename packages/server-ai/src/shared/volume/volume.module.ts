@@ -1,3 +1,6 @@
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { ContentDocument } from '../../content-resource/documents/entities'
+import { ContentFileOwnershipService } from './content-file-ownership.service'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
 import { SandboxWorkspaceMapperRegistry } from '@xpert-ai/plugin-sdk'
@@ -8,8 +11,9 @@ import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 @Global()
 @Module({
-    imports: [DiscoveryModule],
+    imports: [DiscoveryModule, TypeOrmModule.forFeature([ContentDocument])],
     providers: [
+        ContentFileOwnershipService,
         {
             provide: VOLUME_CLIENT,
             useFactory: (): VolumeClient => createRuntimeVolumeClient()
@@ -22,6 +26,7 @@ import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
         XpertWorkAreaResolver
     ],
     exports: [
+        ContentFileOwnershipService,
         VOLUME_CLIENT,
         SandboxWorkspaceMapperRegistry,
         WorkspacePathMapperFactory,

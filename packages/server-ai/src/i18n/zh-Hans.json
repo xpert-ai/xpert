@@ -56,8 +56,12 @@
         "ArtifactNotFound": "成果不存在。",
         "ArtifactPolicyImmutable": "不能更换成果的资源授权策略或所属项目。",
         "ArtifactSharedProjectRequired": "项目共享成果必须指定 projectId。",
+        "ConnectorDocumentAccessDenied": "无权访问此文档来源，或连接已失效。",
+        "ConnectorDocumentInvalidInput": "文档查询参数无效。",
         "ProjectKnowledgeBindingConflict": "项目知识库绑定与已有资源冲突。",
         "ContentAccessDenied": "你没有访问此内容的权限。",
+        "ProjectFileChanged": "项目文件已变化或目标文件已存在，请刷新后再保存。",
+        "ProjectFileTooLarge": "项目文件超过 25 MiB 限制。",
         "PersonalApiKeyNotFound": "个人 API 密钥不存在或已撤销。",
         "PersonalApiKeyHumanRequired": "只有真人用户账号可以管理个人 API 密钥。",
         "PersonalApiKeyInvalidInput": "请提供密钥名称和有效的有效期。",
@@ -1084,7 +1088,14 @@
         "TemplateUpgradeChoices": "请为每个变更部分选择保留本地内容或采用模板内容。",
         "TemplateUpgradePending": "请先完成或回退当前待处理的升级。",
         "TemplateUpgradeUnsupported": "此变更需要可移植运行适配器；变更已有例行任务请使用新任务键，变更文件隔离范围请另行安装。",
-        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。"
+        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。",
+        "ContentVersionImmutable": "文件版本不可覆盖",
+        "ContentDocumentTooLarge": "文档超过支持的大小限制。",
+        "ContentMutationConflict": "操作标识已用于不同内容。",
+        "ContentVersionConflict": "文档或文件已变化，请重新加载并核对当前版本。",
+        "ContentEditorUnavailable": "文档编辑器插件不可用。",
+        "ContentOperationInvalid": "文档操作参数无效。",
+        "ContentEditorWriteRequired": "此文件由协作编辑器管理，请通过文档提案或编辑器保存。"
     },
     "Mcp": {
         "Test": {

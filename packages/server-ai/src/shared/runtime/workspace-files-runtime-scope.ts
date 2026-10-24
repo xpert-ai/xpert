@@ -15,7 +15,11 @@ export function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(
     const scoped = { ...input } as T & WorkspaceFileScope & { conversationId?: string | null }
     assertRuntimeScopeMatch('tenantId', scoped.tenantId, defaults.tenantId)
     assertRuntimeScopeMatch('organizationId', scoped.organizationId, defaults.organizationId)
-    assertRuntimeScopeMatch('userId', scoped.userId, defaults.userId)
+    // A shared Project reference records its storage creator, not the reader.
+    // Project membership is checked against RequestContext at file access time.
+    const sharedProject =
+        scoped.catalog === 'projects' || (!scoped.catalog && !!(scoped.projectId ?? defaults.projectId))
+    if (!sharedProject) assertRuntimeScopeMatch('userId', scoped.userId, defaults.userId)
     scoped.tenantId = normalizeOptionalString(scoped.tenantId) ?? normalizeOptionalString(defaults.tenantId)
     // Organization is part of the same trusted runtime boundary as tenant and
     // must survive portable-reference replay and delayed jobs.
@@ -117,7 +121,6 @@ function resolveBoundRuntimeWorkspaceScope(defaults: WorkspaceFilesRuntimeDefaul
     const xpertId = normalizeOptionalString(defaults.xpertId)
     const requestedCatalog = normalizeOptionalString(defaults.catalog)
     const requestedScopeId = normalizeOptionalString(defaults.scopeId)
-
     if (requestedCatalog === 'users') {
         const userId = normalizeOptionalString(defaults.userId)
         if (!userId || requestedScopeId !== userId || projectId || xpertId) {
