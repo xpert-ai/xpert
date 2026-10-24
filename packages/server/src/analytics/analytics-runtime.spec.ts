@@ -194,7 +194,7 @@ describe('one Analytics Runtime for governed sources', () => {
 		)
 		const response = await post({ binding, controls: {} })
 		expect(response.status).toBe(400)
-		expect(response.body).toEqual({ code, retryable, message: expect.stringContaining(hint) })
+		expect(response.body).toEqual({ code, retryable, stage: 'dependency', message: expect.stringContaining(hint) })
 		expect(JSON.stringify(response.body)).not.toMatch(/credential-secret|private\/host|secret-job/)
 	})
 	it('recognizes a dependency error from another SDK instance without forwarding its properties', async () => {
@@ -234,9 +234,36 @@ describe('one Analytics Runtime for governed sources', () => {
 		expect(response.body).toEqual({
 			code: 'EXPORT_INPUT_INVALID',
 			retryable: false,
+			stage: 'dependency',
 			message: expect.stringContaining('standard libraries')
 		})
 		expect(JSON.stringify(response.body)).not.toMatch(/credential-secret|host\/private|private-job/)
+	})
+	it.each([
+		['read_only_violation', 'ANALYTICS_READ_ONLY_VIOLATION', 'validation', 'read-only'],
+		['MYSQL_PARAMETER_COUNT_INVALID', 'ANALYTICS_PARAMETER_ORDER_INVALID', 'validation', 'parameterOrder'],
+		['MYSQL_PARAMETER_TEMPLATE_INVALID', 'ANALYTICS_PARAMETER_TEMPLATE_INVALID', 'validation', 'quotes/comments'],
+		['ANALYTICS_FIELD_TYPE_MISMATCH', 'ANALYTICS_FIELD_TYPE_MISMATCH', 'result', 'int64'],
+		['ANALYTICS_FIELD_MISSING_OR_AMBIGUOUS', 'ANALYTICS_FIELD_MISSING_OR_AMBIGUOUS', 'result', 'sourceField'],
+		['ANALYTICS_PARAMETER_INVALID', 'ANALYTICS_PARAMETER_INVALID', 'request', 'typed scalar'],
+		['ANALYTICS_UNKNOWN_CONTROL', 'ANALYTICS_UNKNOWN_CONTROL', 'request', 'controlId']
+	])(
+		'preserves actionable %s diagnostics in HTTP and Error.message for Agent tools',
+		async (providerCode, code, stage, hint) => {
+			execute.mockRejectedValue(new Error(providerCode))
+			const response = await post({ binding, controls: {} })
+			expect(response.body).toEqual({ code, stage, retryable: false, message: expect.stringContaining(hint) })
+			await expect(runtime.query(actor, { binding, controls: {} })).rejects.toMatchObject({
+				message: JSON.stringify(response.body)
+			})
+		}
+	)
+	it('does not treat raw provider messages as safe diagnostics even when they contain a known code', async () => {
+		execute.mockRejectedValue(new Error('read_only_violation: password=credential-secret /private/host'))
+		const response = await post({ binding, controls: {} })
+		expect(response.body.code).toBe('ANALYTICS_QUERY_FAILED')
+		await expect(runtime.query(actor, { binding, controls: {} })).rejects.not.toThrow('credential-secret')
+		expect(JSON.stringify(response.body)).not.toMatch(/credential-secret|private\/host/)
 	})
 	it('propagates parent cancellation even if a provider ignores its signal', async () => {
 		execute.mockImplementation(() => new Promise(() => undefined))

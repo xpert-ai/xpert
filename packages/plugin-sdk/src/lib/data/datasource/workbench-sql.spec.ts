@@ -150,6 +150,10 @@ describe('workbench derived-table read classification', () => {
 
 describe('workbench syntax positions are not function calls', () => {
   it.each([
+    'SELECT * FROM orders WHERE (? IS NULL OR company = ?) AND (? IS NULL OR month >= ?)',
+    'SELECT * FROM orders WHERE/* filter */((company = ?) OR (company IS NULL))',
+    'SELECT company, COUNT(*) FROM orders GROUP BY company HAVING (COUNT(*) > ?)',
+    "SELECT DATE_FORMAT(`ods_create_time`, '%Y-%m') AS `month`, `vendorName`, COUNT(DISTINCT `oaRequestId`) AS `orderCount`, COUNT(*) AS `itemCount` FROM `ODS`.`ods_ps_prWorkFlowLink_item` WHERE (? IS NULL OR `vendorName` = ?) AND (? IS NULL OR DATE_FORMAT(`ods_create_time`, '%Y-%m') >= ?) AND (? IS NULL OR DATE_FORMAT(`ods_create_time`, '%Y-%m') <= ?) GROUP BY 1, 2",
     'WITH q(id) AS (SELECT 1) SELECT * FROM q',
     'WITH RECURSIVE q(id) AS (SELECT 1 UNION ALL SELECT id + 1 FROM q WHERE id < 3) SELECT * FROM q',
     'WITH q(id) AS (SELECT 1), r(id) AS (SELECT id FROM q) SELECT * FROM r',
@@ -164,6 +168,11 @@ describe('workbench syntax positions are not function calls', () => {
   ])('accepts supported syntax: %s', (sql) => expect(requireReadStatement(sql)).toBe(sql))
 
   it.each([
+    'SELECT * FROM orders WHERE (SLEEP(1) = 0)',
+    'SELECT * FROM orders WHERE (my_custom_mutator() = 1)',
+    'SELECT COUNT(*) FROM orders HAVING (my_custom_mutator() = 1)',
+    "SELECT * FROM orders WHERE (id = 1) INTO OUTFILE '/tmp/out'",
+    'SELECT * FROM orders WHERE (id = 1); DELETE FROM orders',
     'WITH q(id) AS (SELECT 1) SELECT q(id) FROM q',
     'SELECT DECIMAL(10,2)',
     'SELECT CAST(1 AS custom_type(10,2))',
