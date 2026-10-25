@@ -1,3 +1,5 @@
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
+jest.mock('../../../execution-control/execution-control.store', () => ({ ExecutionControlStore: class {} }))
 jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({
     MessageCheckpointService: class {}
 }))
@@ -62,8 +64,7 @@ jest.mock('../../../shared', () => ({
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
         }
-    },
-    ExecutionCancelService: class ExecutionCancelService {}
+    }
 }))
 
 jest.mock('../../../chat-message/chat-message.entity', () => ({
@@ -84,7 +85,8 @@ import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
-import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
+import { XpertWorkAreaResolver } from '../../../shared'
+import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { CompleteToolCallsQuery } from '../../queries'
@@ -96,7 +98,7 @@ describe('XpertAgentInvokeHandler', () => {
     let checkpointSaver: { getCopilotCheckpoint: jest.Mock }
     let envService: { findOne: jest.Mock }
     let i18nService: { t: jest.Mock }
-    let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
+    let executionCancelService: { check: jest.Mock; register: jest.Mock; unregister: jest.Mock }
     let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
     let workAreaResolver: { resolve: jest.Mock }
     let handler: XpertAgentInvokeHandler
@@ -122,6 +124,7 @@ describe('XpertAgentInvokeHandler', () => {
         }
         executionCancelService = {
             register: jest.fn(),
+            check: jest.fn(),
             unregister: jest.fn()
         }
         workAreaResolver = {
@@ -139,6 +142,7 @@ describe('XpertAgentInvokeHandler', () => {
             envService as any,
             i18nService as unknown as I18nService,
             executionCancelService as unknown as ExecutionCancelService,
+            undefined,
             workAreaResolver as unknown as XpertWorkAreaResolver,
             undefined,
             chatMessageRepository as any
@@ -1053,6 +1057,7 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: [...completedTasks, { id: 'task', name: 'next', interrupts: [{ value: { type: 'thread_pause' } }] }]
         })
         const control = {
+            ensureExecution: jest.fn(),
             requiresInputAdmission: jest.fn().mockResolvedValue(false),
             recordGraph: jest.fn().mockResolvedValue('a'.repeat(64)),
             shouldPause: jest.fn().mockResolvedValue(true),
@@ -1065,6 +1070,7 @@ describe('XpertAgentInvokeHandler', () => {
             envService as never,
             i18nService as never,
             executionCancelService as never,
+            undefined,
             workAreaResolver as never,
             undefined,
             chatMessageRepository as never,
@@ -1112,6 +1118,7 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: []
         })
         const control = {
+            ensureExecution: jest.fn(),
             requiresInputAdmission: jest.fn().mockResolvedValue(false),
             recordGraph: jest.fn(),
             shouldPause: jest.fn().mockResolvedValue(true),
@@ -1124,6 +1131,7 @@ describe('XpertAgentInvokeHandler', () => {
             envService as never,
             i18nService as never,
             executionCancelService as never,
+            undefined,
             workAreaResolver as never,
             undefined,
             chatMessageRepository as never,

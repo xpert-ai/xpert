@@ -29,7 +29,7 @@ import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/co
 import { ResolveTemplateConnectorsCommand } from '../../connector/template-connectors.command'
 import { XpertWorkAreaResolver, XpertRuntimeWorkArea } from '../../shared/volume/work-area'
 import { VolumeHandle } from '../../shared/volume/volume'
-import { ExecutionCancelService } from '../../shared/execution/execution-cancel.service'
+import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
 import { AgentStateAnnotation } from '../../shared/agent/state'
 import { TemplateSubagentRuntimeService } from './template-subagent-runtime.service'
 import { createTemplateSubagentsMiddleware, templateSubagentToolName } from './template-subagents.middleware'
@@ -153,7 +153,7 @@ describe('template invocation lifecycle', () => {
             defaultPath: { relativePath: '', serverPath: directory, workspacePath: directory }
         }
         const workAreas = { resolve: jest.fn().mockResolvedValue(area) }
-        const cancellations = { register: jest.fn(), unregister: jest.fn() }
+        const cancellations = { attach: jest.fn(), check: jest.fn(), register: jest.fn(), unregister: jest.fn() }
         const invocations = new AgentInvocationRuntime(store, registry)
         const runtime = new TemplateSubagentRuntimeService(
             commands as unknown as CommandBus,

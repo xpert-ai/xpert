@@ -147,3 +147,5 @@ export * from './template-activity.model'
 export * from './template-lifecycle.model'
 export * from './assistant-template-overview.model'
 export * from './run-display-snapshot.model'
+
+export * from './execution-control.model'

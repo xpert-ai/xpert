@@ -127,8 +127,11 @@ export type TChatThreadDisplayPause = {
 
 export type TChatThreadRunControl = {
   executionId: string
-  state: 'running' | 'pausing' | 'paused'
+  state: 'running' | 'pausing' | 'paused' | 'terminating'
   pauseId?: string
+  /** Fences late finalizers while a resume is claimed but not yet bound to its new execution. */
+  resumeClaimed?: boolean
+  resumeClaimId?: string
   graphRevision?: string
   checkpoint?: TChatCheckpointReference
 }

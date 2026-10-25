@@ -17,7 +17,7 @@ import { ChatConversationGoal, ChatConversationGoalService } from './goal'
 import { QueryHandlers } from './queries/handlers'
 import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
-import { ExecutionCancelModule } from '../shared'
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { SseStreamModule } from '../shared/stream'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
@@ -67,7 +67,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         }),
         forwardRef(() => StorageFileModule),
         forwardRef(() => ChatMessageModule),
-        ExecutionCancelModule,
+        ExecutionControlModule,
         SuperAdminOrganizationScopeModule,
         XpertAgentExecutionModule,
         SseStreamModule,

@@ -7,7 +7,7 @@ import { DefaultRuntimeCapabilityRegistry, AgentInvocationScope, AgentTarget } f
 import { JsonPlusSerializer } from '../copilot-checkpoint/serde/jsonplus'
 import { AgentInvocationRuntime, invocationError } from './invocation-runtime'
 import { NativeAgentExecution } from './native-agent.strategy'
-import { ExecutionCancelledError } from '../shared/execution/execution-cancelled.error'
+import { ExecutionCancelledError } from '../execution-control/execution-cancelled.error'
 
 export interface NativeAgentCallScope {
     target: AgentTarget

@@ -1,3 +1,5 @@
+import { executionToolReceipts } from '../../../execution-control/adapters/execution-tool-receipts'
+import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { dependencyUpdateEvent } from '../../../plugin-resource/template-installation/dependency-update-event'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
@@ -56,7 +58,8 @@ import {
     mergeEnvironmentWithEnvState,
     mergeRuntimeContextWithEnv
 } from '../../../environment'
-import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
+import { isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
+import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -85,6 +88,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
         private readonly executionCancelService: ExecutionCancelService,
+        private readonly executionControls: ExecutionControlStore,
         private readonly workAreaResolver: XpertWorkAreaResolver,
         @Optional()
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
@@ -245,7 +249,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const abortController = new AbortController()
         if (execution?.id) {
+            await this.threadRunControl?.ensureExecution(threadId, execution.id)
             this.executionCancelService.register(execution.id, abortController)
+            await this.executionCancelService.check(execution.id)
+            abortController.signal.throwIfAborted()
         }
         const executionContext: ExecutionContext = { sandbox: sandboxContext }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
@@ -494,6 +501,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 executionId: execution.id,
                 rootExecutionId
             },
+            callbacks: [executionToolReceipts(this.executionControls, execution.id)],
             signal: abortController.signal
             // debug: true
         }

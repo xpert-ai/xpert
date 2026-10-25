@@ -53,6 +53,7 @@ export async function persistRecoveryCheckpoint(
     if (
         !thread ||
         thread.runControl?.executionId !== writer.executionId ||
+        !['running', 'pausing'].includes(thread.runControl.state) ||
         !['busy', 'pausing'].includes(thread.status) ||
         (lease && Date.parse(lease.expiresAt) <= Date.now())
     )

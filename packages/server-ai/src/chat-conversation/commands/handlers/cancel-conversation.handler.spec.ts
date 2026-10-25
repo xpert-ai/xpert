@@ -1,10 +1,10 @@
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
 jest.mock('../../../desktop-shell/desktop-shell-operation.service', () => ({ DesktopShellOperationService: class {} }))
 
 jest.mock('../../thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
 jest.mock('../../conversation-thread.service', () => ({ ChatConversationThreadService: class {} }))
 jest.mock('../../conversation.service', () => ({ ChatConversationService: class {} }))
 jest.mock('../../../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
-jest.mock('../../../shared/', () => ({ ExecutionCancelService: class {} }))
 jest.mock('../../../chat-message/chat-message.entity', () => ({ ChatMessage: class {} }))
 
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
@@ -24,7 +24,7 @@ describe('CancelConversationHandler', () => {
                 manager: { getRepository: jest.fn().mockReturnValue(messageRepository) }
             }
         }
-        const executionService = { update: jest.fn().mockResolvedValue(undefined) }
+        const executionService = { interruptRunning: jest.fn().mockResolvedValue(undefined) }
         const executionCancelService = { cancelExecutions: jest.fn().mockResolvedValue(undefined) }
         const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
         const desktopShellOperations = { cancelRuns: jest.fn().mockResolvedValue(undefined) }
@@ -63,10 +63,11 @@ describe('CancelConversationHandler', () => {
 
         expect(result).toEqual({ canceledExecutionIds: ['execution-1'] })
         expect(context.desktopShellOperations.cancelRuns).toHaveBeenCalledWith(['execution-1'])
-        expect(context.executionService.update).toHaveBeenCalledWith('execution-1', {
-            status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-            error: 'Canceled by user'
-        })
+        expect(context.executionService.interruptRunning).toHaveBeenCalledWith(
+            ['execution-1'],
+            'thread-1',
+            'Canceled by user'
+        )
         expect(context.executionCancelService.cancelExecutions).toHaveBeenCalledWith(
             ['execution-1'],
             'Canceled by user'
@@ -138,7 +139,7 @@ describe('CancelConversationHandler', () => {
         await expect(
             context.handler.execute(new CancelConversationCommand({ conversationId: 'conversation-1' }))
         ).resolves.toEqual({ canceledExecutionIds: [] })
-        expect(context.executionService.update).not.toHaveBeenCalled()
+        expect(context.executionService.interruptRunning).not.toHaveBeenCalled()
         expect(context.executionCancelService.cancelExecutions).not.toHaveBeenCalled()
     })
 })

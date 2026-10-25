@@ -11,7 +11,7 @@ import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 import { ConversationTitleService } from '../shared/agent/conversation-title.service'
-import { ExecutionCancelModule } from '../shared/execution/execution-cancel.module'
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { XpertModule } from '../xpert/xpert.module'
 import { CommandHandlers } from './commands/handlers'
@@ -51,7 +51,7 @@ import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
         AgentMiddlewareRuntimeModule,
         forwardRef(() => XpertModule),
         forwardRef(() => EnvironmentModule),
-        ExecutionCancelModule,
+        ExecutionControlModule,
         SkillPackageModule,
         forwardRef(() => PromptWorkflowModule)
     ],

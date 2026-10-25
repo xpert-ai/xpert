@@ -1,3 +1,5 @@
+import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
+import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
@@ -47,6 +49,7 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
             schema,
             extra: { options: `-c search_path=${schema}` },
             entities: [
+                ...executionControlTestEntities,
                 new EntitySchema<ChatConversation>({
                     name: 'ChatConversation',
                     target: ChatConversation,
@@ -124,6 +127,7 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
         await database.initialize()
         await database.query(`CREATE SCHEMA "${schema}"`)
         await database.synchronize()
+        await seedExecutionControlScope(database, scope)
         saver = new CopilotCheckpointSaver(
             database.getRepository(CopilotCheckpoint),
             database.getRepository(CopilotCheckpointWrites)
@@ -209,7 +213,7 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
             const checkpoint = input()
             await saver.put(config, checkpoint, metadata)
             if (!legacy) graph.nodes[0].position.x = 500
-            const control = new ThreadRunControlService(repository, database)
+            const control = new ThreadRunControlService(repository, database, new ExecutionControlStore(database))
             const selected = await control.recordGraph(
                 config.configurable.thread_id,
                 config.configurable.executionId,

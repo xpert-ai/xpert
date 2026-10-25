@@ -1,6 +1,6 @@
 jest.mock('../../../desktop-shell/desktop-shell-operation.service', () => ({ DesktopShellOperationService: class {} }))
 jest.mock('../../../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
-jest.mock('../../../shared/execution/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum as Status } from '@xpert-ai/contracts'

@@ -1,3 +1,7 @@
+// Durable control survives missed notifications. Polling only delivers control; it never replays work.
+import { z } from 'zod'
+import { TExecutionOwnership } from '@xpert-ai/contracts'
+import { ExecutionControlStore } from './execution-control.store'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
@@ -15,10 +19,17 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
     readonly #logger = new Logger(ExecutionCancelService.name)
     readonly #controllers = new Map<string, AbortController>()
     private subscriber?: RedisClientType
+    private timer?: ReturnType<typeof setInterval>
+    private reconciling = false
 
-    constructor(@Inject(REDIS_CLIENT) private readonly redis: RedisClientType) {}
+    constructor(
+        @Inject(REDIS_CLIENT) private readonly redis: RedisClientType,
+        private readonly controls: ExecutionControlStore
+    ) {}
 
     async onModuleInit() {
+        this.timer = setInterval(() => void this.reconcile(), 1000)
+        this.timer.unref()
         this.subscriber = this.redis.duplicate()
         await this.subscriber.connect()
         await this.subscriber.subscribe(EXECUTION_CANCEL_CHANNEL, (message) => {
@@ -27,6 +38,7 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
     }
 
     async onModuleDestroy() {
+        clearInterval(this.timer)
         await closeRedisSubscriber('execution-cancel.redis', this.subscriber)
     }
 
@@ -51,6 +63,7 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
         if (!uniqueIds.length) {
             return
         }
+        await this.controls.terminate(uniqueIds)
         const payload: CancelPayload = { executionIds: uniqueIds, reason }
         try {
             await this.redis.publish(EXECUTION_CANCEL_CHANNEL, JSON.stringify(payload))
@@ -60,9 +73,32 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
         this.applyCancel(uniqueIds, reason)
     }
 
+    async attach(executionId: string, parentExecutionId: string, policy: TExecutionOwnership['policy']) {
+        await this.controls.attach(executionId, parentExecutionId, policy)
+    }
+
+    /** Required after registration and before starting work; also repairs a notice lost before registration. */
+    async check(executionId: string) {
+        if (await this.controls.shouldAbort(executionId)) this.applyCancel([executionId])
+    }
+
+    async reconcile() {
+        if (this.reconciling) return
+        this.reconciling = true
+        try {
+            for (const executionId of this.#controllers.keys()) await this.check(executionId)
+        } catch {
+            this.#logger.warn('Execution control delivery unavailable; retaining controllers for retry')
+        } finally {
+            this.reconciling = false
+        }
+    }
+
     private handleCancelMessage(message: string) {
         try {
-            const payload = JSON.parse(message) as CancelPayload
+            const payload = z
+                .object({ executionIds: z.array(z.string().min(1)), reason: z.string().optional() })
+                .parse(JSON.parse(message))
             this.applyCancel(payload.executionIds ?? [], payload.reason)
         } catch (error) {
             this.#logger.warn(`Invalid cancel payload: ${error}`)

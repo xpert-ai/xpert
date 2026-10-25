@@ -1,6 +1,8 @@
+jest.mock('./execution-control.store', () => ({ ExecutionControlStore: class {} }))
+import { ExecutionControlStore } from './execution-control.store'
 jest.mock('@xpert-ai/server-core', () => ({
     REDIS_CLIENT: 'redis',
-    ...jest.requireActual('../../../../server/src/runtime-control/shutdown-step')
+    ...jest.requireActual('../../../server/src/runtime-control/shutdown-step')
 }))
 
 import type { RedisClientType } from 'redis'
@@ -10,7 +12,10 @@ import { ExecutionCancelledError } from './execution-cancelled.error'
 
 function fixture() {
     const publish = jest.fn().mockResolvedValue(1)
-    const service = new ExecutionCancelService({ publish } as unknown as RedisClientType)
+    const service = new ExecutionCancelService(
+        { publish } as unknown as RedisClientType,
+        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn() } as unknown as ExecutionControlStore
+    )
     const root = new AbortController()
     service.register('root', root)
     const writer = executionAbortScope('writer', service, [root.signal])
@@ -79,7 +84,10 @@ describe('execution cancellation scope', () => {
                 quit: jest.fn()
             })
         }
-        const worker = new ExecutionCancelService(redis as unknown as RedisClientType)
+        const worker = new ExecutionCancelService(
+            redis as unknown as RedisClientType,
+            { terminate: jest.fn(), shouldAbort: jest.fn() } as unknown as ExecutionControlStore
+        )
         const root = new AbortController()
         const writer = executionAbortScope('writer', worker, [root.signal])
         const image = executionAbortScope('image', worker, [writer.controller.signal])

@@ -87,7 +87,11 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
     /** Only called with execution IDs already resolved through tenant-scoped access checks. */
     async interruptRunning(ids: string[], threadId: string, error: string) {
         return this.repository.update(
-            { id: In(ids), threadId, status: XpertAgentExecutionStatusEnum.RUNNING },
+            {
+                id: In(ids),
+                threadId,
+                status: In([XpertAgentExecutionStatusEnum.RUNNING, XpertAgentExecutionStatusEnum.PENDING])
+            },
             { status: XpertAgentExecutionStatusEnum.INTERRUPTED, error, completedAt: new Date() }
         )
     }

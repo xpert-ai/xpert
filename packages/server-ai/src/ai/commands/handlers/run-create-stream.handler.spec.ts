@@ -1888,9 +1888,10 @@ describe('RunCreateStreamHandler execute', () => {
                 'old-run',
                 'token',
                 'graph-v1',
-                legacyThreadGraphRevision({ nodes: [], connections: [] })
+                legacyThreadGraphRevision({ nodes: [], connections: [] }),
+                expect.any(String)
             )
-            expect(control.bindResumedExecution).toHaveBeenCalledWith('branch', 'token', 'new-run')
+            expect(control.bindResumedExecution).toHaveBeenCalledWith('branch', 'token', 'new-run', expect.any(String))
             expect(threads.claimForRun).not.toHaveBeenCalled()
             expect(result.execution.id).toBe('new-run')
             const upsert = commands.execute.mock.calls.find(
