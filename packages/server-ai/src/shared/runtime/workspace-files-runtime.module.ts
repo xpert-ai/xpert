@@ -1,3 +1,4 @@
+import { XpertProjectAccessModule } from '../../xpert-project/project-access.module'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { VolumeModule } from '../volume/volume.module'
@@ -6,7 +7,7 @@ import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtim
 
 // File consumers import this module directly; no Agent runtime is required.
 @Module({
-    imports: [CqrsModule, RuntimeCapabilityModule, VolumeModule],
+    imports: [CqrsModule, RuntimeCapabilityModule, VolumeModule, XpertProjectAccessModule],
     providers: [WorkspaceFilesRuntimeCapabilityService],
     exports: [WorkspaceFilesRuntimeCapabilityService]
 })

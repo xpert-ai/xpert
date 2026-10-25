@@ -685,7 +685,7 @@ export class PublishedXpertAccessService {
             .getCount()
         if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         const xpert = await this.repository.findOne({
-            where: { id, tenantId: actor.tenantId, organizationId: actor.organizationId, publishAt: Not(IsNull()) },
+            where: { id, tenantId: actor.tenantId, publishAt: Not(IsNull()) },
             relations: ['agent']
         })
         if (!xpert) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))

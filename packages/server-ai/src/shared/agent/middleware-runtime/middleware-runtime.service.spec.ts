@@ -247,7 +247,11 @@ describe('AgentMiddlewareRuntimeService', () => {
                 .fn()
                 .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
         })
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, platformCapabilities)
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(
+            commandBus,
+            volumeClient,
+            platformCapabilities.get(ProjectAccessRuntimeCapability)!
+        )
         connectors = {
             createScopedApi: jest.fn(() => ({
                 getConnector: jest.fn().mockResolvedValue(undefined),
