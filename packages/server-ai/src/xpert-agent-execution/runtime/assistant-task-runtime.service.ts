@@ -1,3 +1,7 @@
+// Invariants: queued tasks retain their caller's credential audience and actor.
+// Only a verified published binding may establish server-only delegation, and
+// both stream creation and subscription must inherit it. Runtime success is
+// an execution receipt, not acceptance of a plugin's business output.
 import { AgentInvocationRuntime, invocationError } from '../../agent-invocation/invocation-runtime'
 import { invokeAssistantTask } from '../../agent-invocation/assistant-task-adapter'
 import { ModuleRef } from '@nestjs/core'
@@ -65,6 +69,7 @@ import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capabili
 import { ResolvePublishedAgentQuery } from '../../xpert/published-agent/resolve-published-agent.query'
 import { PublishedAgentContextQuery } from '../../xpert/published-agent/published-agent-context.query'
 import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
+import { GetAccessiblePublishedXpertQuery } from '../../xpert/published-agent/get-accessible-published-xpert.query'
 import { runWithIndependentWorkspaceLeases } from '../../shared/volume/workspace-storage-lock'
 import { TaskControlStore, currentTaskControl } from '@xpert-ai/server-core'
 import { ExecutionControlEvidenceService } from '../../execution-control/execution-control-evidence.service'
@@ -133,6 +138,8 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
                 : mapConversationStatusToTaskStatus(conversation?.status),
             taskId: normalizeOptionalString(input.taskId),
             executionId: execution?.id ?? normalizeOptionalString(input.executionId),
+            executorXpertId: execution?.xpertId,
+            executorAgentKey: execution?.agentKey,
             conversationId: conversation?.id ?? normalizeOptionalString(input.conversationId),
             threadId: execution?.threadId ?? conversation?.threadId ?? normalizeOptionalString(input.threadId),
             errorMessage: normalizeOptionalString(execution?.error ?? conversation?.error)
@@ -400,6 +407,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         if (input.target && input.target.requesterXpertId !== requesterXpertId) {
             throw new Error('External Assistant requester must match xpertId')
         }
+        await this.queryBus.execute(new GetAccessiblePublishedXpertQuery(requesterXpertId))
         // Reject invalid or ambiguous bindings before creating conversation or execution rows.
         const externalBinding = input.target ? await this.resolveExternalAssistantTarget(input.target) : undefined
         const xpertId = externalBinding?.xpertId ?? requesterXpertId
@@ -411,12 +419,45 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         )
             throw invocationError('CallConflict')
 
+        const dispatch = () =>
+            this.dispatchResolvedTask(
+                input,
+                {
+                    requesterXpertId,
+                    prompt,
+                    xpertId,
+                    agentKey,
+                    executionAssistant
+                },
+                checkpoint
+            )
+        // Queue workers retain the original credential audience. Delegate only
+        // the exact required published binding, including async subscription.
+        return externalBinding ? runWithPublishedAgent(requesterXpertId, externalBinding, dispatch) : dispatch()
+    }
+
+    private async dispatchResolvedTask(
+        input: AgentMiddlewareAssistantTaskInput,
+        resolved: {
+            requesterXpertId: string
+            prompt: string
+            xpertId: string
+            agentKey?: string
+            executionAssistant?: ResolvedExternalAssistantBinding
+        },
+        checkpoint?: (task: AgentMiddlewareAssistantTaskResult) => Promise<void>
+    ): Promise<AgentMiddlewareAssistantTaskResult> {
+        const { requesterXpertId, prompt, xpertId, agentKey, executionAssistant } = resolved
+        // Revalidate the actor's live target access before writing runtime rows.
+        // Server-only delegation does not replace membership or project checks.
         const primaryModelId = normalizeOptionalString(input.modelId)
+        const xpert = await this.queryBus.execute(
+            new GetAccessiblePublishedXpertQuery(
+                xpertId,
+                primaryModelId ? ['agent', 'agent.copilotModel', 'copilotModel'] : ['agent']
+            )
+        )
         if (primaryModelId) {
-            const access = this.moduleRef.get(PublishedXpertAccessService, { strict: false })
-            const xpert = await access.getAccessiblePublishedXpert(xpertId, {
-                relations: ['agent', 'agent.copilotModel', 'copilotModel']
-            })
             await this.moduleRef
                 .get(AssistantModelSelectionService, { strict: false })
                 .resolveSelection(xpert, { explicitModelId: primaryModelId, ignorePreference: true })
@@ -530,7 +571,8 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
                     id: execution.id,
-                    status: XpertAgentExecutionStatusEnum.ERROR
+                    status: XpertAgentExecutionStatusEnum.ERROR,
+                    error: error instanceof Error ? error.message : invocationError('DispatchUnknown').message
                 })
             )
             throw error

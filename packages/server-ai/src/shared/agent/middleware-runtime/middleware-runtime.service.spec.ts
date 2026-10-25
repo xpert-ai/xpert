@@ -3,6 +3,7 @@ jest.mock('../../../xpert-project/services/conversation-project.service', () => 
     ConversationProjectService: class {}
 }))
 import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
+import { GetAccessiblePublishedXpertQuery } from '../../../xpert/published-agent/get-accessible-published-xpert.query'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationRuntime } from '../../../agent-invocation/invocation-runtime'
@@ -210,9 +211,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         }
         queryBus = {
             execute: jest.fn(async (query: unknown) =>
-                query instanceof FindXpertQuery
+                query instanceof FindXpertQuery || query instanceof GetAccessiblePublishedXpertQuery
                     ? {
-                          id: query.conditions.id,
+                          id: query instanceof FindXpertQuery ? query.conditions.id : query.xpertId,
                           organizationId: 'org-1',
                           workspaceId: 'workspace-1',
                           publishAt: new Date('2026-01-01'),
@@ -2387,6 +2388,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         const requester = orchestratorFixture(['bom-assistant-1'])
         const executor = roleAssistantFixture('bom-assistant-1')
         queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof GetAccessiblePublishedXpertQuery) {
+                return query.xpertId === requester.id ? requester : executor
+            }
             if (query instanceof FindXpertQuery) {
                 return query.conditions.id === requester.id ? requester : executor
             }

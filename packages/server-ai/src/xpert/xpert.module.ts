@@ -1,6 +1,7 @@
 import { AuthorizeAssistantMcpHandler } from './mcp-access/authorize-assistant-mcp.handler'
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
 import { PublishedAgentContextHandler } from './published-agent/published-agent-context.query'
+import { GetAccessiblePublishedXpertHandler } from './published-agent/get-accessible-published-xpert.query'
 import { AssistantSharingModule } from './sharing/sharing.module'
 import { AssistantSharingController } from './sharing/sharing.controller'
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
@@ -146,6 +147,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         AuthorizeAssistantMcpHandler,
         ResolvePublishedAgentHandler,
         PublishedAgentContextHandler,
+        GetAccessiblePublishedXpertHandler,
         XpertPublicationPersistence,
         TemplateAuthoring,
         TemplatePublicationService,
