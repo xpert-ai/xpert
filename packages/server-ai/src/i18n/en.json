@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "WorkspaceImagePreviewInvalid": "A valid image preview reference and scope are required.",
+        "WorkspaceImagePreviewUnsupported": "A supported image is required for preview.",
+        "WorkspaceImagePreviewTooLarge": "The image is too large to preview.",
+        "WorkspaceImagePreviewBusy": "Image previews are busy. Try again shortly.",
         "NoGraph": "Graph not found",
         "ConversationBranchSelectionChanged": "The conversation has changed. Refresh it and try again.",
         "ConversationRetryUnavailable": "Retry is currently unavailable.",

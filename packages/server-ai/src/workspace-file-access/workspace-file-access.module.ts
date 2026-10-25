@@ -8,6 +8,7 @@ import { WorkspaceFileAccessController } from './workspace-file-access.controlle
 import { WorkspaceFileContentController } from './workspace-file-content.controller'
 import { WorkspaceFileAccessGuard } from './workspace-file-access.guard'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
+import { ImagePreviewService } from './image-preview/image-preview.service'
 
 @Module({
     imports: [
@@ -17,7 +18,7 @@ import { WorkspaceFileAccessService } from './workspace-file-access.service'
         VolumeModule
     ],
     controllers: [WorkspaceFileAccessController, WorkspaceFileContentController],
-    providers: [WorkspaceFileAccessService, WorkspaceFileAccessGuard],
-    exports: [WorkspaceFileAccessService]
+    providers: [WorkspaceFileAccessService, WorkspaceFileAccessGuard, ImagePreviewService],
+    exports: [WorkspaceFileAccessService, ImagePreviewService]
 })
 export class WorkspaceFileAccessModule {}
