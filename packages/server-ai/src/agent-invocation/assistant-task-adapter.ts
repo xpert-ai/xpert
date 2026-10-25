@@ -1,3 +1,4 @@
+import { executionControlEvidenceSchema } from '@xpert-ai/contracts'
 import { AssistantTaskExecution } from './assistant-task-execution'
 import { Injectable } from '@nestjs/common'
 import {
@@ -27,6 +28,7 @@ interface TaskExecutor {
     cancel(handle: AgentRuntimeHandle): Promise<void>
 }
 const Receipt = z.object({
+    control: executionControlEvidenceSchema.optional(),
     status: z.enum(['queued', 'running', 'interrupted', 'succeeded', 'failed', 'unknown']),
     taskId: z.string().optional(),
     executionId: z.string().optional(),
@@ -45,6 +47,7 @@ const Receipt = z.object({
 @AgentRuntimeStrategy('xpert-task')
 export class AssistantTaskRuntimeStrategy implements IAgentRuntimeStrategy {
     readonly capabilities = {
+        completionEvidence: 1 as const,
         recovery: 'session' as const,
         interactions: false,
         cancellation: true,
@@ -73,7 +76,7 @@ export async function invokeAssistantTask(
     const identity = resolveAgentExecutionScope({ xpertId: input.xpertId, agentKey: input.agentKey })
     const api = runtime.scoped({
         controlAdapter: 'native-assistant-task',
-        // Authorized Pipeline work owns an independent domain lifecycle until its control bridge is implemented.
+        // Pipeline owns its lifecycle; only its authorized bridge controls this independent root.
         controlPolicy: input.pipelineSource ? 'detached' : input.controlPolicy,
         scope: {
             tenantId: RequestContext.currentTenantId(),
@@ -131,10 +134,19 @@ export async function invokeAssistantTask(
 function observation(task: AgentMiddlewareAssistantTaskResult, fallback: AgentRuntimeHandle): AgentRuntimeObservation {
     const receipt = Receipt.parse(task)
     return {
-        status: receipt.status === 'interrupted' ? 'waiting' : receipt.status,
+        status:
+            receipt.control?.source === 'platform' &&
+            receipt.control.state === 'settled' &&
+            receipt.control.desired === 'terminated' &&
+            !['succeeded', 'failed'].includes(receipt.status)
+                ? 'cancelled'
+                : receipt.status === 'interrupted'
+                  ? 'waiting'
+                  : receipt.status,
+        controlEvidence: receipt.control,
         handle: {
             sessionId: receipt.conversationId || fallback.sessionId,
-            runId: receipt.executionId || fallback.runId
+            runId: fallback.runId
         },
         result: { text: '', data: receipt },
         ...(receipt.errorMessage ? { error: receipt.errorMessage } : {})

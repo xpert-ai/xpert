@@ -1,3 +1,4 @@
+import { nativeCompletion } from './control-evidence.fixture'
 import { pipelineRuntimeBridgeFixture } from './pipeline-runtime-bridge.fixture'
 import {
     AgentRuntimeBindingEntity,
@@ -526,14 +527,20 @@ export function managedPipelineFixture() {
         }))
         nativeStatus.mockReset().mockImplementation(async (input) => ({
             status: 'succeeded',
+            control: nativeCompletion(input.executionId!),
             executionId: input.executionId!,
             conversationId: input.conversationId!,
             executorXpertId: input.xpertId,
             executorPublishedVersion: '1'
         }))
-        await db
-            .getRepository(XpertProject)
-            .save({ id: context.projectId, name: 'Neutral assessment', workspaceId, ...context.actor })
+        await db.getRepository(XpertProject).save({
+            id: context.projectId,
+            name: 'Neutral assessment',
+            workspaceId,
+            applicationKey: 'platform',
+            projectTypeKey: 'general',
+            ...context.actor
+        })
         await db
             .getRepository(XpertWorkspace)
             .save({ id: workspaceId, name: 'Authorized Runtime workspace', status: 'active', ...context.actor })
@@ -647,13 +654,18 @@ export function managedPipelineFixture() {
             })
         })
     it.each([true, false])(
-        'requires the exact native execution cancellation receipt (confirmed=%s)',
+        'requires actual native completion evidence independently of cancellation acceptance (confirmed=%s)',
         async (confirmed) => {
             const launched = await launchAssistant(),
                 operation = (await operations())[0]
             await request(() => runner.run(context, operation.id))
             await lifecycle.cancel(context, await commandInput(launched.instanceId))
-            nativeCancel.mockResolvedValueOnce({ canceledExecutionIds: [confirmed ? operation.id : randomUUID()] })
+            nativeCancel.mockResolvedValueOnce({ canceledExecutionIds: [operation.id] })
+            nativeStatus.mockResolvedValueOnce({
+                status: 'interrupted',
+                executionId: operation.id,
+                ...(confirmed ? { control: nativeCompletion(operation.id, 'terminated') } : {})
+            })
             await request(() => runner.run(context, operation.id))
             expect(nativeCancel).toHaveBeenCalledWith(
                 expect.objectContaining({ executionId: operation.id, xpertId: assistantId })
@@ -681,7 +693,11 @@ export function managedPipelineFixture() {
                     })
                     await recordPipelineModelBudgetDenial(manager, context, instance, operation)
                 })
-            nativeStatus.mockResolvedValueOnce({ status: 'failed', executionId: operation.id })
+            nativeStatus.mockResolvedValueOnce({
+                status: 'failed',
+                executionId: operation.id,
+                control: nativeCompletion(operation.id)
+            })
             await readyAgain(operation.id)
             await request(() => runner.run(context, operation.id))
             expect(

@@ -1,3 +1,10 @@
+jest.mock('../../knowledgebase/catalog/knowledgebase-catalog.service', () => ({
+    KnowledgebaseCatalogService: class {}
+}))
+jest.mock('../../execution-control/execution-control-evidence.service', () => ({
+    ExecutionControlEvidenceService: class {}
+}))
+import { unknownExecutionControl } from '@xpert-ai/contracts'
 jest.mock('../../xpert-project/services/conversation-project.service', () => ({ ConversationProjectService: class {} }))
 jest.mock('../../knowledgebase/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 jest.mock('../../knowledgebase/tenant-library/tenant-library-access.service', () => ({
@@ -55,7 +62,7 @@ function fixture() {
         projects as never,
         { confirm: jest.fn() } as never
     )
-    const knowledge = new KnowledgebaseRuntimeService(commands as never, queries as never)
+    const knowledge = new KnowledgebaseRuntimeService(commands as never, queries as never, {} as never)
     const uploads = new KnowledgeUploadSessionsService(
         { assertKnowledgebaseWriteAccess: jest.fn(), assertNotRebuilding: jest.fn() } as never,
         { resolve: jest.fn(), resolveRoot: jest.fn() }
@@ -66,7 +73,8 @@ function fixture() {
         commands as never,
         queries as never,
         { get: jest.fn() } as never,
-        { execution: jest.fn().mockResolvedValue(null) } as never
+        { execution: jest.fn().mockResolvedValue(null) } as never,
+        { read: jest.fn(async (id: string) => unknownExecutionControl({ kind: 'execution', id })) } as never
     )
     const providers = [project, knowledge, documents, uploads, provisioning, tasks]
     const registry = new DefaultRuntimeCapabilityRegistry()

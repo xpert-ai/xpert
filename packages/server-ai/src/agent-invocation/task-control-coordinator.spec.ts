@@ -1,5 +1,15 @@
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
+import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
+import { AssistantTaskExecution } from './assistant-task-execution'
+import { ControlAssistantTaskCommand } from '../xpert-agent-execution/runtime/control-assistant-task.command'
 import { TaskControlCoordinator } from './task-control-coordinator.service'
-import { TaskControlModule, TaskControlStore, TaskControlRunner } from '@xpert-ai/server-core'
+import {
+    TaskControlModule,
+    TaskControlStore,
+    TaskControlRunner,
+    RedisModule,
+    REDIS_CLIENT
+} from '@xpert-ai/server-core'
 import { ExecutionTaskControl } from '../../../server/src/task-control/task-control.entity'
 import { ControlOwnedExecutionCommand } from '../chat-conversation/commands/control-owned-execution.command'
 import { DataSource } from 'typeorm'
@@ -86,16 +96,25 @@ it('confirms an invocation pause only after its owned native child reached a saf
     await f.service.deliver(f.task)
     expect(f.tasks.receipt).toHaveBeenCalledWith('target', 'paused')
 })
-it('uses the native current execution binding for control without invoking start', async () => {
+it('keeps the native original handle for control while the owning handler resolves its current attempt', async () => {
     const f = fixture('invocation')
     f.record.invocation.controlAdapter = 'native-assistant-task'
     f.tasks.descendants.mockResolvedValue([
-        { parentId: 'target', kind: 'execution', currentExecutionId: 'resumed-child' }
+        {
+            parentId: 'target',
+            kind: 'execution',
+            currentExecutionId: 'resumed-child',
+            attempts: ['original-child', 'resumed-child']
+        }
     ])
     await f.service.deliver(f.task)
     expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
     expect(f.runtime.scoped).toHaveBeenCalledTimes(1)
     expect(f.api.cancel).toHaveBeenCalledWith('invocation')
+    await f.runtime.scoped.mock.calls[0][0].capabilities
+        .require(AssistantTaskExecution)
+        .inspect({ sessionId: 's', runId: 'original-child' }, {} as never)
+    expect(f.commands.execute).toHaveBeenCalledWith(new ControlAssistantTaskCommand('original-child', 'inspect'))
     expect(f.tasks.receipt).not.toHaveBeenCalled()
 })
 it('discards an inline graph pause on termination without replaying the graph', async () => {
@@ -125,7 +144,15 @@ it('wires the core control module through constructor injection', async () => {
     @Global()
     @Module({ providers: [{ provide: DataSource, useValue: database }], exports: [DataSource] })
     class DatabaseTestModule {}
-    const module = await Test.createTestingModule({ imports: [DatabaseTestModule, TaskControlModule] }).compile()
+    @Module({ providers: [{ provide: REDIS_CLIENT, useValue: {} }], exports: [REDIS_CLIENT] })
+    class RedisTestModule {}
+    const module = await Test.createTestingModule({
+        imports: [DatabaseTestModule, TaskControlModule, ExecutionControlModule]
+    })
+        .overrideModule(RedisModule)
+        .useModule(RedisTestModule)
+        .compile()
+    expect(module.get(ExecutionControlEvidenceService)).toBeInstanceOf(ExecutionControlEvidenceService)
     expect(module.get(TaskControlStore)).toBeInstanceOf(TaskControlStore)
     expect(module.get(TaskControlRunner)).toBeInstanceOf(TaskControlRunner)
     await module.close()

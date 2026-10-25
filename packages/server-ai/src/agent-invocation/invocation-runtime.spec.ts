@@ -364,11 +364,26 @@ describe('AgentInvocationRuntime', () => {
         async (idempotent) => {
             const f = fixture()
             f.strategy.capabilities.idempotentCancellation = idempotent
+            f.strategy.capabilities.completionEvidence = 1
             f.start.mockResolvedValue({ status: 'running', handle: { sessionId: 'session', runId: 'same-run' } })
             const cancel = jest
                 .fn()
                 .mockRejectedValueOnce(new Error('Response lost'))
-                .mockResolvedValue({ status: 'cancelled' })
+                .mockImplementation(async (handle, context) => ({
+                    status: 'cancelled',
+                    controlEvidence: {
+                        version: 1,
+                        source: 'provider',
+                        subject: { kind: 'invocation', id: context.invocationId },
+                        scope: 'operation',
+                        state: 'settled',
+                        outcome: 'cancelled',
+                        sessionId: handle.sessionId,
+                        runId: handle.runId,
+                        receiptKey: 'exit-1',
+                        observedAt: new Date().toISOString()
+                    }
+                }))
             f.strategy.cancel = cancel
             const invocation = await f.api.start(f.request)
             await expect(f.api.cancel(invocation.id)).rejects.toThrow('Response lost')

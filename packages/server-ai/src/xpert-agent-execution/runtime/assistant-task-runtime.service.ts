@@ -67,6 +67,7 @@ import { PublishedAgentContextQuery } from '../../xpert/published-agent/publishe
 import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
 import { runWithIndependentWorkspaceLeases } from '../../shared/volume/workspace-storage-lock'
 import { TaskControlStore, currentTaskControl } from '@xpert-ai/server-core'
+import { ExecutionControlEvidenceService } from '../../execution-control/execution-control-evidence.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
@@ -77,7 +78,8 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly moduleRef: ModuleRef,
-        private readonly taskControls: TaskControlStore
+        private readonly taskControls: TaskControlStore,
+        private readonly controlEvidence: ExecutionControlEvidenceService
     ) {}
 
     resolvePublishedAgent(input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0]) {
@@ -109,6 +111,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
     async getTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskResult | null> {
+        const requestedExecutionId = normalizeOptionalString(input.executionId)
         input = await this.currentTaskInput(input)
         const execution = await this.findAssistantTaskExecution(input)
         const conversation = await this.findAssistantTaskConversation(input)
@@ -117,6 +120,14 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         }
 
         return {
+            ...(execution?.id
+                ? {
+                      control: await this.controlEvidence.read(requestedExecutionId ?? execution.id, {
+                          tenantId: RequestContext.currentTenantId(),
+                          organizationId: RequestContext.getOrganizationId()
+                      })
+                  }
+                : {}),
             status: execution
                 ? mapExecutionStatusToTaskStatus(execution.status)
                 : mapConversationStatusToTaskStatus(conversation?.status),

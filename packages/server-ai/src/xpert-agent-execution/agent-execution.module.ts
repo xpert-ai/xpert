@@ -1,4 +1,5 @@
 import { ControlAssistantTaskHandler } from './runtime/control-assistant-task.handler'
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { TaskControlModule } from '@xpert-ai/server-core'
 import { AssistantTaskRuntimeService } from './runtime/assistant-task-runtime.service'
 import { TenantModule } from '@xpert-ai/server-core'
@@ -17,6 +18,7 @@ import { CopilotUsageModule } from '../copilot-usage'
 
 @Module({
     imports: [
+        ExecutionControlModule,
         TaskControlModule,
         RouterModule.register([{ path: '/xpert-agent-execution', module: XpertAgentExecutionModule }]),
         TypeOrmModule.forFeature([XpertAgentExecution]),

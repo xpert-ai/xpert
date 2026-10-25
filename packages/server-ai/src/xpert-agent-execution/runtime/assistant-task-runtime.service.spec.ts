@@ -1,3 +1,4 @@
+import { unknownExecutionControl } from '@xpert-ai/contracts'
 import { XpertAgentExecutionOneQuery } from '../queries/get-one.query'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 
@@ -114,7 +115,8 @@ function fixture(external: boolean) {
         commands as unknown as CommandBus,
         queries as unknown as QueryBus,
         { get: (token: unknown) => dependencies.get(token) } as ModuleRef,
-        taskControls as never
+        taskControls as never,
+        { read: jest.fn(async (id: string) => unknownExecutionControl({ kind: 'execution', id })) } as never
     )
     const reader = new NativeAgentInvocationReader(
         queries as unknown as QueryBus,
@@ -506,7 +508,23 @@ describe('Independent Assistant task storage lifetime', () => {
             let staleCaller: Promise<void> = Promise.resolve()
             const original = f.commands.execute.getMockImplementation()!
             let dispatched = 0
-            const observation = jest.spyOn(f.service, 'getTaskStatus').mockResolvedValue({ status })
+            const observation = jest.spyOn(f.service, 'getTaskStatus').mockImplementation(async (input) => ({
+                status,
+                control: {
+                    version: 1,
+                    source: 'platform',
+                    subject: { kind: 'execution', id: input.executionId },
+                    scope: 'owned_subtree',
+                    state: 'settled',
+                    desired: 'running',
+                    taskId: input.executionId,
+                    rootId: input.executionId,
+                    revision: 1,
+                    executionId: input.executionId,
+                    threadId: 'thread',
+                    observedAt: new Date().toISOString()
+                }
+            }))
             f.commands.execute.mockImplementation(async (command: unknown) => {
                 if (!(command instanceof XpertChatCommand)) return original(command)
                 dispatched++

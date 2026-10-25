@@ -24,12 +24,32 @@ describe('phase 2 control loss regressions', () => {
     it('retains cancellation before the first handle and cancels the late original task without restarting', async () => {
         const store = new MemoryInvocationStore()
         const registry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
-        const cancel = jest.fn().mockResolvedValue({ status: 'cancelled' })
+        const cancel = jest.fn(async (handle, context) => ({
+            status: 'cancelled' as const,
+            controlEvidence: {
+                version: 1 as const,
+                source: 'provider' as const,
+                subject: { kind: 'invocation' as const, id: context.invocationId },
+                scope: 'operation' as const,
+                state: 'settled' as const,
+                outcome: 'cancelled' as const,
+                sessionId: handle.sessionId,
+                runId: handle.runId,
+                receiptKey: 'actual-exit',
+                observedAt: new Date().toISOString()
+            }
+        }))
         const start = jest.fn<Promise<AgentRuntimeObservation>, Parameters<IAgentRuntimeStrategy['start']>>()
         registry.register(
             'test',
             {
-                capabilities: { recovery: 'session', interactions: false, cancellation: true, background: true },
+                capabilities: {
+                    completionEvidence: 1,
+                    recovery: 'session',
+                    interactions: false,
+                    cancellation: true,
+                    background: true
+                },
                 start,
                 cancel,
                 inspect: jest.fn().mockResolvedValue({ status: 'running' })

@@ -53,7 +53,7 @@ export class ExecutionControlStore {
             record.desired === 'terminated'
         )
             this.reject(executionId)
-        this.validate(record)
+        validateExecutionControl(record)
         const task = await this.tasks.execution(executionId, manager)
         if (task) {
             if (
@@ -135,7 +135,7 @@ export class ExecutionControlStore {
                 child.rootExecutionId !== rootExecutionId
             )
                 this.reject(executionId)
-            this.validate(child)
+            validateExecutionControl(child)
             await this.assertLive(manager, child)
             const owner = await this.tasks.execution(parentExecutionId, manager)
             if (!owner) this.reject(parentExecutionId)
@@ -174,7 +174,7 @@ export class ExecutionControlStore {
     async isTerminated(executionId: string) {
         const target = await this.database.getRepository(ExecutionControl).findOneBy({ executionId })
         if (!target) return false
-        this.validate(target)
+        validateExecutionControl(target)
         return this.database.getRepository(ExecutionControl).existsBy({
             executionId: In(target.ancestors),
             desired: 'terminated'
@@ -187,7 +187,7 @@ export class ExecutionControlStore {
             return true
         const target = await this.database.getRepository(ExecutionControl).findOneBy({ executionId })
         if (!target) return false
-        this.validate(target)
+        validateExecutionControl(target)
         return this.database.getRepository(ExecutionControl).exists({
             where: [
                 { executionId: In(target.ancestors), desired: 'terminated' },
@@ -240,12 +240,12 @@ export class ExecutionControlStore {
     private async lock(manager: EntityManager, executionId: string) {
         const target = await manager.findOne(ExecutionControl, { where: { executionId } })
         if (!target) return null
-        this.validate(target)
+        validateExecutionControl(target)
         const root = await manager.findOneOrFail(ExecutionControl, {
             where: { executionId: target.rootExecutionId },
             lock: { mode: 'pessimistic_write' }
         })
-        this.validate(root)
+        validateExecutionControl(root)
         return {
             root,
             target:
@@ -290,29 +290,29 @@ export class ExecutionControlStore {
             this.reject(target.executionId)
     }
 
-    private validate(record: ExecutionControl) {
-        const parsed = z
-            .object({
-                ownership: z.object({
-                    policy: z.enum(['attached', 'detached', 'shared']),
-                    parentExecutionId: z.string().min(1).optional(),
-                    rootExecutionId: z.string().min(1)
-                }),
-                ancestors: z.array(z.string().min(1)).nonempty(),
-                work: z.array(z.object({ id: z.string().min(1), executionId: z.string().min(1), settled: z.boolean() }))
-            })
-            .safeParse(record)
-        if (
-            !parsed.success ||
-            record.ownership.rootExecutionId !== record.rootExecutionId ||
-            record.ancestors[0] !== record.rootExecutionId ||
-            record.ancestors[record.ancestors.length - 1] !== record.executionId ||
-            new Set(record.ancestors).size !== record.ancestors.length
-        )
-            this.reject(record.executionId)
-    }
-
     private reject(executionId: string): never {
         throw new ExecutionCancelledError(executionId, 'Execution ownership ended')
     }
+}
+
+export function validateExecutionControl(record: ExecutionControl) {
+    const parsed = z
+        .object({
+            ownership: z.object({
+                policy: z.enum(['attached', 'detached', 'shared']),
+                parentExecutionId: z.string().min(1).optional(),
+                rootExecutionId: z.string().min(1)
+            }),
+            ancestors: z.array(z.string().min(1)).nonempty(),
+            work: z.array(z.object({ id: z.string().min(1), executionId: z.string().min(1), settled: z.boolean() }))
+        })
+        .safeParse(record)
+    if (
+        !parsed.success ||
+        record.ownership.rootExecutionId !== record.rootExecutionId ||
+        record.ancestors[0] !== record.rootExecutionId ||
+        record.ancestors[record.ancestors.length - 1] !== record.executionId ||
+        new Set(record.ancestors).size !== record.ancestors.length
+    )
+        throw new ExecutionCancelledError(record.executionId, 'Execution ownership ended')
 }

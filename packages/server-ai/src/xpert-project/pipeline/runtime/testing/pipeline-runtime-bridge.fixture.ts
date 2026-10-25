@@ -62,7 +62,13 @@ export function pipelineRuntimeBridgeFixture(
     registry.register(
         'neutral-runtime',
         {
-            capabilities: { background: true, cancellation: true, interactions: false, recovery: 'session' },
+            capabilities: {
+                completionEvidence: 1,
+                background: true,
+                cancellation: true,
+                interactions: false,
+                recovery: 'session'
+            },
             start,
             inspect,
             cancel
@@ -88,7 +94,21 @@ export function pipelineRuntimeBridgeFixture(
             handle: { sessionId: context.invocationId, runId: context.invocationId }
         }))
         inspect.mockReset().mockResolvedValue({ status: 'succeeded', result: { text: 'Neutral Runtime result' } })
-        cancel.mockReset().mockResolvedValue({ status: 'cancelled' })
+        cancel.mockReset().mockImplementation(async (handle, context) => ({
+            status: 'cancelled',
+            controlEvidence: {
+                version: 1,
+                source: 'provider',
+                subject: { kind: 'invocation', id: context.invocationId },
+                scope: 'operation',
+                state: 'settled',
+                outcome: 'cancelled',
+                sessionId: handle.sessionId,
+                runId: handle.runId,
+                receiptKey: context.invocationId,
+                observedAt: new Date().toISOString()
+            }
+        }))
         prepare.mockReset().mockResolvedValue({ prompt: 'Assess the pinned neutral input' })
         collect.mockReset().mockResolvedValue({})
     }

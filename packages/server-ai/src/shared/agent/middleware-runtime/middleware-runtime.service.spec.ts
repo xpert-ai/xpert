@@ -1,3 +1,4 @@
+import { unknownExecutionControl } from '@xpert-ai/contracts'
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
 }))
@@ -317,7 +318,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                           : undefined
                 )
             } as never,
-            { execution: jest.fn().mockResolvedValue(null) } as never
+            { execution: jest.fn().mockResolvedValue(null) } as never,
+            { read: jest.fn(async (id: string) => unknownExecutionControl({ kind: 'execution', id })) } as never
         )
         const knowledgebaseCatalog: jest.Mocked<Pick<KnowledgebaseCatalogService, 'query' | 'get' | 'getAccess'>> = {
             query: jest.fn(),
@@ -2707,6 +2709,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         expect(result).toEqual({
+            control: expect.objectContaining({ state: 'unknown', subject: { kind: 'execution', id: 'execution-1' } }),
             status: 'failed',
             taskId: undefined,
             executionId: 'execution-1',

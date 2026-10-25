@@ -2,7 +2,7 @@
 
 本文维护会话执行控制的**已实现功能**，供后端开发、测试和后续功能迭代使用。后续阶段完成后继续更新本文；尚未实现的设计保留在[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)中。
 
-当前实现阶段：**第二阶段——平台内跨线程任务与队列控制**。第一批已按审核意见重新提交（`a6b9b85a9e`）；第二批已按功能重新整理，待审核提交，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
+当前实现阶段：**第三阶段 3.1——收尾证据与业务桥接**。前两批已按审核意见重新提交（`a6b9b85a9e`、`7eb273ccb`）；第三批已按功能重新整理，待审核提交，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
 
 ## 模块与契约边界
 
@@ -22,6 +22,7 @@
 | 继续           | 校验检查点、工作流兼容性和恢复令牌；并发请求只允许一个获得恢复资格                                   |
 | 终止           | 撤销旧执行的调度资格，通知本地执行取消，等待图和实际本地工具结束后释放会话                           |
 | 独立、共享工作 | 控制账本支持独立根隔离；不因父执行终止而级联取消这些根                                               |
+| 业务收尾确认 | 3.1 接入 Pipeline Assistant / Runtime、Project 重试准入和群控制；取消应答与实际执行结束分离 |
 | 后台与队列任务 | 第二阶段接入原生跨线程 Assistant、Invocation、受控 Handoff，以及显式接入的 Managed Queue；远端物理退出仍需各适配器确认 |
 
 ## 暂停和终止的区别
@@ -228,16 +229,80 @@ Handoff 的业务结果持久化后，等待方即使不在执行 worker 的进�
 
 2026-10-25 重新分层验证：在保留第一批独立模块和基础实体继承调整的隔离快照上，19 套、188 项定向回归通过，包括真实 PostgreSQL/Redis、双 worker 进程及检查点恢复。该结果不替代第三阶段远端收尾和此前暂缓的产品全链验收。
 
+## 第三阶段 3.1：收尾证据与业务桥接
+
+取消入口返回成功、`canceledExecutionIds` 包含目标、投递记录变成 `canceled`，都只证明控制请求或投递撤回。它们不能证明实际工具已结束。3.1 将这些事实与业务释放条件分开。
+
+```mermaid
+sequenceDiagram
+    participant P as Pipeline / Project / 群控制
+    participant C as 原任务控制入口
+    participant W as 工具与所属任务
+    participant E as 持久收尾证据
+    P->>C: 取消原任务
+    C-->>P: 已接受请求
+    C-->>W: 通知取消并禁止后续准入
+    P->>E: 查询原身份对应的实际收尾
+    E-->>P: terminating / unknown
+    Note over P,W: 保持待确认，不写完成时间、不启动替代任务
+    W->>E: 实际工具返回、图结束、所属子树安全
+    P->>E: 再查询原任务
+    E-->>P: settled
+    P->>P: 释放本次业务运行
+```
+
+### 证据契约
+
+共享类型 `ExecutionControlEvidence` 的 `version: 1` 明确区分以下来源：
+
+| 来源             | 证明内容                                                                                      | 不能据此推断的内容                                           |
+| ---------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `platform`       | 稳定任务身份、当前执行尝试、目标版本及所属子树状态                                            | 不包含 detached/shared 根；不证明未接入的远端工作已退出      |
+| `provider`       | 声明 `completionEvidence: 1` 的固定适配器确认原 invocation/session/run 收尾；结果类别必须匹配 | cancel 请求返回成功、进程 Map 查无记录、超时均不能生成此证据 |
+| `host_admission` | 宿主通过同一启动 CAS 确认任务尚未启动，或明确的启动前失败                                     | 不能由插件自报；已有启动句柄时不得补造                       |
+| `unavailable`    | 未登记、不支持或尚未确认                                                                      | 不允许推断已退出或据此重放                                   |
+
+平台读取使用 PostgreSQL `REPEATABLE READ`，在同一快照内核对第一阶段的图结束及工具实际回执，和第二阶段的稳定任务及附属子树。缺失账本保留未知；当前尝试变化后，原 ID 仍查询同一个稳定任务，不使用旧尝试的完成状态释放新尝试。原生证据只由宿主适配器提供，普通 Runtime 不得伪造这一来源。
+
+安全暂停是 `paused`，不是 `settled`。尚有同步收尾依赖时是 `pausing`；依赖按第二阶段规则继续完成，父节点不与它互等。恢复继续使用原调用身份和保存结果；终止仍保留不可撤销的准入限制。版本字段用于诊断快照，终局单调性、原任务身份及已有恢复屏障共同防止迟到回执覆盖新执行。
+
+### 已接入入口
+
+- **Pipeline Assistant**：取消后查询原 Task；只有实际收尾证据才能生成取消终局。暂停保持等待。恢复后的执行别名必须由平台证据确认，业务 operation 身份保持不变。
+- **Pipeline Runtime / Invocation**：取消应答没有有效证据时保持 `cancelling` / pending；后续查询原任务并沿用已有控制投递去重。旧 `cancelled` 快照可继续查询，不能直接解锁新任务。正常成功/失败仍保留既有业务结果语义；控制过程中返回结果但尚无收尾证据时，保存结果并继续等待，不改写成业务失败。
+- **Project**：状态读取返回控制证据；新尝试准入和展示投影不把缺少证据的取消状态当成完成，也不补造运行完成时间。
+- **群成员控制**：`accepted: true` 仍只表示请求接受，新增独立 `controlEvidence`。仅查询授权成员的明确 run；投递撤回和其他成员的调度规则不变。
+- **群内 Project 任务**：检查消息、成员、invocation 的精确关联，再查询实际执行账本。图已经 interrupted 或投递 finalized，也不能跳过工具收尾确认。未启动投递的撤回由现有准入锁保证，不需启动执行来完成取消。
+
+Project、Pipeline、群任务仍可拥有独立根。主会话的停止不会把这些独立领域任务改成 attached；共享任务与其他消费者继续运行。对应领域的取消入口仍执行当前授权，不能借证据读取绕过组织、成员或 Assistant 权限。
+
+### 兼容与验证范围
+
+3.1 复用第一、二阶段表，证据随 Invocation / Pipeline JSON 回执保存，不增加环境变量或数据库表。历史未登记任务及未声明新能力的远端适配器不会获得虚假的强确认；取消后可能继续处于待确认，直到原适配器提供可验证证据。正常业务结果和实际退出确认是不同事实。
+
+混合版本的旧 worker 不理解这些释放条件，未来发布时必须确保同一控制链全部使用新 host / SDK。3.1 没有升级或部署 ProcessRuntime、OpenCode、Computer/Desktop、Sandbox、MCP 的物理控制实现，也未验收这些外部适配器；它们仍属于 3.2 / 3.3。没有增加 ChatKit 技术细节展示，管理员诊断界面留待后续。
+
+回归入口：
+
+- [Pipeline 故障与真实账本集成](../packages/server-ai/src/xpert-project/pipeline/runtime/pipeline-control-evidence.postgres.spec.ts)：延迟工具忽略取消、实际退出后释放、Runtime 应答与证据分离、子工具收尾、父子暂停依赖、恢复身份及独立/共享隔离。
+- [Invocation 证据边界](../packages/server-ai/src/agent-invocation/invocation-control-evidence.spec.ts)：旧适配器、伪造宿主来源、错 invocation/session/run、结果不匹配、取消与领取 CAS 竞争、重建控制服务后不重复启动。
+- [原生任务桥接](../packages/server-ai/src/xpert-agent-execution/runtime/control-assistant-task.handler.spec.ts)、[群内任务桥接](../packages/server-ai/src/chat-group/group-project/group-task-execution.spec.ts)、[群控制](../packages/server-ai/src/chat-group/group-control.spec.ts)：请求接受、投递撤回、安全暂停和实际完成分开。
+- [Project 数据库回归](../packages/server-ai/src/xpert-project/runtime/project-task-dispatch.integration.spec.ts)：取消已接受时拒绝新尝试，实际确认后才允许显式发起新尝试；旧调用不会重放。
+- 同时回归第一、二阶段的真实 PostgreSQL / Redis / LangGraph 控制、恢复和 Handoff 路径。外部模型及 Runtime 边界使用可控替身，不能替代第三阶段后续批次的真实进程验收。
+
+核心故障在隔离 PostgreSQL 中的结果：修复前工具仍运行且只调用 1 次，Pipeline 已 `cancelled` 并写入完成时间；修复后相同时点保持 `cancelling`、完成时间为空，工具实际返回后才 `cancelled`，工具及业务启动次数均保持 1。
+
 ## 功能演进记录
 
 | 阶段     | 实现日期   | 已实现范围                                                 | 验证与交付状态             |
 | -------- | ---------- | ---------------------------------------------------------- | -------------------------- |
 | 第一阶段 | 2026-10-23 | 统一归属、持久控制、本地安全暂停与终止、并发恢复和工具回执        | 已提交、审核通过，未部署   |
-| 第二阶段 | 2026-10-23 | 稳定任务身份、跨线程原生任务、Invocation 控制、受控队列和结果限制 | 重新分层待审核提交，未部署 |
+| 第二阶段 | 2026-10-23 | 稳定任务身份、跨线程原生任务、Invocation 控制、受控队列和结果限制 | 已提交 `7eb273ccb`；未部署 |
+| 第三阶段 3.1 | 2026-10-23 | 类型化收尾证据、Pipeline / Project / 群业务桥接及准入限制 | 第三批待审核提交；未部署 |
 
 后续阶段完成后，在本文补充对应功能章节并追加本表，同时更新“功能范围”、接口状态、兼容要求及回归入口。每次补充说明实际接入的执行器、暂停与终止的确认条件、失败或未知状态如何处理，以及验证范围；不要仅把计划中的能力改成“已支持”。
 
-未接入队列及远端 Runtime、Runner / Sandbox / MCP 的实际退出确认、Project/Pipeline 业务控制桥接，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
+未接入队列及远端 Runtime、Runner / Sandbox / MCP 的实际退出确认、管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
 
 ### 模块与契约分层
 

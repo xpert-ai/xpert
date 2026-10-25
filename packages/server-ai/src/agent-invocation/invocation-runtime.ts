@@ -1,6 +1,7 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
+import { checkedControlObservation, invocationCanRelease, notStartedEvidence } from './invocation-control-evidence'
 import type { TaskControlPolicy } from '@xpert-ai/plugin-sdk'
 import { TaskControlRejected } from '@xpert-ai/server-core'
 import { createHash, randomUUID } from 'crypto'
@@ -196,8 +197,15 @@ export class AgentInvocationRuntime {
             const latest = await this.store.read(id, access.scope)
             if (error instanceof AgentInvocationNotStartedError && !latest?.invocation.handle) {
                 if (task) await this.tasks.receipt(task.id, 'completed', taskClaim)
-                return (await this.updateLatest(id, access, { status: 'failed', error: error.message }, true))
-                    .invocation
+                return (
+                    await this.updateLatest(
+                        id,
+                        access,
+                        { status: 'failed', error: error.message, controlEvidence: notStartedEvidence(id, 'failed') },
+                        true,
+                        true
+                    )
+                ).invocation
             }
             const suspended = access.isSuspension?.(error) ?? false
             await this.updateLatest(
@@ -226,18 +234,27 @@ export class AgentInvocationRuntime {
         if (!record) throw invocationError('NotFound')
         this.assertScope(record, access.scope)
         await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
-        if (isAgentInvocationTerminal(record.invocation.status)) {
+        if (invocationCanRelease(record.invocation)) {
             this.pinned(record)
             return record.invocation
         }
         if (operation === 'cancel' && !record.invocation.control) {
             const task = await this.tasks?.find(access.scope, 'invocation', id)
             if (task) await this.tasks.change(task.id, 'terminated')
-            record = await this.updateLatest(id, access, {
-                status: record.invocation.status === 'queued' ? 'cancelled' : 'cancelling',
-                control: { intent: 'terminated', requestedAt: new Date().toISOString() }
-            })
-            if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
+            // CAS against the queued revision: a concurrent launch invalidates "not started" proof.
+            const queued = record.invocation.status === 'queued'
+            const claimed = await this.save(
+                record,
+                {
+                    status: queued ? 'cancelled' : 'cancelling',
+                    ...(queued ? { controlEvidence: notStartedEvidence(id, 'cancelled') } : {}),
+                    control: { intent: 'terminated', requestedAt: new Date().toISOString() }
+                },
+                false
+            )
+            if (!claimed) return this.control(id, access, operation, input)
+            record = claimed
+            if (invocationCanRelease(record.invocation)) return record.invocation
         }
         const strategy = this.pinned(record)
         if (
@@ -361,17 +378,26 @@ export class AgentInvocationRuntime {
         id: string,
         access: AgentInvocationAccess,
         observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
-        finishStart = false
+        finishStart = false,
+        hostAdmission = false
     ) {
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
-            if (isAgentInvocationTerminal(latest.invocation.status)) return latest
+            if (invocationCanRelease(latest.invocation)) return latest
+            const checked = hostAdmission
+                ? observation
+                : checkedControlObservation(
+                      latest.invocation,
+                      observation,
+                      this.pinned(latest),
+                      latest.providerSource.kind === 'builtin'
+                  )
             // A late progress event cannot undo an accepted cancellation request.
             const next =
-                latest.invocation.control && !isAgentInvocationTerminal(observation.status)
-                    ? { ...observation, status: 'cancelling' as const }
-                    : observation
+                latest.invocation.control && !isAgentInvocationTerminal(checked.status)
+                    ? { ...observation, ...checked, status: 'cancelling' as const }
+                    : { ...observation, ...checked }
             if (latest.invocation.control && next.control) next.control = latest.invocation.control
             const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved

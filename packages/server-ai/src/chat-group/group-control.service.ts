@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource, In } from 'typeorm'
-import { CancelConversationCommand } from '@xpert-ai/plugin-sdk'
+import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
+import { CancelConversationCommand, RequestContext } from '@xpert-ai/plugin-sdk'
 import { GroupAccessService } from './group-access.service'
 import { GroupParticipant, GroupMessageRecipient, GroupInteraction } from './group.entity'
 import { withGroupRuntime } from './group-runtime-context'
@@ -25,7 +26,8 @@ export class GroupControlService {
         private readonly access: GroupAccessService,
         private readonly control: ThreadRunControlService,
         private readonly commands: CommandBus,
-        private readonly outbox: GroupOutboxService
+        private readonly outbox: GroupOutboxService,
+        private readonly evidence: ExecutionControlEvidenceService
     ) {}
 
     /** Apply a validated run control after checking group membership and Assistant access. */
@@ -101,7 +103,13 @@ export class GroupControlService {
             await this.outbox.flush(groupId)
         }
         await this.db.getRepository(ChatConversation).increment({ id: groupId }, 'revision', 1)
-        return { accepted: true }
+        return {
+            accepted: true,
+            controlEvidence: await this.evidence.read(input.runId, {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId()
+            })
+        }
     }
 
     /** Let the sender or group owner retract only this pending/blocked recipient delivery. */

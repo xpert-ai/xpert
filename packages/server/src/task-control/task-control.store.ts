@@ -301,11 +301,12 @@ export class TaskControlStore {
 	}
 
 	async descendants(id: string, manager = this.database.manager) {
-		return manager
+		const targets = await manager
 			.getRepository(ExecutionTaskControl)
 			.createQueryBuilder('task')
 			.where('task.ancestors @> :ancestor::jsonb', { ancestor: JSON.stringify([id]) })
 			.getMany()
+		return targets.map((target) => this.validate(target))
 	}
 
 	async settled(id: string, pause: boolean, manager = this.database.manager) {

@@ -1,3 +1,4 @@
+import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
 import { IXpertProjectTaskExecution } from '@xpert-ai/contracts'
 import { AgentInvocation, projectPipelineInvocationScopeSchema } from '@xpert-ai/plugin-sdk'
 import { EntityManager, In } from 'typeorm'
@@ -30,22 +31,16 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
         reference.projectId === attempt.projectId
     if (!invocation || invocation.id !== attempt.invocationId || !(pipeline ? pipelineMatches : dispatchMatches))
         return { ...attempt, invocationStatus: attempt.dispatchState === 'pending' ? 'queued' : 'unknown' }
-    const status =
-        invocation.status === 'succeeded' || invocation.status === 'failed' || invocation.status === 'cancelled'
-            ? invocation.status
-            : invocation.handle
-              ? 'running'
-              : 'queued'
+    const status = invocationCanRelease(invocation) ? invocation.status : invocation.handle ? 'running' : 'queued'
     return {
         ...attempt,
         status,
-        invocationStatus: invocation.status,
+        invocationStatus:
+            invocation.status === 'cancelled' && !invocationCanRelease(invocation) ? 'cancelling' : invocation.status,
         runtimeProvider: invocation.request.target.provider,
         runtimeToolId: invocation.handle?.runner?.tool.id,
         runtimeStartedAt: invocation.progress?.startedAt ?? null,
-        runtimeCompletedAt: ['succeeded', 'failed', 'cancelled'].includes(invocation.status)
-            ? invocation.updatedAt
-            : null
+        runtimeCompletedAt: invocationCanRelease(invocation) ? invocation.updatedAt : null
     }
 }
 

@@ -244,14 +244,36 @@ integration('phase 2 stable ownership / PostgreSQL', () => {
         const parent = await root(),
             next = randomUUID()
         const registry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
-        const start = jest.fn().mockResolvedValue({ status: 'running', handle: { runId: 'original' } })
+        const start = jest
+            .fn()
+            .mockResolvedValue({ status: 'running', handle: { sessionId: 'session', runId: 'original' } })
         registry.register(
             'test',
             {
-                capabilities: { recovery: 'session', background: true, cancellation: true, interactions: false },
+                capabilities: {
+                    completionEvidence: 1,
+                    recovery: 'session',
+                    background: true,
+                    cancellation: true,
+                    interactions: false
+                },
                 start,
                 inspect: jest.fn(),
-                cancel: jest.fn().mockResolvedValue({ status: 'cancelled' })
+                cancel: jest.fn(async (handle, context) => ({
+                    status: 'cancelled' as const,
+                    controlEvidence: {
+                        version: 1 as const,
+                        source: 'provider' as const,
+                        subject: { kind: 'invocation' as const, id: context.invocationId },
+                        scope: 'operation' as const,
+                        state: 'settled' as const,
+                        outcome: 'cancelled' as const,
+                        sessionId: handle.sessionId,
+                        runId: handle.runId,
+                        receiptKey: 'exit',
+                        observedAt: new Date().toISOString()
+                    }
+                }))
             },
             { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE }
         )

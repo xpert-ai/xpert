@@ -91,6 +91,7 @@ export class ProjectTaskRuntimeReadService {
             executions.push({
                 ...projectTaskInvocationView(execution, invocation),
                 invocationStatus: invocation.status,
+                controlEvidence: invocation.controlEvidence,
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
                 runtimeToolId: invocation.handle?.runner?.tool.id,
@@ -155,6 +156,6 @@ export class ProjectTaskRuntimeReadService {
             return { invocationId: record.id }
         }
         const invocation = await this.factory.createCapturedApi(record.invocation.scope).cancel(record.id)
-        return { invocationId: invocation.id, status: invocation.status }
+        return { invocationId: invocation.id, status: invocation.status, controlEvidence: invocation.controlEvidence }
     }
 }

@@ -1,3 +1,4 @@
+import { ExecutionControlEvidenceService } from '../../execution-control/execution-control-evidence.service'
 // Invariants: the Invocation is reserved first; one stable publication creates one durable group receipt.
 // Only that receipt's actual execution can complete the attempt. Group text never decides task acceptance.
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -10,7 +11,7 @@ import {
     agentInvocationDispatchContextSchema,
     CancelConversationCommand
 } from '@xpert-ai/plugin-sdk'
-import { assistantTaskGroupContext, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { unknownExecutionControl, assistantTaskGroupContext, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
@@ -35,7 +36,8 @@ export class ExecuteGroupTaskHandler implements ICommandHandler<ExecuteGroupTask
         private readonly access: GroupAccessService,
         private readonly messages: GroupMessagesService,
         private readonly outbox: GroupOutboxService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly evidence: ExecutionControlEvidenceService
     ) {}
 
     execute({ operation, context }: ExecuteGroupTaskCommand) {
@@ -147,13 +149,17 @@ export class ExecuteGroupTaskHandler implements ICommandHandler<ExecuteGroupTask
             }
             return receipt
         })
-        if (receipt.executionId && (receipt.phase !== 'finalized' || receipt.status === 'blocked')) {
+        const completion = receipt.executionId
+            ? await this.evidence.read(receipt.executionId, context.scope)
+            : undefined
+        if (receipt.executionId && completion?.state !== 'settled') {
             await this.access.withRootUser(group, context.scope.userId, () =>
                 withGroupRuntime(member.runtimeConversationId, () =>
                     this.commands.execute(
                         new CancelConversationCommand({
                             threadId: member.runtimeThreadId,
-                            executionId: receipt.executionId
+                            executionId:
+                                completion?.source === 'platform' ? completion.executionId : receipt.executionId
                         })
                     )
                 )
@@ -202,14 +208,50 @@ export class ExecuteGroupTaskHandler implements ICommandHandler<ExecuteGroupTask
                   startedAt: receipt.startedAt.toISOString()
               }
             : undefined
-        if (receipt.status === 'canceled') {
-            if (execution?.status === XpertAgentExecutionStatusEnum.RUNNING)
-                return { status: 'cancelling', handle, progress }
-            return { status: 'cancelled', handle, progress }
+        const control = receipt.executionId ? await this.evidence.read(receipt.executionId, context.scope) : undefined
+        const proof = (outcome: 'cancelled' | 'failed' | 'succeeded') => ({
+            version: 1 as const,
+            source: 'provider' as const,
+            subject: { kind: 'invocation' as const, id: context.invocationId },
+            scope: 'operation' as const,
+            state: 'settled' as const,
+            outcome,
+            sessionId: handle.sessionId,
+            runId: handle.runId,
+            receiptKey: control?.source === 'platform' ? control.taskId : receipt.id,
+            observedAt: new Date().toISOString()
+        })
+        if (
+            receipt.status === 'canceled' &&
+            !(control?.state === 'settled' && execution?.status === XpertAgentExecutionStatusEnum.SUCCESS)
+        ) {
+            // Withdrawal under the admission lock proves an unstarted delivery. An execution ID requires its ledger.
+            if ((!receipt.executionId && receipt.phase !== 'started') || control?.state === 'settled')
+                return { status: 'cancelled', handle, progress, controlEvidence: proof('cancelled') }
+            return {
+                status: 'cancelling',
+                handle,
+                progress,
+                controlEvidence: unknownExecutionControl({ kind: 'invocation', id: context.invocationId })
+            }
         }
+        // A finalized delivery or an interrupted graph is not proof that its tools have finished.
+        if (receipt.executionId && control?.state !== 'settled')
+            return {
+                status: control?.state === 'paused' ? 'waiting' : control?.state === 'unknown' ? 'unknown' : 'running',
+                handle,
+                progress,
+                controlEvidence: unknownExecutionControl({ kind: 'invocation', id: context.invocationId })
+            }
         if (receipt.status === 'pending') return { status: 'queued', handle }
         if (receipt.status === 'failed')
-            return { status: 'failed', handle, progress, error: receipt.error ?? 'group_delivery_failed' }
+            return {
+                status: 'failed',
+                handle,
+                progress,
+                ...(control?.state === 'settled' ? { controlEvidence: proof('failed') } : {}),
+                error: receipt.error ?? 'group_delivery_failed'
+            }
         const member = await this.db.getRepository(GroupParticipant).findOneByOrFail({ id: receipt.participantId })
         const thread = await this.db
             .getRepository(ChatConversationThread)
@@ -220,10 +262,22 @@ export class ExecuteGroupTaskHandler implements ICommandHandler<ExecuteGroupTask
         )
             return { status: 'waiting', handle, progress }
         if (receipt.status === 'blocked')
-            return { status: 'failed', handle, progress, error: receipt.error ?? 'group_execution_blocked' }
+            return {
+                status: 'failed',
+                handle,
+                progress,
+                ...(control?.state === 'settled' ? { controlEvidence: proof('failed') } : {}),
+                error: receipt.error ?? 'group_execution_blocked'
+            }
         if (receipt.phase !== 'finalized') return { status: 'running', handle, progress }
         if (execution?.status !== XpertAgentExecutionStatusEnum.SUCCESS)
-            return { status: 'failed', handle, progress, error: 'group_execution_failed' }
+            return {
+                status: 'failed',
+                handle,
+                progress,
+                ...(control?.state === 'settled' ? { controlEvidence: proof('failed') } : {}),
+                error: 'group_execution_failed'
+            }
         const outputs = await this.db.getRepository(ChatMessage).find({
             where: { conversationId: member.runtimeConversationId, executionId: receipt.executionId, role: 'ai' },
             order: { createdAt: 'ASC' }
@@ -241,6 +295,7 @@ export class ExecuteGroupTaskHandler implements ICommandHandler<ExecuteGroupTask
             .join('\n\n')
         return {
             status: 'succeeded',
+            controlEvidence: proof('succeeded'),
             handle,
             progress,
             result: {

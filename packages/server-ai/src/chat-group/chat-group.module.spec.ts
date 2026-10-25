@@ -1,3 +1,5 @@
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
+import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
 import { GroupProjectService } from './group-project/group-project.service'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
@@ -88,6 +90,12 @@ class XpertStubModule {}
 class ConversationStubModule {}
 
 @Module({
+    providers: [{ provide: ExecutionControlEvidenceService, useValue: {} }],
+    exports: [ExecutionControlEvidenceService]
+})
+class ControlStubModule {}
+
+@Module({
     providers: [
         { provide: HandoffQueueService, useValue: {} },
         { provide: HandoffOutboxAdapters, useValue: adapters }
@@ -167,6 +175,8 @@ describe('ChatGroupModule integration boundary', () => {
         jest.spyOn(GroupScopeGuard.prototype, 'canActivate').mockResolvedValue(true)
         jest.spyOn(ApiKeyOrClientSecretAuthGuard.prototype, 'canActivate').mockResolvedValue(true)
         module = await Test.createTestingModule({ imports: [DatabaseStubModule, GroupHttpTestModule] })
+            .overrideModule(ExecutionControlModule)
+            .useModule(ControlStubModule)
             .overrideModule(ViewExtensionModule)
             .useModule(ViewStubModule)
             .overrideModule(WorkspaceFileAccessModule)

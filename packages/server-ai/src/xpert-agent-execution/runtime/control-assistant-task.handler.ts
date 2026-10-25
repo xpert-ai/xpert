@@ -18,18 +18,29 @@ export class ControlAssistantTaskHandler implements ICommandHandler<ControlAssis
             target.organizationId !== (RequestContext.getOrganizationId() ?? null)
         )
             throw new Error('Assistant task control scope mismatch')
-        const task = await this.runtime.getTaskStatus({
-            executionId: target.currentExecutionId,
-            threadId: target.threadId
-        })
+        let task = await this.runtime.getTaskStatus({ executionId, threadId: target.threadId })
         if (!task) return { status: 'unknown' }
-        if (action === 'cancel' && target.state !== 'completed')
-            await this.runtime.cancelTask({ executionId: target.currentExecutionId, threadId: target.threadId })
-        const current = await this.tasks.read(target.id)
-        if (current.state === 'paused') return { status: 'waiting' }
-        if (current.state !== 'completed') return { status: action === 'cancel' ? 'cancelling' : 'running' }
-        if (task.status === 'succeeded') return { status: 'succeeded', result: { text: '', data: { ...task } } }
-        if (task.status === 'failed') return { status: 'failed', error: task.errorMessage }
-        return { status: (await this.tasks.desired(target.id)) === 'terminated' ? 'cancelled' : 'unknown' }
+        if (action === 'cancel' && task.control?.state !== 'settled') {
+            await this.runtime.cancelTask({ executionId, threadId: target.threadId })
+            task = await this.runtime.getTaskStatus({ executionId, threadId: target.threadId })
+            if (!task) return { status: 'unknown' }
+        }
+        const controlEvidence = task.control
+        if (controlEvidence?.state === 'paused') return { status: 'waiting', controlEvidence }
+        if (controlEvidence?.state !== 'settled')
+            return {
+                status: action === 'cancel' || controlEvidence?.state === 'terminating' ? 'cancelling' : 'running',
+                controlEvidence
+            }
+        if (task.status === 'succeeded')
+            return { status: 'succeeded', controlEvidence, result: { text: '', data: { ...task } } }
+        if (task.status === 'failed') return { status: 'failed', controlEvidence, error: task.errorMessage }
+        return {
+            status:
+                controlEvidence.source === 'platform' && controlEvidence.desired === 'terminated'
+                    ? 'cancelled'
+                    : 'unknown',
+            controlEvidence
+        }
     }
 }

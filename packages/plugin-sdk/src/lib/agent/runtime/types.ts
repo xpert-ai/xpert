@@ -1,4 +1,5 @@
 import type {
+  ExecutionControlEvidence,
   AgentInvocationStatus,
   AgentRuntimeProgress,
   ModelExecutionEnvironment,
@@ -51,6 +52,8 @@ export interface AgentTarget {
 export interface AgentRuntimeCapabilities {
   /** Explicitly allow repeat delivery of the same cancellation after an ambiguous response. */
   idempotentCancellation?: boolean
+  /** Versioned proof of original operation completion, including its owned work. Omitted is unsupported. */
+  completionEvidence?: 1
   activity?: ExecutionActivityCapabilities
   /** Explicit adapter compatibility; does not install tools or grant model/environment access. */
   executionTools?: Array<{ id: string; versions: string[]; environments: ModelExecutionEnvironment['type'][] }>
@@ -120,6 +123,8 @@ export interface AgentInteraction {
  * The host manages identity, revisions and persistence.
  */
 export interface AgentRuntimeObservation {
+  /** Distinct from request acceptance. The host validates source, capability and exact operation identity. */
+  controlEvidence?: ExecutionControlEvidence
   /** succeeded requires a result, even for structured-only output. */
   status: AgentInvocationStatus
   handle?: AgentRuntimeHandle

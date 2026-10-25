@@ -1,11 +1,12 @@
 // Delivery leases coordinate replicas, but never grant permission to replay business work.
 // Native checkpoints and handler receipts prove local boundaries; remote unknown remains unknown.
+import { invocationCanRelease } from './invocation-control-evidence'
 import { Injectable, Logger } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
 import { ExecutionTaskControl, TaskControlStore } from '@xpert-ai/server-core'
-import { DefaultRuntimeCapabilityRegistry, isAgentInvocationTerminal } from '@xpert-ai/plugin-sdk'
+import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationEntity } from './invocation.entity'
 import { AgentInvocationRuntime } from './invocation-runtime'
 import { AgentInvocationFactoryService } from './invocation-factory.service'
@@ -96,27 +97,21 @@ export class TaskControlCoordinator {
                 ? this.runtime.scoped({
                       scope: record.invocation.scope,
                       authorize: async () => {
-                          await this.commands.execute(
-                              new ControlAssistantTaskCommand(native.currentExecutionId, 'inspect')
-                          )
+                          await this.commands.execute(new ControlAssistantTaskCommand(native.attempts[0], 'inspect'))
                       },
                       capabilities: new DefaultRuntimeCapabilityRegistry().register(AssistantTaskExecution, {
                           start: async () => {
                               throw new Error('Control delivery cannot start a task')
                           },
                           inspect: () =>
-                              this.commands.execute(
-                                  new ControlAssistantTaskCommand(native.currentExecutionId, 'inspect')
-                              ),
+                              this.commands.execute(new ControlAssistantTaskCommand(native.attempts[0], 'inspect')),
                           cancel: () =>
-                              this.commands.execute(
-                                  new ControlAssistantTaskCommand(native.currentExecutionId, 'cancel')
-                              )
+                              this.commands.execute(new ControlAssistantTaskCommand(native.attempts[0], 'cancel'))
                       })
                   })
                 : this.factory.createCapturedApi(record.invocation.scope)
             const result = desired === 'terminated' ? await api.cancel(record.id) : await api.inspect(record.id)
-            if (isAgentInvocationTerminal(result.status)) await this.tasks.receipt(task.id, 'completed')
+            if (invocationCanRelease(result)) await this.tasks.receipt(task.id, 'completed')
             else if (task.state === 'paused' && desired === 'running') await this.tasks.receipt(task.id, 'running')
         })
     }
