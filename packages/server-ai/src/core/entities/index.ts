@@ -1,3 +1,4 @@
+import { ThreadControlProjection } from '../../chat-conversation/control-view/thread-control-projection.entity'
 import { McpRemoteOperation } from '../../mcp-consumer/execution/mcp-operation.entity'
 import { ExecutionControl } from '../../execution-control/execution-control.entity'
 import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
@@ -169,6 +170,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ThreadControlProjection,
     ExecutionControl,
     AnalyticsDefinition,
     AnalyticsDefinitionVersion,

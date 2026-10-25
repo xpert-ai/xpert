@@ -38,4 +38,5 @@ export type TChatThreadRecovery = {
 /** Chat clients consume availability only; diagnostic details stay server-side. */
 export type TChatThreadCapabilities = {
   canRetry: boolean
+  controlView?: import('./thread-control-view.schema').ThreadControlView
 }

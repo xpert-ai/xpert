@@ -2,7 +2,7 @@
 
 本文维护会话执行控制的**已实现功能**，供后端开发、测试和后续功能迭代使用。后续阶段完成后继续更新本文；尚未实现的设计保留在[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)中。
 
-当前审核阶段：**第六批——MCP 双端持久控制与输入续接（3.3.2）**。Xpert 前五批已提交，最近一批为 `47c4d1701`；本批待审核提交。Pro 配套改动留待 Xpert 审核完成后处理，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
+当前审核阶段：**第七批——公共控制视图与状态接口（4.1 后端）**。Xpert 前六批已提交，最近一批为 `b21c640d7`；本批待审核提交。Pro、独立 SDK 与 ChatKit 配套改动另行审核，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
 
 ## 模块与契约边界
 
@@ -25,6 +25,8 @@
 | 业务收尾确认 | 3.1 接入 Pipeline Assistant / Runtime、Project 重试准入和群控制；取消应答与实际执行结束分离 |
 | 后台与队列任务 | 第二阶段接入原生跨线程 Assistant、Invocation、受控 Handoff，以及显式接入的 Managed Queue；远端物理退出仍需各适配器确认 |
 | Sandbox Job | 3.3.1 将 Job、宿主回调及其受控子任务接入同一归属；实际收尾证据齐全后释放容量，按原环境和代次补送控制 |
+
+4.1 另提供公共控制视图、持久单调版本与统一按钮能力，详见后文对应章节。
 
 ## 暂停和终止的区别
 
@@ -494,6 +496,73 @@ sequenceDiagram
 - `thread-run-control.integration.spec.ts` 与 `task-control-workers.integration.spec.ts`：真实 PostgreSQL/Redis、两个独立 OS 队列 worker 验证取消补收和唯一准入。MCP HTTP 双端测试使用隔离服务实例；独立 OS worker 用例验证其共用队列控制层，两者不能混称同一部署验收。
 - 既有 Sandbox Job 控制、宿主回调与容量回归验证共享 TaskControl 未退化。未连接生产 MCP 或部署真实业务流程。
 
+## 4.1：统一公共控制视图
+
+本次分批审核仅包含 Xpert 后端、共享 contracts、迁移及回归。下文 SDK/ChatKit 行为描述原配套实现和接入要求，相关仓库另行审核；本批不证明客户端的 503 重试、迟到响应过滤或完整产品行为。
+
+本阶段修复“终止请求已接受，但工具仍在运行时，刷新后的停止提示和按钮不一致”。后端仍以实际收尾证据决定何时释放占用；客户端结束 loading 或收到取消应答不能替代收尾。
+
+```mermaid
+sequenceDiagram
+    participant C as ChatKit
+    participant A as 控制 API
+    participant V as 公共控制视图
+    participant W as 本轮所属工作
+    C->>A: 终止指定原执行
+    A-->>C: 请求已接受
+    C->>V: 查询状态和可用动作
+    V-->>C: 正在停止；继续/发送不可用
+    Note over C,V: 刷新与 503 保留已确认状态；旧版本响应不覆盖新版本
+    W-->>V: 实际工作和所属子树已收尾
+    C->>V: 再次查询
+    V-->>C: 已停止；可发送；旧执行仍不可恢复
+```
+
+### 公共接口与内外边界
+
+新增 `GET /api/ai/threads/:thread_id/control-view`。线程详情、单个 run 查询、activity 快照及原 capabilities 入口复用同一 CQRS 查询。历史列表不逐项扫描任务树；ChatKit 获取当前线程视图。run 的 `controlView` 表达该线程**当前**控制状态，使用其中 `runId` 识别目标，不能把历史 run URL 当作当前执行身份。
+
+本批共享 contracts 的 `ThreadControlView` 包含：`version: 1`、`threadId`、`runId`、十进制字符串 `revision`、`state`、`actions` 及按需提供的不透明 `pauseId`。动作包括 `canPause / canResume / canTerminate / canSend / canQueue / canRetry / canRespond`；所有控制请求继续在后端重新校验。`canQueue` 仅允许在仍连接的当前执行中排队后续消息，不能当作立即开始新执行的许可。
+
+| 状态                                  | 可见含义及约束                                               |
+| ------------------------------------- | ------------------------------------------------------------ |
+| `running`                             | 当前工作仍在运行；按能力暂停、终止或排队                     |
+| `pausing`                             | 正在等待安全边界；不允许恢复或新一轮，必要的已准入输入可完成 |
+| `paused`                              | 只有检查点、图兼容性、祖先控制及领取状态通过检查才开放继续   |
+| `input_required`                      | 原输入请求可续接；暂停不能封死当前工作的必要输入             |
+| `stopping`                            | 已接受终止，但尚无完整收尾证据；不能继续、新开或重复停止     |
+| `settling`                            | 图已结束，所属子工作仍在收尾；保留占用                       |
+| `confirming`                          | 证据缺失或旧状态不能安全解释；不猜测已结束                   |
+| `idle / completed / stopped / failed` | 已确认允许后续动作时才开放发送；终止的旧执行仍不能恢复或重试 |
+
+`canRespond` 只授权完成已存在、已准入的原输入请求：既覆盖持久 `input_wait`，也覆盖节点收尾中的活跃客户端输入。客户端必须实际持有请求，不能凭此布尔值制造输入或新开运行。终止后禁用；暂停期间仍可完成必要输入，从而避免父等子、子等父。输入身份、已完成结果和防重放账本仍由已有领域处理器校验。
+
+普通 ChatKit 只显示简短提示和按钮状态。公共 `runControl` 通过白名单保留 `executionId / state / pauseId` 供旧客户端过渡；不再自动序列化 checkpoint、节点名、pendingFinish、恢复领取信息。原内部控制账本和错误诊断继续保留在后端，未新增管理员页面。
+
+### 一致性、刷新与 503
+
+`ThreadControlProjection` 继承 `TenantOrganizationBaseEntity` 并实现 contracts 的 `IThreadControlProjection`。使用继承的 UUID 主键、审计字段和租户组织关系，`threadId` 保留唯一索引；更新展示版本复用原记录 ID。查询要求明确租户，审计字段不进入公共视图。迁移兼容旧 `threadId` 主键表，保留原 revision 和 fingerprint，重复应用不重置记录或版本；历史审计时间为迁移时间，未知操作人留空。
+
+- 在同一 `REPEATABLE READ` 事务内锁线程、再锁控制根，读取线程、执行、所属子树证据和检查点，复用 `ExecutionControlEvidenceService`。查询不会启动工具、恢复执行或调用第三方取消接口。
+- 新表 `chat_thread_control_projection` 保存范围、内容指纹和持久单调版本，并沿用基类审计字段。根控制意图 revision 不能代替展示版本，因为子任务收尾也会改变可见状态。服务重建不重置版本；并发首次创建、序列化冲突以新事务有限重读，不覆写更新的投影。
+- 会话与 Assistant 的权限、工作流及原有重试资格先在事务外预检查，避免持有事务连接时再次向连接池借连接；事务内再校验相同原执行、线程状态和更新时间，恢复检查点及控制证据在同一快照内检查。只读用户的动作全部为 false；权限授予不缓存到表中。公共能力是提示，执行命令仍再次授权。
+- SDK 验证返回契约和 thread 身份，使用 `BigInt` 比较版本。ChatKit 丢弃旧版本和已切换线程的迟到结果；本地已接受停止意图保留到确认终态或新执行。
+- 控制读取与既有读取共用 `ReadRecovery`，同目标单一在途请求，退避后再读；所有重试都只是读取。连续 503 保留已有状态和进度，仅更改简短连接提示，禁用依赖新鲜状态的继续、输入和发送。停止可通过独立 HTTP 请求作用于已确认的原运行。
+
+attached 子树继续决定收尾；detached/shared 不被级联停止，也不阻塞本轮结束。本阶段不改变工具、队列、Sandbox、MCP 的原控制机制和旧代次隔离规则。
+
+### 迁移、兼容与验证
+
+启用前应用 [控制视图 SQL](../packages/server-ai/src/chat-conversation/control-view/migration.sql)；在隔离 PostgreSQL 中重复应用已验证。前置仍为既有线程控制及任务控制迁移。不会回填假收尾证据，也不会删除旧记录。本次未在业务环境应用迁移。
+
+部署需要配套 Host、SDK 与 ChatKit 源码版本。SDK 新增 `threads.getControlView()`，ChatKit 经 SDK 读取，不直接 fetch 控制业务接口。现有 ChatKit patch/锁文件改动不属于本批。原配套实现曾在隔离快照冻结安装后配对本地构建的 SDK 验证；这不是当前分批提交的产物验收，未发布 npm 包。Pro 保留其原图兼容策略；没有恢复重试入口，因此 `canRetry` 保持 false，不凭视图补造重放能力。
+
+回归入口：`chat-conversation/control-view/*.spec.ts` 覆盖 PostgreSQL 持久视图、并发冷读、迁移、DI、HTTP、真实工具收尾、权限屏蔽、检查点和输入能力；`thread-run-control.integration.spec.ts` 与 `mcp-conversation-bridge.postgres.spec.ts` 继续验证暂停续跑、终止不可恢复、唯一执行、父子必要输入及独立/共享任务。SDK 契约、传输及版本合并测试；ChatKit 覆盖控制应答迟到、旧视图、503、刷新和按钮。
+
+可选的跨仓库 HTTP 验收由 `thread-control-view.http.spec.ts` 启动隔离生产查询链及故障驱动器，再运行 ChatKit `control-view-http.test.tsx`：实际 PostgreSQL 工具持续运行、HTTP 取消、连续 3 次 503、卸载重挂载组件、实际工具收尾。测试中的故障路由与认证替身只存在于测试文件；这条组合测试不替代完整凭据授权或生产部署验收。原配套实现中主仓库和 Pro 分别通过该组合链，工具调用 1 次、控制读取最大并发 1；本次只重验 Xpert 后端，不将历史组合结果计入本批回归。
+
+原配套实现曾在 Web 与原生 Electron renderer 以实际 ChatKit 控制 Hook/提示/按钮复查修复前后显示。它们是隔离组件验收，不等于完整 Desktop/Project 产品链路或安装包升级验收；4.2 的独立进程、混合版本和完整产品链，4.3 的管理员界面尚未实施。
+
 ## 功能演进记录
 
 | 阶段     | 实现日期   | 已实现范围                                                 | 验证与交付状态             |
@@ -503,7 +572,8 @@ sequenceDiagram
 | 第三阶段 3.1 | 2026-10-23 | 类型化收尾证据、Pipeline / Project / 群业务桥接及准入限制 | 已提交 `94bc86fb6`；未部署 |
 | 第三阶段 3.2 | 2026-10-24 | 原宿主补送、执行代次、Linux 后代监督、Desktop/Computer 收尾及远端取消保护 | Xpert 已提交 `4820bf36b`；Pro 配套待审核；未部署 |
 | 第三阶段 3.3.1 | 2026-10-24 | Sandbox 持久控制、代次隔离、宿主 callback 收尾、容量账本、Local/NsJail 证据 | Xpert 已提交 `47c4d1701`；Pro 后续单独审核；未部署 |
-| 第三阶段 3.3.2 | 2026-10-24 | MCP 双端持久控制、唯一领取、输入续接、会话收尾桥与控制协议 | 第六批 Xpert 待审核；Pro 后续单独审核；未部署 |
+| 第三阶段 3.3.2 | 2026-10-24 | MCP 双端持久控制、唯一领取、输入续接、会话收尾桥与控制协议 | Xpert 已提交 `b21c640d7`；Pro 后续单独审核；未部署 |
+| 第四阶段 4.1 | 2026-10-24 | 公共控制视图、持久版本、状态接口及权限边界 | 第七批 Xpert 待审核；客户端及 Pro 配套另行审核；未部署 |
 
 后续阶段完成后，在本文补充对应功能章节并追加本表，同时更新“功能范围”、接口状态、兼容要求及回归入口。每次补充说明实际接入的执行器、暂停与终止的确认条件、失败或未知状态如何处理，以及验证范围；不要仅把计划中的能力改成“已支持”。
 

@@ -1,3 +1,5 @@
+import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
+import { publicRunControl } from '../chat-conversation/control-view/public-run-control'
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { threadActivityStream } from './thread-activity/thread-activity-stream'
@@ -149,7 +151,9 @@ export class ThreadsController {
         startSseHeartbeat(res)
         return threadActivityStream(async () => {
             const conversation = await this.ensureThreadAccess(threadId)
-            return this.activity.snapshot(conversation, threadId)
+            const activity = await this.activity.snapshot(conversation, threadId)
+            const { controlView } = await this.queryBus.execute(new ReadThreadControlViewQuery(threadId))
+            return { ...activity, controlView }
         })
     }
 
@@ -427,7 +431,8 @@ export class ThreadsController {
         if (execution.threadId !== thread_id) {
             throw new ForbiddenException()
         }
-        return transformRun(execution)
+        const { controlView } = await this.queryBus.execute(new ReadThreadControlViewQuery(thread_id))
+        return { ...transformRun(execution), controlView }
     }
 
     @Post(':thread_id/runs/:run_id/cancel')
@@ -456,7 +461,7 @@ export class ThreadsController {
         await this.ensureThreadRunAccess(threadId, runId, 'contribute')
         if (!this.threadRunControl) throw new UnimplementedException()
         // Ignore legacy request bodies: a display snapshot cannot prevent cancellation or pause.
-        return this.threadRunControl.requestPause(threadId, runId)
+        return publicRunControl(await this.threadRunControl.requestPause(threadId, runId))
     }
 
     @Delete(':thread_id/display-pause/:pause_id')

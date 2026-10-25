@@ -1,3 +1,6 @@
+import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
+import { ThreadControlViewService } from './control-view/thread-control-view.service'
+import { ReadThreadControlViewHandler } from './control-view/read-thread-control-view.handler'
 import { TaskControlModule } from '@xpert-ai/server-core'
 import { ThreadRecoveryService } from './recovery/thread-recovery.service'
 import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
@@ -48,6 +51,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([
+            ThreadControlProjection,
             ChatConversation,
             AssistantUserPreference,
             ChatConversationThread,
@@ -77,6 +81,8 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ThreadControlViewService,
+        ReadThreadControlViewHandler,
         ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadCursorStore,

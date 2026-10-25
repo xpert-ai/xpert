@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../../chat-conversation/control-view/read-thread-control-view.query'
 import { Controller, Get, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { SecretTokenBindingType, TChatThreadCapabilities } from '@xpert-ai/contracts'
@@ -26,8 +27,14 @@ export class ThreadRecoveryController {
     @Get(':thread_id/capabilities')
     async capabilities(@Param('thread_id') threadId: string): Promise<TChatThreadCapabilities> {
         await this.access(threadId, 'read')
-        const { canRetry } = await this.recovery.describe(threadId)
-        return { canRetry }
+        const { controlView } = await this.queryBus.execute(new ReadThreadControlViewQuery(threadId))
+        return { ...controlView.actions, controlView }
+    }
+
+    @Get(':thread_id/control-view')
+    async controlView(@Param('thread_id') threadId: string) {
+        await this.access(threadId, 'read')
+        return (await this.queryBus.execute(new ReadThreadControlViewQuery(threadId))).controlView
     }
 
     @Post(':thread_id/recovery/source')

@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../../chat-conversation/control-view/read-thread-control-view.query'
 jest.mock('../../core/entities/internal', () => ({ ChatConversation: class {}, ChatConversationThread: class {} }))
 jest.mock('../../chat-conversation/recovery/thread-recovery.service', () => ({ ThreadRecoveryService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
@@ -24,22 +25,38 @@ describe('thread recovery HTTP boundary', () => {
     let app: INestApplication, endpoint: string
     const access = jest.fn()
     const describe = jest.fn()
+    const view = {
+        version: 1,
+        threadId: 'branch',
+        runId: 'run',
+        revision: '1',
+        state: 'stopping',
+        actions: {
+            canPause: false,
+            canResume: false,
+            canTerminate: false,
+            canSend: false,
+            canQueue: false,
+            canRetry: false,
+            canRespond: false
+        }
+    }
+    const readView = jest.fn()
     const returnToSource = jest.fn()
     beforeAll(async () => {
         await initI18n({ lng: 'en', resources: {} })
     })
     beforeEach(async () => {
+        readView.mockReset().mockResolvedValue({ controlView: view })
         access.mockReset().mockResolvedValue({ id: 'conversation', xpertId: 'assistant' })
-        describe
-            .mockReset()
-            .mockResolvedValue({
-                threadId: 'branch',
-                executionId: 'run',
-                canRetry: false,
-                sourceThreadId: 'source',
-                reason: 'conversation_recovery_unavailable',
-                originalError: 'internal checkpoint error'
-            })
+        describe.mockReset().mockResolvedValue({
+            threadId: 'branch',
+            executionId: 'run',
+            canRetry: false,
+            sourceThreadId: 'source',
+            reason: 'conversation_recovery_unavailable',
+            originalError: 'internal checkpoint error'
+        })
         returnToSource.mockReset().mockResolvedValue({
             threadId: 'source',
             status: 'idle',
@@ -53,7 +70,13 @@ describe('thread recovery HTTP boundary', () => {
         const module = await Test.createTestingModule({
             controllers: [ThreadRecoveryController],
             providers: [
-                { provide: QueryBus, useValue: { execute: access } },
+                {
+                    provide: QueryBus,
+                    useValue: {
+                        execute: (query: object) =>
+                            query instanceof ReadThreadControlViewQuery ? readView(query) : access(query)
+                    }
+                },
                 {
                     provide: ThreadRecoveryService,
                     useValue: { describe, returnToSource, getSourceThreadId: async () => 'source' }
@@ -82,13 +105,20 @@ describe('thread recovery HTTP boundary', () => {
                 reason: 'conversation_recovery_unavailable',
                 originalError: 'internal checkpoint error'
             })
+            const current = { ...view, actions: { ...view.actions, canRetry } }
+            readView.mockResolvedValue({ controlView: current })
             const response = await fetch(`${endpoint}/capabilities`)
             expect(response.status).toBe(200)
-            expect(await response.json()).toEqual({ canRetry })
+            expect(await response.json()).toEqual({ ...current.actions, controlView: current })
             expect(access).toHaveBeenCalledWith(new AssertChatConversationAccessQuery({ threadId: 'branch' }, 'read'))
             expect(returnToSource).not.toHaveBeenCalled()
         }
     )
+    it('exposes the same public view on its dedicated read route', async () => {
+        const response = await fetch(`${endpoint}/control-view`)
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual(view)
+    })
     it('does not expose a diagnostics route to chat clients', async () => {
         expect((await fetch(`${endpoint}/recovery`)).status).toBe(404)
     })
@@ -96,6 +126,7 @@ describe('thread recovery HTTP boundary', () => {
         access.mockRejectedValue(new ForbiddenException())
         expect((await fetch(`${endpoint}/capabilities`)).status).toBe(403)
         expect(describe).not.toHaveBeenCalled()
+        expect(readView).not.toHaveBeenCalled()
     })
     it.each([
         ['conversation_recovery_unavailable', 'Retry is currently unavailable.'],

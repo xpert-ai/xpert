@@ -1,7 +1,7 @@
 // A repeatable snapshot combines stable ownership with actual tool receipts, never cancel-request IDs.
 // Evidence only reports the authorized task; it never grants execution or resume permission.
 import { Injectable } from '@nestjs/common'
-import { DataSource, In } from 'typeorm'
+import { DataSource, EntityManager, In } from 'typeorm'
 import { ExecutionControlEvidence, unknownExecutionControl } from '@xpert-ai/contracts'
 import { TaskControlStore } from '@xpert-ai/server-core'
 import { ExecutionControl } from './execution-control.entity'
@@ -17,10 +17,11 @@ export class ExecutionControlEvidenceService {
     /** Call only after domain authorization for the exact execution/thread. */
     async read(
         executionId: string,
-        scope: { tenantId: string; organizationId?: string | null }
+        scope: { tenantId: string; organizationId?: string | null },
+        transaction?: EntityManager
     ): Promise<ExecutionControlEvidence> {
         const subject = { kind: 'execution' as const, id: executionId }
-        return this.database.transaction('REPEATABLE READ', async (manager): Promise<ExecutionControlEvidence> => {
+        const read = async (manager: EntityManager): Promise<ExecutionControlEvidence> => {
             const task = await this.tasks.execution(executionId, manager)
             if (
                 !task ||
@@ -107,6 +108,7 @@ export class ExecutionControlEvidenceService {
                 threadId: task.threadId,
                 observedAt: new Date().toISOString()
             }
-        })
+        }
+        return transaction ? read(transaction) : this.database.transaction('REPEATABLE READ', read)
     }
 }

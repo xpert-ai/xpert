@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
@@ -125,6 +126,7 @@ describe('ThreadsController', () => {
                     if (query instanceof XpertAgentExecutionOneQuery) {
                         throw new Error('Full execution details and checkpoints are unavailable')
                     }
+                    if (query instanceof ReadThreadControlViewQuery) return { controlView: undefined }
                     if (query instanceof GetAgentExecutionRunSummaryQuery) return row
                     throw new Error('Unexpected query')
                 })
@@ -183,7 +185,7 @@ describe('ThreadsController', () => {
             await expect(controller.getThreadRun('thread', 'selected-run')).resolves.toMatchObject({
                 run_id: 'selected-run'
             })
-            expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('selected-run'))
+            expect(queries.execute).toHaveBeenCalledWith(new GetAgentExecutionRunSummaryQuery('selected-run'))
         })
 
         it('preserves resume ancestry and extension metadata through the HTTP response', async () => {
@@ -249,7 +251,7 @@ describe('ThreadsController', () => {
                         }
                     }
                 })
-                expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('resumed-root'))
+                expect(queries.execute).toHaveBeenCalledWith(new GetAgentExecutionRunSummaryQuery('resumed-root'))
             } finally {
                 await app.close()
             }
@@ -374,7 +376,8 @@ describe('ThreadsController', () => {
         const stream = await controller.streamThreadActivity(response as never, 'thread')
         await firstValueFrom(stream)
         response.emit('close')
-        expect(queries.execute).toHaveBeenCalledTimes(2)
+        expect(queries.execute).toHaveBeenCalledTimes(3)
+        expect(queries.execute).toHaveBeenLastCalledWith(new ReadThreadControlViewQuery('thread'))
         expect(activity.snapshot).toHaveBeenCalledWith(conversation, 'thread')
         queries.execute.mockRejectedValue(new ForbiddenException())
         await expect(controller.streamThreadActivity(response as never, 'thread')).rejects.toBeInstanceOf(

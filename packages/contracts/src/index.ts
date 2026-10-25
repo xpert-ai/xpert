@@ -137,3 +137,6 @@ export * from './data-retention.model'
 export * from './ai/mcp-execution-control.schema'
 export * from './ai/mcp-operation.model'
 export * from './ai/mcp-task.schema'
+
+export * from './ai/thread-control-view.schema'
+export * from './ai/thread-control-projection.model'
