@@ -102,6 +102,9 @@ jobs:
           corepack pnpm install --frozen-lockfile --ignore-scripts
           node .deploy/desktop/dependencies.cjs check-installed
           node node_modules/electron/install.js
+      - name: Verify installed Desktop packaging dependencies
+        working-directory: .local/desktop-ci
+        run: node --test .deploy/desktop/installed/*.test.mjs
       - name: Typecheck, test and build renderer from source
         working-directory: .local/desktop-ci
         run: node .deploy/desktop/build.mjs

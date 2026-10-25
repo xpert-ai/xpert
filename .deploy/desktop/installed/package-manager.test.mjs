@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { determinePackageManagerEnv } = require('app-builder-lib/out/node-module-collector')
-const { prepare } = require('./dependencies.cjs')
+const { prepare } = require('../dependencies.cjs')
 
 test('plain Node packaging discovers the pnpm workspace from the Desktop app manifest', async (t) => {
   const workspace = mkdtempSync(join(tmpdir(), 'bosi-pm-contract-'))

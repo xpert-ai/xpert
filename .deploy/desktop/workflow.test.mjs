@@ -29,3 +29,17 @@ test('release tooling repairs run checks while installer builds and publication 
   )
   assert.ok(workflow.jobs.release.steps.some((step) => step.run === 'node .deploy/desktop/release.mjs'))
 })
+
+test('packaging dependency tests run in the installed Desktop workspace before the build', () => {
+  const command = 'node --test .deploy/desktop/installed/*.test.mjs'
+  const prepareSteps = workflow.jobs.prepare.steps
+  assert.ok(prepareSteps.some((step) => step.run === 'node --test .deploy/desktop/*.test.*'))
+  assert.ok(!prepareSteps.some((step) => step.run?.includes(command)))
+  const steps = workflow.jobs.build.steps
+  const installIndex = steps.findIndex((step) => step.run?.includes('corepack pnpm install --frozen-lockfile'))
+  const testIndex = steps.findIndex((step) => step.run === command)
+  const buildIndex = steps.findIndex((step) => step.run === 'node .deploy/desktop/build.mjs')
+  assert.ok(installIndex >= 0 && testIndex > installIndex && buildIndex > testIndex)
+  assert.equal(steps[testIndex]['working-directory'], '.local/desktop-ci')
+  assert.equal(steps[testIndex].if, undefined)
+})
