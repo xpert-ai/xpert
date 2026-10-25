@@ -51,3 +51,13 @@ test('only supported executable paths and absolute default directories are accep
   for (const patch of [{ shell: '/tmp/script' }, { cwd: '.' }, { path: '\0' }])
     assert.throws(() => parseSettings({ ...settings, ...patch }))
 })
+
+test('exit evidence binds the original operation; legacy reports remain unconfirmed', () => {
+  const report = { ...ids(), type: 'state', state: 'cancelled', seq: 1, exitCode: null, truncated: false }
+  assert.equal(parseReport(report).completion, undefined)
+  const completion = { version: 1, state: 'exited', coverage: 'descendants', generation: report.operationId }
+  assert.deepEqual(parseReport({ ...report, completion }).completion, completion)
+  for (const patch of [{ generation: randomUUID() }, { coverage: 'parent' }, { version: 2 }, { state: 'accepted' }])
+    assert.throws(() => parseReport({ ...report, completion: { ...completion, ...patch } }))
+  assert.throws(() => parseReport({ ...report, state: 'running', completion }))
+})

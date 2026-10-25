@@ -5,6 +5,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 const { ShellEngine, digest } = require('../electron/shell/engine.cjs')
+const settledState = (state) => (process.platform === 'linux' ? state : 'unknown')
 const { isFinal, LIMITS } = require('@xpert-ai/desktop-protocol')
 async function until(check, timeout = 10000) {
   const end = Date.now() + timeout
@@ -60,8 +61,8 @@ test('captures stdout/stderr and nonzero exit in a unicode/space cwd; stdin is c
   const c = f.command('pwd; echo stderr >&2; read value; exit 7', { cwd })
   f.engine.accept(c)
   const record = await f.done(c)
-  assert.equal(record.exitCode, 7)
-  assert.equal(record.state, 'failed')
+  assert.equal(record.exitCode, process.platform === 'linux' ? 7 : null)
+  assert.equal(record.state, settledState('failed'))
   assert.ok(record.chunks.some((c) => c.data.includes(cwd)))
   assert.ok(record.chunks.some((c) => c.stream === 'stderr' && c.data.includes('stderr')))
 })
@@ -74,7 +75,7 @@ test('duplicate command and reconnect only replay results, never append twice', 
   f.engine.accept(c)
   f.engine.connect(randomUUID(), Date.now() + 90000)
   assert.equal(fs.readFileSync(path.join(f.root, 'count'), 'utf8'), 'once\n')
-  assert.ok(f.reports.filter((r) => r.type === 'state' && r.state === 'succeeded').length >= 2)
+  assert.ok(f.reports.filter((r) => r.type === 'state' && r.state === settledState('succeeded')).length >= 2)
   assert.throws(
     () =>
       f.engine.accept({
@@ -126,29 +127,31 @@ test('timeout terminates the process group and returns timed_out', async (t) => 
   const c = f.command('sleep 20 & wait', { timeoutSec: 1 })
   f.engine.accept(c)
   const record = await f.done(c)
-  assert.equal(record.state, 'timed_out')
-  assert.notEqual(record.signal, undefined)
+  assert.equal(record.state, settledState('timed_out'))
+  assert.ok(record.completion || record.state === 'unknown')
 })
 test('revoking a grant stops an in-flight command', async (t) => {
   const f = setup(t)
   const c = f.command('sleep 20')
   f.engine.accept(c)
+  await until(() => f.engine.current?.ready)
   f.engine.setGrants([])
-  assert.equal((await f.done(c)).state, 'cancelled')
+  assert.equal((await f.done(c)).state, settledState('cancelled'))
 })
 test('expired connection lease stops running commands', async (t) => {
   const f = setup(t)
   const c = f.command('sleep 20')
   f.engine.accept(c)
+  await until(() => f.engine.current?.ready)
   f.engine.renew(Date.now() - 1)
-  assert.equal((await f.done(c)).state, 'cancelled')
+  assert.equal((await f.done(c)).state, settledState('cancelled'))
 })
 test('output is capped while the pipe continues draining', async (t) => {
   const f = setup(t)
   const c = f.command('/usr/bin/yes x | /usr/bin/head -c 1500000', { timeoutSec: 10, deadline: Date.now() + 10000 })
   f.engine.accept(c)
   const record = await f.done(c)
-  assert.equal(record.state, 'succeeded')
+  assert.equal(record.state, settledState('succeeded'))
   assert.equal(record.truncated, true)
   assert.ok(record.bytes <= LIMITS.output)
 })
@@ -214,7 +217,7 @@ test('acknowledged completion persists; reconnect replays only unconfirmed outpu
   t.after(() => restarted.close())
   restarted.connect(randomUUID(), Date.now() + 90000)
   assert.equal(replayed.length, 0)
-  assert.equal(restarted.records.get(c.operationId).state, 'succeeded')
+  assert.equal(restarted.records.get(c.operationId).state, settledState('succeeded'))
 })
 
 test('unavailable executable produces a failed result without a success code', async (t) => {
@@ -246,4 +249,25 @@ test('legacy conversation grants do not authorize commands', (t) => {
   f.engine.setGrants([{ id: c.grantId, expiresAt: Date.now() + 90000 }])
   assert.throws(() => f.engine.accept(c), /GRANT_REVOKED/)
   assert.equal(fs.existsSync(path.join(f.root, 'legacy')), false)
+})
+
+test('an unconfirmed old process family does not release the device for a new command', async (t) => {
+  const f = setup(t)
+  const old = {
+    id: randomUUID(),
+    grantId: randomUUID(),
+    argsHash: null,
+    deadline: Date.now() + 5000,
+    state: 'unknown',
+    seq: 0,
+    chunks: [],
+    bytes: 0,
+    exitCode: null,
+    truncated: false
+  }
+  f.engine.records.set(old.id, old)
+  const next = f.command('touch must-not-start')
+  f.engine.accept(next)
+  assert.equal((await f.done(next)).errorCode, 'DEVICE_BUSY')
+  assert.equal(fs.existsSync(path.join(f.root, 'must-not-start')), false)
 })

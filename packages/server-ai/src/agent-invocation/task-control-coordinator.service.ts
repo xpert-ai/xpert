@@ -33,6 +33,7 @@ export class TaskControlCoordinator {
         if (this.scanning) return
         this.scanning = true
         try {
+            await this.runtime.reconcileOwned((scope, work) => this.access.withControlActor(scope, work))
             for (const task of await this.tasks.due(['invocation', 'execution', 'handoff', 'managed-queue']))
                 await this.deliver(task)
         } catch {

@@ -11,6 +11,7 @@ import {
     IAgentRuntimeStrategy,
     isAgentInvocationTerminal
 } from '@xpert-ai/plugin-sdk'
+import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
 import { AgentInvocationError } from './invocation-errors'
 
 export function invocationCanRelease(
@@ -20,7 +21,8 @@ export function invocationCanRelease(
     if (
         !invocation.control &&
         invocation.status !== 'cancelled' &&
-        invocation.controlAdapter !== 'native-assistant-task'
+        invocation.controlAdapter !== 'native-assistant-task' &&
+        invocation.completionEvidence !== 2
     )
         return true
     const parsed = executionControlEvidenceSchema.safeParse(invocation.controlEvidence)
@@ -45,7 +47,11 @@ function matchesCompletion(invocation: AgentInvocation, evidence: ExecutionContr
         evidence.source === 'host_admission' ||
         (evidence.source === 'provider' &&
             evidence.sessionId === invocation.handle?.sessionId &&
-            evidence.runId === invocation.handle?.runId)
+            evidence.runId === invocation.handle?.runId &&
+            (invocation.completionEvidence !== 2 ||
+                (Boolean(evidence.target) &&
+                    Boolean(invocation.executionTarget) &&
+                    executionRuntimeTargetsEqual(evidence.target, invocation.executionTarget))))
     )
 }
 
@@ -72,7 +78,11 @@ export function checkedControlObservation(
         const handle = observation.handle ?? invocation.handle
         if (evidence.source === 'provider') {
             if (
-                strategy.capabilities.completionEvidence !== 1 ||
+                !strategy.capabilities.completionEvidence ||
+                (invocation.completionEvidence === 2 &&
+                    (!evidence.target ||
+                        !invocation.executionTarget ||
+                        !executionRuntimeTargetsEqual(evidence.target, invocation.executionTarget))) ||
                 evidence.subject.id !== invocation.id ||
                 evidence.sessionId !== handle?.sessionId ||
                 evidence.runId !== handle?.runId ||
@@ -95,7 +105,8 @@ export function checkedControlObservation(
     if (
         (invocation.control ||
             observation.status === 'cancelled' ||
-            invocation.controlAdapter === 'native-assistant-task') &&
+            invocation.controlAdapter === 'native-assistant-task' ||
+            invocation.completionEvidence === 2) &&
         isAgentInvocationTerminal(observation.status)
     ) {
         if (!invocationCanRelease({ ...invocation, ...next, controlEvidence: evidence }))
@@ -111,7 +122,7 @@ export function checkedControlObservation(
                     evidence ??
                     unknownExecutionControl(
                         { kind: 'invocation', id: invocation.id },
-                        strategy.capabilities.completionEvidence === 1 ? 'unconfirmed' : 'unsupported'
+                        strategy.capabilities.completionEvidence ? 'unconfirmed' : 'unsupported'
                     )
             }
     }

@@ -6,6 +6,33 @@ const subject = z.discriminatedUnion('kind', [
 ])
 const base = { version: z.literal(1), observedAt: z.string().datetime() }
 
+/** Host-assigned attempt identity. A new host boot or execution never inherits an old target. */
+export const executionRuntimeTargetSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      version: z.literal(1),
+      kind: z.literal('host'),
+      generation: z.string().uuid(),
+      hostId: z.string().uuid()
+    })
+    .strict(),
+  z.object({ version: z.literal(1), kind: z.literal('provider'), generation: z.string().uuid() }).strict()
+])
+export type ExecutionRuntimeTarget = z.output<typeof executionRuntimeTargetSchema>
+
+export function executionRuntimeTargetsEqual(
+  left: ExecutionRuntimeTarget | undefined,
+  right: ExecutionRuntimeTarget | undefined
+): boolean {
+  if (!left || !right) return left === right
+  return (
+    left.version === right.version &&
+    left.kind === right.kind &&
+    left.generation === right.generation &&
+    (left.kind !== 'host' || (right.kind === 'host' && left.hostId === right.hostId))
+  )
+}
+
 /** Control acknowledgements never constitute completion evidence. Missing evidence stays unknown. */
 export const executionControlEvidenceSchema = z.discriminatedUnion('source', [
   z
@@ -42,7 +69,8 @@ export const executionControlEvidenceSchema = z.discriminatedUnion('source', [
       outcome: z.enum(['succeeded', 'failed', 'cancelled']),
       sessionId: z.string().min(1),
       runId: z.string().min(1),
-      receiptKey: z.string().min(1).max(500)
+      receiptKey: z.string().min(1).max(500),
+      target: executionRuntimeTargetSchema.optional()
     })
     .strict(),
   z

@@ -118,8 +118,8 @@ export class TaskControlStore {
 		return this.validate(await manager.findOneBy(ExecutionTaskControl, { id }))
 	}
 
-	async find(scope: TaskControlScope, kind: TaskControlKind, resourceId: string) {
-		return this.read(taskControlId({ ...scope, kind, resourceId }))
+	async find(scope: TaskControlScope, kind: TaskControlKind, resourceId: string, manager = this.database.manager) {
+		return this.read(taskControlId({ ...scope, kind, resourceId }), manager)
 	}
 
 	async publish(input: RegisterControlledTask, payload: unknown) {
@@ -234,19 +234,18 @@ export class TaskControlStore {
 		if (ancestors.some((ancestor) => ancestor.desired === 'paused')) throw new TaskControlRejected('paused')
 	}
 
-	async claim(id: string): Promise<string> {
-		return this.database.transaction(async (manager) => {
-			const task = await this.lock(manager, id)
-			const intent = await this.intentOf(manager, task)
-			if (intent === 'terminated' || task.state === 'completed') throw new TaskControlRejected('terminated')
-			if (intent === 'paused' && !task.drainOnPause) throw new TaskControlRejected('paused')
-			if (task.claim) throw new TaskControlRejected('claimed')
-			task.claim = randomUUID()
-			task.state = 'running'
-			task.nextCheckAt = new Date()
-			await manager.save(task)
-			return task.claim
-		})
+	async claim(id: string, manager?: EntityManager): Promise<string> {
+		if (!manager) return this.database.transaction((tx) => this.claim(id, tx))
+		const task = await this.lock(manager, id)
+		const intent = await this.intentOf(manager, task)
+		if (intent === 'terminated' || task.state === 'completed') throw new TaskControlRejected('terminated')
+		if (intent === 'paused' && !task.drainOnPause) throw new TaskControlRejected('paused')
+		if (task.claim) throw new TaskControlRejected('claimed')
+		task.claim = randomUUID()
+		task.state = 'running'
+		task.nextCheckAt = new Date()
+		await manager.save(task)
+		return task.claim
 	}
 
 	/** Reserve only the local continuation CAS under the root lock, never a provider/network call. */

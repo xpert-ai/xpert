@@ -5,6 +5,7 @@ import { checkedControlObservation, invocationCanRelease, notStartedEvidence } f
 import type { TaskControlPolicy } from '@xpert-ai/plugin-sdk'
 import { TaskControlRejected } from '@xpert-ai/server-core'
 import { createHash, randomUUID } from 'crypto'
+import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
@@ -46,6 +47,47 @@ export interface AgentInvocationAccess {
 }
 
 export class AgentInvocationRuntime {
+    private readonly hostId = randomUUID()
+    private readonly owned = new Map<
+        string,
+        { access: AgentInvocationAccess; target: NonNullable<AgentInvocation['executionTarget']> }
+    >()
+    private scanningOwned = false
+
+    /** Durable intent is the delivery mechanism. Polling does not depend on a transient notification. */
+    async reconcileOwned(
+        withActor: (scope: AgentInvocationScope, work: () => Promise<AgentInvocation>) => Promise<AgentInvocation> = (
+            _scope,
+            work
+        ) => work()
+    ) {
+        if (this.scanningOwned) return
+        this.scanningOwned = true
+        try {
+            for (const [id, owner] of this.owned) {
+                try {
+                    const row = await this.store.read(id, owner.access.scope)
+                    if (
+                        !row ||
+                        !executionRuntimeTargetsEqual(row.invocation.executionTarget, owner.target) ||
+                        invocationCanRelease(row.invocation)
+                    ) {
+                        this.owned.delete(id)
+                        continue
+                    }
+                    const inspect = () =>
+                        this.control(id, owner.access, 'inspect', undefined, Boolean(row.invocation.control))
+                    if (row.invocation.control) await inspect()
+                    else await withActor(owner.access.scope, inspect)
+                } catch {
+                    /* Retain the original target. An outage never permits a replacement launch. */
+                }
+            }
+        } finally {
+            this.scanningOwned = false
+        }
+    }
+
     constructor(
         private readonly store: AgentInvocationStore,
         private readonly registry: AgentRuntimeRegistry,
@@ -119,6 +161,7 @@ export class AgentInvocationRuntime {
                     revision: 0,
                     scope: access.scope,
                     controlAdapter: access.controlAdapter,
+                    completionEvidence: strategy.capabilities.completionEvidence,
                     request,
                     ...(strategy.capabilities.activity
                         ? { activity: structuredClone(strategy.capabilities.activity) }
@@ -155,6 +198,17 @@ export class AgentInvocationRuntime {
                 return (await this.store.read(id, access.scope)).invocation
             }
         }
+        if (strategy.capabilities.hostAffinity || strategy.capabilities.completionEvidence === 2) {
+            record = {
+                ...record,
+                invocation: {
+                    ...record.invocation,
+                    executionTarget: strategy.capabilities.hostAffinity
+                        ? { version: 1, kind: 'host', hostId: this.hostId, generation: randomUUID() }
+                        : { version: 1, kind: 'provider', generation: randomUUID() }
+                }
+            }
+        }
         // Only the CAS winner can launch. A claimed task is never relaunched after an ambiguous crash.
         const claimed = await this.save(
             record,
@@ -169,6 +223,8 @@ export class AgentInvocationRuntime {
             return latest.invocation
         }
         record = claimed
+        if (record.invocation.executionTarget?.kind === 'host')
+            this.owned.set(id, { access: { ...access, signal: undefined }, target: record.invocation.executionTarget })
         try {
             const launch = () =>
                 strategy.start(
@@ -191,7 +247,7 @@ export class AgentInvocationRuntime {
                     ? (await this.updateLatest(id, access, { ...observation, status: latest.invocation.status }, true))
                           .invocation
                     : (await this.updateLatest(id, access, observation, true)).invocation
-            if (task && isAgentInvocationTerminal(saved.status)) await this.tasks.receipt(task.id, 'completed')
+            if (task && invocationCanRelease(saved)) await this.tasks.receipt(task.id, 'completed')
             return saved.control ? this.control(id, access, 'inspect') : saved
         } catch (error) {
             const latest = await this.store.read(id, access.scope)
@@ -227,13 +283,23 @@ export class AgentInvocationRuntime {
         id: string,
         access: AgentInvocationAccess,
         operation: 'inspect' | 'cancel' | 'respond',
-        input?: { interactionId: string; response: AgentJson }
+        input?: { interactionId: string; response: AgentJson },
+        ownedTermination = false
     ): Promise<AgentInvocation> {
         access = await this.stableAccess(access)
         let record = await this.store.read(id, access.scope)
         if (!record) throw invocationError('NotFound')
         this.assertScope(record, access.scope)
-        await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        const registered = this.owned.get(id)
+        const stopOnly =
+            ownedTermination &&
+            operation === 'inspect' &&
+            record.invocation.control &&
+            registered &&
+            executionRuntimeTargetsEqual(registered.target, record.invocation.executionTarget)
+        // A trusted original host may finish an already-authorized termination after membership revocation.
+        // This path cannot start, approve, resume, or read another invocation.
+        if (!stopOnly) await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
         if (invocationCanRelease(record.invocation)) {
             this.pinned(record)
             return record.invocation
@@ -257,6 +323,26 @@ export class AgentInvocationRuntime {
             if (invocationCanRelease(record.invocation)) return record.invocation
         }
         const strategy = this.pinned(record)
+        const target = record.invocation.executionTarget
+        if (target?.kind === 'host' && target.hostId !== this.hostId) {
+            if (operation === 'respond' && !record.invocation.control && input) {
+                if (
+                    record.invocation.hostResponse ||
+                    record.invocation.status !== 'waiting' ||
+                    record.invocation.interaction?.id !== input.interactionId
+                )
+                    throw invocationError('InteractionConflict')
+                const task = await this.tasks?.find(access.scope, 'invocation', id)
+                const reserve = () => this.saveHostResponse(record, { ...input, claimed: false })
+                await (task ? this.tasks.admitContinuation(task.id, reserve) : reserve())
+                return (await this.store.read(id, access.scope)).invocation
+            }
+            // The original host scans the same persisted intent. Never call a different host's adapter.
+            return record.invocation.control || Date.now() - Date.parse(record.invocation.updatedAt) < 15_000
+                ? record.invocation
+                : { ...record.invocation, status: 'unknown' }
+        }
+        if (target?.kind === 'host' && !this.owned.has(id)) return { ...record.invocation, status: 'unknown' }
         if (
             operation === 'inspect' &&
             record.invocation.status === 'running' &&
@@ -327,6 +413,14 @@ export class AgentInvocationRuntime {
                     }
                 }
             }
+        } else if (record.invocation.hostResponse && !record.invocation.hostResponse.claimed) {
+            const response = record.invocation.hostResponse
+            if (!strategy.respond) throw invocationError('Unsupported')
+            const task = await this.tasks?.find(access.scope, 'invocation', id)
+            const reserve = () => this.saveHostResponse(record, { ...response, claimed: true })
+            const claimed = task ? await this.tasks.admitContinuation(task.id, reserve) : await reserve()
+            if (!claimed) return (await this.store.read(id, access.scope)).invocation
+            observation = await strategy.respond(handle, response.interactionId, response.response, context)
         } else if (operation === 'respond') {
             if (!strategy.capabilities.interactions || !strategy.respond || !input) throw invocationError('Unsupported')
             if (record.invocation.status !== 'waiting' || record.invocation.interaction?.id !== input.interactionId) {
@@ -335,11 +429,29 @@ export class AgentInvocationRuntime {
             // Claim the interaction before delivering a possibly side-effecting response.
             const target = await this.tasks?.find(access.scope, 'invocation', id)
             const reserve = () => this.save(record, { status: 'running', interaction: undefined })
-            if (target) await this.tasks.admitContinuation(target.id, reserve)
-            else await reserve()
+            const claimed = target ? await this.tasks.admitContinuation(target.id, reserve) : await reserve()
+            if (!claimed) return (await this.store.read(id, access.scope)).invocation
             observation = await strategy.respond(handle, input.interactionId, input.response, context)
         } else observation = await strategy.inspect(handle, context)
-        return (await this.updateLatest(id, access, observation)).invocation
+        return (
+            await this.updateLatest(id, access, observation, false, false, { value: record.invocation.executionTarget })
+        ).invocation
+    }
+
+    private async saveHostResponse(
+        record: StoredAgentInvocation,
+        hostResponse: NonNullable<AgentInvocation['hostResponse']>
+    ) {
+        const next = {
+            ...record,
+            invocation: {
+                ...record.invocation,
+                hostResponse,
+                revision: record.invocation.revision + 1,
+                updatedAt: new Date().toISOString()
+            }
+        }
+        return (await this.store.replace(next, record.invocation.revision)) ? next : undefined
     }
 
     /** Pause changes an execution attempt, never the idempotency identity of its calls. */
@@ -354,12 +466,30 @@ export class AgentInvocationRuntime {
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {
         return {
             invocationId: record.invocation.id,
+            executionTarget: record.invocation.executionTarget,
+            settlement: record.invocation.reportedOutcome
+                ? {
+                      status: record.invocation.reportedOutcome,
+                      result: record.invocation.result,
+                      error: record.invocation.error
+                  }
+                : undefined,
             scope: access.scope,
             signal: access.signal,
             capabilities: access.capabilities,
             ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),
             checkpoint: async (observation) => {
-                await this.updateLatest(record.invocation.id, access, observation)
+                const current = await this.store.read(record.invocation.id, access.scope)
+                if (
+                    !executionRuntimeTargetsEqual(
+                        current?.invocation.executionTarget,
+                        record.invocation.executionTarget
+                    )
+                )
+                    throw invocationError('CallConflict')
+                await this.updateLatest(record.invocation.id, access, observation, false, false, {
+                    value: record.invocation.executionTarget
+                })
             }
         }
     }
@@ -379,11 +509,17 @@ export class AgentInvocationRuntime {
         access: AgentInvocationAccess,
         observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
         finishStart = false,
-        hostAdmission = false
+        hostAdmission = false,
+        expectedTarget?: { value: AgentInvocation['executionTarget'] }
     ) {
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
+            if (
+                expectedTarget &&
+                !executionRuntimeTargetsEqual(latest.invocation.executionTarget, expectedTarget.value)
+            )
+                throw invocationError('CallConflict')
             if (invocationCanRelease(latest.invocation)) return latest
             const checked = hostAdmission
                 ? observation
@@ -399,6 +535,17 @@ export class AgentInvocationRuntime {
                     ? { ...observation, ...checked, status: 'cancelling' as const }
                     : { ...observation, ...checked }
             if (latest.invocation.control && next.control) next.control = latest.invocation.control
+            if (
+                ['succeeded', 'failed', 'cancelled'].includes(observation.status) &&
+                latest.invocation.completionEvidence === 2
+            ) {
+                if (
+                    observation.status === 'succeeded' ||
+                    observation.status === 'failed' ||
+                    observation.status === 'cancelled'
+                )
+                    latest.invocation.reportedOutcome ??= observation.status
+            }
             const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved
         }
@@ -422,6 +569,15 @@ export class AgentInvocationRuntime {
             invocation: {
                 ...record.invocation,
                 ...structuredClone(observation),
+                executionTarget: record.invocation.executionTarget,
+                completionEvidence: record.invocation.completionEvidence,
+                reportedOutcome: record.invocation.reportedOutcome,
+                hostResponse:
+                    record.invocation.hostResponse?.claimed &&
+                    observation.interaction &&
+                    observation.interaction.id !== record.invocation.hostResponse.interactionId
+                        ? undefined
+                        : record.invocation.hostResponse,
                 startPendingUntil:
                     startup === 'begin'
                         ? new Date(Date.now() + 120_000).toISOString()

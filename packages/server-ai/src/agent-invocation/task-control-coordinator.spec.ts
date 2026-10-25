@@ -51,7 +51,7 @@ function fixture(kind: ExecutionTaskControl['kind'] = 'managed-queue') {
         inspect: jest.fn().mockResolvedValue({ status: 'running' })
     }
     const factory = { createCapturedApi: jest.fn().mockReturnValue(api) },
-        runtime = { scoped: jest.fn().mockReturnValue(api) }
+        runtime = { reconcileOwned: jest.fn().mockResolvedValue(undefined), scoped: jest.fn().mockReturnValue(api) }
     const commands = { execute: jest.fn() }
     const service = new TaskControlCoordinator(
         tasks as never,

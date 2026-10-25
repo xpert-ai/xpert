@@ -53,7 +53,9 @@ export interface AgentRuntimeCapabilities {
   /** Explicitly allow repeat delivery of the same cancellation after an ambiguous response. */
   idempotentCancellation?: boolean
   /** Versioned proof of original operation completion, including its owned work. Omitted is unsupported. */
-  completionEvidence?: 1
+  completionEvidence?: 1 | 2
+  /** Process-local adapters must be controlled on the host boot that admitted the execution. */
+  hostAffinity?: 1
   activity?: ExecutionActivityCapabilities
   /** Explicit adapter compatibility; does not install tools or grant model/environment access. */
   executionTools?: Array<{ id: string; versions: string[]; environments: ModelExecutionEnvironment['type'][] }>
@@ -151,6 +153,13 @@ export interface AgentInvocationRequest {
 
 /** Host-owned invocation snapshot; not an update DTO. */
 export interface AgentInvocation extends AgentRuntimeObservation {
+  /** Persisted business outcome awaiting independent process completion evidence. */
+  reportedOutcome?: 'succeeded' | 'failed' | 'cancelled'
+  /** Pinned at admission; plugins cannot replace the original host or execution generation. */
+  executionTarget?: import('@xpert-ai/contracts').ExecutionRuntimeTarget
+  completionEvidence?: 1 | 2
+  /** Host-only durable response delivery. An ambiguous claimed response is never resent. */
+  hostResponse?: { interactionId: string; response: AgentJson; claimed: boolean }
   /** Host-assigned control adapter, independent of provider names or task labels. */
   controlAdapter?: 'native-assistant-task' | 'native-graph'
   /** Host control survives a missing handle and cannot be cleared by provider progress. */

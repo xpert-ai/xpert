@@ -11,7 +11,7 @@ import {
     AgentInvocationRequest
 } from '@xpert-ai/plugin-sdk'
 import { ExecutionControlEvidence } from '@xpert-ai/contracts'
-import { invocationCanRelease } from './invocation-control-evidence'
+import { checkedControlObservation, invocationCanRelease } from './invocation-control-evidence'
 
 function fixture(supported = true) {
     const store = new MemoryInvocationStore()
@@ -74,6 +74,27 @@ function receipt(id: string, outcome: 'cancelled' | 'succeeded' = 'cancelled'): 
 }
 
 describe('Invocation completion evidence', () => {
+    it('does not accept v2 provider evidence when both generation targets are absent', async () => {
+        const f = fixture(),
+            started = await f.api.start(f.request)
+        const invocation = {
+            ...started,
+            status: 'cancelled' as const,
+            completionEvidence: 2 as const,
+            executionTarget: undefined,
+            controlEvidence: receipt(started.id)
+        }
+        expect(invocationCanRelease(invocation)).toBe(false)
+        expect(() =>
+            checkedControlObservation(
+                invocation,
+                { status: 'cancelled', controlEvidence: invocation.controlEvidence },
+                f.strategy,
+                true
+            )
+        ).toThrow()
+    })
+
     it('waits after acceptance, then reconciles an actual exit across replicas without relaunching', async () => {
         const f = fixture()
         const started = await f.api.start(f.request)
@@ -198,12 +219,14 @@ describe('Invocation completion evidence', () => {
         expect(f.start).toHaveBeenCalledTimes(1)
     })
 
-    it('confirms cancellation of an unclaimed reservation without invoking the provider', async () => {
+    it.each([1, 2] as const)('confirms v%s unclaimed cancellation without invoking the provider', async (version) => {
         const f = fixture(),
             started = await f.api.start(f.request)
         const reserved = f.store.rows.get(started.id).invocation
         reserved.status = 'queued'
         reserved.handle = undefined
+        reserved.completionEvidence = version
+        reserved.executionTarget = undefined
         expect(await f.api.cancel(started.id)).toMatchObject({
             status: 'cancelled',
             controlEvidence: { source: 'host_admission' }
