@@ -39,9 +39,13 @@ describe('application configuration lifecycle', () => {
     async function setup() {
         let row: PluginApplicationInstallation | null = null
         let workspace: XpertWorkspace | null = null
+        let pending: DeepPartial<PluginApplicationInstallation> = {}
         const insert = {
             insert: jest.fn().mockReturnThis(),
-            values: jest.fn().mockReturnThis(),
+            values: jest.fn(function (value: DeepPartial<PluginApplicationInstallation>) {
+                pending = value
+                return this
+            }),
             orIgnore: jest.fn().mockReturnThis(),
             execute: jest.fn(async () => {
                 row ??= Object.assign(new PluginApplicationInstallation(), {
@@ -52,13 +56,14 @@ describe('application configuration lifecycle', () => {
                     pluginName: '@acme/app',
                     appName: 'example',
                     status: 'configuring',
-                    declaredScope: 'organization'
+                    declaredScope: 'organization',
+                    ...pending
                 })
             })
         }
         const installations = {
             createQueryBuilder: () => insert,
-            findOne: jest.fn(async () => row),
+            findOne: jest.fn(async (_query: { where: object; lock: { mode: string } }) => row),
             save: jest.fn(async (value: PluginApplicationInstallation) => {
                 row = value
                 return value
@@ -132,6 +137,36 @@ describe('application configuration lifecycle', () => {
             toolsets: module.get(PluginApplicationToolsetsService)
         }
     }
+
+    it('uses the authenticated owner for prepare, bind and discard, including the row lock', async () => {
+        const h = await setup()
+        const personal: ResolvedApplication = {
+            ...resolved,
+            application: { ...resolved.application, scope: 'personal' }
+        }
+        const result = await h.service.prepare(personal)
+        expect(result).toMatchObject({
+            ownerUserId: 'owner',
+            scopeKey: 'personal:org:owner',
+            declaredScope: 'personal'
+        })
+        await h.service.bind(personal.application, { key: 'tools', toolsetId: 'toolset' })
+        await h.service.discard(personal.application)
+        for (const [query] of h.installations.findOne.mock.calls)
+            expect(query).toMatchObject({
+                where: {
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    ownerUserId: 'owner',
+                    scopeKey: 'personal:org:owner',
+                    declaredScope: 'personal'
+                },
+                lock: { mode: 'pessimistic_write' }
+            })
+        expect(h.installations.delete).toHaveBeenCalledWith(
+            expect.objectContaining({ ownerUserId: 'owner', scopeKey: 'personal:org:owner' })
+        )
+    })
 
     it('prepares only one private Workspace and restores it on a later visit', async () => {
         const { service, workspaces, installations, insert } = await setup()

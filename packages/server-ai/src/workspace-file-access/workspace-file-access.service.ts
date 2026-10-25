@@ -8,6 +8,8 @@ import {
     NotFoundException,
     UnauthorizedException
 } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus } from '@nestjs/cqrs'
 import type { Cache } from 'cache-manager'
@@ -25,9 +27,9 @@ import type {
     XpertViewFileAccessSessionResult,
     XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
-import { RequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
+import { RequestContext, runWithRequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { ViewExtensionService } from '@xpert-ai/server-core'
+import { User, ViewExtensionService, runWithRequestContext as runWithLegacyRequestContext } from '@xpert-ai/server-core'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
 import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
@@ -102,7 +104,8 @@ export class WorkspaceFileAccessService {
         private readonly viewExtensionService: ViewExtensionService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        @InjectRepository(User) private readonly users: Repository<User>
     ) {}
 
     async createSession(
@@ -266,7 +269,35 @@ export class WorkspaceFileAccessService {
             throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
         }
 
-        return { session, grant }
+        // The signed cookie proves who obtained the grant, not that they still have access.
+        // Rebuild a narrow request context from the authenticated session and current user,
+        // then use the same host/resource checks as bearer-authenticated reads. Never inherit
+        // an ambient caller's identity, roles or runtime headers on this public endpoint.
+        const user = await this.users.findOne({
+            where: { id: session.userId, tenantId: session.tenantId },
+            relations: ['role', 'role.rolePermissions']
+        })
+        if (!user) {
+            throw new UnauthorizedException(
+                errorMessage('WorkspaceFileAccessInvalidSession', 'Workspace file access session is invalid.')
+            )
+        }
+        const request = {
+            user,
+            headers: {
+                'tenant-id': session.tenantId,
+                ...(session.organizationId ? { 'organization-id': session.organizationId } : {})
+            }
+        }
+        return new Promise<WorkspaceFileAccessAuthorization>((resolve, reject) => {
+            runWithRequestContext(request, {}, () => {
+                // ViewExtensionService still uses the legacy CLS context. Bind both during
+                // its migration to the SDK so all providers see the same verified identity.
+                runWithLegacyRequestContext(request, () => {
+                    void this.authorizeAuthenticatedContent(sessionId, grantId, publicFileName).then(resolve, reject)
+                })
+            })
+        })
     }
 
     resolveAuthorizedFile(authorization: WorkspaceFileAccessAuthorization): WorkspaceFileAccessResolvedFile {

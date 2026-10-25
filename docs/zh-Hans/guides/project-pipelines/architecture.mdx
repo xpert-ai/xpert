@@ -62,6 +62,8 @@ Provider 投影的 `sourceKey`、`sourceEpoch` 和 `sourceSequence` 标识来源
 
 SDK 的公共能力包括 `ProjectPipelinesRuntimeCapability`、`ProjectPipelineCatalogRuntimeCapability`、`ProjectPipelineConfigurationRuntimeCapability`、`ProjectPipelineCommandsRuntimeCapability`、Provider Actions、Evidence、Analytics 与 Portfolio。API 与视图接口使用同一共享 schema；操作者和组织范围从可信宿主上下文取得，不能信任客户端自行提交的身份。
 
+外部插件的流水线贡献校验失败时，将从目录排除，不阻断 API 启动。隔离覆盖 `ProjectPipelineContributor` 构造期间的校验和目录发现期间的校验。注册表以 `PIPELINE_CONTRIBUTION_INVALID` 记录插件、来源作用域和字段路径，并通过 `getRegistrationFailures()` 提供诊断，不记录输入值。模板仍必须明确声明 `projectTypes`，缺失不代表允许所有项目使用。显式注册、平台内置代码错误及非校验类初始化异常仍严格报错。
+
 ## 领域接入方式
 
 | 接入点     | BOM                                                  | Code Review                                    |

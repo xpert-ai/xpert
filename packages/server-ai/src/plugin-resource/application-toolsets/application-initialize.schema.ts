@@ -1,12 +1,14 @@
+import { applicationInstallationScopeSchema } from '../application-scope.schema'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
 
 const identifier = z.string().trim().min(1).max(255)
 
-/** Only option IDs are accepted. Credentials and target scope stay in their owning APIs. */
+/** Only option IDs are accepted. Credentials and ownership stay in their owning APIs. The selected scope is validated against trusted metadata. */
 export const applicationInitializeSchema = z
     .object({
+        installationScope: applicationInstallationScopeSchema,
         pluginName: identifier,
         appName: identifier,
         operationId: identifier,
@@ -22,6 +24,7 @@ export const applicationInitializeSchema = z
     .refine((input) => new Set(input.toolsets?.map((item) => item.key)).size === (input.toolsets?.length ?? 0))
     // Explicit output properties retain required fields even in host builds without strictNullChecks.
     .transform((input) => ({
+        ...(input.installationScope ? { installationScope: input.installationScope } : {}),
         pluginName: input.pluginName,
         appName: input.appName,
         operationId: input.operationId,

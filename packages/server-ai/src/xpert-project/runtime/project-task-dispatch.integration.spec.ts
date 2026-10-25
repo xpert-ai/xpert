@@ -304,6 +304,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             }))
         })
         const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+            assertAssistant: jest.fn(),
             assertEdit: jest.fn(),
             assertManage: jest.fn(),
             listReadable: jest.fn()

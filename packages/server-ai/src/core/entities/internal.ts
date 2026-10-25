@@ -89,3 +89,5 @@ export * from '../../desktop-shell/desktop-shell.entities'
 
 export * from '../../agent-invocation/activity/activity.entity'
 export * from '../../xpert-project/pipeline/persistence/pipeline.entity'
+
+export * from '../../shared/stream/display-snapshot/display-snapshot.entity'

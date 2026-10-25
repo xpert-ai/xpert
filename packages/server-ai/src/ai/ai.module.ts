@@ -1,3 +1,7 @@
+import { ContentResourceModule } from '../content-resource/content-resource.module'
+import { ContentDocumentsController } from './content-documents.controller'
+import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
+import { ThreadRecoveryController } from './thread-recovery/thread-recovery.controller'
 import { AssistantTemplateSetupRuntimeController } from './assistant-template-setup.controller'
 import { GROUP_CONTROLLERS } from './groups'
 import { GroupWorkbenchGuard } from './groups/group-workbench.guard'
@@ -77,6 +81,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
                 module: AIModule
             }
         ]),
+        ContentResourceModule,
         ChatGroupModule,
         WorkspaceFileAccessModule,
         TenantModule,
@@ -118,6 +123,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ContentDocumentsController,
         AssistantTemplateSetupRuntimeController,
         ...GROUP_CONTROLLERS,
         ConversationArtifactsController,
@@ -137,6 +143,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         RuntimeResourceController,
         ConnectorRuntimeController,
         ThreadsController,
+        ThreadRecoveryController,
         ConversationsController,
         StoreController
     ],
@@ -144,6 +151,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         GroupScopeGuard,
         GroupWorkbenchGuard,
         ThreadActivityService,
+        ThreadReadDiagnosticsInterceptor,
         VoiceSessionService,
         VoiceTaskService,
         VoiceTaskProcessor,

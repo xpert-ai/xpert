@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@xpert-ai/chatkit-assets": "0.1.0",
     "tailwindcss": "^4.1.18"
   },
   "dependencies": {

@@ -1,10 +1,13 @@
 // Readiness is recomputed before writes. Loaded packages never imply that all their resources are selected.
 import {
+    IXpert,
     TemplateDependencyLock,
+    TemplateRequirementCheck,
     TemplateRuntimeDependencyReport,
     templateDependencyVersionsSchema,
     TXpertTemplate,
-    XpertToolsetCategoryEnum
+    XpertToolsetCategoryEnum,
+    XpertTemplatePluginToolsetDependency
 } from '@xpert-ai/contracts'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -27,6 +30,7 @@ import {
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
+import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
 import {
     ResolveAgentPluginTemplateDependencyCommand,
@@ -47,9 +51,12 @@ export class TemplateReadinessService {
         private readonly commands: CommandBus
     ) {}
 
-    async inspect(template: TXpertTemplate, workspaceId?: string) {
+    async inspect(template: TXpertTemplate, workspaceId?: string, installedAssistant?: IXpert) {
         if (workspaceId) await this.workspaces.assertCanAuthor(workspaceId)
-        return this.inspectRequirements(template, workspaceId)
+        if (installedAssistant && installedAssistant.workspaceId !== workspaceId) {
+            throw new BadRequestException('Installed Assistant workspace does not match template inspection')
+        }
+        return this.inspectRequirements(template, workspaceId, undefined, installedAssistant)
     }
 
     /** Runtime access is checked separately from authoring; run-only users can delegate templates. */
@@ -86,7 +93,8 @@ export class TemplateReadinessService {
     private async inspectRequirements(
         template: TXpertTemplate,
         workspaceId?: string,
-        runtime?: { sandboxProvider?: string }
+        runtime?: { sandboxProvider?: string },
+        installedAssistant?: IXpert
     ) {
         const result = inspectTemplateManifest(template)
         const { readiness, manifest, normalized } = result
@@ -225,7 +233,8 @@ export class TemplateReadinessService {
                                     existing.components.push(component)
                         } else readiness.dependencies.push(resolved.lock)
                         readiness.checks.push(requirementCheck('resource', `${kind}:${selector.componentKey}`, 'ready'))
-                    } catch {
+                    } catch (error) {
+                        if (error instanceof AgentPluginStorageException) throw error
                         readiness.checks.push(
                             requirementCheck('resource', `${kind}:${selector.componentKey}`, 'missing')
                         )
@@ -275,26 +284,7 @@ export class TemplateReadinessService {
             }
         }
         for (const selector of dependencies?.toolsets ?? []) {
-            const available = workspaceId
-                ? await this.toolsets.find({
-                      where: {
-                          workspaceId,
-                          tenantId: RequestContext.currentTenantId(),
-                          organizationId: RequestContext.getOrganizationId(),
-                          category: XpertToolsetCategoryEnum.BUILTIN,
-                          type: selector.provider,
-                          ...(selector.instanceName ? { name: selector.instanceName } : {})
-                      },
-                      select: ['id']
-                  })
-                : []
-            readiness.checks.push(
-                requirementCheck(
-                    'resource',
-                    `toolset:${selector.provider}`,
-                    workspaceId ? (available.length === 1 ? 'ready' : 'missing') : 'pending-configuration'
-                )
-            )
+            readiness.checks.push(await this.inspectToolsetDependency(selector, workspaceId, installedAssistant))
         }
         if (
             readiness.legacy &&
@@ -317,6 +307,48 @@ export class TemplateReadinessService {
             (check) => check.required && !['ready', 'pending-configuration'].includes(check.status)
         )
         return { manifest, readiness, components, normalized }
+    }
+
+    /**
+     * Check a built-in tool dependency within the current organization and workspace.
+     * Refreshes validate the existing binding by ID, so other provider instances cannot replace it.
+     * Without a binding, require one unique candidate; without a workspace, defer configuration.
+     */
+    private async inspectToolsetDependency(
+        selector: XpertTemplatePluginToolsetDependency,
+        workspaceId?: string,
+        installedAssistant?: IXpert
+    ): Promise<TemplateRequirementCheck> {
+        const key = `toolset:${selector.provider}`
+        if (!workspaceId) return requirementCheck('resource', key, 'pending-configuration')
+
+        const available = await this.toolsets.find({
+            where: {
+                workspaceId,
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                type: selector.provider,
+                ...(selector.instanceName ? { name: selector.instanceName } : {})
+            },
+            select: ['id']
+        })
+        const nodes = installedAssistant?.draft?.nodes ?? installedAssistant?.graph?.nodes ?? []
+        const boundIds = new Set(
+            nodes.flatMap((node) =>
+                node.type === 'toolset' &&
+                node.entity.type === selector.provider &&
+                node.entity.category === XpertToolsetCategoryEnum.BUILTIN &&
+                (!selector.instanceName || node.entity.name === selector.instanceName) &&
+                node.entity.id
+                    ? [node.entity.id]
+                    : []
+            )
+        )
+        const ready = boundIds.size
+            ? boundIds.size === 1 && available.some((toolset) => boundIds.has(toolset.id))
+            : available.length === 1
+        return requirementCheck('resource', key, ready ? 'ready' : 'missing')
     }
 
     async prepare(template: TXpertTemplate, workspaceId: string, expected?: TemplateDependencyLock[] | null) {
@@ -363,7 +395,8 @@ export class TemplateReadinessService {
                     if (current.length !== 1 || current[0].component.definitionHash !== component.hash)
                         throw new Error('Component changed')
                 }
-            } catch {
+            } catch (error) {
+                if (error instanceof AgentPluginStorageException) throw error
                 throw new BadRequestException(t('server-ai:Error.TemplateDependencyChanged'))
             }
         }
@@ -474,7 +507,8 @@ export class TemplateReadinessService {
 export class InspectTemplateReadinessHandler implements ICommandHandler<InspectTemplateReadinessCommand> {
     constructor(private readonly readiness: TemplateReadinessService) {}
     async execute(command: InspectTemplateReadinessCommand) {
-        return (await this.readiness.inspect(command.template, command.workspaceId)).readiness
+        return (await this.readiness.inspect(command.template, command.workspaceId, command.installedAssistant))
+            .readiness
     }
 }
 

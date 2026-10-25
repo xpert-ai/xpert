@@ -81,9 +81,16 @@ export class TemplateInstallationComponent {
   readonly template = signal<TXpertTemplate | null>(null)
   readonly setup = signal<XpertTemplateSetup | null>(null)
   readonly state = signal<InstallationSnapshot>(empty)
-  readonly loading = signal(false)
+  private readonly templateLoading = signal(false)
+  private readonly workspacesLoading = signal(false)
+  readonly loading = computed(() => this.templateLoading() || this.workspacesLoading())
+  private readonly templateReload = signal(0)
+  private readonly workspaceReload = signal(0)
   readonly revision = signal(0)
-  readonly error = signal('')
+  private readonly templateError = signal('')
+  private readonly workspaceError = signal('')
+  private readonly setupError = signal('')
+  readonly error = computed(() => this.templateError() || this.workspaceError() || this.setupError())
   readonly openingError = signal('')
   readonly opening = signal(false)
   private openingGeneration = 0
@@ -121,35 +128,57 @@ export class TemplateInstallationComponent {
       const id = this.templateId(),
         organization = this.organizationId(),
         user = this.user()
-      const preferred = this.initialWorkspaceId()
+      this.templateReload()
       let active = true
       cleanup(() => {
         active = false
       })
-      this.workspaceId.set('')
-      this.workspaces.set([])
       this.template.set(null)
+      this.templateError.set('')
+      this.templateLoading.set(false)
       untracked(() => this.form.controls.model.reset(''))
-      this.error.set('')
       if (!organization || !user?.id) return
-      this.loading.set(true)
-      void Promise.all([
-        firstValueFrom(this.templates.getTemplate(id, this.translate.currentLang)),
-        firstValueFrom(this.workspacesService.getAllMy(undefined, { purpose: 'authoring' }))
-      ])
-        .then(([template, result]) => {
+      this.templateLoading.set(true)
+      void firstValueFrom(this.templates.getTemplate(id, this.translate.currentLang))
+        .then((template) => {
           if (!active) return
           this.template.set(template)
           this.form.controls.title.setValue(typeof template.title === 'string' ? template.title : template.name)
+        })
+        .catch((error) => {
+          if (active) this.templateError.set(getErrorMessage(error))
+        })
+        .finally(() => {
+          if (active) this.templateLoading.set(false)
+        })
+    })
+    effect((cleanup) => {
+      const organization = this.organizationId(),
+        user = this.user(),
+        preferred = this.initialWorkspaceId()
+      this.workspaceReload()
+      let active = true
+      cleanup(() => {
+        active = false
+      })
+      this.workspaces.set([])
+      this.workspaceId.set('')
+      this.workspaceError.set('')
+      this.workspacesLoading.set(false)
+      if (!organization || !user?.id) return
+      this.workspacesLoading.set(true)
+      void firstValueFrom(this.workspacesService.getAllMy(undefined, { purpose: 'authoring' }))
+        .then((result) => {
+          if (!active) return
           const workspaces = result.items.filter((item) => item.capabilities?.canWrite)
           this.workspaces.set(workspaces)
           this.workspaceId.set(workspaces.some((item) => item.id === preferred) ? preferred : (workspaces[0]?.id ?? ''))
         })
         .catch((error) => {
-          if (active) this.error.set(getErrorMessage(error))
+          if (active) this.workspaceError.set(getErrorMessage(error))
         })
         .finally(() => {
-          if (active) this.loading.set(false)
+          if (active) this.workspacesLoading.set(false)
         })
     })
     effect((cleanup) => {
@@ -163,9 +192,10 @@ export class TemplateInstallationComponent {
       cleanup(() => {
         active = false
       })
+      const template = this.template()
       this.setup.set(null)
-      if (!organization || !workspaceId || !user?.id) return
-      this.error.set('')
+      this.setupError.set('')
+      if (!template || !organization || !workspaceId || !user?.id) return
       void firstValueFrom(this.templates.getSetup(id, capabilities, workspaceId))
         .then((setup) => {
           if (!active) return
@@ -176,7 +206,7 @@ export class TemplateInstallationComponent {
           this.form.controls.model.updateValueAndValidity()
         })
         .catch((error) => {
-          if (active) this.error.set(getErrorMessage(error))
+          if (active) this.setupError.set(getErrorMessage(error))
         })
     })
     effect((cleanup) => {
@@ -218,6 +248,12 @@ export class TemplateInstallationComponent {
       untracked(() => void client.restore().then(() => client.history()))
     })
   }
+  refreshSettings() {
+    if (this.state().busy || this.loading()) return
+    if (!this.template()) this.templateReload.update((value) => value + 1)
+    if (this.workspaceError()) this.workspaceReload.update((value) => value + 1)
+    this.revision.update((value) => value + 1)
+  }
   selectWorkspace(event: Event) {
     if (event.target instanceof HTMLSelectElement) this.workspaceId.set(event.target.value)
   }
@@ -244,6 +280,8 @@ export class TemplateInstallationComponent {
     const setup = this.setup()
     return (
       !!this.client &&
+      !!this.template() &&
+      !this.error() &&
       !this.loading() &&
       !this.state().busy &&
       !this.state().operation &&

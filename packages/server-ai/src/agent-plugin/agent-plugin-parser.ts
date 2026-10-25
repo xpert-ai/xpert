@@ -2,8 +2,8 @@
 // Validate locally, contain real paths, and isolate component failures per spec 1.0.0.
 import Ajv from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
-import { readFile, readdir, realpath, stat } from 'node:fs/promises'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { readFile, readdir, stat } from 'node:fs/promises'
+import { containedPath } from './agent-plugin-path'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod/v3'
 import type { AgentPluginDiagnostic, AgentPluginXpertExtension, TXpertTemplate } from '@xpert-ai/contracts'
@@ -12,6 +12,8 @@ import mcpSchema from './schemas/mcp.schema'
 import { parseAgentPluginCommands } from './commands/agent-plugin-commands.schema'
 import { agentPluginConnectorsSchema } from './agent-plugin-connector.schema'
 import { normalizeAssistantTemplate } from '../xpert-template/definition/normalize-assistant-template'
+
+export { containedPath } from './agent-plugin-path'
 
 const ajv = new Ajv({ strict: false, allErrors: true })
 addFormats(ajv)
@@ -114,14 +116,6 @@ export interface PortablePlugin {
     /** Server-generated import snapshot. Never accepted from plugin.json. */
     templateCatalog?: { [key: string]: Pick<TXpertTemplate, 'name' | 'title' | 'description' | 'avatar' | 'type'> }
     diagnostics: AgentPluginDiagnostic[]
-}
-
-export async function containedPath(root: string, path: string): Promise<string> {
-    const [base, target] = await Promise.all([realpath(root), realpath(resolve(root, path))])
-    const child = relative(base, target)
-    if (isAbsolute(child) || child === '..' || child.startsWith('../'))
-        throw new Error('Package path escapes plugin root')
-    return target
 }
 
 async function readJson(root: string, path: string): Promise<unknown> {

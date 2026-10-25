@@ -59,6 +59,9 @@ import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volu
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
 import { isSupportedArtifactMimeType, PPTX_MIME_TYPE } from './artifact-mime-policy'
+import { ArtifactContentAccess, assertArtifactAccess, assertArtifactPolicyUnchanged } from './artifact-content-access'
+import { listAuthorizedArtifacts } from './artifact-authorized-list'
+import { t } from 'i18next'
 
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'
 const DEFAULT_SIGNED_PREVIEW_TTL_SECONDS = 15 * 60
@@ -140,7 +143,8 @@ export class ArtifactsService implements ArtifactsApi {
         private readonly userService?: UserService,
         @Optional()
         @InjectDataSource()
-        private readonly dataSource?: DataSource
+        private readonly dataSource?: DataSource,
+        @Optional() private readonly contentAccess?: ArtifactContentAccess
     ) {}
 
     createScopedApi(defaults: ArtifactsRuntimeScope): ArtifactsApi {
@@ -236,7 +240,7 @@ export class ArtifactsService implements ArtifactsApi {
         artifactId: string
         artifactVersionId: string
     }): Promise<ArtifactManagementResolvedVersion> {
-        const artifact = await this.resolveScopedArtifact(input.artifactId, {}, true)
+        const artifact = await this.resolveScopedArtifact(input.artifactId, {}, true, 'read')
         if (artifact.status !== 'active') {
             throw new GoneException('Artifact is no longer active')
         }
@@ -532,9 +536,18 @@ export class ArtifactsService implements ArtifactsApi {
         defaults: ArtifactsRuntimeScope
     ): Promise<ArtifactRecord> {
         const source = normalizeSourceInput(input.source)
-        const scope = this.resolveCreateScope(input.scope, defaults, 'create an artifact')
+        const actor = this.resolveCreateScope(input.scope, defaults, 'create an artifact')
+        // Explicit Project ownership does not erase the authenticated actor used for ACL and audit.
+        const scope = { ...actor, userId: input.scope?.userId === null ? null : actor.userId }
+        if (input.scope?.userId === null && !scope.projectId) {
+            throw new BadRequestException(t('server-ai:Error.ArtifactSharedProjectRequired'))
+        }
+        const authorizationProviderKey = normalizeOptionalString(input.authorizationProviderKey)
+        const policy = { ...scope, resourceId: source.resourceId, authorizationProviderKey }
+        await assertArtifactAccess(this.contentAccess, policy, actor, 'write')
         const existing = await this.findExistingArtifact(source, scope)
         if (existing) {
+            assertArtifactPolicyUnchanged(existing, policy)
             existing.status = 'active'
             existing.kind = input.kind ?? existing.kind
             existing.checksum = source.checksum ?? existing.checksum
@@ -545,8 +558,9 @@ export class ArtifactsService implements ArtifactsApi {
         }
 
         const candidate = this.artifactRepository.create({
+            authorizationProviderKey,
             ...scope,
-            createdById: scope.userId ?? undefined,
+            createdById: actor.userId ?? undefined,
             pluginName: source.pluginName,
             resourceType: source.resourceType,
             resourceId: source.resourceId,
@@ -564,6 +578,7 @@ export class ArtifactsService implements ArtifactsApi {
             if (!isUniqueConstraintError(error)) throw error
             const concurrent = await this.findExistingArtifact(source, scope)
             if (!concurrent) throw error
+            assertArtifactPolicyUnchanged(concurrent, policy)
             concurrent.status = 'active'
             concurrent.kind = input.kind ?? concurrent.kind
             concurrent.checksum = source.checksum ?? concurrent.checksum
@@ -580,10 +595,11 @@ export class ArtifactsService implements ArtifactsApi {
     ): Promise<ArtifactRecord | null> {
         const source = normalizeSourceInput(input)
         const scope = this.resolveCurrentScope(defaults)
-        const artifact = await this.findExistingArtifact(source, scope)
+        const artifact = await this.findExistingArtifact(source, scope, true)
         if (!artifact || (!input.includeDeleted && artifact.status === 'deleted')) {
             return null
         }
+        await assertArtifactAccess(this.contentAccess, artifact, scope, 'read')
         return serializeArtifact(artifact, await this.findCurrentVersion(artifact))
     }
 
@@ -616,7 +632,7 @@ export class ArtifactsService implements ArtifactsApi {
                 repositories.version.create({
                     tenantId: lockedArtifact.tenantId,
                     organizationId: lockedArtifact.organizationId,
-                    createdById: defaults.userId ?? lockedArtifact.userId ?? undefined,
+                    createdById: this.resolveCurrentScope(defaults).userId ?? undefined,
                     artifactId: normalizeRequiredString(lockedArtifact.id, 'artifact.id'),
                     artifact: lockedArtifact,
                     versionNumber,
@@ -651,7 +667,7 @@ export class ArtifactsService implements ArtifactsApi {
         input: ListArtifactVersionsInput,
         defaults: ArtifactsRuntimeScope
     ): Promise<ArtifactVersionRecord[]> {
-        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true)
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true, 'read')
         const versions = await this.versionRepository.find({
             where: {
                 artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
@@ -708,7 +724,7 @@ export class ArtifactsService implements ArtifactsApi {
                 repositories.version.create({
                     tenantId: lockedArtifact.tenantId,
                     organizationId: lockedArtifact.organizationId,
-                    createdById: defaults.userId ?? lockedArtifact.userId ?? undefined,
+                    createdById: this.resolveCurrentScope(defaults).userId ?? undefined,
                     artifactId,
                     artifact: lockedArtifact,
                     versionNumber: Number(previous?.versionNumber ?? 0) + 1,
@@ -740,7 +756,7 @@ export class ArtifactsService implements ArtifactsApi {
     }
 
     private async getArtifactWithDefaults(idOrSlug: string, defaults: ArtifactsRuntimeScope): Promise<ArtifactRecord> {
-        const artifact = await this.resolveScopedArtifact(idOrSlug, defaults, true)
+        const artifact = await this.resolveScopedArtifact(idOrSlug, defaults, true, 'read')
         return serializeArtifact(artifact, await this.findCurrentVersion(artifact))
     }
 
@@ -755,8 +771,7 @@ export class ArtifactsService implements ArtifactsApi {
             .createQueryBuilder('artifact')
             .where('artifact.tenantId = :tenantId', { tenantId: scope.tenantId })
             .orderBy('artifact.updatedAt', 'DESC')
-            .skip((page - 1) * pageSize)
-            .take(pageSize)
+            .addOrderBy('artifact.id', 'DESC')
         if (input.resourceIdPrefix) {
             qb.andWhere('artifact.resourceId LIKE :resourceIdPrefix', {
                 resourceIdPrefix: artifactResourcePrefixPattern(input.resourceIdPrefix)
@@ -770,6 +785,8 @@ export class ArtifactsService implements ArtifactsApi {
         }
         if (scope.userId) {
             qb.andWhere('(artifact.userId IS NULL OR artifact.userId = :userId)', { userId: scope.userId })
+        } else {
+            qb.andWhere('artifact.userId IS NULL')
         }
         if (input.status && input.status !== 'all') {
             qb.andWhere('artifact.status = :status', { status: input.status })
@@ -786,7 +803,12 @@ export class ArtifactsService implements ArtifactsApi {
             qb.andWhere('artifact.resourceId = :resourceId', { resourceId: input.resourceId })
         }
 
-        const [items, total] = await qb.getManyAndCount()
+        const { items, total } = await listAuthorizedArtifacts(
+            qb,
+            (artifact) => assertArtifactAccess(this.contentAccess, artifact, scope, 'read'),
+            page,
+            pageSize
+        )
         // Query parameters may be strings; SDK callers pass a boolean. Neither changes authorization.
         const includeCurrentVersion: unknown = input.includeCurrentVersion
         const currentVersions =
@@ -859,12 +881,12 @@ export class ArtifactsService implements ArtifactsApi {
         const scope = artifactToScope(artifact)
         const token = this.assertAndApplyPublicLinkPolicy(access, {
             ...scope,
-            userId: defaults.userId ?? artifact.userId
+            userId: this.resolveCurrentScope(defaults).userId
         })
         const slug = await this.createUniqueSlug()
         const link = repositories.link.create({
             ...scope,
-            createdById: defaults.userId ?? artifact.userId ?? undefined,
+            createdById: this.resolveCurrentScope(defaults).userId ?? undefined,
             artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
             artifact,
             shareKey: normalizeOptionalString(shareKey),
@@ -894,7 +916,7 @@ export class ArtifactsService implements ArtifactsApi {
         input: ArtifactShareKeyInput,
         defaults: ArtifactsRuntimeScope
     ): Promise<ArtifactLinkRecord | null> {
-        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true)
+        const artifact = await this.resolveScopedArtifact(input.artifactId, defaults, true, 'read')
         const shareKey = normalizeRequiredString(input.shareKey, 'shareKey')
         const link = await this.linkRepository.findOne({
             where: {
@@ -923,7 +945,7 @@ export class ArtifactsService implements ArtifactsApi {
         const access = normalizeAccessInput(input.access)
         this.assertAndApplyPublicLinkPolicy(access, {
             ...artifactToScope(artifact),
-            userId: defaults.userId ?? artifact.userId
+            userId: this.resolveCurrentScope(defaults).userId
         })
 
         return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
@@ -1111,7 +1133,8 @@ export class ArtifactsService implements ArtifactsApi {
 
     private async findExistingArtifact(
         source: NormalizedArtifactSource,
-        scope: Required<Pick<ArtifactsRuntimeScope, 'tenantId'>> & ArtifactsRuntimeScope
+        scope: Required<Pick<ArtifactsRuntimeScope, 'tenantId'>> & ArtifactsRuntimeScope,
+        includeProjectOwned = false
     ) {
         const candidates = await this.artifactRepository.find({
             where: {
@@ -1121,20 +1144,25 @@ export class ArtifactsService implements ArtifactsApi {
                 resourceId: source.resourceId
             }
         })
+        const scoped = candidates.filter(
+            (artifact) =>
+                normalizeOptionalString(artifact.organizationId) === normalizeOptionalString(scope.organizationId)
+        )
+        // Source identity stays scoped by owner, independent of the optional resource policy.
         return (
-            candidates.find(
-                (artifact) =>
-                    normalizeOptionalString(artifact.organizationId) ===
-                        normalizeOptionalString(scope.organizationId) &&
-                    normalizeOptionalString(artifact.userId) === normalizeOptionalString(scope.userId)
-            ) ?? null
+            scoped.find(
+                (artifact) => normalizeOptionalString(artifact.userId) === normalizeOptionalString(scope.userId)
+            ) ??
+            (includeProjectOwned ? scoped.find((artifact) => !artifact.userId && artifact.projectId) : null) ??
+            null
         )
     }
 
     private async resolveScopedArtifact(
         idOrSlug: string,
         defaults: ArtifactsRuntimeScope,
-        allowDeleted = false
+        allowDeleted = false,
+        operation: 'read' | 'write' | 'manage' = 'write'
     ): Promise<Artifact> {
         const normalized = normalizeRequiredString(idOrSlug, 'artifact id')
         const scope = this.resolveCurrentScope(defaults)
@@ -1153,9 +1181,7 @@ export class ArtifactsService implements ArtifactsApi {
         if (normalizeOptionalString(artifact.organizationId) !== normalizeOptionalString(scope.organizationId)) {
             throw new NotFoundException('Artifact was not found')
         }
-        if (artifact.userId && artifact.userId !== scope.userId) {
-            throw new NotFoundException('Artifact was not found')
-        }
+        await assertArtifactAccess(this.contentAccess, artifact, scope, operation)
         if (!allowDeleted && artifact.status === 'deleted') {
             throw new GoneException('Artifact was deleted')
         }
@@ -1185,9 +1211,10 @@ export class ArtifactsService implements ArtifactsApi {
             qb.andWhere('(artifact.userId IS NULL OR artifact.userId = :userId)', { userId: scope.userId })
         }
         const link = await qb.getOne()
-        if (!link) {
+        if (!link?.artifact) {
             throw new NotFoundException('Artifact link was not found')
         }
+        await assertArtifactAccess(this.contentAccess, link.artifact, scope, 'manage')
         return link
     }
 
@@ -1320,6 +1347,19 @@ export class ArtifactsService implements ArtifactsApi {
         principal?: ArtifactAccessPrincipal | null,
         authenticatedUser?: IUser | null
     ) {
+        const artifact = link.artifact ?? (await this.artifactRepository.findOneBy({ id: link.artifactId }))
+        if (!artifact) return false
+        try {
+            await assertArtifactAccess(
+                this.contentAccess,
+                artifact,
+                { ...principal, organizationId: artifact.organizationId },
+                'read',
+                false
+            )
+        } catch {
+            return false
+        }
         switch (link.accessMode) {
             case 'public_link':
                 return true

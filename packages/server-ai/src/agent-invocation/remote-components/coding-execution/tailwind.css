@@ -3,10 +3,6 @@
 @import './themes.css';
 @source './src';
 
-/* Keep the host root size; the transcript is text-sm relative to that root. */
-html:root {
-    font-size: var(--xui-density-root-font-size, 14px);
-}
 html,
 body,
 #root {
@@ -51,33 +47,17 @@ body {
 .execution-view [hidden] {
     display: none !important;
 }
-.execution-surface button,
-.execution-surface input,
 .execution-surface select,
 .execution-surface summary {
     font: inherit;
 }
-.execution-surface button,
 .execution-surface select,
 .execution-surface summary {
     cursor: pointer;
 }
-.execution-surface :is(button, input, select, summary, [tabindex]):focus-visible {
+.execution-surface :is(select, summary, [tabindex]):not([data-slot='button']):focus-visible {
     outline: 2px solid var(--viewer-accent);
     outline-offset: 3px;
-}
-.execution-surface button {
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: inherit;
-}
-.execution-surface button:hover {
-    background: var(--viewer-hover);
-}
-.execution-surface button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 .icon {
     display: inline-flex;
@@ -99,15 +79,6 @@ body {
 .execution-surface [data-status='failed'],
 .execution-error {
     color: var(--viewer-error);
-}
-.quiet-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.25rem 0.45rem;
-    min-height: 1.8rem;
-    white-space: nowrap;
 }
 .transcript-scroll {
     flex: 1;
@@ -199,9 +170,6 @@ body {
     color: var(--viewer-muted);
     font-size: 0.86em;
 }
-.output-actions .quiet-button {
-    padding-left: 0;
-}
 .output-notice {
     font-size: 0.86em;
 }
@@ -213,7 +181,6 @@ body {
     gap: 0.5rem;
     flex-wrap: wrap;
     padding: 0.3rem 0;
-    color: var(--viewer-link);
 }
 .artifacts:empty {
     display: none;
@@ -271,29 +238,13 @@ body {
     overflow-wrap: anywhere;
     white-space: pre-wrap;
 }
-.execution-surface > .quiet-button {
-    position: absolute;
-    bottom: 4rem;
-    right: 2rem;
-    color: var(--viewer-accent);
-    background: var(--viewer-background);
-    border: 1px solid var(--viewer-border);
-    font-size: 0.86em;
-}
 .search-bar {
+    font-family: var(--font-sans);
     display: flex;
     gap: 0.7rem;
     align-items: center;
     padding: 0.6rem 2rem;
     border-bottom: 1px solid var(--viewer-border);
-}
-.search-bar input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    background: transparent;
-    color: var(--viewer-foreground);
-    padding: 0.25rem;
 }
 .search-count {
     color: var(--viewer-muted);

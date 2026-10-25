@@ -1,5 +1,5 @@
+import type { ExecutionI18n } from './i18n/core'
 import { el, hasSelection, text } from './dom'
-import type { Label } from './model'
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
@@ -36,7 +36,7 @@ class JsonNode {
         this.leaf.append(this.value)
         this.element.append(this.branch, this.leaf)
     }
-    update(value: JsonValue, name: string | number | null, label: Label) {
+    update(value: JsonValue, name: string | number | null, i18n: ExecutionI18n) {
         const collection = value !== null && typeof value === 'object'
         const array = Array.isArray(value)
         this.branch.hidden = !collection
@@ -53,10 +53,7 @@ class JsonNode {
         }
         const entries = Object.entries(value)
         const shape = array ? (entries.length ? '[…]' : '[]') : entries.length ? '{…}' : '{}'
-        text(
-            this.description,
-            `${shape} · ${entries.length} ${array ? label('items', '项') : label('fields', '个字段')}`
-        )
+        text(this.description, i18n.t(array ? 'json.items' : 'json.fields', { shape, count: entries.length }))
         const keys = new Set(entries.map(([key]) => key))
         for (const [key, node] of this.nodes) {
             if (keys.has(key)) continue
@@ -71,7 +68,7 @@ class JsonNode {
                 node = new JsonNode(path, false)
                 this.nodes.set(key, node)
             }
-            node.update(child, array ? Number(key) : key, label)
+            node.update(child, array ? Number(key) : key, i18n)
             if (node.element !== cursor) this.children.insertBefore(node.element, cursor)
             cursor = node.element.nextElementSibling
         }
@@ -81,7 +78,7 @@ class JsonNode {
 export class JsonTree {
     readonly element = el('div', '', 'json-tree')
     private root?: JsonNode
-    constructor(private label: Label) {
+    constructor(private i18n: ExecutionI18n) {
         this.element.addEventListener('keydown', (event) => this.onKey(event))
     }
     update(value: JsonValue, expanded: boolean) {
@@ -89,8 +86,8 @@ export class JsonTree {
             this.root = new JsonNode('', expanded)
             this.element.append(this.root.element)
         }
-        this.element.setAttribute('aria-label', this.label('JSON tree', 'JSON 树'))
-        this.root.update(value, null, this.label)
+        this.element.setAttribute('aria-label', this.i18n.t('json.tree'))
+        this.root.update(value, null, this.i18n)
     }
     private onKey(event: KeyboardEvent) {
         if (

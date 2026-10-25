@@ -1,10 +1,12 @@
 // Imports and cleanup share a scope lock; repair switches paths only after verifying a fresh copy.
 // Never remove a persisted path until its real parent and UUID directory pass containment checks.
 import { mkdir, lstat, realpath, rm } from 'node:fs/promises'
-import { basename, dirname, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { getConfig } from '@xpert-ai/server-config'
 import type { EntityManager } from 'typeorm'
 import type { AgentPluginScope } from '../agent-plugin-scope'
+import { fileErrorCode } from '../portable-package-files'
 import { copyPortablePackage, portablePackageDigest } from '../agent-plugin-source'
 
 export async function lockPackageScope(manager: EntityManager, scope: AgentPluginScope) {
@@ -14,8 +16,9 @@ export async function lockPackageScope(manager: EntityManager, scope: AgentPlugi
 }
 
 export function packageScopeDirectory(scope: AgentPluginScope) {
+    const { dataPath, agentPluginPath } = getConfig().assetOptions
     return resolve(
-        process.env.XPERT_AGENT_PLUGIN_PATH || 'storage/agent-plugins',
+        agentPluginPath || join(dataPath, 'agent-plugins'),
         scope.tenantId,
         scope.organizationId ?? '_tenant'
     )
@@ -39,7 +42,7 @@ export async function packageIntact(path: string, digest: string, scope: AgentPl
     try {
         return (await portablePackageDigest(path)) === digest
     } catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return false
+        if (fileErrorCode(error) === 'ENOENT') return false
         throw error
     }
 }

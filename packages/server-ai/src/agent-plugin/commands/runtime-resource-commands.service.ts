@@ -13,7 +13,7 @@ import { AssertProjectAssistantAccessCommand } from '../../xpert-project/command
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../../xpert/queries/get-xpert-workflow.query'
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { containedPath } from '../agent-plugin-parser'
-import { portablePackageDigest } from '../agent-plugin-source'
+import { assertAgentPluginStorage, withVerifiedAgentPluginRead } from '../agent-plugin-storage-error'
 import { readRuntimeResourceSkillFile } from '../runtime-resource-skill-file'
 import { parseRuntimeResources } from '../runtime-resource-selection'
 import { resourceSkillsSchema } from './agent-plugin-commands.schema'
@@ -53,8 +53,7 @@ export class RuntimeResourceCommandsService {
             const resolved = await this.installations.reference(ref, workspaceId)
             if (!resolved || resolved.pkg.descriptor.extension?.role === 'assistant') continue
             const { pkg } = resolved
-            if ((await portablePackageDigest(pkg.rootPath)) !== pkg.digest)
-                throw new BadRequestException(t('server-ai:Error.PluginCommandSourceChanged'))
+            await assertAgentPluginStorage(pkg)
             for (const [skillKey, command] of Object.entries(pkg.descriptor.extension?.commands ?? {})) {
                 const skill = pkg.descriptor.skills.find((item) => item.key === skillKey)
                 if (skill)
@@ -95,12 +94,10 @@ export class RuntimeResourceCommandsService {
                 !Object.prototype.hasOwnProperty.call(pkg.descriptor.extension?.commands ?? {}, ref.skillKey)
             )
                 throw new ForbiddenException(t('server-ai:Error.PluginCommandSkillUnavailable'))
-            if ((await portablePackageDigest(pkg.rootPath)) !== pkg.digest)
-                throw new BadRequestException(t('server-ai:Error.PluginCommandSourceChanged'))
-            const file = await containedPath(pkg.rootPath, entry.path)
-            const body = await readRuntimeResourceSkillFile(dirname(file), 'SKILL.md')
-            if ((await portablePackageDigest(pkg.rootPath)) !== pkg.digest)
-                throw new BadRequestException(t('server-ai:Error.PluginCommandSourceChanged'))
+            const body = await withVerifiedAgentPluginRead(pkg, async () => {
+                const file = await containedPath(pkg.rootPath, entry.path)
+                return readRuntimeResourceSkillFile(dirname(file), 'SKILL.md')
+            })
             size += Buffer.byteLength(body)
             if (size > 256 * 1024) throw new BadRequestException(t('server-ai:Error.PluginCommandInstructionsTooLarge'))
             sections.push(`Selected skill: ${pkg.descriptor.name}/${ref.skillKey}\n${body}`)

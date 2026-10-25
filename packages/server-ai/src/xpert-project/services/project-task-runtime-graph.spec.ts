@@ -39,6 +39,10 @@ describe('task timeline execution timestamps', () => {
         )
         const context = { projectId: 'project', actor: { tenantId: 'tenant', organizationId: 'org', userId: 'user' } }
         const running = await service.graph(context)
+        expect(manager.find).toHaveBeenCalledWith(
+            XpertAgentExecution,
+            expect.objectContaining({ select: ['id', 'status', 'createdAt', 'completedAt'], loadEagerRelations: false })
+        )
         expect(running.tasks[0]).toMatchObject({ actualStartAt: '2026-10-07T12:00:00.000Z', actualEndAt: null })
         runtime.status = Status.SUCCESS
         runtime.completedAt = new Date('2026-10-07T14:05:00Z')

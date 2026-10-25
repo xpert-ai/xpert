@@ -1,10 +1,12 @@
+import { randomUUID } from 'node:crypto'
 import { t } from 'i18next'
-import { Injectable, NestMiddleware } from '@nestjs/common'
+import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
 import { NextFunction, Request, Response } from 'express'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 
 @Injectable()
 export class RuntimeDrainMiddleware implements NestMiddleware {
+	private readonly logger = new Logger(RuntimeDrainMiddleware.name)
 	constructor(private readonly lifecycle: RuntimeLifecycleService) {}
 
 	use(request: Request, response: Response, next: NextFunction): void {
@@ -18,6 +20,19 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 		const release = this.lifecycle.trackRequest({ allowUnready: this.isRecoveryRequest(request) })
 		if (!release) {
 			const readiness = this.lifecycle.readiness()
+			const requestId = randomUUID()
+			response.setHeader('X-Request-ID', requestId)
+			this.logger.warn(
+				JSON.stringify({
+					event: 'runtime.request.rejected',
+					requestId,
+					instance: readiness.instanceId,
+					status: 503,
+					method: request.method,
+					readiness: readiness.status,
+					reason: readiness.status === 'draining' ? 'draining' : readiness.admission?.reason
+				})
+			)
 			response.setHeader('Cache-Control', 'no-store')
 			response.setHeader('Retry-After', '5')
 			response.setHeader('Connection', 'close')

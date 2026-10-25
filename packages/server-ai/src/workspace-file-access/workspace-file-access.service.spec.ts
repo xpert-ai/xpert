@@ -61,15 +61,56 @@ describe('WorkspaceFileAccessService', () => {
             }))
         }
         const commands = { execute: jest.fn().mockResolvedValue({}) }
+        const users = { findOne: jest.fn().mockResolvedValue({ id: context.userId, tenantId: context.tenantId }) }
         const service = new WorkspaceFileAccessService(
             cache as never,
             { get: jest.fn(() => 'workspace-file-access-test-secret') } as never,
             viewExtensions as never,
             { resolve: jest.fn() } as never,
-            commands as unknown as CommandBus
+            commands as unknown as CommandBus,
+            users as never
         )
-        return { service, cache, viewExtensions, commands }
+        return { service, cache, viewExtensions, commands, users }
     }
+
+    it('cookie reads reject revoked resource permissions and deleted users after grant issuance', async () => {
+        const { service, viewExtensions, users } = createService()
+        const session = await service.createSession(
+            { hostType: 'agent', hostId: 'assistant-1', viewKey: manifest.key },
+            { headers: {}, secure: false }
+        )
+        const grant = await service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
+        const grantId = new URL(grant.url).pathname.split('/').at(-2)!
+        viewExtensions.resolveViewFileResource.mockRejectedValueOnce(new ForbiddenException())
+        await expect(
+            service.authorizeContent(session.sessionId, grantId, grant.fileName, session.cookie.value)
+        ).rejects.toMatchObject({ status: 403 })
+        users.findOne.mockResolvedValueOnce(null)
+        await expect(
+            service.authorizeContent(session.sessionId, grantId, grant.fileName, session.cookie.value)
+        ).rejects.toMatchObject({ status: 401 })
+    })
+
+    it('rebuilds request context from the verified cookie owner and clears it after the read', async () => {
+        const { service, viewExtensions } = createService()
+        const session = await service.createSession(
+            { hostType: 'agent', hostId: 'assistant-1', viewKey: manifest.key },
+            { headers: {}, secure: false }
+        )
+        const grant = await service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
+        const grantId = new URL(grant.url).pathname.split('/').at(-2)!
+        const resource = await viewExtensions.resolveViewFileResource()
+        jest.restoreAllMocks()
+        viewExtensions.resolveViewFileResource.mockImplementationOnce(async () => {
+            expect(RequestContext.currentUserId()).toBe(context.userId)
+            expect(RequestContext.getOrganizationId()).toBe(context.organizationId)
+            return resource
+        })
+        await expect(
+            service.authorizeContent(session.sessionId, grantId, grant.fileName, session.cookie.value)
+        ).resolves.toBeDefined()
+        expect(RequestContext.currentUserId()).toBeNull()
+    })
 
     describe('delegated runtime session scope', () => {
         const runtimeScope = { conversationId: 'runtime-1', projectId: 'project-1' }

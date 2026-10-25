@@ -162,6 +162,33 @@ describe('ApplicationDetail scope transitions', () => {
     expect(component.preflightMessage()).toBe('XP.Explore.Application.Preflight.SpeechToTextModelRequired')
   })
 
+  it('prefers personal installation and clears setup selections when the target changes', async () => {
+    const personal: PluginApplicationDetail = {
+      ...organizationDetail,
+      application: {
+        ...organizationDetail.application,
+        scope: 'personal',
+        config: { ...organizationDetail.application.config, scope: ['organization', 'personal'] }
+      },
+      status: { appId: 'plugin:app', status: 'not_installed', installationScope: 'personal' }
+    }
+    applications.getDetail.mockImplementation((_plugin, _app, selected) =>
+      of({ ...personal, application: { ...personal.application, scope: selected ?? 'organization' } })
+    )
+    const fixture = await create()
+    fixture.detectChanges()
+    await settle()
+    expect(fixture.componentInstance.application()?.scope).toBe('personal')
+    expect(fixture.componentInstance.applicationInput().installationScope).toBe('personal')
+    fixture.componentInstance.toolsetSelections.set([{ key: 'tools', toolsetId: 'personal-tools' }])
+    fixture.componentInstance.selectInstallationScope('organization')
+    fixture.detectChanges()
+    await settle()
+    expect(fixture.componentInstance.application()?.scope).toBe('organization')
+    expect(fixture.componentInstance.toolsetSelections()).toEqual([])
+    expect(applications.getDetail).toHaveBeenLastCalledWith('plugin', 'app', 'organization')
+  })
+
   it('keeps tenant browsing unchanged when organization selection is cancelled', async () => {
     const fixture = await create()
     scope.choose.mockResolvedValue(false)

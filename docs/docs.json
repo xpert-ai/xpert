@@ -35,7 +35,8 @@
                   "en/architecture/runtime-control",
                   "en/architecture/assistant-template-lifecycle",
                   "en/architecture/file-lifecycle-data-flow",
-                  "en/architecture/file-access-preview-architecture"
+                  "en/architecture/file-access-preview-architecture",
+                  "en/architecture/spaces-content"
                 ]
               },
               {
@@ -63,6 +64,9 @@
                   "en/guides/assistant-templates",
                   "en/guides/assistant-template-authoring",
                   "en/guides/project-application-types",
+                  "en/guides/spaces",
+                  "en/guides/spaces-markdown",
+                  "en/guides/spaces-document-sources",
                   "en/guides/group-chat",
                   "en/guides/project-tasks",
                   "en/guides/group-project-tasks",
@@ -128,7 +132,8 @@
                   "zh-Hans/architecture/runtime-control",
                   "zh-Hans/architecture/assistant-template-lifecycle",
                   "zh-Hans/architecture/file-lifecycle-data-flow",
-                  "zh-Hans/architecture/file-access-preview-architecture"
+                  "zh-Hans/architecture/file-access-preview-architecture",
+                  "zh-Hans/architecture/spaces-content"
                 ]
               },
               {
@@ -156,6 +161,9 @@
                   "zh-Hans/guides/assistant-templates",
                   "zh-Hans/guides/assistant-template-authoring",
                   "zh-Hans/guides/project-application-types",
+                  "zh-Hans/guides/spaces",
+                  "zh-Hans/guides/spaces-markdown",
+                  "zh-Hans/guides/spaces-document-sources",
                   "zh-Hans/guides/group-chat",
                   "zh-Hans/guides/project-tasks",
                   "zh-Hans/guides/group-project-tasks",

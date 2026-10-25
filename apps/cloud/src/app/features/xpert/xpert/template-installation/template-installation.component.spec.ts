@@ -55,6 +55,13 @@ describe('Web template installation flow', () => {
     getTemplate: jest.fn(() => of({ id: 'template', name: 'Template' })),
     getSetup: jest.fn(() => of(setup))
   }
+  const workspaceResult = {
+    items: [
+      { id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } },
+      { id: 'readonly', name: 'Read only', capabilities: { canWrite: false } }
+    ]
+  }
+  const workspaces = { getAllMy: jest.fn(() => of(workspaceResult)) }
   const catalog = {
     getCopilotModels: jest.fn(() =>
       of([
@@ -136,7 +143,9 @@ describe('Web template installation flow', () => {
     transport.get.mockImplementation(async () => receipt)
     xperts.getById.mockImplementation(() => of({ id: 'assistant' }))
     organization.next('org')
+    workspaces.getAllMy.mockImplementation(() => of(workspaceResult))
     templates.getSetup.mockImplementation(() => of(setup))
+    templates.getTemplate.mockImplementation(() => of({ id: 'template', name: 'Template' }))
     await TestBed.configureTestingModule({
       imports: [DialogModule, TemplateInstallationComponent, TranslateModule.forRoot()],
       providers: [
@@ -146,18 +155,7 @@ describe('Web template installation flow', () => {
         },
         { provide: TemplateInstallationService, useValue: transport },
         { provide: XpertTemplateService, useValue: templates },
-        {
-          provide: XpertWorkspaceService,
-          useValue: {
-            getAllMy: () =>
-              of({
-                items: [
-                  { id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } },
-                  { id: 'readonly', capabilities: { canWrite: false } }
-                ]
-              })
-          }
-        },
+        { provide: XpertWorkspaceService, useValue: workspaces },
         { provide: XpertAPIService, useValue: xperts },
         { provide: CopilotServerService, useValue: primary },
         { provide: CatalogService, useValue: catalog },
@@ -186,6 +184,67 @@ describe('Web template installation flow', () => {
     fixture.destroy()
     TestBed.inject(OverlayContainer).getContainerElement().replaceChildren()
     localStorage.clear()
+  })
+  it('preserves editable workspaces when the package on this replica is unavailable', async () => {
+    templates.getTemplate.mockImplementation(() => throwError(() => new Error('Plugin files unavailable')))
+    templates.getSetup.mockClear()
+    organization.next('unavailable-package-org')
+    await settle()
+    const component = fixture.componentInstance
+    expect(component.workspaces().map((workspace) => workspace.id)).toEqual(['workspace'])
+    expect(component.error()).toBe('Plugin files unavailable')
+    expect(component.canStart()).toBeFalsy()
+    expect(button('XP.Installation.Install').disabled).toBe(true)
+    expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('Plugin files unavailable')
+    expect(templates.getSetup).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('select').textContent).toContain('Workspace')
+  })
+  it('retries the failed template without dropping workspace selection or starting installation', async () => {
+    templates.getTemplate.mockReturnValueOnce(throwError(() => new Error('Plugin files unavailable')))
+    fixture.componentRef.setInput('templateId', 'recoverable')
+    await settle()
+    const component = fixture.componentInstance
+    const workspaceCalls = workspaces.getAllMy.mock.calls.length
+    expect(component.canStart()).toBeFalsy()
+    component.refreshSettings()
+    await settle()
+    expect(component.error()).toBe('')
+    expect(component.workspaceId()).toBe('workspace')
+    expect(workspaces.getAllMy).toHaveBeenCalledTimes(workspaceCalls)
+    expect(component.canStart()).toBe(true)
+    expect(button('XP.Installation.Install').disabled).toBe(false)
+    expect(transport.create).not.toHaveBeenCalled()
+  })
+  it('keeps a successful template when workspaces fail and retries only the failed request', async () => {
+    workspaces.getAllMy.mockReturnValueOnce(throwError(() => new Error('Workspace request failed')))
+    organization.next('other')
+    await settle()
+    const component = fixture.componentInstance
+    const templateCalls = templates.getTemplate.mock.calls.length
+    expect(component.template()?.name).toBe('Template')
+    expect(component.error()).toBe('Workspace request failed')
+    expect(component.canStart()).toBeFalsy()
+    component.refreshSettings()
+    await settle()
+    expect(templates.getTemplate).toHaveBeenCalledTimes(templateCalls)
+    expect(component.canStart()).toBe(true)
+  })
+  it('shows available workspaces during a pending template and ignores a late error after scope changes', async () => {
+    const pending = new Subject<{ id: string; name: string }>()
+    templates.getTemplate.mockReturnValueOnce(pending)
+    fixture.componentRef.setInput('templateId', 'pending')
+    await settle()
+    expect(fixture.componentInstance.workspaces()).toHaveLength(1)
+    expect(fixture.componentInstance.canStart()).toBeFalsy()
+    const calls = templates.getTemplate.mock.calls.length
+    fixture.componentInstance.refreshSettings()
+    expect(templates.getTemplate).toHaveBeenCalledTimes(calls)
+    organization.next('new-org')
+    await settle()
+    pending.error(new Error('old scope error'))
+    await settle()
+    expect(fixture.componentInstance.error()).toBe('')
+    expect(fixture.componentInstance.canStart()).toBe(true)
   })
   it('accepts an authorized compatible model without requiring an organization default, and rejects stale model selection', () => {
     const component = fixture.componentInstance
@@ -603,7 +662,9 @@ describe('Web template installation flow', () => {
     expect(component.openingError()).toBe('')
     xperts.getById.mockReturnValueOnce(throwError(() => new Error('open failed')))
     await component.open(component.state().operation)
-    component.error.set('setup failed')
+    templates.getSetup.mockReturnValueOnce(throwError(() => new Error('setup failed')))
+    component.revision.update((value) => value + 1)
+    await settle()
     component.newInstance()
     expect(component.openingError()).toBe('')
     expect(component.error()).toBe('setup failed')

@@ -85,7 +85,12 @@ function fixture(provider = 'xpert', reference = callerId) {
             throw new Error('Unexpected query')
         })
     }
-    const projects = { assertEdit: jest.fn(), assertManage: jest.fn(), listReadable: jest.fn() }
+    const projects = {
+        assertAssistant: jest.fn(),
+        assertEdit: jest.fn(),
+        assertManage: jest.fn(),
+        listReadable: jest.fn()
+    }
     const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
     const native = new NativeAgentInvocationReader(queries as unknown as QueryBus, capabilities)
     const external = { inspect: jest.fn().mockResolvedValue(invocation), cancel: jest.fn(), respond: jest.fn() }

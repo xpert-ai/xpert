@@ -9,9 +9,9 @@ import { instanceToPlain } from 'class-transformer'
 import { DataSource, EntityManager, FindOneOptions, In, Repository } from 'typeorm'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
-import { ThreadRunControlService } from './thread-run-control.service'
+import { ThreadRunControlService, threadGraphRevision } from './thread-run-control.service'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
-import { XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
+import { TXpertGraph, XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
 
 describe('ThreadRunControlService', () => {
     function setup() {
@@ -49,6 +49,36 @@ describe('ThreadRunControlService', () => {
     }
 
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
+
+    it.each(['position', 'size', 'hash'] as const)(
+        'resumes the saved checkpoint after a %s-only publication',
+        async (field) => {
+            const { thread, service } = setup()
+            const graph: TXpertGraph = {
+                nodes: [
+                    {
+                        key: 'agent',
+                        type: 'agent',
+                        position: { x: 0, y: 0 },
+                        entity: { key: 'agent', prompt: 'same task' }
+                    }
+                ],
+                connections: []
+            }
+            thread.runControl.graphRevision = threadGraphRevision(graph)
+            const pause = await service.requestPause('thread', 'run')
+            const reference = { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' }
+            await service.stageCheckpoint('thread', 'run', reference)
+            await service.finish('thread', 'run', 'interrupted')
+            if (field === 'position') graph.nodes[0].position = { x: 300, y: 200 }
+            if (field === 'size') graph.nodes[0].size = { width: 320, height: 180 }
+            if (field === 'hash') graph.nodes[0].hash = 'new-layout-cache'
+
+            await expect(
+                service.claimResume('thread', 'run', pause.pauseId, threadGraphRevision(graph))
+            ).resolves.toEqual(reference)
+        }
+    )
 
     it.each(['', 'agent:child'])('resumes using only the checkpoint ID in namespace "%s"', async (checkpointNs) => {
         const { thread, service, checkpointRepository, threadRepository } = setup()
@@ -224,6 +254,8 @@ describe('ThreadRunControlService', () => {
     it('recovers an expired process without falsely confirming a staged pause or replaying work', async () => {
         const { thread, service, cancellations, manager } = setup()
         await service.start('thread', 'run')
+        expect(service.displaySnapshotOwner('thread', 'run')).toEqual(expect.any(String))
+        expect(service.displaySnapshotOwner('thread', 'other-run')).toBeUndefined()
         await service.requestPause('thread', 'run')
         await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
         thread.metadata = {
@@ -235,6 +267,7 @@ describe('ThreadRunControlService', () => {
             }
         }
         expect(await service.recoverExpiredRun('thread')).toBe(true)
+        expect(service.displaySnapshotOwner('thread', 'run')).toBeUndefined()
         expect(manager.update).toHaveBeenCalledWith(
             XpertAgentExecution,
             expect.objectContaining({ id: 'run', status: In([ExecutionStatus.RUNNING, ExecutionStatus.PENDING]) }),

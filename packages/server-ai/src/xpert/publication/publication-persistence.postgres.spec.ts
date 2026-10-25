@@ -27,6 +27,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { XpertPublicationPersistence } from './publication-persistence'
 import { XpertPublishHandler } from '../commands/handlers/publish.handler'
 import { XpertPublishCommand } from '../commands/publish.command'
+import { threadGraphRevision, legacyThreadGraphRevision } from '../../chat-conversation/thread-graph-revision'
 
 // Only point this at a disposable local test database; each run owns an isolated schema.
 const databaseUrl = process.env.XPERT_PUBLICATION_TEST_DATABASE_URL
@@ -236,6 +237,62 @@ postgres('publication atomicity on PostgreSQL', () => {
             )
         }
     }
+
+    it.each([false, true])(
+        'preserves recovery compatibility after a layout-only PostgreSQL publication (newVersion=%s)',
+        async (newVersion) => {
+            const seed = await seedPublication('agent-model')
+            const { handler } = publisher()
+            await handler.execute(new XpertPublishCommand(seed.id, false, undefined, 'initial'))
+            const before = await load(seed.id)
+            const revision = threadGraphRevision(before.graph, undefined, before)
+            const draft: TXpertTeamDraft = {
+                team: { copilotModel: before.copilotModel },
+                ...structuredClone(before.graph)
+            }
+            draft.nodes[0].position = { x: 400, y: 300 }
+            draft.nodes[0].size = { width: 320, height: 180 }
+            draft.nodes[0].hash = 'layout-cache'
+            await database.getRepository(Xpert).update(seed.id, { draft })
+
+            await handler.execute(new XpertPublishCommand(seed.id, newVersion, undefined, 'layout only'))
+
+            const after = await load(seed.id)
+            expect(after.graph.nodes[0].position).toEqual({ x: 400, y: 300 })
+            expect(after.agent.updatedAt.getTime()).toBeGreaterThan(before.agent.updatedAt.getTime())
+            expect(legacyThreadGraphRevision(after.graph)).not.toBe(legacyThreadGraphRevision(before.graph))
+            expect(threadGraphRevision(after.graph, undefined, after)).toBe(revision)
+        }
+    )
+
+    it.each(['model', 'tool-config'] as const)(
+        'rejects changed Assistant-level %s after publication',
+        async (change) => {
+            const seed = await seedPublication(null)
+            const { handler } = publisher()
+            await handler.execute(new XpertPublishCommand(seed.id, false, undefined, 'initial'))
+            const before = await load(seed.id)
+            const draft: TXpertTeamDraft = {
+                team: {
+                    copilotModel: before.copilotModel,
+                    agentConfig: before.agentConfig
+                },
+                ...structuredClone(before.graph)
+            }
+            if (change === 'model')
+                draft.team.copilotModel = { ...before.copilotModel, model: 'changed-inherited-model' }
+            if (change === 'tool-config')
+                draft.team.agentConfig = { ...before.agentConfig, tools: { approved_tool: { timeout: 1000 } } }
+            await database.getRepository(Xpert).update(seed.id, { draft })
+            await handler.execute(new XpertPublishCommand(seed.id, false, undefined, 'execution change'))
+            const after = await load(seed.id)
+            // The node graph alone misses inherited settings; the complete execution fingerprint must reject them.
+            expect(threadGraphRevision(after.graph)).toBe(threadGraphRevision(before.graph))
+            expect(threadGraphRevision(after.graph, undefined, after)).not.toBe(
+                threadGraphRevision(before.graph, undefined, before)
+            )
+        }
+    )
 
     it.each([null, 'agent-model'])(
         'publishes a new version without invalidating its own Agent snapshot (%s)',

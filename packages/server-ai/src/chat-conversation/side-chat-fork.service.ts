@@ -37,7 +37,8 @@ export class SideChatForkService {
         const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
             new GetXpertWorkflowQuery(source.conversation.xpertId)
         )
-        if (threadGraphRevision(workflow.graph) !== graphRevision) throw branchConflict('graph_changed')
+        if (threadGraphRevision(workflow.graph, graphRevision, workflow.agent?.team) !== graphRevision)
+            throw branchConflict('graph_changed')
 
         return this.dataSource.transaction(async (manager) => {
             const threads = manager.getRepository(ChatConversationThread)

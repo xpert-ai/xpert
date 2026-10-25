@@ -689,7 +689,8 @@
           "Configuring": "待配置"
         },
         "Action": {
-          "ContinueConfiguration": "继续配置"
+          "ContinueConfiguration": "继续配置",
+          "ApplyToPersonal": "为自己启用"
         },
         "Composition": {
           "primary": "入口助手",
@@ -697,7 +698,9 @@
           "standalone": "独立助手",
           "workspace": "工作空间",
           "knowledgebase": "知识库"
-        }
+        },
+        "InstallationTarget": "安装范围",
+        "PersonalDataScope": "此安装及其数据仅属于你；分享需另行授权。"
       }
     },
     "Referral": {
@@ -4853,7 +4856,12 @@
       "WorkbenchDefaultViewTip": "选择工作台打开时默认选中的扩展视图。如果视图不可用，则使用第一个视图。",
       "WorkbenchInitialLayout": "首次聊天布局",
       "WorkbenchMaximized": "工作台最大化",
-      "WorkbenchViewsLoadFailed": "无法加载扩展视图。"
+      "WorkbenchViewsLoadFailed": "无法加载扩展视图。",
+      "QuickCapabilities": {
+        "Title": "Assistant 能力",
+        "Unavailable": "所选能力已不可用，请重新加载后选择。",
+        "ModelRequired": "请选择有权使用且支持所选能力的模型。"
+      }
     },
     "Workflow": {
       "AgentWorkflow": "智能体工作流",
@@ -5564,6 +5572,42 @@
       "DirectQrOffline": "连接已启用，但当前离线，可按需重新连接。",
       "DirectQrSaveHint": "扫码连接后立即生效；其他触发器更改需发布助手后生效。",
       "UnsavedChanges": "有未保存的更改"
+    },
+    "ContentReview": {
+      "Locate": "定位到正文",
+      "Title": "Assistant · 文档审阅",
+      "Refresh": "刷新",
+      "Close": "关闭审阅",
+      "ExternalTitle": "项目文件在外部发生了修改",
+      "ExternalHelp": "两份内容都会保留为可恢复文件。选择本次采用的内容后，重新打开编辑器。",
+      "CollaborativeContent": "当前协作内容",
+      "ExternalContent": "外部文件内容",
+      "UseExternal": "采用外部文件",
+      "KeepDocument": "保留协作内容",
+      "Proposals": "修改提案",
+      "Before": "原文",
+      "After": "建议",
+      "Accept": "接受修改",
+      "Reject": "拒绝",
+      "Stale": "基线已变化，请让 Assistant 重新读取并提出建议。",
+      "NoProposals": "暂无提案。向 Assistant 描述需要调整的内容。",
+      "Comments": "评论",
+      "BlockComment": "段落评论",
+      "DocumentComment": "文档评论",
+      "Reopen": "重新打开",
+      "Resolve": "标记解决",
+      "NoComments": "暂无评论",
+      "NewComment": "新增评论",
+      "AddComment": "添加评论",
+      "Versions": "版本与恢复",
+      "SelectVersion": "选择历史版本",
+      "ChooseVersion": "选择一个版本",
+      "Restore": "将此版本恢复为新版本",
+      "Ask": "让 Assistant 协助",
+      "Instruction": "例如：精简第二节，保留关键数据",
+      "Send": "发送给 Assistant",
+      "Loading": "正在读取文档与审阅记录…",
+      "BasedOn": "基于版本"
     }
   },
   "AUTH": {

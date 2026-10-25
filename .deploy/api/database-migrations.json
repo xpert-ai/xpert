@@ -17,6 +17,7 @@
     "chat_conversation",
     "chat_conversation_thread",
     "chat_message",
+    "chat_run_display_snapshot",
     "cli_session",
     "copilot_knowledge_collection",
     "copilot_knowledge_vector",
@@ -73,6 +74,8 @@
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",
     "ai/rag-vstore/migrations/checks/20261020120000-vector-store-tables.sql",
-    "ai/knowledgebase/migrations/checks/20261020120100-knowledge-filter-indexes.sql"
+    "ai/knowledgebase/migrations/checks/20261020120100-knowledge-filter-indexes.sql",
+    "ai/shared/stream/display-snapshot/migrations/checks/20261025010000-run-display-snapshot.sql",
+    "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql"
   ]
 }

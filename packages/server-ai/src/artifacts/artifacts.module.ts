@@ -14,6 +14,9 @@ import {
 } from './artifacts.controller'
 import { ArtifactsService } from './artifacts.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
+import { ContentResourceModule } from '../content-resource/content-resource.module'
+import { ArtifactContentAccess } from './artifact-content-access'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 import { DiscoveryModule } from '@nestjs/core'
 import { ArtifactPresentationRegistry } from '@xpert-ai/plugin-sdk'
 import { ArtifactPresentationService } from './presentation/artifact-presentation.service'
@@ -23,6 +26,8 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
     imports: [
         DiscoveryModule,
         RuntimeCapabilityModule,
+        ContentResourceModule,
+        XpertProjectAccessModule,
         WorkspaceFilesRuntimeModule,
         TypeOrmModule.forFeature([Artifact, ArtifactDraft, ArtifactVersion, ArtifactLink, ArtifactAccessLog]),
         UserModule,
@@ -36,7 +41,13 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         ArtifactsManagementController,
         ArtifactPresentationController
     ],
-    providers: [ArtifactsService, ArtifactDraftsService, ArtifactPresentationRegistry, ArtifactPresentationService],
+    providers: [
+        ArtifactsService,
+        ArtifactContentAccess,
+        ArtifactDraftsService,
+        ArtifactPresentationRegistry,
+        ArtifactPresentationService
+    ],
     exports: [ArtifactsService]
 })
 export class ArtifactsModule {}

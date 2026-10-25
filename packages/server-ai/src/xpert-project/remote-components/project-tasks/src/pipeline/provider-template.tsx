@@ -1,6 +1,16 @@
 import { useState } from 'react'
-import { Info, X } from 'lucide-react'
-import { Button, Dialog, DialogContent, DialogTitle, DialogDescription } from '@xpert-ai/shadcn-ui'
+import { Info } from 'lucide-react'
+import {
+    Button,
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogFooter,
+    DialogClose,
+    DialogTitle,
+    DialogDescription
+} from '@xpert-ai/shadcn-ui'
 import type { PipelineGraph } from './bridge'
 import { pipelineConfigurationTexts } from './configuration-i18n'
 import { openProjectWorkspace } from './navigation'
@@ -42,56 +52,48 @@ export function ProviderTemplateDialog({
         }
     }
     return (
-        <>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                    setError(false)
-                    setOpen(true)
-                }}
-            >
-                <Info />
-                {t.templateInfo}
-            </Button>
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent
-                    className="flex max-h-[85dvh] min-w-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
-                    showCloseButton={false}
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                        setError(false)
+                        setOpen(true)
+                    }}
                 >
-                    <div className="flex shrink-0 items-start justify-between gap-4 border-b p-4">
-                        <div className="min-w-0 space-y-1">
-                            <DialogTitle>{t.templateInfo}</DialogTitle>
-                            <DialogDescription>{t.providerDescription}</DialogDescription>
-                        </div>
-                        <Button variant="ghost" size="icon" aria-label={t.close} onClick={() => setOpen(false)}>
-                            <X />
-                        </Button>
+                    <Info />
+                    {t.templateInfo}
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="flex max-h-[85dvh] min-w-0 flex-col overflow-hidden sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>{t.templateInfo}</DialogTitle>
+                    <DialogDescription>{t.providerDescription}</DialogDescription>
+                </DialogHeader>
+                <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+                    <div className="min-w-0 space-y-4">
+                        <ProviderTemplate
+                            pipeline={pipeline}
+                            locale={locale}
+                            canOpen={!!projectId}
+                            busy={busy}
+                            onOpen={() => void openApplication()}
+                        />
+                        {error && (
+                            <p role="alert" className="text-sm text-destructive">
+                                {t.openingApplicationFailed}
+                            </p>
+                        )}
                     </div>
-                    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-                        <div className="min-w-0 space-y-4 p-4">
-                            <ProviderTemplate
-                                pipeline={pipeline}
-                                locale={locale}
-                                canOpen={!!projectId}
-                                busy={busy}
-                                onOpen={() => void openApplication()}
-                            />
-                            {error && (
-                                <p role="alert" className="text-sm text-destructive">
-                                    {t.openingApplicationFailed}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex shrink-0 justify-end border-t bg-muted/30 p-4">
-                        <Button variant="outline" onClick={() => setOpen(false)}>
-                            {t.close}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">{t.close}</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }
 

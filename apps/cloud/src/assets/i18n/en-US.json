@@ -1026,10 +1026,11 @@
           "Initializing": "Initializing…",
           "ApplyToOrganization": "Apply to current organization",
           "RepairAndReinitialize": "Repair and reinitialize",
-          "ContinueConfiguration": "Continue setup"
+          "ContinueConfiguration": "Continue setup",
+          "ApplyToPersonal": "Install for me"
         },
         "Preflight": {
-          "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
+          "OrganizationRequired": "Select an organization before installing this application.",
           "RoleRequired": "You can view the application details, but an organization administrator must initialize it.",
           "PrimaryModelRequired": "The current organization has no available primary language model. Configure a model first.",
           "EmbeddingModelRequired": "The current organization has no available embedding model. Configure a model first.",
@@ -1056,7 +1057,9 @@
           "standalone": "Standalone assistant",
           "workspace": "Workspace",
           "knowledgebase": "Knowledge base"
-        }
+        },
+        "InstallationTarget": "Install for",
+        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default."
       }
     },
     "AgentEvolution": {
@@ -4414,7 +4417,12 @@
       "WorkbenchDefaultViewTip": "Select the extension view to open by default. If it is unavailable, the first available view is used.",
       "WorkbenchInitialLayout": "Initial chat layout",
       "WorkbenchMaximized": "Maximize workbench",
-      "WorkbenchViewsLoadFailed": "Unable to load extension views."
+      "WorkbenchViewsLoadFailed": "Unable to load extension views.",
+      "QuickCapabilities": {
+        "Title": "Assistant capabilities",
+        "Unavailable": "A selected capability is no longer available. Reload and choose again.",
+        "ModelRequired": "Choose an authorized model that supports the selected capabilities."
+      }
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
@@ -5774,6 +5782,42 @@
       "CycleAdjustmentUnavailable": "Cycle points can only be adjusted for an active membership with a finite allowance.",
       "Close": "Close",
       "Organizations": "Organizations"
+    },
+    "ContentReview": {
+      "Locate": "Locate in document",
+      "Title": "Assistant · Document review",
+      "Refresh": "Refresh",
+      "Close": "Close review",
+      "ExternalTitle": "The project file changed outside the editor",
+      "ExternalHelp": "Both copies are preserved. Choose which content to use, then reopen the editor.",
+      "CollaborativeContent": "Collaborative content",
+      "ExternalContent": "External file content",
+      "UseExternal": "Use external file",
+      "KeepDocument": "Keep collaborative content",
+      "Proposals": "Proposals",
+      "Before": "Before",
+      "After": "Suggested change",
+      "Accept": "Accept change",
+      "Reject": "Reject",
+      "Stale": "The baseline changed. Ask the Assistant to read it again and propose a new change.",
+      "NoProposals": "No proposals. Tell the Assistant what to change.",
+      "Comments": "Comments",
+      "BlockComment": "Paragraph comment",
+      "DocumentComment": "Document comment",
+      "Reopen": "Reopen",
+      "Resolve": "Resolve",
+      "NoComments": "No comments",
+      "NewComment": "New comment",
+      "AddComment": "Add comment",
+      "Versions": "Versions and restore",
+      "SelectVersion": "Select a version",
+      "ChooseVersion": "Choose a version",
+      "Restore": "Restore as a new version",
+      "Ask": "Ask the Assistant",
+      "Instruction": "For example: shorten section two and keep the key data",
+      "Send": "Send to Assistant",
+      "Loading": "Loading document and review…",
+      "BasedOn": "Based on version"
     }
   },
   "STORY_DESIGNER": {

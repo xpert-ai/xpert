@@ -15,7 +15,7 @@ The independent execution viewer uses native browser DOM and the base stylesheet
 
 The selector offers **Host theme, Paper, Charcoal and Midnight** (跟随宿主、纸白、炭黑、深蓝). It defaults to Host theme. Explicit palettes change transcript-local CSS variables and leave host tokens untouched. The header and its popup continue to follow the host theme. The choice survives data refresh and same-instance context changes; it is local to the open view and is not a new account preference.
 
-Root size uses `--xui-density-root-font-size`, falling back to **14px**. `html:root` deliberately overrides WebTUI's base root rule. The WebTUI surface uses Tailwind `text-sm` (`--text-sm`, default `0.875rem`): a 14px root produces 12.25px transcript text, and a 15px root produces 13.125px. Auxiliary labels scale relative to that text size. The header uses the host `--xui-font-family`; the transcript uses `--xui-font-family-mono` with system monospace and Chinese fallbacks. Labels follow the host locale. Shared shadcn styles and only WebTUI base CSS are imported; no OpenTUI, xterm.js or PTY is added.
+Root size follows the shared shadcn density bridge and the host `--xui-density-root-font-size` token. The WebTUI surface uses Tailwind `text-sm` (`--text-sm`, default `0.875rem`): a 14px root produces 12.25px transcript text, and a 15px root produces 13.125px. Auxiliary labels scale relative to that text size. The header uses the host `--xui-font-family`; the transcript uses `--xui-font-family-mono` with system monospace and Chinese fallbacks. Labels follow the normalized host locale. Shared shadcn styles and only WebTUI base CSS are imported; no OpenTUI, xterm.js or PTY is added.
 
 `header.tsx` mounts one React root, updating props without remounting the Select or its open popup. The self-contained module bundle resolves React and React DOM to the same workspace versions, avoiding duplicate peer runtimes. The transcript stays outside this root so its incremental DOM updates remain independent.
 
@@ -41,7 +41,8 @@ From the repository root:
 
 ```sh
 node packages/server-ai/src/agent-invocation/remote-components/coding-execution/build.mjs
-node --test packages/server-ai/src/agent-invocation/remote-components/coding-execution/view.test.mjs
+node --test packages/server-ai/src/agent-invocation/remote-components/coding-execution/view.test.mjs packages/server-ai/src/agent-invocation/remote-components/coding-execution/test/i18n.test.mjs
+node --test tools/testing/coding-execution-i18n.e2e.mjs
 corepack pnpm exec tsc --noEmit -p packages/server-ai/src/agent-invocation/remote-components/coding-execution/tsconfig.json
 corepack pnpm remote-view:preview --config packages/server-ai/src/agent-invocation/remote-components/coding-execution/preview.config.mjs
 ```
@@ -49,3 +50,26 @@ corepack pnpm remote-view:preview --config packages/server-ai/src/agent-invocati
 Preview at `http://127.0.0.1:4412/` uses synthetic, non-sensitive Activity. File download deliberately requires the installed platform. Regression tests exercise the built bundle and production message bridge. Visual review and real Web/Desktop acceptance are recorded in [design-qa.md](design-qa.md) and [the implementation plan](../../../../../../docs/plans/2026-10-07-coding-cli-execution-view-implementation.md#11-webtui-过程流与主题2026-10-07).
 
 The current CSS optimizer emits two warnings for the standard `::highlight()` pseudo-element and preserves those rules. Search highlighting was verified in Chromium and Electron.
+
+## Internationalization
+
+`src/i18n/core.ts` exposes the typed i18next facade; components use semantic keys
+from the English catalog. English, Simplified Chinese and Traditional Chinese
+catalogs share keys and interpolation parameters, with plural handling and Intl
+date/number formatting. No runtime downloads or browser language detection are
+needed. Host `init.locale` is normalized once: underscore aliases are accepted,
+`zh-CN`/`zh-SG` select `zh-Hans`, `zh-TW`/`zh-HK`/`zh-MO` select `zh-Hant`, and
+unsupported or malformed locales fall back to `en-US`. Explicit Chinese scripts
+take precedence over regions.
+
+Locale changes refresh labels, accessible names, notifications, error states,
+JSON counts and metadata without refetching or rebuilding transcript nodes.
+Selected rows defer updates until selection clears. Commands, logs, raw JSON,
+file names and provider/model output retain their original content. Unknown
+execution states use a translated fallback instead of leaking a raw enum label.
+
+Set `CODING_EXECUTION_PREVIEW_LOCALE=en-US`, `zh-Hans` or `zh-Hant` when starting
+the fixture preview. Tests cover catalog and parameter parity, typed translation
+calls, aliases/fallbacks, plural rules, live locale changes, selection/focus/scroll
+preservation and all three languages at desktop and narrow widths. Browser
+screenshots go to `CODING_I18N_E2E_OUTPUT` or an OS temporary directory.

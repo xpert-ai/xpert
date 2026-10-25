@@ -227,6 +227,18 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     expect(JSON.stringify((navigate.mock.calls[0]?.[1] as any)?.queryParams)).not.toContain('power factor')
   })
 
+  it('does not report a cancelled View navigation as opened', async () => {
+    const registry = new ViewClientCommandRegistry()
+    registerWorkbenchNavigationOpenCommand(registry, { openWorkbenchView: async () => false })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: WORKBENCH_EXTENSION_VIEW_TARGET, viewKey: 'bid.studio' },
+        context
+      )
+    ).toEqual({ success: false, code: 'navigation_cancelled' })
+  })
+
   it('opens a fixed workbench view with a selected business record', async () => {
     const registry = new ViewClientCommandRegistry()
     const openWorkbenchView = jest.fn(async () => true)

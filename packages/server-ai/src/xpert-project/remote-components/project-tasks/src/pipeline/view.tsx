@@ -1,3 +1,4 @@
+import { useViewVisible } from '../view-visibility'
 import { PipelineNodeDialog } from './node-dialog'
 import { PipelineHeading } from './pipeline-heading'
 import { usePipelineContext } from './context'
@@ -42,6 +43,7 @@ export function PipelineView({
     initialFocus?: PipelineFocus
     onTask: (task: Node, graph: Graph) => void
 }) {
+    const visible = useViewVisible()
     const t = pipelineTexts(locale)
     const [items, setItems] = useState<PipelineSummary[]>([]),
         [next, setNext] = useState<string | null>(null)
@@ -136,6 +138,7 @@ export function PipelineView({
         [instanceId, roundId]
     )
     useEffect(() => {
+        if (!visible) return
         generation.current++
         void load()
         const tick = window.setInterval(() => {
@@ -146,7 +149,7 @@ export function PipelineView({
             generation.current++
             window.clearInterval(tick)
         }
-    }, [load])
+    }, [load, visible])
     const more = async () => {
         if (!next) return
         const revision = generation.current
@@ -350,7 +353,8 @@ export function PipelineView({
                                 'application',
                                 t.actionFailed,
                                 undefined,
-                                instanceId || undefined
+                                instanceId || undefined,
+                                graph?.roundId || undefined
                             ).catch(() => setError(t.actionFailed))
                         }}
                     >

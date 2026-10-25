@@ -1053,7 +1053,8 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: [...completedTasks, { id: 'task', name: 'next', interrupts: [{ value: { type: 'thread_pause' } }] }]
         })
         const control = {
-            recordGraph: jest.fn(),
+            requiresInputAdmission: jest.fn().mockResolvedValue(false),
+            recordGraph: jest.fn().mockResolvedValue('a'.repeat(64)),
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()
         }
@@ -1089,7 +1090,10 @@ describe('XpertAgentInvokeHandler', () => {
         )
         await consumeStream(stream).catch(() => undefined)
         expect(graph.streamEvents.mock.calls[0][0]).toBeNull()
-        expect(graph.streamEvents.mock.calls[0][1].configurable).toMatchObject({ xpertResumeCheckpoint: checkpoint })
+        expect(graph.streamEvents.mock.calls[0][1].configurable).toMatchObject({
+            xpertResumeCheckpoint: checkpoint,
+            xpertGraphRevision: 'a'.repeat(64)
+        })
         expect(graph.streamEvents.mock.calls[0][1].configurable.checkpoint_id).toBeUndefined()
         expect(control.stageCheckpoint).toHaveBeenCalledWith('thread-1', 'execution-1', {
             threadId: 'thread-1',
@@ -1108,6 +1112,7 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: []
         })
         const control = {
+            requiresInputAdmission: jest.fn().mockResolvedValue(false),
             recordGraph: jest.fn(),
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()

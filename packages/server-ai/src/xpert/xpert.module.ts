@@ -1,3 +1,4 @@
+import { AssistantMiddlewareAccessService } from './middleware-access/assistant-middleware-access.service'
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
 import { PublishedAgentContextHandler } from './published-agent/published-agent-context.query'
 import { AssistantSharingModule } from './sharing/sharing.module'
@@ -85,6 +86,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
 import { XpertTriggerConnectionController } from './trigger-connection.controller'
 import { XpertTriggerConnectionService } from './trigger-connection.service'
+import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime.module'
 
 @Module({
     imports: [
@@ -118,6 +120,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         ModelAccessModule,
         WorkspaceFilesRuntimeModule,
         AgentMiddlewareRuntimeModule,
+        ApplicationRuntimeModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
@@ -175,6 +178,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         AssistantUserPreferenceService,
         AssistantModelSelectionService,
         AssistantFileAccessService,
+        AssistantMiddlewareAccessService,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers

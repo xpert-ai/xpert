@@ -3,6 +3,7 @@ import { t } from 'i18next'
 import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
 import { XpertProjectAccessService } from './project-access.service'
 import { XpertProjectContentService } from './project-content.service'
+import { ContentFileOwnershipService } from '../../shared/volume/content-file-ownership.service'
 
 @Injectable()
 export class XpertProjectWorkspaceFilesService {
@@ -10,7 +11,8 @@ export class XpertProjectWorkspaceFilesService {
         private readonly accessService: XpertProjectAccessService,
         private readonly contentService: XpertProjectContentService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: Pick<VolumeClient, 'resolve'>
+        private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
+        private readonly contentOwnership: ContentFileOwnershipService
     ) {}
 
     async list(projectId: string, filePath?: string, deepth?: number) {
@@ -94,7 +96,13 @@ export class XpertProjectWorkspaceFilesService {
             catalog: 'projects',
             projectId
         })
-        return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+        return new VolumeSubtreeClient(volume, {
+            allowRootWorkspace: true,
+            beforeMutation: async (filePath, recursive) => {
+                await this.accessService.assertCanEdit(projectId)
+                await this.contentOwnership.assertUnmanaged(tenantId, projectId, filePath, recursive)
+            }
+        })
     }
 }
 

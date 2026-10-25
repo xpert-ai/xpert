@@ -247,6 +247,7 @@ describe('assistant chatkit runtime helpers', () => {
     })
     flushAngularEffects()
 
+    expect(createChatKitMock.mock.calls[0][0].pet).not.toHaveProperty('assetsBaseUrl')
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
@@ -444,6 +445,10 @@ describe('assistant chatkit runtime helpers', () => {
     const createChatKitMock = createChatKit as jest.Mock
     createChatKitMock.mockReturnValue({ setOptions })
     const initialThread = signal<string | null>('thread-1')
+    const workbench = signal({
+      enabled: true,
+      navigation: { projectId: 'project-1', view: { viewKey: 'bid.studio', selectionId: 'bid-a' } }
+    })
 
     TestBed.configureTestingModule({
       providers: [
@@ -476,6 +481,7 @@ describe('assistant chatkit runtime helpers', () => {
         assistantId: signal('assistant-1'),
         frameUrl: signal('/chatkit'),
         initialThread,
+        workbench,
         titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
@@ -489,6 +495,14 @@ describe('assistant chatkit runtime helpers', () => {
 
     expect(createChatKitMock).toHaveBeenCalledTimes(1)
     expect(setOptions).not.toHaveBeenCalled()
+    workbench.set({
+      enabled: true,
+      navigation: { projectId: 'project-1', view: { viewKey: 'bid.studio', selectionId: 'bid-b' } }
+    })
+    flushAngularEffects()
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({ workbench: workbench() }))
+    expect(setOptions.mock.calls[0][0].sessionKey).toBe(createChatKitMock.mock.calls[0][0].sessionKey)
   })
 
   it('passes an absolute same-origin API URL to ChatKit', () => {

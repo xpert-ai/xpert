@@ -17,6 +17,12 @@ Execute the following command in the _docker_ directory to set the permissions f
 - Set permissions to allow read/write/execute for owner and group
   `sudo chmod -R 775 ./volumes/api/public ./volumes/api/data`
 
+#### Agent Plugin storage
+
+Agent Plugin files default to `path.join(assetOptions.dataPath, 'agent-plugins')`. Docker/production config already sets `dataPath` to `/var/lib/xpert/data/`, so the resulting directory is `/var/lib/xpert/data/agent-plugins` under the existing `./volumes/api/data:/var/lib/xpert/data` mount. Compose needs no `XPERT_AGENT_PLUGIN_PATH` setting, separate plugin-files mount or host-path variable. Create the subdirectory with access for the API runtime UID/GID 1000 before running storage preflight. All API/execution replicas must see the same persistent data directory; multi-host installations need shared storage across hosts.
+
+For an existing installation, the database's package `rootPath` is absolute: adopting the new default does not relocate existing files or records. Back up packages from **all old replicas** and the database, verify the copied files in `./volumes/api/data/agent-plugins`, then coordinate package path updates and the rollout of the new default in an authorized maintenance window. Keep package IDs, digests and bindings unchanged. Follow the [storage migration and replica/recreation verification procedure](../docs/agent-plugins/README.md#storage-and-deployment) before rollout. Neither startup nor the checker migrates package files or database records automatically.
+
 #### Start up
 
 Start up the Docker containers

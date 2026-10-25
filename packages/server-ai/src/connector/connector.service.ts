@@ -341,13 +341,18 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         includeWorkspace = false
     ): Promise<ConnectorRuntimeOptions> {
         const xpert = await this.assertXpertRunAccess(requiredConnectorText(xpertId, 'xpertId'))
-        const workspaceScope: ConnectorScope = {
-            type: 'workspace',
-            workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId')
-        }
-        const scope: ConnectorScope = projectId ? { type: 'project', projectId } : workspaceScope
+        // Project-only Assistants have no authoring workspace; their project bindings remain usable.
+        const workspaceScope: ConnectorScope | undefined = xpert.workspaceId
+            ? { type: 'workspace', workspaceId: xpert.workspaceId }
+            : undefined
+        const scope: ConnectorScope = projectId
+            ? { type: 'project', projectId }
+            : (workspaceScope ?? {
+                  type: 'workspace',
+                  workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId')
+              })
         if (projectId) await this.assertProjectUseXpert(projectId, xpertId)
-        const scopes = projectId && includeWorkspace ? [workspaceScope, scope] : [scope]
+        const scopes = projectId && includeWorkspace && workspaceScope ? [workspaceScope, scope] : [scope]
         const definitions = new Map(
             (
                 await this.connectorProviders.listRuntime(
@@ -357,10 +362,12 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                 )
             ).map((strategy) => [strategy.definition.provider, toPublicDefinition(strategy.definition)])
         )
-        const canManageWorkspace = await this.assertScopeManage(workspaceScope).then(
-            () => true,
-            () => false
-        )
+        const canManageWorkspace = workspaceScope
+            ? await this.assertScopeManage(workspaceScope).then(
+                  () => true,
+                  () => false
+              )
+            : false
         const items: ConnectorRuntimeOptions['items'] = []
         for (const source of scopes) {
             const bindings = await this.findBindings(source)
@@ -408,7 +415,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             scope,
             workspaceScope,
             canManageWorkspace,
-            managementUrl: connectorManagementUrl(workspaceScope),
+            managementUrl: connectorManagementUrl(workspaceScope ?? scope),
             items
         }
     }

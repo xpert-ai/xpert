@@ -326,7 +326,8 @@ export class ConversationBranchService {
         const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
             new GetXpertWorkflowQuery(source.xpertId)
         )
-        if (threadGraphRevision(workflow.graph) !== anchor.graphRevision) throw branchConflict('graph_changed')
+        if (threadGraphRevision(workflow.graph, anchor.graphRevision, workflow.agent?.team) !== anchor.graphRevision)
+            throw branchConflict('graph_changed')
 
         const threadId = randomUUID()
         const id = randomUUID()

@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common'
+import { MemoryRepository } from './testing/memory-repository'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -351,7 +352,7 @@ describe('ArtifactsService', () => {
                     }),
                 'organization-1'
             )
-        ).rejects.toThrow('Artifact was not found')
+        ).rejects.toThrow(NotFoundException)
         await expect(
             runAsUser(
                 { id: 'user-1', tenantId: 'tenant-1' },
@@ -362,7 +363,7 @@ describe('ArtifactsService', () => {
                     }),
                 'organization-2'
             )
-        ).rejects.toThrow('Artifact was not found')
+        ).rejects.toThrow(NotFoundException)
 
         const secondUserApi = service.createScopedApi({
             tenantId: 'tenant-1',
@@ -637,115 +638,6 @@ function workspaceRef(filePath: string) {
         workspacePath: filePath,
         originalName: path.posix.basename(filePath)
     }
-}
-
-class MemoryRepository {
-    readonly items: Array<Record<string, unknown>> = []
-    private sequence = 0
-
-    constructor(private readonly prefix: string) {}
-
-    create(value: Record<string, unknown>) {
-        return { ...value }
-    }
-
-    async save(value: Record<string, unknown>) {
-        if (this.prefix === 'artifact' && !value.id) {
-            const duplicate = this.items.find(
-                (item) =>
-                    item.tenantId === value.tenantId &&
-                    item.organizationId === value.organizationId &&
-                    item.userId === value.userId &&
-                    item.pluginName === value.pluginName &&
-                    item.resourceType === value.resourceType &&
-                    item.resourceId === value.resourceId
-            )
-            if (duplicate) {
-                throw Object.assign(new Error('duplicate key violates unique constraint'), { code: '23505' })
-            }
-        }
-        const entity = {
-            ...value,
-            id:
-                value.id ??
-                (this.prefix === 'link'
-                    ? `00000000-0000-4000-8000-${String((this.sequence += 1)).padStart(12, '0')}`
-                    : `${this.prefix}-${(this.sequence += 1)}`),
-            createdAt: value.createdAt ?? new Date(),
-            updatedAt: new Date()
-        }
-        const stored = { ...entity }
-        const index = this.items.findIndex((item) => item.id === entity.id)
-        if (index >= 0) {
-            this.items[index] = stored
-        } else {
-            this.items.push(stored)
-        }
-        return entity
-    }
-
-    async find(options: { where?: Record<string, unknown> }) {
-        const where = options.where ?? {}
-        return this.items.filter((candidate) => matchesWhere(candidate, where)).map((item) => ({ ...item }))
-    }
-
-    async findOne(options: {
-        where?: Record<string, unknown>
-        order?: Record<string, 'ASC' | 'DESC'>
-        relations?: string[]
-    }) {
-        const where = options.where ?? {}
-        let candidates = this.items.filter((candidate) => matchesWhere(candidate, where))
-        if (options.order) {
-            const [field, direction] = Object.entries(options.order)[0] ?? []
-            if (field) {
-                candidates = [...candidates].sort((left, right) => {
-                    const leftValue = Number(left[field] ?? 0)
-                    const rightValue = Number(right[field] ?? 0)
-                    return direction === 'DESC' ? rightValue - leftValue : leftValue - rightValue
-                })
-            }
-        }
-        const item = candidates[0]
-        return item ? { ...item } : null
-    }
-
-    async increment(criteria: Record<string, unknown>, field: string, amount: number) {
-        const item = this.items.find((candidate) => matchesWhere(candidate, criteria))
-        if (item) {
-            item[field] = Number(item[field] ?? 0) + amount
-        }
-    }
-
-    createQueryBuilder() {
-        const parameters: Record<string, unknown> = {}
-        const builder = {
-            leftJoinAndSelect: () => builder,
-            where: (_expression: string, values: Record<string, unknown>) => {
-                Object.assign(parameters, values)
-                return builder
-            },
-            andWhere: (_expression: string, values: Record<string, unknown>) => {
-                Object.assign(parameters, values)
-                return builder
-            },
-            getOne: async () => {
-                const item = this.items.find(
-                    (candidate) =>
-                        (candidate.id === parameters.linkId || candidate.slug === parameters.linkSlug) &&
-                        candidate.tenantId === parameters.tenantId &&
-                        (parameters.organizationId === undefined ||
-                            candidate.organizationId === parameters.organizationId)
-                )
-                return item ? { ...item } : null
-            }
-        }
-        return builder
-    }
-}
-
-function matchesWhere(candidate: Record<string, unknown>, where: Record<string, unknown>) {
-    return Object.entries(where).every(([key, value]) => candidate[key] === value)
 }
 
 function runAsUser<T>(

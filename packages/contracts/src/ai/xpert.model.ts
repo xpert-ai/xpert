@@ -415,6 +415,7 @@ export type TXpertOptions = {
       size?: ISize
     }
   >
+  workflow?: Record<string, { position?: IPoint; size?: ISize }>
   xpert?: Record<
     string,
     {

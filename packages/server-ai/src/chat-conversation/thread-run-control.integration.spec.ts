@@ -1,4 +1,4 @@
-import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import { AgentInvocationWaitEntity } from '../agent-invocation/invocation.entity'
@@ -8,6 +8,8 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ThreadRunControlService } from './thread-run-control.service'
 import { readRunLease, RUN_LEASE_KEY } from './thread-run-lease'
+import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
+import { legacyThreadGraphRevision, threadGraphRevision } from './thread-graph-revision'
 
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
@@ -25,6 +27,7 @@ integration('durable pause control / PostgreSQL', () => {
     const scope = { tenantId: randomUUID(), organizationId: randomUUID() }
     let threadId: string
     let executionId: string
+    let conversationId: string
 
     beforeAll(async () => {
         if (!new URL(url!).pathname.endsWith('_test')) throw new Error('Use a disposable _test database')
@@ -34,6 +37,12 @@ integration('durable pause control / PostgreSQL', () => {
             schema,
             extra: { options: `-c search_path=${schema}` },
             entities: [
+                new EntitySchema<CopilotCheckpoint>({
+                    name: 'CopilotCheckpoint',
+                    target: CopilotCheckpoint,
+                    tableName: 'copilot_checkpoint',
+                    columns: { ...scopeColumns, thread_id: text, checkpoint_ns: text, checkpoint_id: text }
+                }),
                 new EntitySchema<ChatConversationThread>({
                     name: 'ChatConversationThread',
                     target: ChatConversationThread,
@@ -45,6 +54,7 @@ integration('durable pause control / PostgreSQL', () => {
                         status: text,
                         error: nullableText,
                         metadata: { type: 'jsonb', nullable: true },
+                        runtimeContinuationBlockedAt: { type: 'timestamptz', nullable: true },
                         runControl: { type: 'jsonb', nullable: true },
                         encryptedRunContext: { ...nullableText, select: false },
                         operation: { type: 'jsonb', nullable: true }
@@ -68,6 +78,9 @@ integration('durable pause control / PostgreSQL', () => {
                     tableName: 'xpert_agent_execution',
                     columns: {
                         ...scopeColumns,
+                        metadata: { type: 'jsonb', nullable: true },
+                        checkpointId: nullableText,
+                        checkpointNs: nullableText,
                         status: text,
                         error: nullableText,
                         completedAt: { type: 'timestamptz', nullable: true }
@@ -111,7 +124,7 @@ integration('durable pause control / PostgreSQL', () => {
     beforeEach(async () => {
         threadId = randomUUID()
         executionId = randomUUID()
-        const conversationId = randomUUID()
+        conversationId = randomUUID()
         await database
             .getRepository(ChatConversationThread)
             .save({ ...scope, id: randomUUID(), threadId, conversationId, status: 'busy' })
@@ -124,6 +137,40 @@ integration('durable pause control / PostgreSQL', () => {
             .getRepository(AgentInvocationWaitEntity)
             .save({ ...scope, id: randomUUID(), threadId, state: 'ready' })
         await first.start(threadId, executionId)
+    })
+
+    it.each([false, true])('admits only one competing resume after publication (legacy=%s)', async (legacy) => {
+        const graph: TXpertGraph = {
+            nodes: [
+                { key: 'agent', type: 'agent', position: { x: 0, y: 0 }, entity: { key: 'agent', prompt: 'same task' } }
+            ],
+            connections: []
+        }
+        const stored = legacy ? legacyThreadGraphRevision(graph) : threadGraphRevision(graph)
+        await first.recordGraph(threadId, executionId, stored)
+        const pause = await first.requestPause(threadId, executionId)
+        const reference = { threadId, checkpointNs: '', checkpointId: 'saved' }
+        await database
+            .getRepository(CopilotCheckpoint)
+            .save({ ...scope, id: randomUUID(), thread_id: threadId, checkpoint_ns: '', checkpoint_id: 'saved' })
+        await first.stageCheckpoint(threadId, executionId, reference)
+        await first.finish(threadId, executionId, 'interrupted')
+        if (!legacy) graph.nodes[0].position.x = 400
+        const current = threadGraphRevision(graph)
+        const exact = legacyThreadGraphRevision(graph)
+        const claims = await Promise.allSettled([
+            first.claimResume(threadId, executionId, pause.pauseId, current, exact),
+            second.claimResume(threadId, executionId, pause.pauseId, current, exact)
+        ])
+        expect(claims.filter((claim) => claim.status === 'fulfilled')).toEqual([
+            { status: 'fulfilled', value: reference }
+        ])
+        expect(claims.filter((claim) => claim.status === 'rejected')).toHaveLength(1)
+        expect(await first.recordGraph(threadId, executionId, current, exact)).toBe(stored)
+        const admitted = await database.getRepository(ChatConversationThread).findOneByOrFail({ threadId })
+        expect(admitted.runControl.graphRevision).toBe(stored)
+        expect(admitted.status).toBe('busy')
+        await expect(second.claimResume(threadId, executionId, pause.pauseId, current, exact)).rejects.toThrow()
     })
 
     it('serializes competing pause clicks and keeps the same durable token', async () => {
@@ -142,6 +189,17 @@ integration('durable pause control / PostgreSQL', () => {
 
     it('renews a live process and reconciles a dead owner once, invalidating delayed continuations', async () => {
         const threads = database.getRepository(ChatConversationThread)
+        const recovery = {
+            version: 1 as const,
+            graphRevision: 'graph',
+            input: { threadId, checkpointNs: '', checkpointId: 'input' },
+            latest: { threadId, checkpointNs: '', checkpointId: 'latest' }
+        }
+        await database.getRepository(XpertAgentExecution).update(executionId, {
+            checkpointId: 'latest',
+            checkpointNs: '',
+            metadata: { recovery }
+        })
         const before = await threads.findOneByOrFail({ threadId })
         await first.maintainLeases()
         const renewed = await threads.findOneByOrFail({ threadId })
@@ -164,6 +222,7 @@ integration('durable pause control / PostgreSQL', () => {
         await second.maintainLeases()
         const recovered = await threads.findOneByOrFail({ threadId })
         const stoppedExecution = await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })
+        expect(stoppedExecution).toMatchObject({ checkpointId: 'latest', metadata: { recovery } })
         expect(stoppedExecution.completedAt).toBeInstanceOf(Date)
         expect(recovered.status).toBe('error')
         expect(recovered.runControl).toBeNull()
@@ -188,4 +247,18 @@ integration('durable pause control / PostgreSQL', () => {
         )
         expect(await second.recoverExpiredRun(threadId)).toBe(false)
     })
+    it.each([true, false])(
+        'updates cancellation status only for the selected working branch (selected: %s)',
+        async (selected) => {
+            if (!selected)
+                await database.getRepository(ChatConversation).update(conversationId, { threadId: 'other-branch' })
+            expect(await first.cancel(threadId, [executionId])).toBe(true)
+            const conversation = await database.getRepository(ChatConversation).findOneByOrFail({ id: conversationId })
+            expect(conversation.status).toBe(selected ? 'interrupted' : 'busy')
+            expect(await first.finish(threadId, executionId, 'idle')).toBe('interrupted')
+            expect(
+                (await database.getRepository(ChatConversation).findOneByOrFail({ id: conversationId })).status
+            ).toBe(selected ? 'interrupted' : 'busy')
+        }
+    )
 })

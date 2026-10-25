@@ -21,11 +21,13 @@ export async function openProjectWorkspace(
     destination: 'application' | 'pipelines',
     failureMessage: string,
     pipelineNodeId?: string,
-    instanceId?: string
+    instanceId?: string,
+    roundId?: string
 ) {
     const id = z.string().uuid().parse(projectId)
     if (pipelineNodeId && destination !== 'application') throw Error(failureMessage)
     const focus = {
+        ...(roundId ? { roundId: z.string().uuid().parse(roundId) } : {}),
         ...(pipelineNodeId ? { pipelineNodeId: z.string().uuid().parse(pipelineNodeId) } : {}),
         ...(instanceId ? { instanceId: z.string().uuid().parse(instanceId) } : {})
     }

@@ -76,6 +76,7 @@ describe('runtime recovery HTTP admission', () => {
 		const response = await send('/api/ai/v1/chatkit/sessions')
 		expect(response.status).toBe(503)
 		expect(response.headers.get('retry-after')).toBe('5')
+		expect(response.headers.get('x-request-id')).toMatch(/^[\da-f-]{36}$/)
 		expect(response.headers.get('cache-control')).toBe('no-store')
 		expect(await response.json()).toMatchObject({
 			errorCode: 'RUNTIME_DRAINING',

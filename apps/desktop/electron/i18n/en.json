@@ -1363,5 +1363,8 @@
   "Agent Plugins": "Agent Plugins",
   "Xpert Plugins": "Xpert Plugins",
   "Xpert is restarting. Please reconnect shortly.": "Xpert is restarting. Please reconnect shortly.",
-  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert is temporarily unavailable. Please reconnect shortly."
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert is temporarily unavailable. Please reconnect shortly.",
+  "Install for": "Install for",
+  "Only me": "Only me",
+  "Your app instance and its new resources are private by default within this organization.": "Your app instance and its new resources are private by default within this organization."
 }

@@ -5,7 +5,6 @@ import {
     type TXpertTeamConnection,
     type TXpertTeamNode
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { yaml } from '@xpert-ai/server-common'
@@ -20,6 +19,7 @@ import { XpertImportCommand } from '../import.command'
 import { XpertSyncTemplateCommand } from '../sync-template.command'
 import { InspectTemplateReadinessCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/commands/sync-template-dependencies.command'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 @CommandHandler(XpertSyncTemplateCommand)
 export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTemplateCommand> {
@@ -65,7 +65,7 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
         // authorized readiness resolution used by installation. Runtime still validates
         // the published pins until the user publishes this draft.
         const readiness = await this.commandBus.execute(
-            new InspectTemplateReadinessCommand(template, xpert.workspaceId)
+            new InspectTemplateReadinessCommand(template, xpert.workspaceId, xpert)
         )
         if (!readiness.canInstall) {
             throw new BadRequestException(t('server-ai:Error.TemplateRequirementsUnmet'))

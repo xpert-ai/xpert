@@ -1,3 +1,4 @@
+import { registerWorkbenchCompatibilityTests } from './clawxpert-workbench-compatibility.test-cases'
 import { createFileArtifactTab, type WorkbenchArtifactTab } from './workbench-artifact-tabs'
 import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
 
@@ -59,6 +60,7 @@ jest.mock('../../../@core', () => ({
   ChatConversationService: jest.requireActual('../../../@core/services/chat-conversation.service')
     .ChatConversationService,
   ViewExtensionApiService: class ViewExtensionApiService {},
+  Store: class Store {},
   GroupWorkbenchApiService: class GroupWorkbenchApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
@@ -327,14 +329,15 @@ import {
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
-import { of, Subject } from 'rxjs'
+import { of, Subject, BehaviorSubject } from 'rxjs'
 import {
   AiThreadService,
   ArtifactService,
   ChatConversationService,
   GroupWorkbenchApiService,
   IChatConversation,
-  ViewExtensionApiService
+  ViewExtensionApiService,
+  Store
 } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
@@ -443,7 +446,7 @@ type MockChatKitRuntimeInput = {
   composer?: () => { projects?: { enabled?: boolean } }
   layout?: CreateChatKitOptions['layout']
   taskSummary?: CreateChatKitOptions['taskSummary']
-  workbench?: CreateChatKitOptions['workbench']
+  workbench?: () => CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
   onProjectChange?: (event: {
@@ -580,6 +583,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     clear: jest.Mock
   }
   let workbenchViewUrlState: {
+    viewClosed: ReturnType<typeof signal<boolean>>
     projectId: ReturnType<typeof signal<string | null>>
     viewKey: ReturnType<typeof signal<string | null>>
     viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
@@ -588,9 +592,24 @@ describe('ClawXpertConversationDetailComponent', () => {
   }
   let hostEvents: ViewHostEventBus
   let projectApi: { availableForXpert: jest.Mock; create: jest.Mock }
+  let projectPermissions: { userRolePermissions$: BehaviorSubject<[]>; hasPermission: jest.Mock }
+
+  registerWorkbenchCompatibilityTests(() => ({
+    manifests: (views) => viewExtensionApi.getSlotViews.mockReturnValue(of(views)),
+    manifest: buildFixedViewManifest,
+    projectId: facade.projectId,
+    defaultViewKey: facade.defaultViewKey,
+    viewKey: workbenchViewUrlState.viewKey,
+    viewQuery: workbenchViewUrlState.viewQuery,
+    workbench: () => getRuntimeInput().workbench?.(),
+    selectProject: facade.onChatProjectChange,
+    create: () => TestBed.createComponent(ClawXpertConversationDetailComponent),
+    settle
+  }))
 
   beforeEach(async () => {
     clearWorkbenchLayoutTestStorage()
+    projectPermissions = { userRolePermissions$: new BehaviorSubject<[]>([]), hasPermission: jest.fn(() => true) }
     skillTrialIntent = {
       peek: jest.fn(() => null),
       consume: jest.fn(() => null),
@@ -601,6 +620,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const viewKey = signal<string | null>(null)
     const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
+      viewClosed: signal(false),
       projectId: viewProjectId,
       viewKey,
       viewQuery,
@@ -736,6 +756,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       imports: [TranslateModule.forRoot(), ClawXpertConversationDetailComponent],
       providers: [
         provideRouter([]),
+        { provide: Store, useValue: projectPermissions },
         {
           provide: ClawXpertFacade,
           useValue: facade
@@ -834,7 +855,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
-    expect(getRuntimeInput().workbench).toEqual({
+    expect(getRuntimeInput().workbench?.()).toEqual({
+      navigation: { projectId: null, view: null },
+      onNavigationChange: expect.any(Function),
       enabled: true,
       viewRail: { enabled: true },
       onClientCommand: expect.any(Function),
@@ -1025,6 +1048,30 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: true })
+  })
+
+  it('preserves Project selection while creation permission is absent or revoked', async () => {
+    projectPermissions.hasPermission.mockReturnValue(false)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({
+      enabled: true,
+      createEnabled: false,
+      autoNewEnabled: false
+    })
+    getRuntimeInput().onEffect?.({ name: 'project.create', data: { name: 'Denied project' } })
+    await settle(fixture)
+    expect(projectApi.create).not.toHaveBeenCalled()
+
+    projectPermissions.hasPermission.mockReturnValue(true)
+    projectPermissions.userRolePermissions$.next([])
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+
+    projectPermissions.hasPermission.mockReturnValue(false)
+    projectPermissions.userRolePermissions$.next([])
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(false)
   })
 
   it('keeps Project selection available before the first message, including after a Project is selected', async () => {
@@ -2417,20 +2464,22 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.onChatThreadChange.mockClear()
     facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
-    const result = await getRuntimeInput().workbench?.onClientCommand?.({
-      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      hostType: 'agent',
-      hostId: 'assistant-1',
-      viewKey: 'platform.project-tasks__timeline',
-      payload: {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
-        conversationId: 'job-conversation-1',
-        threadId: 'job-thread-1',
-        executionId: 'job-execution-1',
-        xpertId: 'spoofed-role-assistant',
-        projectId: 'case-project-1'
-      }
-    })
+    const result = await getRuntimeInput()
+      .workbench?.()
+      ?.onClientCommand?.({
+        commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'platform.project-tasks__timeline',
+        payload: {
+          target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+          conversationId: 'job-conversation-1',
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1',
+          xpertId: 'spoofed-role-assistant',
+          projectId: 'case-project-1'
+        }
+      })
     await settle(fixture)
 
     expect(result).toEqual({
@@ -2480,18 +2529,20 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
 
-    await getRuntimeInput().workbench?.onClientCommand?.({
-      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      hostType: 'agent',
-      hostId: 'role-assistant-current',
-      viewKey: 'platform.project-tasks__timeline',
-      payload: {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
-        conversationId: 'job-conversation-1',
-        threadId: 'job-thread-1',
-        executionId: 'job-execution-1'
-      }
-    })
+    await getRuntimeInput()
+      .workbench?.()
+      ?.onClientCommand?.({
+        commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        hostType: 'agent',
+        hostId: 'role-assistant-current',
+        viewKey: 'platform.project-tasks__timeline',
+        payload: {
+          target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+          conversationId: 'job-conversation-1',
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1'
+        }
+      })
     await settle(fixture)
     expect(getRuntimeInput().requestContext?.()).toEqual(
       expect.objectContaining({

@@ -20,7 +20,21 @@ dependencies: {
 
 The host reads the entry template and every role and standalone Assistant declared in `assistantSuite`. Identical plugin/provider/instance requirements share one selector and one managed copy. Separate named instances remain separate requirements. An unnamed provider requirement cannot coexist with multiple named instances of that provider because the template installer could not resolve it unambiguously.
 
-## Administrator Workflow
+## Personal and organization installations
+
+`appConfig.scope` accepts one scope or an ordered array, for example `scope: ['organization', 'personal']`. A scalar keeps its previous behavior; when the API receives no selector, the first declared scope is the default. Cloud and Desktop prefer personal installation when the App declares it and let users switch the target in setup. The native plugin's deployment level is independent of each user's App installation.
+
+A personal installation belongs to the signed-in human user **within the current tenant and organization**. Active organization members may configure, initialize, repair and discard their own unactivated installation without an organization administrator role. Organization installation still requires the existing administrator/trial role. Tenant installation remains unsupported. Membership is rechecked for every operation; API principals cannot choose a human owner.
+
+Personal and organization installations can coexist. Their Workspace, Assistants, Knowledge bases and managed toolsets have separate receipts. Personal Workspaces and newly created Knowledge bases are private. Sharing an Assistant or Project remains a separate, explicit authorization; ownership does not replace runtime file, Project or connector ACLs. Apps must enforce their own business-data access before declaring personal support. DOCX Editor and Code Review are the initial dual-scope Apps; an organization-only business query is not made private by changing metadata.
+
+The setup APIs accept an optional scalar `installationScope`; the server verifies it against the trusted App declaration. Status, catalog and detail accept the same query parameter. Include it on prepare, bind-toolset, discard-configuration and initialize requests so all steps address the same installation. Owner, tenant, organization and Workspace identifiers remain server-derived. Legacy requests continue using the declaration's first scope.
+
+For deployments with external schema migration, apply `packages/server-ai/src/plugin-resource/migrations/20261024-personal-app-installations.sql` before starting the upgraded backend. It adds the personal owner, owner index, foreign key and ownership check without rewriting existing organization receipts. Test the migration against a disposable PostgreSQL database using `APP_TEST_DATABASE_URL=... node --test packages/server-ai/scripts/personal-app-migration.test.cjs`.
+
+The host resolves installation identity internally and supplies it to View providers through `context.application`. The persisted `ownerUserId` is separate from the acting user's identity. Resolution rechecks personal-installation membership and resource placement, but grants no Assistant, file or business-data access. Before shipping dual-scope metadata, deploy the upgraded host and build plugins against its matching public contracts/SDK packages.
+
+## Setup workflow
 
 Multi-Assistant applications declare collaborating roles in `assistantSuite.roles`. `coordinatorRoleKeys` selects direct entry dependencies; each role's `externalRoleKeys` declares its children. Omitting `coordinatorRoleKeys` preserves the legacy all-roles entry graph. `standaloneAssistants` are published without delegation. The host rejects unknown references, duplicate links, cycles and unreachable roles, publishes dependencies before callers, and checks nested links when evaluating installation health.
 
@@ -32,15 +46,15 @@ Failed suite initialization retains recorded resources for an in-place retry. Re
 
 Opening the drawer is read-only. Closing it preserves saved configuration for the next visit, and failed activation preserves previously saved authorization. **Discard configuration** removes only the unactivated Workspace and its toolsets; active installations, initializing applications, and Workspaces containing other resources cannot be discarded.
 
-Sources are limited to the current organization: configurations in workspaces the administrator can author, or loose configurations owned by that administrator. Installing a provider plugin makes it available for configuration but does not create an authorized instance. Missing providers and missing configurations are shown before initialization.
+Sources are limited to the current organization: configurations in workspaces the acting user can author, or loose configurations owned by that user. Installing a provider plugin makes it available for configuration but does not create an authorized instance. Missing providers and missing configurations are shown before initialization.
 
 Copies are independent snapshots. Later changes to the source do not propagate to the application. Configure an installed application's copy in its own Workspace. Workspace-specific references in a source configuration must also be valid in the destination; copying a toolset does not copy environment variables or unrelated resources.
 
 ## Lifecycle and API
 
-`PluginApplicationPreflight.toolsetRequirements` includes stable requirement keys, provider availability, safe source labels/IDs, and existing managed bindings. It never includes credentials. Initialize accepts `toolsets: [{ key, toolsetId }]`; the server resolves and rechecks authorization, while deriving the target tenant, organization, Workspace and instance names itself. Unknown requirements, duplicate choices, unavailable sources, credentials and client-supplied scope fields are rejected.
+`PluginApplicationPreflight.toolsetRequirements` includes stable requirement keys, provider availability, safe source labels/IDs, and existing managed bindings. It never includes credentials. Initialize accepts `toolsets: [{ key, toolsetId }]`; the server resolves and rechecks authorization, while deriving the target tenant, organization, Workspace and instance names itself. Unknown requirements, duplicate choices, unavailable sources, credentials and client-supplied ownership fields are rejected.
 
-`POST /plugin-applications/prepare` accepts only `pluginName` and `appName`; a transaction, scoped unique key, and installation row lock ensure concurrent preparation creates one Workspace. `POST /plugin-applications/bind-toolset` binds a saved instance using its requirement `key` and `toolsetId`, checking provider and target scope. Credentials remain in the existing toolset API. `POST /plugin-applications/discard-configuration` removes an unactivated configuration. Activation continues through `initialize`, transitioning `configuring` to `initializing` and `ready`.
+`POST /plugin-applications/prepare` accepts `pluginName`, `appName` and optional `installationScope`; a transaction, scoped unique key, and installation row lock ensure concurrent preparation creates one Workspace. `POST /plugin-applications/bind-toolset` binds a saved instance using its requirement `key` and `toolsetId`, checking provider and target scope. Credentials remain in the existing toolset API. `POST /plugin-applications/discard-configuration` removes an unactivated configuration. Activation continues through `initialize`, transitioning `configuring` to `initializing` and `ready`.
 
 The installation records each target under `resourceRefs['toolset:<requirement-key>']` before creation. Retry reuses existing managed instances. Repair recreates a missing instance with its original ID so published Assistant graph references remain valid. Failed attempts remove only copies created by that attempt and preserve source configurations. Health checks include previously managed toolsets. Enabling an already healthy application does not upgrade its templates or replace its bindings.
 

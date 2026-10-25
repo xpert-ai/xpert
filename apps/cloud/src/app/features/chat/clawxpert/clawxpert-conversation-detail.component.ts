@@ -1,9 +1,16 @@
+import { DOCUMENT } from '@angular/common'
+import { ChatkitLifecycleService } from '../../../@core/services/chatkit-lifecycle.service'
 import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
 import {
   installConversationMapLinks,
   focusConversationMapMessage
 } from './conversation-detail/conversation-map-navigation'
-import { AGENT_WORKBENCH_SLOT, parseWorkbenchViewOpenEvent, type WorkbenchViewOpenEvent } from '@xpert-ai/contracts'
+import {
+  AGENT_WORKBENCH_SLOT,
+  AIPermissionsEnum,
+  parseWorkbenchViewOpenEvent,
+  type WorkbenchViewOpenEvent
+} from '@xpert-ai/contracts'
 import { FileChangeReviewComponent } from './file-change-review.component'
 import { createFileChangeReviewTab, upsertFileChangeReviewTab } from './file-change-review.types'
 import {
@@ -11,6 +18,7 @@ import {
   executeChatProjectCreate,
   type ChatProjectCreateRequest
 } from '../../project/project-chat-create'
+import { createChatkitWorkbenchNavigation } from './chatkit-workbench-navigation'
 import { createWorkbenchProjectNavigation } from './workbench-project-navigation'
 import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
@@ -29,6 +37,7 @@ import {
   viewChildren
 } from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitReference } from '@xpert-ai/chatkit-types'
@@ -48,7 +57,7 @@ import {
   ZardTabsImports,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, map } from 'rxjs'
 import type { FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
@@ -61,6 +70,7 @@ import {
   GroupWorkbenchApiService,
   IChatConversation,
   ViewExtensionApiService,
+  Store,
   getErrorMessage,
   injectToastr
 } from '../../../@core'
@@ -186,6 +196,7 @@ import {
 } from './conversation-detail/workspace/browser'
 import {
   DEFAULT_FIXED_VIEW_ICON,
+  canRenderViewInChatkit,
   type ClawXpertFixedViewMenuItem,
   initiallyOpenViews,
   findFixedViewTab,
@@ -249,12 +260,24 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
   readonly #hostEvents = inject(ViewHostEventBus)
+  readonly #browserDocument = inject(DOCUMENT)
+  readonly #chatkitLifecycle = inject(ChatkitLifecycleService)
+  private readonly registerChatkitLifecycle = effect((onCleanup) => {
+    const host = this.chatkitHost()?.nativeElement
+    if (host) onCleanup(this.#chatkitLifecycle.register(host))
+  })
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
   readonly #workbenchLayoutStorage = inject(ClawXpertWorkbenchLayoutStorage)
   readonly #workbenchViewUrlState = inject(ClawXpertWorkbenchViewUrlState)
   readonly #projectApi = inject(XpertProjectApiService)
+  readonly #store = inject(Store)
+  // Existing Project membership grants collaboration, not permission to create another Project.
+  readonly #canCreateProject = toSignal(
+    this.#store.userRolePermissions$.pipe(map(() => this.#store.hasPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE))),
+    { initialValue: false }
+  )
   readonly #responseActive = signal(false)
   #unregisterComposerCommand: (() => void) | null = null
   #unregisterAssistantCommand: (() => void) | null = null
@@ -347,6 +370,18 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     xpert: computed(() => this.facade.currentXpert?.() ?? null),
     active: computed(() => this.facade.viewState() === 'ready' && !this.chatkitInitialThread() && !this.chatkitGroup())
   })
+  readonly #isChatkitView = (key: string | null) =>
+    canRenderViewInChatkit(findResolvedViewByKey(this.availableWorkbenchViews(), key)?.view)
+  readonly #chatkitNavigation = createChatkitWorkbenchNavigation({
+    assistantId: () => this.chatkitAssistantId(),
+    projectId: () => this.chatkitProjectId(),
+    routeKey: () => this.#hostChatRouteKey(),
+    defaultViewKey: () => this.facade.defaultViewKey(),
+    isChatkitView: this.#isChatkitView,
+    views: this.#viewExtensionApi,
+    url: this.#workbenchViewUrlState,
+    selectProject: (id, view) => this.facade.onChatProjectChange?.(id, view)
+  })
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.chatkitAssistantId,
@@ -359,10 +394,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     composer: computed(() => ({
       projects: {
         enabled: this.#projectControlsEnabled(),
-        createEnabled: this.#projectControlsEnabled(),
+        createEnabled: this.#projectControlsEnabled() && this.#canCreateProject(),
         selection: this.#workbenchConversationScope() ? undefined : this.facade.chatkitProjectSelection?.(),
         autoNewEnabled:
           !this.#workbenchConversationScope() &&
+          this.#canCreateProject() &&
           Boolean(this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing),
         autoNewMode:
           this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'confirm'
@@ -385,9 +421,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     messagePresentation: {
       collapseProcess: true
     },
-    workbench: {
-      // Temporary: enable the embedded Workbench for local ChatKit testing.
+    workbench: computed(() => ({
+      navigation: this.#chatkitNavigation.state(),
+      onNavigationChange: this.#chatkitNavigation.onNavigationChange,
       enabled: true,
+      // The embedder supplies an address only; ChatKit resolves and navigates resources.
+      linkBaseUrl: (() => {
+        const base = this.#browserDocument.location.href.match(/^(https?:\/\/[^/]+\/chat\/x\/[^/?#]+)/)?.[1]
+        return base ? `${base}/p/{projectId}/c` : undefined
+      })(),
       viewRail: { enabled: true },
       onClientCommand: createChatkitWorkbenchClientCommandHandler({
         conversations: this.#conversationService,
@@ -404,7 +446,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       sideChat: {
         enabled: true
       }
-    },
+    })),
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
@@ -571,7 +613,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fixedViewError = signal<string | null>(null)
   readonly availableWorkbenchViews = signal<ClawXpertFixedViewMenuItem[]>([])
   readonly fixedViewMenuItems = computed(() =>
-    this.availableWorkbenchViews().filter((view) => view.menuEnabled !== false)
+    this.availableWorkbenchViews().filter((view) => !canRenderViewInChatkit(view.view) && view.menuEnabled !== false)
   )
   readonly fixedViewMenuVisible = computed(
     () => this.loadingFixedViews() || Boolean(this.fixedViewError()) || this.fixedViewMenuItems().length > 0
@@ -598,12 +640,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     routeKey: () => this.#hostChatRouteKey(),
     language: () => this.#translate.currentLang,
     views: this.#viewExtensionApi,
+    supportsView: (manifest) => this.#clientCommands.supportsView(manifest),
     tabs: this.workspaceTabs,
     activate: (id, mode) => {
       this.activateWorkspaceTab(id, mode)
       this.openDetailPanel()
     },
     selectProject: (id) => this.facade.onChatProjectChange?.(id),
+    openEmbedded: (request, cancelled) => this.#chatkitNavigation.openProject(request, cancelled),
     url: this.#workbenchViewUrlState,
     onError: (error) => this.#toastr.error(getErrorMessage(error))
   })
@@ -737,6 +781,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
 
     effect(() => {
+      if (this.#chatkitNavigation.state().view) untracked(() => this.closeDetailPanel())
+    })
+
+    effect(() => {
       const scope = this.#workbenchConversationScope()
       if (scope && scope.hostRouteKey !== this.#hostChatRouteKey()) {
         // The user navigated the primary Workbench while an external record was
@@ -770,7 +818,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#initializedWorkbenchLayoutPreferenceKey = preferenceKey
         const restoredState = userId ? this.#workbenchLayoutStorage.load(userId, assistantId) : null
         const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
-        const nextState = restoredState ?? configuredState ?? 'minimized'
+        const nextState = this.#chatkitNavigation.state().view
+          ? 'minimized'
+          : (restoredState ?? configuredState ?? 'minimized')
         this.#pendingChatkitPetRestore = {
           preferenceKey,
           // Maximized workbenches start with an overlay launcher, including saved legacy layouts.
@@ -897,6 +947,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       if (this.#workbenchViewUrlState.projectId() || !hostId || loading) {
         return
       }
+
+      if (
+        this.#isChatkitView(requestedViewKey) ||
+        (!requestedViewKey && this.#isChatkitView(this.facade.defaultViewKey()))
+      )
+        return
 
       if (requestedViewKey) {
         const requestedTab = findFixedViewTab(fixedTabs, requestedViewKey)
@@ -1396,7 +1452,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     } else {
       this.#lastNonFixedTabId = tab.id
-      if (urlMode !== 'none') {
+      if (urlMode !== 'none' && !this.#isChatkitView(this.#workbenchViewUrlState.viewKey())) {
         void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: urlMode === 'replace' })
       }
     }
@@ -1678,19 +1734,24 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       return
     }
     const available = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
-    if (available) untracked(() => this.openWorkbenchView(request))
+    if (available && !canRenderViewInChatkit(available.view)) untracked(() => this.openWorkbenchView(request))
     this.pendingViewOpen.set(null)
   })
 
   openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
     const menuItem = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
     if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
+    if (canRenderViewInChatkit(menuItem.view)) return this.#chatkitNavigation.openView(request)
     const resolvedViewKey = menuItem.viewKey
+    const existing = this.fixedViewTabs().find((tab) => !tab.projectScope && tab.viewKey === resolvedViewKey)
+    const navigationViewKey =
+      request.parameters?.['navigationViewKey'] ?? existing?.query?.parameters?.['navigationViewKey']
     const query: XpertViewQuery = {
       ...(request.selectionId ? { selectionId: request.selectionId } : {}),
-      ...(request.parameters ? { parameters: request.parameters } : {})
+      ...(navigationViewKey || request.parameters
+        ? { parameters: { ...(navigationViewKey ? { navigationViewKey } : {}), ...request.parameters } }
+        : {})
     }
-    const existing = this.fixedViewTabs().find((tab) => !tab.projectScope && tab.viewKey === resolvedViewKey)
     if (existing) {
       this.workspaceTabs.update((tabs) =>
         tabs.map((tab) =>
@@ -1698,10 +1759,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         )
       )
     }
-    const opened = this.openFixedViewTab(menuItem)
-    if (!existing) {
-      this.workspaceTabs.update((tabs) => tabs.map((tab) => (tab.id === opened.id ? { ...tab, query } : tab)))
-    }
+    // Persist the selection before navigating. Otherwise the URL effect can
+    // replace the newly opened document query with the empty tab query.
+    const opened = existing ? { ...existing, query } : { ...this.createFixedViewTab(menuItem), query }
+    if (!existing) this.workspaceTabs.update((tabs) => [...tabs, opened])
+    this.activateWorkspaceTab(opened.id, 'push')
     return opened
   }
 
@@ -1754,7 +1816,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.activateWorkspaceTab(fallbackTab.id, 'push')
     } else {
       this.activeTabId.set('')
-      void this.#workbenchViewUrlState.setViewKey(null)
+      if (!this.#isChatkitView(this.#workbenchViewUrlState.viewKey())) void this.#workbenchViewUrlState.setViewKey(null)
     }
   }
 
@@ -1927,7 +1989,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private async createChatProject(request: ChatProjectCreateRequest) {
     const assistantId = this.facade.assistantId()?.trim()
-    if (!assistantId || !this.#projectControlsEnabled() || this.#projectCreatePending) {
+    if (!assistantId || !this.#projectControlsEnabled() || !this.#canCreateProject() || this.#projectCreatePending) {
       return
     }
 
@@ -1957,12 +2019,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       const items = manifests
-        .filter((manifest) => manifest.visible !== false)
+        .filter((manifest) => manifest.visible !== false && this.#clientCommands.supportsView(manifest))
         .map((manifest) => this.toFixedViewMenuItem(manifest))
         .sort((a, b) => a.order - b.order)
 
       this.availableWorkbenchViews.set(items)
-      this.syncFixedViewTabs(items)
+      this.syncFixedViewTabs(items.filter((item) => !canRenderViewInChatkit(item.view)))
     } catch (error) {
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
@@ -2067,7 +2129,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.activeTabId.set(selectedTab?.id ?? '')
     }
 
-    if (nextFixedTabs.length === 0 && requestedViewKey) {
+    if (nextFixedTabs.length === 0 && requestedViewKey && !this.#isChatkitView(requestedViewKey)) {
       void this.#workbenchViewUrlState.setViewKey(null, { replaceUrl: true })
     }
   }
@@ -2179,6 +2241,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const menu = manifest.workbench?.menu
     return {
       viewKey: manifest.key,
+      view: manifest.view,
       menuEnabled: menu?.enabled,
       ...(manifest.workbench?.contextScope ? { contextScope: manifest.workbench.contextScope } : {}),
       ...(manifest.workbench?.openMode ? { openMode: manifest.workbench.openMode } : {}),

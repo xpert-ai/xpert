@@ -15,6 +15,8 @@ import {
     SYSTEM_GLOBAL_SCOPE
 } from '@xpert-ai/plugin-sdk'
 import {
+    IXpert,
+    XpertToolsetCategoryEnum,
     TXpertTemplate,
     XpertTypeEnum,
     type TXpertSandboxFeature,
@@ -27,6 +29,7 @@ import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { TemplateReadinessService, AssertAssistantTemplateDependenciesHandler } from './template-readiness.service'
 import { AssertAssistantTemplateDependenciesCommand } from './template-readiness.command'
 import { AssertAgentPluginTemplateDependencyCommand } from '../../agent-plugin/templates/agent-plugin-template.command'
+import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { InstallationSourceChangedError } from './template-installation-source'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
@@ -96,6 +99,63 @@ describe('scoped template dependency preparation', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('preserves an installed toolset among same-provider accounts without relaxing new installation checks', async () => {
+        const { service, module } = await harness()
+        const repository = module.get(getRepositoryToken(XpertToolset))
+        repository.find.mockResolvedValue([{ id: 'selected' }, { id: 'other' }])
+        const template = {
+            ...base,
+            dependencies: {
+                toolsets: [
+                    {
+                        pluginName: '@test/dep',
+                        provider: 'images',
+                        templateNodeKey: 'template-images'
+                    }
+                ]
+            }
+        }
+        const installed = (ids: string[]): IXpert =>
+            ({
+                id: 'assistant',
+                workspaceId: 'workspace',
+                graph: {
+                    nodes: ids.map((id) => ({
+                        key: id,
+                        type: 'toolset',
+                        position: { x: 0, y: 0 },
+                        entity: {
+                            id,
+                            name: 'images',
+                            type: 'images',
+                            category: XpertToolsetCategoryEnum.BUILTIN
+                        }
+                    })),
+                    connections: []
+                }
+            }) as IXpert
+        const check = async (assistant?: IXpert) =>
+            (await service.inspect(template, 'workspace', assistant)).readiness.checks.find(
+                (item) => item.key === 'toolset:images'
+            )?.status
+        expect(await check()).toBe('missing')
+        expect(await check(installed(['selected']))).toBe('ready')
+        expect(await check(installed(['selected', 'other']))).toBe('missing')
+        repository.find.mockResolvedValue([{ id: 'other' }])
+        expect(await check(installed(['selected']))).toBe('missing')
+        expect(repository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    workspaceId: 'workspace',
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    type: 'images'
+                })
+            })
+        )
+        await expect(service.inspect(template, 'different', installed(['selected']))).rejects.toThrow('workspace')
+    })
 
     const sandboxTemplate = (sandbox: TXpertSandboxFeature): TXpertTemplate => ({
         ...base,
@@ -330,6 +390,30 @@ describe('scoped template dependency preparation', () => {
         await expect(h.service.inspectRuntimeDependencies(locks)).resolves.toMatchObject({
             updates: [{ changedComponents: [{ type: 'skill', key: 'selected' }] }]
         })
+        await h.module.close()
+    })
+
+    it.each([
+        'AGENT_PLUGIN_STORAGE_MISSING',
+        'AGENT_PLUGIN_STORAGE_UNREADABLE',
+        'AGENT_PLUGIN_STORAGE_CORRUPT'
+    ] as const)('preserves %s through readiness, installation locks and runtime checks', async (code) => {
+        const h = await harness()
+        const failure = new AgentPluginStorageException(code)
+        h.module.get(CommandBus).execute = jest.fn().mockRejectedValue(failure)
+        const source = {
+            kind: 'agent-plugin' as const,
+            name: 'example',
+            digest: 'digest',
+            bindingId: 'binding',
+            bindingVersion: 'binding-version'
+        }
+        const locks: TemplateDependencyLock[] = [{ pluginName: 'example', version: 'digest', source, components: [] }]
+        await expect(
+            h.service.inspect({ ...base, dependencies: { skills: [{ componentKey: 'hello', source }] } })
+        ).rejects.toBe(failure)
+        await expect(h.service.assertDependencies(locks)).rejects.toBe(failure)
+        await expect(h.service.inspectRuntimeDependencies(locks)).rejects.toBe(failure)
         await h.module.close()
     })
 

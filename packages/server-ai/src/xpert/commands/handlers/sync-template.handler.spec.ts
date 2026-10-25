@@ -59,16 +59,14 @@ describe('XpertSyncTemplateHandler', () => {
             })
         }
         const commandBus = {
-            execute: jest
-                .fn()
-                .mockImplementation(async (command) =>
-                    command instanceof InspectTemplateReadinessCommand
-                        ? {
-                              canInstall: true,
-                              dependencies: [{ pluginName: '@xpert-ai/plugin-example', version: '2', components: [] }]
-                          }
-                        : xpert
-                )
+            execute: jest.fn().mockImplementation(async (command) =>
+                command instanceof InspectTemplateReadinessCommand
+                    ? {
+                          canInstall: true,
+                          dependencies: [{ pluginName: '@xpert-ai/plugin-example', version: '2', components: [] }]
+                      }
+                    : xpert
+            )
         }
         return {
             xpertService,
@@ -405,6 +403,7 @@ describe('XpertSyncTemplateHandler', () => {
         const inspect = commandBus.execute.mock.calls[0][0] as InspectTemplateReadinessCommand
         expect(inspect).toBeInstanceOf(InspectTemplateReadinessCommand)
         expect(inspect.workspaceId).toBe('workspace-1')
+        expect(inspect.installedAssistant).toBe(xpert)
         const imported = commandBus.execute.mock.calls[1][0] as XpertImportCommand
         expect(imported.options.dependencyLocks).toEqual([
             { pluginName: '@xpert-ai/plugin-example', version: '2', components: [] }

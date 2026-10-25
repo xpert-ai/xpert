@@ -5,11 +5,9 @@ import type {
     TemplateAgentSource,
     TXpertParameter
 } from '@xpert-ai/contracts'
-import { readFile } from 'node:fs/promises'
 import { t } from 'i18next'
 import { AgentPluginPackage } from '../agent-plugin.entity'
-import { containedPath } from '../agent-plugin-parser'
-import { portablePackageDigest } from '../agent-plugin-source'
+import { readVerifiedAgentPluginFile } from '../agent-plugin-storage-error'
 import { normalizeAssistantTemplate } from '../../xpert-template/definition/normalize-assistant-template'
 import { resolveDraftAgentNode } from '../../xpert/draft-agent.utils'
 import { AgentStateAnnotation } from '../../shared/agent/state'
@@ -23,14 +21,10 @@ export interface RuntimeTemplateDescriptor extends TemplateAgentSource {
 
 export async function loadRuntimeTemplate(pkg: AgentPluginPackage, key: string) {
     const entry = pkg.descriptor.templates?.find((item) => item.key === key)
-    if (
-        !entry ||
-        pkg.descriptor.extension?.role === 'assistant' ||
-        (await portablePackageDigest(pkg.rootPath)) !== pkg.digest
-    )
+    if (!entry || pkg.descriptor.extension?.role === 'assistant')
         throw new BadRequestException(t('server-ai:Error.TemplateDependencyChanged'))
     const normalized = normalizeAssistantTemplate({
-        export_data: await readFile(await containedPath(pkg.rootPath, entry.path), 'utf8')
+        export_data: await readVerifiedAgentPluginFile(pkg, entry.path)
     })
     templateInputParameters(normalized.definition)
     for (const dependency of [

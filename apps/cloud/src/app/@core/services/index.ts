@@ -98,6 +98,7 @@ export * from './template-lifecycle.service'
 
 export * from './personal-api-keys.service'
 
+export * from './chatkit-lifecycle.service'
 export * from './artifact-presentation.service'
 
 export * from './analytics-definitions.service'

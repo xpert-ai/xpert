@@ -63,7 +63,8 @@ import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { resolveSandboxWorkFor } from '../../../sandbox/sandbox-work-for'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
-import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
+import { ThreadRunControlService } from '../../../chat-conversation/thread-run-control.service'
+import { threadGraphRevision, legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { isThreadPause } from '../../../shared/agent/thread-pause'
 import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 import {
@@ -268,8 +269,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
         )
 
-        const graphRevision = threadGraphRevision(xpertGraph)
-        await this.threadRunControl?.recordGraph(threadId, execution.id, graphRevision)
+        const currentRevision = threadGraphRevision(xpertGraph, undefined, agent?.team)
+        const graphRevision =
+            (await this.threadRunControl?.recordGraph(
+                threadId,
+                execution.id,
+                currentRevision,
+                legacyThreadGraphRevision(xpertGraph)
+            )) ?? currentRevision
         if (options.inputMessageId) {
             const previous = await this.checkpointSaver.getCopilotCheckpoint({
                 configurable: { thread_id: threadId, checkpoint_ns: '' }
@@ -455,39 +462,56 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
+        const runConfig = {
+            version: 'v2' as const,
+            configurable: {
+                ...config,
+                tenantId: tenantId,
+                organizationId: organizationId,
+                language: languageCode,
+                userId,
+                executionId: execution.id,
+                rootExecutionId,
+                xpertGraphRevision: graphRevision,
+                ...(options.retryInputCheckpointId
+                    ? { xpertRetryInputCheckpointId: options.retryInputCheckpointId }
+                    : {}),
+                xpertId: xpert.id,
+                agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
+                rootAgentKey: agent.key,
+                sandbox: sandboxContext,
+                copilotModel,
+                ...(runtimeContext ? { context: runtimeContext } : {}),
+                /**
+                 * @deprecated use customEvents instead
+                 */
+                subscriber
+            },
+            recursionLimit,
+            maxConcurrency: team.agentConfig?.maxConcurrency,
+            metadata: {
+                agentKey: agent.key,
+                executionId: execution.id,
+                rootExecutionId
+            },
+            signal: abortController.signal
+            // debug: true
+        }
+        // Prepare the real input with every graph node interrupted. LangGraph flushes
+        // checkpoint writes before invoke returns; candidate admission may still fail.
+        if (await this.threadRunControl?.requiresInputAdmission(threadId, execution.id)) {
+            await withExecutionContext(executionContext, () =>
+                graph.invoke(graphInput, {
+                    ...runConfig,
+                    context: getExecutionContext(),
+                    interruptBefore: '*',
+                    durability: 'sync'
+                })
+            )
+            graphInput = null
+        }
         const contentStream = defer(() =>
-            graph.streamEvents(graphInput, {
-                version: 'v2',
-                context: getExecutionContext(),
-                configurable: {
-                    ...config,
-                    tenantId: tenantId,
-                    organizationId: organizationId,
-                    language: languageCode,
-                    userId,
-                    executionId: execution.id,
-                    rootExecutionId,
-                    xpertId: xpert.id,
-                    agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
-                    rootAgentKey: agent.key,
-                    sandbox: sandboxContext,
-                    copilotModel,
-                    ...(runtimeContext ? { context: runtimeContext } : {}),
-                    /**
-                     * @deprecated use customEvents instead
-                     */
-                    subscriber
-                },
-                recursionLimit,
-                maxConcurrency: team.agentConfig?.maxConcurrency,
-                metadata: {
-                    agentKey: agent.key,
-                    executionId: execution.id,
-                    rootExecutionId
-                },
-                signal: abortController.signal
-                // debug: true
-            })
+            graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
         ).pipe(
             map(
                 createMapStreamEvents(this.#logger, subscriber, {

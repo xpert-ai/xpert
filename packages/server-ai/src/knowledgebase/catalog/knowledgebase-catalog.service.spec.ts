@@ -54,7 +54,7 @@ function fixture(initial: Knowledgebase[] = [row(1), row(2), row(3)]) {
     const workspaceFind = jest.spyOn(workspaceRepository, 'find').mockImplementation(async () => spaces)
     jest.spyOn(workspaceRepository, 'findOne').mockImplementation(async () => spaces[0] ?? null)
     const workspaces = new XpertWorkspaceAccessService(workspaceRepository)
-    const access = new KnowledgebaseCatalogAccessService(workspaces)
+    const access = new KnowledgebaseCatalogAccessService(workspaces, { authorizeReference: jest.fn() } as never)
     const repository = Object.create(Repository.prototype) as Repository<Knowledgebase>
     const statements: Array<{ sql: unknown; params?: object }> = []
     const pageReads: Array<string | undefined> = []

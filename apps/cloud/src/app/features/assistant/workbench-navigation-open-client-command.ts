@@ -167,11 +167,12 @@ export function registerWorkbenchNavigationOpenCommand(
 
       const selectionId = getString(payload, 'selectionId')
       const parameters = getScalarParameters(payload, 'parameters')
-      await options.openWorkbenchView({
+      const opened = await options.openWorkbenchView({
         viewKey: resourceId,
         ...(selectionId ? { selectionId } : {}),
         ...(parameters ? { parameters } : {})
       })
+      if (opened === false) return { success: false, code: 'navigation_cancelled' }
 
       return {
         success: true,

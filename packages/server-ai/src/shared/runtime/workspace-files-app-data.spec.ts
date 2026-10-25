@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
-import { DefaultRuntimeCapabilityRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
 describe('WorkspaceFiles.appData binding', () => {
@@ -8,7 +8,7 @@ describe('WorkspaceFiles.appData binding', () => {
         const service = new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
             { resolve: jest.fn() },
-            new DefaultRuntimeCapabilityRegistry(),
+            { listReadable: jest.fn(), assertEdit: jest.fn() },
             { execute: jest.fn() }
         )
         const options = { pluginName: 'meetings' }
@@ -29,7 +29,7 @@ describe('WorkspaceFiles.appData binding', () => {
         const service = new WorkspaceFilesRuntimeCapabilityService(
             { execute },
             { resolve },
-            new DefaultRuntimeCapabilityRegistry(),
+            { listReadable: jest.fn(), assertEdit: jest.fn() },
             { execute: jest.fn() }
         )
         const scope = { tenantId: 'tenant', organizationId: 'org', userId: 'alice', xpertId: 'assistant' }

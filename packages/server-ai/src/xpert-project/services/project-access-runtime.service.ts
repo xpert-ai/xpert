@@ -11,11 +11,15 @@ import { EntityManager, Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { RuntimeCapabilityProvider } from '../../shared/runtime'
+import { XpertProjectAccessService } from './project-access.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectAccessRuntimeCapability)
 export class ProjectAccessRuntimeService implements ProjectAccessApi {
-    constructor(@InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>) {}
+    constructor(
+        @InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>,
+        private readonly access: XpertProjectAccessService
+    ) {}
 
     async listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]> {
         const { actor, projectIds } = input
@@ -39,6 +43,7 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
                 .filter((binding) => binding.projectId === row.projectId)
                 .map((binding) => binding.assistantId),
             projectId: row.projectId,
+            name: row.name,
             applicationKey: row.applicationKey,
             projectTypeKey: row.projectTypeKey,
             role: row.role,
@@ -78,6 +83,7 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
             )
             .andWhere('(project.ownerId = :userId OR membership.id IS NOT NULL)', { userId: actor.userId })
             .select('project.id', 'projectId')
+            .addSelect('project.name', 'name')
             .addSelect('project.status', 'status')
             .addSelect('project.applicationKey', 'applicationKey')
             .addSelect('project.projectTypeKey', 'projectTypeKey')
@@ -109,6 +115,13 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         if (!access || access.archived || !['owner', 'manager', 'editor'].includes(access.role)) {
             throw new ForbiddenException(t('server-ai:Error.ProjectEditorRequired'))
         }
+        return access
+    }
+
+    async assertAssistant(input: { actor: ProjectAccessActor; projectId: string; assistantId: string }) {
+        await this.access.assertCanReadXpert(input.projectId, input.assistantId, input.actor)
+        const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
+        if (!access) throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))
         return access
     }
 }

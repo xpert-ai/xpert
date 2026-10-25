@@ -1,3 +1,5 @@
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { User } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -11,6 +13,7 @@ import { WorkspaceFileAccessService } from './workspace-file-access.service'
     imports: [
         RouterModule.register([{ path: '/workspace-files', module: WorkspaceFileAccessModule }]),
         CqrsModule,
+        TypeOrmModule.forFeature([User]),
         VolumeModule
     ],
     controllers: [WorkspaceFileAccessController, WorkspaceFileContentController],

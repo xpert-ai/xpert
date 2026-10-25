@@ -14,6 +14,8 @@ jest.mock('@xpert-ai/shadcn-ui', () => {
     const React = jest.requireActual<typeof import('react')>('react')
     const box = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children)
     return {
+        Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => React.createElement('button', props),
+        Separator: box,
         Tooltip: box,
         TooltipContent: box,
         TooltipTrigger: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => React.createElement('button', props),

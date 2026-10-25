@@ -2002,6 +2002,19 @@ describe('ConnectorService', () => {
         await expect(service.runtimeOptions('xpert-1', 'project-1', true)).rejects.toBeInstanceOf(ForbiddenException)
     })
 
+    it('lists only project bindings for an Assistant without an authoring workspace', async () => {
+        const project = await service.createBinding({
+            scope: { type: 'project', projectId: 'project-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        publishedXpertAccess.getAccessiblePublishedXpert.mockResolvedValue({ id: 'xpert-1', workspaceId: null })
+        const result = await service.runtimeOptions('xpert-1', 'project-1', true)
+        expect(result.items.map((item) => item.bindingId)).toEqual([project.id])
+        expect(result.workspaceScope).toBeUndefined()
+        expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1')
+    })
+
     it('rejects duplicate providers selected from both workspace and project', async () => {
         const workspace = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },

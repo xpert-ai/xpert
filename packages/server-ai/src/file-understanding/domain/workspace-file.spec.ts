@@ -7,6 +7,31 @@ import {
 } from './workspace-file'
 
 describe('file-understanding workspace file helpers', () => {
+    it.each(['spaces', 'unsupported'])(
+        'rejects the unsupported %s catalog instead of inferring a Project volume',
+        (catalog) => {
+            expect(
+                resolveFileAssetWorkspaceVolumeScope({
+                    tenantId: 'tenant',
+                    projectId: 'project',
+                    userId: 'user',
+                    metadata: { workspace: { catalog, scopeId: 'project' } }
+                })
+            ).toBeNull()
+        }
+    )
+
+    it('rejects conflicting Project identifiers in portable references', () => {
+        expect(
+            resolveWorkspaceVolumeScope({
+                tenantId: 'tenant',
+                catalog: 'projects',
+                projectId: 'project',
+                scopeId: 'other'
+            })
+        ).toBeNull()
+    })
+
     it('resolves sandbox environment metadata without falling back to the xpert volume', () => {
         expect(
             resolveFileAssetWorkspaceVolumeScope(

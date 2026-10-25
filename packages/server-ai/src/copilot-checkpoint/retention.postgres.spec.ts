@@ -37,6 +37,7 @@ postgres('default tenant checkpoint retention (PostgreSQL)', () => {
                 "tenantId" uuid, "organizationId" uuid, "deletedAt" timestamptz,
                 "createdInThreadId" text, "inputCheckpoint" jsonb, "outputCheckpoint" jsonb
             );
+            CREATE TEMP TABLE xpert_agent_execution ("tenantId" uuid, "organizationId" uuid, "threadId" text, status text, metadata jsonb);
             CREATE TEMP TABLE chat_conversation_thread ("threadId" text, "runControl" jsonb);
         `)
         service = new CopilotCheckpointRetentionService({ manager: runner.manager } as Repository<CopilotCheckpoint>)
@@ -45,7 +46,7 @@ postgres('default tenant checkpoint retention (PostgreSQL)', () => {
     beforeEach(async () => {
         setDefaultTenantId(defaultTenantId)
         await runner.query(`TRUNCATE pg_temp.tenant_setting, pg_temp.copilot_checkpoint,
-            pg_temp.copilot_checkpoint_writes, pg_temp.chat_message, pg_temp.chat_conversation_thread`)
+            pg_temp.copilot_checkpoint_writes, pg_temp.chat_message, pg_temp.chat_conversation_thread, pg_temp.xpert_agent_execution`)
     })
 
     afterAll(async () => {
@@ -134,5 +135,26 @@ postgres('default tenant checkpoint retention (PostgreSQL)', () => {
         expect(await service.execute()).toMatchObject({ deletedCheckpointCount: 1, deletedWriteCount: 1 })
         const remaining: Array<{ id: string }> = await runner.query('SELECT id FROM copilot_checkpoint')
         expect(remaining.map(({ id }) => id).sort()).toEqual([ancestor.id, branch.id, input.id, running.id].sort())
+    })
+    it('pins a failed execution input after owner cleanup, without pinning other scopes or successful runs', async () => {
+        await settings(defaultTenantId, 'true')
+        const failed = await checkpoint(otherTenantId),
+            succeeded = await checkpoint(otherTenantId),
+            foreign = await checkpoint(otherTenantId)
+        for (const [row, status, tenantId] of [
+            [failed, 'error', otherTenantId],
+            [succeeded, 'success', otherTenantId],
+            [foreign, 'error', defaultTenantId]
+        ] as const) {
+            await runner.query('INSERT INTO xpert_agent_execution VALUES ($1, $2, $3, $4, $5)', [
+                tenantId,
+                organizationId,
+                row.threadId,
+                status,
+                { recovery: { version: 1, input: { threadId: row.threadId, checkpointNs: '', checkpointId: row.id } } }
+            ])
+        }
+        expect(await service.execute()).toMatchObject({ deletedCheckpointCount: 2, deletedWriteCount: 2 })
+        expect(await runner.query('SELECT id FROM copilot_checkpoint')).toEqual([{ id: failed.id }])
     })
 })

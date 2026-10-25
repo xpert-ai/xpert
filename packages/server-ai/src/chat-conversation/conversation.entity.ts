@@ -42,6 +42,9 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
     @Column({ nullable: true, default: () => 'gen_random_uuid()' })
     threadId: string
 
+    @Column({ type: 'int', default: 0 })
+    workingThreadRevision?: number
+
     @ApiPropertyOptional({ type: () => Object })
     @IsObject()
     @IsOptional()

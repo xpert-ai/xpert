@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
     Button,
+    Badge,
     Card,
     CardContent,
     CardDescription,
@@ -159,7 +160,7 @@ export function WorkbenchPreviewPanel({
     }, [])
 
     return (
-        <Card className="min-h-0 gap-0 overflow-hidden rounded-lg py-0">
+        <Card className="min-h-0 overflow-hidden">
             {viewMode === 'graph' ? (
                 <KnowledgeGraphInspector
                     graph={graph}
@@ -175,11 +176,9 @@ export function WorkbenchPreviewPanel({
                 />
             ) : preview ? (
                 <>
-                    <CardHeader className="flex min-h-14 flex-row items-center justify-between gap-3 border-b px-3 !pb-0 pt-2">
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between">
                         <div className="grid min-w-0 gap-1">
-                            <CardTitle className="truncate font-medium">
-                                {preview.document.name || preview.document.id}
-                            </CardTitle>
+                            <CardTitle className="truncate">{preview.document.name || preview.document.id}</CardTitle>
                             <CardDescription className="truncate">
                                 {preview.document.type || preview.document.mimeType || t('document')}
                             </CardDescription>
@@ -189,13 +188,9 @@ export function WorkbenchPreviewPanel({
                                 value={previewMode}
                                 onValueChange={(value) => onPreviewModeChange(value === 'text' ? 'text' : 'markdown')}
                             >
-                                <TabsList className="h-9 rounded-full bg-muted/70 p-1">
-                                    <TabsTrigger value="markdown" className="rounded-full px-3">
-                                        {t('markdown')}
-                                    </TabsTrigger>
-                                    <TabsTrigger value="text" className="rounded-full px-3">
-                                        {t('rawText')}
-                                    </TabsTrigger>
+                                <TabsList>
+                                    <TabsTrigger value="markdown">{t('markdown')}</TabsTrigger>
+                                    <TabsTrigger value="text">{t('rawText')}</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                             {preview.document.fileUrl ? (
@@ -215,9 +210,9 @@ export function WorkbenchPreviewPanel({
                             ) : null}
                         </div>
                     </CardHeader>
-                    <CardContent className="min-h-0 flex-1 p-0">
+                    <CardContent className="min-h-0 flex-1">
                         <ScrollArea className="h-full min-h-0">
-                            <div className="space-y-2 p-3">
+                            <div className="space-y-2">
                                 {previewChunkTree.map((node) => (
                                     <PreviewChunkArticle
                                         key={node.id}
@@ -318,9 +313,10 @@ function ChunkChildren({
 
     return (
         <div className="border-t px-3 py-2">
-            <button
+            <Button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-medium text-muted-foreground hover:bg-muted"
+                variant="ghost"
+                className="w-full justify-start"
                 aria-expanded={expanded}
                 aria-controls={childrenId}
                 onClick={() => onToggleChunkExpanded(node.id)}
@@ -335,7 +331,7 @@ function ChunkChildren({
                 <span>
                     {node.children.length} {t('childChunks')}
                 </span>
-            </button>
+            </Button>
             {expanded ? (
                 <div id={childrenId} className="mt-2 space-y-2 border-l-2 border-border pl-3">
                     {node.children.map((child, index) => (
@@ -388,9 +384,7 @@ function PreviewChildChunk({
         >
             <div className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm font-medium">
                 <span className="flex items-center gap-2">
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                        C-{childIndex + 1}
-                    </span>
+                    <Badge variant="secondary">C-{childIndex + 1}</Badge>
                     <span>
                         {t('chunks')} {node.sequence}
                     </span>

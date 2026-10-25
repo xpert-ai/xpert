@@ -174,24 +174,16 @@ export abstract class LargeLanguageModel extends AIModel {
       const promptRate = promptBreakdown.find((item) => item.component === 'input') ?? promptBreakdown[0]
       const completionRate = completionBreakdown[0]
       return {
-        promptTokens,
+        ...resolvedTokenUsage,
         promptUnitPrice: promptRate?.unitPrice ?? 0,
         promptPriceUnit: promptRate?.unit ?? 0,
         promptPrice: Number(promptBreakdown.reduce((total, item) => total + (item.amount ?? 0), 0).toFixed(7)),
-        completionTokens,
         completionUnitPrice: completionRate?.unitPrice ?? 0,
         completionPriceUnit: completionRate?.unit ?? 0,
         completionPrice: Number(completionBreakdown.reduce((total, item) => total + (item.amount ?? 0), 0).toFixed(7)),
-        totalTokens: resolvedTokenUsage.totalTokens,
         totalPrice: calculation.totalAmount,
         currency: calculation.currency,
         latency: performance.now() - startedAt,
-        ...(resolvedTokenUsage.cacheReadInputTokens
-          ? { cacheReadInputTokens: resolvedTokenUsage.cacheReadInputTokens }
-          : {}),
-        ...(resolvedTokenUsage.cacheWriteInputTokens
-          ? { cacheWriteInputTokens: resolvedTokenUsage.cacheWriteInputTokens }
-          : {}),
         pricingStatus: calculation.pricingStatus,
         priceAuthority: 'catalog',
         pricingBreakdown: calculation.breakdown
@@ -204,15 +196,13 @@ export abstract class LargeLanguageModel extends AIModel {
 
     // Conversion usage
     const usage: ILLMUsage = {
-      promptTokens: promptTokens,
+      ...resolvedTokenUsage,
       promptUnitPrice: promptPriceInfo.unitPrice,
       promptPriceUnit: promptPriceInfo.unit,
       promptPrice: promptPriceInfo.totalAmount,
-      completionTokens: completionTokens,
       completionUnitPrice: completionPriceInfo.unitPrice,
       completionPriceUnit: completionPriceInfo.unit,
       completionPrice: completionPriceInfo.totalAmount,
-      totalTokens: promptTokens + completionTokens,
       totalPrice,
       currency: promptPriceInfo.currency,
       latency: performance.now() - startedAt,
@@ -264,6 +254,8 @@ export abstract class LargeLanguageModel extends AIModel {
           normalizedTokenUsage,
           { ...pricingContext, inputTokensIncludeCache: true }
         ),
+        // Pricing implementations may return a legacy receipt; token facts remain authoritative.
+        ...normalizedTokenUsage,
         ...(type ? { type } : {})
       }
       const reportedPrice = output ? pricingOptions.resolveReportedPrice?.(output) : undefined
@@ -272,7 +264,6 @@ export abstract class LargeLanguageModel extends AIModel {
       } else if (pricingOptions.reportedPriceRequired) {
         usage = markUsagePriceUnpriced(usage, 'provider')
       }
-      usage.totalTokens = normalizedTokenUsage.totalTokens
       await handleLLMTokens({
         copilot,
         model,

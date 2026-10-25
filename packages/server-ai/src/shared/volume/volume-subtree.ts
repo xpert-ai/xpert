@@ -64,6 +64,7 @@ const BINARY_EDITABLE_SUBTREE_EXTENSIONS = new Set(['docx', 'xlsx', 'pptx', 'xls
 
 type TVolumeSubtreeOptions = {
     allowRootWorkspace?: boolean
+    beforeMutation?: (volumeRelativePath: string, recursive: boolean) => Promise<void>
 }
 
 export type TVolumeSubtreeDownloadTarget =
@@ -182,6 +183,7 @@ export class VolumeSubtreeClient {
         const { openedFile, relativePath } = await this.openSubtreeFile(scopePath, filePath, fsConstants.O_RDWR)
         try {
             this.assertMutationAllowed(openedFile.volumeRelativePath, openedFile.fileStat)
+            await this.options?.beforeMutation?.(openedFile.volumeRelativePath, false)
             if (!isEditableSubtreeFile(relativePath)) {
                 throw new BadRequestException(
                     t('server-ai:Error.VolumeSubtreeFileTypeNotEditable', {
@@ -201,6 +203,7 @@ export class VolumeSubtreeClient {
             const nextBuffer = Buffer.from(content ?? '', 'utf8')
             await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, nextBuffer, {
                 boundaryRoot: this.volume.serverRoot,
+                beforeCommit: () => this.options?.beforeMutation?.(openedFile.volumeRelativePath, false),
                 assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
             })
         } finally {
@@ -214,6 +217,7 @@ export class VolumeSubtreeClient {
         const { openedFile, relativePath } = await this.openSubtreeFile(scopePath, filePath, fsConstants.O_RDWR)
         try {
             this.assertMutationAllowed(openedFile.volumeRelativePath, openedFile.fileStat)
+            await this.options?.beforeMutation?.(openedFile.volumeRelativePath, false)
             if (!BINARY_EDITABLE_SUBTREE_EXTENSIONS.has(getSubtreeFileExtension(relativePath))) {
                 throw new BadRequestException(
                     t('server-ai:Error.VolumeSubtreeFileTypeNotEditable', {
@@ -224,6 +228,7 @@ export class VolumeSubtreeClient {
 
             await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, content, {
                 boundaryRoot: this.volume.serverRoot,
+                beforeCommit: () => this.options?.beforeMutation?.(openedFile.volumeRelativePath, false),
                 assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
             })
         } finally {
@@ -252,8 +257,11 @@ export class VolumeSubtreeClient {
 
             relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
             assertPublicWorkspacePath(relativeFilePath)
+            const volumePath = [subtreeRoot.filePath, relativeFilePath].filter(Boolean).join('/')
+            await this.options?.beforeMutation?.(volumePath, false)
             await VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
                 boundaryRoot: this.volume.serverRoot,
+                beforeCommit: () => this.options?.beforeMutation?.(volumePath, false),
                 assertCanWrite: (canonicalRelativePath, fileStat) =>
                     this.assertMutationAllowed(canonicalRelativePath, fileStat)
             })
@@ -272,6 +280,7 @@ export class VolumeSubtreeClient {
                     t('server-ai:Error.VolumeSubtreeFilePathRequired', { defaultValue: 'File path is required' })
                 )
             }
+            await this.options?.beforeMutation?.([subtreeRoot.filePath, relativePath].filter(Boolean).join('/'), true)
             await VolumeHandle.removePath(subtreeRoot.descriptorPath, relativePath, {
                 boundaryRoot: this.volume.serverRoot,
                 assertCanRemove: (canonicalRelativePath) => this.assertMutationAllowed(canonicalRelativePath)

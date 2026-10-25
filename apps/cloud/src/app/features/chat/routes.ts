@@ -1,3 +1,4 @@
+import { ChatkitLifecycleService } from '../../@core/services/chatkit-lifecycle.service'
 import { inject } from '@angular/core'
 import { CanActivateFn, Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
 import { of } from 'rxjs'
@@ -115,8 +116,10 @@ export const routes: Routes = [
       {
         matcher: xpertWorkbenchConversationMatcher,
         component: ChatXpertWorkbenchComponent,
+        canDeactivate: [() => inject(ChatkitLifecycleService).prepareLeave()],
+        runGuardsAndResolvers: 'always',
         resolve: { conversationEntry: resolveConversationEntry },
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT])],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT]), () => inject(ChatkitLifecycleService).prepareLeave()],
         data: {
           title: 'Chat Xpert Workbench Conversation'
         }

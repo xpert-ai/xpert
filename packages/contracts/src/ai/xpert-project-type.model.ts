@@ -18,6 +18,12 @@ export const GENERAL_PROJECT_TYPE: XpertProjectTypeRef = {
   projectTypeKey: 'general'
 }
 
+/** File-backed collaborative writing workspace using the ordinary Project lifecycle. */
+export const SPACE_PROJECT_TYPE: XpertProjectTypeRef = {
+  applicationKey: 'platform',
+  projectTypeKey: 'space'
+}
+
 /** Business-task capacity owned by the Project type's dispatcher, never the Agent runtime. */
 export interface XpertProjectTaskConcurrency {
   maxConcurrentTasks: number

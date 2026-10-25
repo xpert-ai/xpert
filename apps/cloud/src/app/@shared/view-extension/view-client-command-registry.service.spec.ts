@@ -1,6 +1,19 @@
+import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { ViewClientCommandRegistry, ViewClientCommandContext } from './view-client-command-registry.service'
 
 describe('ViewClientCommandRegistry', () => {
+  it('does not mount a view whose required commands are absent or inactive', () => {
+    const registry = new ViewClientCommandRegistry()
+    const manifest: XpertExtensionViewManifest = { key: 'editor', title: 'Editor', hostType: 'agent', slot: 'agent.workbench', source: { provider: 'test' }, view: { type: 'table' }, dataSource: { mode: 'platform' }, clientCommands: [{ key: 'editor.status', required: true }, { key: 'optional.action' }] }
+    expect(registry.supportsView(manifest)).toBe(false)
+    let active = true
+    const remove = registry.register('editor.status', () => undefined, () => active)
+    expect(registry.supportsView(manifest)).toBe(true)
+    active = false
+    expect(registry.supportsView(manifest)).toBe(false)
+    remove()
+    expect(registry.supportsView(manifest)).toBe(false)
+  })
   it('dispatches commands only to the active conversation and restores prior handlers on teardown', async () => {
     const registry = new ViewClientCommandRegistry()
     let active = 'task'

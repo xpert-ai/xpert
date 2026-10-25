@@ -21,7 +21,8 @@ import {
     SelectQueryBuilder
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type OrganizationRuntimeActor } from '@xpert-ai/plugin-sdk'
+import { UserOrganization } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { isSameXpertFamily } from './xpert-family'
@@ -374,26 +375,30 @@ export class PublishedXpertAccessService {
         }
     }
 
-    private buildAccessibleQuery(options?: PublishedXpertQueryOptions, resourceParentId?: string) {
-        const publicXpertId = this.currentPublicXpertId()
+    private buildAccessibleQuery(
+        options?: PublishedXpertQueryOptions,
+        resourceParentId?: string,
+        actor?: OrganizationRuntimeActor
+    ) {
+        const publicXpertId = actor ? null : this.currentPublicXpertId()
         if (publicXpertId) {
             return this.buildPublicXpertBoundQuery(publicXpertId, options)
         }
 
-        const enterpriseScope = this.currentEnterpriseXpertScope()
+        const enterpriseScope = actor ? null : this.currentEnterpriseXpertScope()
         if (enterpriseScope && !resourceParentId) {
             return this.buildEnterpriseXpertBoundQuery(enterpriseScope, options)
         }
 
-        const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
+        const workspaceId = actor ? null : this.currentWorkspaceApiKeyWorkspaceId()
         if (workspaceId && !this.currentRequestedUserId()) {
             return this.buildWorkspaceBoundQuery(workspaceId, options)
         }
 
-        const tenantId = this.currentTenantId()
-        const organizationId = this.currentOrganizationId()
-        const userId = this.currentAccessUserId()
-        const userXpertId = resourceParentId ? null : this.currentUserXpertId()
+        const tenantId = actor?.tenantId ?? this.currentTenantId()
+        const organizationId = actor?.organizationId ?? this.currentOrganizationId()
+        const userId = actor?.userId ?? this.currentAccessUserId()
+        const userXpertId = actor || resourceParentId ? null : this.currentUserXpertId()
         const qb = this.repository
             .createQueryBuilder('xpert')
             .leftJoin('xpert.workspace', 'workspace')
@@ -658,6 +663,33 @@ export class PublishedXpertAccessService {
         const count = await this.buildAccessibleQuery({ where: { id } }, parentId).getCount()
         if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         return this.getPublishedXpertInTenant(id, { relations: ['agent'] })
+    }
+
+    /** Reuses the human catalog policy for persisted jobs and collaboration recipients.
+     * actor is a server-authenticated identity, never a request body. Ambient tokens
+     * and the sender's RequestContext must not grant a different recipient access.
+     */
+    async getAccessiblePublishedXpertForActor(id: string, actor: OrganizationRuntimeActor) {
+        if (!actor.tenantId || !actor.organizationId || !actor.userId) {
+            throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        }
+        // Explicit actors may outlive their organization membership (jobs and collaboration
+        // recipients). Check it in the same ACL query, without resolving content groups.
+        const count = await this.buildAccessibleQuery({ where: { id } }, undefined, actor)
+            .innerJoin(
+                UserOrganization,
+                'actorMembership',
+                'actorMembership.tenantId = :tenantId AND actorMembership.organizationId = :organizationId AND actorMembership.userId = :userId AND actorMembership.isActive = :actorMembershipActive',
+                { actorMembershipActive: true }
+            )
+            .getCount()
+        if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        const xpert = await this.repository.findOne({
+            where: { id, tenantId: actor.tenantId, publishAt: Not(IsNull()) },
+            relations: ['agent']
+        })
+        if (!xpert) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        return xpert
     }
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {

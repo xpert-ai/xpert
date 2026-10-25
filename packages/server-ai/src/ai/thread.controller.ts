@@ -1,3 +1,4 @@
+import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { threadActivityStream } from './thread-activity/thread-activity-stream'
 import { t } from 'i18next'
@@ -55,6 +56,7 @@ import { threadCopySchema, CopyConversationThreadInput } from '../chat-conversat
 import {
     FindAgentExecutionsQuery,
     GetAgentExecutionRunSummaryQuery,
+    GetAgentExecutionRunStatusQuery,
     GetThreadContextUsageQuery,
     TAgentExecutionRunSummary,
     XpertAgentExecutionOneQuery
@@ -131,6 +133,7 @@ export class ThreadsController {
         return this.queryBus.execute(new SearchThreadsQuery(req))
     }
 
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id')
     async getThread(@Param('thread_id') thread_id: string) {
         return await this.queryBus.execute(new FindThreadQuery(thread_id))
@@ -138,6 +141,7 @@ export class ThreadsController {
 
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/stream')
     @Sse()
     async streamThreadActivity(@Res() res: Response, @Param('thread_id') threadId: string) {
@@ -373,6 +377,7 @@ export class ThreadsController {
      */
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/stream')
     @Sse()
     async joinRunStream(
@@ -380,9 +385,10 @@ export class ThreadsController {
         @Res() res: Response,
         @Param('thread_id') thread_id: string,
         @Param('run_id') run_id: string,
-        @Headers('last-event-id') lastEventId?: string
+        @Headers('last-event-id') lastEventId?: string,
+        @Headers('x-xpert-display-snapshot') displaySnapshot?: string
     ) {
-        await this.ensureThreadRunAccess(thread_id, run_id)
+        const execution = await this.ensureThreadRunAccess(thread_id, run_id)
         if (lastEventId && !/^\d+-\d+$/.test(lastEventId)) {
             throw new BadRequestException(t('server-ai:Error.InvalidStreamCursor'))
         }
@@ -396,6 +402,9 @@ export class ThreadsController {
             lastEventId,
             mode: 'join',
             requireReplayStart: true,
+            ...(displaySnapshot === '1'
+                ? { snapshotScope: { tenantId: execution.tenantId, organizationId: execution.organizationId } }
+                : {}),
             isRunFinished: async () => {
                 const run = await this.ensureThreadRunAccess(thread_id, run_id)
                 return !['pending', 'running'].includes(run.status)
@@ -411,6 +420,34 @@ export class ThreadsController {
         return stream
     }
 
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
+    @Get(':thread_id/runs/:run_id/status')
+    async getThreadRunStatus(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
+        await this.ensureThreadAccess(threadId)
+        const execution = await this.queryBus.execute(new GetAgentExecutionRunStatusQuery(runId))
+        if (execution.threadId !== threadId) throw new ForbiddenException()
+        return {
+            run_id: execution.id,
+            thread_id: execution.threadId,
+            assistant_id: execution.xpertId,
+            created_at: execution.createdAt.toISOString(),
+            updated_at: execution.updatedAt.toISOString(),
+            status: execution.status,
+            metadata: {
+                agentRun: {
+                    id: execution.id,
+                    status: execution.status,
+                    elapsedTime: execution.elapsedTime,
+                    error: execution.error,
+                    businessOutcome: execution.businessOutcome ?? undefined,
+                    updatedAt: execution.updatedAt.toISOString(),
+                    endedAt: execution.completedAt?.toISOString()
+                }
+            }
+        }
+    }
+
+    @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id')
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         await this.ensureThreadAccess(thread_id)

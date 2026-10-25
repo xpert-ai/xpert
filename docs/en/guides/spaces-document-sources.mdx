@@ -1,0 +1,86 @@
+---
+title: 'Document Source Imports'
+description: 'Import Feishu document text through project connections, retain provenance, and collaborate in Xpert.'
+---
+
+Spaces reads external documents through the platform's document source API, with platform-specific adapters supplied by connector plugins. The current Feishu adapter imports a text copy of a new-format document into a project Markdown page for editing, references, search, and collaboration in Xpert.
+
+Import is not two-way synchronization. Editing the Xpert copy does not write back to Feishu, and source changes do not automatically overwrite imported content.
+
+## Prerequisites
+
+- Install the Feishu connector plugin with document source support and compatible Spaces and Markdown editor plugins.
+- Complete Feishu authorization in the target project's connection settings and confirm that it reports connected.
+- The authorized Feishu account must be able to read the test document. The browser's current login may differ from the account used by the connection.
+- The Xpert user needs edit access to the target project, the project must not be archived, and the Assistant must be connected to it.
+
+Document sources currently use shared connections. Available Feishu documents depend on the connection's authorized account, not each project member's own Feishu account. Import copies content for authorized members of the destination project; check the document and project audiences before confirming.
+
+## Import workflow
+
+1. In the target project's Space, choose the create action and import from a document platform.
+2. Select the Feishu source. Recheck the connection if authorization was just completed.
+3. Search by document title, or paste a document link and preview it.
+4. Check the title, text, source, and format-loss warnings before confirming the copy into this project.
+5. Import the text copy, then open the new page in the Markdown editor.
+6. Use the content item's source information to inspect the original document, imported version, and import time.
+
+Supported HTTPS document addresses use `*.feishu.cn` or `*.larksuite.com`:
+
+```text
+https://<tenant>.feishu.cn/docx/<document-token>
+https://<tenant>.feishu.cn/wiki/<node-token>
+```
+
+A `/wiki/` node must resolve to a new-format document (docx). This does not imply support for importing a whole Feishu knowledge space or every node type.
+
+## Discovery and content scope
+
+| Capability           | Current scope                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Empty-query listing  | Cloud Drive root, without recursive folder traversal                                                         |
+| Title keyword search | At most the first 199 new-format document search results                                                     |
+| Direct links         | `/docx/` documents or `/wiki/` nodes whose target is docx                                                    |
+| Content reading      | Plain text up to 100,000 UTF-8 bytes                                                                         |
+| Import result        | An independent Markdown text copy in the project                                                             |
+| Format warnings      | Images, attachments, formulas, page layout, table structure, comments, and rich-text styles are not retained |
+
+External text is encoded literally rather than interpreting embedded Markdown or HTML as active content or additional rich-text features. Use the [editor's insert tools](/en/guides/spaces-markdown) to add images, tables, or formulas after import.
+
+## Consistency and provenance
+
+Between preview and confirmation, the server rereads the source and checks its revision and content hash. A changed source requires a refreshed preview rather than importing an unconfirmed version. Metadata is also checked during reading to avoid combining two source revisions.
+
+Retries of the same import request are idempotent. After completion, repeating the request returns the existing resource instead of creating a duplicate. A new request can intentionally create another copy. Destination conflicts never overwrite existing content.
+
+Provenance records include provider, document identity, original URL, revision, hash, import time, and conversion warnings without exposing connection secrets to the frontend. Once copied, remote changes or revoked remote access do not automatically delete the local copy. Project permissions continue to govern local access.
+
+## Acceptance workflow
+
+Use a dedicated source document and two project accounts with edit access:
+
+1. Add recognizable text in Feishu. Verify discovery and preview through both title search and a direct link.
+2. Import it, then check the page body, provenance, project file, and content after reopening.
+3. Open the same resource from Assistants connected to the project using both accounts. Edit different paragraphs and verify that both users see the changes and presence.
+4. Wait for file saving, refresh both editors, and confirm identical content. Also check update recovery after a disconnection.
+5. Confirm that a read-only member cannot edit and an unauthorized account cannot read the resource.
+6. Change the Feishu original and confirm that the Xpert copy is not overwritten automatically. Changing the source after preview should require a new preview before import.
+
+These are post-deployment acceptance steps, not a claim that every installation has passed them. The final released package combination also requires the [deployment checklist](/en/architecture/spaces-content#release-and-deployment).
+
+## Troubleshooting
+
+| Symptom                        | What to check                                                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Connected but unable to read   | Verify the account authorized by the connection and the application's permission scope; do not rely only on the browser login     |
+| Document absent from search    | Empty queries list only the root, and keyword results are bounded; try the direct `/docx/` link                                   |
+| Unsupported `/wiki/` link      | Confirm that the node targets a new-format document; spreadsheets, multidimensional tables, and other node types are not imported |
+| Source changed at confirmation | Refresh the preview and confirm again                                                                                             |
+| Import unavailable             | Check project write access, archive state, connection availability, and successful preview                                        |
+| Missing images or formatting   | The adapter reads plain text; the original remains in Feishu, and the Xpert copy can be enriched locally                          |
+
+## Extending to other platforms
+
+The platform exposes a generic document source contract. Connectors provide source discovery, search, and reading, while Spaces reuses preview and confirmation. Feishu credentials, API origins, and conversion stay inside the connector; the Space view does not depend on a Feishu-specific SDK.
+
+Adapters for Yuque, WPS, Tencent Docs, DingTalk, and others, as well as writeback, two-way synchronization, scheduled pulls, and embedded native editors, require separate design, authorization, and validation. They are not part of this delivery. See [document source integration](/en/architecture/spaces-content#document-source-integration) for the extension boundary.

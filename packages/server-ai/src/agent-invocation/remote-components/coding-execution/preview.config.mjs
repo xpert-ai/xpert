@@ -62,7 +62,7 @@ export default defineRemoteViewPreview({
     },
     isolatedOrigin: true,
     hostContext: {
-        locale: 'zh-Hans',
+        locale: process.env.CODING_EXECUTION_PREVIEW_LOCALE ?? 'zh-Hans',
         theme: { mode: 'light', tokens: {} },
         initialQuery: { selectionId: 'preview-execution' }
     },

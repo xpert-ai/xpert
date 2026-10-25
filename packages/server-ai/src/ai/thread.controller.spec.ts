@@ -33,6 +33,9 @@ jest.mock('../xpert-agent-execution', () => ({
     FindAgentExecutionsQuery: class FindAgentExecutionsQuery {},
     GetThreadContextUsageQuery: class GetThreadContextUsageQuery {},
     XpertAgentExecutionOneQuery: class XpertAgentExecutionOneQuery {},
+    GetAgentExecutionRunStatusQuery: class GetAgentExecutionRunStatusQuery {
+        constructor(public readonly id: string) {}
+    },
     GetAgentExecutionRunSummaryQuery: class GetAgentExecutionRunSummaryQuery {
         constructor(public readonly id: string) {}
     }
@@ -80,7 +83,11 @@ import {
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
 import { AssertChatConversationAccessQuery } from '../chat-conversation'
-import { GetAgentExecutionRunSummaryQuery, XpertAgentExecutionOneQuery } from '../xpert-agent-execution'
+import {
+    GetAgentExecutionRunStatusQuery,
+    GetAgentExecutionRunSummaryQuery,
+    XpertAgentExecutionOneQuery
+} from '../xpert-agent-execution'
 import type { TAgentExecutionRunSummary } from '../xpert-agent-execution/queries/get-run-summary.query'
 import { TransformInterceptor as HttpTransformInterceptor } from '../../../server/src/core/interceptors/transform.interceptor'
 import { ThreadsController } from './thread.controller'
@@ -126,12 +133,29 @@ describe('ThreadsController', () => {
                         throw new Error('Full execution details and checkpoints are unavailable')
                     }
                     if (query instanceof GetAgentExecutionRunSummaryQuery) return row
+                    if (query instanceof GetAgentExecutionRunStatusQuery)
+                        return { ...row, businessOutcome: row.metadata?.businessOutcome }
                     throw new Error('Unexpected query')
                 })
             }
             const controller = new ThreadsController({} as never, queries as never, {} as never, {} as never)
             return { controller, queries }
         }
+
+        it('returns compact lifecycle facts including errors and business outcome without presentation', async () => {
+            const { controller } = setup()
+            const result = await controller.getThreadRunStatus('thread', 'run')
+            expect(result.metadata.agentRun).toMatchObject({
+                status: 'interrupted',
+                error: 'Cancelled by user',
+                businessOutcome: execution.metadata.businessOutcome
+            })
+            const text = JSON.stringify(result)
+            expect(text).not.toMatch(/avatar|inputs|test-model|Please review/)
+            await expect(
+                setup({ ...execution, threadId: 'other' }).controller.getThreadRunStatus('thread', 'run')
+            ).rejects.toThrow(ForbiddenException)
+        })
 
         it('returns the complete existing run contract without loading execution details', async () => {
             const { controller } = setup()
@@ -611,6 +635,41 @@ describe('ThreadsController', () => {
         } finally {
             response.emit('close')
             jest.useRealTimers()
+        }
+    })
+
+    it('uses the authorized run scope only when the client opts into snapshots', async () => {
+        const redis = {
+            createSseStream: jest.fn().mockResolvedValue({ connectionId: 'c', stream: EMPTY }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const query = {
+            execute: jest.fn(async (value: object) =>
+                value.constructor.name === 'AssertChatConversationAccessQuery'
+                    ? { id: 'conversation', threadId: 'thread' }
+                    : { id: 'run', threadId: 'thread', tenantId: 'tenant', organizationId: 'organization' }
+            )
+        }
+        const command = { execute: jest.fn() }
+        const controller = new ThreadsController({} as never, query as never, command as never, redis as never)
+        const response = new EventEmitter()
+        try {
+            await controller.joinRunStream(
+                { headers: { 'organization-id': 'untrusted' } } as never,
+                response as never,
+                'thread',
+                'run',
+                '1-0',
+                '1'
+            )
+            expect(redis.createSseStream).toHaveBeenLastCalledWith(
+                expect.objectContaining({ snapshotScope: { tenantId: 'tenant', organizationId: 'organization' } })
+            )
+            await controller.joinRunStream({ headers: {} } as never, response as never, 'thread', 'run', '1-0')
+            expect(redis.createSseStream.mock.calls[1][0]).not.toHaveProperty('snapshotScope')
+            expect(command.execute).not.toHaveBeenCalled()
+        } finally {
+            response.emit('close')
         }
     })
 

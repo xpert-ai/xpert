@@ -5,7 +5,7 @@ import {
     PluginApplicationScope
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
-import { Column, Entity, Index } from 'typeorm'
+import { Check, Column, Entity, ForeignKey, Index } from 'typeorm'
 
 /**
  * Control-plane record for one governed plugin App installation.
@@ -13,6 +13,12 @@ import { Column, Entity, Index } from 'typeorm'
  * resources when users retry or initialize from multiple browser sessions.
  */
 @Entity('plugin_application_installation')
+@Check(
+    'CHK_plugin_application_personal_owner',
+    `"declaredScope" <> 'personal' OR ("ownerUserId" IS NOT NULL AND "organizationId" IS NOT NULL AND "scopeKey" = 'personal:' || "organizationId"::text || ':' || "ownerUserId"::text)`
+)
+@ForeignKey('user', ['ownerUserId'], ['id'], { name: 'FK_plugin_application_owner', onDelete: 'RESTRICT' })
+@Index('IDX_plugin_application_owner', ['tenantId', 'organizationId', 'ownerUserId'])
 @Index(['tenantId', 'pluginName', 'appName', 'scopeKey'], { unique: true })
 @Index(['tenantId', 'organizationId', 'status'])
 export class PluginApplicationInstallation
@@ -27,6 +33,9 @@ export class PluginApplicationInstallation
 
     @Column({ type: 'varchar' })
     declaredScope: PluginApplicationScope
+
+    @Column({ type: 'uuid', nullable: true })
+    ownerUserId?: string | null
 
     @Column()
     scopeKey: string

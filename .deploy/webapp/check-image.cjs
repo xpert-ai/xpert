@@ -67,6 +67,15 @@ async function main() {
       }
       console.log(`${pathname}: passed`)
     }
+    const catalog = JSON.parse(fetchPage('/pets/catalog.json'))
+    assert.ok(Array.isArray(catalog) && catalog.some((pet) => pet.id === 'boba'), 'Offline pet catalog missing')
+    for (const pet of catalog) {
+      assert.match(pet.id, /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/)
+      const header = fetchPage(`/pets/${pet.id}/spritesheet.webp`).slice(0, 12)
+      assert.equal(header.slice(0, 4), 'RIFF', `${pet.id}: missing WebP header`)
+      assert.equal(header.slice(8, 12), 'WEBP', `${pet.id}: invalid sprite response`)
+    }
+    console.log(`${catalog.length} offline pet sprites passed`)
     console.log(`Nginx startup and ${checked.size} JavaScript/CSS assets passed`)
   } finally {
     if (started) docker('rm', '-f', name)
