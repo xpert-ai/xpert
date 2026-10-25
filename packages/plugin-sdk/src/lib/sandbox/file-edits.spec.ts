@@ -42,4 +42,22 @@ describe('sequential file edits', () => {
       expect(editCommandResult('file', { exitCode, output: '', truncated: false }).error).toBeTruthy()
     }
   })
+  it('keeps structured metrics and does not mistake unavailable statistics for a zero diff', () => {
+    const metrics = { occurrences: 1, oldLines: 500, newLines: 500, changed: true, diff: { removed: 1, added: 1 } }
+    expect(editCommandResult('file', { exitCode: 0, output: JSON.stringify(metrics), truncated: false })).toEqual({
+      path: 'file',
+      filesUpdate: null,
+      ...metrics
+    })
+    const unavailable = {
+      occurrences: 1,
+      oldLines: 1,
+      newLines: 1,
+      changed: true,
+      diffUnavailable: 'comparison_budget_exceeded'
+    }
+    const result = editCommandResult('file', { exitCode: 0, output: JSON.stringify(unavailable), truncated: false })
+    expect(result.diffUnavailable).toBe('comparison_budget_exceeded')
+    expect(result.diff).toBeUndefined()
+  })
 })
