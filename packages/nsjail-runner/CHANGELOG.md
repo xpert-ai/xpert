@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.3.1
+
+### Patch Changes
+
+- Publish a develop candidate for the released NsJail runtime baseline synchronized from main, including the Compute and document runtime bindings and their image acceptance checks.
+
 ## 0.3.0
 
 ### Minor Changes

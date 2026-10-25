@@ -1,5 +1,24 @@
 # @xpert-ai/server-core
 
+## 3.27.0
+
+### Patch Changes
+
+- 078e6fe: Allow trusted Artifact document hosts to opt into exact HTTPS origins for scripts, styles, fonts and images while preserving the offline default and blocking direct data requests, frames, workers and eval. Share resource checks between preview routing and the document CSP.
+
+    Preserve safe analytics error codes, failure stages, retryability and localized repair guidance in both HTTP responses and Agent tool errors. Distinguish read-only SQL rejection, parameter binding failures and output contract mismatches without exposing private provider errors. Add browser isolation coverage and regression cases for parameterized Doris month filters.
+
+- Updated dependencies [52a3241]
+- Updated dependencies [147683a]
+- Updated dependencies [d6efa08]
+- Updated dependencies [078e6fe]
+- Updated dependencies [c3509ee]
+- Updated dependencies [de45823]
+    - @xpert-ai/contracts@3.27.0
+    - @xpert-ai/plugin-sdk@3.27.0
+    - @xpert-ai/server-common@3.27.0
+    - @xpert-ai/server-config@3.27.0
+
 ## 3.26.2
 
 ### Patch Changes

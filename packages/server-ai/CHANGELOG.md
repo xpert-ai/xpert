@@ -1,5 +1,42 @@
 # @xpert-ai/server-ai
 
+## 3.27.0
+
+### Patch Changes
+
+- 52a3241: Let Assistant capability providers explicitly opt into parameter-free creation switches through supportsQuickCreation. Cloud discovers these options from the server instead of hardcoding Project management, so Spaces and future plugins can participate without bespoke UI. Preserve model authorization, existing capabilities and revision-checked composition; apply and save all selected capabilities before publication.
+- 33313f8: Reduce project-task polling work with a scoped run-status endpoint that selects lifecycle fields and business outcomes without loading execution payloads. Limit task-graph execution queries to timing and status fields.
+
+    Pause project-task refreshes while their Workbench view or browser tab is hidden and resume when visible. Deduplicate avatars by content version and omit assets already cached by the client, preserving task state, access checks, and retry behavior.
+
+- 147683a: Preserve reasoning and cache token details in priced LLM receipts so Model Gateway can validate and settle reasoning-model calls. Keep usage with unavailable or inconsistent pricing pending settlement instead of treating it as a successful zero-point charge. Add regression coverage from the SDK callback through gateway validation and idempotent membership ledger settlement.
+- 078e6fe: Allow trusted Artifact document hosts to opt into exact HTTPS origins for scripts, styles, fonts and images while preserving the offline default and blocking direct data requests, frames, workers and eval. Share resource checks between preview routing and the document CSP.
+
+    Preserve safe analytics error codes, failure stages, retryability and localized repair guidance in both HTTP responses and Agent tool errors. Distinguish read-only SQL rejection, parameter binding failures and output contract mismatches without exposing private provider errors. Add browser isolation coverage and regression cases for parameterized Doris month filters.
+
+- 1aac9eb: Preserve existing toolset bindings when refreshing Assistant templates in workspaces with multiple instances of the same provider. Validate the bound toolset against the current organization and workspace, while retaining ambiguity checks for new installations and rejecting unavailable bindings. Isolate toolset dependency inspection in a dedicated method.
+- 19dcf40: Preserve thread activity SSE updates when Nest has already flushed response headers, while retaining sanitized diagnostics for failed reads.
+- 240a5fe: Declare Project authorization as an explicit dependency of workspace file access,
+  and preserve tenant-shared Assistants after the authenticated actor passes the
+  published catalog authorization checks.
+- de45823: Keep document source contracts browser-safe and include their transitive types in
+  the isolated Cloud build. Register durable display snapshots and conversation
+  revisions in the packaged SQL migration flow so clean databases initialize in
+  dependency order and existing deployments receive the required fields.
+- Updated dependencies [52a3241]
+- Updated dependencies [147683a]
+- Updated dependencies [d6efa08]
+- Updated dependencies [078e6fe]
+- Updated dependencies [c3509ee]
+- Updated dependencies [de45823]
+    - @xpert-ai/contracts@3.27.0
+    - @xpert-ai/plugin-sdk@3.27.0
+    - @xpert-ai/server-core@3.27.0
+    - @xpert-ai/desktop-protocol@0.3.11
+    - @xpert-ai/server-auth@3.27.0
+    - @xpert-ai/server-common@3.27.0
+    - @xpert-ai/server-config@3.27.0
+
 ## 3.26.2
 
 ### Patch Changes
