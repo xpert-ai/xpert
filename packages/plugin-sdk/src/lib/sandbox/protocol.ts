@@ -113,8 +113,17 @@ export interface EditResult {
    * External backends set null (already persisted to disk/S3/database/etc).
    */
   filesUpdate?: Record<string, FileData> | null
-  /** Number of replacements made, undefined on failure */
+  /** Number of matched replacements processed, including unchanged replacements. */
   occurrences?: number
+  /** Lines in the old/new arguments, before multiplying by occurrences. Empty text has zero lines. */
+  oldLines?: number
+  newLines?: number
+  /** Whether this edit changed the file's text. */
+  changed?: boolean
+  /** Whole-file line additions/deletions computed in memory, independently of argument sizes. */
+  diff?: { removed: number; added: number }
+  /** Missing statistics do not turn a successful write into an error. */
+  diffUnavailable?: 'comparison_budget_exceeded' | 'diff_unavailable'
   /** Metadata for the edit operation, attached to the ToolMessage */
   metadata?: Record<string, unknown>
 }

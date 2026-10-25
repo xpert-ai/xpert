@@ -195,6 +195,68 @@ describe('SandboxFileMiddleware', () => {
         }
     })
 
+    it('returns edit size and actual diff without rejecting unchanged replacements', async () => {
+        const created = await createFileTools()
+        const operation = created.tools.find((tool) => tool.name === 'sandbox_edit_file')
+        const backend = {
+            workingDirectory: '/workspace',
+            edit: jest.fn().mockResolvedValue({
+                path: '/workspace/body.md',
+                occurrences: 1,
+                oldLines: 1,
+                newLines: 1,
+                changed: false,
+                diff: { removed: 0, added: 0 }
+            })
+        }
+        const output = await operation.invoke(
+            { file_path: 'body.md', old_string: '“三检制”', new_string: '“三检制”' },
+            { configurable: { sandbox: { backend } } }
+        )
+        expect(backend.edit).toHaveBeenCalledWith('/workspace/body.md', '“三检制”', '“三检制”', undefined)
+        expect(JSON.parse(output)).toEqual({
+            path: 'body.md',
+            occurrences: 1,
+            oldLines: 1,
+            newLines: 1,
+            changed: false,
+            diff: { removed: 0, added: 0 }
+        })
+    })
+
+    it('preserves each batch edit statistic, including unchanged steps', async () => {
+        const created = await createFileTools()
+        const operation = created.tools.find((tool) => tool.name === 'sandbox_multi_edit_file')
+        const results = [
+            { oldLines: 500, newLines: 500, changed: true, diff: { removed: 1, added: 1 } },
+            { oldLines: 1, newLines: 1, changed: false, diff: { removed: 0, added: 0 } }
+        ]
+        const backend = {
+            workingDirectory: '/workspace',
+            multiEdit: jest.fn().mockResolvedValue({
+                path: '/workspace/body.md',
+                results,
+                progress: { mode: 'sequential', appliedEdits: 2 }
+            })
+        }
+        const output = await operation.invoke(
+            {
+                file_path: 'body.md',
+                edits: [
+                    { oldString: 'old', newString: 'new' },
+                    { oldString: 'same', newString: 'same' }
+                ]
+            },
+            { configurable: { sandbox: { backend } } }
+        )
+        expect(backend.multiEdit).toHaveBeenCalledTimes(1)
+        expect(JSON.parse(output)).toEqual({
+            path: 'body.md',
+            results,
+            progress: { mode: 'sequential', appliedEdits: 2 }
+        })
+    })
+
     it('returns the caller workspace path instead of the provider absolute path after writing', async () => {
         const middleware = new SandboxFileMiddleware({ persist: jest.fn() })
         const agentMiddleware = await Promise.resolve(
