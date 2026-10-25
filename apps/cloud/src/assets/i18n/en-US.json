@@ -1059,7 +1059,24 @@
           "knowledgebase": "Knowledge base"
         },
         "InstallationTarget": "Install for",
-        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default."
+        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default.",
+        "Update": {
+          "Action": "Update application",
+          "Resume": "Resume update",
+          "Description": "Update and publish all managed Assistants and template skills in place, preserving instance configuration. Progress is saved when you leave this page.",
+          "Progress": "Application update progress",
+          "Main": "Main Assistant",
+          "running": "Updating",
+          "failed": "Update interrupted",
+          "completed": "Update complete",
+          "pending": "Waiting",
+          "preparing": "Updating template and skills",
+          "prepared": "Draft ready",
+          "binding": "Refreshing dependencies",
+          "publishing": "Publishing",
+          "published": "Published",
+          "FailureHint": "Completed steps are saved. Resolve resource or permission issues before resuming. Changed templates or drafts require conflict review."
+        }
       }
     },
     "AgentEvolution": {

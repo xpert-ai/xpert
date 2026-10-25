@@ -1,6 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
+  PluginApplicationUpdateInput,
+  PluginApplicationUpdateProgress,
   PluginApplicationScope,
   getPluginApplicationScopes,
   PluginApplicationCatalogItem,
@@ -51,6 +53,26 @@ export class PluginApplicationService {
 
   private scopeParams(installationScope?: PluginApplicationScope) {
     return installationScope ? new HttpParams().set('installationScope', installationScope) : new HttpParams()
+  }
+
+  getUpdateProgress(input: PluginApplicationSetupInput) {
+    const params = this.scopeParams(input.installationScope)
+      .set('pluginName', input.pluginName)
+      .set('appName', input.appName)
+    return this.#http.get<PluginApplicationUpdateProgress | null>(`${API_PREFIX}/plugin-applications/update`, {
+      params
+    })
+  }
+
+  updateApplication(input: PluginApplicationUpdateInput) {
+    return this.#http.post<PluginApplicationUpdateProgress>(`${API_PREFIX}/plugin-applications/update`, input).pipe(
+      tap((release) => {
+        if (release.status === 'completed') {
+          this.#workspaces.refresh()
+          this.#xperts.refresh()
+        }
+      })
+    )
   }
 
   initialize(input: PluginApplicationInitializeInput) {
