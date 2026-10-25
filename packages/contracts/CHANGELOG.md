@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.27.0
+
+### Minor Changes
+
+- 52a3241: Let Assistant capability providers explicitly opt into parameter-free creation switches through supportsQuickCreation. Cloud discovers these options from the server instead of hardcoding Project management, so Spaces and future plugins can participate without bespoke UI. Preserve model authorization, existing capabilities and revision-checked composition; apply and save all selected capabilities before publication.
+
 ## 3.26.2
 
 ### Patch Changes
