@@ -52,7 +52,9 @@ Visible views poll the host every two seconds; collection uses the existing moni
 - Project execution resource card → the same invocation in the conversation's authorized workbench.
 - Direct Coding invocation → one live execution card; its final summary is in the view. Independently delivered file cards remain available.
 
-Web downloads use the existing cookie-bound file grant. Desktop intercepts only content URLs from its configured API origin and downloads through the login-authenticated `GET /api/workspace-files/view-sessions/:sessionId/grants/:grantId/content/:fileName` route. That route checks the original session owner/tenant/organization, expiry, download purpose and current View resource access. Account credentials remain in the native host; bytes stream into a temporary file and replace the user-selected destination only on success. This avoids depending on third-party cookies in the embedded ChatKit frame.
+File access retains the existing authorized, version-pinned grant. ChatKit and Angular hosts read the authorized download bytes and return a base64 data URL to the opaque remote iframe. Both result views decode that content into an iframe-owned Blob and trigger an attachment download, then release the object URL. They never navigate to data content or reuse a parent Blob URL, which Chromium may block across storage partitions. Invalid base64 and executable URL schemes are rejected; HTML/SVG artifacts are downloaded as inert bytes. Hosts that return HTTP(S) grants retain the top-level navigation path.
+
+Desktop intercepts only content URLs from its configured API origin and downloads through the login-authenticated `GET /api/workspace-files/view-sessions/:sessionId/grants/:grantId/content/:fileName` route. That route checks the original session owner/tenant/organization, expiry, download purpose and current View resource access. Account credentials remain in the native host; bytes stream into a temporary file and replace the user-selected destination only on success.
 
 File operations describe only evidence emitted by this invocation. Shared-project Git status is never attributed wholesale to one Assistant. Execution success does not mean the business task passed acceptance.
 
@@ -61,3 +63,5 @@ An execution created before activity capture has no reconstructed transcript. Ex
 ## Verification
 
 See [implementation and acceptance record](../../../../../docs/plans/2026-10-07-coding-cli-execution-view-implementation.md). Protocol fixtures live with the runtime plugin; PostgreSQL integration tests cover transaction/cursor concurrency, large-output references, snapshot merging and retention. View tests cover scope boundaries, revoked bindings, unavailable adapters and pinned artifacts. Real CLI receipts stay in protected local acceptance storage rather than source control.
+
+Run `node --test packages/server-ai/src/agent-invocation/remote-components/download.test.mjs` for both views' download protocol regressions: authorized binary data, HTTP grants, malformed/executable URLs, attachment-only HTML, stale selections and Blob cleanup. Browser acceptance must also click both real download controls in the sandboxed workbench and compare the saved files with the exported artifact.

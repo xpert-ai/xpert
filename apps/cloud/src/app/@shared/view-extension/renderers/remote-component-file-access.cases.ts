@@ -17,6 +17,33 @@ export function registerFileAccessTests(
   dependencies: () => FixtureDependencies,
   flushRemoteEntry: (fixture: { detectChanges(): void; whenStable(): Promise<unknown> }) => Promise<void>
 ) {
+  it('returns authorized download bytes as a data URL instead of a partitioned parent blob URL', async () => {
+    const { api, manifest } = dependencies()
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', { ...manifest, fileAccess: { purposes: ['download'] } })
+    await flushRemoteEntry(fixture)
+    const component = fixture.componentInstance as unknown as {
+      handleFileAccessRequest(message: { fileKey: string; targetId: string; purpose: string }): Promise<unknown>
+    }
+    const count = jest.mocked(URL.createObjectURL).mock.calls.length
+    await expect(
+      component.handleFileAccessRequest({ fileKey: 'asset-1', targetId: 'task-1', purpose: 'download' })
+    ).resolves.toMatchObject({
+      fileName: 'video.mp4',
+      url: 'data:video/mp4;base64,ZmlsZSBieXRlcw=='
+    })
+    expect(api.createViewFileAccessGrant).toHaveBeenCalledWith('session-1', {
+      fileKey: 'asset-1',
+      targetId: 'task-1',
+      purpose: 'download'
+    })
+    expect(api.readViewFileAccessContent).toHaveBeenCalledTimes(1)
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(count)
+    fixture.destroy()
+  })
+
   it('creates one host-bound file session and grants only declared purposes', async () => {
     const { api, manifest } = dependencies()
     const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
