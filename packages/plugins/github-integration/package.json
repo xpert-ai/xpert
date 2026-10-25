@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-github-integration",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "AGPL-3.0",
   "description": "Built-in GitHub System Integration provider for Xpert.",

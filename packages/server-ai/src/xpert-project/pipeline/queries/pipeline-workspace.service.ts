@@ -16,7 +16,9 @@ import { projectionScope } from '../../services/task-projection/project-task-pro
 import {
     ProjectPipelineInstanceEntity,
     ProjectPipelineDefinitionEntity,
-    ProjectPipelineRoundEntity
+    ProjectPipelineRoundEntity,
+    ProjectPipelineNodeEntity,
+    ProjectPipelineRunEntity
 } from '../persistence/pipeline.entity'
 
 const scalar = z.union([z.string(), z.number().finite(), z.boolean(), z.null()])
@@ -43,7 +45,7 @@ export class ProjectPipelineWorkspaceService {
 
     async entry(
         context: ProjectPipelineContext,
-        input: { instanceId?: string; pipelineNodeId?: string; xpertId?: string }
+        input: { instanceId?: string; roundId?: string; pipelineNodeId?: string; xpertId?: string }
     ): Promise<XpertProjectEntry> {
         if (!input.instanceId) return this.projectTypes.entryForProject(context.projectId, input)
         await this.access.assertCanRead(context.projectId)
@@ -53,16 +55,27 @@ export class ProjectPipelineWorkspaceService {
         if (!instance) throw missing()
         if (instance.authority === 'provider') return this.projectTypes.entryForProject(context.projectId, input)
         const manager = this.instances.manager
-        const [saved, round] = await Promise.all([
-            manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: instance.definitionId }),
-            instance.currentRoundId &&
-                manager.findOneBy(ProjectPipelineRoundEntity, {
-                    ...scope,
-                    id: instance.currentRoundId,
-                    runId: instance.currentRunId
-                })
-        ])
-        if (!saved || !round) throw missing()
+        const selectedRoundId = input.roundId ?? instance.currentRoundId
+        const round =
+            selectedRoundId && (await manager.findOneBy(ProjectPipelineRoundEntity, { ...scope, id: selectedRoundId }))
+        if (!round) throw missing()
+        const run = await manager.findOneBy(ProjectPipelineRunEntity, {
+            ...scope,
+            id: round.runId,
+            instanceId: instance.id
+        })
+        if (!run) throw missing()
+        const saved = await manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: run.definitionId })
+        if (!saved) throw missing()
+        if (
+            input.pipelineNodeId &&
+            !(await manager.findOneBy(ProjectPipelineNodeEntity, {
+                ...scope,
+                id: input.pipelineNodeId,
+                roundId: selectedRoundId
+            }))
+        )
+            throw missing()
         const definition = projectPipelineDefinitionSchema.parse(saved.definition)
         if (definition.executionAuthority !== 'platform') throw missing()
         const subjects = z.array(projectPipelineSubjectVersionSchema).parse(round.subjectVersionSet)
@@ -79,6 +92,12 @@ export class ProjectPipelineWorkspaceService {
             slug: assistant.slug,
             projectId: context.projectId,
             ...entry,
+            parameters: {
+                ...entry.parameters,
+                pipelineInstanceId: instance.id,
+                pipelineRoundId: selectedRoundId,
+                ...(input.pipelineNodeId ? { pipelineNodeId: input.pipelineNodeId } : {})
+            },
             xpertId: assistant.id,
             viewKey: entry.viewKey!
         }

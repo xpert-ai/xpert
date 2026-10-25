@@ -34,6 +34,13 @@ function createHarness(redis?: TestRedis) {
         },
         findOne: async ({ where }: { where: Record<string, unknown> }) =>
             documents.find((item) => matches(item as unknown as Record<string, unknown>, where)) ?? null,
+        findOneOrFail: async ({ where }: { where: Partial<CollaborationDocument> }) => {
+            const value = documents.find((item) =>
+                Object.entries(where).every(([key, value]) => Reflect.get(item, key) === value)
+            )
+            if (!value) throw new Error('missing document')
+            return value
+        },
         findOneBy: async (where: Record<string, unknown>) =>
             documents.find((item) => matches(item as unknown as Record<string, unknown>, where)) ?? null,
         findOneByOrFail: async (where: Record<string, unknown>) => {
@@ -41,8 +48,12 @@ function createHarness(redis?: TestRedis) {
             if (!value) throw new Error('missing document')
             return value
         },
-        update: async (id: string, patch: Partial<CollaborationDocument>) => {
-            const value = documents.find((item) => item.id === id)
+        update: async (where: string | Partial<CollaborationDocument>, patch: Partial<CollaborationDocument>) => {
+            const value = documents.find((item) =>
+                typeof where === 'string'
+                    ? item.id === where
+                    : Object.entries(where).every(([key, value]) => Reflect.get(item, key) === value)
+            )
             if (value) Object.assign(value, patch)
         }
     }
@@ -174,9 +185,15 @@ describe('CollaborationService', () => {
         Y.applyUpdate(reconstructed, Buffer.from(delta.updateBase64, 'base64'))
         expect(reconstructed.getText('body').toString()).toBe('hello')
 
-        await expect(api.applyUpdate({ documentId: created.id, updateBase64, expectedSequence: 4 })).rejects.toThrow(
-            /sequence conflict/i
+        // A lost acknowledgement may replay an already committed delta with its original baseline.
+        expect((await api.applyUpdate({ documentId: created.id, updateBase64, expectedSequence: 4 })).duplicate).toBe(
+            true
         )
+        local.getText('body').insert(0, 'new ')
+        const newUpdate = Buffer.from(Y.encodeStateAsUpdate(local)).toString('base64')
+        await expect(
+            api.applyUpdate({ documentId: created.id, updateBase64: newUpdate, expectedSequence: 4 })
+        ).rejects.toThrow(/sequence conflict/i)
     })
 
     it('stores and removes each virtual presence independently', async () => {

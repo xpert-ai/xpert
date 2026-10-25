@@ -1,4 +1,5 @@
 import { restoreTaskView, type TaskViewState } from './view-state'
+import { setViewVisible } from './view-visibility'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
 import { z } from 'zod'
 import { PROJECT_TASK_ICON_NAMES } from '@xpert-ai/contracts'
@@ -8,6 +9,7 @@ const envelope = z
     .object({
         channel: z.literal('xpertai.remote_component'),
         type: z.string(),
+        visible: z.boolean().optional(),
         scopeRevision: z.number().int().nonnegative().optional(),
         event: z.unknown().optional(),
         instanceId: z.string().nullish(),
@@ -83,6 +85,7 @@ export function connect(
             document.documentElement.classList.toggle('dark', message.theme?.mode === 'dark')
             document.documentElement.lang = message.locale ?? 'en-US'
             instanceId = message.instanceId
+            setViewVisible(message.visible ?? true)
             currentViewState = restoreTaskView(message.viewState, message.initialQuery?.parameters)
             onReady(message.locale ?? 'en-US', {
                 pipeline: currentViewState.initialTab === 'pipeline',
@@ -90,6 +93,10 @@ export function connect(
                 configure: message.initialQuery?.parameters?.configure === true,
                 focus: { ...currentViewState, pipelineNodeId: message.initialQuery?.parameters?.pipelineNodeId }
             })
+            return
+        }
+        if (message.instanceId === instanceId && message.type === 'visibility' && message.visible !== undefined) {
+            setViewVisible(message.visible)
             return
         }
         if (message.instanceId === instanceId && message.type === 'hostEvent') {
@@ -111,6 +118,7 @@ export function connect(
     window.addEventListener('message', listener)
     send('ready')
     return () => {
+        setViewVisible(false)
         window.removeEventListener('message', listener)
         pending.forEach((item) => {
             window.clearTimeout(item.timer)

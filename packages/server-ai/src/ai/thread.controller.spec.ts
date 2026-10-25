@@ -34,6 +34,9 @@ jest.mock('../xpert-agent-execution', () => ({
     FindAgentExecutionsQuery: class FindAgentExecutionsQuery {},
     GetThreadContextUsageQuery: class GetThreadContextUsageQuery {},
     XpertAgentExecutionOneQuery: class XpertAgentExecutionOneQuery {},
+    GetAgentExecutionRunStatusQuery: class GetAgentExecutionRunStatusQuery {
+        constructor(public readonly id: string) {}
+    },
     GetAgentExecutionRunSummaryQuery: class GetAgentExecutionRunSummaryQuery {
         constructor(public readonly id: string) {}
     }
@@ -81,7 +84,11 @@ import {
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
 import { AssertChatConversationAccessQuery } from '../chat-conversation'
-import { GetAgentExecutionRunSummaryQuery, XpertAgentExecutionOneQuery } from '../xpert-agent-execution'
+import {
+    GetAgentExecutionRunStatusQuery,
+    GetAgentExecutionRunSummaryQuery,
+    XpertAgentExecutionOneQuery
+} from '../xpert-agent-execution'
 import type { TAgentExecutionRunSummary } from '../xpert-agent-execution/queries/get-run-summary.query'
 import { TransformInterceptor as HttpTransformInterceptor } from '../../../server/src/core/interceptors/transform.interceptor'
 import { ThreadsController } from './thread.controller'
@@ -128,12 +135,29 @@ describe('ThreadsController', () => {
                     }
                     if (query instanceof ReadThreadControlViewQuery) return { controlView: undefined }
                     if (query instanceof GetAgentExecutionRunSummaryQuery) return row
+                    if (query instanceof GetAgentExecutionRunStatusQuery)
+                        return { ...row, businessOutcome: row.metadata?.businessOutcome }
                     throw new Error('Unexpected query')
                 })
             }
             const controller = new ThreadsController({} as never, queries as never, {} as never, {} as never)
             return { controller, queries }
         }
+
+        it('returns compact lifecycle facts including errors and business outcome without presentation', async () => {
+            const { controller } = setup()
+            const result = await controller.getThreadRunStatus('thread', 'run')
+            expect(result.metadata.agentRun).toMatchObject({
+                status: 'interrupted',
+                error: 'Cancelled by user',
+                businessOutcome: execution.metadata.businessOutcome
+            })
+            const text = JSON.stringify(result)
+            expect(text).not.toMatch(/avatar|inputs|test-model|Please review/)
+            await expect(
+                setup({ ...execution, threadId: 'other' }).controller.getThreadRunStatus('thread', 'run')
+            ).rejects.toThrow(ForbiddenException)
+        })
 
         it('returns the complete existing run contract without loading execution details', async () => {
             const { controller } = setup()

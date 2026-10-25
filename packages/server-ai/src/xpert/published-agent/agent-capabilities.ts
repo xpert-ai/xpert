@@ -1,19 +1,12 @@
-import {
-    CONVERSATION_MAP_FEATURE,
-    getAgentMiddlewareNodes,
-    normalizeMiddlewareProvider,
-    WorkflowNodeTypeEnum,
-    type IWFNMiddleware,
-    type IXpert,
-    type TXpertTeamNode
-} from '@xpert-ai/contracts'
+import { CONVERSATION_MAP_FEATURE, type IXpert, type TXpertTeamNode } from '@xpert-ai/contracts'
 import type { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { inspectAssistantMiddlewares } from '../middleware-access/assistant-middleware'
 
 /** Shared by published runtime consumers and the Agent View host; connected middleware owns its features. */
 export function agentCapabilities(xpert: IXpert, registry: Pick<AgentMiddlewareRegistry, 'get'>) {
     const graph = xpert.graph
-    const primary = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
-    const agentKey = xpert.agent?.key ?? primary?.key ?? primary?.entity.key ?? null
+    const middlewareGraph = inspectAssistantMiddlewares(xpert, registry)
+    const agentKey = middlewareGraph.agent?.key ?? null
     const features = new Set<string>([
         CONVERSATION_MAP_FEATURE,
         ...Object.entries(xpert.features ?? {})
@@ -22,21 +15,11 @@ export function agentCapabilities(xpert: IXpert, registry: Pick<AgentMiddlewareR
     ])
     const middlewareProviders = new Set<string>(),
         middlewareNodeKeys = new Set<string>()
-    if (graph && agentKey)
-        for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
-            if (node.type !== 'workflow' || node.entity.type !== WorkflowNodeTypeEnum.MIDDLEWARE) continue
-            const provider = normalizeMiddlewareProvider((node.entity as IWFNMiddleware).provider)
-            if (!provider) continue
-            middlewareProviders.add(provider)
-            middlewareNodeKeys.add(node.key)
-            try {
-                const strategy = registry.get(provider, xpert.organizationId ?? undefined)
-                for (const feature of strategy.meta.features ?? [])
-                    if (typeof feature === 'string' && feature.trim()) features.add(feature.trim())
-            } catch {
-                /* Missing middleware cannot grant capabilities. */
-            }
-        }
+    for (const middleware of middlewareGraph.middlewares) {
+        middlewareProviders.add(middleware.provider)
+        if (middleware.key) middlewareNodeKeys.add(middleware.key)
+        for (const feature of middleware.features) features.add(feature)
+    }
     const availableAgents = (graph?.nodes ?? [])
         .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
         .map((node) => ({

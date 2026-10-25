@@ -96,3 +96,5 @@ docker/volumes/
 
 # Local plugin runtime records, notes and audio (not source files).
 /data/plugins/
+
+/.deploy/webapp/pet-assets/pets/

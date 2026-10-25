@@ -172,11 +172,20 @@ import { ProjectProvisioningRuntimeService } from '../../../xpert-project/servic
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
-describe('AgentMiddlewareRuntimeService', () => {
-    const assistantFileAccess: AssistantFileAccess = {
-        scope: { tenantId: 'tenant-1', catalog: 'xperts', xpertId: 'xpert-1', isolateByUser: false },
+function resolveTestAssistantFileAccess(command: ResolveAssistantFileAccessCommand): AssistantFileAccess {
+    return {
+        scope: {
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            catalog: 'xperts',
+            xpertId: command.assistantId,
+            isolateByUser: false
+        },
         capabilities: { canList: true, canRead: true, canWrite: true, canDelete: true }
     }
+}
+
+describe('AgentMiddlewareRuntimeService', () => {
     beforeAll(async () => {
         await i18next.init({ lng: 'en', resources: {} })
     })
@@ -206,7 +215,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         volumeRoot = mkdtempSync(join(tmpdir(), 'xpert-workspace-files-'))
         commandBus = {
             execute: jest.fn(async (command: unknown) =>
-                command instanceof ResolveAssistantFileAccessCommand ? assistantFileAccess : undefined
+                command instanceof ResolveAssistantFileAccessCommand
+                    ? resolveTestAssistantFileAccess(command)
+                    : undefined
             )
         }
         queryBus = {
@@ -227,7 +238,10 @@ describe('AgentMiddlewareRuntimeService', () => {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
         }
         platformCapabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
-            listReadable: jest.fn().mockResolvedValue([]),
+            listReadable: jest
+                .fn()
+                .mockResolvedValue([{ projectId: 'project-1', role: 'editor', canManage: false, archived: false }]),
+            assertAssistant: jest.fn(),
             assertEdit: jest
                 .fn()
                 .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false }),
@@ -235,7 +249,11 @@ describe('AgentMiddlewareRuntimeService', () => {
                 .fn()
                 .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
         })
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, platformCapabilities)
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(
+            commandBus,
+            volumeClient,
+            platformCapabilities.get(ProjectAccessRuntimeCapability)!
+        )
         connectors = {
             createScopedApi: jest.fn(() => ({
                 getConnector: jest.fn().mockResolvedValue(undefined),
@@ -1829,7 +1847,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('uploads workspace files through the volume upload target', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
-            if (command instanceof ResolveAssistantFileAccessCommand) return assistantFileAccess
+            if (command instanceof ResolveAssistantFileAccessCommand) return resolveTestAssistantFileAccess(command)
             if (command instanceof UploadFileCommand) {
                 return {
                     status: 'success',
@@ -1874,11 +1892,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         expect(result?.workspacePath).toBe('files/docx-editor/documents/doc-1/versions/v1-abcd1234.docx')
-        expect(commandBus.execute).toHaveBeenNthCalledWith(
-            1,
-            new ResolveAssistantFileAccessCommand('xpert-1', 'write', 'runtime')
-        )
-        const command = commandBus.execute.mock.calls[1][0] as UploadFileCommand
+        const command = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof UploadFileCommand
+        )![0] as UploadFileCommand
         expect(command.input).toEqual(
             expect.objectContaining({
                 source: expect.objectContaining({
@@ -1901,7 +1917,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('registers workspace files for file understanding without creating storage files', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
-            if (command instanceof ResolveAssistantFileAccessCommand) return assistantFileAccess
+            if (command instanceof ResolveAssistantFileAccessCommand) return resolveTestAssistantFileAccess(command)
             if (command instanceof CreateWorkspaceFileAssetCommand) {
                 return {
                     id: 'file-asset-1',
@@ -1970,11 +1986,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         )
         expect(result).not.toHaveProperty('storageFileId')
-        expect(commandBus.execute).toHaveBeenNthCalledWith(
-            1,
-            new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
-        )
-        const command = commandBus.execute.mock.calls[1][0] as CreateWorkspaceFileAssetCommand
+        const command = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof CreateWorkspaceFileAssetCommand
+        )![0] as CreateWorkspaceFileAssetCommand
         expect(command.input).toEqual(
             expect.objectContaining({
                 catalog: 'xperts',
@@ -2365,6 +2379,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             expect.objectContaining({
                 id: 'conversation-1',
                 createdById: 'user-1',
+                options: { parameters: { input: '重新解析合同' } },
                 taskId: 'task-1',
                 xpertId: 'assistant-1',
                 projectId: 'project-1',

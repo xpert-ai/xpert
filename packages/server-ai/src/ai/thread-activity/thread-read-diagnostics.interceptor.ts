@@ -12,9 +12,10 @@ export class ThreadReadDiagnosticsInterceptor implements NestInterceptor {
         const requestId = randomUUID()
         const started = Date.now()
         const response = context.switchToHttp().getResponse<Response>()
-        // Nest flushes SSE headers before subscribing to the interceptor chain.
-        // Diagnostics must not break that subscription; the backend log still carries its request ID.
-        if (!response.headersSent) response.setHeader('X-Request-ID', requestId)
+        // Nest flushes SSE headers before subscribing to the deferred interceptor chain.
+        if (!response.headersSent) {
+            response.setHeader('X-Request-ID', requestId)
+        }
         return next.handle().pipe(
             catchError((error: unknown) => {
                 const status = error instanceof HttpException ? error.getStatus() : 500

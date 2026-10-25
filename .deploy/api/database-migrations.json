@@ -19,6 +19,11 @@
     "chat_message",
     "chat_run_display_snapshot",
     "cli_session",
+    "content_comment",
+    "content_document",
+    "content_location_change",
+    "content_proposal",
+    "content_revision",
     "copilot_knowledge_collection",
     "copilot_knowledge_vector",
     "copilot_store_vectors",
@@ -77,6 +82,9 @@
     "ai/knowledgebase/migrations/checks/20261020120100-knowledge-filter-indexes.sql",
     "ai/shared/stream/display-snapshot/migrations/checks/20261024000100-display-snapshot.sql",
     "ai/chat-conversation/migrations/checks/20261024000200-conversation-recovery.sql",
-    "ai/desktop-shell/migrations/checks/20261024000300-desktop-shell-completion.sql"
+    "ai/desktop-shell/migrations/checks/20261024000300-desktop-shell-completion.sql",
+    "ai/shared/stream/display-snapshot/migrations/checks/20261025010000-run-display-snapshot.sql",
+    "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
+    "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql"
   ]
 }

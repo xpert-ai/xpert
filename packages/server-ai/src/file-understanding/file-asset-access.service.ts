@@ -1,4 +1,5 @@
-import { RequestContext, StorageFile, StorageFileService } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { StorageFile, StorageFileService } from '@xpert-ai/server-core'
 import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'

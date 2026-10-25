@@ -21,6 +21,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { ApiKeyBindingType, SecretTokenBindingType, XpertTypeEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
+import { UserOrganization } from '@xpert-ai/server-core'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { Xpert } from './xpert.entity'
 import { runWithPublishedAgent, publishedAgentDelegation } from './published-agent/with-published-agent'
@@ -29,6 +30,7 @@ import { resolvePublishedAgent } from './published-agent/resolve-published-agent
 function createQueryBuilderMock(options?: { count?: number; rows?: { id: string }[] }) {
     return {
         leftJoin: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
@@ -907,5 +909,68 @@ describe('PublishedXpertAccessService', () => {
         const service = new PublishedXpertAccessService(asXpertRepository(repository))
 
         await expect(service.getAccessiblePublishedXpert('xpert-1')).rejects.toThrow(ForbiddenException)
+    })
+})
+
+describe('Published human access for collaboration recipients', () => {
+    const actor = { tenantId: 'recipient-tenant', organizationId: 'recipient-org', userId: 'recipient' }
+    it('uses the persisted recipient and ignores ambient sender and delegated token audience', async () => {
+        const qb = createQueryBuilderMock({ count: 1 })
+        const xpert = { id: 'assistant', ...actor }
+        const repository = {
+            createQueryBuilder: jest.fn().mockReturnValue(qb),
+            findOne: jest.fn().mockResolvedValue(xpert)
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockImplementation(() => {
+            throw new Error('Must not read sender context')
+        })
+        await expect(service.getAccessiblePublishedXpertForActor('assistant', actor)).resolves.toBe(xpert)
+        expect(qb.innerJoin).toHaveBeenCalledWith(
+            UserOrganization,
+            'actorMembership',
+            expect.stringContaining('actorMembership.isActive = :actorMembershipActive'),
+            { actorMembershipActive: true }
+        )
+        const membershipPredicate = qb.innerJoin.mock.calls[0][2]
+        for (const field of ['tenantId', 'organizationId', 'userId']) {
+            expect(membershipPredicate).toContain(`actorMembership.${field} = :${field}`)
+        }
+        expect(qb.leftJoin).toHaveBeenCalledWith(
+            'workspace.members',
+            'workspaceMember',
+            'workspaceMember.id = :userId',
+            { userId: actor.userId }
+        )
+        expect(qb.where).toHaveBeenCalledWith('xpert.tenantId = :tenantId', { tenantId: actor.tenantId })
+        expect(repository.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'assistant', tenantId: actor.tenantId, publishAt: expect.anything() }
+            })
+        )
+    })
+    it('loads a tenant-shared Assistant authorized for an actor inside an organization', async () => {
+        const qb = createQueryBuilderMock({ count: 1 })
+        const xpert = { id: 'shared-assistant', tenantId: actor.tenantId, organizationId: null }
+        const repository = {
+            createQueryBuilder: jest.fn().mockReturnValue(qb),
+            findOne: jest
+                .fn()
+                .mockImplementation(async (options: { where: { organizationId?: string } }) =>
+                    options.where.organizationId === undefined ? xpert : null
+                )
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        await expect(service.getAccessiblePublishedXpertForActor(xpert.id, actor)).resolves.toBe(xpert)
+        expect(qb.getCount).toHaveBeenCalled()
+    })
+    it('fails closed when the human grant is revoked', async () => {
+        const qb = createQueryBuilderMock({ count: 0 })
+        const repository = { createQueryBuilder: jest.fn().mockReturnValue(qb), findOne: jest.fn() }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        await expect(service.getAccessiblePublishedXpertForActor('assistant', actor)).rejects.toThrow(
+            ForbiddenException
+        )
+        expect(repository.findOne).not.toHaveBeenCalled()
     })
 })

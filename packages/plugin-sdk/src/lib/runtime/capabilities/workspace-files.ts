@@ -9,6 +9,8 @@ export const WORKSPACE_FILES_SOURCE = 'platform.workspace.files' as const
 
 /**
  * Scope fields used to resolve a workspace Volume.
+ * Project types (including Spaces) share the projects catalog and projectId;
+ * plugin resource IDs belong to content-resource metadata, not storage scope.
  *
  * Explicit APIs can provide catalog plus the matching id directly. Runtime-aware
  * APIs usually receive these fields from the current Agent execution context.

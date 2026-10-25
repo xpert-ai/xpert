@@ -26,6 +26,7 @@ export type {
 export type ArtifactScopeInput = {
   tenantId?: string | null
   organizationId?: string | null
+  /** Omit to use the runtime user. Explicit null on creation shares ownership with projectId; the caller remains the actor. */
   userId?: string | null
   workspaceId?: string | null
   projectId?: string | null
@@ -42,6 +43,8 @@ export type ArtifactSourceInput = {
 
 /** Creates or locates an Artifact container without uploading content bytes. */
 export type CreateArtifactInput = {
+  /** Optional explicit provider key; authorizes source.resourceId without changing ownership or list visibility. */
+  authorizationProviderKey?: string | null
   source: ArtifactSourceInput
   kind?: ArtifactKind | null
   title?: string | null
@@ -140,6 +143,8 @@ export type ArtifactVersionRecord = {
 
 /** Durable Artifact container returned to plugins. */
 export type ArtifactRecord = ArtifactScopeInput & {
+  /** Additional resource ACL, evaluated against this record's resourceId. */
+  authorizationProviderKey?: string | null
   id: string
   pluginName: string
   resourceType: string

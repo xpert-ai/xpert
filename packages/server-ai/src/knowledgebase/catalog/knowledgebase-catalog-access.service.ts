@@ -5,6 +5,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { Knowledgebase } from '../knowledgebase.entity'
 import { assertTenantLibraryAdministrator } from '../tenant-library/tenant-library-access.service'
 import { catalogError } from './knowledgebase-catalog.schema'
+import { KnowledgeResourceAccessService } from '../runtime/knowledge-resource-access.service'
 
 const readActions = new Set<KnowledgebaseAction>(['knowledgebase.read', 'documents.read', 'content.search'])
 export type CatalogAccess = { read: boolean; write: boolean }
@@ -12,7 +13,10 @@ export type CatalogAccess = { read: boolean; write: boolean }
 /** Reuses the workspace ACL and tenant-library administration gate used by actual Knowledge writes. */
 @Injectable()
 export class KnowledgebaseCatalogAccessService {
-    constructor(private readonly workspaces: XpertWorkspaceAccessService) {}
+    constructor(
+        private readonly workspaces: XpertWorkspaceAccessService,
+        private readonly resources: KnowledgeResourceAccessService
+    ) {}
 
     context() {
         const user = RequestContext.currentUser()
@@ -48,7 +52,7 @@ export class KnowledgebaseCatalogAccessService {
         } catch (error) {
             if (!(error instanceof ForbiddenException)) throw error
         }
-        return new Map(
+        const result = new Map(
             rows.map((row) => {
                 const sameTenant = row.tenantId === context.tenantId
                 const tenantLibrary =
@@ -69,6 +73,31 @@ export class KnowledgebaseCatalogAccessService {
                 return [row.id, { read, write }] as const
             })
         )
+        for (const row of rows) {
+            if (!row.resourceRef) continue
+            let read = false,
+                write = false
+            if (row.tenantId !== context.tenantId || (row.organizationId ?? null) !== context.organizationId) {
+                result.set(row.id, { read, write })
+                continue
+            }
+            try {
+                await this.resources.authorizeReference(row.resourceRef, 'read')
+                read = true
+            } catch (error) {
+                if (!(error instanceof ForbiddenException)) throw error
+            }
+            if (read) {
+                try {
+                    await this.resources.authorizeReference(row.resourceRef, 'write')
+                    write = true
+                } catch (error) {
+                    if (!(error instanceof ForbiddenException)) throw error
+                }
+            }
+            result.set(row.id, { read, write })
+        }
+        return result
     }
 
     allows(access: CatalogAccess | undefined, action: KnowledgebaseAction) {

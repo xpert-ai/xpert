@@ -20,6 +20,7 @@ describe('XpertProjectWorkspaceFilesService', () => {
         deleteSkillPath: jest.Mock
     }
     let service: XpertProjectWorkspaceFilesService
+    let assertUnmanaged: jest.Mock
 
     beforeEach(async () => {
         root = await mkdtemp(path.join(tmpdir(), 'xpert-project-files-'))
@@ -51,15 +52,27 @@ describe('XpertProjectWorkspaceFilesService', () => {
             root,
             'http://localhost/project/project-1'
         )
+        assertUnmanaged = jest.fn().mockResolvedValue(undefined)
         service = new XpertProjectWorkspaceFilesService(
             accessService as unknown as XpertProjectAccessService,
             contentService as unknown as XpertProjectContentService,
-            { resolve: jest.fn().mockReturnValue(volume) }
+            { resolve: jest.fn().mockReturnValue(volume) },
+            { assertUnmanaged } as never
         )
     })
 
     afterEach(async () => {
         await rm(root, { recursive: true, force: true })
+    })
+
+    it('does not let legacy Project text saving overwrite a collaborative resource', async () => {
+        await writeFile(path.join(root, 'shared', 'collaborative.md'), 'accepted content')
+        assertUnmanaged.mockRejectedValue(new ForbiddenException('managed document'))
+        await expect(service.save('project-1', 'shared/collaborative.md', 'replacement')).rejects.toThrow(
+            'managed document'
+        )
+        expect(await readFile(path.join(root, 'shared', 'collaborative.md'), 'utf8')).toBe('accepted content')
+        expect(assertUnmanaged).toHaveBeenCalledWith('tenant-1', 'project-1', 'shared/collaborative.md', false)
     })
 
     it('uses read permission and returns Project workspace files through the shared file model', async () => {

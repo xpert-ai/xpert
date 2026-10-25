@@ -5,6 +5,9 @@ import { MessagesSquare, Network, Search, Plus, X, GitBranch, List, ArrowUpRight
 import {
     Button,
     Input,
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
     ToggleGroup,
     ToggleGroupItem,
     Popover,
@@ -32,6 +35,8 @@ import { mapRepresentation, registerSegments, treeProjection } from './tree-mode
 type Edit = { type: 'create' | 'rename' | 'branch'; node?: MapNode }
 function App() {
     const historyId = useId()
+    const createTrigger = useRef<HTMLButtonElement>(null)
+    const editTrigger = useRef<HTMLElement | null>(null)
     const [locale, setLocale] = useState('zh-Hans'),
         [ready, setReady] = useState(false),
         [prefs, setPrefs] = useState<Prefs>(prefsSchema.parse({})),
@@ -272,6 +277,7 @@ function App() {
         if (mutation || !node.conversationId || !node.threadId) return
         if (kind === 'rename' || kind === 'branch') {
             setName(kind === 'rename' ? node.title : '')
+            editTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
             setEdit({ type: kind, node })
             return
         }
@@ -458,19 +464,22 @@ function App() {
                         {l.loadProjects}
                     </Button>
                 )}
-                <div className="relative min-w-40 flex-1">
-                    <Search aria-hidden className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                    <Input
-                        className="pl-9"
+                <InputGroup className="min-w-40 flex-1">
+                    <InputGroupAddon>
+                        <Search aria-hidden />
+                    </InputGroupAddon>
+                    <InputGroupInput
                         aria-label={l.search}
                         placeholder={l.search}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
-                </div>
+                </InputGroup>
                 <Button
+                    ref={createTrigger}
                     variant="outline"
-                    onClick={() => {
+                    onClick={(event) => {
+                        editTrigger.current = event.currentTarget
                         setName('')
                         setEdit({ type: 'create' })
                     }}
@@ -701,7 +710,13 @@ function App() {
                     if (!open && !mutation) setEdit(null)
                 }}
             >
-                <DialogContent>
+                <DialogContent
+                    onCloseAutoFocus={(event) => {
+                        event.preventDefault()
+                        const trigger = editTrigger.current?.isConnected ? editTrigger.current : createTrigger.current
+                        trigger?.focus()
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {edit?.type === 'create' ? l.create : edit?.type === 'branch' ? l.branch : l.rename}
@@ -711,7 +726,7 @@ function App() {
                         </DialogDescription>
                     </DialogHeader>
                     {edit?.type !== 'branch' && (
-                        <>
+                        <div className="grid gap-3">
                             <Label htmlFor="topic-name">{l.name}</Label>
                             <Input
                                 id="topic-name"
@@ -722,7 +737,7 @@ function App() {
                                     if (e.key === 'Enter' && !mutation) submit()
                                 }}
                             />
-                        </>
+                        </div>
                     )}
                     <DialogFooter>
                         <Button variant="outline" disabled={mutation} onClick={() => setEdit(null)}>

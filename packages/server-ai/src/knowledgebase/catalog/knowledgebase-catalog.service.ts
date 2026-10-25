@@ -32,6 +32,7 @@ const batchSize = 100
 const maxScannedPerPage = 1000
 const fields = [
     'id',
+    'resourceRef',
     'tenantId',
     'organizationId',
     'workspaceId',

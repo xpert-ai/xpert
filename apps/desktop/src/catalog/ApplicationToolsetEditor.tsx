@@ -31,10 +31,10 @@ export function ApplicationToolsetEditor({
   const [tools, setTools] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const { pluginName, appName } = application
+  const { pluginName, appName, installationScope } = application
   useEffect(() => {
     let active = true
-    void invoke('applicationToolsetSetup', { pluginName, appName, key: requirement.key })
+    void invoke('applicationToolsetSetup', { pluginName, appName, installationScope, key: requirement.key })
       .then((result) => {
         if (!active) return
         setSetup(result)
@@ -52,7 +52,7 @@ export function ApplicationToolsetEditor({
     return () => {
       active = false
     }
-  }, [pluginName, appName, requirement.key])
+  }, [pluginName, appName, installationScope, requirement.key])
   const complete =
     setup?.supported &&
     name.trim() &&
@@ -72,6 +72,7 @@ export function ApplicationToolsetEditor({
       const selection = await invoke('saveApplicationToolset', {
         pluginName,
         appName,
+        installationScope,
         key: requirement.key,
         name: name.trim(),
         credentials,

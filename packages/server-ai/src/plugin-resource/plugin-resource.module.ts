@@ -1,3 +1,5 @@
+import { ApplicationUpdateService } from './application-update/application-update.service'
+import { ApplicationAccessService } from './application-access.service'
 import { PrepareTemplateExecutionHandler } from './template-installation/prepare-template-execution.command'
 import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
 import { ReconcileTemplateSkillReferencesHandler } from './template-installation/reconcile-template-skills.handler'
@@ -84,6 +86,8 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        ApplicationUpdateService,
+        ApplicationAccessService,
         PrepareTemplateExecutionHandler,
         ReconcileTemplateSkillReferencesHandler,
         AssistantTemplateToolsetBinder,

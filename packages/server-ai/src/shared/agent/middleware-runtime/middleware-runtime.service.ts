@@ -156,6 +156,7 @@ export class AgentMiddlewareRuntimeService {
         }
 
         return {
+            getDefaultChatModel: () => this.modelRuntime.getDefaultChatModel(scope),
             createModelClient: (copilotModel, options) =>
                 this.modelRuntime.createModelClient(copilotModel, options, scope, true),
             getModelProvider: (provider) => this.modelRuntime.getModelProvider(provider, scope),

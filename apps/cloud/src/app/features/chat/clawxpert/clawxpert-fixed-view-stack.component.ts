@@ -19,25 +19,28 @@ export type ClawXpertFixedViewTab = {
   selector: 'xp-clawxpert-fixed-view-stack',
   imports: [ExtensionHostOutletComponent],
   template: `
-    @for (tab of mountedTabs(); track tab.id) {
-      <xp-extension-host-outlet
-        class="block h-full min-h-0 overflow-hidden"
-        [class.hidden]="tab.id !== activeTabId()"
-        [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
-        [attr.data-fixed-view-tab-id]="tab.id"
-        mode="single-view"
-        [hostType]="hostType()"
-        [hostId]="hostId()"
-        [slot]="slot()"
-        [viewKey]="tab.viewKey"
-        [query]="tab.query"
-        [fillAvailableHeight]="true"
-        [runtimeScope]="
-          tab.projectScope ?? (tab.contextScope === 'conversation' ? conversationScope() : runtimeScope())
-        "
-        [runtimeUserId]="runtimeUserId()"
-      />
-    }
+    <div class="flex h-full min-h-0 min-w-0 overflow-hidden" [class.hidden]="!activeView()">
+      @for (tab of mountedTabs(); track tab.id) {
+        <xp-extension-host-outlet
+          class="block h-full min-h-0 min-w-0 overflow-hidden"
+          [class.hidden]="tab.id !== activeTabId()"
+          [class.flex-1]="tab.id === activeTabId()"
+          [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+          [attr.data-fixed-view-tab-id]="tab.id"
+          mode="single-view"
+          [hostType]="hostType()"
+          [hostId]="hostId()"
+          [slot]="slot()"
+          [viewKey]="tab.viewKey"
+          [query]="tab.query"
+          [fillAvailableHeight]="true"
+          [runtimeScope]="
+            tab.projectScope ?? (tab.contextScope === 'conversation' ? conversationScope() : runtimeScope())
+          "
+          [runtimeUserId]="runtimeUserId()"
+        />
+      }
+    </div>
   `
 })
 export class ClawXpertFixedViewStackComponent {
@@ -54,7 +57,7 @@ export class ClawXpertFixedViewStackComponent {
       : { ...this.runtimeScope(), conversationId: this.conversationId() }
   )
   readonly runtimeUserId = input<string | null>(null)
-
+  readonly activeView = computed(() => this.tabs().find((tab) => tab.id === this.activeTabId()))
   readonly #mountedTabIds = signal<ReadonlySet<string>>(new Set())
   readonly mountedTabs = computed(() => {
     const activeTabId = this.activeTabId()

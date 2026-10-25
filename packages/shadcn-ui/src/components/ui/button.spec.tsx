@@ -3,6 +3,10 @@ import { createRoot, type Root } from 'react-dom/client'
 import { Button } from './button'
 import { Popover, PopoverTrigger, PopoverContent } from './popover'
 import { TooltipProvider, Tooltip, TooltipTrigger } from './tooltip'
+import { AlertDialog, AlertDialogTrigger } from './alert-dialog'
+import { HoverCard, HoverCardTrigger } from './hover-card'
+import { Sheet, SheetTrigger, SheetClose } from './sheet'
+import { ContextMenu, ContextMenuTrigger } from './context-menu'
 
 describe('React 18 overlay trigger refs', () => {
   let container: HTMLDivElement
@@ -48,5 +52,41 @@ describe('React 18 overlay trigger refs', () => {
     expect(document.querySelector('[aria-label="Display settings"]')?.getAttribute('data-state')).toBe('open')
     React.act(() => button.click())
     expect(button.getAttribute('aria-expanded')).toBe('false')
+  })
+  it('preserves DOM refs on previously direct Radix trigger and close exports', () => {
+    const alert = React.createRef<HTMLButtonElement>()
+    const hover = React.createRef<HTMLAnchorElement>()
+    const sheet = React.createRef<HTMLButtonElement>()
+    const close = React.createRef<HTMLButtonElement>()
+    const context = React.createRef<HTMLSpanElement>()
+    React.act(() =>
+      root.render(
+        <>
+          <AlertDialog>
+            <AlertDialogTrigger ref={alert}>Confirm</AlertDialogTrigger>
+          </AlertDialog>
+          <HoverCard>
+            <HoverCardTrigger ref={hover}>Preview</HoverCardTrigger>
+          </HoverCard>
+          <Sheet>
+            <SheetTrigger ref={sheet}>Open</SheetTrigger>
+            <SheetClose ref={close}>Close</SheetClose>
+          </Sheet>
+          <ContextMenu>
+            <ContextMenuTrigger ref={context}>Menu</ContextMenuTrigger>
+          </ContextMenu>
+        </>
+      )
+    )
+    for (const [ref, slot] of [
+      [alert, 'alert-dialog-trigger'],
+      [hover, 'hover-card-trigger'],
+      [sheet, 'sheet-trigger'],
+      [close, 'sheet-close'],
+      [context, 'context-menu-trigger']
+    ] as const) {
+      expect(ref.current).toBe(container.querySelector(`[data-slot="${slot}"]`))
+      expect(ref.current).not.toBeNull()
+    }
   })
 })

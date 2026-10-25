@@ -1,6 +1,7 @@
 import { ThreadControlProjection } from '../../chat-conversation/control-view/thread-control-projection.entity'
 import { McpRemoteOperation } from '../../mcp-consumer/execution/mcp-operation.entity'
 import { ExecutionControl } from '../../execution-control/execution-control.entity'
+import { contentDocumentEntities } from '../../content-resource/documents/entities'
 import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
 import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistence/pipeline.entity'
@@ -172,6 +173,7 @@ import {
 export const ALL_AI_ENTITIES = [
     ThreadControlProjection,
     ExecutionControl,
+    ...contentDocumentEntities,
     AnalyticsDefinition,
     AnalyticsDefinitionVersion,
     ...ProjectPipelineEntities,

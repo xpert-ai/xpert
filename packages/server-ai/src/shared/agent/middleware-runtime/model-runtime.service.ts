@@ -1,3 +1,4 @@
+import { CopilotOneByRoleQuery } from '../../../copilot/queries/get-one-by-role.query'
 import { randomUUID } from 'crypto'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
@@ -5,6 +6,7 @@ import {
     AiProviderRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
+    ICopilot,
     IModelAccessResolution,
     IXpertAgentExecution,
     ModelUsagePricingContext,
@@ -70,6 +72,24 @@ export class AgentMiddlewareModelRuntimeService {
         private readonly copilotService: CopilotService,
         private readonly copilotUsage: CopilotUsageService
     ) {}
+
+    async getDefaultChatModel(scope: AgentMiddlewareRuntimeScope = {}): Promise<ICopilotModel> {
+        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
+            new CopilotOneByRoleQuery(
+                scope.tenantId ?? RequestContext.currentTenantId(),
+                scope.organizationId ?? RequestContext.getOrganizationId(),
+                AiProviderRole.Primary,
+                ['copilotModel']
+            )
+        )
+        if (!copilot?.copilotModel?.model) throw new CopilotModelNotFoundException(t('server-ai:Error.AIModelNotFound'))
+        return {
+            modelType: AiModelTypeEnum.LLM,
+            model: copilot.copilotModel.model,
+            copilotId: copilot.id,
+            options: copilot.copilotModel.options
+        }
+    }
 
     async createModelClient<T = AgentMiddlewareModelClient>(
         copilotModel: ICopilotModel,

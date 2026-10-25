@@ -1,12 +1,11 @@
 import type { IWFNMiddleware, XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.interface'
 import { createRuntimeCapability } from '../core/runtime-capability'
+import type { AssistantMiddlewareRequirement } from '../runtime/capabilities/assistant-middleware-access'
 
 /** Server-only input: use the authorized context received by a View provider, never iframe input. */
-export interface ViewMiddlewareRuntimeInput {
+export interface ViewMiddlewareRuntimeInput extends AssistantMiddlewareRequirement {
   context: XpertResolvedViewHostContext
-  provider: string
-  requiredFeature: string
   /** Authoring requires the same draft access policy as the Agent View host. Defaults to published. */
   isDraft?: boolean
 }

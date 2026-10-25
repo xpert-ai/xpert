@@ -6,7 +6,8 @@ import { ChatConversationThread } from '../conversation-thread.entity'
 import { ChatConversationThreadService } from '../conversation-thread.service'
 import { ThreadRecoveryService } from './thread-recovery.service'
 import { legacyThreadGraphRevision, threadGraphRevision } from '../thread-graph-revision'
-import { GetXpertWorkflowQuery } from '../../xpert/queries/get-xpert-workflow.query'
+import { GetXpertRecoveryDefinitionQuery } from '../../xpert/queries/get-xpert-recovery-definition.query'
+import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries/get-tuple.query'
 
 function fixture() {
     const conversation = Object.assign(new ChatConversation(), {
@@ -87,7 +88,7 @@ it.each(['layout', 'logic', 'legacy-same', 'legacy-layout', 'missing-revision'] 
         if (change === 'layout' || change === 'legacy-layout') graph.nodes[0].position.x = 500
         if (change === 'logic' && graph.nodes[0].type === 'agent') graph.nodes[0].entity.prompt = 'different'
         f.execute.mockImplementation(async (query: unknown) =>
-            query instanceof GetXpertWorkflowQuery
+            query instanceof GetXpertRecoveryDefinitionQuery
                 ? { graph }
                 : {
                       config: { configurable: { thread_id: 'failed', checkpoint_ns: '', checkpoint_id: 'input' } },
@@ -105,6 +106,68 @@ it.each(['layout', 'logic', 'legacy-same', 'legacy-layout', 'missing-revision'] 
         expect(f.thread.error).toBe('original failure')
         expect(f.thread.metadata.forkGraphRevision).toBe(saved)
         expect(f.manager.save).not.toHaveBeenCalled()
+        expect(f.execute).toHaveBeenCalledWith(new GetXpertRecoveryDefinitionQuery('assistant'))
+        if (result.canRetry) {
+            expect(f.execute).toHaveBeenCalledWith(
+                new CopilotCheckpointGetTupleQuery({
+                    thread_id: 'failed',
+                    checkpoint_ns: '',
+                    checkpoint_id: 'input'
+                })
+            )
+        }
+    }
+)
+
+it.each(['missing', 'foreign-thread', 'foreign-namespace', 'loop'] as const)(
+    'still rejects an invalid input checkpoint after the lightweight definition read: %s',
+    async (kind) => {
+        const f = fixture()
+        const graph: TXpertGraph = { nodes: [], connections: [] }
+        f.findOne.mockResolvedValue({
+            id: 'execution',
+            checkpointId: 'latest',
+            metadata: {
+                recovery: {
+                    version: 1,
+                    graphRevision: threadGraphRevision(graph),
+                    input: { threadId: 'failed', checkpointNs: '', checkpointId: 'input' },
+                    latest: { threadId: 'failed', checkpointNs: '', checkpointId: 'latest' }
+                }
+            }
+        })
+        f.execute.mockImplementation(async (query: unknown) =>
+            query instanceof GetXpertRecoveryDefinitionQuery
+                ? { graph }
+                : kind === 'missing'
+                  ? null
+                  : {
+                        config: {
+                            configurable: {
+                                thread_id: kind === 'foreign-thread' ? 'other' : 'failed',
+                                checkpoint_ns: kind === 'foreign-namespace' ? 'child' : '',
+                                checkpoint_id: 'input'
+                            }
+                        },
+                        metadata: { source: kind === 'loop' ? 'loop' : 'input' }
+                    }
+        )
+        await expect(f.service.describe('failed')).resolves.toMatchObject({
+            canRetry: false,
+            reason: 'conversation_recovery_unavailable'
+        })
+        expect(f.manager.save).not.toHaveBeenCalled()
+    }
+)
+
+it.each(['busy', 'pausing', 'paused'] as const)(
+    'does not load graphs or checkpoints for a %s thread',
+    async (status) => {
+        const f = fixture()
+        f.thread.status = status
+        await expect(f.service.describe('failed')).resolves.toMatchObject({ canRetry: false })
+        expect(f.findOne).not.toHaveBeenCalled()
+        expect(f.execute).not.toHaveBeenCalled()
     }
 )
 

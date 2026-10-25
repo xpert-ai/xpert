@@ -56,19 +56,24 @@ test('Docker installs every selected manifest before copying its complete build 
   }
 })
 
-test('the Web image includes every browser connector contract exported by the SDK entry point', () => {
+test('the Web image includes the transitive browser connector contracts without server imports', () => {
   const dockerfile = read('.deploy/webapp/Dockerfile')
   const build = dockerfile.indexOf('RUN pnpm nx build cloud')
   const entryPoint = 'packages/plugin-sdk/src/connector.ts'
-  const contracts = [...read(entryPoint).matchAll(/^export \* from ['"](.+)['"]/gm)].map((match) =>
-    path.posix.join(path.posix.dirname(entryPoint), `${match[1]}.ts`)
-  )
-  assert.ok(contracts.length > 0, 'Expected browser connector contract exports')
-  for (const file of [entryPoint, ...contracts]) {
+  const contracts = new Set([entryPoint])
+  for (const file of contracts) {
     assert.ok(fs.existsSync(path.join(root, file)), `Missing connector contract source: ${file}`)
+    for (const [, dependency] of read(file).matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
+      if (dependency.startsWith('.')) {
+        contracts.add(path.posix.join(path.posix.dirname(file), `${dependency}.ts`))
+      } else {
+        assert.equal(dependency, '@xpert-ai/contracts', `${file}: unexpected browser contract dependency`)
+      }
+    }
     const copy = dockerfile.indexOf(`COPY --chown=node:node ${file} ./${path.posix.dirname(file)}/\n`)
     assert.ok(copy >= 0 && copy < build, `${file}: copy browser connector contract before compilation`)
   }
+  assert.ok(contracts.size > 1, 'Expected browser connector contract exports')
 })
 
 test('the Web image includes the shared template installation client source', () => {

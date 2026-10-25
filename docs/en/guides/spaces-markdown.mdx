@@ -1,0 +1,106 @@
+---
+title: 'Markdown Collaboration'
+description: 'Page editing, insertion, formulas, subpages, resource references, and live collaboration.'
+---
+
+The Markdown editor is an independent Remote View plugin built with Tiptap and Yjs. Spaces locates documents, while ChatKit Workbench opens editor tabs. The editor contains document tools without duplicating the Space sidebar.
+
+This guide covers [Spaces](/en/guides/spaces) and the matching current editor implementation. See [release and deployment](/en/architecture/spaces-content#release-and-deployment) for dependencies and validation boundaries.
+
+## Document workspace
+
+- The title dropdown switches between registered Markdown pages in the current project, using a searchable, paginated picker.
+- The toolbar provides formatting, insertion, undo, and redo. History, review, and sharing actions delegate to ChatKit or the Assistant.
+- A six-dot button beside a block opens actions to transform it, insert below it, copy its anchored link, or delete it.
+- Copying document or block links requires a public entry URL configured by the host. Links retain resource and block identities without the current private conversation or credentials. Opening them still requires authorization.
+- The editor reports unsaved state. ChatKit waits for a save acknowledgment before switching documents, closing a tab, or leaving the workspace. Failed saves keep the editor open.
+
+## Insert menu
+
+The toolbar and block menu share insertion capabilities. Typing `/` in a supported top-level paragraph opens searchable commands with keyboard selection. Code blocks and URLs do not trigger the menu. IME composition is handled separately so composing text is not treated as a shortcut.
+
+| Category              | Current capability                                                  | Stored form or action                                         |
+| --------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Basic content         | Paragraphs, heading levels 1–3, unordered/ordered lists, task lists | Standard Markdown                                             |
+| Formatting blocks     | Quotes, code blocks, horizontal rules                               | Standard Markdown                                             |
+| Tables                | Insert and edit constrained tables                                  | GFM tables                                                    |
+| Mathematics           | Inline and block formulas                                           | LaTeX with `$` / `$$` delimiters                              |
+| Hints and callouts    | Preset quote content                                                | Portable blockquotes, without registering new AI instructions |
+| Pages                 | Create a subpage or reference an existing page                      | Independent page resources and resource links                 |
+| Images                | Upload or select a project image                                    | Authorized resource references                                |
+| Files                 | Upload or reference a project attachment                            | Authorized resource references and download actions           |
+| Links                 | Add external or page links                                          | Allowed external protocols; resource identities for pages     |
+| Hand off to Assistant | Supply the document or selection as context                         | Does not send a message or overwrite an existing input draft  |
+
+Block insertion targets the position after the current top-level block rather than replacing selected text. If collaboration changes the document while a menu is open, insertion rechecks the anchor. A missing anchor prompts the user to choose another position.
+
+Chat references, interactive visualizations, image generation inside the editor, and arbitrary embedded applications are not current insert capabilities. AI generation and general review remain Assistant responsibilities.
+
+## Tables and Markdown support
+
+Supported content includes paragraphs, headings, emphasis, links, nested lists, task lists, quotes, code, rules, constrained tables, formulas, and authorized images. Tables allow up to 30 columns and 200 rows with one header row. Cells contain a single-line paragraph; merged cells, nested blocks, column widths, and inconsistent column alignment are unsupported. Both frontend and server enforce these constraints.
+
+Markdown bodies are limited to 1 MiB. Raw HTML and arbitrary external image URLs are unsupported; failed validation does not overwrite the original file. Initial registration preserves file bytes. Subsequent edits serialize the supported Markdown model rather than guaranteeing byte-for-byte round trips for arbitrary Markdown.
+
+## Formulas
+
+1. Choose an inline formula or formula block from the insert menu.
+2. Enter LaTeX and inspect the local KaTeX preview. Do not wrap the dialog input in `$` or `$$`.
+3. Confirm insertion. Reopen the formula to edit or delete it.
+
+Each formula allows up to 4,096 characters, with at most 200 formulas per document. Inline formulas cannot contain line breaks. Literal dollar signs in ordinary text are treated as text or escaped, and code content is not parsed as mathematics.
+
+Formulas have stable identities. Before applying an edit, the editor checks the identity and original LaTeX. If another member changed or deleted the formula, an old dialog cannot overwrite the new content. KaTeX and fonts ship with the plugin; trusted HTML is disabled, and expansion and size are bounded.
+
+## Subpages
+
+A subpage is an independent Markdown file and resource, rather than text embedded in its parent.
+
+- Creation places its file in the parent's physical folder by default.
+- `parentPageId` describes page hierarchy; `parentId` describes folder location. They are independent.
+- Retrying the same creation request does not create a duplicate. Identical titles do not overwrite existing files.
+- Hierarchy depth is limited to 32 levels. The current hierarchy query returns up to 100 direct children and indicates whether more exist.
+- Renaming or moving a parent page file does not rename or move its children.
+- Trashing a parent does not cascade to its children. Children remain accessible from Spaces; unavailable parent navigation is hidden and can reconnect after restoration.
+- Moving a physical folder still moves its actual files, independently of page hierarchy.
+
+Subtree copying, bulk reparenting, and complete offline hierarchy export are not provided. Exporting a Markdown body alone does not include the parent-child relationship stored in the database.
+
+## Images, attachments, and page references
+
+References store stable resource URIs rather than temporary download URLs:
+
+```text
+xpert-resource://v1/{kind}/{providerKey}/{resourceId}
+```
+
+`kind` is `image`, `file`, or `page`. The current Spaces adapter limits references to the same project. Resolution checks access to both the containing document and the target resource. Moving or renaming preserves references. Trashed or revoked targets become unavailable and can resolve again after restoration or access recovery.
+
+Images support PNG, JPEG, GIF, and WebP with content validation; SVG and HTML are not accepted as images. Uploads are limited to 25 MiB. Temporary preview URLs exist only at runtime in the browser, never in Markdown or Yjs.
+
+If another member deletes the insertion anchor after an upload succeeds, the file remains in the project and the UI explains that insertion failed. It can be selected again. Downloads recheck authorization. Resource URIs in exported Markdown require an authorized Xpert environment; offline attachment bundling is not provided.
+
+## Live collaboration and saving
+
+Opening the same project resource through different Assistants joins the same collaborative document. The editor merges changes through Yjs and displays online members and cursors. The server persists accepted updates before broadcasting them and checks each recipient's access.
+
+Two states have different meanings:
+
+| State                         | Meaning                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| Collaboration update accepted | The server has persisted a Yjs update for merging and distribution        |
+| File saved                    | The Markdown file, published revision, and accepted update sequence agree |
+
+An accepted collaboration update is not a file-save acknowledgment. Publication failure keeps the document unsaved rather than reporting success early. Reconnection uses state vectors to recover missing updates and retries the current window's queue. There is no durable offline draft queue that survives closing the browser.
+
+Version restoration or model upgrades change the collaboration epoch. Old sessions must reload before writing. A browser warning during refresh or close protects navigation; it is not an offline backup.
+
+## Review, versions, and external changes
+
+AI proposals, comments, version history, and external-file conflicts are handled through the Assistant review entry in ChatKit. The editor supplies document context, selection, and save state without implementing a second general review system.
+
+Accepting a proposal, restoring a version, or resolving a conflict checks revision, hash, or collaboration-sequence baselines on the server. Stale requests are rejected. Restoration also requires current edits to be saved first.
+
+Ordinary file-write APIs cannot bypass publication for managed documents. If a sandbox or external process changes the file directly, the system detects a conflict, preserves the external version, and stops automatic overwrites. The user then chooses the file or document version. This detects and preserves conflicts; it does not make the sandbox filesystem read-only.
+
+See [content platform architecture](/en/architecture/spaces-content) for implementation and API boundaries.

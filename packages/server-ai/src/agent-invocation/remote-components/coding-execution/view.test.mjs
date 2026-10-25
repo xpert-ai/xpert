@@ -460,3 +460,186 @@ test('JSON tree arrow navigation stays within visible nodes and selection surviv
         h.dom.window.close()
     }
 })
+
+test('same-execution locale updates refresh every UI region without remounting raw activity', async () => {
+    const h = harness()
+    try {
+        const command = tool(1, '原始 CLI output', 'succeeded')
+        const json = message('json', 2, JSON.stringify({ names: ['source.ts'] }))
+        const change = {
+            id: 'change',
+            seq: 3,
+            firstSeq: 3,
+            observedAt: at,
+            content: {
+                kind: 'tool',
+                status: 'succeeded',
+                detail: { type: 'file_change', files: [{ path: '原始.ts', change: 'modified' }] }
+            }
+        }
+        await h.reply(
+            snapshot([command, json, change], 'succeeded', 'closed', {
+                text: '原始模型回复',
+                artifacts: [
+                    { id: 'file', versionId: 'version' },
+                    { id: 'named', versionId: 'version', name: '原始.txt' }
+                ]
+            })
+        )
+        const row = h.$('[data-record-id="command"]'),
+            output = row.querySelector('.command-output').firstChild
+        const tree = jsonBranch(h, '/names'),
+            download = h.$('.artifacts button'),
+            combobox = h.$('[role="combobox"]')
+        tree.open = true
+        h.$('.technical-info').open = true
+        h.$('.header-actions button:nth-of-type(2)').click()
+        h.$('.transcript-scroll').scrollTop = 120
+        row.focus()
+        const requests = h.requests.length
+        for (const [locale, lang, status, copy, downloadText, fields, items, edit, metadata, dateLocale] of [
+            [
+                'en_US',
+                'en-US',
+                'Succeeded',
+                'Copy output',
+                'Download file',
+                '1 field',
+                '1 item',
+                'Edit 原始.ts',
+                'Created:',
+                'en-US'
+            ],
+            [
+                'zh_TW',
+                'zh-Hant',
+                '執行成功',
+                '複製輸出',
+                '下載檔案',
+                '1 個欄位',
+                '1 項',
+                '編輯 原始.ts',
+                '建立時間：',
+                'zh-Hant'
+            ],
+            [
+                'zh_CN',
+                'zh-Hans',
+                '执行成功',
+                '复制输出',
+                '下载文件',
+                '1 个字段',
+                '1 项',
+                '编辑 原始.ts',
+                '创建时间：',
+                'zh-Hans'
+            ]
+        ]) {
+            h.init({ locale })
+            assert.equal(h.w.document.documentElement.lang, lang)
+            assert.equal(h.$('.execution-status').textContent, status)
+            assert.equal(row.querySelector('.output-actions button').getAttribute('aria-label'), copy)
+            assert.equal(download.textContent, downloadText)
+            assert.equal(download.title, downloadText)
+            assert.ok(jsonBranch(h, '').querySelector('summary').textContent.endsWith(fields))
+            assert.ok(tree.querySelector('summary').textContent.endsWith(items))
+            assert.equal(h.$('[data-record-id="change"] .tool-title').textContent, edit)
+            assert.ok(h.$('.technical-body').textContent.includes(metadata))
+            assert.ok(
+                h
+                    .$('.technical-body')
+                    .textContent.includes(
+                        new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium', timeStyle: 'medium' }).format(
+                            new Date(at)
+                        )
+                    )
+            )
+            assert.equal(h.$('[data-record-id="command"]'), row)
+            assert.equal(row.querySelector('.command-output').firstChild, output)
+            assert.equal(output.textContent, '原始 CLI output')
+            assert.equal(h.$('.final-summary .public-message').textContent, '原始模型回复')
+            assert.equal(h.$('.artifacts button:last-child').textContent, '原始.txt')
+            assert.equal(h.$('[role="combobox"]'), combobox)
+            assert.equal(h.w.document.activeElement, row)
+            assert.equal(tree.open, true)
+            assert.equal(h.$('.technical-info').open, true)
+            assert.equal(h.$('.transcript-scroll').scrollTop, 120)
+            assert.equal(h.requests.length, requests)
+        }
+    } finally {
+        h.dom.window.close()
+    }
+})
+
+test('locale switching defers changes to selected rows while updating header and search labels', async () => {
+    const h = harness()
+    try {
+        await h.reply(snapshot([tool(1, 'selected original', 'succeeded')], 'succeeded', 'closed'))
+        h.$('.header-actions button').click()
+        const input = h.$('.search-bar input'),
+            output = h.$('.command-output').firstChild
+        input.value = 'original'
+        input.dispatchEvent(new h.w.Event('input'))
+        const range = h.w.document.createRange()
+        range.setStart(output, 0)
+        range.setEnd(output, 8)
+        h.w.getSelection().removeAllRanges()
+        h.w.getSelection().addRange(range)
+        assert.equal(h.w.getSelection().toString(), 'selected')
+        h.init({ locale: 'zh-Hant' })
+        assert.equal(h.w.getSelection().toString(), 'selected')
+        assert.equal(h.$('.command-output').firstChild, output)
+        assert.equal(h.$('.execution-status').textContent, '執行成功')
+        assert.equal(input.placeholder, '搜尋已載入的過程…')
+        assert.equal(input.value, 'original')
+        assert.equal(h.$('.exit-code').textContent, '退出码 0')
+        h.w.getSelection().removeAllRanges()
+        h.w.document.dispatchEvent(new h.w.Event('selectionchange'))
+        assert.equal(h.$('.exit-code').textContent, '結束代碼 0')
+        assert.equal(h.$('.command-output').firstChild, output)
+    } finally {
+        h.dom.window.close()
+    }
+})
+
+test('active feedback, retry errors and empty states switch languages without fetching again', async () => {
+    const h = harness()
+    try {
+        await h.reply(snapshot([tool(1)]))
+        h.w.document.execCommand = () => true
+        h.$('.header-actions button:nth-of-type(3)').click()
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(h.$('.copy-status').textContent, '已复制')
+        await h.poll()
+        const request = h.requests.at(-1)
+        h.receive({ type: 'error', requestId: request.requestId, message: 'Unavailable' })
+        await new Promise((resolve) => setImmediate(resolve))
+        h.init({ locale: 'zh-Hant' })
+        assert.equal(h.$('.copy-status').textContent, '已複製')
+        assert.match(h.$('.connection-notice').textContent, /連線或權限/)
+        h.init({ locale: 'fr-FR' })
+        assert.equal(h.w.document.documentElement.lang, 'en-US')
+        assert.equal(h.$('.copy-status').textContent, 'Copied')
+        assert.match(h.$('.connection-notice').textContent, /retrying/)
+        h.init({ initialQuery: {}, locale: 'zh-Hant' })
+        assert.equal(h.$('.empty-state').textContent, '請從執行卡片或執行紀錄開啟。')
+        assert.equal(h.$('.viewer-header h1').textContent, '程式執行過程')
+        assert.equal(h.$('.copy-status').textContent, '')
+    } finally {
+        h.dom.window.close()
+    }
+})
+
+test('unknown execution status uses a translated fallback rather than a raw enum', async () => {
+    const h = harness()
+    try {
+        await h.reply(snapshot([], 'provider_future_status', 'closed'))
+        assert.equal(h.$('.execution-status').textContent, '状态未知')
+        h.init({ locale: 'en-US' })
+        assert.equal(h.$('.execution-status').textContent, 'Unknown')
+        h.init({ locale: 'zh-Hant' })
+        assert.equal(h.$('.execution-status').textContent, '狀態未知')
+    } finally {
+        h.dom.window.close()
+    }
+})

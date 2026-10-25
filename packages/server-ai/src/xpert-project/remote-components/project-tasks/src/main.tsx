@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { z } from 'zod'
-import { Table2, GitBranch, ChartNoAxesGantt, Columns3, RefreshCw, X, LoaderCircle, Workflow } from 'lucide-react'
+import { Table2, GitBranch, ChartNoAxesGantt, Columns3, RefreshCw, LoaderCircle, Workflow } from 'lucide-react'
 import {
     Button,
     Tabs,
@@ -11,6 +11,11 @@ import {
     TooltipProvider,
     Dialog,
     DialogContent,
+    DialogHeader,
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+    AccordionContent,
     DialogTitle,
     DialogDescription,
     AlertDialog,
@@ -45,8 +50,12 @@ import { TaskDetail, type DetailDraft } from './task-detail'
 import { Empty, IconButton } from './ui'
 import { PipelineView } from './pipeline/view'
 import { pipelineTexts } from './pipeline/i18n'
+import { useViewVisible } from './view-visibility'
+import { GraphAvatarCache } from './graph-avatars'
 
 function App() {
+    const visible = useViewVisible()
+    const avatarCache = useRef(new GraphAvatarCache())
     const [locale, setLocale] = useState('en-US'),
         [ready, setReady] = useState(false)
     const [graph, setGraph] = useState<Graph | null>(null),
@@ -94,8 +103,9 @@ function App() {
         setRefreshing(true)
         const current = ++generation.current
         try {
-            const result = z.object({ item: graphSchema }).parse(await request('requestData', { query: {} }))
+            const response = await request('requestData', { query: avatarCache.current.query() })
             if (current !== generation.current) return
+            const result = { item: avatarCache.current.read(response) }
             setGraph((previous) =>
                 previous?.cursor === result.item.cursor && previous.canEditPlan === result.item.canEditPlan
                     ? previous
@@ -111,7 +121,7 @@ function App() {
         }
     }, [])
     useEffect(() => {
-        if (!ready) return
+        if (!ready || !visible) return
         void load()
         const timer = window.setInterval(() => {
             setNow(Date.now())
@@ -126,7 +136,7 @@ function App() {
             document.removeEventListener('visibilitychange', visibility)
             generation.current++
         }
-    }, [ready, load])
+    }, [ready, visible, load])
     const onGraph = (graph: Graph) => {
         generation.current++
         setGraph(graph)
@@ -223,13 +233,9 @@ function App() {
                     }}
                     className="min-h-0 min-w-0 flex-1 gap-0"
                 >
-                    <div className="@container flex shrink-0 items-center gap-2 border-b px-3">
+                    <div className="@container flex shrink-0 items-center gap-2 border-b px-3 py-2">
                         <div className="min-w-0 flex-1 overflow-hidden">
-                            <TabsList
-                                variant="line"
-                                aria-label={t.viewLabel}
-                                className="grid w-full grid-cols-5 gap-0 p-0 group-data-[orientation=horizontal]/tabs:h-10"
-                            >
+                            <TabsList variant="line" aria-label={t.viewLabel} className="grid w-full grid-cols-5">
                                 {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
                                     const Icon = icons[value]
                                     return (
@@ -238,7 +244,7 @@ function App() {
                                             value={value}
                                             aria-label={t[value]}
                                             title={t[value]}
-                                            className="h-full min-w-0 rounded-none border-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                            className="min-w-0"
                                         >
                                             <Icon />
                                             <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
@@ -249,7 +255,7 @@ function App() {
                                     value="pipeline"
                                     aria-label={pipelineTexts(locale).title}
                                     title={pipelineTexts(locale).title}
-                                    className="h-full min-w-0 rounded-none border-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                    className="min-w-0"
                                 >
                                     <Workflow />
                                     <span className="hidden truncate @[34rem]:inline">
@@ -280,16 +286,20 @@ function App() {
                         </div>
                     )}
                     {!!graph?.diagnostics.length && (
-                        <details className="border-b bg-muted px-4 py-2 text-sm">
-                            <summary>
-                                {t.diagnostics} · {graph.diagnostics.length}
-                            </summary>
-                            {graph.diagnostics.map((item) => (
-                                <p key={item.providerKey} className="py-1 text-destructive">
-                                    {item.message}
-                                </p>
-                            ))}
-                        </details>
+                        <Accordion type="single" collapsible className="px-4">
+                            <AccordionItem value="diagnostics">
+                                <AccordionTrigger>
+                                    {t.diagnostics} · {graph.diagnostics.length}
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    {graph.diagnostics.map((item) => (
+                                        <p key={item.providerKey} className="py-1 text-destructive">
+                                            {item.message}
+                                        </p>
+                                    ))}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     )}
                     {forecast.error && (
                         <p role="alert" className="border-b px-4 py-2 text-xs text-destructive">
@@ -398,23 +408,17 @@ function App() {
                     }}
                 >
                     <DialogContent
-                        className="flex h-[min(760px,calc(100dvh-2rem))] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
-                        showCloseButton={false}
+                        className="flex max-h-[90dvh] min-h-0 flex-col overflow-hidden sm:max-w-4xl"
                         aria-describedby="task-dialog-description"
                         onCloseAutoFocus={(event) => {
                             event.preventDefault()
                             if (detailTrigger.current?.isConnected) detailTrigger.current.focus()
                         }}
                     >
-                        <div className="flex shrink-0 items-center justify-between px-4 py-3">
-                            <DialogTitle className="text-sm font-medium text-muted-foreground">{t.details}</DialogTitle>
-                            <IconButton label={t.close} onClick={() => choose(null)}>
-                                <X />
-                            </IconButton>
-                        </div>
-                        <DialogDescription id="task-dialog-description" className="sr-only">
-                            {t.subtitle}
-                        </DialogDescription>
+                        <DialogHeader>
+                            <DialogTitle>{t.details}</DialogTitle>
+                            <DialogDescription id="task-dialog-description">{t.subtitle}</DialogDescription>
+                        </DialogHeader>
                         {detail}
                     </DialogContent>
                 </Dialog>

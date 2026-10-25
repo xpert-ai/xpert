@@ -3,7 +3,10 @@ import { ConflictException, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { DataSource, IsNull } from 'typeorm'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
-import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../../xpert/queries/get-xpert-workflow.query'
+import {
+    GetXpertRecoveryDefinitionQuery,
+    XpertRecoveryDefinition
+} from '../../xpert/queries/get-xpert-recovery-definition.query'
 import { ChatConversationThreadService } from '../conversation-thread.service'
 import { ChatConversationThread } from '../conversation-thread.entity'
 import { ChatConversation } from '../conversation.entity'
@@ -30,6 +33,8 @@ export class ThreadRecoveryService {
         }
         if (['busy', 'pausing', 'paused'].includes(thread.status)) return result
         const execution = await this.database.manager.findOne(XpertAgentExecution, {
+            select: { id: true, error: true, checkpointId: true, checkpointNs: true, parentId: true, metadata: true },
+            loadEagerRelations: false,
             where: {
                 threadId,
                 parentId: IsNull(),
@@ -49,18 +54,18 @@ export class ThreadRecoveryService {
         result.originalError = execution.error ?? thread.error ?? undefined
         if (!execution.checkpointId && !execution.metadata?.recovery?.input)
             return { ...result, reason: 'conversation_recovery_unavailable' }
-        const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
-            new GetXpertWorkflowQuery(thread.conversation.xpertId)
+        const workflow = await this.queryBus.execute<GetXpertRecoveryDefinitionQuery, XpertRecoveryDefinition>(
+            new GetXpertRecoveryDefinitionQuery(thread.conversation.xpertId)
         )
         const graphRevision = threadGraphRevision(
             workflow.graph,
             execution.metadata?.recovery?.graphRevision,
-            workflow.agent?.team
+            workflow.team
         )
         if (
             thread.metadata?.forkGraphRevision &&
             thread.metadata.forkGraphRevision !==
-                threadGraphRevision(workflow.graph, thread.metadata.forkGraphRevision, workflow.agent?.team)
+                threadGraphRevision(workflow.graph, thread.metadata.forkGraphRevision, workflow.team)
         )
             return { ...result, reason: 'conversation_graph_changed' }
         try {

@@ -56,7 +56,36 @@
                 {{ appDetail.application.displayName | i18n }}
               </h1>
               <p class="mt-3 text-lg text-muted-foreground">{{ presentation()?.tagline | i18n }}</p>
-              <!-- This is organization initialization state, independent of plugin availability. -->
+              @if (installationScopes().length > 1) {
+                <fieldset
+                  class="mt-5 flex flex-wrap items-center gap-3"
+                  [disabled]="initializing() || configuringToolsets() || discarding()"
+                >
+                  <legend class="mb-2 text-sm font-medium">
+                    {{ 'XP.Explore.Application.InstallationTarget' | translate }}
+                  </legend>
+                  @for (scope of installationScopes(); track scope) {
+                    <label
+                      class="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm focus-within:ring-2 focus-within:ring-ring"
+                    >
+                      <input
+                        type="radio"
+                        name="installationScope"
+                        [value]="scope"
+                        [checked]="application()?.scope === scope"
+                        (change)="selectInstallationScope(scope)"
+                      />
+                      {{ scopeLabel(scope) }}
+                    </label>
+                  }
+                </fieldset>
+              }
+              @if (application()?.scope === 'personal') {
+                <p class="mt-3 text-sm text-muted-foreground">
+                  {{ 'XP.Explore.Application.PersonalDataScope' | translate }}
+                </p>
+              }
+              <!-- Installation state is independent of plugin availability. -->
               @if (status() === 'not_installed') {
                 <p class="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
                   {{ 'XP.Explore.Application.SetupExplanation' | translate }}
@@ -70,6 +99,12 @@
                   {{ 'XP.Explore.Application.ViewSetupDetails' | translate: { Default: 'View setup details' } }}
                 </button>
               </div>
+              @if (appDetail.canUpdate) {
+                <xp-application-update
+                  [application]="applicationInput()"
+                  [suite]="appDetail.application.config.assistantSuite"
+                />
+              }
             </div>
           </header>
 
@@ -222,7 +257,13 @@
             <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {{ 'XP.Explore.Application.DataScope' | translate: { Default: 'Data scope' } }}
             </div>
-            <p class="mt-2 text-sm leading-6 text-foreground">{{ presentation()?.dataScope | i18n }}</p>
+            <p class="mt-2 text-sm leading-6 text-foreground">
+              {{
+                application()?.scope === 'personal'
+                  ? ('XP.Explore.Application.PersonalDataScope' | translate)
+                  : (presentation()?.dataScope | i18n)
+              }}
+            </p>
           </div>
           <div class="mt-5 text-xs text-muted-foreground">{{ developerLabel() }}</div>
         </aside>
@@ -338,7 +379,7 @@
           }
 
           <xp-application-toolsets
-            [application]="appDetail.application"
+            [application]="applicationInput()"
             [editable]="!!appDetail.status.canDiscardConfiguration"
             [requirements]="toolsetRequirements()"
             [(selections)]="toolsetSelections"
@@ -393,7 +434,13 @@
                 <div class="text-sm font-semibold text-foreground">
                   {{ 'XP.Explore.Application.DataScope' | translate: { Default: 'Data scope' } }}
                 </div>
-                <p class="mt-1 text-xs leading-5 text-muted-foreground">{{ presentation()?.dataScope | i18n }}</p>
+                <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                  {{
+                    application()?.scope === 'personal'
+                      ? ('XP.Explore.Application.PersonalDataScope' | translate)
+                      : (presentation()?.dataScope | i18n)
+                  }}
+                </p>
               </div>
             </div>
           </div>

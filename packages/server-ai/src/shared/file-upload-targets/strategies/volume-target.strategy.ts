@@ -1,3 +1,4 @@
+import { writeWorkspaceFile } from '../../volume/workspace-file-io'
 import { IFileAssetDestination, IUploadFileVolumeTarget } from '@xpert-ai/contracts'
 import {
     FileUploadTargetStrategy,
@@ -5,9 +6,9 @@ import {
     TFileUploadContext,
     TResolvedFileUploadSource
 } from '@xpert-ai/plugin-sdk'
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
-import { t } from 'i18next'
-import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient } from '../../volume'
+import { Inject, Injectable, Optional } from '@nestjs/common'
+import { ContentFileOwnershipService } from '../../volume/content-file-ownership.service'
+import { VOLUME_CLIENT, VolumeClient } from '../../volume'
 import { normalizeFileName, normalizeRelativePath, resolveVolumeTarget } from '../utils'
 
 @Injectable()
@@ -15,7 +16,8 @@ import { normalizeFileName, normalizeRelativePath, resolveVolumeTarget } from '.
 export class VolumeTargetStrategy implements IFileUploadTargetStrategy<IUploadFileVolumeTarget> {
     constructor(
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        @Optional() private readonly contentOwnership?: ContentFileOwnershipService
     ) {}
 
     async upload(
@@ -27,19 +29,11 @@ export class VolumeTargetStrategy implements IFileUploadTargetStrategy<IUploadFi
         const fileName = normalizeFileName(target.fileName || source.originalName)
         const filePath = normalizeRelativePath(target.folder, fileName)
         const absolutePath = volume.path(filePath)
-        await volume.writeFile(filePath, source.buffer, {
-            assertCanWrite: (canonicalRelativePath, fileStat) => {
-                if (
-                    volume.scope.catalog === 'projects' &&
-                    (isProjectGovernedContentPath(canonicalRelativePath) || (fileStat && fileStat.nlink !== 1))
-                ) {
-                    throw new ForbiddenException(
-                        t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
-                            defaultValue: 'Project instructions and skills are read-only during Agent runtime'
-                        })
-                    )
-                }
-            }
+        const verifyOwnership = () => this.contentOwnership?.assertUnmanaged(volume.scope.tenantId, volume.scope.projectId, filePath)
+        await writeWorkspaceFile(volume, filePath, source.buffer, {
+            assertUnmanaged: verifyOwnership,
+            // This strategy receives a resolved upload target; the caller owns human/Assistant authorization.
+            authorize: async () => undefined
         })
         const url = volume.exposesDirectFileUrls() ? volume.publicUrl(filePath) : undefined
         const { fileUrl: _fileUrl, url: _url, ...targetMetadata } = target.metadata ?? {}

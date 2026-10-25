@@ -12,6 +12,7 @@ import {
 } from './protocol'
 import { renderArtifactDocument } from './runtime'
 import type { ArtifactDocumentDependencyAsset } from './dependencies'
+import type { ArtifactDocumentNetworkPolicy } from './network'
 
 const readySchema = z
   .object({
@@ -31,6 +32,8 @@ export interface ArtifactDocumentHostOptions<T> {
   html: string
   /** Exact packaged bytes pinned to this Artifact version, never URLs or library names from the document. */
   dependencies?: ArtifactDocumentDependencyAsset[]
+  /** Optional trusted HTTPS resource allowlist. Omit to keep all external resources blocked. */
+  networkPolicy?: ArtifactDocumentNetworkPolicy
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext
   /** Resolve against saved Bindings on the server with the current user's access; never execute a query definition from HTML. */
@@ -64,7 +67,7 @@ export function mountArtifactDocument<T>(
     byte.toString(16).padStart(2, '0')
   ).join('')
   // Validate/render before allocating a channel or installing listeners.
-  const source = renderArtifactDocument(options.html, sessionId, options.dependencies)
+  const source = renderArtifactDocument(options.html, sessionId, options.dependencies, options.networkPolicy)
   const channel = new MessageChannel()
   const bindingIds = new Set(context.bindingIds)
   const requestIds = new Set<string>()

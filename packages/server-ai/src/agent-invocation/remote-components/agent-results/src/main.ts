@@ -1,4 +1,6 @@
+import { buttonVariants, installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
+import { downloadRemoteFile } from '../../../../view-extension/remote-file-download'
 import { agentInvocationStatusSchema } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { agentResultItemSchema } from '@xpert-ai/plugin-sdk/agent-results'
@@ -34,6 +36,13 @@ const envelope = z
         instanceId: z.string().optional(),
         requestId: z.string().optional(),
         locale: z.string().optional(),
+        theme: z
+            .object({
+                mode: z.string().optional(),
+                density: z.enum(['default', 'compact']).optional(),
+                tokens: z.record(z.union([z.string(), z.number()])).optional()
+            })
+            .optional(),
         initialQuery: z
             .object({ selectionId: z.string().optional(), parameters: z.record(z.unknown()).optional() })
             .optional(),
@@ -160,8 +169,9 @@ async function load(query: unknown) {
             const button = element(
                 'button',
                 zh ? '下载文件' : 'Download',
-                'shrink-0 rounded-md border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50'
+                buttonVariants({ variant: 'outline', className: 'shrink-0' })
             )
+            button.dataset.slot = 'button'
             button.type = 'button'
             const error = element('p', '', 'text-sm text-destructive')
             error.setAttribute('role', 'alert')
@@ -173,6 +183,7 @@ async function load(query: unknown) {
             }
             button.onclick = async () => {
                 if (!file.versionId) return
+                const version = epoch
                 button.disabled = true
                 error.textContent = ''
                 try {
@@ -183,17 +194,8 @@ async function load(query: unknown) {
                             purpose: 'download'
                         })
                     )
-                    const url = new URL(grant.url, window.location.href)
-                    if (!['http:', 'https:'].includes(url.protocol)) throw Error('Invalid download URL')
-                    // Use a top-level download: opaque sandbox subframe navigation omits the session's SameSite cookie.
-                    const link = document.createElement('a')
-                    link.href = url.href
-                    link.download = grant.fileName
-                    link.target = '_blank'
-                    link.rel = 'noopener noreferrer'
-                    document.body.append(link)
-                    link.click()
-                    link.remove()
+                    if (version !== epoch) return
+                    downloadRemoteFile(grant, zh ? '下载地址无效' : 'Invalid download URL')
                 } catch (e) {
                     error.textContent = e instanceof Error ? e.message : zh ? '下载失败' : 'Download failed'
                 } finally {
@@ -216,6 +218,14 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
     if (data.type === 'init' && data.instanceId) {
         scopeRevision = data.scopeRevision
         instanceId = data.instanceId
+        for (const [key, value] of Object.entries(data.theme?.tokens ?? {}))
+            document.documentElement.style.setProperty(
+                `--xui-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
+                String(value)
+            )
+        installShadcnThemeVars({ density: data.theme?.density ?? 'compact' })
+        document.documentElement.classList.toggle('dark', data.theme?.mode === 'dark')
+        document.documentElement.lang = data.locale ?? 'en'
         zh = data.locale?.startsWith('zh') ?? false
         void load(data.initialQuery ?? {})
         return

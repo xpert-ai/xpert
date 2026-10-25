@@ -10,7 +10,7 @@ Clients opt in with `X-Xpert-Display-Snapshot: 1` on the existing authorized run
 
 If Redis has lost the anchor, `continuous: false` exposes only the last saved display, followed by an explicit resync. Active runs are retried as reads, without entering terminal message polling or applying a broken tail. Terminal runs reconcile authoritative history. ChatKit hydration is a direct state replacement: it does not dispatch host effects, restore client tool calls, or call run creation/resume. Duplicate event IDs are ignored. Cursor/segment details are not presented in the chat UI.
 
-Apply `migrations/20261022-run-display-snapshot.sql` before enabling the change in a deployed API. The entity is registered in the normal entity catalog; thread/run deletion cascades to the projection. SDK source exposes the opt-in option; its release must precede use by consumers. No deployment or application-database migration was performed for this change.
+The packaged schema-sync job applies `migrations/20261025010000-run-display-snapshot.sql` after the platform baseline indexes and constraints. The snapshot table is SQL-owned and excluded from TypeORM synchronization. The entity is registered in the normal entity catalog; thread/run deletion cascades to the projection. SDK source exposes the opt-in option; its release must precede use by consumers. No deployment or application-database migration was performed for this change.
 
 ## Verification
 

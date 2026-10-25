@@ -120,6 +120,8 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         const ids = executions.flatMap((item) => (item.agentExecutionId ? [item.agentExecutionId] : []))
         const runtime = ids.length
             ? await manager.find(XpertAgentExecution, {
+                  select: ['id', 'status', 'createdAt', 'completedAt'],
+                  loadEagerRelations: false,
                   where: {
                       id: In(ids),
                       tenantId: context.actor.tenantId,

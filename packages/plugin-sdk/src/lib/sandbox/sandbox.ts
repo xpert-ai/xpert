@@ -30,6 +30,7 @@ import {
 } from './execution'
 
 import { editCommandResult, sequentialFileEdits } from './file-edits'
+import { buildEditCommand } from './file-edit-command'
 
 const MAX_LINE_LENGTH = 500
 const MAX_GREP_LINE_LENGTH = 2000
@@ -562,44 +563,6 @@ fs.mkdirSync(parentDir, { recursive: true });
 
 fs.appendFileSync(filePath, content, 'utf-8');
 console.log('OK');
-"`
-}
-
-/**
- * Node.js command template for editing files.
- */
-function buildEditCommand(filePath: string, oldStr: string, newStr: string, replaceAll: boolean): string {
-  const pathB64 = utf8ToBase64(filePath)
-  const oldB64 = utf8ToBase64(oldStr)
-  const newB64 = utf8ToBase64(newStr)
-
-  return `node -e "
-const fs = require('fs');
-
-const filePath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
-const oldStr = Buffer.from('${oldB64}', 'base64').toString('utf-8');
-const newStr = Buffer.from('${newB64}', 'base64').toString('utf-8');
-const replaceAll = ${Boolean(replaceAll)};
-
-let text;
-try {
-  text = fs.readFileSync(filePath, 'utf-8');
-} catch (e) {
-  process.exit(3);
-}
-
-const count = text.split(oldStr).length - 1;
-
-if (count === 0) {
-  process.exit(1);
-}
-if (count > 1 && !replaceAll) {
-  process.exit(2);
-}
-
-const result = text.split(oldStr).join(newStr);
-fs.writeFileSync(filePath, result, 'utf-8');
-console.log(count);
 "`
 }
 

@@ -63,6 +63,8 @@ export function resolveFileAssetWorkspaceVolumeScope(
             : inferFileAssetWorkspaceVolumeScope(fileAsset, tenantId, defaults)
     }
     const catalog = normalizeOptionalString(workspaceRecord.catalog)
+    // An explicit unsupported catalog must not fall back to a different owner's volume.
+    if (catalog && !isWorkspaceFileCatalog(catalog)) return null
     const scopeId = normalizeOptionalString(workspaceRecord.scopeId)
     const projectId = normalizeOptionalString(fileAsset?.projectId)
     const xpertId = normalizeOptionalString(fileAsset?.xpertId)
@@ -116,6 +118,7 @@ export function resolveWorkspaceVolumeScope(
     const userId = normalizeOptionalString(input?.userId) ?? normalizeOptionalString(options.userId)
     const catalog = resolveWorkspaceFileCatalog(input, { defaultCatalog: options.defaultCatalog })
     if (!catalog) {
+        if (normalizeOptionalString(input?.catalog)) return null
         return inferWorkspaceVolumeScope(input, tenantId, {
             userId,
             inferUserScope: options.inferUserScope ?? false
@@ -126,6 +129,7 @@ export function resolveWorkspaceVolumeScope(
     switch (catalog) {
         case 'projects': {
             const projectId = normalizeOptionalString(input?.projectId) ?? scopeId
+            if (scopeId && projectId !== scopeId) return null
             return projectId
                 ? {
                       volumeScope: { tenantId, catalog, projectId, userId },

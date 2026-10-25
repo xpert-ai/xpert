@@ -76,8 +76,8 @@ import {
 import { BlankWizardResources } from './blank-wizard-resources'
 import { BlankWizardStartComponent } from './blank-wizard-start'
 import { shouldHideBlankWizardPrimaryAgent, shouldInitializeBlankWizardDraft } from './blank-wizard.util'
-import { BlankProjectManagement } from './blank-project-management'
-import { BlankProjectManagementComponent } from './blank-project-management.component'
+import { BlankAssistantCapabilities } from './blank-assistant-capabilities'
+import { BlankAssistantCapabilitiesComponent } from './blank-assistant-capabilities.component'
 
 export { BLANK_XPERT_DIALOG_CATEGORY, normalizeBlankXpertDialogCategory } from './blank-wizard-data'
 export type {
@@ -94,7 +94,7 @@ export type {
     XpDialogActionGroupDirective,
     ...XpDialogFrameImports,
     BlankWizardCapabilitiesComponent,
-    BlankProjectManagementComponent,
+    BlankAssistantCapabilitiesComponent,
     BlankWizardStartComponent,
     TranslateModule,
     RouterModule,
@@ -120,12 +120,12 @@ export type {
     BlankTemplateSelectionComponent
   ],
   templateUrl: './blank.component.html',
-  providers: [BlankProjectManagement],
+  providers: [BlankAssistantCapabilities],
   styleUrl: './blank.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertNewBlankComponent extends BlankWizardResources {
-  readonly projectManagement = inject(BlankProjectManagement)
+  readonly assistantCapabilities = inject(BlankAssistantCapabilities)
 
   async create() {
     if (this.loading() || this.creationInvalid(!!this.basicStepInvalid())) {
@@ -180,7 +180,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
 
       if (this.isAgentType()) {
         const template = this.selectedTemplateDraft()
-        await this.projectManagement.validate(
+        await this.assistantCapabilities.validate(
           this.copilotModel() ?? template?.team.agent?.copilotModel ?? template?.team.copilotModel
         )
         const templatePluginSkillsReady = await this.prepareTemplatePluginSkillsForCurrentWorkspace()
@@ -451,7 +451,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
   }
 
   async completeCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
-    const result = await this.prepareProjectManagement(await this.initializeDraftIfNeeded(xpert))
+    const result = await this.prepareAssistantCapabilities(await this.initializeDraftIfNeeded(xpert))
     if (this.completionMode !== 'publish') {
       return { xpert: result.xpert, status: 'created' as const }
     }
@@ -472,7 +472,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
   }
 
   async completeImportedCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
-    const prepared = await this.prepareProjectManagement({
+    const prepared = await this.prepareAssistantCapabilities({
       xpert,
       draftSaved: true,
       hasBlockingChecklist: false,
@@ -642,7 +642,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
     if (
       !shouldInitializeBlankWizardDraft(
         this.selectedMode(),
-        this.hasAdvancedSelections() || this.projectManagement.enabled(),
+        this.hasAdvancedSelections() || this.assistantCapabilities.enabled(),
         this.completionMode
       )
     ) {
@@ -757,10 +757,10 @@ export class XpertNewBlankComponent extends BlankWizardResources {
     )
   }
 
-  async prepareProjectManagement(result: DraftPreparationResult): Promise<DraftPreparationResult> {
-    if (!this.isAgentType() || !this.projectManagement.enabled() || result.preparationFailed) return result
+  async prepareAssistantCapabilities(result: DraftPreparationResult): Promise<DraftPreparationResult> {
+    if (!this.isAgentType() || !this.assistantCapabilities.enabled() || result.preparationFailed) return result
     try {
-      const xpert = await this.projectManagement.apply(result.xpert)
+      const xpert = await this.assistantCapabilities.apply(result.xpert)
       return { ...result, xpert, draftSaved: true, hasBlockingChecklist: hasBlockingChecklist(xpert.draft?.checklist) }
     } catch (error) {
       this.showPreconfigurationNotSavedWarning()

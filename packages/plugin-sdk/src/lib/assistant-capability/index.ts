@@ -24,6 +24,8 @@ export interface IAssistantCapabilityProvider {
   readonly requiredModelFeatures?: ModelFeature[]
   /** Explicitly opt into the blank Assistant creation flow. */
   readonly availableForBlankAssistant?: boolean
+  /** Opt into a simple creation switch; no additional capability-specific configuration is needed. */
+  readonly supportsQuickCreation?: boolean
   /** Distribution extensions to specific templates, without changing their portable source. */
   readonly templates?: { templateId: string; required: boolean }[]
   /** Detect a capability already owned by the base workflow; it cannot be removed by a new overlay. */

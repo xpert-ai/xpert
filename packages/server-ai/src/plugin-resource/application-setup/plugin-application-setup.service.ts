@@ -1,3 +1,4 @@
+import { applicationInstallationIdentity } from '../application-scope'
 // Invariants: preparation and discard lock the scoped installation row. Workspace creation
 // and its installation reference commit together; configuration never publishes an Assistant.
 // Credentials remain in the existing toolset APIs. Closing setup never deletes configuration.
@@ -9,7 +10,7 @@ import {
     resolveI18nText
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common'
+import { ConflictException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EntityManager, Repository } from 'typeorm'
 import { t } from 'i18next'
@@ -74,6 +75,12 @@ export class PluginApplicationSetupService {
                   })
                 : null
             if (workspace) {
+                if (
+                    installation.declaredScope === 'personal' &&
+                    (workspace.ownerId !== installation.ownerUserId ||
+                        workspace.settings?.system?.applicationInstallationId !== installation.id)
+                )
+                    this.conflict()
                 await this.access.assertCanAuthor(workspace.id)
                 return installation
             }
@@ -93,7 +100,12 @@ export class PluginApplicationSetupService {
                     status: 'active',
                     settings: {
                         access: { visibility: 'private' },
-                        system: { kind: 'plugin-app', pluginName: application.pluginName, appName: application.appName }
+                        system: {
+                            kind: 'plugin-app',
+                            pluginName: application.pluginName,
+                            appName: application.appName,
+                            applicationInstallationId: installation.id
+                        }
                     }
                 })
             )
@@ -136,7 +148,9 @@ export class PluginApplicationSetupService {
                     if (
                         owner?.kind !== 'plugin-app' ||
                         owner.pluginName !== application.pluginName ||
-                        owner.appName !== application.appName
+                        owner.appName !== application.appName ||
+                        (owner.applicationInstallationId && owner.applicationInstallationId !== installation.id) ||
+                        (installation.declaredScope === 'personal' && workspace.ownerId !== installation.ownerUserId)
                     )
                         this.conflict()
                     // Refuse cleanup if the prepared Workspace has since been used for other resources.
@@ -181,27 +195,12 @@ export class PluginApplicationSetupService {
             where: this.scope(application),
             lock: { mode: 'pessimistic_write' }
         })
-        if (!installation) this.conflict()
+        if (!installation || installation.updateRelease?.status === 'running') this.conflict()
         return installation
     }
 
     private scope(application: PluginTemplateApplicationSummary) {
-        const tenantId = RequestContext.currentTenantId(),
-            organizationId = RequestContext.getOrganizationId()
-        if (!tenantId || !organizationId || !RequestContext.currentUserId()) {
-            throw new BadRequestException(
-                t('server-ai:Error.ApplicationSetupScopeRequired', {
-                    defaultValue: 'Select an organization before configuring the application.'
-                })
-            )
-        }
-        return {
-            tenantId,
-            organizationId,
-            scopeKey: organizationId,
-            pluginName: application.pluginName,
-            appName: application.appName
-        }
+        return applicationInstallationIdentity(application)
     }
 
     private conflict(): never {

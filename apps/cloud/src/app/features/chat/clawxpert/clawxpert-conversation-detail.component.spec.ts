@@ -60,6 +60,7 @@ jest.mock('../../../@core', () => ({
   ChatConversationService: jest.requireActual('../../../@core/services/chat-conversation.service')
     .ChatConversationService,
   ViewExtensionApiService: class ViewExtensionApiService {},
+  Store: class Store {},
   GroupWorkbenchApiService: class GroupWorkbenchApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
@@ -328,14 +329,15 @@ import {
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
-import { of, Subject } from 'rxjs'
+import { of, Subject, BehaviorSubject } from 'rxjs'
 import {
   AiThreadService,
   ArtifactService,
   ChatConversationService,
   GroupWorkbenchApiService,
   IChatConversation,
-  ViewExtensionApiService
+  ViewExtensionApiService,
+  Store
 } from '../../../@core'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
@@ -590,6 +592,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   }
   let hostEvents: ViewHostEventBus
   let projectApi: { availableForXpert: jest.Mock; create: jest.Mock }
+  let projectPermissions: { userRolePermissions$: BehaviorSubject<[]>; hasPermission: jest.Mock }
 
   registerWorkbenchCompatibilityTests(() => ({
     manifests: (views) => viewExtensionApi.getSlotViews.mockReturnValue(of(views)),
@@ -606,6 +609,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
   beforeEach(async () => {
     clearWorkbenchLayoutTestStorage()
+    projectPermissions = { userRolePermissions$: new BehaviorSubject<[]>([]), hasPermission: jest.fn(() => true) }
     skillTrialIntent = {
       peek: jest.fn(() => null),
       consume: jest.fn(() => null),
@@ -752,6 +756,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       imports: [TranslateModule.forRoot(), ClawXpertConversationDetailComponent],
       providers: [
         provideRouter([]),
+        { provide: Store, useValue: projectPermissions },
         {
           provide: ClawXpertFacade,
           useValue: facade
@@ -1043,6 +1048,30 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: true })
+  })
+
+  it('preserves Project selection while creation permission is absent or revoked', async () => {
+    projectPermissions.hasPermission.mockReturnValue(false)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({
+      enabled: true,
+      createEnabled: false,
+      autoNewEnabled: false
+    })
+    getRuntimeInput().onEffect?.({ name: 'project.create', data: { name: 'Denied project' } })
+    await settle(fixture)
+    expect(projectApi.create).not.toHaveBeenCalled()
+
+    projectPermissions.hasPermission.mockReturnValue(true)
+    projectPermissions.userRolePermissions$.next([])
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+
+    projectPermissions.hasPermission.mockReturnValue(false)
+    projectPermissions.userRolePermissions$.next([])
+    await settle(fixture)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(false)
   })
 
   it('keeps Project selection available before the first message, including after a Project is selected', async () => {

@@ -3,6 +3,7 @@ import {
     assertTenantLibraryAdministrator
 } from './tenant-library/tenant-library-access.service'
 import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
+import { KnowledgeResourceAccessService } from './runtime/knowledge-resource-access.service'
 import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
 import { environment } from '@xpert-ai/server-config'
@@ -94,6 +95,7 @@ import {
     DataSource,
     DeleteResult,
     FindOptionsSelect,
+    FindManyOptions,
     FindOneOptions,
     FindOptionsWhere,
     In,
@@ -283,6 +285,8 @@ function getQueryFailedErrorCode(error: QueryFailedError) {
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
+    @Inject(KnowledgeResourceAccessService)
+    private readonly resourceAccess: KnowledgeResourceAccessService
     @Inject(TenantLibraryAccessService)
     private readonly tenantLibraries: TenantLibraryAccessService
 
@@ -418,6 +422,17 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     private readonly vectorStoreSettings: VectorStoreSettingsService
 
     async create(entity: Partial<IKnowledgebase>) {
+        return this.createLibrary(entity)
+    }
+
+    /** Platform-owned resource binding is established atomically with creation and is immutable. */
+    async createForResource(entity: Partial<IKnowledgebase>, resourceRef: Knowledgebase['resourceRef']) {
+        if (!resourceRef) throw knowledgebaseAccessDenied()
+        await this.resourceAccess.authorizeReference(resourceRef, 'manage')
+        return this.createLibrary(entity, resourceRef)
+    }
+
+    private async createLibrary(entity: Partial<IKnowledgebase>, resourceRef?: Knowledgebase['resourceRef']) {
         if (
             !entity.workspaceId &&
             !RequestContext.getOrganizationId() &&
@@ -426,6 +441,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             assertTenantLibraryAdministrator()
         }
         const input = { ...entity }
+        Reflect.deleteProperty(input, 'resourceRef')
         delete input.keywordAnalyzerLocked
         input.keywordAnalyzer =
             input.type === KnowledgebaseTypeEnum.External
@@ -493,7 +509,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         if (Object.prototype.hasOwnProperty.call(input, 'applicationTags')) {
             input.applicationTags = this.normalizeApplicationTags(input.applicationTags)
         }
-        return await super.create(input)
+        return await super.create({ ...input, ...(resourceRef ? { resourceRef } : {}) })
     }
 
     override async findOne(
@@ -504,13 +520,43 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             const shared = await this.tenantLibraries.find(id, options)
             if (shared) return shared
         }
-        return super.findOne(id, options)
+        const result = await super.findOne(id, options)
+        await this.resourceAccess?.authorize(result.id, 'read')
+        return result
+    }
+
+    override async findAll(filter?: FindManyOptions<Knowledgebase>, resourceIds?: string[]) {
+        // Resource-owned indexes are discovered through their owning resource or the governed catalog.
+        // Filtering in SQL preserves pagination counts without revealing inaccessible resource indexes.
+        const where = Array.isArray(filter?.where)
+            ? filter.where.map((condition) => ({ ...condition, resourceRef: IsNull() }))
+            : { ...filter?.where, resourceRef: IsNull() }
+        if (!resourceIds?.length) return super.findAll({ ...filter, where })
+        const conditions = Array.isArray(filter?.where) ? filter.where : [filter?.where ?? {}]
+        const result = await super.findAll({
+            ...filter,
+            where: [
+                ...(Array.isArray(where) ? where : [where]),
+                ...conditions.map((condition) => ({ ...condition, id: In(resourceIds), resourceRef: Not(IsNull()) }))
+            ]
+        })
+        const items: Knowledgebase[] = []
+        for (const item of result.items) {
+            try {
+                await this.resourceAccess.authorize(item.id, 'read')
+                items.push(item)
+            } catch (error) {
+                if (!(error instanceof ForbiddenException)) throw error
+            }
+        }
+        return { ...result, items, total: items.length }
     }
 
     async findOneByIdString(id: string, options?: FindOneOptions<Knowledgebase>): Promise<Knowledgebase> {
         const accessSelect = addKnowledgebaseAccessSelect(options)
         const knowledgebase = await super.findOneByIdString(id, accessSelect.options)
-        this.assertKnowledgebaseCrudReadAccess(knowledgebase)
+        if (!(await this.resourceAccess?.authorize(knowledgebase.id, 'read')))
+            this.assertKnowledgebaseCrudReadAccess(knowledgebase)
         return stripKnowledgebaseAccessSelect(knowledgebase, accessSelect)
     }
 
@@ -552,6 +598,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         const knowledgebase = await this.assertKnowledgebaseWriteAccess(criteria, {
             relations: ['pipeline']
         })
+        await this.resourceAccess?.authorize(criteria, 'manage')
         await this.cleanupPipelineBeforeDelete(knowledgebase)
 
         return super.delete(criteria)
@@ -560,17 +607,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     async softDelete(criteria: string | number | FindOptionsWhere<Knowledgebase>) {
         if (typeof criteria === 'string') {
             await this.assertKnowledgebaseWriteAccess(criteria)
+            await this.resourceAccess?.authorize(criteria, 'manage')
         }
         return super.softDelete(criteria)
     }
 
     async softRemove(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {
         await this.assertKnowledgebaseWriteAccess(id, options)
+        await this.resourceAccess?.authorize(id, 'manage')
         return super.softRemove(id, options, saveOptions)
     }
 
     async softRecover(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {
         await this.assertKnowledgebaseWriteAccess(id, options)
+        await this.resourceAccess?.authorize(id, 'manage')
         return super.softRecover(id, options, saveOptions)
     }
 
@@ -668,6 +718,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         entity: Partial<Knowledgebase>,
         wikiInput?: KnowledgeWikiConfigurationUpdate
     ) {
+        const { resourceRef: _resourceRef, ...settings } = entity
+        entity = settings
+        await this.resourceAccess?.authorize(id, 'manage')
         const _entity = await this.assertKnowledgebaseWriteAccess(id, {
             relations: [
                 'copilotModel',
@@ -2317,6 +2370,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         options?: FindOneOptions<Knowledgebase>
     ): Promise<Knowledgebase> {
         const knowledgebase = await this.findOne(knowledgebaseId, options)
+        if (await this.resourceAccess?.authorize(knowledgebaseId, 'read')) return knowledgebase
         if (
             !knowledgebase.workspaceId &&
             (knowledgebase.permission ?? KnowledgebasePermission.Private) === KnowledgebasePermission.Private &&
@@ -2336,6 +2390,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     async canManageKnowledgebase(knowledgebaseId: string): Promise<boolean> {
         try {
+            await this.resourceAccess?.authorize(knowledgebaseId, 'manage')
             await this.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
             return true
         } catch (error) {
@@ -2367,7 +2422,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
         const accessSelect = addKnowledgebaseWriteAccessSelect(options)
         const knowledgebase = await this.findOne(knowledgebaseId, accessSelect.options)
-        if (knowledgebase.workspaceId) {
+        if (await this.resourceAccess?.authorize(knowledgebaseId, 'write')) {
+            return stripKnowledgebaseWriteAccessSelect(knowledgebase, accessSelect)
+        } else if (knowledgebase.workspaceId) {
             await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
         } else if (!RequestContext.currentUserId() || knowledgebase.createdById !== RequestContext.currentUserId()) {
             throw accessDenied()

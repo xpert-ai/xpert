@@ -6,6 +6,11 @@ import { PipelineViewport } from './viewport'
 import { pipelineTexts } from './i18n'
 import { saveTaskViewState } from '../bridge'
 
+jest.mock('@xpert-ai/shadcn-ui', () => ({
+    ...jest.requireActual('@/components/ui/button'),
+    ...jest.requireActual('@/components/ui/separator')
+}))
+
 jest.mock('../bridge', () => ({ saveTaskViewState: jest.fn() }))
 
 it('preserves the viewed center, fits both dimensions on resize, and restores the saved scale', async () => {

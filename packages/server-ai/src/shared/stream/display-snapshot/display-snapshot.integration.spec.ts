@@ -50,7 +50,9 @@ integration('display recovery / real PostgreSQL and Redis', () => {
         await database.query(
             "CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, status varchar DEFAULT 'running')"
         )
-        await database.query(readFileSync(join(__dirname, 'migrations/20261022-run-display-snapshot.sql'), 'utf8'))
+        await database.query(
+            readFileSync(join(__dirname, 'migrations/20261025010000-run-display-snapshot.sql'), 'utf8')
+        )
         await redis.connect()
         store = new RunDisplaySnapshotStore(database)
         service = new RedisSseStreamService(redis as never, store)

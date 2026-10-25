@@ -1,12 +1,15 @@
+import { useViewVisible } from '../view-visibility'
 import { useEffect, useState } from 'react'
 import type { ProjectPipelineNodePresentation } from '@xpert-ai/contracts'
 import { readProviderNodeDetails, type PipelineGraph, type PipelineNode } from './bridge'
 import type { PipelineTexts } from './i18n'
 
 export function NodeDiagnostics({ graph, node, t }: { graph: PipelineGraph; node: PipelineNode; t: PipelineTexts }) {
+    const visible = useViewVisible()
     const [data, setData] = useState<ProjectPipelineNodePresentation | null>(null),
         [failed, setFailed] = useState(false)
     useEffect(() => {
+        if (!visible) return
         let active = true
         setData(null)
         setFailed(false)
@@ -32,7 +35,7 @@ export function NodeDiagnostics({ graph, node, t }: { graph: PipelineGraph; node
             active = false
             window.clearInterval(timer)
         }
-    }, [graph.instance.id, node.id])
+    }, [graph.instance.id, node.id, visible])
     return (
         <div className="space-y-2 text-sm">
             {failed && (

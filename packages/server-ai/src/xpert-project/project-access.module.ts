@@ -1,4 +1,6 @@
+import { ProjectContentResourceProvider } from './services/project-content-resource.provider'
 import { ProjectAccessRuntimeService } from './services/project-access-runtime.service'
+import { ProjectFilesRuntimeService } from './services/project-files-runtime.service'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { XpertProject } from './entities/project.entity'
@@ -17,12 +19,19 @@ import { XpertProjectTaskExecution } from './entities/project-task-execution.ent
         TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert, XpertProjectTaskExecution])
     ],
     providers: [
+        ProjectContentResourceProvider,
+        ProjectFilesRuntimeService,
         AssertProjectAssistantAccessHandler,
         HasProjectTaskConversationHandler,
         ProjectAccessRuntimeService,
         XpertProjectXpertBindingService,
         XpertProjectAccessService
     ],
-    exports: [ProjectAccessRuntimeService, XpertProjectXpertBindingService, XpertProjectAccessService]
+    exports: [
+        ProjectFilesRuntimeService,
+        ProjectAccessRuntimeService,
+        XpertProjectXpertBindingService,
+        XpertProjectAccessService
+    ]
 })
 export class XpertProjectAccessModule {}

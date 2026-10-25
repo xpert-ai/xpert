@@ -1,7 +1,7 @@
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
-import { Public, UseValidationPipe, UUIDValidationPipe } from '@xpert-ai/server-core'
+import { Public, UseValidationPipe, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import type { Request, Response } from 'express'
 import {
     CreateWorkspaceFileAccessGrantDto,
@@ -11,6 +11,13 @@ import { WorkspaceFileAccessService } from '../../workspace-file-access/workspac
 import { GroupScopeGuard } from './group-scope.guard'
 import { GroupWorkbenchGuard } from './group-workbench.guard'
 import { groupDenied } from '../../chat-group/group.errors'
+import { ImagePreviewService } from '../../workspace-file-access/image-preview/image-preview.service'
+import {
+    imagePreviewSchema,
+    imagePreviewInvalid,
+    ImagePreviewRequest
+} from '../../workspace-file-access/image-preview/image-preview.schema'
+import { sendImagePreview } from '../../workspace-file-access/image-preview/image-preview.response'
 
 /** The existing View file sessions keep their owner, scope, grant and cookie checks. */
 @Public()
@@ -20,8 +27,30 @@ import { groupDenied } from '../../chat-group/group.errors'
 export class GroupViewFilesController {
     constructor(
         private readonly scope: GroupWorkbenchGuard,
-        private readonly files: WorkspaceFileAccessService
+        private readonly files: WorkspaceFileAccessService,
+        private readonly images: ImagePreviewService
     ) {}
+    @Post('preview')
+    async preview(
+        @Param('groupId', UUIDValidationPipe) groupId: string,
+        @Body(new ZodValidationPipe(imagePreviewSchema, imagePreviewInvalid)) body: ImagePreviewRequest,
+        @Res() response: Response
+    ) {
+        const context = await this.scope.resolve(groupId)
+        if (
+            body.hostId !== context.assistantId ||
+            (body.runtimeScope?.conversationId && body.runtimeScope.conversationId !== context.conversationId) ||
+            (body.runtimeScope?.projectId && body.runtimeScope.projectId !== context.projectId)
+        )
+            throw groupDenied()
+        return sendImagePreview(
+            await this.images.read({
+                ...body,
+                runtimeScope: { conversationId: context.conversationId, projectId: context.projectId }
+            }),
+            response
+        )
+    }
     @Post()
     @UseValidationPipe({ whitelist: true, transform: true })
     async create(

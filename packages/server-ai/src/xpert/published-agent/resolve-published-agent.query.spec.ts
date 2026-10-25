@@ -13,14 +13,12 @@ describe('published Agent CQRS wiring', () => {
         await module.init()
         try {
             await expect(
-                module
-                    .get(QueryBus)
-                    .execute(
-                        new ResolvePublishedAgentQuery({
-                            requesterXpertId: 'requester',
-                            expectation: { pluginName: 'bid', templateKey: 'company-material', agentKey: 'Company' }
-                        })
-                    )
+                module.get(QueryBus).execute(
+                    new ResolvePublishedAgentQuery({
+                        requesterXpertId: 'requester',
+                        expectation: { pluginName: 'bid', templateKey: 'company-material', agentKey: 'Company' }
+                    })
+                )
             ).rejects.toThrow('scope denied')
             expect(access.getAccessiblePublishedXpert).toHaveBeenCalledWith('requester')
         } finally {

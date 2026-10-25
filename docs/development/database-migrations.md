@@ -82,7 +82,19 @@ node main.js --command schema-sync --action verify
 
 ModelExecution 的调用可能在派发前失败，因此 `dispatchedAt=NULL` 本身不代表遗漏历史转换。接管保留正常的待派发、预检失败和未派发恢复记录；若同时存在成功、待结算、用量或扣费证据，则仍阻止接管并要求核对，不自动补写派发时间。
 
-当前 SQL 基线覆盖 55 张既有表；另外 5 张向量表由新增 SQL 创建，其余实体表仍由 TypeORM 同步。基线来源与 38 个历史 SQL 的哈希保存在 `platform-baseline/legacy-inventory.json`。原有 8 位日期脚本是历史参考，部署不再次执行；新增脚本使用 14 位格式。基线包含旧数据转换的必要条件，不能仅凭表存在就自动接管。
+当前 SQL 基线覆盖 55 张既有表；另外 5 张向量表及 5 张内容文档表由新增 SQL 创建，其余未登记的实体表仍由 TypeORM 同步。基线来源与 38 个历史 SQL 的哈希保存在 `platform-baseline/legacy-inventory.json`。原有 8 位日期脚本是历史参考，部署不再次执行；新增脚本使用 14 位格式。基线包含旧数据转换的必要条件，不能仅凭表存在就自动接管。
+
+## 内容文档表部署与应急修复接管
+
+内容文档的 5 个实体必须同时注册在 `ALL_AI_ENTITIES`，供独立 schema-sync 和 API 元数据初始化使用。仅在 NestJS 模块中调用 `TypeOrmModule.forFeature()` 不会把实体加入独立同步任务。
+
+`content_document`、`content_revision`、`content_proposal`、`content_comment`、`content_location_change` 由 `ai.content-documents.20261025020000-content-document-tables` SQL 迁移管理，已加入 `managedTables`。不要只补 Entity 注册后对这些表开启自动同步：必须保留租户、组织非空约束、外键、修订/提案幂等键，以及排除 deleted 文档的路径唯一索引。
+
+旧的 `20261021_content_documents.sql` 保留为历史参考。规范迁移在普通实体同步之后创建表及外键，并在每次部署验证全部字段类型、空值约束、主键、外键和业务索引。旧表中的空租户、空组织或缺失必需字段会阻止迁移，需要单独核对数据，不自动填充归属。
+
+若已有迁移历史的生产库因缺表执行过历史 SQL 应急建表，后续正常运行 `schema-sync` 即可：新迁移的建表/索引操作可重复执行，验证通过后由迁移执行器登记成功，保留原行与 ID。不要手工写入迁移历史或校验值。完全没有迁移历史的旧库仍按上面的 `baseline → apply → verify` 流程接管。
+
+应急操作先备份 schema，使用失败即退出的 SQL 客户端，在事务内获取共享锁 `(1481658964, 1)` 并设置锁等待/语句超时；先试跑回滚，再提交并核对结构。已修复数据库无需重启 API。结构与文件归属查询验证不替代 Bid 助理的实际业务验收。
 
 ## 验证与边界
 
@@ -92,7 +104,7 @@ node --test .deploy/api/health-diagnostics.test.cjs .deploy/api/schema-compose.t
 node .deploy/api/check-image.cjs <已构建的镜像ID>
 ```
 
-数据库测试使用并清理独立 PostgreSQL 容器，缺少 Docker 会失败。覆盖普通表自动演进、SQL 表保护、跨表外键、重复及并发执行、较早编号补入、事务失败、校验值、已有库接管和完整宿主 Pipeline 约束检查。
+数据库测试使用并清理独立 PostgreSQL 容器，缺少 Docker 会失败。覆盖普通表自动演进、SQL 表保护、跨表外键、重复及并发执行、较早编号补入、事务失败、校验值、已有库接管和完整宿主 Pipeline 约束检查。内容文档回归还覆盖缺表安装、应急修复后接管与数据保留、真实 Repository 读取、文件归属保护、路径唯一性、删除后路径复用及结构漂移阻断。
 
 旧库验收通过原有 Entity 同步与 38 个哈希固定的历史 SQL 独立重建结构，不使用新基线建库再删除历史。加入真实外键约束下的待派发、失败、成功和待结算调用，验证 `BASELINE_REQUIRED → baseline → apply → verify`、异常证据回滚、重复升级及所有调用字段保持不变。开发和生产 API 初始化后再验证 SQL 约束，防止启动路径重现结构破坏。该夹具覆盖已完成这 38 个历史脚本的旧部署，未补齐历史迁移的更早数据库仍需先修复并通过基线检查。
 

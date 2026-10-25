@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
+import {
+    Badge,
+    Button,
+    Input,
+    Label,
+    Textarea,
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem
+} from '@xpert-ai/shadcn-ui'
 import { connect, request, detailSchema, actionSchema, scheduleSchema, type Detail } from './bridge'
 import { texts, statusText } from './i18n'
 
@@ -162,9 +173,7 @@ export function App() {
                 {detail && draft && (
                     <>
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="rounded-md bg-muted px-2 py-1 text-sm">
-                                {statusText(t, detail.status)}
-                            </span>
+                            <Badge variant="secondary">{statusText(t, detail.status)}</Badge>
                             {detail.status !== 'archived' && (
                                 <Button
                                     variant="outline"
@@ -208,25 +217,29 @@ export function App() {
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="frequency">{t.frequency}</Label>
-                                        <select
-                                            id="frequency"
+                                        <Select
                                             value={draft.options.frequency}
-                                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                                            onChange={(e) =>
+                                            disabled={busy || loading || detail.status === 'archived'}
+                                            onValueChange={(value) =>
                                                 change({
                                                     options: {
-                                                        frequency: scheduleSchema.shape.frequency.parse(e.target.value),
+                                                        frequency: scheduleSchema.shape.frequency.parse(value),
                                                         time: draft.options.time
                                                     }
                                                 })
                                             }
                                         >
-                                            {scheduleSchema.shape.frequency.options.map((key) => (
-                                                <option key={key} value={key}>
-                                                    {t[key]}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger id="frequency" className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {scheduleSchema.shape.frequency.options.map((key) => (
+                                                    <SelectItem key={key} value={key}>
+                                                        {t[key]}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="time">{t.time}</Label>

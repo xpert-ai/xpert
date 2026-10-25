@@ -16,7 +16,6 @@ import {
     Tooltip,
     TooltipTrigger,
     TooltipContent,
-    buttonVariants,
     cn,
     Select,
     SelectTrigger,
@@ -89,12 +88,10 @@ export function IconButton({
 }: React.ComponentProps<'button'> & { label: string; tooltip?: string }) {
     return (
         <Tooltip>
-            <TooltipTrigger
-                aria-label={label}
-                className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), className)}
-                {...props}
-            >
-                {children}
+            <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={label} className={className} {...props}>
+                    {children}
+                </Button>
             </TooltipTrigger>
             <TooltipContent>{tooltip ?? label}</TooltipContent>
         </Tooltip>

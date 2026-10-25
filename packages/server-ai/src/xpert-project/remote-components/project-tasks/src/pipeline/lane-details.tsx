@@ -2,7 +2,18 @@ import { pipelineExecutions } from './executions'
 import { ExecutionIndicators } from '../execution-indicators'
 import { useState } from 'react'
 import { NodeDiagnostics } from './node-diagnostics'
-import { Button, Dialog, DialogContent, DialogTitle, DialogDescription } from '@xpert-ai/shadcn-ui'
+import {
+    Button,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    Accordion,
+    AccordionItem,
+    AccordionTrigger,
+    AccordionContent,
+    DialogTitle,
+    DialogDescription
+} from '@xpert-ai/shadcn-ui'
 import { Assignee } from '../assignee'
 import { texts } from '../i18n'
 import type { PipelineGraph, PipelineNode } from './bridge'
@@ -45,8 +56,10 @@ export function LaneDetails({
             }}
         >
             <DialogContent className="max-h-[85dvh] overflow-y-auto">
-                <DialogTitle>{lane?.label}</DialogTitle>
-                <DialogDescription>{t.laneDetails}</DialogDescription>
+                <DialogHeader>
+                    <DialogTitle>{lane?.label}</DialogTitle>
+                    <DialogDescription>{t.laneDetails}</DialogDescription>
+                </DialogHeader>
                 <p className="text-xs text-muted-foreground">
                     {graph.permissions.canEdit ? t.projectEditable : t.projectReadOnly}
                 </p>
@@ -119,15 +132,19 @@ export function LaneDetails({
                             ))}
                         </div>
                     )}
-                <details className="text-xs text-muted-foreground">
-                    <summary>{t.technicalDetails}</summary>
-                    <p>{lane?.roleKey}</p>
-                    {technical.map((field) => (
-                        <p className="break-words" key={JSON.stringify(field)}>
-                            {field.label}: {field.value}
-                        </p>
-                    ))}
-                </details>
+                <Accordion type="single" collapsible>
+                    <AccordionItem value="technical">
+                        <AccordionTrigger>{t.technicalDetails}</AccordionTrigger>
+                        <AccordionContent>
+                            <p>{lane?.roleKey}</p>
+                            {technical.map((field) => (
+                                <p className="break-words" key={JSON.stringify(field)}>
+                                    {field.label}: {field.value}
+                                </p>
+                            ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </DialogContent>
         </Dialog>
     )
@@ -136,11 +153,18 @@ export function LaneDetails({
 function LaneNodeDiagnostics({ graph, node, t }: { graph: PipelineGraph; node: PipelineNode; t: PipelineTexts }) {
     const [open, setOpen] = useState(false)
     return (
-        <details className="rounded border p-3" onToggle={(event) => setOpen(event.currentTarget.open)}>
-            <summary className="cursor-pointer text-sm">
-                {node.projection.title} · {t.providerActions}
-            </summary>
-            {open && <NodeDiagnostics graph={graph} node={node} t={t} />}
-        </details>
+        <Accordion
+            type="single"
+            collapsible
+            value={open ? 'diagnostics' : ''}
+            onValueChange={(value) => setOpen(value === 'diagnostics')}
+        >
+            <AccordionItem value="diagnostics">
+                <AccordionTrigger>
+                    {node.projection.title} · {t.providerActions}
+                </AccordionTrigger>
+                <AccordionContent>{open && <NodeDiagnostics graph={graph} node={node} t={t} />}</AccordionContent>
+            </AccordionItem>
+        </Accordion>
     )
 }

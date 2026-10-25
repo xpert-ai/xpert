@@ -40,6 +40,7 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime.service'
 
 @Injectable()
 @ViewHostDefinition('agent')
@@ -69,7 +70,9 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly profileIdentity: XpertProfileIdentityService
+        private readonly profileIdentity: XpertProfileIdentityService,
+        @Inject(ApplicationRuntimeService)
+        private readonly applicationRuntime: Pick<ApplicationRuntimeService, 'resolveInstallation'>
     ) {}
 
     async resolve(hostId: string, options?: ViewHostResolutionOptions) {
@@ -116,6 +119,13 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             },
             context: {
+                application: await this.applicationRuntime.resolveInstallation({
+                    tenantId: runtimeXpert.tenantId,
+                    organizationId: runtimeXpert.organizationId,
+                    userId: RequestContext.currentUserId(),
+                    workspaceId: runtimeXpert.workspaceId,
+                    xpertId: runtimeXpert.id
+                }),
                 assistant: await this.profileIdentity.resolve(runtimeXpert),
                 capabilities: agentContext.capabilities,
                 hostState: agentContext.hostState,
@@ -141,10 +151,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             }
         }
 
-        if (RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)) {
-            return true
-        }
-
+        // Global edit permission does not grant access to another user's installed Assistant.
+        // Published Views use the same grants as execution; Studio drafts were checked above.
         try {
             await this.publishedXpertAccessService.getAccessiblePublishedXpert(context.hostId)
             return true
@@ -200,6 +208,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
 
     private async createWorkspaceVolumeClient(context: XpertResolvedViewHostContext) {
         const projectId = context.runtimeScope?.projectId
+        if (projectId) await this.projectAccessService.assertCanEdit(projectId)
         const scope = projectId
             ? { tenantId: context.tenantId, catalog: 'projects' as const, projectId }
             : (await this.commandBus.execute(new ResolveAssistantFileAccessCommand(context.hostId, 'write', 'runtime')))
@@ -239,7 +248,19 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         if (projectId) {
             const access = conversationId
                 ? await this.projectAccessService.assertCanReadXpert(projectId, xpert.id)
-                : await this.projectAccessService.assertCanUseXpert(projectId, xpert.id)
+                : await this.projectAccessService
+                      .assertCanUseXpert(projectId, xpert.id)
+                      .catch(async (error: unknown) => {
+                          if (!(error instanceof ForbiddenException)) throw error
+                          const readable = await this.projectAccessService.assertCanReadXpert(projectId, xpert.id)
+                          if (
+                              readable.project.status !== 'archived' ||
+                              readable.project.applicationKey !== 'platform' ||
+                              readable.project.projectTypeKey !== 'space'
+                          )
+                              throw error
+                          return readable
+                      })
             return {
                 projectId,
                 conversationId,

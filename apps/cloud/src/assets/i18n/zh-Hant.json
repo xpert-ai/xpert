@@ -585,7 +585,8 @@
           "Initializing": "初始化中…",
           "ApplyToOrganization": "應用到目前組織",
           "RepairAndReinitialize": "修復並重新初始化",
-          "ContinueConfiguration": "繼續配置"
+          "ContinueConfiguration": "繼續配置",
+          "ApplyToPersonal": "為自己啟用"
         },
         "Preflight": {
           "OrganizationRequired": "請先切換到一個組織，再啟用此組織級應用程式。",
@@ -615,6 +616,25 @@
           "standalone": "獨立助理",
           "workspace": "工作空間",
           "knowledgebase": "知識庫"
+        },
+        "InstallationTarget": "安裝範圍",
+        "PersonalDataScope": "此安裝及其資料僅屬於你；分享需另行授權。",
+        "Update": {
+          "Action": "更新應用",
+          "Resume": "繼續更新",
+          "Description": "原位更新並發布整套助理和範本技能，保留執行個體設定。離開頁面後進度仍會儲存。",
+          "Progress": "應用更新進度",
+          "Main": "主助理",
+          "running": "正在更新",
+          "failed": "更新中斷",
+          "completed": "更新完成",
+          "pending": "等待中",
+          "preparing": "更新範本和技能",
+          "prepared": "草稿已就緒",
+          "binding": "重新整理相依項目",
+          "publishing": "正在發布",
+          "published": "已發布",
+          "FailureHint": "已完成的步驟已儲存。解決資源或權限問題後繼續更新；若範本或草稿已變更，請先檢查衝突。"
         }
       }
     },
@@ -7920,7 +7940,12 @@
       "StudioAssistantHint": "可以詢問目前草稿、主智能體或編輯狀態。",
       "AssistantLoading": "正在準備助手...",
       "SandboxProvider": "沙盒提供者",
-      "NoSandboxProvider": "暫無可用的沙盒提供者"
+      "NoSandboxProvider": "暫無可用的沙盒提供者",
+      "QuickCapabilities": {
+        "Title": "Assistant 能力",
+        "Unavailable": "所選能力已無法使用，請重新載入後選擇。",
+        "ModelRequired": "請選擇有權使用且支援所選能力的模型。"
+      }
     },
     "UserGroup": {
       "Title": "用戶群組",
@@ -8583,6 +8608,42 @@
       "DirectQrOffline": "連線已啟用，但目前離線，可視需要重新連線。",
       "DirectQrSaveHint": "掃碼連接後立即生效；其他觸發器變更需發佈助手後生效。",
       "UnsavedChanges": "尚未儲存的變更"
+    },
+    "ContentReview": {
+      "Locate": "定位到正文",
+      "Title": "Assistant · 文档审阅",
+      "Refresh": "刷新",
+      "Close": "关闭审阅",
+      "ExternalTitle": "项目文件在外部发生了修改",
+      "ExternalHelp": "两份内容都会保留为可恢复文件。选择本次采用的内容后，重新打开编辑器。",
+      "CollaborativeContent": "当前协作内容",
+      "ExternalContent": "外部文件内容",
+      "UseExternal": "采用外部文件",
+      "KeepDocument": "保留协作内容",
+      "Proposals": "修改提案",
+      "Before": "原文",
+      "After": "建议",
+      "Accept": "接受修改",
+      "Reject": "拒绝",
+      "Stale": "基线已变化，请让 Assistant 重新读取并提出建议。",
+      "NoProposals": "暂无提案。向 Assistant 描述需要调整的内容。",
+      "Comments": "评论",
+      "BlockComment": "段落评论",
+      "DocumentComment": "文档评论",
+      "Reopen": "重新打开",
+      "Resolve": "标记解决",
+      "NoComments": "暂无评论",
+      "NewComment": "新增评论",
+      "AddComment": "添加评论",
+      "Versions": "版本与恢复",
+      "SelectVersion": "选择历史版本",
+      "ChooseVersion": "选择一个版本",
+      "Restore": "将此版本恢复为新版本",
+      "Ask": "让 Assistant 协助",
+      "Instruction": "例如：精简第二节，保留关键数据",
+      "Send": "发送给 Assistant",
+      "Loading": "正在读取文档与审阅记录…",
+      "BasedOn": "基于版本"
     }
   },
   "ViewExtension": {

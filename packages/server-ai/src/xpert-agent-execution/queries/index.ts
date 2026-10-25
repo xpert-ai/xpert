@@ -1,6 +1,7 @@
 export * from './find-by-expert.query'
 export * from './get-one.query'
 export * from './get-run-summary.query'
+export * from './get-run-status.query'
 export * from './find.query'
 export * from './get-checkpoints.query'
 export * from './get-state.query'

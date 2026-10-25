@@ -58,12 +58,7 @@ export function KnowledgebaseOverview({
                     <p className="truncate text-xs text-muted-foreground/65">{knowledgebase.description}</p>
                 ) : null}
                 <div className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-xs text-muted-foreground/65">
-                    <Button
-                        variant="ghost"
-                        size="xs"
-                        className="h-5 max-w-[180px] px-1 text-muted-foreground"
-                        onClick={onRoot}
-                    >
+                    <Button variant="ghost" size="xs" className="max-w-[180px]" onClick={onRoot}>
                         {t('allDocuments')}
                     </Button>
                     {breadcrumb.map((item) => (
@@ -72,7 +67,7 @@ export function KnowledgebaseOverview({
                             <Button
                                 variant="ghost"
                                 size="xs"
-                                className="h-5 max-w-[150px] truncate px-1 text-muted-foreground"
+                                className="max-w-[150px] truncate"
                                 onClick={() => onNavigate(item)}
                             >
                                 {item.name || item.id}
@@ -85,7 +80,7 @@ export function KnowledgebaseOverview({
                 title={t('manageKnowledgebase')}
                 variant="ghost"
                 size="icon-xs"
-                className="shrink-0 text-muted-foreground hover:bg-muted"
+                className="shrink-0"
                 onClick={onManage}
                 disabled={!knowledgebase?.id}
             >

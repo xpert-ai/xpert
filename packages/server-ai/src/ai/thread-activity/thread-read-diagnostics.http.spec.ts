@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import type { AddressInfo } from 'node:net'
+import { of, throwError } from 'rxjs'
 import { ThreadReadDiagnosticsInterceptor } from './thread-read-diagnostics.interceptor'
-import { of } from 'rxjs'
 
 let unavailable = true
 const backend = { status: 'running', toolCalls: 1, progress: 0 }
@@ -19,8 +19,14 @@ const backend = { status: 'running', toolCalls: 1, progress: 0 }
 class StatusController {
     @Sse('thread/stream')
     stream() {
-        return of({ type: 'thread.snapshot', data: { state: 'running' } })
+        return of({ type: 'thread.snapshot', data: { status: 'interrupted' } })
     }
+
+    @Sse('thread/unavailable-stream')
+    unavailableStream() {
+        return throwError(() => new ServiceUnavailableException('private stream diagnostic text'))
+    }
+
     @Get('thread/runs/run')
     getRun() {
         if (unavailable) throw new ServiceUnavailableException('private diagnostic text')
@@ -34,20 +40,40 @@ describe('running task with temporarily unavailable status reads', () => {
         await app?.close()
         jest.restoreAllMocks()
     })
-    it('does not turn a healthy Nest SSE subscription into an error after headers have been flushed', async () => {
+    it('delivers SSE snapshots after Nest has flushed the response headers', async () => {
         const module = await Test.createTestingModule({
             controllers: [StatusController],
             providers: [ThreadReadDiagnosticsInterceptor]
         }).compile()
-        app = module.createNestApplication({ logger: false })
+        app = module.createNestApplication()
         await app.listen(0, '127.0.0.1')
-        const response = await fetch(`${await app.getUrl()}/threads/thread/stream`)
+        const origin = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`
+        const response = await fetch(`${origin}/threads/thread/stream`)
         expect(response.status).toBe(200)
-        const text = await response.text()
-        expect(text).toContain('event: thread.snapshot')
-        expect(text).toContain('"state":"running"')
-        expect(text).not.toContain('event: error')
+        expect(response.headers.get('content-type')).toContain('text/event-stream')
+        const events = await response.text()
+        expect(events).toContain('event: thread.snapshot')
+        expect(events).toContain('data: {"status":"interrupted"}')
+        expect(events).not.toContain('event: error')
     })
+
+    it('still logs sanitized read diagnostics when an SSE source fails', async () => {
+        const logs = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
+        const module = await Test.createTestingModule({
+            controllers: [StatusController],
+            providers: [ThreadReadDiagnosticsInterceptor]
+        }).compile()
+        app = module.createNestApplication()
+        await app.listen(0, '127.0.0.1')
+        const origin = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`
+        const response = await fetch(`${origin}/threads/thread/unavailable-stream`)
+        expect(await response.text()).toContain('event: error')
+        expect(logs).toHaveBeenCalledTimes(1)
+        expect(logs.mock.calls[0][0]).toContain('"operation":"unavailableStream"')
+        expect(logs.mock.calls[0][0]).toContain('"status":503')
+        expect(JSON.stringify(logs.mock.calls)).not.toContain('private stream diagnostic text')
+    })
+
     it('keeps execution independent of repeated HTTP 503 and records only backend diagnostics', async () => {
         unavailable = true
         const logs = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)

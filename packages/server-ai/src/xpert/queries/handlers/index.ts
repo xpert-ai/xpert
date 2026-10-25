@@ -10,6 +10,7 @@ import { StatisticsXpertTokensHandler } from './statistics-xpert-tokens.handler'
 import { StatisticsXpertsHandler } from './statistics-xperts.handler'
 import { StatisticsXpertIntegrationsHandler } from './statistics-xpert-integrations.handler'
 import { GetXpertWorkflowHandler } from './get-xpert-workflow.handler'
+import { GetXpertRecoveryDefinitionHandler } from './get-xpert-recovery-definition.handler'
 import { IsPublishedXpertInFamilyHandler } from './is-published-xpert-in-family.handler'
 
 export const QueryHandlers = [
@@ -20,6 +21,7 @@ export const QueryHandlers = [
     SearchXpertMemoryHandler,
     GetXpertMemoryEmbeddingsHandler,
     GetXpertWorkflowHandler,
+    GetXpertRecoveryDefinitionHandler,
     StatisticsXpertConversationsHandler,
     StatisticsXpertMessagesHandler,
     StatisticsXpertTokensHandler,

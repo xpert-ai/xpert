@@ -1363,5 +1363,8 @@
   "Agent Plugins": "智慧體外掛",
   "Xpert Plugins": "Xpert 外掛",
   "Xpert is restarting. Please reconnect shortly.": "Xpert 正在重新啟動，請稍後重新連線。",
-  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert 暫時無法使用，請稍後重新連線。"
+  "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert 暫時無法使用，請稍後重新連線。",
+  "Install for": "安裝範圍",
+  "Only me": "僅自己",
+  "Your app instance and its new resources are private by default within this organization.": "在目前組織中，你的應用程式執行個體及其新建資源預設為私人。"
 }

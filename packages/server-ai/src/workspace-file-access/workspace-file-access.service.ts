@@ -8,6 +8,8 @@ import {
     NotFoundException,
     UnauthorizedException
 } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus } from '@nestjs/cqrs'
 import type { Cache } from 'cache-manager'
@@ -25,12 +27,13 @@ import type {
     XpertViewFileAccessSessionResult,
     XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
-import { RequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
+import { RequestContext, runWithRequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { ViewExtensionService } from '@xpert-ai/server-core'
+import { User, ViewExtensionService, runWithRequestContext as runWithLegacyRequestContext } from '@xpert-ai/server-core'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
 import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
+import type { ImagePreviewRequest } from './image-preview/image-preview.schema'
 
 export const WORKSPACE_FILE_ACCESS_COOKIE_NAME = 'xpert_workspace_file_access'
 const WORKSPACE_FILE_ACCESS_AUDIENCE = 'workspace-view-file-access'
@@ -83,6 +86,14 @@ export type WorkspaceFileAccessResolvedFile = {
     filePath: string
 }
 
+export type AuthorizedImagePreview = {
+    volume: VolumeHandle
+    relativePath: string
+    fileName: string
+    mimeType: string
+    scopeKey: string
+}
+
 type WorkspaceFileAccessCookie = {
     name: string
     value: string
@@ -102,7 +113,8 @@ export class WorkspaceFileAccessService {
         private readonly viewExtensionService: ViewExtensionService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        @InjectRepository(User) private readonly users: Repository<User>
     ) {}
 
     async createSession(
@@ -231,6 +243,56 @@ export class WorkspaceFileAccessService {
         }
     }
 
+    /** Resolve current View/file authority on every read, including thumbnail cache hits. */
+    async authorizeImagePreview(input: ImagePreviewRequest): Promise<AuthorizedImagePreview> {
+        const resolved = await this.viewExtensionService.resolveViewFileResource(
+            input.hostType,
+            input.hostId,
+            input.viewKey,
+            { fileKey: input.fileKey, targetId: input.targetId, purpose: 'preview' },
+            { runtimeScope: input.runtimeScope }
+        )
+        const context = resolved.context
+        if (
+            !context.tenantId ||
+            !context.userId ||
+            context.tenantId !== RequestContext.currentTenantId() ||
+            context.userId !== RequestContext.currentUserId() ||
+            (context.organizationId ?? null) !== (RequestContext.getOrganizationId() ?? null) ||
+            context.hostType !== input.hostType ||
+            context.hostId !== input.hostId
+        )
+            throw new ForbiddenException(errorMessage('WorkspaceFileAccessDenied', 'Workspace file access was denied.'))
+        await this.assertAssistantFileAccess(context)
+        const reference = resolved.resource.reference
+        this.assertPortableReference(context, reference)
+        const scope = resolveWorkspaceVolumeScope(reference, {
+            tenantId: context.tenantId,
+            userId: reference.userId ?? context.userId
+        })
+        if (!scope)
+            throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
+        return {
+            volume: this.volumeClient.resolve(scope.volumeScope),
+            relativePath: reference.filePath,
+            fileName: normalizeFileName(resolved.resource.fileName),
+            mimeType: resolved.resource.mimeType.split(';')[0].trim().toLowerCase(),
+            scopeKey: JSON.stringify([
+                context.tenantId,
+                context.organizationId ?? null,
+                context.userId,
+                context.hostType,
+                context.hostId,
+                resolved.manifest.key,
+                context.runtimeScope?.projectId ?? null,
+                context.runtimeScope?.conversationId ?? null,
+                input.fileKey,
+                input.targetId ?? null,
+                scope.volumeScope
+            ])
+        }
+    }
+
     async revokeSession(sessionId: string): Promise<void> {
         await this.requireAuthenticatedSession(sessionId)
         await this.cacheManager.del(this.sessionKey(sessionId))
@@ -266,7 +328,35 @@ export class WorkspaceFileAccessService {
             throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
         }
 
-        return { session, grant }
+        // The signed cookie proves who obtained the grant, not that they still have access.
+        // Rebuild a narrow request context from the authenticated session and current user,
+        // then use the same host/resource checks as bearer-authenticated reads. Never inherit
+        // an ambient caller's identity, roles or runtime headers on this public endpoint.
+        const user = await this.users.findOne({
+            where: { id: session.userId, tenantId: session.tenantId },
+            relations: ['role', 'role.rolePermissions']
+        })
+        if (!user) {
+            throw new UnauthorizedException(
+                errorMessage('WorkspaceFileAccessInvalidSession', 'Workspace file access session is invalid.')
+            )
+        }
+        const request = {
+            user,
+            headers: {
+                'tenant-id': session.tenantId,
+                ...(session.organizationId ? { 'organization-id': session.organizationId } : {})
+            }
+        }
+        return new Promise<WorkspaceFileAccessAuthorization>((resolve, reject) => {
+            runWithRequestContext(request, {}, () => {
+                // ViewExtensionService still uses the legacy CLS context. Bind both during
+                // its migration to the SDK so all providers see the same verified identity.
+                runWithLegacyRequestContext(request, () => {
+                    void this.authorizeAuthenticatedContent(sessionId, grantId, publicFileName).then(resolve, reject)
+                })
+            })
+        })
     }
 
     resolveAuthorizedFile(authorization: WorkspaceFileAccessAuthorization): WorkspaceFileAccessResolvedFile {
@@ -457,10 +547,7 @@ export class WorkspaceFileAccessService {
         }
     }
 
-    private assertPortableReference(
-        session: WorkspaceFileAccessSessionRecord,
-        reference: WorkspacePortableFileReference
-    ) {
+    private assertPortableReference(session: { tenantId: string }, reference: WorkspacePortableFileReference) {
         if (
             reference.source !== 'platform.workspace.files' ||
             !reference.filePath?.trim() ||
