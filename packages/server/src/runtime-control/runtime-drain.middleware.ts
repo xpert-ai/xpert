@@ -3,6 +3,7 @@ import { t } from 'i18next'
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
 import { NextFunction, Request, Response } from 'express'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
+import { isExecutionControlRecovery } from './runtime-execution-recovery'
 
 @Injectable()
 export class RuntimeDrainMiddleware implements NestMiddleware {
@@ -61,6 +62,7 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 
 	private isRecoveryRequest(request: Request): boolean {
 		const path = (request.originalUrl || request.url).split('?')[0].replace(/^\/api(?=\/)/, '')
+		if (isExecutionControlRecovery(request.method, path, request.body)) return true
 		if (request.method === 'POST') {
 			return [
 				'/auth/login',

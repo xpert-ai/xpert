@@ -122,12 +122,14 @@ export class TaskControlStore {
 		return this.read(taskControlId({ ...scope, kind, resourceId }), manager)
 	}
 
-	async publish(input: RegisterControlledTask, payload: unknown) {
+	async publish(input: RegisterControlledTask, payload: unknown, transport?: 'managed-queue-v3') {
 		return this.database.transaction(async (manager) => {
 			const task = await this.register(input, manager)
 			payload = JSON.parse(JSON.stringify(payload))
 			if (task.kind !== 'handoff' && task.kind !== 'managed-queue') throw new TaskControlRejected('scope')
 			const previous = await manager.findOneBy(TaskControlPublication, { targetId: task.id })
+			if (transport && task.kind !== 'managed-queue') throw new TaskControlRejected('scope')
+			if (previous && previous.transport !== (transport ?? task.kind)) throw new TaskControlRejected('scope')
 			if (previous && (previous.tenantId !== task.tenantId || previous.organizationId !== task.organizationId))
 				throw new TaskControlRejected('scope')
 			if (previous && !isDeepStrictEqual(previous.payload, payload)) throw new TaskControlRejected('scope')
@@ -136,7 +138,7 @@ export class TaskControlStore {
 					tenantId: task.tenantId,
 					organizationId: task.organizationId,
 					targetId: task.id,
-					transport: task.kind,
+					transport: transport ?? task.kind,
 					payload,
 					result: null,
 					nextAttemptAt: new Date(),

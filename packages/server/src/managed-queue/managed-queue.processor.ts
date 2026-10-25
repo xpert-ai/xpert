@@ -1,7 +1,9 @@
+import { getConfig } from '@xpert-ai/server-config'
 import { TaskControlRunner, TaskControlStore } from '../task-control'
 import { runControlledJob } from './controlled-job'
 import { parseControlledEnvelope } from './managed-queue.service'
 import { MANAGED_QUEUE_CONTROLLED_NAME, MANAGED_QUEUE_CONTROLLED_BROWSER_NAME } from './constants'
+import { controlAdmissionUnavailable } from '../task-control/control-schema'
 import { resourceScopeFromApiKey } from '../api-key/api-key-principal'
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Injectable, Logger } from '@nestjs/common'
@@ -9,6 +11,7 @@ import type { IApiKey, IApiPrincipal, IUser } from '@xpert-ai/contracts'
 import { runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import type { ManagedQueueExecutionPool, ManagedQueueJob, ManagedQueueJobContext } from '@xpert-ai/plugin-sdk'
 import type { Job } from 'bullmq'
+import { DelayedError } from 'bullmq'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
 import { UserService } from '../user/user.service'
@@ -21,7 +24,7 @@ import type {
 } from './constants'
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
 
-const MANAGED_QUEUE_WORKER_CONCURRENCY = normalizeConcurrency(process.env.MANAGED_QUEUE_CONCURRENCY, 10)
+export const MANAGED_QUEUE_WORKER_CONCURRENCY = getConfig().managedQueueOptions?.concurrency ?? 10
 const MANAGED_QUEUE_DELEGATED_API_KEY_TOKEN = '[managed-queue-delegation]'
 
 @Injectable()
@@ -57,8 +60,15 @@ export class ManagedQueueProcessor extends WorkerHost {
 			pluginName: envelope.pluginName,
 			queueName: envelope.queueName,
 			jobName: envelope.jobName,
-			scopeKey: envelope.scopeKey
+			scopeKey: envelope.scopeKey,
+			controlContract: envelope.controlContract
 		})
+		if (envelope.controlProtocol === 3 && (!envelope.control || !envelope.controlContract))
+			throw controlAdmissionUnavailable('protocol')
+		if (envelope.controlProtocol === 3 && !handler) {
+			await job.moveToDelayed(Date.now() + 5000, job.token)
+			throw new DelayedError()
+		}
 		if (!handler) {
 			throw new Error(
 				`No managed queue handler registered for ${envelope.pluginName}/${envelope.queueName}/${envelope.jobName}`
@@ -239,10 +249,7 @@ export class ManagedQueueProcessor extends WorkerHost {
 	}
 }
 
-const SANDBOX_BROWSER_EXECUTOR_CONCURRENCY = normalizeConcurrency(
-	process.env.MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY,
-	1
-)
+export const SANDBOX_BROWSER_EXECUTOR_CONCURRENCY = getConfig().managedQueueOptions?.sandboxBrowserConcurrency ?? 1
 
 /** Browser-heavy API-local consumer, isolated in its own pool with a conservative default concurrency. */
 @Injectable()
@@ -265,27 +272,12 @@ export class SandboxBrowserManagedQueueProcessor extends ManagedQueueProcessor {
 	}
 }
 
-function normalizeConcurrency(value: string | undefined, fallback: number): number {
-	const parsed = Number(value)
-	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback
-}
-
-/**
- * Enables both logical execution pools in the API process by default.
- * The existing global override remains available for tests and maintenance.
- */
+/** Process roles are read through server-config before Nest constructs consumers. */
 export function managedQueuePoolAutorun(
-	_executionPool: ManagedQueueExecutionPool,
-	environment: NodeJS.ProcessEnv = process.env
+	_pool: ManagedQueueExecutionPool,
+	options = getConfig().managedQueueOptions
 ): boolean {
-	return optionalBoolean(environment.MANAGED_QUEUE_AUTORUN) ?? true
-}
-
-function optionalBoolean(value: string | undefined): boolean | undefined {
-	const normalized = value?.trim().toLowerCase()
-	if (normalized === 'true') return true
-	if (normalized === 'false') return false
-	return undefined
+	return options?.autorun ?? true
 }
 
 @Injectable()
@@ -304,6 +296,7 @@ export class ControlledManagedQueueProcessor extends ManagedQueueProcessor {
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		job.data = parseControlledEnvelope(job.data)
+		if (job.data.controlProtocol) throw controlAdmissionUnavailable('protocol')
 		return super.process(job)
 	}
 }
@@ -324,6 +317,7 @@ export class ControlledBrowserManagedQueueProcessor extends SandboxBrowserManage
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		job.data = parseControlledEnvelope(job.data)
+		if (job.data.controlProtocol) throw controlAdmissionUnavailable('protocol')
 		return super.process(job)
 	}
 }

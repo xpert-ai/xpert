@@ -1,44 +1,38 @@
 jest.mock('../tool-runtime', () => ({ ToolRuntimeService: class ToolRuntimeService {} }))
 
-import {
-    BAGGAGE_META_KEY,
-    CLIENT_CAPABILITIES_META_KEY,
-    CLIENT_INFO_META_KEY,
-    InMemoryServerEventBus,
-    PROTOCOL_VERSION_META_KEY,
-    SERVER_INFO_META_KEY,
-    TRACEPARENT_META_KEY,
-    TRACESTATE_META_KEY
-} from '@modelcontextprotocol/server'
-import { MCP_CAPABILITY_DESCRIPTOR_VERSION, MCP_PROTOCOL_VERSION, MCP_TASK_EXTENSION_ID } from '@xpert-ai/contracts'
+import { InMemoryServerEventBus, SERVER_INFO_META_KEY } from '@modelcontextprotocol/server'
+import { MCP_PROTOCOL_VERSION, MCP_TASK_EXTENSION_ID, MCP_EXECUTION_CONTROL_EXTENSION_ID } from '@xpert-ai/contracts'
 import { UnauthorizedException } from '@nestjs/common'
-import { Test, type TestingModule } from '@nestjs/testing'
 import type { Request, Response } from 'express'
-import { EventEmitter } from 'node:events'
-import type { RedisClientType } from 'redis'
 import { applicationMetrics } from '../metrics'
 import { applicationTracing } from '../tracing/application-tracing'
 import { ToolRuntimeService } from '../tool-runtime'
-import { McpPublication, McpPublicationCapability } from './entities'
-import { McpAppBundleService } from './mcp-app-bundle.service'
-import { McpAuthenticationService } from './mcp-authentication.service'
-import { McpElicitationService } from './mcp-elicitation.service'
-import { McpInvocationAuditService } from './mcp-invocation-audit.service'
-import {
-    McpPublicationRuntimeService,
-    authorizedSubscriptionNotifications,
-    mcpCapabilityProviderInstructions,
-    mcpPublicationInstructions
-} from './mcp-publication-runtime.service'
-import { McpPublicationService } from './mcp-publication.service'
-import { McpRateLimitService } from './mcp-rate-limit.service'
-import { McpSubscriptionService } from './mcp-subscription.service'
-import { McpTaskService } from './mcp-task.service'
-import { McpPublicationAuthorizationService } from './mcp-publication-authorization.service'
+import { McpPublicationRuntimeService } from './mcp-publication-runtime.service'
 
-const LEGACY_MCP_PROTOCOL_VERSION = '2025-03-26'
+import {
+    createRuntimeFixture,
+    waitUntil,
+    createProtocolClient,
+    LEGACY_MCP_PROTOCOL_VERSION,
+    MemoryResponse,
+    modernRequestBody,
+    modernNodeRequest,
+    publication,
+    taskClientCapabilities,
+    authenticatedPrincipal,
+    toolCapability,
+    organizationRequiredToolCapability,
+    writeToolCapability,
+    appToolCapability,
+    appOnlyToolCapability,
+    appCapability,
+    dangerousToolCapability,
+    resourceCapability,
+    promptCapability
+} from './testing/runtime-protocol-fixture'
 
 describe('McpPublicationRuntimeService protocol', () => {
+    const { request, legacyRequest } = createProtocolClient(() => runtime)
     let runtime: McpPublicationRuntimeService
     let executeTool: jest.Mock
     let executeMcpResource: jest.Mock
@@ -57,97 +51,24 @@ describe('McpPublicationRuntimeService protocol', () => {
     let elicitationState: Map<string, string>
 
     beforeAll(async () => {
-        executeTool = jest.fn().mockResolvedValue({
-            content: [{ type: 'text', text: 'generic MCP result' }],
-            structuredContent: { source: 'third-party' },
-            meta: { trace: 'preserved' }
-        })
-        executeMcpResource = jest.fn()
-        executeMcpPrompt = jest.fn()
-        completeMcpCapability = jest.fn()
-        resolveRuntimeCapabilities = jest
-            .fn()
-            .mockResolvedValue([toolCapability(), writeToolCapability(), dangerousToolCapability()])
-        authenticate = jest.fn().mockResolvedValue(authenticatedPrincipal())
-        assertWithinLimit = jest.fn()
-        auditStart = jest.fn().mockResolvedValue({ id: 'audit-1' })
-        auditSucceeded = jest.fn()
-        auditFailed = jest.fn()
-        readAppBundle = jest.fn()
-        getTask = jest.fn()
-        subscribeTasks = jest.fn()
-        bus = new InMemoryServerEventBus()
-        elicitationState = new Map<string, string>()
-        const elicitationRedis = {
-            get: async (key: string) => elicitationState.get(key) ?? null,
-            set: async (key: string, value: string) => {
-                elicitationState.set(key, value)
-                return 'OK'
-            },
-            del: async (key: string) => (elicitationState.delete(key) ? 1 : 0)
-        } as RedisClientType
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                McpPublicationRuntimeService,
-                {
-                    provide: McpPublicationService,
-                    useValue: {
-                        findActiveBySlug: jest.fn().mockResolvedValue(publication()),
-                        resolveRuntimeCapabilities
-                    }
-                },
-                {
-                    provide: McpAuthenticationService,
-                    useValue: {
-                        authenticate,
-                        challenge: jest.fn().mockResolvedValue('Bearer')
-                    }
-                },
-                {
-                    provide: McpPublicationAuthorizationService,
-                    useValue: { assertCanRun: jest.fn().mockResolvedValue(undefined) }
-                },
-                { provide: McpRateLimitService, useValue: { assertWithinLimit } },
-                {
-                    provide: McpInvocationAuditService,
-                    useValue: {
-                        start: auditStart,
-                        succeeded: auditSucceeded,
-                        failed: auditFailed
-                    }
-                },
-                {
-                    provide: ToolRuntimeService,
-                    useValue: { executeTool, executeMcpResource, executeMcpPrompt, completeMcpCapability }
-                },
-                {
-                    provide: McpAppBundleService,
-                    useValue: {
-                        resourceUri: jest.fn().mockReturnValue('ui://xpert/publication-1/plugin/catalog-app'),
-                        read: readAppBundle
-                    }
-                },
-                { provide: McpElicitationService, useValue: new McpElicitationService(elicitationRedis) },
-                {
-                    provide: McpTaskService,
-                    useValue: {
-                        get: getTask,
-                        update: jest.fn(),
-                        cancel: jest.fn()
-                    }
-                },
-                {
-                    provide: McpSubscriptionService,
-                    useValue: {
-                        bus: jest.fn().mockReturnValue(bus),
-                        eventsApi: jest.fn().mockReturnValue({ publish: jest.fn() }),
-                        subscribeTasks,
-                        subscribeAccessInvalidations: jest.fn().mockReturnValue(jest.fn())
-                    }
-                }
-            ]
-        }).compile()
-        runtime = module.get(McpPublicationRuntimeService)
+        ;({
+            runtime,
+            executeTool,
+            executeMcpResource,
+            executeMcpPrompt,
+            completeMcpCapability,
+            resolveRuntimeCapabilities,
+            authenticate,
+            assertWithinLimit,
+            auditStart,
+            auditSucceeded,
+            auditFailed,
+            readAppBundle,
+            getTask,
+            subscribeTasks,
+            bus,
+            elicitationState
+        } = await createRuntimeFixture())
     })
 
     beforeEach(() => {
@@ -172,70 +93,6 @@ describe('McpPublicationRuntimeService protocol', () => {
         ])
     })
 
-    it('composes platform safety guidance before publication-specific instructions', () => {
-        const instructions = mcpPublicationInstructions('Use the published capabilities.')
-
-        expect(instructions).toContain('Xpert-managed MCP publication')
-        expect(instructions).toContain('Never request, expose, or forward credentials or tokens')
-        expect(instructions).toMatch(/Publication instructions:\nUse the published capabilities\.$/)
-    })
-
-    it('deduplicates provider guidance after higher-priority platform and Publication instructions', () => {
-        const capability = toolCapability()
-        capability.descriptorSnapshot.providerInstructions = 'Use indexed resources before search.'
-        const duplicate = toolCapability()
-        duplicate.descriptorSnapshot.providerInstructions = 'Use indexed resources before search.'
-        const providerInstructions = mcpCapabilityProviderInstructions([capability, duplicate])
-        const instructions = mcpPublicationInstructions('Only expose approved workspace data.', providerInstructions)
-
-        expect(providerInstructions).toEqual([
-            { label: 'third-party', instructions: 'Use indexed resources before search.' }
-        ])
-        expect(instructions.indexOf('Xpert-managed MCP publication')).toBeLessThan(
-            instructions.indexOf('Publication instructions:')
-        )
-        expect(instructions.indexOf('Publication instructions:')).toBeLessThan(
-            instructions.indexOf('Capability provider guidance')
-        )
-        expect(instructions.match(/Use indexed resources before search\./g)).toHaveLength(1)
-    })
-
-    it('caps aggregate provider guidance without truncating higher-priority instructions first', () => {
-        const instructions = mcpPublicationInstructions('Administrator guidance.', [
-            { label: 'provider-a', instructions: 'a'.repeat(8_000) },
-            { label: 'provider-b', instructions: 'b'.repeat(8_000) }
-        ])
-
-        expect([...instructions]).toHaveLength(16_000)
-        expect(instructions).toContain('Publication instructions:\nAdministrator guidance.')
-        expect(instructions).toContain('[provider-a]')
-        expect(instructions).toContain('[Provider guidance truncated by Xpert.]')
-    })
-
-    it('limits change subscriptions to capabilities visible to the authenticated principal', () => {
-        expect(
-            authorizedSubscriptionNotifications(
-                {
-                    toolsListChanged: true,
-                    promptsListChanged: true,
-                    resourcesListChanged: true,
-                    resourceSubscriptions: [
-                        'https://resources.example/report',
-                        'https://resources.example/private',
-                        'file:///etc/passwd'
-                    ],
-                    taskIds: ['task-1']
-                },
-                [toolCapability(), resourceCapability()]
-            )
-        ).toEqual({
-            toolsListChanged: true,
-            resourcesListChanged: true,
-            resourceSubscriptions: ['https://resources.example/report'],
-            taskIds: ['task-1']
-        })
-    })
-
     it('serves modern discovery and lists only bound generic capabilities', async () => {
         const discovery = await request('server/discover', {}, 1)
         expect(discovery.status).toBe(200)
@@ -252,6 +109,49 @@ describe('McpPublicationRuntimeService protocol', () => {
             expect.objectContaining({ name: 'generic_search', description: 'Generic remote search' }),
             expect.objectContaining({ name: 'generic_write', description: 'Generic remote search' })
         ])
+    })
+
+    it('preserves required-task discovery through the real 2026 SDK wire codec', async () => {
+        const capability = toolCapability()
+        if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+        capability.descriptorSnapshot.taskMode = 'required'
+        resolveRuntimeCapabilities.mockResolvedValueOnce([capability])
+        const listed = await request('tools/list', {}, 27)
+        expect(listed.status).toBe(200)
+        // 2026 removed top-level execution; the negotiated Xpert extension remains on the wire.
+        expect(Reflect.get(listed.body.result.tools[0], 'execution')).toBeUndefined()
+        expect(Reflect.get(listed.body.result.tools[0], '_meta')?.[MCP_EXECUTION_CONTROL_EXTENSION_ID]).toEqual({
+            version: 1,
+            taskSupport: 'required'
+        })
+    })
+
+    it('returns a task handle before validating the eventual tool output', async () => {
+        const capability = toolCapability()
+        if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+        capability.descriptorSnapshot.taskMode = 'required'
+        capability.descriptorSnapshot.outputSchema = {
+            type: 'object',
+            properties: { complete: { type: 'boolean' } },
+            required: ['complete']
+        }
+        resolveRuntimeCapabilities.mockResolvedValue([capability])
+        const started = await request('tools/call', { name: 'generic_search', arguments: { query: 'work' } }, 28, {
+            name: 'generic_search',
+            clientCapabilities: { extensions: { [MCP_TASK_EXTENSION_ID]: {} } }
+        })
+        expect(started.body.result).toMatchObject({ resultType: 'task', taskId: 'task-started' })
+        expect(started.body.result.isError).not.toBe(true)
+        expect(executeTool).not.toHaveBeenCalled()
+    })
+
+    it('keeps required-task discovery for legacy clients', async () => {
+        const capability = toolCapability()
+        if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+        capability.descriptorSnapshot.taskMode = 'required'
+        resolveRuntimeCapabilities.mockResolvedValueOnce([capability])
+        const listed = await legacyRequest('tools/list', {}, 29)
+        expect(Reflect.get(listed.body.result.tools[0], 'execution')).toEqual({ taskSupport: 'required' })
     })
 
     it('serves 2025-era MCP initialize, tool listing, and tool calls', async () => {
@@ -1059,439 +959,4 @@ describe('McpPublicationRuntimeService protocol', () => {
         )
         expect(completion.body.error).toEqual(expect.objectContaining({ code: expect.any(Number) }))
     })
-
-    async function request(
-        method: string,
-        params: object,
-        id: number,
-        headers?: {
-            name?: string
-            traceparent?: string
-            tracestate?: string
-            clientCapabilities?: object
-            metaProtocolVersion?: string
-            headerProtocolVersion?: string
-            metaTraceparent?: string
-            metaTracestate?: string
-            metaBaggage?: string
-        }
-    ) {
-        const body = modernRequestBody(method, params, id, headers?.clientCapabilities, {
-            protocolVersion: headers?.metaProtocolVersion,
-            traceparent: headers?.metaTraceparent,
-            tracestate: headers?.metaTracestate,
-            baggage: headers?.metaBaggage
-        })
-        const nodeRequest = modernNodeRequest(method, {
-            name: headers?.name,
-            protocolVersion: headers?.headerProtocolVersion,
-            traceparent: headers?.traceparent,
-            tracestate: headers?.tracestate
-        })
-        const nodeResponse = new MemoryResponse()
-        await runtime.handle('generic', nodeRequest as unknown as Request, nodeResponse as unknown as Response, body)
-        return { status: nodeResponse.statusCode, body: nodeResponse.jsonBody() }
-    }
-
-    async function legacyRequest(method: string, params: object, id: number) {
-        const body = { jsonrpc: '2.0', id, method, params }
-        const nodeRequest = legacyNodeRequest(method)
-        const nodeResponse = new MemoryResponse()
-        await runtime.handle('generic', nodeRequest as unknown as Request, nodeResponse as unknown as Response, body)
-        return { status: nodeResponse.statusCode, body: nodeResponse.mcpBody() }
-    }
 })
-
-class MemoryResponse extends EventEmitter {
-    statusCode = 200
-    writableEnded = false
-    destroyed = false
-    readonly #chunks: Buffer[] = []
-    readonly #headers = new Map<string, string>()
-
-    setHeader(name: string, value: string | number | readonly string[]) {
-        this.#headers.set(name.toLowerCase(), Array.isArray(value) ? value.join(', ') : String(value))
-        return this
-    }
-
-    writeHead(statusCode: number, headers?: Record<string, string>) {
-        this.statusCode = statusCode
-        for (const [name, value] of Object.entries(headers ?? {})) this.setHeader(name, value)
-        return this
-    }
-
-    write(chunk: string | Uint8Array) {
-        this.#chunks.push(Buffer.from(chunk))
-        return true
-    }
-
-    end(chunk?: string | Uint8Array) {
-        if (chunk !== undefined) this.write(chunk)
-        this.writableEnded = true
-        this.emit('finish')
-        return this
-    }
-
-    status(statusCode: number) {
-        this.statusCode = statusCode
-        return this
-    }
-
-    json(value: unknown) {
-        this.setHeader('content-type', 'application/json')
-        return this.end(JSON.stringify(value))
-    }
-
-    jsonBody(): {
-        result?: {
-            supportedVersions?: string[]
-            tools?: object[]
-            resources?: object[]
-            contents?: object[]
-            prompts?: object[]
-            messages?: object[]
-            completion?: object
-            isError?: boolean
-            content?: object[]
-            taskId?: string
-            status?: string
-            resultType?: string
-            inputRequests?: object
-            requestState?: string
-            _meta?: object
-        }
-        error?: object
-    } {
-        const text = this.textBody()
-        if (!text) throw new Error('Expected MCP response body')
-        return JSON.parse(text)
-    }
-
-    mcpBody(): ReturnType<MemoryResponse['jsonBody']> {
-        const text = this.textBody()
-        if (!text.startsWith('event:')) return this.jsonBody()
-        const data = text
-            .split(/\r?\n/)
-            .find((line) => line.startsWith('data:'))
-            ?.slice('data:'.length)
-            .trim()
-        if (!data) throw new Error('Expected MCP SSE data frame')
-        return JSON.parse(data)
-    }
-
-    textBody() {
-        return Buffer.concat(this.#chunks).toString('utf8')
-    }
-}
-
-function modernRequestBody(
-    method: string,
-    params: object,
-    id: number,
-    clientCapabilities: object = {},
-    meta?: {
-        protocolVersion?: string
-        traceparent?: string
-        tracestate?: string
-        baggage?: string
-    }
-) {
-    return {
-        jsonrpc: '2.0',
-        id,
-        method,
-        params: {
-            ...params,
-            _meta: {
-                [PROTOCOL_VERSION_META_KEY]: meta?.protocolVersion ?? MCP_PROTOCOL_VERSION,
-                [CLIENT_INFO_META_KEY]: { name: 'xpert-test', version: '1.0.0' },
-                [CLIENT_CAPABILITIES_META_KEY]: clientCapabilities,
-                ...(meta?.traceparent ? { [TRACEPARENT_META_KEY]: meta.traceparent } : {}),
-                ...(meta?.tracestate ? { [TRACESTATE_META_KEY]: meta.tracestate } : {}),
-                ...(meta?.baggage ? { [BAGGAGE_META_KEY]: meta.baggage } : {})
-            }
-        }
-    }
-}
-
-function modernNodeRequest(
-    method: string,
-    options?: { name?: string; protocolVersion?: string; traceparent?: string; tracestate?: string }
-) {
-    const requestHeaders = {
-        authorization: 'Bearer xpert_mcp_test',
-        accept: 'application/json, text/event-stream',
-        'content-type': 'application/json',
-        'mcp-protocol-version': options?.protocolVersion ?? MCP_PROTOCOL_VERSION,
-        'mcp-method': method,
-        ...(options?.name ? { 'mcp-name': options.name } : {}),
-        ...(options?.traceparent ? { traceparent: options.traceparent } : {}),
-        ...(options?.tracestate ? { tracestate: options.tracestate } : {})
-    }
-    return {
-        method: 'POST',
-        url: '/api/mcp/p/generic',
-        headers: requestHeaders,
-        protocol: 'http',
-        get(name: string) {
-            return requestHeaders[name.toLowerCase() as keyof typeof requestHeaders]
-        },
-        [Symbol.asyncIterator]() {
-            return {
-                next: async () => ({ done: true as const, value: undefined })
-            }
-        }
-    }
-}
-
-function legacyNodeRequest(method: string) {
-    const requestHeaders: Record<string, string> = {
-        authorization: 'Bearer xpert_mcp_test',
-        accept: 'application/json, text/event-stream',
-        'content-type': 'application/json',
-        'mcp-method': method
-    }
-    if (method !== 'initialize') requestHeaders['mcp-protocol-version'] = LEGACY_MCP_PROTOCOL_VERSION
-    return {
-        method: 'POST',
-        url: '/api/mcp/p/generic',
-        headers: requestHeaders,
-        protocol: 'http',
-        get(name: string) {
-            return requestHeaders[name.toLowerCase()]
-        },
-        [Symbol.asyncIterator]() {
-            return {
-                next: async () => ({ done: true as const, value: undefined })
-            }
-        }
-    }
-}
-
-async function waitUntil(predicate: () => boolean) {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-        if (predicate()) return
-        await new Promise<void>((resolve) => setImmediate(resolve))
-    }
-    throw new Error('Timed out waiting for MCP stream output')
-}
-
-function publication(): McpPublication {
-    return Object.assign(new McpPublication(), {
-        id: 'publication-1',
-        slug: 'generic',
-        name: 'Generic MCP',
-        status: 'active',
-        instructions: 'Generic MCP service',
-        protocolVersion: MCP_PROTOCOL_VERSION,
-        authMethods: ['api_key'],
-        tenantId: 'tenant-1',
-        organizationId: 'organization-1'
-    })
-}
-
-function taskClientCapabilities() {
-    return { extensions: { [MCP_TASK_EXTENSION_ID]: {} } }
-}
-
-function authenticatedPrincipal() {
-    return {
-        authMethod: 'api_key' as const,
-        subjectType: 'user' as const,
-        subjectId: 'user-1',
-        userId: 'user-1',
-        tenantId: 'tenant-1',
-        organizationId: 'organization-1',
-        publicationId: 'publication-1',
-        scopes: ['*']
-    }
-}
-
-function toolCapability(): McpPublicationCapability {
-    return Object.assign(new McpPublicationCapability(), {
-        id: 'capability-1',
-        publicationId: 'publication-1',
-        toolsetId: 'toolset-1',
-        capabilityType: 'tool',
-        capabilityKey: 'catalog-generic-search',
-        publicName: 'generic_search',
-        enabled: true,
-        policy: { approvalMode: 'allow' },
-        descriptorHash: 'hash',
-        descriptorSnapshot: {
-            descriptorVersion: MCP_CAPABILITY_DESCRIPTOR_VERSION,
-            capabilityType: 'tool',
-            capabilityKey: 'catalog-generic-search',
-            title: 'Generic search',
-            description: 'Generic remote search',
-            inputSchema: {
-                type: 'object',
-                properties: { query: { type: 'string' } },
-                required: ['query']
-            },
-            behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
-            requiredContext: ['tenant', 'principal', 'execution'],
-            visibility: ['model'],
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'search' }
-        }
-    })
-}
-
-function organizationRequiredToolCapability(): McpPublicationCapability {
-    const capability = toolCapability()
-    return Object.assign(new McpPublicationCapability(), {
-        ...capability,
-        id: 'capability-organization',
-        capabilityKey: 'catalog-organization-search',
-        publicName: 'organization_search',
-        descriptorSnapshot: {
-            ...capability.descriptorSnapshot,
-            capabilityKey: 'catalog-organization-search',
-            requiredContext: ['organization', 'tenant', 'principal', 'execution'],
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'organization_search' }
-        }
-    })
-}
-
-function writeToolCapability(): McpPublicationCapability {
-    const base = toolCapability()
-    return Object.assign(new McpPublicationCapability(), {
-        ...base,
-        id: 'capability-2',
-        capabilityKey: 'catalog-generic-write',
-        publicName: 'generic_write',
-        policy: { approvalMode: 'confirm' },
-        descriptorSnapshot: {
-            ...base.descriptorSnapshot,
-            capabilityKey: 'catalog-generic-write',
-            behavior: { risk: 'write', sideEffect: 'reversible', idempotency: 'idempotent' },
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'write' }
-        }
-    })
-}
-
-function appToolCapability(): McpPublicationCapability {
-    const base = toolCapability()
-    return Object.assign(new McpPublicationCapability(), {
-        ...base,
-        id: 'capability-app-tool',
-        capabilityKey: 'catalog-app-tool',
-        publicName: 'generic_app_tool',
-        descriptorSnapshot: {
-            ...base.descriptorSnapshot,
-            capabilityKey: 'catalog-app-tool',
-            appResourceKey: 'catalog-app',
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'app_tool' }
-        }
-    })
-}
-
-function appOnlyToolCapability(): McpPublicationCapability {
-    const base = appToolCapability()
-    return Object.assign(new McpPublicationCapability(), {
-        ...base,
-        id: 'capability-app-refresh',
-        capabilityKey: 'catalog-app-refresh',
-        publicName: 'generic_app_refresh',
-        descriptorSnapshot: {
-            ...base.descriptorSnapshot,
-            capabilityKey: 'catalog-app-refresh',
-            visibility: ['app'],
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'app_refresh' }
-        }
-    })
-}
-
-function appCapability(): McpPublicationCapability {
-    return Object.assign(new McpPublicationCapability(), {
-        id: 'capability-app',
-        publicationId: 'publication-1',
-        toolsetId: 'toolset-1',
-        capabilityType: 'app',
-        capabilityKey: 'catalog-app',
-        publicName: 'generic_app',
-        enabled: true,
-        descriptorHash: 'app-hash',
-        descriptorSnapshot: {
-            descriptorVersion: MCP_CAPABILITY_DESCRIPTOR_VERSION,
-            capabilityType: 'app',
-            capabilityKey: 'catalog-app',
-            title: 'Generic App',
-            description: 'Generic MCP App',
-            entry: 'app.html',
-            requiredContext: ['tenant', 'principal', 'execution'],
-            visibility: ['app'],
-            source: { toolsetId: 'toolset-1', pluginName: '@xpert-ai/plugin-generic' }
-        }
-    })
-}
-
-function dangerousToolCapability(): McpPublicationCapability {
-    const base = toolCapability()
-    return Object.assign(new McpPublicationCapability(), {
-        ...base,
-        id: 'capability-3',
-        capabilityKey: 'catalog-generic-delete',
-        publicName: 'generic_delete',
-        policy: { approvalMode: 'allow' },
-        descriptorSnapshot: {
-            ...base.descriptorSnapshot,
-            capabilityKey: 'catalog-generic-delete',
-            behavior: { risk: 'dangerous', sideEffect: 'irreversible', idempotency: 'non_idempotent' },
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'delete' }
-        }
-    })
-}
-
-function resourceCapability(): McpPublicationCapability {
-    return Object.assign(new McpPublicationCapability(), {
-        id: 'capability-resource',
-        publicationId: 'publication-1',
-        toolsetId: 'toolset-1',
-        capabilityType: 'resource',
-        capabilityKey: 'catalog-report',
-        publicName: 'report',
-        enabled: true,
-        descriptorHash: 'resource-hash',
-        descriptorSnapshot: {
-            descriptorVersion: MCP_CAPABILITY_DESCRIPTOR_VERSION,
-            capabilityType: 'resource',
-            capabilityKey: 'catalog-report',
-            title: 'Report',
-            description: 'Published report',
-            uri: 'https://resources.example/report',
-            mimeType: 'text/plain',
-            requiredContext: ['tenant', 'principal', 'execution'],
-            visibility: ['model'],
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'report' }
-        }
-    })
-}
-
-function promptCapability(): McpPublicationCapability {
-    return Object.assign(new McpPublicationCapability(), {
-        id: 'capability-prompt',
-        publicationId: 'publication-1',
-        toolsetId: 'toolset-1',
-        capabilityType: 'prompt',
-        capabilityKey: 'catalog-summary',
-        publicName: 'summary_prompt',
-        enabled: true,
-        descriptorHash: 'prompt-hash',
-        descriptorSnapshot: {
-            descriptorVersion: MCP_CAPABILITY_DESCRIPTOR_VERSION,
-            capabilityType: 'prompt',
-            capabilityKey: 'catalog-summary',
-            name: 'summary',
-            description: 'Prepare a summary',
-            argumentSchema: {
-                type: 'object',
-                properties: { topic: { type: 'string' } }
-            },
-            supportsCompletion: true,
-            requiredContext: ['tenant', 'principal', 'execution'],
-            visibility: ['model'],
-            source: { toolsetId: 'toolset-1', serverName: 'third-party', remoteName: 'summary' }
-        }
-    })
-}

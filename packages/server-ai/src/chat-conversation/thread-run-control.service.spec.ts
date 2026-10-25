@@ -13,6 +13,7 @@ import { ChatConversationThread } from './conversation-thread.entity'
 import { ThreadRunControlService, threadGraphRevision } from './thread-run-control.service'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { TXpertGraph, XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
+import { threadControlSchema } from '../execution-control/control-admission'
 
 describe('ThreadRunControlService', () => {
     function setup() {
@@ -34,6 +35,11 @@ describe('ThreadRunControlService', () => {
         }
         const threadRepository = { findOne: jest.fn(async () => thread) }
         const manager = {
+            query: jest.fn(async () =>
+                threadControlSchema.flatMap((item) =>
+                    item.columns.map((column) => ({ table_name: item.table, column_name: column }))
+                )
+            ),
             getRepository: jest.fn((entity: unknown) =>
                 entity === ChatConversationThread ? threadRepository : checkpointRepository
             ),

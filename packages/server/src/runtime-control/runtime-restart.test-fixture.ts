@@ -239,7 +239,9 @@ export async function createNode(
 	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
 	const lifecycle = new RuntimeLifecycleService()
 	const admission = await runtimePluginAdmissionProvider.useFactory(registry, lifecycle)
-	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission)
+	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission, {
+		refresh: async () => undefined
+	})
 	const coordinator = new RuntimeRestartCoordinatorService(
 		redis,
 		signaler,

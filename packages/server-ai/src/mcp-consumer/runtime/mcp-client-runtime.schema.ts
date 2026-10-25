@@ -1,3 +1,4 @@
+import { mcpToolTaskSupport } from '../tools/mcp-tool-task-support'
 import { createHash } from 'node:crypto'
 import { z } from 'zod/v3'
 import type { JSONValue } from '@xpert-ai/contracts'
@@ -45,14 +46,10 @@ function canonical(value: JSONValue): string {
 /** Remote metadata is untrusted. Behavior hints narrow selection but are never the permission grant. */
 export function describeReadOnlyTool(tool: Tool): McpClientToolDescriptor | null {
     boundedJson(tool, 64000)
-    const execution = tool.execution
     if (
         tool.annotations?.readOnlyHint !== true ||
         tool.annotations?.destructiveHint === true ||
-        (execution &&
-            typeof execution === 'object' &&
-            'taskSupport' in execution &&
-            execution.taskSupport === 'required')
+        mcpToolTaskSupport(tool) === 'required'
     )
         return null
     const inputSchema = jsonObject.parse(tool.inputSchema)

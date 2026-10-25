@@ -7,7 +7,14 @@ const { execFileSync } = require('node:child_process')
 const [archive, version] = process.argv.slice(2)
 const manifestPath = path.join(archive, 'package.json')
 const packaged = createRequire(manifestPath)
-assert.equal(packaged('./package.json').version, version)
+const manifest = packaged('./package.json')
+assert.equal(manifest.version, version)
+for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+  assert.ok(
+    packaged.resolve(dependency).startsWith(archive + path.sep),
+    `Runtime dependency missing from app.asar: ${dependency}`
+  )
+}
 assert.equal(typeof packaged('@xpert-ai/desktop-protocol').parseCommand, 'function')
 assert.equal(typeof packaged('@xpert-ai/desktop-protocol').parseAudioCapturePayload, 'function')
 assert.equal(typeof packaged('./electron/audio-capture/controller.cjs').AudioCaptureController, 'function')

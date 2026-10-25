@@ -3,6 +3,11 @@ import { z } from 'zod/v3'
 /** Negotiated Xpert extension. MCP cancellation acknowledgements are not exit evidence. */
 export const MCP_EXECUTION_CONTROL_EXTENSION_ID = 'ai.xpert/execution-control'
 export const MCP_EXECUTION_CONTROL_METHOD = 'xpert/tasks/control'
+/** Additive tools/list metadata for 2026, which removed top-level Tool.execution. */
+export const mcpExecutionToolDeclarationSchema = z.object({
+  version: z.literal(1),
+  taskSupport: z.enum(['required', 'optional', 'forbidden'])
+})
 export const mcpOperationIdentitySchema = z
   .object({
     version: z.literal(1),

@@ -112,11 +112,20 @@ export class McpOperationStore {
         return this.update(row.id, row.generation, async (value, tx) => {
             if (value.record.phase === 'settled') return
             const receipt = value.record.receipt
-            const notSent =
-                value.record.phase === 'reserved' && (await this.controls.desired(value.targetId, tx)) === 'terminated'
+            const intent = await this.controls.desired(value.targetId, tx)
+            const notSent = value.record.phase === 'reserved' && intent === 'terminated'
             const returned = value.record.callReturned === true
             const remoteSettled = receipt?.state === 'settled' && receipt.handlerExited && receipt.descendantsSettled
             if (!notSent && (!value.record.hostExited || (!returned && !remoteSettled))) return
+            // Settlement proves work exited; a running waiter also needs its final
+            // result. Keep polling inconsistent/older servers without resending tools.
+            if (
+                value.record.mode === 'task' &&
+                !returned &&
+                intent !== 'terminated' &&
+                !['completed', 'failed', 'cancelled'].includes(value.record.task?.status ?? '')
+            )
+                return
             if (!(await this.controls.settled(value.targetId, false, tx))) return
             value.record.phase = 'settled'
             value.nextControlAt = null

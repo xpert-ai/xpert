@@ -4,7 +4,8 @@ import {
     IStorageFile,
     SecretTokenBindingType,
     TChatOptions,
-    TChatRequest
+    TChatRequest,
+    TClientSecretGrantSource
 } from '@xpert-ai/contracts'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import {
@@ -297,7 +298,9 @@ export class AIV1Controller {
                 throw new BadRequestException('ChatKit session user must match the authenticated user.')
             }
 
+            let grantSource: TClientSecretGrantSource = { kind: 'assistant' }
             if (conversationId && requesterXpertId) {
+                grantSource = { kind: 'conversation', conversationId, requesterXpertId }
                 const resolution = await this.workbenchNavigationService.resolve(conversationId, requesterXpertId)
                 if (
                     resolution.xpertId !== assistantId ||
@@ -308,6 +311,7 @@ export class AIV1Controller {
                     )
                 }
             } else if (projectId) {
+                grantSource = { kind: 'project', projectId }
                 // A Project-bound external Assistant may intentionally not be
                 // visible through the user's ordinary Assistant catalog. The
                 // Project membership plus its exact Assistant binding is the
@@ -322,6 +326,7 @@ export class AIV1Controller {
                 // because API_KEY and PUBLIC_XPERT secrets also have creators.
                 entityId: assistantId,
                 type: SecretTokenBindingType.USER_XPERT,
+                grantSource,
                 tenantId: currentUser.tenantId,
                 organizationId: RequestContext.getOrganizationId() ?? null,
                 createdById: currentUser.id,

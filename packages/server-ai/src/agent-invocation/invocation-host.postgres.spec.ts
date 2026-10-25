@@ -7,7 +7,7 @@ import { z } from 'zod'
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
 integration('original host control across real OS processes and PostgreSQL', () => {
-    const schema = `host_control_${randomUUID().replace(/-/g, '')}`
+    const schema = `host_control_${randomUUID().replaceAll('-', '')}`
     let db: DataSource
     const children: ChildProcess[] = []
     beforeAll(async () => {

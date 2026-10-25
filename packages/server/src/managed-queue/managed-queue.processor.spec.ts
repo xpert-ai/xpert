@@ -1,3 +1,4 @@
+import { getConfig } from '@xpert-ai/server-config'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	runWithRequestContext: jest.fn((req, _res, next) => next()),
 	RequestContext: {
@@ -26,16 +27,18 @@ describe('ManagedQueueProcessor', () => {
 	})
 
 	it('starts both logical queue pools in the API process by default', () => {
-		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'development' })).toBe(true)
-		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'development' })).toBe(true)
-		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'test' })).toBe(true)
-		expect(managedQueuePoolAutorun('default', { NODE_ENV: 'production' })).toBe(true)
-		expect(managedQueuePoolAutorun('sandbox-browser', { NODE_ENV: 'production' })).toBe(true)
+		expect(managedQueuePoolAutorun('default', undefined)).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', undefined)).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', undefined)).toBe(true)
+		expect(managedQueuePoolAutorun('default', undefined)).toBe(true)
+		expect(managedQueuePoolAutorun('sandbox-browser', undefined)).toBe(true)
 	})
 
 	it('keeps the global autorun override for maintenance', () => {
-		expect(managedQueuePoolAutorun('default', { MANAGED_QUEUE_AUTORUN: 'false' })).toBe(false)
-		expect(managedQueuePoolAutorun('sandbox-browser', { MANAGED_QUEUE_AUTORUN: 'false' })).toBe(false)
+		expect(managedQueuePoolAutorun('default', { ...getConfig().managedQueueOptions, autorun: false })).toBe(false)
+		expect(managedQueuePoolAutorun('sandbox-browser', { ...getConfig().managedQueueOptions, autorun: false })).toBe(
+			false
+		)
 	})
 
 	it('restores tenant context and dispatches plugin payload to the registered handler', async () => {

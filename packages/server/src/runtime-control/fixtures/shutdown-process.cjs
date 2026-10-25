@@ -46,7 +46,13 @@ async function main() {
 		'./runtime-queue-shutdown.service': queueModule
 	})
 	const { RuntimeDrainMiddleware } = loadSource('packages/server/src/runtime-control/runtime-drain.middleware.ts', {
-		'./runtime-lifecycle.service': lifecycleModule
+		'./runtime-lifecycle.service': lifecycleModule,
+		'./runtime-execution-recovery': loadSource(
+			'packages/server/src/runtime-control/runtime-execution-recovery.ts',
+			{
+				'@xpert-ai/contracts': loadSource('packages/contracts/src/ai/mcp-execution-control.schema.ts')
+			}
+		)
 	})
 	const lifecycle = new lifecycleModule.RuntimeLifecycleService()
 	let queueClosed = false

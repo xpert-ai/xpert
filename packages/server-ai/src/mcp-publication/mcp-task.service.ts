@@ -1,3 +1,4 @@
+import { MCP_TASK_QUEUE_CONTROL_CONTRACT } from './control/mcp-task-queue-contract'
 // Cancellation intent, handler return and descendant settlement are separate durable events.
 // Input responses resume the same live handler; an abandoned claim never replays its body.
 import {
@@ -53,7 +54,7 @@ const DEFAULT_POLL_INTERVAL_MS = 2000
 @Injectable()
 export class McpTaskService implements OnModuleDestroy {
     private readonly logger = new Logger(McpTaskService.name)
-    private readonly active = new Map<string, AbortController>()
+    private readonly active = new Map<string, { generation: string; controller: AbortController }>()
     private readonly receipts = new Map<
         string,
         {
@@ -177,7 +178,7 @@ export class McpTaskService implements OnModuleDestroy {
         return toCreateTaskResult((await this.control.read(reserved.task.taskId)) ?? reserved.task)
     }
 
-    async get(publication: McpPublication, principal: McpPrincipal, taskId: string): Promise<McpDetailedTask> {
+    private async currentTask(publication: McpPublication, principal: McpPrincipal, taskId: string) {
         let task = await this.loadBoundTask(publication, principal, taskId)
         if (task.control) {
             if (task.expiresAt.getTime() <= Date.now() && task.control.phase !== 'settled')
@@ -185,6 +186,11 @@ export class McpTaskService implements OnModuleDestroy {
             await this.reconcileOne(task).catch(() => undefined)
             task = await this.control.read(taskId)
         }
+        return task
+    }
+
+    async get(publication: McpPublication, principal: McpPrincipal, taskId: string): Promise<McpDetailedTask> {
+        const task = await this.currentTask(publication, principal, taskId)
         return {
             ...toDetailedTask(task),
             ...(task.control?.operation
@@ -223,7 +229,7 @@ export class McpTaskService implements OnModuleDestroy {
         const task = await this.loadBoundTask(publication, principal, taskId)
         if (!task.control) throw invalidTaskParams()
         await this.control.terminate(task)
-        this.active.get(taskId)?.abort()
+        this.active.get(taskId)?.controller.abort()
         await this.reconcileOne(task).catch(() => undefined)
         return { resultType: 'complete' as const }
     }
@@ -284,11 +290,17 @@ export class McpTaskService implements OnModuleDestroy {
                 receipt: await this.control.evidence(await this.control.read(task.taskId))
             }
         }
-        const detailed = await this.get(publication, principal, task.taskId)
+        // The result and settlement state must describe the same task read. A later
+        // receipt paired with an older working result can strand the original caller.
+        const snapshot = await this.currentTask(publication, principal, task.taskId)
+        const receipt = await this.control.evidence(snapshot)
         return {
             resultType: 'complete' as const,
-            receipt: await this.control.evidence(await this.control.read(task.taskId)),
-            task: detailed
+            receipt,
+            task: {
+                ...toDetailedTask(snapshot),
+                _meta: { [MCP_EXECUTION_CONTROL_EXTENSION_ID]: receipt }
+            }
         }
     }
 
@@ -312,7 +324,7 @@ export class McpTaskService implements OnModuleDestroy {
             throw error
         }
         const controller = new AbortController()
-        this.active.set(task.taskId, controller)
+        this.active.set(task.taskId, { generation: task.control.generation, controller })
         let receipt: typeof this.receipts extends Map<string, infer R> ? R : never = { task, outcome: 'failed' }
         try {
             if ((await this.control.controls.desired(task.control.targetId)) === 'terminated') controller.abort()
@@ -422,7 +434,7 @@ export class McpTaskService implements OnModuleDestroy {
             cancel: async (id) => {
                 assertId(id)
                 const current = await this.control.terminate(task)
-                this.active.get(id)?.abort()
+                this.active.get(id)?.controller.abort()
                 return { taskId: id, status: current.status }
             }
         }
@@ -459,6 +471,7 @@ export class McpTaskService implements OnModuleDestroy {
         if (this.polling) return
         this.polling = true
         try {
+            await this.observeLocalHandlers()
             for (const id of this.receipts.keys()) await this.flushReceipt(id)
             for (const task of await this.control.due()) {
                 try {
@@ -474,13 +487,34 @@ export class McpTaskService implements OnModuleDestroy {
         }
     }
 
+    /** Shared due times and delivery leases coordinate remote work, not this boot's in-memory signal. */
+    private async observeLocalHandlers() {
+        for (const [id, active] of this.active) {
+            try {
+                let task = await this.control.read(id)
+                if (
+                    !task?.control ||
+                    task.control.generation !== active.generation ||
+                    task.control.hostId !== this.control.hostId
+                )
+                    continue
+                if (task.expiresAt.getTime() <= Date.now()) task = await this.control.terminate(task)
+                if ((await this.control.controls.desired(task.control.targetId)) === 'terminated')
+                    active.controller.abort()
+            } catch {
+                // Keep ownership and retry on the next local tick; a failed read is not an exit receipt.
+                this.logger.warn('MCP local handler control observation pending')
+            }
+        }
+    }
+
     async reconcileOne(snapshot: McpTask) {
         let task = await this.control.read(snapshot.taskId)
         if (!task?.control || task.control.phase === 'settled') return
         controlledMcpTask(task)
         if (task.expiresAt.getTime() <= Date.now()) task = await this.control.terminate(task)
         const terminated = (await this.control.controls.desired(task.control.targetId)) === 'terminated'
-        if (terminated) this.active.get(task.taskId)?.abort()
+        if (terminated) this.active.get(task.taskId)?.controller.abort()
         const token = await this.control.controls.delivery(task.control.targetId)
         if (!token) return
         try {
@@ -509,6 +543,7 @@ export class McpTaskService implements OnModuleDestroy {
                         executionPool: 'default',
                         attempts: 1,
                         controlPolicy: 'attached',
+                        controlContract: MCP_TASK_QUEUE_CONTROL_CONTRACT,
                         drainOnPause: false
                     })
                 )

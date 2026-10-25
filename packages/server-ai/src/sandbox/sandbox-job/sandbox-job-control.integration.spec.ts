@@ -35,7 +35,7 @@ class Organization {
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
 integration('Sandbox 3.3.1 durable control / PostgreSQL', () => {
-    const schema = `sandbox_${randomUUID().replace(/-/g, '')}`
+    const schema = `sandbox_${randomUUID().replaceAll('-', '')}`
     const scope = {
         tenantId: randomUUID(),
         organizationId: randomUUID(),

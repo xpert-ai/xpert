@@ -42,7 +42,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 
 		await expect(
@@ -92,7 +95,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
 			id: 'business-user-1',
@@ -169,7 +175,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
@@ -206,7 +215,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
@@ -240,7 +252,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
 			id: 'assistant-user-1',
@@ -281,7 +296,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
@@ -307,7 +325,10 @@ describe('ManagedQueueService', () => {
 			sandboxQueue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 
 		await service.enqueue({
@@ -334,7 +355,10 @@ describe('ManagedQueueService', () => {
 			sandboxQueue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 
 		await expect(service.getExecutionPoolHealth({ executionPool: 'sandbox-browser' })).resolves.toEqual({
@@ -359,7 +383,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 
 		await expect(service.cancel({ jobId: 'job-1' })).resolves.toEqual({
@@ -393,7 +420,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 
 		await expect(service.getJob({ jobId: 'job-1' })).resolves.toEqual(
@@ -415,7 +445,10 @@ describe('ManagedQueueService', () => {
 			queue as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
 			{ getJob: jest.fn().mockResolvedValue(null) } as never,
-			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ requireQueueWorker: jest.fn() } as never
 		)
 		const expiry = new Date('2030-01-01T00:00:00.000Z')
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)

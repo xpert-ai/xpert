@@ -13,7 +13,8 @@ export class RuntimeAdmissionMonitor implements OnApplicationBootstrap, OnModule
 	constructor(
 		private readonly admission: RuntimePluginAdmission,
 		private readonly generations: PluginRuntimeGenerationStore,
-		private readonly readRollout: () => Promise<RolloutAdmission | undefined>
+		private readonly readRollout: () => Promise<RolloutAdmission | undefined>,
+		private readonly refreshControls: () => Promise<void> = async () => undefined
 	) {}
 	onApplicationBootstrap(): void {
 		this.start()
@@ -39,8 +40,8 @@ export class RuntimeAdmissionMonitor implements OnApplicationBootstrap, OnModule
 	refresh(): ReturnType<RuntimePluginAdmission['refresh']> {
 		if (this.pending) return this.pending
 		const startedAt = Date.now()
-		this.pending = this.admission
-			.refresh(this.generations, this.readRollout)
+		this.pending = this.refreshControls()
+			.then(() => this.admission.refresh(this.generations, this.readRollout))
 			.catch((error: unknown) => {
 				this.logger.warn(
 					JSON.stringify({

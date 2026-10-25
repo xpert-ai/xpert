@@ -50,9 +50,9 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
             schema,
             extra: { options: `-c search_path=${schema}` },
             entities: [
-                ...executionControlTestEntities,
                 ExecutionTaskControl,
                 TaskControlPublication,
+                ...executionControlTestEntities,
                 new EntitySchema<ChatConversation>({
                     name: 'ChatConversation',
                     target: ChatConversation,

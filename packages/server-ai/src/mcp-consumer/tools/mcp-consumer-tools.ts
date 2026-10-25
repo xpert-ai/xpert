@@ -1,3 +1,4 @@
+import { mcpToolTaskSupport } from './mcp-tool-task-support'
 import {
     MCP_EXECUTION_CONTROL_EXTENSION_ID,
     type McpOperationIdentity,
@@ -351,11 +352,7 @@ export function taskCapabilityMeta(identity?: McpOperationIdentity) {
 
 function modernToolMetadata(tool: McpConsumerTool): McpToolLike {
     const metaValue = Reflect.get(tool, '_meta')
-    const executionValue = Reflect.get(tool, 'execution')
-    const taskSupport =
-        typeof executionValue === 'object' && executionValue !== null && !Array.isArray(executionValue)
-            ? Reflect.get(executionValue, 'taskSupport')
-            : undefined
+    const taskSupport = mcpToolTaskSupport(tool)
     return {
         name: tool.name,
         inputSchema: Object.fromEntries(Object.entries(tool.inputSchema)),

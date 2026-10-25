@@ -9,7 +9,7 @@ import { SandboxJobEntity } from './sandbox-job.entity'
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
 integration('Sandbox original host / independent OS replicas', () => {
-    const schema = `sandbox_workers_${randomUUID().replace(/-/g, '')}`,
+    const schema = `sandbox_workers_${randomUUID().replaceAll('-', '')}`,
         tenant = randomUUID()
     let db: DataSource
     const workers: ChildProcess[] = []

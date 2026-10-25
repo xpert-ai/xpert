@@ -69,7 +69,7 @@ jest.mock('../../../shared', () => ({
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
         }
-    },
+    }
 }))
 
 jest.mock('../../../chat-message/chat-message.entity', () => ({

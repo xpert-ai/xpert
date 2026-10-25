@@ -1,4 +1,5 @@
-import { resolveI18nText } from '@xpert-ai/contracts'
+import type { PublicationToolCall } from './mcp-task-tool-dispatch'
+import { resolveI18nText, MCP_EXECUTION_CONTROL_EXTENSION_ID } from '@xpert-ai/contracts'
 import { McpResourceUriTemplate } from './mcp-resource-uri-template'
 import type {
     McpPrincipal,
@@ -91,12 +92,31 @@ export function registerTool(
         ? { ui: { resourceUri: appResourceUri(publication, appDescriptor, runtime.appBundles) } }
         : undefined
     const toolMeta = {
+        ...(descriptor.taskMode
+            ? {
+                  [MCP_EXECUTION_CONTROL_EXTENSION_ID]: { version: 1, taskSupport: descriptor.taskMode }
+              }
+            : {}),
         ui: {
             ...(appMeta?.ui ?? {}),
             visibility: descriptor.visibility
         }
     }
-    server.registerTool(
+    const invoke: PublicationToolCall['invoke'] = async (args: unknown, context: ServerContext) =>
+        runtime.invokeTool(
+            publication,
+            principal,
+            capability,
+            descriptor,
+            args,
+            context,
+            capabilities,
+            elicitationCodec,
+            requestId,
+            traceId,
+            appMeta
+        )
+    const registered = server.registerTool(
         capability.publicName,
         {
             title: descriptor.title,
@@ -107,21 +127,18 @@ export function registerTool(
             ...(descriptor.taskMode ? { execution: { taskSupport: descriptor.taskMode } } : {}),
             _meta: toolMeta
         },
-        async (args, context) =>
-            runtime.invokeTool(
-                publication,
-                principal,
-                capability,
-                descriptor,
-                args,
-                context,
-                capabilities,
-                elicitationCodec,
-                requestId,
-                traceId,
-                appMeta
-            )
+        invoke
     )
+    // SDK 2 registerTool omits execution from its config destructuring; legacy discovery still needs it.
+    if (descriptor.taskMode) registered.execution = { taskSupport: descriptor.taskMode }
+    return {
+        name: capability.publicName,
+        taskMode: descriptor.taskMode,
+        inputSchema,
+        outputSchema,
+        outputJsonSchema: descriptor.outputSchema,
+        invoke
+    } satisfies PublicationToolCall
 }
 
 export function registerResource(

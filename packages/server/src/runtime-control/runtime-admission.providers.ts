@@ -10,6 +10,7 @@ import { ACTIVE_RESTART_KEY, readRestartMetadata } from './runtime-restart-metad
 import { RuntimeRestartTargetStore } from './runtime-restart-target.store'
 import type { RuntimeRestartRedisClient } from './runtime-restart.types'
 import { replacementAdmission } from './runtime-rollout-policy'
+import { ControlRuntimeAdmissionService } from '../task-control/control-runtime-admission.service'
 
 export const runtimePluginAdmissionProvider: FactoryProvider<RuntimePluginAdmission> = {
 	provide: RuntimePluginAdmission,
@@ -20,18 +21,28 @@ export const runtimePluginAdmissionProvider: FactoryProvider<RuntimePluginAdmiss
 
 export const runtimeAdmissionMonitorProvider: FactoryProvider<RuntimeAdmissionMonitor> = {
 	provide: RuntimeAdmissionMonitor,
-	inject: [REDIS_CLIENT, InstanceRegistryService, RuntimePluginAdmission],
-	useFactory: (redis: RuntimeRestartRedisClient, registry: RestartRegistry, admission: RuntimePluginAdmission) => {
+	inject: [REDIS_CLIENT, InstanceRegistryService, RuntimePluginAdmission, ControlRuntimeAdmissionService],
+	useFactory: (
+		redis: RuntimeRestartRedisClient,
+		registry: RestartRegistry,
+		admission: RuntimePluginAdmission,
+		controls: ControlRuntimeAdmissionService
+	) => {
 		const targets = new RuntimeRestartTargetStore(redis)
-		return new RuntimeAdmissionMonitor(admission, new PluginRuntimeGenerationStore(redis), async () => {
-			const id = await redis.get(ACTIVE_RESTART_KEY)
-			const metadata = id ? await readRestartMetadata(redis, id) : null
-			return replacementAdmission(
-				metadata,
-				metadata ? await targets.read(metadata.restartId) : [],
-				registry.instanceId,
-				registry.bootId
-			)
-		})
+		return new RuntimeAdmissionMonitor(
+			admission,
+			new PluginRuntimeGenerationStore(redis),
+			async () => {
+				const id = await redis.get(ACTIVE_RESTART_KEY)
+				const metadata = id ? await readRestartMetadata(redis, id) : null
+				return replacementAdmission(
+					metadata,
+					metadata ? await targets.read(metadata.restartId) : [],
+					registry.instanceId,
+					registry.bootId
+				)
+			},
+			() => controls.refresh()
+		)
 	}
 }

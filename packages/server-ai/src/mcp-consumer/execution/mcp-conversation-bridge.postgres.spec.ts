@@ -1,3 +1,4 @@
+import { ThreadControlProjection } from '../../chat-conversation/control-view/thread-control-projection.entity'
 import { randomUUID } from 'node:crypto'
 import { EntitySchema } from 'typeorm'
 import { Annotation, Command, END, MemorySaver, START, StateGraph, interrupt } from '@langchain/langgraph'
@@ -32,6 +33,7 @@ integration('MCP actual graph input continuation and conversation settlement', (
     let threadId: string, executionId: string
     beforeAll(async () => {
         database = await mcpTestDatabase(url, [
+            ThreadControlProjection,
             McpRemoteOperation,
             ExecutionControl,
             new EntitySchema<ChatConversationThread>({

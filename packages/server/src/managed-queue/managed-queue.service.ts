@@ -1,9 +1,15 @@
 import { TaskControlStore, taskControlId } from '../task-control'
+import { ControlRuntimeAdmissionService, controlAdmissionUnavailable } from '../task-control'
 import { Interval } from '@nestjs/schedule'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { ApiKeyBindingType, SecretTokenBindingType, ENTERPRISE_H5_PLATFORMS } from '@xpert-ai/contracts'
-import { MANAGED_QUEUE_CONTROLLED_NAME, MANAGED_QUEUE_CONTROLLED_BROWSER_NAME } from './constants'
+import {
+	MANAGED_QUEUE_CONTROLLED_NAME,
+	MANAGED_QUEUE_CONTROLLED_BROWSER_NAME,
+	MANAGED_QUEUE_ADMITTED_NAME,
+	MANAGED_QUEUE_ADMITTED_BROWSER_NAME
+} from './constants'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Injectable, Optional } from '@nestjs/common'
 import type {
@@ -34,7 +40,11 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		@InjectQueue(MANAGED_QUEUE_CONTROLLED_NAME) private readonly controlledQueue: Queue<ManagedQueueEnvelope>,
 		@InjectQueue(MANAGED_QUEUE_CONTROLLED_BROWSER_NAME)
 		private readonly controlledBrowserQueue: Queue<ManagedQueueEnvelope>,
-		private readonly controls: TaskControlStore
+		private readonly controls: TaskControlStore,
+		@InjectQueue(MANAGED_QUEUE_ADMITTED_NAME) private readonly admittedQueue: Queue<ManagedQueueEnvelope>,
+		@InjectQueue(MANAGED_QUEUE_ADMITTED_BROWSER_NAME)
+		private readonly admittedBrowserQueue: Queue<ManagedQueueEnvelope>,
+		private readonly admission: ControlRuntimeAdmissionService
 	) {}
 
 	async enqueue<TPayload = unknown>(input: ManagedQueueEnqueueInput<TPayload>): Promise<ManagedQueueEnqueueResult> {
@@ -56,8 +66,22 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		}
 		// Queue producers opt in explicitly; historical domain schedulers retain their own lifecycle.
 		const parent = input.controlPolicy ? await this.controls.producer() : undefined
+		if (input.controlPolicy && !parent) throw controlAdmissionUnavailable('protocol')
 		if (parent) {
 			if (!envelope.tenantId) throw new Error('Controlled queue requires tenant scope')
+			const controlContract = input.controlContract?.trim()
+			if (!controlContract || controlContract.length > 160) throw controlAdmissionUnavailable('handler')
+			await this.admission.requireQueueWorker(
+				{
+					pluginName: envelope.pluginName,
+					queueName: envelope.queueName,
+					jobName: envelope.jobName,
+					scopeKey: envelope.scopeKey ?? null,
+					controlContract
+				},
+				executionPool,
+				input.controlPolicy === 'attached' && input.drainOnPause === true
+			)
 			const jobId = input.jobId ?? randomUUID()
 			const registration = {
 				tenantId: envelope.tenantId,
@@ -69,7 +93,12 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 				drainOnPause: input.drainOnPause ?? false
 			}
 			const targetId = taskControlId(registration)
-			const controlled = { ...envelope, control: { version: 2 as const, targetId } }
+			const controlled = {
+				...envelope,
+				control: { version: 2 as const, targetId },
+				controlContract,
+				controlProtocol: 3 as const
+			}
 			const previous = await this.controls.publication(targetId)
 			if (previous) {
 				const persisted = z.object({ envelope: z.unknown() }).parse(previous.payload)
@@ -82,9 +111,9 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 				removeOnComplete: false,
 				removeOnFail: false
 			}
-			await this.controls.publish(registration, { envelope: controlled, options })
+			await this.controls.publish(registration, { envelope: controlled, options }, 'managed-queue-v3')
 			try {
-				await this.queueFor(executionPool, true).add(envelope.jobName, controlled, options)
+				await this.admittedQueueFor(executionPool).add(envelope.jobName, controlled, options)
 				await this.controls.published(targetId, true)
 			} catch {
 				await this.controls.published(targetId, false)
@@ -214,7 +243,10 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		if (this.publishing) return
 		this.publishing = true
 		try {
-			for (const row of await this.controls.publications('managed-queue')) {
+			for (const row of [
+				...(await this.controls.publications('managed-queue')),
+				...(await this.controls.publications('managed-queue-v3'))
+			]) {
 				try {
 					const parsed = z
 						.object({
@@ -232,7 +264,13 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 						throw new Error('Queue control identity mismatch')
 					// Validate the complete envelope before crossing the persisted payload boundary.
 					const envelope = parseControlledEnvelope(parsed.envelope)
-					await this.queueFor(envelope.executionPool, true).add(envelope.jobName, envelope, {
+					if ((row.transport === 'managed-queue-v3') !== (envelope.controlProtocol === 3))
+						throw controlAdmissionUnavailable('protocol')
+					const queue =
+						row.transport === 'managed-queue-v3'
+							? this.admittedQueueFor(envelope.executionPool)
+							: this.queueFor(envelope.executionPool, true)
+					await queue.add(envelope.jobName, envelope, {
 						...parsed.options,
 						attempts: 1,
 						removeOnComplete: false,
@@ -253,13 +291,21 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 		return executionPool === 'sandbox-browser' ? this.sandboxBrowserQueue : this.defaultQueue
 	}
 
+	private admittedQueueFor(pool: ManagedQueueExecutionPool) {
+		return pool === 'sandbox-browser' ? this.admittedBrowserQueue : this.admittedQueue
+	}
+
 	private async findJob(jobId: string, executionPool?: ManagedQueueExecutionPool) {
 		if (executionPool) {
 			return (
-				(await this.queueFor(executionPool, true).getJob(jobId)) ?? this.queueFor(executionPool).getJob(jobId)
+				(await this.admittedQueueFor(executionPool).getJob(jobId)) ??
+				(await this.queueFor(executionPool, true).getJob(jobId)) ??
+				this.queueFor(executionPool).getJob(jobId)
 			)
 		}
 		return (
+			(await this.admittedQueue.getJob(jobId)) ??
+			(await this.admittedBrowserQueue.getJob(jobId)) ??
 			(await this.controlledQueue.getJob(jobId)) ??
 			(await this.controlledBrowserQueue.getJob(jobId)) ??
 			(await this.defaultQueue.getJob(jobId)) ??
@@ -410,6 +456,8 @@ export function parseControlledEnvelope(value: unknown): ManagedQueueEnvelope {
 			executionPool: z.enum(['default', 'sandbox-browser']),
 			enqueuedAt: z.string(),
 			control: z.object({ version: z.literal(2), targetId: z.string().uuid() }),
+			controlProtocol: z.literal(3).optional(),
+			controlContract: z.string().min(1).max(160).optional(),
 			actor: z
 				.object({
 					userId: z.string(),
@@ -452,6 +500,10 @@ export function parseControlledEnvelope(value: unknown): ManagedQueueEnvelope {
 				})
 				.optional()
 		})
+		.refine(
+			(item) => (item.controlProtocol === 3) === Boolean(item.controlContract),
+			'Controlled handler contract requires queue protocol 3'
+		)
 		.parse(value)
 	// The schema validates persisted JSON; current actor and resource authorization still runs in the worker.
 	return parsed as ManagedQueueEnvelope

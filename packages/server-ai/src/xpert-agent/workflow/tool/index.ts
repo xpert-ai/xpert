@@ -1,7 +1,7 @@
 import { ToolMessage } from '@langchain/core/messages'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END } from '@langchain/langgraph'
+import { END, isGraphInterrupt } from '@langchain/langgraph'
 import {
     channelName,
     IEnvironment,
@@ -19,7 +19,7 @@ import { getErrorMessage, isBlank } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get, omitBy } from 'lodash'
-import { v4 as uuidv4 } from 'uuid'
+import { workflowToolCallId } from './tool-call-identity'
 import { toEnvState } from '../../../environment'
 import {
     _BaseToolset,
@@ -30,6 +30,7 @@ import {
     TWorkflowGraphNode
 } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 
 const WORKFLOW_TOOL_ERROR_CHANNEL = 'error'
@@ -118,7 +119,7 @@ export function createToolNode(
                                 // The artifact can be obtained from the returned ToolMessage by using a tool call.
                                 const outputMessage: ToolMessage = await tool.invoke(
                                     {
-                                        id: uuidv4(),
+                                        id: workflowToolCallId(node.key, config),
                                         name: toolName,
                                         type: 'tool_call',
                                         args: parameters
@@ -151,6 +152,8 @@ export function createToolNode(
                                     output: resultJson || output
                                 }
                             } catch (error) {
+                                // Input interrupts and termination are control flow, not tool failures to substitute.
+                                if (isGraphInterrupt(error) || error instanceof ExecutionCancelledError) throw error
                                 if (entity.errorHandling?.type === 'defaultValue') {
                                     const result = entity.errorHandling.defaultValue?.result
                                     let resultJson = result

@@ -42,6 +42,12 @@ export interface IAuthOptions {
 }
 
 export interface IPluginConfig {
+  managedQueueOptions?: {
+    concurrency: number
+    sandboxBrowserConcurrency: number
+    autorun: boolean
+    prefix: string
+  }
   apiConfigOptions: IApiServerOptions
 
   dbConnectionOptions: TypeOrmModuleOptions

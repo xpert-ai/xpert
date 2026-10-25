@@ -26,7 +26,7 @@ import { sandboxTestEntities } from './testing/postgres-entities'
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
 integration('Sandbox public API with persistent settlement', () => {
-    const schema = `sandbox_api_${randomUUID().replace(/-/g, '')}`
+    const schema = `sandbox_api_${randomUUID().replaceAll('-', '')}`
     const tenantId = randomUUID(),
         userId = randomUUID()
     let db: DataSource, root: string, runner: TaskControlRunner

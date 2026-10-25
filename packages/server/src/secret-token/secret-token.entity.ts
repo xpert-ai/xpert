@@ -1,4 +1,9 @@
-import { ISecretToken, SecretTokenBindingType, TEnterpriseH5TokenScope } from '@xpert-ai/contracts'
+import {
+	ISecretToken,
+	SecretTokenBindingType,
+	TEnterpriseH5TokenScope,
+	TClientSecretGrantSource
+} from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { differenceInMinutes } from 'date-fns'
 import { AfterLoad, Column, Entity, Index } from 'typeorm'
@@ -19,7 +24,7 @@ export class SecretToken extends TenantOrganizationBaseEntity implements ISecret
 	@Index()
 	@Column()
 	token: string
-	
+
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
 	entityId?: string
@@ -28,13 +33,16 @@ export class SecretToken extends TenantOrganizationBaseEntity implements ISecret
 	@Column({ type: 'jsonb', nullable: true })
 	enterpriseH5Scope?: TEnterpriseH5TokenScope | null
 
+	@Column({ type: 'jsonb', nullable: true })
+	grantSource?: TClientSecretGrantSource | null
+
 	@ApiProperty({
 		type: 'string',
 		format: 'date-time',
-		example: '2018-11-21T06:20:32.232Z',
+		example: '2018-11-21T06:20:32.232Z'
 	})
 	@Column({
-		type: 'timestamptz',
+		type: 'timestamptz'
 	})
 	validUntil?: Date
 

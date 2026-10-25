@@ -1,3 +1,5 @@
+import { QueryBus } from '@nestjs/cqrs'
+import { AssertUserXpertGrantQuery } from '../../secret-token/assert-user-xpert-grant.query'
 import { ExecutionContext, ForbiddenException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
@@ -9,6 +11,8 @@ import { ApiKeyOrClientSecretAuthGuard } from './api-key-or-client-secret.guard'
 
 describe('ApiKeyOrClientSecretAuthGuard', () => {
 	const reflector = new Reflector()
+	const queries = { execute: jest.fn() }
+	beforeEach(() => queries.execute.mockReset())
 
 	function context(principal: IApiPrincipal, allowEnterprise = false) {
 		class TestController {
@@ -55,21 +59,21 @@ describe('ApiKeyOrClientSecretAuthGuard', () => {
 	}
 
 	it('denies enterprise Xpert secrets on controllers without explicit authorization', async () => {
-		const guard = new TestGuard(reflector)
+		const guard = new TestGuard(reflector, queries as unknown as QueryBus)
 		const { context: executionContext } = context(principal(SecretTokenBindingType.ENTERPRISE_XPERT))
 
 		await expect(guard.canActivate(executionContext)).rejects.toBeInstanceOf(ForbiddenException)
 	})
 
 	it('allows enterprise Xpert secrets only on explicitly authorized controllers', async () => {
-		const guard = new TestGuard(reflector)
+		const guard = new TestGuard(reflector, queries as unknown as QueryBus)
 		const { context: executionContext } = context(principal(SecretTokenBindingType.ENTERPRISE_XPERT), true)
 
 		await expect(guard.canActivate(executionContext)).resolves.toBe(true)
 	})
 
 	it('preserves existing client-secret behavior for other binding types', async () => {
-		const guard = new TestGuard(reflector)
+		const guard = new TestGuard(reflector, queries as unknown as QueryBus)
 		const { context: executionContext } = context(principal(SecretTokenBindingType.PUBLIC_XPERT))
 
 		await expect(guard.canActivate(executionContext)).resolves.toBe(true)
@@ -87,7 +91,9 @@ describe('ApiKeyOrClientSecretAuthGuard', () => {
 	})
 	it('denies conversation grants on unannotated routes, including session issuance', async () => {
 		const { context: request } = context(principal(SecretTokenBindingType.USER_CONVERSATION))
-		await expect(new TestGuard(reflector).canActivate(request)).rejects.toBeInstanceOf(ForbiddenException)
+		await expect(
+			new TestGuard(reflector, queries as unknown as QueryBus).canActivate(request)
+		).rejects.toBeInstanceOf(ForbiddenException)
 	})
 	it('accepts conversation grants only on explicitly opted-in routes', async () => {
 		const { context: request } = context(principal(SecretTokenBindingType.USER_CONVERSATION))
@@ -96,6 +102,14 @@ describe('ApiKeyOrClientSecretAuthGuard', () => {
 			[SecretTokenBindingType.USER_CONVERSATION],
 			request.getHandler()
 		)
-		await expect(new TestGuard(reflector).canActivate(request)).resolves.toBe(true)
+		await expect(new TestGuard(reflector, queries as unknown as QueryBus).canActivate(request)).resolves.toBe(true)
+	})
+	it('checks a live delegated grant before allowing the route and propagates revocation', async () => {
+		const guard = new TestGuard(reflector, queries as unknown as QueryBus)
+		const { context: request } = context(principal(SecretTokenBindingType.USER_XPERT))
+		await expect(guard.canActivate(request)).resolves.toBe(true)
+		expect(queries.execute).toHaveBeenCalledWith(new AssertUserXpertGrantQuery())
+		queries.execute.mockRejectedValueOnce(new ForbiddenException())
+		await expect(guard.canActivate(request)).rejects.toBeInstanceOf(ForbiddenException)
 	})
 })

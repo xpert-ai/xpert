@@ -1,3 +1,5 @@
+import { QueryBus } from '@nestjs/cqrs'
+import { AssertUserXpertGrantQuery } from '../../secret-token/assert-user-xpert-grant.query'
 import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard as PassportAuthGaurd } from '@nestjs/passport'
@@ -10,7 +12,10 @@ const CLIENT_SECRET_PREFIX = 'cs-x-'
 
 @Injectable()
 export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') {
-	constructor(private readonly _reflector: Reflector) {
+	constructor(
+		private readonly _reflector: Reflector,
+		private readonly queries: QueryBus
+	) {
 		super()
 	}
 
@@ -25,6 +30,9 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 			const authenticated = await this.resolveCanActivate(this.authenticateClientSecret(context))
 			if (authenticated) {
 				this.assertClientSecretBindingAllowed(context)
+				if (request.user?.clientSecretBindingType === SecretTokenBindingType.USER_XPERT) {
+					await this.queries.execute(new AssertUserXpertGrantQuery())
+				}
 			}
 			return authenticated
 		}

@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "McpToolUnavailable": "MCP tool is unavailable.",
+        "McpToolInvalidArguments": "Invalid MCP tool arguments: {{details}}",
+        "McpToolInvalidOutput": "Invalid MCP tool output.",
+        "ExecutionControlUnavailable": "Execution control is temporarily unavailable. Please try again later.",
         "SandboxCapacityUnavailable": "Sandbox capacity is currently unavailable.",
         "SandboxControlUnconfirmed": "The task is still settling and cannot continue yet.",
         "ConversationBranchSelectionChanged": "The conversation has changed. Refresh it and try again.",

@@ -1,4 +1,5 @@
 import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
+import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
 import { ExecutionTaskControl, TaskControlPublication, TaskControlStore } from '@xpert-ai/server-core'
 import { Global, Module } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
@@ -54,9 +55,10 @@ integration('durable pause control / PostgreSQL', () => {
             schema,
             extra: { options: `-c search_path=${schema}` },
             entities: [
-                ...executionControlTestEntities,
+                ThreadControlProjection,
                 ExecutionTaskControl,
                 TaskControlPublication,
+                ...executionControlTestEntities,
                 new EntitySchema<CopilotCheckpoint>({
                     name: 'CopilotCheckpoint',
                     target: CopilotCheckpoint,

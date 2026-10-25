@@ -1,3 +1,7 @@
+jest.mock('@xpert-ai/server-core', () => ({
+    AssertUserXpertGrantQuery: jest.requireActual('../../../server/src/secret-token/assert-user-xpert-grant.query')
+        .AssertUserXpertGrantQuery
+}))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentApiPrincipal: jest.fn(),
@@ -21,6 +25,61 @@ describe('restricted xpert conversation scope', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('communication-user-1')
+    })
+
+    it('rejects a user delegation used to read or control another assistant conversation', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'allowed' }
+        })
+        queryBus.execute.mockResolvedValue(false)
+        await expect(
+            assertPublicXpertSessionConversationAccess(
+                { createdById: 'communication-user-1', xpertId: 'unrelated' },
+                queryBus
+            )
+        ).rejects.toThrow(ForbiddenException)
+    })
+
+    it('preserves authorized Project sharing for a user delegation in the bound assistant family', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'current' }
+        })
+        queryBus.execute.mockResolvedValue(true)
+        await expect(
+            assertPublicXpertSessionConversationAccess(
+                { createdById: 'another-project-member', xpertId: 'previous' },
+                queryBus
+            )
+        ).resolves.toBeUndefined()
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                candidateXpertId: 'previous',
+                referenceXpertId: 'current'
+            })
+        )
+    })
+
+    it('rejects an unbound conversation and malformed audience for a user delegation', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'allowed' }
+        })
+        await expect(
+            assertPublicXpertSessionConversationAccess({ createdById: 'communication-user-1' }, queryBus)
+        ).rejects.toThrow(ForbiddenException)
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: '' }
+        })
+        await expect(assertPublicXpertSessionConversationAccess({ xpertId: 'allowed' }, queryBus)).rejects.toThrow(
+            ForbiddenException
+        )
     })
 
     it('scopes an enterprise assistant session to its employee and assistant family', async () => {

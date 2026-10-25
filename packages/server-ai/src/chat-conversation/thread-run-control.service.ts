@@ -1,3 +1,5 @@
+import { requireControlSchema } from '@xpert-ai/server-core'
+import { threadControlSchema } from '../execution-control/control-admission'
 // The thread row owns pause acknowledgement and the single-writer resume claim.
 // A pause is acknowledged only after graph checkpoints and message finalization.
 import {
@@ -254,6 +256,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
 
     async start(threadId: string, executionId: string, context?: Record<string, unknown>): Promise<void> {
         await this.locked(threadId, async (thread, manager) => {
+            await requireControlSchema(manager, threadControlSchema)
             if (thread.runControl && thread.runControl.executionId !== executionId)
                 throw threadControlConflict(
                     'ThreadHasActiveOperation',
@@ -465,6 +468,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         claimId?: string
     ): Promise<TChatCheckpointReference> {
         const resumed = await this.locked(threadId, async (thread, manager) => {
+            await requireControlSchema(manager, threadControlSchema)
             const control = thread.runControl
             if (
                 thread.status !== 'paused' ||

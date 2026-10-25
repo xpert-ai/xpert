@@ -1,3 +1,4 @@
+import { installTaskToolDispatch, PublicationToolCall } from './mcp-task-tool-dispatch'
 import { withMcpPublicationAuthority } from '../mcp-consumer/execution/mcp-operation-authority'
 import { handleMcpTaskProtocol } from './control/mcp-task-protocol.handler'
 import { MCP_EXECUTION_CONTROL_EXTENSION_ID } from '@xpert-ai/contracts'
@@ -343,22 +344,25 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                     : []
             )
         )
+        const toolCalls: PublicationToolCall[] = []
         for (const capability of capabilities) {
             const descriptor = capability.descriptorSnapshot
             switch (descriptor.capabilityType) {
                 case 'tool':
-                    registerTool(
-                        registration,
-                        server,
-                        publication,
-                        principal,
-                        capability,
-                        descriptor,
-                        apps,
-                        capabilities,
-                        elicitationCodec,
-                        requestId,
-                        traceId
+                    toolCalls.push(
+                        registerTool(
+                            registration,
+                            server,
+                            publication,
+                            principal,
+                            capability,
+                            descriptor,
+                            apps,
+                            capabilities,
+                            elicitationCodec,
+                            requestId,
+                            traceId
+                        )
                     )
                     break
                 case 'resource':
@@ -383,6 +387,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                     break
             }
         }
+        installTaskToolDispatch(server, toolCalls)
         if (capabilities.some(protocol.supportsCompletion)) {
             server.server.registerCapabilities({ completions: {} })
             server.server.setRequestHandler('completion/complete', async (request) => {

@@ -1,6 +1,7 @@
-import { TaskControlModule } from '../task-control'
+import { TaskControlModule, ControlRuntimeAdmissionService } from '../task-control'
+import { AdmittedManagedQueueProcessor, AdmittedBrowserManagedQueueProcessor } from './admitted-queue.processor'
+import { MANAGED_QUEUE_ADMITTED_NAME, MANAGED_QUEUE_ADMITTED_BROWSER_NAME } from './constants'
 import { MANAGED_QUEUE_CONTROLLED_NAME, MANAGED_QUEUE_CONTROLLED_BROWSER_NAME } from './constants'
-import { ControlledManagedQueueProcessor, ControlledBrowserManagedQueueProcessor } from './managed-queue.processor'
 import { BullModule } from '@nestjs/bullmq'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
@@ -26,10 +27,11 @@ import { ManagedQueueService } from './managed-queue.service'
 // Do not instantiate an inactive BullMQ Worker: even autorun=false opens a
 // worker-named Redis connection and would make getWorkersCount() a false
 // positive. Process roles therefore control provider registration as well.
+// V2 jobs have no handler contract: leave consumption to their original compatible worker.
 const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
-	...(managedQueuePoolAutorun('default') ? [ManagedQueueProcessor, ControlledManagedQueueProcessor] : []),
+	...(managedQueuePoolAutorun('default') ? [ManagedQueueProcessor, AdmittedManagedQueueProcessor] : []),
 	...(managedQueuePoolAutorun('sandbox-browser')
-		? [SandboxBrowserManagedQueueProcessor, ControlledBrowserManagedQueueProcessor]
+		? [SandboxBrowserManagedQueueProcessor, AdmittedBrowserManagedQueueProcessor]
 		: [])
 ]
 
@@ -38,6 +40,8 @@ const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
 	imports: [
 		TaskControlModule,
 		BullModule.registerQueue(
+			{ name: MANAGED_QUEUE_ADMITTED_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX },
+			{ name: MANAGED_QUEUE_ADMITTED_BROWSER_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX },
 			{ name: MANAGED_QUEUE_CONTROLLED_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX },
 			{ name: MANAGED_QUEUE_CONTROLLED_BROWSER_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX }
 		),
@@ -78,6 +82,17 @@ const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
 		})
 	],
 	providers: [
+		{
+			provide: 'MANAGED_QUEUE_CONTROL_ADMISSION',
+			inject: [ControlRuntimeAdmissionService, ManagedQueueHandlerRegistryService],
+			useFactory: (admission: ControlRuntimeAdmissionService, handlers: ManagedQueueHandlerRegistryService) => {
+				admission.registerManagedQueue(
+					(['default', 'sandbox-browser'] as const).filter((pool) => managedQueuePoolAutorun(pool)),
+					() => handlers.controlHandlers()
+				)
+				return admission
+			}
+		},
 		ManagedQueueHandlerRegistryService,
 		ManagedQueueHandlerExplorerService,
 		ManagedQueueService,
