@@ -100,6 +100,9 @@ export class ManagedQueueHandlerRegistryService implements ManagedQueueHandlerRe
 		return async (job, context) => {
 			await acquire()
 			try {
+				context.control?.signal.throwIfAborted()
+				if (context.control && (await context.control.desired()) === 'terminated')
+					throw new Error('Task terminated before handler admission')
 				await handler(job, context)
 			} finally {
 				release()

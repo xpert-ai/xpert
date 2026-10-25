@@ -55,6 +55,13 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
         }
         if (!controller || this.#controllers.get(executionId) === controller) {
             this.#controllers.delete(executionId)
+            void this.controls.tasks
+                .execution(executionId)
+                .then(async (task) => {
+                    if (task?.drainOnPause && task.currentExecutionId === executionId)
+                        await this.controls.tasks.receipt(task.id, 'completed')
+                })
+                .catch(() => this.#logger.warn('Local child completion receipt deferred'))
         }
     }
 
@@ -75,6 +82,20 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
 
     async attach(executionId: string, parentExecutionId: string, policy: TExecutionOwnership['policy']) {
         await this.controls.attach(executionId, parentExecutionId, policy)
+    }
+
+    async ownedExecutionIds(execution: {
+        id?: string
+        tenantId?: string
+        organizationId?: string | null
+    }): Promise<string[] | null> {
+        const task = await this.controls.tasks.execution(execution.id)
+        if (!task) return null
+        if (task.tenantId !== execution.tenantId || task.organizationId !== (execution.organizationId ?? null))
+            throw new ExecutionCancelledError(execution.id, 'Execution scope mismatch')
+        return (await this.controls.tasks.descendants(task.id))
+            .filter((child) => child.kind === 'execution' && child.currentExecutionId)
+            .map((child) => child.currentExecutionId)
     }
 
     /** Required after registration and before starting work; also repairs a notice lost before registration. */

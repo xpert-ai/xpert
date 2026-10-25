@@ -1,4 +1,5 @@
 import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
+import { ExecutionTaskControl, TaskControlPublication, TaskControlStore } from '@xpert-ai/server-core'
 import { Global, Module } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
@@ -54,6 +55,8 @@ integration('durable pause control / PostgreSQL', () => {
             extra: { options: `-c search_path=${schema}` },
             entities: [
                 ...executionControlTestEntities,
+                ExecutionTaskControl,
+                TaskControlPublication,
                 new EntitySchema<CopilotCheckpoint>({
                     name: 'CopilotCheckpoint',
                     target: CopilotCheckpoint,
@@ -132,12 +135,12 @@ integration('durable pause control / PostgreSQL', () => {
         first = new ThreadRunControlService(
             database.getRepository(ChatConversationThread),
             database,
-            new ExecutionControlStore(database)
+            new ExecutionControlStore(database, new TaskControlStore(database))
         )
         second = new ThreadRunControlService(
             database.getRepository(ChatConversationThread),
             database,
-            new ExecutionControlStore(database)
+            new ExecutionControlStore(database, new TaskControlStore(database))
         )
     })
     afterAll(async () => {
@@ -202,7 +205,7 @@ integration('durable pause control / PostgreSQL', () => {
 
     it('rejects registration without a tenant before writing inherited nullable scope fields', async () => {
         const id = randomUUID()
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         await expect(database.transaction((manager) => store.root(manager, { threadId }, id))).rejects.toThrow()
         expect(await database.getRepository(ExecutionControl).existsBy({ executionId: id })).toBe(false)
     })
@@ -294,9 +297,12 @@ integration('durable pause control / PostgreSQL', () => {
         if (!redisUrl) throw new Error('Set XPERT_CONTROL_TEST_REDIS_URL to an isolated test Redis')
         const redis = createClient({ url: redisUrl }) as RedisClientType
         await redis.connect()
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const api = new ExecutionCancelService(redis, store)
-        const worker = new ExecutionCancelService(redis, new ExecutionControlStore(database))
+        const worker = new ExecutionCancelService(
+            redis,
+            new ExecutionControlStore(database, new TaskControlStore(database))
+        )
         const controller = new AbortController()
         worker.register(executionId, controller)
         await worker.onModuleInit()
@@ -326,7 +332,10 @@ integration('durable pause control / PostgreSQL', () => {
             await expect(nodes.tool.runnable.invoke('')).rejects.toThrow('Execution ownership ended')
             expect(tool).not.toHaveBeenCalled()
             // A new process registering after the original notice reads the same tombstone.
-            const restarted = new ExecutionCancelService(redis, new ExecutionControlStore(database))
+            const restarted = new ExecutionCancelService(
+                redis,
+                new ExecutionControlStore(database, new TaskControlStore(database))
+            )
             const late = new AbortController()
             restarted.register(executionId, late)
             await restarted.check(executionId)
@@ -340,7 +349,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('keeps independent/shared roots and siblings alive when controlling an attached subtree', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const child = randomUUID(),
             grandchild = randomUUID(),
             sibling = randomUUID()
@@ -366,7 +375,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('does not mistake an aborted Runnable for a tool completion receipt', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         let release!: () => void
         let entered!: () => void
         const started = new Promise<void>((resolve) => {
@@ -410,7 +419,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('pauses at the complete node boundary and resumes only once without repeating the tool', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const tools = jest.fn(async () => {
             await second.requestPause(threadId, executionId)
             return 'saved result'
@@ -469,7 +478,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('admits a concurrent tool identity only once and fails closed when its control is unavailable', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const calls = jest.fn()
         const invoke = async () => {
             await store.admit(executionId, 'same-tool')
@@ -495,7 +504,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('denies a late child tool before its body even when its parent is still running', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const child = randomUUID()
         await store.attach(child, executionId, 'attached')
         await store.terminate([child])
@@ -510,7 +519,7 @@ integration('durable pause control / PostgreSQL', () => {
     })
 
     it('fails closed on database failure before executing a tool', async () => {
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         const read = jest.spyOn(database, 'transaction').mockRejectedValueOnce(new Error('Database unavailable'))
         const body = jest.fn(async () => 'unexpected')
         const tool = new DynamicTool({ name: 'closed', description: 'controlled test', func: body })
@@ -578,7 +587,9 @@ integration('durable pause control / PostgreSQL', () => {
         await first.releaseResume(threadId, executionId, pause.pauseId, 'claim-1')
         expect((await first.get(threadId)).executionId).toBe(resumed)
         await expect(first.bindResumedExecution(threadId, pause.pauseId, randomUUID())).rejects.toThrow()
-        expect(await new ExecutionControlStore(database).isTerminated(discarded)).toBe(true)
+        expect(await new ExecutionControlStore(database, new TaskControlStore(database)).isTerminated(discarded)).toBe(
+            true
+        )
     })
     it('wires the shared control store through the real Nest module', async () => {
         @Global()
@@ -623,9 +634,122 @@ integration('durable pause control / PostgreSQL', () => {
         await second.claimResume(threadId, executionId, pause.pauseId, 'revision', undefined, 'group-claim')
         await second.bindResumedExecution(threadId, pause.pauseId, executionId, 'group-claim')
         await second.ensureExecution(threadId, executionId)
-        const store = new ExecutionControlStore(database)
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
         await store.admit(executionId, 'remaining-tool')
         await store.settle(executionId, 'remaining-tool')
         expect(await second.finish(threadId, executionId, 'idle')).toBe('idle')
+    })
+    async function ownedBackground() {
+        const tasks = new TaskControlStore(database)
+        const parent = await tasks.execution(executionId)
+        const childId = randomUUID(),
+            childThread = randomUUID(),
+            childConversation = randomUUID()
+        await database.getRepository(ChatConversationThread).save({
+            ...scope,
+            id: randomUUID(),
+            threadId: childThread,
+            conversationId: childConversation,
+            status: 'busy'
+        })
+        await database
+            .getRepository(ChatConversation)
+            .save({ ...scope, id: childConversation, threadId: childThread, status: 'busy' })
+        await database
+            .getRepository(XpertAgentExecution)
+            .save({ ...scope, id: childId, threadId: childThread, status: XpertAgentExecutionStatusEnum.RUNNING })
+        const target = await tasks.register({
+            ...scope,
+            kind: 'execution',
+            resourceId: childId,
+            executionId: childId,
+            threadId: childThread,
+            parent: { version: 2, targetId: parent.id }
+        })
+        await second.start(childThread, childId)
+        return { tasks, parent, target, childId, childThread }
+    }
+
+    async function savedPause(service: ThreadRunControlService, targetThread: string, targetExecution: string) {
+        await service.recordGraph(targetThread, targetExecution, 'same-graph')
+        const pause = await service.requestPause(targetThread, targetExecution)
+        const checkpointId = randomUUID()
+        await database.getRepository(CopilotCheckpoint).save({
+            ...scope,
+            id: randomUUID(),
+            thread_id: targetThread,
+            checkpoint_ns: '',
+            checkpoint_id: checkpointId
+        })
+        await service.stageCheckpoint(targetThread, targetExecution, {
+            threadId: targetThread,
+            checkpointNs: '',
+            checkpointId
+        })
+        return pause
+    }
+
+    it('pauses a real cross-thread child before confirming the parent, then resumes only the original child checkpoint', async () => {
+        const child = await ownedBackground()
+        const pause = await savedPause(first, threadId, executionId)
+        expect(await second.shouldPause(child.childThread, child.childId)).toBe(true)
+        const childPause = await savedPause(second, child.childThread, child.childId)
+        expect(await first.finish(threadId, executionId, 'interrupted')).toBe('pausing')
+        expect(await second.finish(child.childThread, child.childId, 'interrupted')).toBe('paused')
+        await expect(
+            second.claimResume(child.childThread, child.childId, childPause.pauseId, 'same-graph')
+        ).rejects.toMatchObject({ reason: 'paused' })
+        expect(await first.finish(threadId, executionId, 'interrupted')).toBe('paused')
+        await first.claimResume(threadId, executionId, pause.pauseId, 'same-graph', undefined, 'parent-claim')
+        const nextParent = randomUUID()
+        await first.bindResumedExecution(threadId, pause.pauseId, nextParent, 'parent-claim')
+        const resumed = await second.claimResume(
+            child.childThread,
+            child.childId,
+            childPause.pauseId,
+            'same-graph',
+            undefined,
+            'child-claim'
+        )
+        expect(resumed.checkpointId).toBe(
+            childPause.checkpoint?.checkpointId ??
+                (await database.getRepository(ChatConversationThread).findOneByOrFail({ threadId: child.childThread }))
+                    .runControl.checkpoint.checkpointId
+        )
+        const nextChild = randomUUID()
+        await second.bindResumedExecution(child.childThread, childPause.pauseId, nextChild, 'child-claim')
+        expect((await child.tasks.execution(nextChild)).id).toBe(child.target.id)
+        expect(await child.tasks.desired(child.target.id)).toBe('running')
+        await expect(second.shouldPause(child.childThread, child.childId)).rejects.toThrow()
+    })
+
+    it('terminates a cross-thread paused child and cannot restore its old checkpoint', async () => {
+        const child = await ownedBackground()
+        const pause = await savedPause(first, threadId, executionId)
+        await second.shouldPause(child.childThread, child.childId)
+        const childPause = await savedPause(second, child.childThread, child.childId)
+        await second.finish(child.childThread, child.childId, 'interrupted')
+        await first.finish(threadId, executionId, 'interrupted')
+        await first.cancel(threadId, [executionId])
+        await second.cancel(child.childThread, [child.childId])
+        expect(await second.finish(child.childThread, child.childId, 'interrupted')).toBe('interrupted')
+        expect(await first.finish(threadId, executionId, 'interrupted')).toBe('interrupted')
+        await expect(first.claimResume(threadId, executionId, pause.pauseId, 'same-graph')).rejects.toThrow()
+        await expect(
+            second.claimResume(child.childThread, child.childId, childPause.pauseId, 'same-graph')
+        ).rejects.toThrow()
+    })
+
+    it('rolls a failed resume back to the saved task identity without resurrecting the failed attempt', async () => {
+        const pause = await savedPause(first, threadId, executionId)
+        await first.finish(threadId, executionId, 'interrupted')
+        await first.claimResume(threadId, executionId, pause.pauseId, 'same-graph', undefined, 'claim')
+        const next = randomUUID()
+        await first.bindResumedExecution(threadId, pause.pauseId, next, 'claim')
+        await first.releaseResume(threadId, executionId, pause.pauseId, 'claim')
+        const tasks = new TaskControlStore(database)
+        expect((await tasks.execution(next)).currentExecutionId).toBe(executionId)
+        expect(await new ExecutionControlStore(database, new TaskControlStore(database)).shouldAbort(next)).toBe(true)
+        await expect(first.claimResume(threadId, executionId, pause.pauseId, 'same-graph')).resolves.toBeDefined()
     })
 })

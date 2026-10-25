@@ -6,6 +6,7 @@
  * - Lane is now an execution tag for observability and soft policy only.
  */
 
+import type { TaskControlRef, TaskControlContext, TaskControlPolicy } from '../../execution-control'
 export type LaneName = 'main' | 'subagent' | 'cron' | 'nested'
 
 export type RunSource = 'chat' | 'xpert' | 'lark' | 'analytics' | 'api'
@@ -68,6 +69,9 @@ export const DEFAULT_EXECUTION_CONFIG: ExecutionConfig = {
  * Using `type` with a string allows plugins to dynamically expand at runtime without needing to modify the core type definition.
  */
 export interface HandoffMessage<TPayload extends Record<string, unknown> = Record<string, unknown>> {
+	/** Host-issued control identity; serialized separately from business payload. */
+	control?: TaskControlRef
+	controlPolicy?: TaskControlPolicy
 	id: string
 	/**
 	 * Message type, used for processor resolution.
@@ -117,6 +121,7 @@ export interface ProcessorPolicy {
 }
 
 export interface ProcessContext {
+	control?: TaskControlContext
 	runId: string
 	traceId: string
 	abortSignal: AbortSignal

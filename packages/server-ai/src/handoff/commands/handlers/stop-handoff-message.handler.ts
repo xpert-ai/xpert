@@ -49,8 +49,13 @@ export class StopHandoffMessageHandler implements ICommandHandler<StopHandoffMes
 			this.matchesStopTargets(message, requestedMessageSet, requestedExecutionSet)
 		)
 		const queuedMatches = matchedJobs.filter((item) => QUEUED_JOB_STATES.includes(item.state))
-		const activeMatches = matchedJobs.filter((item) => item.state === 'active')
+		const controlled = await this.handoffCancelService.cancelOwnedTargets(
+			requestedMessageIds,
+			requestedExecutionIds
+		)
+		await this.handoffCancelService.persist(matchedJobs.map((item) => item.job.data))
 		const removed = await this.queueGateway.removeJobs(queuedMatches)
+		await this.handoffCancelService.confirmRemoved(removed.map((item) => item.message))
 
 		for (const item of removed) {
 			const taskId = this.getTaskId(item.message)
@@ -59,19 +64,20 @@ export class StopHandoffMessageHandler implements ICommandHandler<StopHandoffMes
 			}
 		}
 
-		const activeMessageIds = this.uniqueStrings(
-			activeMatches.map((item) => item.job.data?.id).filter((id): id is string => Boolean(id))
-		)
+		const activeMessageIds = this.uniqueStrings([
+			...controlled.messageIds,
+			...matchedJobs.map((item) => item.job.data?.id).filter((id): id is string => Boolean(id))
+		])
 		await this.handoffCancelService.cancelMessages(activeMessageIds, command.input.reason)
 
-		const matchedMessageIds = this.uniqueStrings(
-			matchedJobs.map((item) => item.job.data?.id).filter((id): id is string => Boolean(id))
-		)
-		const matchedExecutionIds = this.uniqueStrings(
-			matchedJobs
-				.map((item) => this.getExecutionId(item.job.data))
-				.filter((id): id is string => Boolean(id))
-		)
+		const matchedMessageIds = this.uniqueStrings([
+			...controlled.messageIds,
+			...matchedJobs.map((item) => item.job.data?.id).filter((id): id is string => Boolean(id))
+		])
+		const matchedExecutionIds = this.uniqueStrings([
+			...controlled.executionIds,
+			...matchedJobs.map((item) => this.getExecutionId(item.job.data)).filter((id): id is string => Boolean(id))
+		])
 		const canceledReason = buildCanceledReason(command.input.reason)
 		for (const messageId of matchedMessageIds) {
 			this.pendingResults.cancel(messageId, canceledReason)

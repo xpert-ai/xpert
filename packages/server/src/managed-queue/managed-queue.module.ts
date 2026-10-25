@@ -1,3 +1,6 @@
+import { TaskControlModule } from '../task-control'
+import { MANAGED_QUEUE_CONTROLLED_NAME, MANAGED_QUEUE_CONTROLLED_BROWSER_NAME } from './constants'
+import { ControlledManagedQueueProcessor, ControlledBrowserManagedQueueProcessor } from './managed-queue.processor'
 import { BullModule } from '@nestjs/bullmq'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
@@ -24,13 +27,20 @@ import { ManagedQueueService } from './managed-queue.service'
 // worker-named Redis connection and would make getWorkersCount() a false
 // positive. Process roles therefore control provider registration as well.
 const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
-	...(managedQueuePoolAutorun('default') ? [ManagedQueueProcessor] : []),
-	...(managedQueuePoolAutorun('sandbox-browser') ? [SandboxBrowserManagedQueueProcessor] : [])
+	...(managedQueuePoolAutorun('default') ? [ManagedQueueProcessor, ControlledManagedQueueProcessor] : []),
+	...(managedQueuePoolAutorun('sandbox-browser')
+		? [SandboxBrowserManagedQueueProcessor, ControlledBrowserManagedQueueProcessor]
+		: [])
 ]
 
 @Global()
 @Module({
 	imports: [
+		TaskControlModule,
+		BullModule.registerQueue(
+			{ name: MANAGED_QUEUE_CONTROLLED_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX },
+			{ name: MANAGED_QUEUE_CONTROLLED_BROWSER_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX }
+		),
 		RedisModule,
 		UserModule,
 		DiscoveryModule,

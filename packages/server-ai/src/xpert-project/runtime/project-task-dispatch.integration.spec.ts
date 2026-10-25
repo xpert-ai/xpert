@@ -193,9 +193,11 @@ integration('explicit task delegation / PostgreSQL', () => {
             "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(),
             status varchar, "runControl" jsonb, error varchar, operation jsonb, metadata jsonb DEFAULT '{}', "encryptedRunContext" varchar);
             CREATE TABLE chat_conversation (id uuid PRIMARY KEY, purpose varchar, "threadId" varchar, "projectId" uuid, "tenantId" uuid, "organizationId" uuid,
-            "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, operation jsonb);
+            "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, error varchar, operation jsonb);
             CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar,
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
+        await database.query(readFileSync(join(__dirname, '../../execution-control/migration.sql'), 'utf8'))
+        await database.query(readFileSync(join(__dirname, '../../../../server/src/task-control/migration.sql'), 'utf8'))
         await database.query(migration)
         const reliable = readFileSync(
             join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),

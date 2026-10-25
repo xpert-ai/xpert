@@ -14,7 +14,12 @@ function fixture() {
     const publish = jest.fn().mockResolvedValue(1)
     const service = new ExecutionCancelService(
         { publish } as unknown as RedisClientType,
-        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn() } as unknown as ExecutionControlStore
+        {
+            tasks: { execution: jest.fn().mockResolvedValue(null) },
+            terminate: jest.fn(),
+            shouldAbort: jest.fn(),
+            attach: jest.fn()
+        } as unknown as ExecutionControlStore
     )
     const root = new AbortController()
     service.register('root', root)
@@ -86,7 +91,11 @@ describe('execution cancellation scope', () => {
         }
         const worker = new ExecutionCancelService(
             redis as unknown as RedisClientType,
-            { terminate: jest.fn(), shouldAbort: jest.fn() } as unknown as ExecutionControlStore
+            {
+                tasks: { execution: jest.fn().mockResolvedValue(null) },
+                terminate: jest.fn(),
+                shouldAbort: jest.fn()
+            } as unknown as ExecutionControlStore
         )
         const root = new AbortController()
         const writer = executionAbortScope('writer', worker, [root.signal])

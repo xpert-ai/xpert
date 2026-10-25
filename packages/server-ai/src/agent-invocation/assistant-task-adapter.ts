@@ -44,7 +44,13 @@ const Receipt = z.object({
 @Injectable()
 @AgentRuntimeStrategy('xpert-task')
 export class AssistantTaskRuntimeStrategy implements IAgentRuntimeStrategy {
-    readonly capabilities = { recovery: 'session' as const, interactions: false, cancellation: true, background: true }
+    readonly capabilities = {
+        recovery: 'session' as const,
+        interactions: false,
+        cancellation: true,
+        idempotentCancellation: true,
+        background: true
+    }
     async start(request: AgentRuntimeStart, context: AgentRuntimeContext): Promise<AgentRuntimeObservation> {
         return context.capabilities.require(AssistantTaskExecution).start(request, context)
     }
@@ -66,6 +72,9 @@ export async function invokeAssistantTask(
     const callId = input.clientMessageId || input.correlation?.operationId || input.executionId || randomUUID()
     const identity = resolveAgentExecutionScope({ xpertId: input.xpertId, agentKey: input.agentKey })
     const api = runtime.scoped({
+        controlAdapter: 'native-assistant-task',
+        // Authorized Pipeline work owns an independent domain lifecycle until its control bridge is implemented.
+        controlPolicy: input.pipelineSource ? 'detached' : input.controlPolicy,
         scope: {
             tenantId: RequestContext.currentTenantId(),
             organizationId: RequestContext.getOrganizationId(),

@@ -21,12 +21,16 @@ export class CancelExternalAssistantHandler implements ICommandHandler<CancelExt
     ) {}
 
     async execute({ execution }: CancelExternalAssistantCommand) {
-        if (execution.metadata?.invocationKind !== 'external_assistant' || execution.status !== Status.RUNNING) {
+        if (
+            execution.metadata?.invocationKind !== 'external_assistant' ||
+            ![Status.RUNNING, Status.PENDING].includes(execution.status)
+        ) {
             return { canceledExecutionIds: [] }
         }
+        const owned = await this.cancellations.ownedExecutionIds(execution)
         const descendants: IXpertAgentExecution[] = [execution]
         const visited = new Set([execution.id])
-        for (let index = 0; index < descendants.length; index++) {
+        for (let index = 0; !owned && index < descendants.length; index++) {
             const children = await this.executions.findAllByParentId(descendants[index].id)
             for (const child of children) {
                 if (child.threadId === execution.threadId && !visited.has(child.id)) {
@@ -35,14 +39,16 @@ export class CancelExternalAssistantHandler implements ICommandHandler<CancelExt
                 }
             }
         }
-        const ids = descendants.filter((item) => item.status === Status.RUNNING).map((item) => item.id)
+        const ids =
+            owned ??
+            descendants.filter((item) => [Status.RUNNING, Status.PENDING].includes(item.status)).map((item) => item.id)
         const reason = t('server-ai:Error.ExternalAssistantCancelledByUser', {
             defaultValue:
                 'This external assistant execution was cancelled by the user. Do not retry without a new user request.'
         })
         await this.cancellations.cancelExecutions(ids, reason)
         // Do not change a completed execution if it won the race with the cancel request.
-        await this.executions.interruptRunning(ids, execution.threadId, reason)
+        await this.executions.interruptRunning(ids, owned ? undefined : execution.threadId, reason)
         await this.desktopShell?.cancelRuns(ids)
         try {
             await this.commands.execute(new StopHandoffMessageCommand({ executionIds: ids, reason }))

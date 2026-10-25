@@ -50,7 +50,12 @@ describe('ManagedQueueProcessor', () => {
 				role: { name: 'VIEWER' }
 			})
 		}
-		const processor = new ManagedQueueProcessor(registry, userService as never)
+		const processor = new ManagedQueueProcessor(
+			registry,
+			userService as never,
+			undefined as never,
+			undefined as never
+		)
 		const job = {
 			id: 'job-1',
 			attemptsMade: 1,
@@ -170,7 +175,12 @@ describe('ManagedQueueProcessor', () => {
 		const userService = {
 			findOneByIdWithinTenant: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
 		}
-		const processor = new ManagedQueueProcessor(registry, userService as never)
+		const processor = new ManagedQueueProcessor(
+			registry,
+			userService as never,
+			undefined as never,
+			undefined as never
+		)
 
 		await processor.process({
 			id: 'job-user-1',
@@ -206,7 +216,9 @@ describe('ManagedQueueProcessor', () => {
 			} as unknown as ManagedQueueHandlerRegistryService,
 			{
 				findOneByIdWithinTenant: jest.fn()
-			} as never
+			} as never,
+			undefined as never,
+			undefined as never
 		)
 
 		await expect(
@@ -238,7 +250,12 @@ describe('ManagedQueueProcessor', () => {
 			const userService = {
 				findOneByIdWithinTenant: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
 			}
-			const processor = new ManagedQueueProcessor(registry, userService as never)
+			const processor = new ManagedQueueProcessor(
+				registry,
+				userService as never,
+				undefined as never,
+				undefined as never
+			)
 			const expiry = '2030-01-01T00:00:00.000Z'
 			const job = {
 				id: 'job-1',

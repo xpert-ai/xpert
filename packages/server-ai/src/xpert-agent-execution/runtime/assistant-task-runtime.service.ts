@@ -66,6 +66,7 @@ import { ResolvePublishedAgentQuery } from '../../xpert/published-agent/resolve-
 import { PublishedAgentContextQuery } from '../../xpert/published-agent/published-agent-context.query'
 import { runWithPublishedAgent } from '../../xpert/published-agent/with-published-agent'
 import { runWithIndependentWorkspaceLeases } from '../../shared/volume/workspace-storage-lock'
+import { TaskControlStore, currentTaskControl } from '@xpert-ai/server-core'
 
 @Injectable()
 @RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
@@ -75,7 +76,8 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly moduleRef: ModuleRef
+        private readonly moduleRef: ModuleRef,
+        private readonly taskControls: TaskControlStore
     ) {}
 
     resolvePublishedAgent(input: Parameters<NonNullable<AgentMiddlewareAssistantTaskApi['resolvePublishedAgent']>>[0]) {
@@ -107,6 +109,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
     async getTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskResult | null> {
+        input = await this.currentTaskInput(input)
         const execution = await this.findAssistantTaskExecution(input)
         const conversation = await this.findAssistantTaskConversation(input)
         if (!execution && !conversation) {
@@ -237,6 +240,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
     async cancelTask(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskCancelResult> {
+        input = await this.currentTaskInput(input)
         const result = await this.commandBus.execute<
             CancelConversationCommand,
             { canceledExecutionIds?: string[] } | undefined
@@ -480,6 +484,18 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
 
         let stream: Observable<MessageEvent>
         try {
+            const parentControl = currentTaskControl()
+            if (parentControl)
+                await this.taskControls.register({
+                    tenantId: RequestContext.currentTenantId(),
+                    organizationId: RequestContext.getOrganizationId(),
+                    kind: 'execution',
+                    resourceId: execution.id,
+                    executionId: execution.id,
+                    threadId: conversation.threadId,
+                    parent: parentControl
+                })
+
             stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
                 new XpertChatCommand(request, {
                     xpertId,
@@ -714,6 +730,23 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         })
 
         return { workspaceId, skillIds: resolvedSkillIds }
+    }
+
+    /** Handles remain stable across pause/resume; domain authorization still runs on the current execution. */
+    private async currentTaskInput(
+        input: AgentMiddlewareAssistantTaskStatusInput
+    ): Promise<AgentMiddlewareAssistantTaskStatusInput> {
+        const executionId = normalizeOptionalString(input.executionId)
+        if (!executionId) return input
+        const target = await this.taskControls.execution(executionId)
+        if (!target) return input
+        if (
+            target.tenantId !== RequestContext.currentTenantId() ||
+            target.organizationId !== (RequestContext.getOrganizationId() ?? null) ||
+            (input.threadId && input.threadId !== target.threadId)
+        )
+            throw invocationError('InvalidScope')
+        return { ...input, executionId: target.currentExecutionId, threadId: target.threadId }
     }
 
     private async findAssistantTaskConversation(

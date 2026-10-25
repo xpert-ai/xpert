@@ -34,7 +34,15 @@ describe('HandoffQueueService route policy headers', () => {
 			})
 		}
 		const pendingResults = {}
-		const service = new HandoffQueueService(queueGateway as any, routeResolver as any, pendingResults as any)
+		const service = new HandoffQueueService(
+			queueGateway as never,
+			routeResolver as never,
+			pendingResults as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			undefined as never,
+			undefined as never,
+			undefined as never
+		)
 
 		await service.enqueue(createMessage())
 
@@ -68,7 +76,15 @@ describe('HandoffQueueService route policy headers', () => {
 			})
 		}
 		const pendingResults = {}
-		const service = new HandoffQueueService(queueGateway as any, routeResolver as any, pendingResults as any)
+		const service = new HandoffQueueService(
+			queueGateway as never,
+			routeResolver as never,
+			pendingResults as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never,
+			undefined as never,
+			undefined as never,
+			undefined as never
+		)
 
 		await service.enqueue(
 			createMessage({

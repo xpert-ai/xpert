@@ -62,7 +62,12 @@ function fixture() {
     )
     const documents = new KnowledgebaseDocumentsRuntimeService(commands as never, uploads)
     const provisioning = new KnowledgebaseProvisioningRuntimeService(commands as never)
-    const tasks = new AssistantTaskRuntimeService(commands as never, queries as never, { get: jest.fn() } as never)
+    const tasks = new AssistantTaskRuntimeService(
+        commands as never,
+        queries as never,
+        { get: jest.fn() } as never,
+        { execution: jest.fn().mockResolvedValue(null) } as never
+    )
     const providers = [project, knowledge, documents, uploads, provisioning, tasks]
     const registry = new DefaultRuntimeCapabilityRegistry()
     const explorer = new RuntimeCapabilityProviderExplorer(

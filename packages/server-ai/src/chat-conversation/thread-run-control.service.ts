@@ -363,6 +363,10 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
     }
 
     async shouldPause(threadId: string, executionId: string): Promise<boolean> {
+        const task = await this.controls.tasks.execution(executionId)
+        const desired = task ? await this.controls.tasks.desired(task.id) : 'running'
+        if (desired === 'terminated' || (task && task.currentExecutionId !== executionId))
+            throw new ExecutionCancelledError(executionId, 'Execution ownership ended')
         const thread = await this.threads.findOne({
             where: { threadId },
             select: { runControl: true, metadata: true, status: true, error: true }
@@ -375,10 +379,14 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         ) {
             throw new ExecutionCancelledError(executionId, 'Execution ownership ended')
         }
+        if (desired === 'paused' && !task.drainOnPause && thread.runControl.state === 'running') {
+            await this.requestPause(threadId, executionId, true)
+            return true
+        }
         return thread?.runControl?.executionId === executionId && thread.runControl.state === 'pausing'
     }
 
-    async requestPause(threadId: string, executionId: string): Promise<TChatThreadRunControl> {
+    async requestPause(threadId: string, executionId: string, inherited = false): Promise<TChatThreadRunControl> {
         return this.locked(threadId, async (thread, manager) => {
             const control = thread.runControl
             if (!control || control.executionId !== executionId) {
@@ -387,7 +395,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             if (control.state === 'paused' || control.state === 'pausing') return { ...control }
             if (thread.status !== 'busy' || control.state === 'terminating')
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
-            await this.controls.intent(manager, executionId, 'paused')
+            await this.controls.intent(manager, executionId, 'paused', !inherited)
             control.state = 'pausing'
             control.pauseId = randomUUID()
             delete control.checkpoint
@@ -441,6 +449,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             })
             if (!checkpoint)
                 throw threadControlConflict('CheckpointUnavailable', 'The saved checkpoint is unavailable.')
+            const target = await this.controls.tasks.execution(executionId, manager)
+            if (target) await this.controls.tasks.assertAncestorsRunning(target.id, manager)
             await this.controls.intent(manager, executionId, 'running')
             thread.status = 'busy'
             control.state = 'running'
@@ -463,11 +473,15 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 thread.runControl.resumeClaimId !== claimId
             )
                 return
+            const resumedExecutionId = thread.runControl.executionId
             await this.controls.intent(
                 manager,
-                thread.runControl.executionId,
-                thread.runControl.executionId === executionId ? 'paused' : 'terminated'
+                resumedExecutionId,
+                resumedExecutionId === executionId ? 'paused' : 'terminated',
+                resumedExecutionId === executionId
             )
+            if (resumedExecutionId !== executionId)
+                await this.controls.tasks.restoreAttempt(resumedExecutionId, executionId, manager)
             thread.runControl.executionId = executionId
             thread.runControl.state = 'paused'
             delete thread.runControl.resumeClaimed
@@ -495,7 +509,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 throw threadControlConflict('ThreadNotPaused', 'This pause is no longer available to resume.')
             }
             if (thread.runControl.executionId !== executionId) {
-                await this.controls.intent(manager, thread.runControl.executionId, 'paused')
+                await this.controls.intent(manager, thread.runControl.executionId, 'paused', false)
+                await this.controls.tasks.bind(thread.runControl.executionId, executionId, manager)
                 await this.controls.end(manager, thread.runControl.executionId)
             }
             await this.controls.root(manager, thread, executionId)
@@ -526,7 +541,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             if (!control || !executionIds.includes(control.executionId)) return false
             // Persist the scheduling barrier and tombstone before any best-effort notification.
             if (control.state !== 'terminating') {
-                await this.controls.root(manager, thread, control.executionId)
+                if (!(await this.controls.tasks.execution(control.executionId, manager)))
+                    await this.controls.root(manager, thread, control.executionId)
                 await this.controls.intent(manager, control.executionId, 'terminated')
             }
             const wasPaused = control.state === 'paused'
@@ -558,12 +574,21 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             if (!control && (await this.controls.has(executionId))) return thread.status
             if (!control && ['interrupted', 'error'].includes(thread.status) && thread.error) return thread.status
             const drained = await this.controls.end(manager, executionId)
+            const task = await this.controls.tasks.execution(executionId, manager)
+            if (task && control && (await this.controls.tasks.desired(task.id, manager)) === 'terminated') {
+                control.state = 'terminating'
+                thread.status = 'busy'
+                thread.runtimeContinuationBlockedAt = new Date()
+                await manager.save(thread)
+            }
+            const familyDrained =
+                !task || (await this.controls.tasks.settled(task.id, control?.state === 'pausing', manager))
             if (control?.state === 'terminating') {
-                if (!drained) return thread.status
+                if (!drained || !familyDrained) return thread.status
                 status = 'interrupted'
                 error = 'Canceled by user'
                 operation = null
-            } else if (control?.state === 'pausing' && !drained) {
+            } else if (control?.state === 'pausing' && (!drained || !familyDrained)) {
                 return thread.status
             }
             if (control?.state === 'pausing' && control.checkpoint && status === 'interrupted') {
@@ -579,6 +604,13 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             thread.status = status
             thread.error = error ?? null
             thread.operation = operation ?? null
+            if (task)
+                await this.controls.tasks.receipt(
+                    task.id,
+                    status === 'paused' ? 'paused' : 'completed',
+                    undefined,
+                    manager
+                )
             // Preserve fork compatibility across failed attempts; release it only after a successful continuation.
             if (status === 'idle' && thread.metadata?.forkGraphRevision) {
                 const { forkGraphRevision: _revision, ...metadata } = thread.metadata

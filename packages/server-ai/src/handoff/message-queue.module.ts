@@ -4,7 +4,7 @@ import { BullModule } from '@nestjs/bull'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
-import { RedisModule } from '@xpert-ai/server-core'
+import { RedisModule, TaskControlModule, ManagedQueueModule } from '@xpert-ai/server-core'
 import { ConfigModule } from '@xpert-ai/server-config'
 import { HANDOFF_QUEUE_SERVICE_TOKEN, HandoffProcessorRegistry } from '@xpert-ai/plugin-sdk'
 import {
@@ -36,6 +36,8 @@ import { AgentChatRealtimeService } from './agent-chat-realtime.service'
 @Global()
 @Module({
     imports: [
+        TaskControlModule,
+        ManagedQueueModule,
         DiscoveryModule,
         CqrsModule,
         RedisModule,

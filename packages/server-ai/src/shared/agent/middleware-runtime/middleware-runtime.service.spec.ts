@@ -316,7 +316,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                             }
                           : undefined
                 )
-            } as never
+            } as never,
+            { execution: jest.fn().mockResolvedValue(null) } as never
         )
         const knowledgebaseCatalog: jest.Mocked<Pick<KnowledgebaseCatalogService, 'query' | 'get' | 'getAccess'>> = {
             query: jest.fn(),

@@ -1,3 +1,4 @@
+import { TaskControlModule } from '@xpert-ai/server-core'
 import { ThreadRecoveryService } from './recovery/thread-recovery.service'
 import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
@@ -44,6 +45,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
 
 @Module({
     imports: [
+        TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([
             ChatConversation,

@@ -6,6 +6,7 @@ import {
 	HandoffProcessorRegistry,
 	ProcessResult
 } from '@xpert-ai/plugin-sdk'
+import type { TaskControlContext } from '@xpert-ai/plugin-sdk'
 import { HandoffCancelService } from './handoff-cancel.service'
 import { buildCanceledReason, isAbortLikeError } from './cancel-reason'
 import {
@@ -21,12 +22,14 @@ export class MessageDispatcherService {
 		private readonly handoffCancelService: HandoffCancelService
 	) {}
 
-	async dispatch(message: HandoffMessage): Promise<ProcessResult> {
+	async dispatch(message: HandoffMessage, control?: TaskControlContext): Promise<ProcessResult> {
 		this.assertMessage(message)
-		return runWithHandoffMessageContext(message, () => this.dispatchWithContext(message))
+		return runWithHandoffMessageContext(message, () => this.dispatchWithContext(message, control))
 	}
 
-	private async dispatchWithContext(message: HandoffMessage): Promise<ProcessResult> {
+	private async dispatchWithContext(message: HandoffMessage, control?: TaskControlContext): Promise<ProcessResult> {
+		if (await this.handoffCancelService.check(message))
+			return { status: 'dead', reason: buildCanceledReason('Canceled by user') }
 		const organizationId = this.getOrganizationId(message)
 		const resolved = this.processorRegistry.get(message.type, organizationId)
 		const runId = message.id
@@ -41,13 +44,16 @@ export class MessageDispatcherService {
 			abortController.abort()
 		}
 		const timeoutTimers = this.startTimeoutTimers(timeoutPolicy, abortWithReason)
-		this.handoffCancelService.register(runId, abortController)
+		if (!control) this.handoffCancelService.register(runId, abortController, message)
+		const signal = control ? AbortSignal.any([abortController.signal, control.signal]) : abortController.signal
 
 		try {
+			signal.throwIfAborted()
 			const result = await resolved.process(message, {
 				runId,
 				traceId: message.traceId,
-				abortSignal: abortController.signal,
+				abortSignal: signal,
+				control,
 				heartbeat: () => {
 					timeoutTimers.heartbeat()
 				},
@@ -56,7 +62,7 @@ export class MessageDispatcherService {
 					this.pendingResults.publish(message.id, event)
 				}
 			})
-			if (abortController.signal.aborted) {
+			if (signal.aborted && (!control || result.status !== 'ok')) {
 				return {
 					status: 'dead',
 					reason: this.resolveCanceledReason(runId, localAbortReason)
@@ -64,7 +70,7 @@ export class MessageDispatcherService {
 			}
 			return result
 		} catch (error) {
-			if (abortController.signal.aborted || isAbortLikeError(error)) {
+			if (signal.aborted || isAbortLikeError(error)) {
 				return {
 					status: 'dead',
 					reason: this.resolveCanceledReason(runId, localAbortReason, error)
@@ -73,7 +79,7 @@ export class MessageDispatcherService {
 			throw error
 		} finally {
 			timeoutTimers.clear()
-			this.handoffCancelService.unregister(runId)
+			if (!control) this.handoffCancelService.unregister(runId)
 		}
 	}
 

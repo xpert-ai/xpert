@@ -190,7 +190,13 @@ integration('managed project task projection concurrency', () => {
             organizationId: context.actor.organizationId
         })
         queue = new Queue(`projection-${randomUUID()}`, { connection: connection() })
-        managed = new ManagedQueueService(queue)
+        managed = new ManagedQueueService(
+            queue,
+            queue,
+            { getJob: jest.fn().mockResolvedValue(null) } as never,
+            { getJob: jest.fn().mockResolvedValue(null) } as never,
+            { producer: jest.fn().mockResolvedValue(undefined) } as never
+        )
         const enqueue = managed.enqueue.bind(managed)
         // Keep real queue delivery/backoff, shortening only test timing.
         jest.spyOn(managed, 'enqueue').mockImplementation((input) => enqueue({ ...input, delayMs: 1, backoffMs: 50 }))
@@ -279,7 +285,12 @@ integration('managed project task projection concurrency', () => {
             handler: (job, scope) => replica.handle(job, scope)
         })
         const users = { findOneByIdWithinTenant: jest.fn(async (id: string, tenantId: string) => ({ id, tenantId })) }
-        const processor = new ManagedQueueProcessor(handlers, users as unknown as UserService)
+        const processor = new ManagedQueueProcessor(
+            handlers,
+            users as unknown as UserService,
+            undefined as never,
+            undefined as never
+        )
         const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
             connection: connection(),
             concurrency: 10,

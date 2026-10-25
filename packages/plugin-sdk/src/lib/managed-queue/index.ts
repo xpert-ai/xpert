@@ -1,3 +1,4 @@
+import type { TaskControlContext, TaskControlPolicy } from '../execution-control'
 export const MANAGED_QUEUE_SERVICE_TOKEN = 'XPERT_MANAGED_QUEUE_SERVICE'
 export const MANAGED_QUEUE_HANDLER_REGISTRY_TOKEN = 'XPERT_MANAGED_QUEUE_HANDLER_REGISTRY'
 export const PLUGIN_JOB_PROCESSOR_METADATA = 'XPERT_PLUGIN_JOB_PROCESSOR_METADATA'
@@ -61,6 +62,10 @@ export type ManagedQueueRedis = {
 }
 
 export type ManagedQueueEnqueueInput<TPayload = unknown> = {
+  /** Trusted producer lifecycle policy; omission inherits an active host control scope. */
+  /** Explicitly enroll work in the current host task context; omitted retains the existing independent queue lifecycle. */
+  controlPolicy?: TaskControlPolicy
+  drainOnPause?: boolean
   pluginName: string
   queueName: string
   jobName: string
@@ -108,6 +113,7 @@ export type ManagedQueueJob<TPayload = unknown> = {
 }
 
 export type ManagedQueueJobContext = {
+  control?: TaskControlContext
   pluginName: string
   queueName: string
   jobName: string

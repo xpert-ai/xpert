@@ -59,13 +59,18 @@ describe('StopHandoffMessageHandler', () => {
 			])
 		}
 		const pendingResults = { cancel: jest.fn() }
-		const handoffCancelService = { cancelMessages: jest.fn().mockResolvedValue(['message-active']) }
+		const handoffCancelService = {
+			cancelOwnedTargets: jest.fn().mockResolvedValue({ messageIds: [], executionIds: [] }),
+			confirmRemoved: jest.fn(),
+			persist: jest.fn(),
+			cancelMessages: jest.fn().mockResolvedValue(['message-active'])
+		}
 		const localTaskService = { remove: jest.fn().mockReturnValue(true) }
 		const handler = new StopHandoffMessageHandler(
-			queueGateway as any,
-			handoffCancelService as any,
-			pendingResults as any,
-			localTaskService as any
+			queueGateway as never,
+			handoffCancelService as never,
+			pendingResults as never,
+			localTaskService as never
 		)
 
 		const result = await handler.execute(
@@ -80,7 +85,7 @@ describe('StopHandoffMessageHandler', () => {
 		expect(queueGateway.removeJobs).toHaveBeenCalledWith([queuedMatch])
 		expect(localTaskService.remove).toHaveBeenCalledWith('task-1')
 		expect(handoffCancelService.cancelMessages).toHaveBeenCalledWith(
-			['message-active'],
+			['message-queued', 'message-active'],
 			'Canceled by user'
 		)
 		expect(pendingResults.cancel).toHaveBeenCalledWith(
@@ -112,7 +117,7 @@ describe('StopHandoffMessageHandler', () => {
 				]
 			},
 			aborted: {
-				messageIds: ['message-active']
+				messageIds: ['message-queued', 'message-active']
 			},
 			notFound: {
 				messageIds: ['message-missing'],

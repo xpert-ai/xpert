@@ -1,3 +1,7 @@
+import { TaskControlRunner, TaskControlStore } from '../task-control'
+import { runControlledJob } from './controlled-job'
+import { parseControlledEnvelope } from './managed-queue.service'
+import { MANAGED_QUEUE_CONTROLLED_NAME, MANAGED_QUEUE_CONTROLLED_BROWSER_NAME } from './constants'
 import { resourceScopeFromApiKey } from '../api-key/api-key-principal'
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Injectable, Logger } from '@nestjs/common'
@@ -30,7 +34,9 @@ export class ManagedQueueProcessor extends WorkerHost {
 
 	constructor(
 		private readonly registry: ManagedQueueHandlerRegistryService,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		private readonly controls: TaskControlStore,
+		private readonly controlRunner: TaskControlRunner
 	) {
 		super()
 	}
@@ -84,7 +90,11 @@ export class ManagedQueueProcessor extends WorkerHost {
 			this.logger.debug(
 				`Processing managed queue job ${managedJob.id} ${envelope.pluginName}/${envelope.queueName}/${envelope.jobName}`
 			)
-			await handler(managedJob, jobContext)
+			if (envelope.control) {
+				await runControlledJob(this.controls, this.controlRunner, job, executionPool, (control) =>
+					Promise.resolve(handler(managedJob, { ...jobContext, control }))
+				)
+			} else await handler(managedJob, jobContext)
 		})
 	}
 
@@ -241,8 +251,13 @@ const SANDBOX_BROWSER_EXECUTOR_CONCURRENCY = normalizeConcurrency(
 	autorun: managedQueuePoolAutorun('sandbox-browser')
 })
 export class SandboxBrowserManagedQueueProcessor extends ManagedQueueProcessor {
-	constructor(registry: ManagedQueueHandlerRegistryService, userService: UserService) {
-		super(registry, userService)
+	constructor(
+		registry: ManagedQueueHandlerRegistryService,
+		userService: UserService,
+		controls: TaskControlStore,
+		runner: TaskControlRunner
+	) {
+		super(registry, userService, controls, runner)
 	}
 
 	async process(job: Job<ManagedQueueEnvelope>): Promise<void> {
@@ -271,4 +286,44 @@ function optionalBoolean(value: string | undefined): boolean | undefined {
 	if (normalized === 'true') return true
 	if (normalized === 'false') return false
 	return undefined
+}
+
+@Injectable()
+@Processor(MANAGED_QUEUE_CONTROLLED_NAME, {
+	concurrency: MANAGED_QUEUE_WORKER_CONCURRENCY,
+	autorun: managedQueuePoolAutorun('default')
+})
+export class ControlledManagedQueueProcessor extends ManagedQueueProcessor {
+	constructor(
+		registry: ManagedQueueHandlerRegistryService,
+		userService: UserService,
+		controls: TaskControlStore,
+		runner: TaskControlRunner
+	) {
+		super(registry, userService, controls, runner)
+	}
+	async process(job: Job<ManagedQueueEnvelope>) {
+		job.data = parseControlledEnvelope(job.data)
+		return super.process(job)
+	}
+}
+
+@Injectable()
+@Processor(MANAGED_QUEUE_CONTROLLED_BROWSER_NAME, {
+	concurrency: SANDBOX_BROWSER_EXECUTOR_CONCURRENCY,
+	autorun: managedQueuePoolAutorun('sandbox-browser')
+})
+export class ControlledBrowserManagedQueueProcessor extends SandboxBrowserManagedQueueProcessor {
+	constructor(
+		registry: ManagedQueueHandlerRegistryService,
+		userService: UserService,
+		controls: TaskControlStore,
+		runner: TaskControlRunner
+	) {
+		super(registry, userService, controls, runner)
+	}
+	async process(job: Job<ManagedQueueEnvelope>) {
+		job.data = parseControlledEnvelope(job.data)
+		return super.process(job)
+	}
 }

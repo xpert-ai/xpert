@@ -1,3 +1,5 @@
+import { taskControlledStream } from '@xpert-ai/server-core'
+import { resolveAgentExecutionScope } from '../../../shared/agent/middleware-runtime/execution-scope'
 import { executionToolReceipts } from '../../../execution-control/adapters/execution-tool-receipts'
 import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
@@ -518,8 +520,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
             graphInput = null
         }
+        const controlTask = await this.executionControls.tasks.execution(execution.id)
+        const source = () => graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
         const contentStream = defer(() =>
-            graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
+            controlTask
+                ? taskControlledStream(
+                      { version: 2, targetId: controlTask.id },
+                      source,
+                      () => resolveAgentExecutionScope({}).executionId ?? execution.id
+                  )
+                : source()
         ).pipe(
             map(
                 createMapStreamEvents(this.#logger, subscriber, {

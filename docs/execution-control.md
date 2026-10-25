@@ -2,7 +2,7 @@
 
 本文维护会话执行控制的**已实现功能**，供后端开发、测试和后续功能迭代使用。后续阶段完成后继续更新本文；尚未实现的设计保留在[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)中。
 
-当前实现阶段：**第一阶段——统一归属、持久控制和本地暂停与终止**。截至 2026-10-23，代码及本地回归验证已完成并通过审核，尚未部署。本文描述实现能力，不代表生产环境已具备这些能力。
+当前实现阶段：**第二阶段——平台内跨线程任务与队列控制**。第一批已按审核意见重新提交（`a6b9b85a9e`）；第二批已按功能重新整理，待审核提交，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
 
 ## 模块与契约边界
 
@@ -22,7 +22,7 @@
 | 继续           | 校验检查点、工作流兼容性和恢复令牌；并发请求只允许一个获得恢复资格                                   |
 | 终止           | 撤销旧执行的调度资格，通知本地执行取消，等待图和实际本地工具结束后释放会话                           |
 | 独立、共享工作 | 控制账本支持独立根隔离；不因父执行终止而级联取消这些根                                               |
-| 远端和后台任务 | 尚未完成跨线程专家、队列及远端运行时的全链路适配，不能据此认定所有后台任务均已接入                   |
+| 后台与队列任务 | 第二阶段接入原生跨线程 Assistant、Invocation、受控 Handoff，以及显式接入的 Managed Queue；远端物理退出仍需各适配器确认 |
 
 ## 暂停和终止的区别
 
@@ -62,21 +62,21 @@ flowchart TD
 ```mermaid
 flowchart TD
     R[运行中] -->|请求暂停：意图入库| P[正在暂停]
-    P -->|当前节点结束，检查点与消息已保存| S[已暂停]
+    P -->|节点与所属任务安全，检查点与消息已保存| S[已暂停]
     S -->|校验通过，唯一恢复请求领取成功| R
     R -->|请求终止：意图与调度限制入库| T[正在终止]
     P -->|改为终止| T
     S -->|请求终止| T
-    T -->|图已结束，所有已登记本地工具均已收尾| E[本次执行结束，旧身份不可恢复]
+    T -->|图、工具及所属受控任务均确认收尾| E[本次执行结束，旧身份不可恢复]
     T -->|仍有工具运行或退出无法确认| T
 ```
 
-这里的“执行结束”仅指当前已接入的本地控制范围，不表示未接入的远端任务已物理退出。
+这里的“执行结束”仅指当前已接入的控制范围，不表示未接入的远端任务已物理退出。
 
 ### 暂停与继续
 
 1. 在会话线程行锁内保存暂停意图和 `pauseId`，线程进入 `pausing`。重复暂停请求返回同一有效暂停标识。
-2. 当前节点继续完成；节点守卫阻止后续节点执行。先保存检查点，再完成消息持久化，最后确认 `paused`。
+2. 当前节点继续完成；节点守卫阻止后续节点执行。先保存检查点，再完成消息持久化，等待所属受控子树安全后确认 `paused`。
 3. 恢复时核对线程、执行身份、`pauseId`、检查点所属租户和组织，以及工作流指纹。只有确认暂停且检查点存在的会话可恢复。
 4. 行锁保证并发恢复只有一个请求领取成功；`resumeClaimId` 将后续绑定、失败回滚限定到同一次领取。过期请求不能回滚新的恢复，也不能覆盖终止。
 5. 普通会话恢复绑定新的执行身份，旧身份失去继续调度资格；群会话的既有恢复路径可在同样的领取约束下绑定原身份。绑定只生效一次。
@@ -89,7 +89,7 @@ flowchart TD
 2. 运行副本向已登记的本地 `AbortController` 传递取消。广播失败不撤销持久终止意图。
 3. 每个执行副本按约 1 秒的周期检查其本地控制器对应的持久状态，补偿丢失通知；控制器登记后、开始工作前也立即检查，覆盖“通知先到、控制器后登记”的竞态。
 4. 新节点、工具调用及检查点写入继续核对执行身份和控制状态，拒绝已终止、已结束、被替换或租约失效的旧执行。轮询只补送控制，不重新启动业务或重试工具。
-5. 等图结束且所有已登记的本地工具实际收尾，才解除会话占用。若包装层提前结束而工具仍在执行，线程保持占用；维护任务补查后完成收尾。
+5. 等图结束、已登记本地工具及所属受控任务实际收尾，才解除会话占用。若包装层提前结束而工具仍在执行，线程保持占用；维护任务补查后完成收尾。
 
 1 秒是轮询周期，不是停止时限。数据库或网络不可用时不能保证这一时间内送达；工具调用前无法取得有效控制事实时拒绝准入。租约过期也不能单独作为执行已经退出的证据，新协议下尚未确认退出的运行保持终止待确认和占用限制。
 
@@ -160,12 +160,89 @@ corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand \
   --runTestsByPath packages/server-ai/src/chat-conversation/thread-run-control.integration.spec.ts
 ```
 
+## 第二阶段：稳定任务身份与跨线程控制
+
+第二阶段保留第一阶段的实际工具回执，增加两张表：`execution_task_control` 保存稳定任务树、当前执行尝试、意图版本、领取和确认；`execution_task_publication` 保存入队参数、派发重试及 Handoff 最终业务结果。控制投递使用目标行上的最新意图、到期时间和领取租约合并重复请求，不另起业务执行。
+
+```mermaid
+flowchart TD
+    P[本轮稳定控制根] --> I[Invocation：原调用身份]
+    I --> C[原生后台 Assistant：独立线程与检查点]
+    P --> H[Handoff：原消息身份]
+    H --> Q[Managed Queue v2：唯一处理器领取]
+    P -. 独立或共享边界 .-> D[另一控制根：继续运行]
+    P --> A[当前执行 ID：暂停续跑时更新]
+    C --> R[实际检查点和工具收尾回执]
+    Q --> R
+    R --> S[附属任务全部安全后确认暂停或结束]
+```
+
+### 已接入的行为
+
+| 目标                   | 暂停与继续                                                                                     | 终止与确认                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 原生同步专家           | 保留本地节点收尾与检查点语义；调用身份跨父执行尝试保持稳定                                     | 原生调用结束及本地工具回执分别确认，不要求通用 provider 提供远程取消                 |
+| 原生后台 Assistant     | 子线程独立保存暂停点；父会话等子树安全后确认暂停；从该子线程保存的检查点续跑，更新当前尝试绑定 | 包含跨线程及 pending 子任务；终止先写入控制根，旧检查点、迟到写入和旧尝试不能继续    |
+| 在途 Invocation        | 没有安全暂停适配器时等待原任务收尾；保留原句柄及结果                                           | 尚无句柄也保存取消意图；迟到句柄补送到原 provider；不重新调用业务 start              |
+| 受控 Handoff           | 未准入的异步消息保留；`enqueueAndWait` 明确登记为当前节点的同步收尾依赖，允许完成              | 原消息身份持久化；取消不依赖扫描时恰好看到 active；处理器实际返回后确认              |
+| 显式受控 Managed Queue | 排队暂停转 delayed，不消耗失败重试；恢复只领取一次                                             | 处理器获得 `control.signal` 和 `control.desired()`；忽略取消时继续等待，不能伪造退出 |
+
+`AgentMiddlewareAssistantTaskInput.controlPolicy`、Handoff 的 `controlPolicy` 和 Managed Queue 的 `controlPolicy` 是可信宿主/插件选择的生命周期策略，不由 background 模式推断。Managed Queue **显式提供 controlPolicy 且位于受控宿主上下文中才接入**；Handoff 适配器为自己的受控消费作业提供 attached 策略。现有未迁移的插件队列保留原有调度。已由 Project、Pipeline 或群任务领域受理的工作保留独立生命周期，其完整业务控制桥接属于第三阶段。
+
+### 无句柄、补偿和并发边界
+
+- Invocation 在取消调用前保存 `control.intent = terminated`。启动仍未返回时保留 cancelling，句柄到达后对原任务补送。控制请求使用独立的受限信号，业务 abort 不会提前撤销取消请求。
+- 只有显式声明 `idempotentCancellation` 的 provider 可以在响应丢失后重复投递取消；其他 provider 后续只查询原任务。原 provider 变化、权限撤销或状态未知时保留待确认，不切换 provider 或再次 start。
+- 登记、领取、恢复绑定、终止和检查点写入都检查同一稳定根。扫描时的 queued 快照不能当作“尚未执行”证明，必须在领取锁下重新核对。
+- 根暂停后，普通排队作业等待；已经准入节点的同步依赖可以收尾。因此不会形成“父节点等子任务完成，但子任务被父暂停禁止启动”的互等。
+- 子线程不能在祖先仍暂停时独自继续。恢复失败只允许回到同一保存边界；若终止已经生效，回滚不能撤销它。
+- 原任务句柄在续跑后仍映射到同一逻辑任务的当前执行；查询和取消沿用原有领域授权，并拒绝跨租户、组织或线程的映射。
+
+### 结果和实际退出
+
+Handoff 的业务结果持久化后，等待方即使不在执行 worker 的进程，也可读到原结果。进度事件仍是原有的进程内 best effort 通道。迟到取消不覆盖已经返回的成功事实；后续派生仍要检查控制根。
+
+向父会话自动回传结果时，原有结果 ID/订阅领取去重之外，还检查稳定任务意图和当前执行绑定。即使线程显示 idle，原轮次已经暂停或终止也不能自动唤醒。独立或共享任务自身及其他消费者不受本调用方停止影响。
+
+实际处理器领取不因租约过期自动释放。worker 被杀、队列 stalled 重领或回执丢失时，缺少退出证据就保持待确认；另一个 worker 只能补偿控制，不能再次执行该 handler。已返回的失败也保存结果类别，重投递不能把它改成成功。本阶段不提供任意外部副作用的 exactly-once 承诺。
+
+### 兼容与运行条件
+
+- [第二阶段数据库脚本](../packages/server/src/task-control/migration.sql) 可重复执行；需在未来正式启用新 host/worker 前执行。本轮只在可丢弃的测试库执行，不回填历史任务归属。
+- 新受控作业走 `plugin-jobs-control-v2` / `plugin-jobs-browser-control-v2`，使用原 Managed Queue Redis 前缀。旧 worker 不订阅这些队列；新 worker 拒绝缺少 v2 控制身份的 envelope。原物理队列仍服务未迁移作业。
+- 新版队列暂保留完成/失败记录，并依赖数据库终局记录防重。未来清理策略必须保留防重和审计证据，不能单独删除未知任务的领取记录来触发重跑。
+- 旧 Handoff 作业补充持久取消检查和轮询；未登记的历史关系不补造为附属树。既有周期调度、Project/Pipeline 业务控制、Runner/Sandbox/MCP 的远端物理退出和管理员调试界面仍不在本阶段保证范围内。
+- ChatKit 没有增加技术状态界面或补丁；用户只需看到简短提示和按钮状态。
+
+### 第二阶段回归入口
+
+- [故障复现与修复回归](../packages/server-ai/src/execution-control/execution-control-phase2.spec.ts)：无句柄取消、跨线程 pending 子任务、queued→active 取消遗漏。
+- [稳定任务数据库回归](../packages/server-ai/src/execution-control/task-control-phase2.integration.spec.ts)：归属与终止竞争、独立/共享隔离、唯一领取、恢复绑定及迁移幂等。
+- [双进程队列回归](../packages/server-ai/src/execution-control/task-control-workers.integration.spec.ts)：SIGKILL 后重领不重复执行；无 pub/sub 通知仍通过持久控制收尾。
+- [Handoff / Managed Queue 集成](../packages/server-ai/src/handoff/handoff-control.integration.spec.ts)：同步父子暂停收尾、跨等待注册表读结果、入队补偿、成功结果保留。
+- [线程与实际 LangGraph 回归](../packages/server-ai/src/chat-conversation/thread-run-control.integration.spec.ts)：跨线程暂停/终止、原检查点续跑、已完成工具不重放、恢复失败回滚。
+- [Invocation 控制与投递](../packages/server-ai/src/agent-invocation/invocation-runtime.spec.ts)、[控制协调器](../packages/server-ai/src/agent-invocation/task-control-coordinator.spec.ts)：迟到句柄、丢失控制响应、当前授权、provider 固定及 DI。
+- [迟到结果回传](../packages/server-ai/src/handoff/runtime-messaging/testing/reliable-return.cases.ts)：原控制根暂停/终止时不唤醒 idle 线程，恢复后仍只消费一次。
+
+这些验证使用隔离数据库、Redis、实际队列 worker 和 LangGraph；模型与外部 provider 使用可控替身，不是生产远端运行时验收。
+
+2026-10-25 重新分层验证：在保留第一批独立模块和基础实体继承调整的隔离快照上，19 套、188 项定向回归通过，包括真实 PostgreSQL/Redis、双 worker 进程及检查点恢复。该结果不替代第三阶段远端收尾和此前暂缓的产品全链验收。
+
 ## 功能演进记录
 
 | 阶段     | 实现日期   | 已实现范围                                                 | 验证与交付状态             |
 | -------- | ---------- | ---------------------------------------------------------- | -------------------------- |
-| 第一阶段 | 2026-10-23 | 统一归属、持久控制、本地安全暂停与终止、并发恢复和工具回执 | 本地回归及审核通过，未部署 |
+| 第一阶段 | 2026-10-23 | 统一归属、持久控制、本地安全暂停与终止、并发恢复和工具回执        | 已提交、审核通过，未部署   |
+| 第二阶段 | 2026-10-23 | 稳定任务身份、跨线程原生任务、Invocation 控制、受控队列和结果限制 | 重新分层待审核提交，未部署 |
 
 后续阶段完成后，在本文补充对应功能章节并追加本表，同时更新“功能范围”、接口状态、兼容要求及回归入口。每次补充说明实际接入的执行器、暂停与终止的确认条件、失败或未知状态如何处理，以及验证范围；不要仅把计划中的能力改成“已支持”。
 
-跨线程后台专家、AgentInvocation、Handoff / Managed Queue、Runner / Sandbox / MCP 的实际退出确认，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
+未接入队列及远端 Runtime、Runner / Sandbox / MCP 的实际退出确认、Project/Pipeline 业务控制桥接，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
+
+### 模块与契约分层
+
+- `server/task-control` 导出 `TaskControlModule`：通用任务身份、归属、持久控制、领取及事务发布记录，供 Managed Queue 等基础设施复用，不依赖 AI 图运行时。
+- `server-ai/execution-control` 导出 `ExecutionControlModule`：将图执行尝试、工具回执和会话状态接入通用任务控制，依赖方向为 `server-ai → server`。
+- `contracts/task-control.model.ts` 定义共享任务类型、`IExecutionTaskControl` 和 `ITaskControlPublication`；接口继承 `IBasePerTenantAndOrganizationEntityModel`。SDK 的 `lib/execution-control/` 重导出共享类型，并提供带 `AbortSignal` 的 handler context，不包含持久化实体。
+- 两个任务实体继承 `TenantOrganizationBaseEntity`。任务仍显式写入原确定性 `id`，不改变稳定身份；发布记录使用继承的记录主键，`targetId` 唯一，租户组织仅从已登记任务取得。继承的审计字段用于持久记录，不能替代控制版本或实际退出回执。
+- SQL 兼容早期任务表：保留任务 ID、领取与终止事实、投递结果；按目标任务回填发布记录归属，无法确认归属时拒绝迁移。新增审计时间为迁移时间，历史操作人留空。

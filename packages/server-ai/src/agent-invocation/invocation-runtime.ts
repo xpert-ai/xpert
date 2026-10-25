@@ -1,7 +1,9 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
-import { createHash } from 'crypto'
+import type { TaskControlPolicy } from '@xpert-ai/plugin-sdk'
+import { TaskControlRejected } from '@xpert-ai/server-core'
+import { createHash, randomUUID } from 'crypto'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
@@ -22,6 +24,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import type { AgentActivityRecorder } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
+import { TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
 import {
     AgentInvocationError,
     AgentInvocationErrorCode,
@@ -30,6 +33,9 @@ import {
 } from './invocation-errors'
 
 export interface AgentInvocationAccess {
+    /** Trusted host adapter identity; not accepted from invocation request input. */
+    controlAdapter?: 'native-assistant-task' | 'native-graph'
+    controlPolicy?: TaskControlPolicy | ((target: AgentTarget) => TaskControlPolicy)
     scope: AgentInvocationScope
     capabilities: RuntimeCapabilityRegistry
     signal?: AbortSignal
@@ -42,7 +48,8 @@ export class AgentInvocationRuntime {
     constructor(
         private readonly store: AgentInvocationStore,
         private readonly registry: AgentRuntimeRegistry,
-        private readonly activity?: (invocation: AgentInvocation) => AgentActivityRecorder
+        private readonly activity?: (invocation: AgentInvocation) => AgentActivityRecorder,
+        private readonly tasks?: TaskControlStore
     ) {}
 
     assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
@@ -80,6 +87,9 @@ export class AgentInvocationRuntime {
     }
 
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {
+        const originalAccess = access
+        const requestedExecutionId = access.scope.parentExecutionId
+        access = await this.stableAccess(access)
         request = structuredClone(request)
         validateRequest(request)
         await authorizeAgentInvocation(() => access.authorize(request.target))
@@ -107,6 +117,7 @@ export class AgentInvocationRuntime {
                     id,
                     revision: 0,
                     scope: access.scope,
+                    controlAdapter: access.controlAdapter,
                     request,
                     ...(strategy.capabilities.activity
                         ? { activity: structuredClone(strategy.capabilities.activity) }
@@ -117,9 +128,33 @@ export class AgentInvocationRuntime {
                 },
                 providerSource: this.registry.getSource(strategy)
             }
-            if (!(await this.store.insert(record))) return this.start(request, access)
+            if (!(await this.store.insert(record))) return this.start(request, originalAccess)
         }
-        // Only the CAS winner can launch. A queued reservation is safe to resume after a crash.
+        const parent = await this.tasks?.execution(access.scope.parentExecutionId)
+        if (parent && parent.currentExecutionId !== requestedExecutionId) throw invocationError('CallConflict')
+        const task = parent
+            ? await this.tasks.register({
+                  ...access.scope,
+                  kind: 'invocation',
+                  resourceId: id,
+                  parent: { version: 2, targetId: parent.id },
+                  drainOnPause: true,
+                  policy:
+                      typeof access.controlPolicy === 'function'
+                          ? access.controlPolicy(request.target)
+                          : access.controlPolicy
+              })
+            : null
+        let taskClaim: string | undefined
+        if (task) {
+            try {
+                taskClaim = await this.tasks.claim(task.id)
+            } catch (error) {
+                if (!(error instanceof TaskControlRejected) || error.reason !== 'claimed') throw error
+                return (await this.store.read(id, access.scope)).invocation
+            }
+        }
+        // Only the CAS winner can launch. A claimed task is never relaunched after an ambiguous crash.
         const claimed = await this.save(
             record,
             { status: 'running', interaction: undefined, error: undefined },
@@ -129,30 +164,38 @@ export class AgentInvocationRuntime {
         if (!claimed) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
+            if (task) await this.tasks.receipt(task.id, 'completed', taskClaim)
             return latest.invocation
         }
         record = claimed
         try {
-            const observation = await strategy.start(
-                {
-                    target: record.invocation.request.target,
-                    input: request.input,
-                    operationId: id,
-                    previous: record.invocation.handle
-                },
-                this.context(record, access)
-            )
+            const launch = () =>
+                strategy.start(
+                    {
+                        target: record.invocation.request.target,
+                        input: request.input,
+                        operationId: id,
+                        previous: record.invocation.handle
+                    },
+                    this.context(record, access)
+                )
+            const observation = task ? await withTaskControl({ version: 2, targetId: task.id }, launch) : await launch()
             // A strategy may persist newer events before start returns its receipt.
             const latest = await this.store.read(id, access.scope)
-            return !isAgentInvocationTerminal(observation.status) &&
+            const saved =
+                !isAgentInvocationTerminal(observation.status) &&
                 latest &&
                 latest.invocation.revision > record.invocation.revision &&
                 (isAgentInvocationTerminal(latest.invocation.status) || latest.invocation.status !== observation.status)
-                ? (await this.updateLatest(id, access, { status: latest.invocation.status }, true)).invocation
-                : (await this.updateLatest(id, access, observation, true)).invocation
+                    ? (await this.updateLatest(id, access, { ...observation, status: latest.invocation.status }, true))
+                          .invocation
+                    : (await this.updateLatest(id, access, observation, true)).invocation
+            if (task && isAgentInvocationTerminal(saved.status)) await this.tasks.receipt(task.id, 'completed')
+            return saved.control ? this.control(id, access, 'inspect') : saved
         } catch (error) {
             const latest = await this.store.read(id, access.scope)
             if (error instanceof AgentInvocationNotStartedError && !latest?.invocation.handle) {
+                if (task) await this.tasks.receipt(task.id, 'completed', taskClaim)
                 return (await this.updateLatest(id, access, { status: 'failed', error: error.message }, true))
                     .invocation
             }
@@ -166,6 +209,8 @@ export class AgentInvocationRuntime {
                 },
                 true
             )
+            if (task && suspended) await this.tasks.receipt(task.id, 'paused')
+            else if (task && access.controlAdapter === 'native-graph') await this.tasks.receipt(task.id, 'completed')
             throw error
         }
     }
@@ -176,12 +221,25 @@ export class AgentInvocationRuntime {
         operation: 'inspect' | 'cancel' | 'respond',
         input?: { interactionId: string; response: AgentJson }
     ): Promise<AgentInvocation> {
-        const record = await this.store.read(id, access.scope)
+        access = await this.stableAccess(access)
+        let record = await this.store.read(id, access.scope)
         if (!record) throw invocationError('NotFound')
         this.assertScope(record, access.scope)
         await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        if (isAgentInvocationTerminal(record.invocation.status)) {
+            this.pinned(record)
+            return record.invocation
+        }
+        if (operation === 'cancel' && !record.invocation.control) {
+            const task = await this.tasks?.find(access.scope, 'invocation', id)
+            if (task) await this.tasks.change(task.id, 'terminated')
+            record = await this.updateLatest(id, access, {
+                status: record.invocation.status === 'queued' ? 'cancelled' : 'cancelling',
+                control: { intent: 'terminated', requestedAt: new Date().toISOString() }
+            })
+            if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
+        }
         const strategy = this.pinned(record)
-        if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
         if (
             operation === 'inspect' &&
             record.invocation.status === 'running' &&
@@ -208,22 +266,72 @@ export class AgentInvocationRuntime {
                 ).invocation
             return record.invocation
         }
-        const context = this.context(record, access)
+        const context = this.context(record, { ...access, signal: AbortSignal.timeout(10_000) })
         let observation: AgentRuntimeObservation
-        if (operation === 'cancel') {
+        if (record.invocation.control) {
             if (!strategy.capabilities.cancellation || !strategy.cancel) throw invocationError('Unsupported')
-            await this.save(record, { status: 'cancelling' })
-            observation = await strategy.cancel(handle, context)
+            const control = record.invocation.control
+            if (Date.parse(control.deliveryUntil ?? '') > Date.now()) return record.invocation
+            if (control.attempted && !strategy.capabilities.idempotentCancellation) {
+                observation = await strategy.inspect(handle, context)
+            } else {
+                const token = randomUUID()
+                const claimed = await this.save(
+                    record,
+                    {
+                        status: 'cancelling',
+                        control: {
+                            ...control,
+                            attempted: true,
+                            deliveryToken: token,
+                            deliveryUntil: new Date(Date.now() + 30_000).toISOString()
+                        }
+                    },
+                    false
+                )
+                if (!claimed) return (await this.store.read(id, access.scope)).invocation
+                try {
+                    observation = await strategy.cancel(handle, context)
+                } finally {
+                    const latest = await this.store.read(id, access.scope)
+                    if (latest?.invocation.control?.deliveryToken === token) {
+                        await this.save(
+                            latest,
+                            {
+                                status: latest.invocation.status,
+                                control: {
+                                    ...latest.invocation.control,
+                                    deliveryUntil: undefined,
+                                    deliveryToken: undefined
+                                }
+                            },
+                            false
+                        )
+                    }
+                }
+            }
         } else if (operation === 'respond') {
             if (!strategy.capabilities.interactions || !strategy.respond || !input) throw invocationError('Unsupported')
             if (record.invocation.status !== 'waiting' || record.invocation.interaction?.id !== input.interactionId) {
                 throw invocationError('InteractionConflict')
             }
             // Claim the interaction before delivering a possibly side-effecting response.
-            await this.save(record, { status: 'running', interaction: undefined })
+            const target = await this.tasks?.find(access.scope, 'invocation', id)
+            const reserve = () => this.save(record, { status: 'running', interaction: undefined })
+            if (target) await this.tasks.admitContinuation(target.id, reserve)
+            else await reserve()
             observation = await strategy.respond(handle, input.interactionId, input.response, context)
         } else observation = await strategy.inspect(handle, context)
         return (await this.updateLatest(id, access, observation)).invocation
+    }
+
+    /** Pause changes an execution attempt, never the idempotency identity of its calls. */
+    private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
+        const task = await this.tasks?.execution(access.scope.parentExecutionId)
+        if (!task) return access
+        if (task.tenantId !== access.scope.tenantId || task.organizationId !== (access.scope.organizationId ?? null))
+            throw invocationError('NotFound')
+        return { ...access, scope: { ...access.scope, parentExecutionId: task.attempts[0] } }
     }
 
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {
@@ -252,7 +360,7 @@ export class AgentInvocationRuntime {
     private async updateLatest(
         id: string,
         access: AgentInvocationAccess,
-        observation: AgentRuntimeObservation,
+        observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
         finishStart = false
     ) {
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -261,9 +369,10 @@ export class AgentInvocationRuntime {
             if (isAgentInvocationTerminal(latest.invocation.status)) return latest
             // A late progress event cannot undo an accepted cancellation request.
             const next =
-                latest.invocation.status === 'cancelling' && observation.status === 'running'
+                latest.invocation.control && !isAgentInvocationTerminal(observation.status)
                     ? { ...observation, status: 'cancelling' as const }
                     : observation
+            if (latest.invocation.control && next.control) next.control = latest.invocation.control
             const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved
         }
@@ -272,7 +381,7 @@ export class AgentInvocationRuntime {
 
     private async save(
         record: StoredAgentInvocation,
-        observation: AgentRuntimeObservation,
+        observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
         requireClaim = true,
         startup?: 'begin' | 'finish'
     ) {

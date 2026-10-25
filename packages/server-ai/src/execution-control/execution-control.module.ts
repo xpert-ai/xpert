@@ -3,11 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { ExecutionControl } from './execution-control.entity'
 import { ExecutionControlStore } from './execution-control.store'
 import { Module } from '@nestjs/common'
-import { RedisModule } from '@xpert-ai/server-core'
+import { RedisModule, TaskControlModule } from '@xpert-ai/server-core'
 import { ExecutionCancelService } from './execution-cancel.service'
 
 @Module({
-    imports: [RedisModule, TypeOrmModule.forFeature([ExecutionControl])],
+    imports: [RedisModule, TaskControlModule, TypeOrmModule.forFeature([ExecutionControl])],
     providers: [ExecutionCancelService, ExecutionControlStore],
     exports: [ExecutionCancelService, ExecutionControlStore]
 })

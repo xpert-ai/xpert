@@ -19,7 +19,13 @@ export function operationQueueFixture(
     const url = new URL(redisUrl),
         connection = { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
     const queue = new Queue<ManagedQueueEnvelope>(`pipeline-operation-test-${randomUUID()}`, { connection })
-    const managed = new ManagedQueueService(queue)
+    const managed = new ManagedQueueService(
+        queue,
+        queue,
+        { getJob: jest.fn().mockResolvedValue(null) } as never,
+        { getJob: jest.fn().mockResolvedValue(null) } as never,
+        { producer: jest.fn().mockResolvedValue(undefined) } as never
+    )
     const service = () => new ProjectPipelineOperationWorkerService(store, runner, managed)
     const workers: Worker<ManagedQueueEnvelope>[] = []
     return {
@@ -33,7 +39,12 @@ export function operationQueueFixture(
                 handler: (job, scope) => observer.handle(job, scope)
             })
             const users = { findOneByIdWithinTenant: async (id: string, tenantId: string) => ({ id, tenantId }) }
-            const processor = new ManagedQueueProcessor(handlers, users as UserService)
+            const processor = new ManagedQueueProcessor(
+                handlers,
+                users as UserService,
+                undefined as never,
+                undefined as never
+            )
             const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
                 connection,
                 concurrency: 4

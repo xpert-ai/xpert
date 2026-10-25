@@ -1,3 +1,4 @@
+import type { TaskControlRef } from '@xpert-ai/plugin-sdk'
 import type { ManagedQueueExecutionPool } from '@xpert-ai/plugin-sdk'
 import type {
 	ApiKeyBindingType,
@@ -9,6 +10,8 @@ import type {
 
 export const MANAGED_QUEUE_PHYSICAL_QUEUE_NAME = 'plugin-jobs'
 export const MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME = 'plugin-jobs-sandbox-browser'
+export const MANAGED_QUEUE_CONTROLLED_NAME = 'plugin-jobs-control-v2'
+export const MANAGED_QUEUE_CONTROLLED_BROWSER_NAME = 'plugin-jobs-browser-control-v2'
 /**
  * BullMQ keys must be isolated when independent Xpert environments share Redis.
  * Replicas of one environment should use the same explicit prefix; local clones
@@ -76,6 +79,7 @@ export type ManagedQueuePrincipalSnapshot = ManagedQueueDelegationSnapshot & {
 }
 
 export type ManagedQueueEnvelope<TPayload = unknown> = {
+	control?: TaskControlRef
 	pluginName: string
 	queueName: string
 	jobName: string

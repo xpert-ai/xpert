@@ -1,4 +1,5 @@
 import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
+import { ExecutionTaskControl, TaskControlPublication, TaskControlStore } from '@xpert-ai/server-core'
 import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
@@ -50,6 +51,8 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
             extra: { options: `-c search_path=${schema}` },
             entities: [
                 ...executionControlTestEntities,
+                ExecutionTaskControl,
+                TaskControlPublication,
                 new EntitySchema<ChatConversation>({
                     name: 'ChatConversation',
                     target: ChatConversation,
@@ -213,7 +216,11 @@ integration('issue 1217 recovery boundaries / PostgreSQL and real LangGraph', ()
             const checkpoint = input()
             await saver.put(config, checkpoint, metadata)
             if (!legacy) graph.nodes[0].position.x = 500
-            const control = new ThreadRunControlService(repository, database, new ExecutionControlStore(database))
+            const control = new ThreadRunControlService(
+                repository,
+                database,
+                new ExecutionControlStore(database, new TaskControlStore(database))
+            )
             const selected = await control.recordGraph(
                 config.configurable.thread_id,
                 config.configurable.executionId,

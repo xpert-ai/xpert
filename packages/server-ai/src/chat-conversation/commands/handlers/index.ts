@@ -1,3 +1,4 @@
+import { ControlOwnedExecutionHandler } from './control-owned-execution.handler'
 import { CancelSummaryJobHandler } from './cancel-summary.handler'
 import { ChatConversationBindXpertHandler } from './bind-xpert.handler'
 import { ChatConversationBindProjectHandler } from './bind-project.handler'
@@ -13,6 +14,7 @@ import { ReadConversationArtifactHandler } from './read-conversation-artifact.ha
 import { CancelExternalAssistantHandler } from './cancel-external-assistant.handler'
 
 export const CommandHandlers = [
+    ControlOwnedExecutionHandler,
     CancelExternalAssistantHandler,
     ChatConversationUpsertHandler,
     ChatConversationBindXpertHandler,

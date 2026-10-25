@@ -1,3 +1,4 @@
+import { XpertAgentExecutionOneQuery } from '../queries/get-one.query'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -108,10 +109,12 @@ function fixture(external: boolean) {
         [AgentInvocationRuntime, runtime],
         [PublishedXpertAccessService, { getAccessiblePublishedXpert: published }]
     ])
+    const taskControls = { execution: jest.fn().mockResolvedValue(null) }
     const service = new AssistantTaskRuntimeService(
         commands as unknown as CommandBus,
         queries as unknown as QueryBus,
-        { get: (token: unknown) => dependencies.get(token) } as ModuleRef
+        { get: (token: unknown) => dependencies.get(token) } as ModuleRef,
+        taskControls as never
     )
     const reader = new NativeAgentInvocationReader(
         queries as unknown as QueryBus,
@@ -133,7 +136,19 @@ function fixture(external: boolean) {
               }
             : {})
     }
-    return { service, reader, store, target, input, commands, queries, published, nativeAuthorize, nativePrepare }
+    return {
+        service,
+        reader,
+        store,
+        target,
+        input,
+        commands,
+        queries,
+        published,
+        nativeAuthorize,
+        nativePrepare,
+        taskControls
+    }
 }
 
 describe('Assistant Task workspace scope', () => {
@@ -400,6 +415,56 @@ describe('Assistant Task workspace scope', () => {
         }
     )
 
+    it('uses the resumed attempt when inspecting or cancelling an original task handle', async () => {
+        const f = fixture(false)
+        f.taskControls.execution.mockResolvedValue({
+            tenantId: 'tenant',
+            organizationId: 'organization',
+            currentExecutionId: 'resumed',
+            threadId: 'same-thread'
+        })
+        f.queries.execute.mockImplementation(async (query) =>
+            query instanceof XpertAgentExecutionOneQuery
+                ? { ...f.target, id: query.id, threadId: 'same-thread', status: XpertAgentExecutionStatusEnum.RUNNING }
+                : null
+        )
+        await expect(f.service.getTaskStatus({ executionId: 'original' })).resolves.toMatchObject({
+            executionId: 'resumed',
+            threadId: 'same-thread',
+            status: 'running'
+        })
+        f.commands.execute.mockResolvedValue({ canceledExecutionIds: ['resumed'] })
+        await f.service.cancelTask({ executionId: 'original' })
+        expect(f.commands.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({ executionId: 'resumed', threadId: 'same-thread' })
+            })
+        )
+    })
+
+    it('does not resolve a task handle from another scope or thread', async () => {
+        const f = fixture(false)
+        f.taskControls.execution.mockResolvedValue({
+            tenantId: 'other-tenant',
+            organizationId: 'organization',
+            currentExecutionId: 'resumed',
+            threadId: 'same-thread'
+        })
+        await expect(f.service.getTaskStatus({ executionId: 'original' })).rejects.toMatchObject({
+            code: 'InvalidScope'
+        })
+        f.taskControls.execution.mockResolvedValue({
+            tenantId: 'tenant',
+            organizationId: 'organization',
+            currentExecutionId: 'resumed',
+            threadId: 'same-thread'
+        })
+        await expect(
+            f.service.cancelTask({ executionId: 'original', threadId: 'another-thread' })
+        ).rejects.toMatchObject({ code: 'InvalidScope' })
+        expect(f.queries.execute).not.toHaveBeenCalled()
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
     it('rejects a workspace change between target resolution and dispatch authorization', async () => {
         const f = fixture(false)
         f.published.mockResolvedValueOnce(f.target).mockResolvedValue({ ...f.target, workspaceId: 'moved-workspace' })

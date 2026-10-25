@@ -1,7 +1,8 @@
+import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { ChatExecutionAdmissionService } from '../../../chat-conversation/chat-execution-admission.service'
 import { ThreadRunControlService } from '../../../chat-conversation/thread-run-control.service'
 import { CommandBus } from '@nestjs/cqrs'
-import { User } from '@xpert-ai/server-core'
+import { User, TaskControlStore } from '@xpert-ai/server-core'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { AgentInvocation, HandoffMessage, AGENT_RUNTIME_EVENT_MESSAGE_TYPE } from '@xpert-ai/plugin-sdk'
 import { lastValueFrom, of } from 'rxjs'
@@ -128,7 +129,7 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 return of(undefined)
             })
             bus = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute: run })
-            continuation = new RuntimeMessageContinuationService(database, access, bus)
+            continuation = new RuntimeMessageContinuationService(database, access, bus, new TaskControlStore(database))
         })
         afterEach(() => jest.restoreAllMocks())
 
@@ -194,7 +195,11 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
         it('serializes real root admissions on the thread row', async () => {
             const admission = new ChatExecutionAdmissionService(
                 database,
-                new ThreadRunControlService(database.getRepository(ChatConversationThread), database)
+                new ThreadRunControlService(
+                    database.getRepository(ChatConversationThread),
+                    database,
+                    new ExecutionControlStore(database, new TaskControlStore(database))
+                )
             )
             const execute = jest.fn(async (id: string) => {
                 await database
@@ -385,9 +390,14 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 expect(await database.getRepository(XpertAgentExecution).countBy({ id: command.executionId })).toBe(0)
                 return { state: 'processed' as const }
             })
-            const groupContinuation = new RuntimeMessageContinuationService(database, access, {
-                execute: deliver
-            } as unknown as CommandBus)
+            const groupContinuation = new RuntimeMessageContinuationService(
+                database,
+                access,
+                {
+                    execute: deliver
+                } as unknown as CommandBus,
+                new TaskControlStore(database)
+            )
             await Promise.allSettled([
                 inbox.claimWait(new ClaimAgentRuntimeResultsCommand(scope, 'group-wait', [invocationId])),
                 groupContinuation.consume(row),
@@ -406,9 +416,14 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 .fn()
                 .mockRejectedValueOnce(new Error('offline'))
                 .mockResolvedValue({ state: 'pending' })
-            const groupContinuation = new RuntimeMessageContinuationService(database, access, {
-                execute: deliver
-            } as unknown as CommandBus)
+            const groupContinuation = new RuntimeMessageContinuationService(
+                database,
+                access,
+                {
+                    execute: deliver
+                } as unknown as CommandBus,
+                new TaskControlStore(database)
+            )
             await groupContinuation.consume(row)
             await groupContinuation.consume(row)
             expect(deliver.mock.calls[1][0]).toEqual(deliver.mock.calls[0][0])
@@ -476,6 +491,42 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 expect((await database.getRepository(AgentRuntimeInbox).findOneBy({ id: row.id })).state).toBe(
                     'blocked'
                 )
+            }
+        )
+
+        it.each(['paused', 'terminated'] as const)(
+            'blocks a late result by stable task intent even when the thread is idle (%s)',
+            async (desired) => {
+                const { row } = await receive()
+                const tasks = new TaskControlStore(database)
+                const target = await tasks.register({
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    kind: 'execution',
+                    resourceId: scope.parentExecutionId,
+                    executionId: scope.parentExecutionId,
+                    threadId: caller.threadId
+                })
+                await tasks.change(target.id, desired)
+                await database.getRepository(ChatConversationThread).save({
+                    threadId: caller.threadId,
+                    conversationId: conversation.id,
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    status: 'idle'
+                })
+                await continuation.consume(row)
+                expect(run).not.toHaveBeenCalled()
+                expect((await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })).state).toBe(
+                    'blocked'
+                )
+                if (desired === 'paused') {
+                    await tasks.change(target.id, 'running')
+                    await database.getRepository(AgentRuntimeInbox).update(row.id, { state: 'pending' })
+                    await continuation.consume(row)
+                    await continuation.consume(row)
+                    expect(run).toHaveBeenCalledTimes(1)
+                }
             }
         )
         it('keeps old replies blocked even after a stopped thread later becomes idle', async () => {

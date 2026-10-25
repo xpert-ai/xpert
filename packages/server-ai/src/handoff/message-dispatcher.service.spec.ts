@@ -32,6 +32,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn(),
 			unregister: jest.fn(),
 			getCancelReason: jest.fn()
@@ -74,6 +75,7 @@ describe('MessageDispatcherService', () => {
 			})
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn(),
 			unregister: jest.fn(),
 			getCancelReason: jest.fn()
@@ -111,6 +113,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn((messageId: string, controller: AbortController) => {
 				reasonByMessageId.set(messageId, cancelReason)
 				controller.abort()
@@ -154,6 +157,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn(),
 			unregister: jest.fn(),
 			getCancelReason: jest.fn()
@@ -199,6 +203,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn(),
 			unregister: jest.fn(),
 			getCancelReason: jest.fn()
@@ -250,6 +255,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn(),
 			unregister: jest.fn(),
 			getCancelReason: jest.fn()
@@ -288,6 +294,7 @@ describe('MessageDispatcherService', () => {
 			get: jest.fn().mockReturnValue({ process })
 		}
 		const handoffCancelService = {
+			check: jest.fn().mockResolvedValue(false),
 			register: jest.fn((messageId: string, controller: AbortController) => {
 				reasonByMessageId.set(messageId, cancelReason)
 				controller.abort()

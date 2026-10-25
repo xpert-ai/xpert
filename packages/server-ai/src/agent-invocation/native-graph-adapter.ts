@@ -61,6 +61,7 @@ export function wrapNativeAgentInvocation<Input, Output>(
             }
         })
         const api = runtime.scoped({
+            controlAdapter: 'native-graph',
             scope: { ...context.scope, parentExecutionId },
             capabilities,
             signal: config.signal ?? context.signal,

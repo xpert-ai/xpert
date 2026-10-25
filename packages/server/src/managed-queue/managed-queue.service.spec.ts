@@ -37,7 +37,13 @@ describe('ManagedQueueService', () => {
 
 	it('wraps plugin payload in a managed queue envelope', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as any)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 
 		await expect(
 			service.enqueue({
@@ -81,7 +87,13 @@ describe('ManagedQueueService', () => {
 
 	it('captures a non-secret API principal delegation for background permission checks', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
 			id: 'business-user-1',
 			tenantId: 'tenant-1'
@@ -152,7 +164,13 @@ describe('ManagedQueueService', () => {
 
 	it('captures a logged-in user as the actor without inventing an xpert principal', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
 		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
@@ -183,7 +201,13 @@ describe('ManagedQueueService', () => {
 
 	it('uses an explicitly scoped organization when the request context is tenant-only', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
 		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
@@ -211,7 +235,13 @@ describe('ManagedQueueService', () => {
 
 	it('rejects a delegated principal that does not match the requested queue scope', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
 			id: 'assistant-user-1',
 			tenantId: 'tenant-1'
@@ -246,7 +276,13 @@ describe('ManagedQueueService', () => {
 
 	it('rejects a plugin-supplied user that differs from the authenticated actor', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
 
@@ -266,7 +302,13 @@ describe('ManagedQueueService', () => {
 	it('routes sandbox browser jobs to the dedicated execution pool', async () => {
 		const { queue: defaultQueue } = createQueue()
 		const { queue: sandboxQueue } = createQueue()
-		const service = new ManagedQueueService(defaultQueue as never, sandboxQueue as never)
+		const service = new ManagedQueueService(
+			defaultQueue as never,
+			sandboxQueue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 
 		await service.enqueue({
 			pluginName: 'presentation-studio',
@@ -287,7 +329,13 @@ describe('ManagedQueueService', () => {
 	it('reports execution-pool worker health before plugins enqueue work', async () => {
 		const { queue: defaultQueue } = createQueue()
 		const { queue: sandboxQueue } = createQueue()
-		const service = new ManagedQueueService(defaultQueue as never, sandboxQueue as never)
+		const service = new ManagedQueueService(
+			defaultQueue as never,
+			sandboxQueue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 
 		await expect(service.getExecutionPoolHealth({ executionPool: 'sandbox-browser' })).resolves.toEqual({
 			executionPool: 'sandbox-browser',
@@ -306,7 +354,13 @@ describe('ManagedQueueService', () => {
 
 	it('cancels delayed jobs and reports active jobs as not removable', async () => {
 		const { queue, job } = createQueue()
-		const service = new ManagedQueueService(queue as any)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 
 		await expect(service.cancel({ jobId: 'job-1' })).resolves.toEqual({
 			success: true,
@@ -334,7 +388,13 @@ describe('ManagedQueueService', () => {
 
 	it('returns plugin payload snapshots and exposes the BullMQ Redis client', async () => {
 		const { queue, redis } = createQueue()
-		const service = new ManagedQueueService(queue as any)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 
 		await expect(service.getJob({ jobId: 'job-1' })).resolves.toEqual(
 			expect.objectContaining({
@@ -350,7 +410,13 @@ describe('ManagedQueueService', () => {
 	})
 	it('captures conversation scope and expiry without a synthetic API key', async () => {
 		const { queue } = createQueue()
-		const service = new ManagedQueueService(queue as never)
+		const service = new ManagedQueueService(
+			queue as never,
+			queue as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ getJob: jest.fn().mockResolvedValue(null) } as never,
+			{ producer: jest.fn().mockResolvedValue(undefined) } as never
+		)
 		const expiry = new Date('2030-01-01T00:00:00.000Z')
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
 		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')

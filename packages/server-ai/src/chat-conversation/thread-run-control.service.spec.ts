@@ -45,6 +45,7 @@ describe('ThreadRunControlService', () => {
             { findOne: jest.fn(async () => thread) } as unknown as Repository<ChatConversationThread>,
             { transaction: async (work: (m: EntityManager) => Promise<unknown>) => work(manager) } as DataSource,
             {
+                tasks: { execution: jest.fn().mockResolvedValue(null), bind: jest.fn(), restoreAttempt: jest.fn() },
                 has: jest.fn(),
                 root: jest.fn().mockResolvedValue({ desired: 'running' }),
                 intent: jest.fn(),

@@ -1,3 +1,5 @@
+import { ControlAssistantTaskHandler } from './runtime/control-assistant-task.handler'
+import { TaskControlModule } from '@xpert-ai/server-core'
 import { AssistantTaskRuntimeService } from './runtime/assistant-task-runtime.service'
 import { TenantModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
@@ -15,6 +17,7 @@ import { CopilotUsageModule } from '../copilot-usage'
 
 @Module({
     imports: [
+        TaskControlModule,
         RouterModule.register([{ path: '/xpert-agent-execution', module: XpertAgentExecutionModule }]),
         TypeOrmModule.forFeature([XpertAgentExecution]),
         TenantModule,
@@ -24,7 +27,13 @@ import { CopilotUsageModule } from '../copilot-usage'
         CopilotUsageModule
     ],
     controllers: [XpertAgentExecutionController],
-    providers: [AssistantTaskRuntimeService, XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
+    providers: [
+        ControlAssistantTaskHandler,
+        AssistantTaskRuntimeService,
+        XpertAgentExecutionService,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ],
     exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

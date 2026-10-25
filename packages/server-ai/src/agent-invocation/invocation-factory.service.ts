@@ -308,6 +308,13 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             if (factory) scoped.register(AgentExecutionRunnerCapability, factory.createScopedRunner(scope))
             return this.runtime.scoped({
                 scope,
+                // Group/Project schedulers own accepted work; phase 2 does not replace their control protocol.
+                controlPolicy: (target) =>
+                    assistantTaskGroupContext(target) ||
+                    scope.callerType === 'project_agent' ||
+                    scope.callerType === 'project_pipeline'
+                        ? 'detached'
+                        : 'attached',
                 capabilities: scoped,
                 authorize: async (target) => {
                     const group = assistantTaskGroupContext(target)

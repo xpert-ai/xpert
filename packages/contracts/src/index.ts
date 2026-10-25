@@ -1,3 +1,4 @@
+export * from './task-control.model'
 export * from './types'
 export * from './ai/project-task-graph.model'
 export * from './ai/project-task-type.model'

@@ -49,6 +49,8 @@ export interface AgentTarget {
 
 /** Provider support flags; they do not grant caller permissions. */
 export interface AgentRuntimeCapabilities {
+  /** Explicitly allow repeat delivery of the same cancellation after an ambiguous response. */
+  idempotentCancellation?: boolean
   activity?: ExecutionActivityCapabilities
   /** Explicit adapter compatibility; does not install tools or grant model/environment access. */
   executionTools?: Array<{ id: string; versions: string[]; environments: ModelExecutionEnvironment['type'][] }>
@@ -144,6 +146,16 @@ export interface AgentInvocationRequest {
 
 /** Host-owned invocation snapshot; not an update DTO. */
 export interface AgentInvocation extends AgentRuntimeObservation {
+  /** Host-assigned control adapter, independent of provider names or task labels. */
+  controlAdapter?: 'native-assistant-task' | 'native-graph'
+  /** Host control survives a missing handle and cannot be cleared by provider progress. */
+  control?: {
+    intent: 'terminated'
+    requestedAt: string
+    deliveryToken?: string
+    deliveryUntil?: string
+    attempted?: boolean
+  }
   /** Pinned presentation contract remains readable after the runtime plugin is removed. */
   activity?: ExecutionActivityCapabilities
   /** Host startup fence; intermediate receipts are not inspected until start returns or this deadline expires. */

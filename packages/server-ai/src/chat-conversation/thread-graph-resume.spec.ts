@@ -58,6 +58,7 @@ function fixture(legacy = false) {
                 work(manager as unknown as EntityManager)
         } as DataSource,
         {
+            tasks: { execution: jest.fn().mockResolvedValue(null), bind: jest.fn() },
             has: jest.fn(),
             root: jest.fn().mockResolvedValue({ desired: 'running' }),
             intent: jest.fn(),

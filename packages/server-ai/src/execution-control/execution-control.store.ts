@@ -9,12 +9,16 @@ import { TExecutionControlIntent, TExecutionOwnership } from '@xpert-ai/contract
 import { DataSource, EntityManager, In, IsNull } from 'typeorm'
 import { ExecutionCancelledError } from './execution-cancelled.error'
 import { ExecutionControl } from './execution-control.entity'
+import { TaskControlStore, currentTaskControl } from '@xpert-ai/server-core'
 
 export type ExecutionControlScope = { tenantId?: string; organizationId?: string | null; threadId: string }
 
 @Injectable()
 export class ExecutionControlStore {
-    constructor(private readonly database: DataSource) {}
+    constructor(
+        private readonly database: DataSource,
+        readonly tasks: TaskControlStore
+    ) {}
 
     async root(manager: EntityManager, scope: ExecutionControlScope, executionId: string) {
         // The shared base permits tenant-less entities; execution control always requires a tenant.
@@ -50,12 +54,39 @@ export class ExecutionControlStore {
         )
             this.reject(executionId)
         this.validate(record)
+        const task = await this.tasks.execution(executionId, manager)
+        if (task) {
+            if (
+                task.tenantId !== scope.tenantId ||
+                task.organizationId !== (scope.organizationId ?? null) ||
+                task.threadId !== scope.threadId ||
+                task.currentExecutionId !== executionId ||
+                (await this.tasks.desired(task.id, manager)) === 'terminated'
+            )
+                this.reject(executionId)
+        } else {
+            await this.tasks.register(
+                {
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    kind: 'execution',
+                    resourceId: executionId,
+                    executionId,
+                    threadId: scope.threadId
+                },
+                manager
+            )
+        }
+        const activeTask = await this.tasks.execution(executionId, manager)
+        if (activeTask.state === 'queued') await this.tasks.receipt(activeTask.id, 'running', undefined, manager)
         return record
     }
 
     /** The caller has already authorized the exact thread and holds its writer lock. */
-    async intent(manager: EntityManager, executionId: string, desired: TExecutionControlIntent) {
+    async intent(manager: EntityManager, executionId: string, desired: TExecutionControlIntent, updateTask = true) {
         const record = await this.lock(manager, executionId)
+        const task = updateTask ? await this.tasks.execution(executionId, manager) : null
+        if (task) await this.tasks.change(task.id, desired, manager)
         if (!record) return // Legacy rows are fenced by the thread until registered by the host.
         if (record.target.desired === 'terminated') {
             if (desired !== 'terminated') this.reject(executionId)
@@ -106,6 +137,26 @@ export class ExecutionControlStore {
                 this.reject(executionId)
             this.validate(child)
             await this.assertLive(manager, child)
+            const owner = await this.tasks.execution(parentExecutionId, manager)
+            if (!owner) this.reject(parentExecutionId)
+            const context = currentTaskControl()
+            const invocation = context ? await this.tasks.read(context.targetId, manager) : null
+            const logicalParent =
+                invocation?.kind === 'invocation' && invocation.rootId === owner.rootId ? invocation : owner
+            await this.tasks.register(
+                {
+                    tenantId: child.tenantId,
+                    organizationId: child.organizationId,
+                    kind: 'execution',
+                    resourceId: executionId,
+                    executionId,
+                    threadId: child.threadId,
+                    parent: { version: 2, targetId: logicalParent.id },
+                    policy,
+                    drainOnPause: true
+                },
+                manager
+            )
         })
     }
 
@@ -131,6 +182,9 @@ export class ExecutionControlStore {
     }
 
     async shouldAbort(executionId: string) {
+        const task = await this.tasks.execution(executionId)
+        if (task && (task.currentExecutionId !== executionId || (await this.tasks.desired(task.id)) === 'terminated'))
+            return true
         const target = await this.database.getRepository(ExecutionControl).findOneBy({ executionId })
         if (!target) return false
         this.validate(target)
@@ -203,6 +257,13 @@ export class ExecutionControlStore {
 
     // A pause drains the current node, including its admitted tool group. Graph guards stop subsequent nodes.
     private async assertLive(manager: EntityManager, target: ExecutionControl) {
+        const task = await this.tasks.execution(target.executionId, manager)
+        if (
+            task &&
+            (task.currentExecutionId !== target.executionId ||
+                (await this.tasks.desired(task.id, manager)) === 'terminated')
+        )
+            this.reject(target.executionId)
         const ancestors = await manager.find(ExecutionControl, { where: { executionId: In(target.ancestors) } })
         const root = ancestors.find((record) => record.executionId === target.rootExecutionId)
         if (root?.ownership.policy === 'attached') {
