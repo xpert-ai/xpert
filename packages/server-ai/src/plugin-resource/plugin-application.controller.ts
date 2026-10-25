@@ -1,3 +1,4 @@
+import { applicationUpdateSchema, ApplicationUpdateInput } from './application-update/application-update.schema'
 import {
     applicationDetailQuerySchema,
     applicationScopeQuerySchema,
@@ -50,6 +51,22 @@ export class PluginApplicationController {
         query: ApplicationDetailQuery
     ) {
         return this.applications.getDetail(query.pluginName, query.appName, query.installationScope)
+    }
+
+    @Post('update')
+    update(
+        @Body(new ZodValidationPipe(applicationUpdateSchema, invalidApplicationInitializeRequest))
+        body: ApplicationUpdateInput
+    ) {
+        return this.applications.updateApplication(body)
+    }
+
+    @Get('update')
+    updateProgress(
+        @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationDetailQuery
+    ) {
+        return this.applications.updateProgress(query)
     }
 
     @Post('initialize')

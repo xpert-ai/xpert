@@ -1,3 +1,6 @@
+import { ApplicationDetailQuery } from './application-scope.schema'
+import { ApplicationUpdateService } from './application-update/application-update.service'
+import { ApplicationUpdateInput } from './application-update/application-update.schema'
 import { ApplicationAccessService } from './application-access.service'
 import { applicationInitializationAccess, applicationInstallationIdentity } from './application-scope'
 import { claimApplicationInstallation } from './application-installation-claim'
@@ -99,6 +102,9 @@ type ResolvedModel = {
  */
 @Injectable()
 export class PluginApplicationService {
+    @Inject(ApplicationUpdateService)
+    private readonly applicationUpdates: ApplicationUpdateService
+
     @Inject(PluginApplicationToolsetsService)
     private readonly applicationToolsets: PluginApplicationToolsetsService
 
@@ -135,11 +141,48 @@ export class PluginApplicationService {
         await this.applicationAccess.assertMembership()
         const resolved = this.resolveApplication(pluginName, appName, installationScope)
         return {
+            canUpdate:
+                this.applicationUpdates && applicationInitializationAccess(resolved.application) === 'allowed'
+                    ? await this.applicationUpdates.canUpdate(await this.findCurrentInstallation(resolved.application))
+                    : false,
             application: resolved.application,
             composition: applicationComposition(resolved.application),
             status: await this.getStatusForApplication(resolved.application),
             preflight: await this.getPreflightForApplication(resolved.application)
         }
+    }
+
+    async updateApplication(input: ApplicationUpdateInput) {
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(resolved.application)
+        const installation = await this.findCurrentInstallation(resolved.application)
+        if (!installation) throw new BadRequestException(t('server-ai:Error.ApplicationUpdateUnavailable'))
+        return this.applicationUpdates.update(
+            resolved.application,
+            installation,
+            resolved.pluginVersion,
+            input,
+            async () => {
+                // Keep the release active while checking health so initialization cannot race finalization.
+                const refreshed = await this.findCurrentInstallation(resolved.application)
+                refreshed.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
+                refreshed.errorCode = null
+                refreshed.errorMessage = null
+                const health = await this.refreshHealth(refreshed)
+                await this.installationRepo.update(
+                    { id: health.id, tenantId: health.tenantId, organizationId: health.organizationId },
+                    { status: health.status, errorCode: health.errorCode, errorMessage: health.errorMessage }
+                )
+            }
+        )
+    }
+
+    async updateProgress(input: ApplicationDetailQuery) {
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(resolved.application)
+        const installation = await this.findCurrentInstallation(resolved.application)
+        if (!installation) throw new BadRequestException(t('server-ai:Error.ApplicationUpdateUnavailable'))
+        return this.applicationUpdates.progress(installation)
     }
 
     /** Returns card-sized installation state for every App exposed by effective loaded plugins. */
@@ -668,7 +711,7 @@ export class PluginApplicationService {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'application_definition_missing'
             installation.errorMessage = 'The trusted plugin App definition is no longer available.'
-            return this.installationRepo.save(installation)
+            return this.saveHealth(installation)
         }
         const [workspaceExists, xpertExists, knowledgebaseExists] = await Promise.all([
             installation.workspaceId
@@ -722,7 +765,7 @@ export class PluginApplicationService {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'resource_missing'
             installation.errorMessage = 'One or more initialized App resources are missing.'
-            return this.installationRepo.save(installation)
+            return this.saveHealth(installation)
         }
         if (application.config.modelRequirements?.speechToText) {
             const assistant = await this.xpertRepo.findOne({
@@ -736,9 +779,27 @@ export class PluginApplicationService {
                 installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
                 installation.errorCode = 'speech_to_text_model_missing'
                 installation.errorMessage = t('server-ai:Error.ApplicationSpeechModelRequired')
-                return this.installationRepo.save(installation)
+                return this.saveHealth(installation)
             }
         }
+        return installation
+    }
+
+    private async saveHealth(installation: PluginApplicationInstallation) {
+        // Health reads must never overwrite a newer release checkpoint.
+        await this.installationRepo.update(
+            {
+                id: installation.id,
+                tenantId: installation.tenantId,
+                organizationId: installation.organizationId,
+                status: PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
+            },
+            {
+                status: installation.status,
+                errorCode: installation.errorCode,
+                errorMessage: installation.errorMessage
+            }
+        )
         return installation
     }
 

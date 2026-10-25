@@ -195,7 +195,7 @@ export class PluginApplicationSetupService {
             where: this.scope(application),
             lock: { mode: 'pessimistic_write' }
         })
-        if (!installation) this.conflict()
+        if (!installation || installation.updateRelease?.status === 'running') this.conflict()
         return installation
     }
 

@@ -1231,7 +1231,13 @@
         "ContentVersionConflict": "文档或文件已变化，请重新加载并核对当前版本。",
         "ContentEditorUnavailable": "文档编辑器插件不可用。",
         "ContentOperationInvalid": "文档操作参数无效。",
-        "ContentEditorWriteRequired": "此文件由协作编辑器管理，请通过文档提案或编辑器保存。"
+        "ContentEditorWriteRequired": "此文件由协作编辑器管理，请通过文档提案或编辑器保存。",
+        "ApplicationUpdateBusy": "此应用已有更新正在执行。",
+        "ApplicationUpdateUnavailable": "更新前需要原应用资源存在且具有编辑权限。",
+        "ApplicationUpdateStale": "应用范围或原实例已变化，请刷新并检查安装记录。",
+        "ApplicationUpdatePending": "请先续跑未完成的应用更新。",
+        "ApplicationUpdateFailed": "更新已停止，已完成步骤已保存。解决资源或权限问题后可续跑；若存在并发编辑或模板变化，需要先检查冲突。",
+        "ApplicationUpdateDraftPending": "套件包含未发布的草稿，请先发布或处理草稿，再更新应用。"
     },
     "Mcp": {
         "Test": {

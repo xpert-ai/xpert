@@ -20,6 +20,11 @@
                 "main": "packages/server-ai/src/index.ts",
                 "assets": [
                     {
+                        "glob": "src/plugin-resource/application-update/engine/*.cjs",
+                        "input": "packages/server-ai/",
+                        "output": "./"
+                    },
+                    {
                         "glob": "src/**/remote-components/*/app.{js,css}",
                         "input": "packages/server-ai/",
                         "output": "./",

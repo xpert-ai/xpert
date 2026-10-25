@@ -99,6 +99,12 @@
                   {{ 'XP.Explore.Application.ViewSetupDetails' | translate: { Default: 'View setup details' } }}
                 </button>
               </div>
+              @if (appDetail.canUpdate) {
+                <xp-application-update
+                  [application]="applicationInput()"
+                  [suite]="appDetail.application.config.assistantSuite"
+                />
+              }
             </div>
           </header>
 

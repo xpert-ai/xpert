@@ -1231,7 +1231,13 @@
         "ContentVersionConflict": "The document or file changed. Reload and review the current version.",
         "ContentEditorUnavailable": "The document editor plugin is unavailable.",
         "ContentOperationInvalid": "Invalid document operation.",
-        "ContentEditorWriteRequired": "This file is managed by a collaborative editor. Use a document proposal or the editor to save."
+        "ContentEditorWriteRequired": "This file is managed by a collaborative editor. Use a document proposal or the editor to save.",
+        "ApplicationUpdateBusy": "Another update is running for this application.",
+        "ApplicationUpdateUnavailable": "The original application resources must be available and editable before updating.",
+        "ApplicationUpdateStale": "The application scope or original instances have changed. Refresh and inspect the installation.",
+        "ApplicationUpdatePending": "Resume the unfinished application update before starting another.",
+        "ApplicationUpdateFailed": "The update stopped. Completed steps are saved. Resume after resolving the resource or permission issue; concurrent edits or changed templates require review.",
+        "ApplicationUpdateDraftPending": "The suite contains unpublished drafts. Publish or resolve them before updating the application."
     },
     "Mcp": {
         "Test": {

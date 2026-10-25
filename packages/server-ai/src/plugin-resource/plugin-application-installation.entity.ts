@@ -1,3 +1,4 @@
+import { applicationReleaseSchema, type ApplicationRelease } from './application-update/application-update.schema'
 import {
     IPluginApplicationInstallation,
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
@@ -25,6 +26,16 @@ export class PluginApplicationInstallation
     extends TenantOrganizationBaseEntity
     implements IPluginApplicationInstallation
 {
+    @Column({
+        type: 'jsonb',
+        nullable: true,
+        transformer: {
+            to: (value: ApplicationRelease | null) => value,
+            from: (value: unknown) => (value == null ? null : applicationReleaseSchema.parse(value))
+        }
+    })
+    updateRelease?: ApplicationRelease | null
+
     @Column()
     pluginName: string
 
