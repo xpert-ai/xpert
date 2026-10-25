@@ -7,6 +7,7 @@ const { randomBytes, createHash } = require('node:crypto')
 const ts = require('typescript')
 const { DataSource, EntitySchema } = require('typeorm')
 const { verifyLegacyAdoption } = require('./schema-migration-legacy-fixture.cjs')
+const { seedContentDocuments, verifyContentDocuments } = require('./schema-migration-content-fixture.cjs')
 const root = path.resolve(__dirname, '../..')
 const silent = {
   log() {},
@@ -373,6 +374,7 @@ async function main() {
     await synchronizeWithMigrations(host, hostBundle)
     await synchronizeWithMigrations(host, hostBundle)
     await synchronizeWithMigrations(host, hostBundle, 'verify')
+    await verifyContentDocuments(host, hostBundle, synchronizeWithMigrations, root)
     for (const environment of ['development', 'production']) {
       const previous = process.env.NODE_ENV
       process.env.NODE_ENV = environment
@@ -408,6 +410,48 @@ async function main() {
     )
     console.log(
       'PASS complete host installation and adoption, repeat synchronization, packaged SQL discovery and Pipeline drift rejection'
+    )
+
+    // Reproduce production: previous release has no content entities/tables, then an emergency SQL repair.
+    const contentMigration = hostBundle.migrations.find((item) => item.id.startsWith('ai.content-documents.'))
+    assert.ok(contentMigration, 'content migration must be discovered in packaged assets')
+    const contentTables = [
+      'content_document',
+      'content_revision',
+      'content_proposal',
+      'content_comment',
+      'content_location_change'
+    ]
+    const previousBundle = {
+      ...hostBundle,
+      managedTables: hostBundle.managedTables.filter((table) => !contentTables.includes(table)),
+      migrations: hostBundle.migrations.filter((item) => item !== contentMigration),
+      checks: hostBundle.checks.filter((check) => check !== contentMigration.check)
+    }
+    await admin.query('CREATE DATABASE content_repair')
+    const priorEntities = [...coreEntities, ...ALL_AI_ENTITIES].filter(
+      (entity) => !contentTables.includes(host.getMetadata(entity).tableName)
+    )
+    const prior = await connect(priorEntities, 'content_repair')
+    await synchronizeWithMigrations(prior, previousBundle)
+    assert.equal((await prior.query("SELECT to_regclass('content_document') AS name"))[0].name, null)
+    const emergencySql = await fs.readFile(
+      path.join(root, 'packages/server-ai/src/content-resource/documents/migrations/20261021_content_documents.sql'),
+      'utf8'
+    )
+    await prior.query(emergencySql)
+    await seedContentDocuments(prior)
+    const repairedRows = await prior.query('SELECT to_jsonb(d) AS row FROM content_document d ORDER BY id')
+    const repaired = await connect([...coreEntities, ...ALL_AI_ENTITIES], 'content_repair')
+    await synchronizeWithMigrations(repaired, hostBundle)
+    await synchronizeWithMigrations(repaired, hostBundle, 'verify')
+    assert.deepEqual(
+      await repaired.query('SELECT to_jsonb(d) AS row FROM content_document d ORDER BY id'),
+      repairedRows
+    )
+    await verifyContentDocuments(repaired, hostBundle, synchronizeWithMigrations, root)
+    console.log(
+      'PASS prior production release -> emergency repair -> registered migration preserves existing documents'
     )
 
     // Reconstruct the pre-runner deployment path, independently of the new baseline SQL.
