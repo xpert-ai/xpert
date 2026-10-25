@@ -1,3 +1,4 @@
+import { withMcpPublicationAuthority } from '../mcp-consumer/execution/mcp-operation-authority'
 // Invariants: delayed calls recheck publication, binding, and user membership before restoring host APIs.
 import {
     canAllowMcpToolDirectly,
@@ -71,7 +72,7 @@ export class McpTaskExecutionService {
                     ...(principal.organizationId ? { 'organization-id': principal.organizationId } : {})
                 }
             },
-            () => execute(runtime)
+            () => withMcpPublicationAuthority(principal, () => execute(runtime))
         )
     }
 }

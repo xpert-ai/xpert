@@ -67,7 +67,6 @@
         "TenantSettingsLookupFailed": "Tenant settings lookup failed",
         "RetentionPreviewExpired": "The preview has expired or is unavailable. Preview the cleanup again.",
         "RetentionCleanupInvalid": "Select a valid past time range and preview it before confirming cleanup.",
-
         "AnalyticsDefinitionInvalid": "Analytics definition is unavailable or invalid",
         "AnalyticsDefinitionConflict": "A newer version was published. Reload before publishing again.",
         "AnalyticsDefinitionUnavailable": "Analytics definition is unavailable.",
@@ -1202,7 +1201,10 @@
         "ArtifactPresentationInputInvalid": "Invalid presentation request.",
         "ProviderCredentialSchemaMissing": "This provider has no credential schema.",
         "ProviderCredentialTargetRequired": "Select an available model type and enter a model or Endpoint ID to verify these credentials.",
-        "ProviderCredentialCheckInvalid": "Invalid credential verification request."
+        "ProviderCredentialCheckInvalid": "Invalid credential verification request.",
+        "McpOperationIdentityRequired": "A stable operation key is required for this MCP call.",
+        "McpControlPending": "The operation is still being confirmed.",
+        "McpControlUnavailable": "The original operation cannot currently be confirmed."
     },
     "Mcp": {
         "Test": {

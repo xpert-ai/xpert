@@ -78,12 +78,19 @@ export class ExecutionControlStore {
             )
         }
         const activeTask = await this.tasks.execution(executionId, manager)
-        if (activeTask.state === 'queued') await this.tasks.receipt(activeTask.id, 'running', undefined, manager)
+        if (activeTask.state === 'queued' || activeTask.state === 'paused')
+            await this.tasks.receipt(activeTask.id, 'running', undefined, manager)
         return record
     }
 
     /** The caller has already authorized the exact thread and holds its writer lock. */
-    async intent(manager: EntityManager, executionId: string, desired: TExecutionControlIntent, updateTask = true) {
+    async intent(
+        manager: EntityManager,
+        executionId: string,
+        desired: TExecutionControlIntent,
+        updateTask = true,
+        reopenInput = false
+    ) {
         const record = await this.lock(manager, executionId)
         const task = updateTask ? await this.tasks.execution(executionId, manager) : null
         if (task) await this.tasks.change(task.id, desired, manager)
@@ -92,10 +99,10 @@ export class ExecutionControlStore {
             if (desired !== 'terminated') this.reject(executionId)
             return
         }
-        if (record.target.desired !== desired || (desired === 'running' && record.target.graphEnded)) {
+        if (record.target.desired !== desired || ((desired === 'running' || reopenInput) && record.target.graphEnded)) {
             record.target.desired = desired
             record.target.revision++
-            if (desired === 'running') record.target.graphEnded = false
+            if (desired === 'running' || reopenInput) record.target.graphEnded = false
             await manager.save(record.target)
         }
     }

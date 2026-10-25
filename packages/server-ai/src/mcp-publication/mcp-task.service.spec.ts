@@ -1,3 +1,14 @@
+import { TaskControlStore } from '@xpert-ai/server-core'
+import { McpTaskControlStore } from './control/mcp-task-control.store'
+import { mcpTestDatabase } from './testing/database'
+import {
+    taskInput,
+    publication,
+    principal,
+    createTaskSubscriptions,
+    taskExecution,
+    waitUntil
+} from './testing/fixtures'
 import { McpTaskExecutionService } from './mcp-task-execution.service'
 import { MCP_CAPABILITY_DESCRIPTOR_VERSION, type McpPrincipal } from '@xpert-ai/contracts'
 import type { ManagedQueueService, ToolInputRequest } from '@xpert-ai/plugin-sdk'
@@ -8,17 +19,29 @@ import { McpElicitationService } from './mcp-elicitation.service'
 import { McpTaskService } from './mcp-task.service'
 import { McpSubscriptionService } from './mcp-subscription.service'
 
-describe('McpTaskService', () => {
-    let stored: McpTask[]
+const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
+const integration = url ? describe : describe.skip
+integration('McpTaskService / PostgreSQL', () => {
+    let database: Awaited<ReturnType<typeof mcpTestDatabase>>
+    let control: McpTaskControlStore
+    const instances: McpTaskService[] = []
+    beforeAll(async () => {
+        database = await mcpTestDatabase(url)
+    })
+    afterEach(() => {
+        for (const instance of instances.splice(0)) instance.onModuleDestroy()
+    })
+    afterAll(async () => database?.close())
     let repository: Repository<McpTask>
     let queue: jest.Mocked<Pick<ManagedQueueService, 'enqueue' | 'cancel' | 'getExecutionPoolHealth'>>
     let runtime: jest.Mocked<Pick<ToolRuntimeService, 'executeTool'>>
     let subscriptions: McpSubscriptionService
     let service: McpTaskService
 
-    beforeEach(() => {
-        stored = []
-        repository = createTaskRepository(stored)
+    beforeEach(async () => {
+        await database.db.query('TRUNCATE mcp_task, execution_task_control, execution_task_publication')
+        repository = database.db.getRepository(McpTask)
+        control = new McpTaskControlStore(repository, new TaskControlStore(database.db))
         queue = {
             enqueue: jest.fn().mockImplementation(async (input) => ({ jobId: input.jobId ?? 'generated-job' })),
             cancel: jest.fn().mockResolvedValue({ success: true, jobId: 'job' }),
@@ -54,8 +77,10 @@ describe('McpTaskService', () => {
             runtime as unknown as ToolRuntimeService,
             elicitation as unknown as McpElicitationService,
             subscriptions,
-            taskExecution()
+            taskExecution(),
+            control
         )
+        instances.push(service)
     })
 
     it.each([true, false, undefined])(
@@ -65,7 +90,7 @@ describe('McpTaskService', () => {
             const payload = queue.enqueue.mock.calls[0][0].payload
             expect(payload).toMatchObject({ approvalGranted: approvalGranted === true })
             await service.process(payload)
-            expect(stored[0].status).toBe('completed')
+            expect((await repository.find())[0].status).toBe('completed')
         }
     )
 
@@ -73,7 +98,7 @@ describe('McpTaskService', () => {
         const result = await service.create(taskInput())
 
         expect(result).toMatchObject({ resultType: 'task', status: 'working' })
-        expect(stored).toHaveLength(1)
+        expect(await repository.count()).toBe(1)
         expect(queue.enqueue).toHaveBeenCalledTimes(1)
 
         const payload = queue.enqueue.mock.calls[0][0].payload
@@ -140,7 +165,11 @@ describe('McpTaskService', () => {
         const created = await service.create(taskInput())
         const payload = queue.enqueue.mock.calls[0][0].payload
 
-        await service.process(payload)
+        const processing = service.process(payload)
+        for (let i = 0; i < 100; i++) {
+            if ((await service.get(publication(), principal(), created.taskId)).status === 'input_required') break
+            await new Promise((resolve) => setTimeout(resolve, 10))
+        }
         const waiting = await service.get(publication(), principal(), created.taskId)
         expect(waiting.status).toBe('input_required')
         const inputRequests = waiting.inputRequests
@@ -150,14 +179,14 @@ describe('McpTaskService', () => {
         await service.update(publication(), principal(), created.taskId, {
             [inputKey]: { action: 'accept', content: { approved: true } }
         })
-        expect(queue.enqueue).toHaveBeenCalledTimes(2)
-        await service.process(queue.enqueue.mock.calls[1][0].payload)
+        expect(queue.enqueue).toHaveBeenCalledTimes(1)
+        await processing
 
         await expect(service.get(publication(), principal(), created.taskId)).resolves.toMatchObject({
             status: 'completed',
             result: { structuredContent: { input: { approved: true } } }
         })
-        expect(stored).toHaveLength(1)
+        expect(await repository.count()).toBe(1)
     })
 
     it('fails a task instead of persisting an oversized result', async () => {
@@ -253,8 +282,10 @@ describe('McpTaskService', () => {
                 normalizeRequest: (request: ToolInputRequest) => request
             } as unknown as McpElicitationService,
             subscriptions,
-            taskExecution()
+            taskExecution(),
+            control
         )
+        instances.push(cancellingApi)
         await cancellingApi.cancel(publication(), principal(), created.taskId)
         await processing
 
@@ -264,143 +295,3 @@ describe('McpTaskService', () => {
         })
     })
 })
-
-function taskInput(overrides?: {
-    arguments?: unknown
-    appResourceUri?: string
-    principal?: McpPrincipal
-    requestId?: string
-    rpcRequestId?: string | number
-}) {
-    return {
-        publication: publication(),
-        principal: overrides?.principal ?? principal(),
-        capability: capability(),
-        arguments: overrides?.arguments ?? { value: 'original' },
-        requestId: overrides?.requestId ?? 'rpc-request-1',
-        rpcRequestId: overrides?.rpcRequestId ?? 1,
-        executionId: '20000000-0000-4000-8000-000000000001',
-        ...(overrides?.appResourceUri ? { appResourceUri: overrides.appResourceUri } : {})
-    }
-}
-
-function publication() {
-    return Object.assign(new McpPublication(), {
-        id: '10000000-0000-4000-8000-000000000001',
-        tenantId: '10000000-0000-4000-8000-000000000002',
-        organizationId: '10000000-0000-4000-8000-000000000003',
-        slug: 'test-publication'
-    })
-}
-
-function capability() {
-    return Object.assign(new McpPublicationCapability(), {
-        id: '10000000-0000-4000-8000-000000000005',
-        toolsetId: '10000000-0000-4000-8000-000000000006',
-        capabilityKey: 'long_task',
-        publicName: 'long_task',
-        descriptorSnapshot: {
-            descriptorVersion: MCP_CAPABILITY_DESCRIPTOR_VERSION,
-            capabilityType: 'tool',
-            capabilityKey: 'long_task',
-            inputSchema: { type: 'object' },
-            behavior: { risk: 'write', sideEffect: 'reversible', idempotency: 'idempotent' },
-            taskMode: 'required',
-            requiredContext: ['workspace', 'principal', 'execution'],
-            visibility: ['model'],
-            source: {
-                toolsetId: '10000000-0000-4000-8000-000000000006',
-                serverName: 'third-party',
-                remoteName: 'long_task'
-            }
-        }
-    })
-}
-
-function principal(subjectId = '10000000-0000-4000-8000-000000000007'): McpPrincipal {
-    return {
-        authMethod: 'api_key',
-        subjectType: 'user',
-        subjectId,
-        userId: subjectId,
-        tenantId: '10000000-0000-4000-8000-000000000002',
-        organizationId: '10000000-0000-4000-8000-000000000003',
-        publicationId: '10000000-0000-4000-8000-000000000001',
-        scopes: ['tools:call']
-    }
-}
-
-function createTaskSubscriptions(): McpSubscriptionService {
-    const listeners = new Map<string, Set<(taskId: string) => void>>()
-    return {
-        eventsApi: () => ({ emit: jest.fn() }),
-        publishTaskUpdated: (publicationId: string, taskId: string) => {
-            for (const listener of listeners.get(publicationId) ?? []) listener(taskId)
-        },
-        subscribeTasks: (publicationId: string, listener: (taskId: string) => void) => {
-            let publicationListeners = listeners.get(publicationId)
-            if (!publicationListeners) {
-                publicationListeners = new Set()
-                listeners.set(publicationId, publicationListeners)
-            }
-            publicationListeners.add(listener)
-            return () => {
-                publicationListeners?.delete(listener)
-                if (!publicationListeners?.size) listeners.delete(publicationId)
-            }
-        }
-    } as unknown as McpSubscriptionService
-}
-
-async function waitUntil(predicate: () => boolean) {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-        if (predicate()) return
-        await new Promise<void>((resolve) => setImmediate(resolve))
-    }
-    throw new Error('Timed out waiting for MCP task execution')
-}
-
-function createTaskRepository(stored: McpTask[]): Repository<McpTask> {
-    const repository = {
-        create: (input: object) => Object.assign(new McpTask(), input),
-        save: async (task: McpTask) => {
-            const now = new Date()
-            task.createdAt ??= now
-            task.updatedAt = now
-            const index = stored.findIndex((item) => item.taskId === task.taskId)
-            if (index === -1) stored.push(task)
-            else stored[index] = task
-            return task
-        },
-        createQueryBuilder: () => {
-            const parameters: Record<string, string> = {}
-            const builder = {
-                addSelect: () => builder,
-                where: (_query: string, values: Record<string, string>) => {
-                    Object.assign(parameters, values)
-                    return builder
-                },
-                andWhere: (_query: string, values: Record<string, string>) => {
-                    Object.assign(parameters, values)
-                    return builder
-                },
-                getOne: async () =>
-                    stored.find((task) =>
-                        parameters.taskId
-                            ? task.taskId === parameters.taskId &&
-                              (!parameters.publicationId || task.publicationId === parameters.publicationId)
-                            : task.publicationId === parameters.publicationId &&
-                              task.idempotencyKey === parameters.idempotencyKey
-                    ) ?? null
-            }
-            return builder
-        }
-    }
-    return repository as unknown as Repository<McpTask>
-}
-
-function taskExecution(): McpTaskExecutionService {
-    const service = Object.create(McpTaskExecutionService.prototype) as McpTaskExecutionService
-    service.run = async (_task, payload, execute) => execute(payload.runtime ?? null)
-    return service
-}

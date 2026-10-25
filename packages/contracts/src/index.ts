@@ -133,3 +133,7 @@ export * from './artifact-presentation.model'
 export * from './analytics-definition.model'
 
 export * from './data-retention.model'
+
+export * from './ai/mcp-execution-control.schema'
+export * from './ai/mcp-operation.model'
+export * from './ai/mcp-task.schema'

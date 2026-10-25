@@ -5,12 +5,12 @@ import { NodeInterrupt } from '@langchain/langgraph'
 
 export function installThreadPauseGuards<Input, Output>(
     nodes: Record<string, { runnable: Runnable<Input, Output> }>,
-    shouldPause?: () => Promise<boolean>
+    shouldPause?: (nodeKey?: string) => Promise<boolean>
 ): void {
     if (!shouldPause) return
-    for (const node of Object.values(nodes)) {
+    for (const [key, node] of Object.entries(nodes)) {
         node.runnable = RunnableLambda.from(async (input: Input) => {
-            if (await shouldPause()) throw new NodeInterrupt({ type: 'thread_pause' })
+            if (await shouldPause(key)) throw new NodeInterrupt({ type: 'thread_pause' })
             return input
         }).pipe(node.runnable)
     }

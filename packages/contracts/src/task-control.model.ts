@@ -4,7 +4,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 export type TaskControlRef = { version: 2; targetId: string }
 export type TaskControlPolicy = 'attached' | 'detached' | 'shared'
 export type TaskControlIntent = 'running' | 'paused' | 'terminated'
-export type TaskControlKind = 'execution' | 'invocation' | 'handoff' | 'managed-queue' | 'desktop-shell' | 'sandbox-job' | 'sandbox-callback'
+export type TaskControlKind = 'execution' | 'invocation' | 'handoff' | 'managed-queue' | 'desktop-shell' | 'sandbox-job' | 'sandbox-callback' | 'mcp-publication' | 'mcp-operation'
 export type TaskControlState = 'queued' | 'running' | 'paused' | 'completed' | 'unknown'
 
 /** Durable task identity and control facts, independent of a particular graph attempt. */

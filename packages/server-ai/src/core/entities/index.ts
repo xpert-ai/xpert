@@ -1,3 +1,4 @@
+import { McpRemoteOperation } from '../../mcp-consumer/execution/mcp-operation.entity'
 import { ExecutionControl } from '../../execution-control/execution-control.entity'
 import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
@@ -221,6 +222,7 @@ export const ALL_AI_ENTITIES = [
     KnowledgeDocumentPublicationAttempt,
     KnowledgeDocumentPublicationAttemptSource,
     ...MCP_PUBLICATION_ENTITIES,
+    McpRemoteOperation,
     KnowledgeIdentity,
     KnowledgeIdentityObservation,
     KnowledgeWikiJob,

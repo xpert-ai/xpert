@@ -21,6 +21,7 @@ export const connectionScope = z
     .strict() as z.ZodType<Omit<McpClientScope, 'signal'>>
 export const callRequest = z
     .object({
+        operationKey: z.string().min(1).max(191).optional(),
         toolName: z.string().min(1).max(256),
         contractHash: z.string().regex(/^[a-f0-9]{64}$/),
         arguments: jsonObject

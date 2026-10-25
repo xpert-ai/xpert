@@ -2,7 +2,7 @@
 
 本文维护会话执行控制的**已实现功能**，供后端开发、测试和后续功能迭代使用。后续阶段完成后继续更新本文；尚未实现的设计保留在[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)中。
 
-当前审核阶段：**第五批——Sandbox 持久控制与执行、宿主回调收尾（3.3.1）**。Xpert 前四批已提交（`a6b9b85a9e`、`7eb273ccb`、`94bc86fb6`、`4820bf36b`）；本批仅整理 Xpert，待审核提交。Pro 配套改动留待 Xpert 审核完成后处理，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
+当前审核阶段：**第六批——MCP 双端持久控制与输入续接（3.3.2）**。Xpert 前五批已提交，最近一批为 `47c4d1701`；本批待审核提交。Pro 配套改动留待 Xpert 审核完成后处理，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
 
 ## 模块与契约边界
 
@@ -356,7 +356,7 @@ Desktop 的旧操作若仍为 `unknown` 且没有完整收尾证据，服务端�
 - 运行时插件通过 Nx 源码验证和 dist-first plugin-dev-harness；使用真实已安装 Claude SDK 验证自定义 spawn 接线，使用受控 CLI 协议替身及真实 OS 进程验证 Codex/Pi/Claude 收尾。这不等于已验收所有供应商 CLI 的真实模型/外部工具组合。
 - 同时回归前两阶段及 3.1 的 PostgreSQL / Redis / LangGraph：暂停恢复、父子暂停互等、终止后旧执行禁止恢复、独立/共享根隔离、队列领取和 Pipeline 实际收尾后释放。
 
-Sandbox 的实现见下文 3.3.1；MCP 双端控制属于后续批次。管理员调试界面仍待后续实现。ChatKit 没有新增技术细节界面或 patch。
+Sandbox 的实现见下文 3.3.1；MCP 双端控制见下文 3.3.2。管理员调试界面仍待后续实现。ChatKit 没有新增技术细节界面或 patch。
 
 ## 第三阶段 3.3.1：Sandbox Job 与宿主回调收尾
 
@@ -415,7 +415,84 @@ Runtime 已退出、实际宿主工作已结束、attached 子树已收尾，三
 - [公共 API 数据库回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-api.postgres.spec.ts)覆盖并发 `run()`、真实文件 materialize、迟到 create 和未响应取消的 callback；[控制数据库回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-control.integration.spec.ts)覆盖原目标补送、容量、显式重试、父子暂停互等、回执补写、独立/共享根与迁移；[两个 OS 进程回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-host.postgres.spec.ts)验证无通知通道时只启动一次并等待真实 callback 返回。
 - 原阶段实现曾完成真实 Linux 子进程监督、Docker 容器及 NsJail HTTP/cgroup 控制验证；这些是历史验收记录，不替代当前分批快照的验证。本次仅重新审核 Xpert；Pro Docker 配套后续单独审核，Document 全部办公/媒体镜像及此前暂缓的产品验证不在本批重跑范围内。
 - 本批按已审核的 `server/task-control`、contracts 接口及显式模块依赖重新整理，并保留 SDK 独立监督程序。Pro 公共宿主及 Provider 的配套改动不纳入本批；完成 Xpert 分层审核后再处理，不能据本批宣称 Pro 全链路已通过审核。
-- 任意外部副作用无法回滚；本批保证唯一准入、禁止自动重放及证据不足时不释放，不能声称通用 exactly-once。MCP 仍属于 3.3.2。本批待审核提交，未部署，ChatKit patch 未纳入。
+- 任意外部副作用无法回滚；本批保证唯一准入、禁止自动重放及证据不足时不释放，不能声称通用 exactly-once。MCP 的后续实现见 3.3.2。Sandbox 的 Xpert 改动已提交为 `47c4d1701`，未部署，ChatKit patch 未纳入。
+
+## 第三阶段 3.3.2：MCP 双端持久控制与输入续接
+
+### 用户可见行为
+
+停止会先阻止旧执行继续推进，然后持续向原任务补送终止；工具或所属子任务尚未结束时不会提前确认完成。暂停允许已准入调用安全收尾，并在检查点继续。需要输入的 MCP 任务保留原会话归属，输入后沿用原任务，不重新执行已经发生的写操作。ChatKit 继续使用简短状态和按钮，代次、控制重试和收尾证据保留在后端。
+
+```mermaid
+sequenceDiagram
+    participant C as 主会话
+    participant O as 消费方持久 operation
+    participant P as 发布方持久 Task
+    participant H as 原 handler 与 attached 子任务
+    C->>O: 登记稳定调用身份及归属
+    O->>P: 唯一创建请求
+    P->>H: 唯一领取并执行
+    C->>O: 先保存终止屏障
+    loop 控制丢失或仍未收尾
+        O->>P: 查询或补送原代次控制
+        P->>H: 轮询持久意图并请求停止
+        P-->>O: pending；不确认结束
+    end
+    H-->>P: handler 与 attached 子树实际收尾
+    P-->>O: 匹配原服务、operation、generation 的回执
+    O-->>C: 允许最终收尾
+```
+
+### 发布方：一次准入、持续控制、原执行续接
+
+- `mcp_task.control` 保存目标、代次、原宿主、领取标识、实际 handler 退出及收尾阶段。与 TaskControl 注册在同一事务完成；入队通过持久发布记录补送。队列消息只是唤醒提示，实际输入读取已授权的数据库快照。
+- 根锁后再锁 Task，唯一领取不能因超时或宿主失联而重新获得执行资格。重复投递和并发领取最多进入一次 handler；旧代次及不匹配的输入摘要拒绝。
+- 终止先写数据库，再通知队列与本地 signal。原宿主轮询补收控制。`cancel` 的成功响应仅表示接受；只有原 handler Promise 已退出、attached 子树也完成，才写入协议终态及完整收尾回执。
+- `input.request` 保存唯一输入请求，在原 Promise 内等待数据库响应。`tasks/update` 仅保存去重后的回答，不重新入队或重跑 handler。继续前重新校验执行权限，输入提交和终止使用同一控制锁。
+- TTL 不删除控制墓碑。历史 `control IS NULL` Task 只能按旧数据读取，不伪造退出证据、不自动重投、不通过补充输入重跑。
+
+### 消费方：稳定身份与补送
+
+`mcp_remote_operation` 在业务请求发出前记录归属、输入摘要、原连接修订、协议能力、原服务及代次。受控调用必须提供稳定 `operationKey`；LangChain 使用原 tool-call ID，ToolRuntime 使用 request ID，宿主 MCP API 显式传递该字段。相同身份只观察原任务，输入变化或连接修订变化会拒绝。
+
+独占发送资格一旦使用，补偿器只能查询、提交已保存的输入响应或停止原任务，不能调用 `tools/call`。句柄、结果或退出回执写库暂时失败时，原宿主保留待写内容，重试保存而不重执行业务。投递租约避免副本间叠加控制请求；失败退避为 1–30 秒。
+
+同平台显式协商 `ai.xpert/execution-control` v1，通过 `xpert/tasks/control` 查询或终止。回执核验原 publication、operation、generation 和已有 task ID；请求也绑定主体、租户组织、工具及输入摘要。无句柄终止先在发布方建立不可逆屏障，迟到创建不能越过；单次“未找到”只表示 unknown。
+
+控制补送只使用原连接及原凭据引用。当前业务访问撤销后，结果读取和输入被拒绝；停止使用仅限原任务的宿主能力，响应不携带业务结果。失去本地连接时，仅允许对已保存、版本匹配的 HTTP 连接重新建立控制客户端；不启动其他 stdio 项目，不加载插件管理的动态连接。凭据或原配置不可用时保留待确认，不转发到修改后的地址。
+
+授权继续使用原业务来源：Assistant 的运行授权、Publication 的用户/服务账号授权或管理侧工作空间授权，不能把运行用户误当作空间作者。后台经类型化 CQRS 在原业务域复核；服务账号不伪造用户身份。
+
+初始工具参数和裸凭据不写入消费方控制账本。输入回答、工具结果和任务快照属于业务数据，按原租户、组织、主体与工作空间权限读取；它们不属于可向客户端公开的诊断信息。
+
+
+`McpRemoteOperation` 继承 `TenantOrganizationBaseEntity` 并实现 contracts 中的 `IMcpRemoteOperation`；记录、归属、授权来源与任务快照类型也由 contracts 统一定义。沿用原 operation ID 作为继承的唯一主键，不重新生成恢复身份；租户与组织关系、审计字段来自基类。登记仍要求明确租户。迁移兼容已有表并保留代次、输入响应与回执，历史审计时间为迁移时间，未知操作人留空；审计字段不替代控制版本和收尾证据。
+
+### 会话桥接、暂停与终止
+
+内部 `input_wait` 保留原 execution 与 TaskControl 归属，避免图中断后丢失远端任务；再次输入只允许恢复同一执行。暂停时仅允许保存检查点明确标识的输入节点完成必要收尾，后续节点仍暂停。输入等待前后发起暂停均已验证，父子不会因相互等待而阻塞必要收尾。
+
+图执行自然结束但 attached 远端工作尚未收尾时，内部 `settling` 保存待提交的会话结果，维持处理中。补偿确认子树收尾后再提交原结果。终止永久封闭旧执行与输入恢复；迟到结果不会恢复资格或进入下一节点。独立/共享任务沿用自己的控制根，本会话停止等待不会终止它们。
+
+### 兼容及未覆盖能力
+
+- 第三方任务仍使用其真实协议。`cancelled`、404、断连、TTL 到期以及取消 ack 都不构成强退出证明；已知句柄可重复补送，证据不足继续待确认。
+- 同步 MCP 调用自然返回可确认该调用返回；超时或断连不能确认远端退出。未显式登记的远端后台工作不在本轮收尾证明内。
+- 不恢复任意 JavaScript 栈。原 handler 宿主消失且没有真实退出证据时保持 pending/unknown，不接管后重跑。标准同步 elicitation 不具备本批 task 输入续接保证。
+- 不强杀共享 stdio 服务、不提供通用 exactly-once、不回滚外部已发生的副作用；管理员诊断界面及全平台配额改造留待后续。
+- 本次仅整理 Xpert 的 MCP 发布方与消费方；Pro 公共实现、受控队列及会话控制桥在完成 Xpert 分批审核后单独处理，不纳入本批。
+
+### 迁移与验证入口
+
+未来启用前应用 [MCP 幂等 SQL 迁移](../packages/server-ai/src/mcp-consumer/execution/migrations/20261024-mcp-execution-control.sql)，前置包括 `packages/server/src/task-control/migration.sql` 与 `packages/server-ai/src/execution-control/migration.sql`。协调更新 Host、消费方、发布方和 SDK；旧 worker 不能进入同一新控制链。迁移在隔离库连续运行两次验证，不删除历史记录或补造证据；未收尾记录及防重放墓碑不做 TTL 清理。本次没有在业务环境应用迁移。
+
+回归入口：
+
+- 发布方 `mcp-publication/control/mcp-task-control.postgres.spec.ts`、`mcp-task-durability.postgres.spec.ts`：取消丢失、真实退出、并发领取、无句柄屏障、输入副作用一次、父子收尾、独立任务、旧代次、数据库/队列故障与迁移。
+- 消费方 `mcp-consumer/execution/*.postgres.spec.ts`：真实 HTTP 双端与 PostgreSQL、输入 LangGraph 中断/恢复、原服务重新连接、权限撤销、协议边界、迟到回执和第三方弱证据。
+- `mcp-control-wiring.spec.ts` 与 `invoke-input.handler.spec.ts`：CQRS/DI 及实际业务桥；现有 runtime/tasks/publication 测试验证兼容。
+- `thread-run-control.integration.spec.ts` 与 `task-control-workers.integration.spec.ts`：真实 PostgreSQL/Redis、两个独立 OS 队列 worker 验证取消补收和唯一准入。MCP HTTP 双端测试使用隔离服务实例；独立 OS worker 用例验证其共用队列控制层，两者不能混称同一部署验收。
+- 既有 Sandbox Job 控制、宿主回调与容量回归验证共享 TaskControl 未退化。未连接生产 MCP 或部署真实业务流程。
 
 ## 功能演进记录
 
@@ -425,11 +502,12 @@ Runtime 已退出、实际宿主工作已结束、attached 子树已收尾，三
 | 第二阶段 | 2026-10-23 | 稳定任务身份、跨线程原生任务、Invocation 控制、受控队列和结果限制 | 已提交 `7eb273ccb`；未部署 |
 | 第三阶段 3.1 | 2026-10-23 | 类型化收尾证据、Pipeline / Project / 群业务桥接及准入限制 | 已提交 `94bc86fb6`；未部署 |
 | 第三阶段 3.2 | 2026-10-24 | 原宿主补送、执行代次、Linux 后代监督、Desktop/Computer 收尾及远端取消保护 | Xpert 已提交 `4820bf36b`；Pro 配套待审核；未部署 |
-| 第三阶段 3.3.1 | 2026-10-24 | Sandbox 持久控制、代次隔离、宿主 callback 收尾、容量账本、Local/NsJail 证据 | 第五批 Xpert 待审核；Pro 后续单独审核；未部署 |
+| 第三阶段 3.3.1 | 2026-10-24 | Sandbox 持久控制、代次隔离、宿主 callback 收尾、容量账本、Local/NsJail 证据 | Xpert 已提交 `47c4d1701`；Pro 后续单独审核；未部署 |
+| 第三阶段 3.3.2 | 2026-10-24 | MCP 双端持久控制、唯一领取、输入续接、会话收尾桥与控制协议 | 第六批 Xpert 待审核；Pro 后续单独审核；未部署 |
 
 后续阶段完成后，在本文补充对应功能章节并追加本表，同时更新“功能范围”、接口状态、兼容要求及回归入口。每次补充说明实际接入的执行器、暂停与终止的确认条件、失败或未知状态如何处理，以及验证范围；不要仅把计划中的能力改成“已支持”。
 
-未接入队列、缺少可靠证据的远端 Runtime、MCP 的实际退出确认，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
+未接入队列、缺少可靠证据的第三方 Runtime/MCP，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
 
 ### 模块与契约分层
 

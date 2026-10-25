@@ -109,7 +109,9 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             }
             const stopping = await this.threads
                 .createQueryBuilder('thread')
-                .where("thread.runControl ->> 'state' IN (:...states)", { states: ['terminating', 'pausing'] })
+                .where("thread.runControl ->> 'state' IN (:...states)", {
+                    states: ['terminating', 'pausing', 'settling']
+                })
                 .take(50)
                 .getMany()
             for (const thread of stopping) {
@@ -155,7 +157,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 !['busy', 'pausing'].includes(thread.status)
             )
                 return null
-            if (thread.runControl?.state === 'terminating') return null
+            if (['terminating', 'settling', 'input_wait'].includes(thread.runControl?.state)) return null
             await this.controls.intent(manager, lease.executionId, 'terminated')
             if (!(await this.controls.drainedExecution(manager, lease.executionId))) {
                 thread.runControl.state = 'terminating'
@@ -257,14 +259,23 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                     'ThreadHasActiveOperation',
                     'Thread already has a running or paused operation.'
                 )
-            if (thread.runControl && thread.runControl.state !== 'running')
+            if (thread.runControl && !['running', 'input_wait'].includes(thread.runControl.state))
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
+            const inputResume = thread.runControl?.state === 'input_wait'
+            const previous = thread.runControl
             const record = await this.controls.root(manager, thread, executionId)
-            if (record.desired !== 'running')
+            if (record.desired !== 'running' && !(inputResume && record.desired === 'paused'))
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
-            await this.controls.intent(manager, executionId, 'running')
+            const desired = inputResume && record.desired === 'paused' ? 'paused' : 'running'
+            await this.controls.intent(manager, executionId, desired, true, inputResume)
             clearThreadDisplayPause(thread)
-            thread.runControl = { executionId, state: 'running' }
+            thread.runControl = {
+                ...(inputResume ? previous : {}),
+                executionId,
+                state: desired === 'paused' ? 'pausing' : 'running'
+            }
+            thread.status = 'busy'
+            if (inputResume) thread.operation = null
             this.assignLease(thread, executionId)
             thread.encryptedRunContext = encryptSecret(JSON.stringify(context ?? {}), environment.secretsEncryptionKey)
             await manager.save(thread)
@@ -362,7 +373,20 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         return thread?.runControl?.executionId === executionId && thread.metadata?.editAdmission?.state === 'pending'
     }
 
-    async shouldPause(threadId: string, executionId: string): Promise<boolean> {
+    /** Node identities come from the saved graph checkpoint, never from a client or tool result. */
+    async stageInput(threadId: string, executionId: string, nodes: string[]) {
+        await this.locked(threadId, async (thread, manager) => {
+            if (
+                thread.runControl?.executionId !== executionId ||
+                !['running', 'pausing'].includes(thread.runControl.state)
+            )
+                throw new ExecutionCancelledError(executionId, 'Execution ownership ended')
+            thread.runControl.inputNodes = [...new Set(nodes)]
+            await manager.save(thread)
+        })
+    }
+
+    async shouldPause(threadId: string, executionId: string, nodeKey?: string): Promise<boolean> {
         const task = await this.controls.tasks.execution(executionId)
         const desired = task ? await this.controls.tasks.desired(task.id) : 'running'
         if (desired === 'terminated' || (task && task.currentExecutionId !== executionId))
@@ -383,6 +407,17 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             await this.requestPause(threadId, executionId, true)
             return true
         }
+        if (nodeKey && thread.runControl.state === 'pausing' && thread.runControl.inputNodes?.includes(nodeKey)) {
+            return this.locked(threadId, async (current, manager) => {
+                const control = current.runControl
+                if (control?.executionId !== executionId || control.state !== 'pausing')
+                    throw new ExecutionCancelledError(executionId, 'Execution ownership ended')
+                if (!control.inputNodes?.includes(nodeKey)) return true
+                control.inputNodes = control.inputNodes.filter((key) => key !== nodeKey)
+                await manager.save(current)
+                return false
+            })
+        }
         return thread?.runControl?.executionId === executionId && thread.runControl.state === 'pausing'
     }
 
@@ -392,14 +427,20 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             if (!control || control.executionId !== executionId) {
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
             }
-            if (control.state === 'paused' || control.state === 'pausing') return { ...control }
-            if (thread.status !== 'busy' || control.state === 'terminating')
+            if (
+                control.state === 'paused' ||
+                control.state === 'pausing' ||
+                (control.state === 'input_wait' && control.pauseId)
+            )
+                return { ...control }
+            const inputWaiting = control.state === 'input_wait'
+            if ((!inputWaiting && thread.status !== 'busy') || ['terminating', 'settling'].includes(control.state))
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
             await this.controls.intent(manager, executionId, 'paused', !inherited)
-            control.state = 'pausing'
+            control.state = inputWaiting ? 'input_wait' : 'pausing'
             control.pauseId = randomUUID()
             delete control.checkpoint
-            thread.status = 'pausing'
+            thread.status = inputWaiting ? 'interrupted' : 'pausing'
             // UI metadata is unrelated to the execution checkpoint and never gates control.
             clearThreadDisplayPause(thread)
             await manager.save(thread)
@@ -569,10 +610,20 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         await this.recoverExpiredRun(threadId)
         return this.locked(threadId, async (thread, manager) => {
             const control = thread.runControl
-            if (control && (control.executionId !== executionId || control.state === 'paused' || control.resumeClaimed))
+            if (
+                control &&
+                (control.executionId !== executionId ||
+                    ['paused', 'input_wait'].includes(control.state) ||
+                    control.resumeClaimed)
+            )
                 return thread.status
             if (!control && (await this.controls.has(executionId))) return thread.status
             if (!control && ['interrupted', 'error'].includes(thread.status) && thread.error) return thread.status
+            if (control?.state === 'settling' && control.pendingFinish) {
+                status = control.pendingFinish.status
+                error = control.pendingFinish.error
+                operation = control.pendingFinish.operation
+            }
             const drained = await this.controls.end(manager, executionId)
             const task = await this.controls.tasks.execution(executionId, manager)
             if (task && control && (await this.controls.tasks.desired(task.id, manager)) === 'terminated') {
@@ -583,6 +634,36 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             }
             const familyDrained =
                 !task || (await this.controls.tasks.settled(task.id, control?.state === 'pausing', manager))
+            // An input checkpoint is resumable, but does not attest that its remote work exited.
+            // Keep the same owner so resume and subsequent termination still reach the original operation.
+            if (control && ['running', 'pausing'].includes(control.state) && status === 'interrupted' && operation) {
+                control.state = 'input_wait'
+                thread.status = 'interrupted'
+                thread.operation = operation
+                thread.error = error ?? null
+                clearRunLease(thread)
+                this.owned.delete(threadId)
+                if (task) await this.controls.tasks.receipt(task.id, 'paused', undefined, manager)
+                await manager.save(thread)
+                await manager.update(
+                    ChatConversation,
+                    {
+                        id: thread.conversationId,
+                        threadId,
+                        tenantId: thread.tenantId,
+                        organizationId: thread.organizationId ?? IsNull()
+                    },
+                    { status: 'interrupted', operation, error: error ?? null }
+                )
+                return thread.status
+            }
+            if (control && ['running', 'settling'].includes(control.state) && (!drained || !familyDrained)) {
+                control.state = 'settling'
+                control.pendingFinish = { status, error, operation }
+                thread.status = 'busy'
+                await manager.save(thread)
+                return thread.status
+            }
             if (control?.state === 'terminating') {
                 if (!drained || !familyDrained) return thread.status
                 status = 'interrupted'

@@ -28,6 +28,8 @@ export interface McpClientToolResult {
 }
 
 export interface McpClientToolCall {
+  /** Stable host call identity; required inside a controlled execution to prevent replay. */
+  operationKey?: string
   toolName: string
   contractHash: string
   arguments: Record<string, JSONValue>

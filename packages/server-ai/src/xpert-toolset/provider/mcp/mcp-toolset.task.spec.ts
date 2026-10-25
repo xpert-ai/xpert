@@ -1,6 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
-import type { McpConsumerTask, McpConsumerTaskStart, McpConsumerTaskWaitOptions } from '../../../mcp-consumer'
+import type { McpConsumerTask, McpConsumerTaskStart } from '../../../mcp-consumer'
+import type { McpConsumerExecution } from '../../../mcp-consumer/execution/mcp-consumer-executor'
 import { MCPToolset } from './mcp-toolset'
 
 jest.mock('@langchain/core/callbacks/dispatch', () => ({
@@ -13,23 +14,20 @@ describe('MCPToolset remote task lifecycle', () => {
     })
 
     it('publishes working and completed task states to the ChatKit step stream', async () => {
-        const started = workingTask()
+        const started = { ...workingTask(), resultType: 'complete' as const }
         const completed = completedTask()
-        const wait = jest.fn(async (_started: McpConsumerTaskStart, options: McpConsumerTaskWaitOptions) => {
+        const runTask = jest.fn(async (options: McpConsumerExecution) => {
             await options.onStatus?.(started)
             await options.onStatus?.(completed)
-            return completed
+            return result
         })
         const result = { content: [{ type: 'text', text: 'done' }] }
-        const toolset = createToolset({
-            tasks: {
-                start: jest.fn().mockResolvedValue(started),
-                wait,
-                result: jest.fn().mockReturnValue(result)
-            }
-        })
+        const toolset = createToolset({ runTask })
 
-        await expect(toolset.callMcpTaskTool('index', {}, 'generic')).resolves.toBe(result)
+        await expect(
+            toolset.callMcpTaskTool('index', {}, 'generic', undefined, undefined, 'stable-call')
+        ).resolves.toBe(result)
+        expect(runTask).toHaveBeenCalledWith(expect.objectContaining({ operationKey: 'stable-call', mode: 'task' }))
         expect(dispatchCustomEvent).toHaveBeenNthCalledWith(
             1,
             ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
@@ -50,29 +48,23 @@ describe('MCPToolset remote task lifecycle', () => {
         )
     })
 
-    it('marks the visible task state cancelled when the conversation aborts', async () => {
+    it('preserves the last remote status when only the local wait aborts', async () => {
         const controller = new AbortController()
-        const started = workingTask()
-        const wait = jest.fn(async (_started: McpConsumerTaskStart, options: McpConsumerTaskWaitOptions) => {
+        const started = { ...workingTask(), resultType: 'complete' as const }
+        const runTask = jest.fn(async (options: McpConsumerExecution) => {
             await options.onStatus?.(started)
             controller.abort()
             throw new Error('aborted')
         })
-        const toolset = createToolset({
-            tasks: {
-                start: jest.fn().mockResolvedValue(started),
-                wait,
-                result: jest.fn()
-            }
-        })
+        const toolset = createToolset({ runTask })
 
         await expect(toolset.callMcpTaskTool('index', {}, 'generic', controller.signal)).rejects.toThrow('aborted')
         expect(dispatchCustomEvent).toHaveBeenLastCalledWith(
             ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
             expect.objectContaining({
                 id: 'mcp-task:task-1',
-                status: 'fail',
-                data: expect.objectContaining({ status: 'cancelled' })
+                status: 'running',
+                data: expect.objectContaining({ status: 'working' })
             })
         )
     })

@@ -67,7 +67,6 @@
         "TenantSettingsLookupFailed": "读取租户设置失败",
         "RetentionPreviewExpired": "预览已过期或不可用，请重新预览后再清理。",
         "RetentionCleanupInvalid": "请选择有效的过去时间范围，预览后再确认清理。",
-
         "AnalyticsDefinitionInvalid": "分析定义不可用或配置无效",
         "AnalyticsDefinitionConflict": "已有更新版本发布，请重新加载后再发布。",
         "AnalyticsDefinitionUnavailable": "分析定义不可用。",
@@ -599,7 +598,7 @@
         "McpTaskIdempotencyConflict": "该 MCP 请求 ID 已被不同输入或凭证使用。",
         "McpTaskNotFound": "未找到 MCP 任务。",
         "McpTaskInvalidParams": "MCP 任务请求无效。",
-        "McpTaskRequestFailed": "MCP 任务请求失败。",
+        "McpTaskRequestFailed": "The MCP task request failed.",
         "NoMatchingPluginComponents": "未找到匹配的插件组件。",
         "BusinessAreaNameRequired": "业务区域名称不能为空。",
         "BusinessAreaCannotParentSelf": "业务区域不能以自身作为父业务区域。",
@@ -1202,7 +1201,10 @@
         "ArtifactPresentationInputInvalid": "展示请求无效。",
         "ProviderCredentialSchemaMissing": "当前提供商未配置凭据表单。",
         "ProviderCredentialTargetRequired": "请选择支持的模型类型，并填写模型或接入点 ID 以验证凭据。",
-        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。"
+        "ProviderCredentialCheckInvalid": "凭据验证请求格式无效。",
+        "McpOperationIdentityRequired": "此 MCP 调用缺少稳定的操作标识。",
+        "McpControlPending": "操作仍在确认中。",
+        "McpControlUnavailable": "暂时无法确认原操作的状态。"
     },
     "Mcp": {
         "Test": {

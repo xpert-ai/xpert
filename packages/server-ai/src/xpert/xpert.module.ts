@@ -1,3 +1,4 @@
+import { AuthorizeAssistantMcpHandler } from './mcp-access/authorize-assistant-mcp.handler'
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
 import { PublishedAgentContextHandler } from './published-agent/published-agent-context.query'
 import { AssistantSharingModule } from './sharing/sharing.module'
@@ -142,6 +143,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        AuthorizeAssistantMcpHandler,
         ResolvePublishedAgentHandler,
         PublishedAgentContextHandler,
         XpertPublicationPersistence,

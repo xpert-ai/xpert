@@ -3,7 +3,7 @@ import { McpConsumerTasks } from './mcp-consumer-tasks'
 import type { McpConsumerTaskStart } from './task-schemas'
 
 describe('McpConsumerTasks cancellation', () => {
-    it('cancels the remote task when the host abort signal fires while waiting', async () => {
+    it('ends only the waiter when its signal fires; durable ownership controls cancellation', async () => {
         const requestExtension = jest.fn(
             async (_serverName: string | undefined, request: McpConsumerExtensionRequest) =>
                 request.method === 'tasks/get'
@@ -36,11 +36,6 @@ describe('McpConsumerTasks cancellation', () => {
             })
         ).rejects.toThrow('conversation stopped')
 
-        expect(requestExtension).toHaveBeenCalledWith(
-            undefined,
-            expect.objectContaining({ method: 'tasks/cancel', params: expect.objectContaining({ taskId: 'task-1' }) }),
-            expect.anything(),
-            expect.objectContaining({ routing: { method: 'tasks/cancel', name: 'task-1' } })
-        )
+        expect(requestExtension.mock.calls.some(([, request]) => request.method === 'tasks/cancel')).toBe(false)
     })
 })

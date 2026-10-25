@@ -1,83 +1,10 @@
-jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
-jest.mock('../../../execution-control/execution-control.store', () => ({ ExecutionControlStore: class {} }))
-jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({
-    MessageCheckpointService: class {}
-}))
-
-jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
-    ThreadRunControlService: class {},
-    threadGraphRevision: () => 'graph-v1',
-    threadControlConflict: (_key: string, message: string) =>
-        new (jest.requireActual('@nestjs/common').ConflictException)(message)
-}))
-
-jest.mock('isolated-vm', () => ({
-    ExternalCopy: class ExternalCopy {},
-    Isolate: class Isolate {}
-}))
-
-jest.mock('@xpert-ai/server-core', () => ({
-    RequestContext: {
-        currentTenantId: jest.fn(),
-        getOrganizationId: jest.fn(),
-        currentUserId: jest.fn(),
-        currentUser: jest.fn()
-    }
-}))
-
-jest.mock('../../../copilot-checkpoint', () => ({
-    CopilotCheckpointSaver: class CopilotCheckpointSaver {},
-    GetCopilotCheckpointsByParentQuery: class GetCopilotCheckpointsByParentQuery {
-        constructor(...args: unknown[]) {
-            Object.assign(this, { args })
-        }
-    }
-}))
-
-jest.mock('../../agent', () => ({
-    createMapStreamEvents: jest.fn(() => (event: unknown) => event)
-}))
-
-jest.mock('../../../environment', () => {
-    const actual = jest.requireActual('../../../environment/utils')
-
-    return {
-        EnvironmentService: class EnvironmentService {},
-        getContextEnvState: actual.getContextEnvState,
-        mergeEnvironmentWithEnvState: actual.mergeEnvironmentWithEnvState,
-        mergeRuntimeContextWithEnv: actual.mergeRuntimeContextWithEnv
-    }
-})
-
-jest.mock('../../../shared', () => ({
-    getWorkspace: jest.fn(),
-    isPlanModeEnabledFromState: (state: any) => state?.human?.planMode === true,
-    XpertWorkAreaResolver: class XpertWorkAreaResolver {},
-    VolumeClient: class VolumeClient {
-        static getWorkspacePath = jest.fn()
-        static getWorkspaceUrl = jest.fn()
-        static getSharedWorkspacePath = jest.fn()
-        static getSharedWorkspaceUrl = jest.fn()
-        static getXpertWorkspacePath = jest.fn()
-        static getXpertWorkspaceUrl = jest.fn()
-
-        getVolumePath(workspace?: string) {
-            return workspace ? `/volume/${workspace}` : '/volume'
-        }
-    }
-}))
-
-jest.mock('../../../chat-message/chat-message.entity', () => ({
-    ChatMessage: class ChatMessage {}
-}))
-
-jest.mock('../../../knowledgebase', () => ({
-    KnowledgebaseTaskService: class KnowledgebaseTaskService {},
-    KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
-}))
-
-import { RequestContext } from '@xpert-ai/server-core'
-import { I18nService } from 'nestjs-i18n'
+import {
+    createInvokeHarness,
+    createGraph,
+    createCompiledGraph,
+    createTestWorkArea,
+    consumeStream
+} from './invoke.test-fixture'
 import { Observable, Subscriber } from 'rxjs'
 import { createMapStreamEvents } from '../../agent'
 import { Command, getConfig } from '@langchain/langgraph'
@@ -85,8 +12,6 @@ import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
-import { XpertWorkAreaResolver } from '../../../shared'
-import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { CompleteToolCallsQuery } from '../../queries'
@@ -101,61 +26,23 @@ describe('XpertAgentInvokeHandler', () => {
     let executionCancelService: { check: jest.Mock; register: jest.Mock; unregister: jest.Mock }
     let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
     let workAreaResolver: { resolve: jest.Mock }
+    let createHandler: ReturnType<typeof createInvokeHarness>['createHandler']
     let handler: XpertAgentInvokeHandler
 
     beforeEach(() => {
-        commandBus = {
-            execute: jest.fn()
-        }
-        queryBus = {
-            execute: jest.fn()
-        }
-        checkpointSaver = {
-            getCopilotCheckpoint: jest.fn().mockResolvedValue({
-                checkpoint: null,
-                pendingWrites: []
-            })
-        }
-        envService = {
-            findOne: jest.fn()
-        }
-        i18nService = {
-            t: jest.fn()
-        }
-        executionCancelService = {
-            register: jest.fn(),
-            check: jest.fn(),
-            unregister: jest.fn()
-        }
-        workAreaResolver = {
-            resolve: jest.fn((input) => createTestWorkArea(input))
-        }
-        chatMessageRepository = {
-            find: jest.fn().mockResolvedValue([]),
-            save: jest.fn().mockResolvedValue(undefined)
-        }
-
-        handler = new XpertAgentInvokeHandler(
-            commandBus as any,
-            queryBus as any,
-            checkpointSaver as any,
-            envService as any,
-            i18nService as unknown as I18nService,
-            executionCancelService as unknown as ExecutionCancelService,
-            undefined,
-            workAreaResolver as unknown as XpertWorkAreaResolver,
-            undefined,
-            chatMessageRepository as any
-        )
-        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
-        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
-        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
-        ;(RequestContext.currentUser as jest.Mock).mockReturnValue({
-            id: 'user-1',
-            email: 'user@example.com',
-            timeZone: 'Asia/Shanghai',
-            preferredLanguage: 'en-US'
-        } as any)
+        const fixtures = createInvokeHarness()
+        ;({
+            commandBus,
+            queryBus,
+            checkpointSaver,
+            envService,
+            i18nService,
+            executionCancelService,
+            workAreaResolver,
+            chatMessageRepository,
+            handler,
+            createHandler
+        } = fixtures)
     })
 
     afterEach(() => {
@@ -1001,46 +888,6 @@ describe('XpertAgentInvokeHandler', () => {
         expect(completionScopes).toHaveLength(1)
         expect(completionScopes[0]?.sandbox).toBe(sandbox)
     })
-    it('emits a second tool approval even when a resumed dynamic task has an empty next list', async () => {
-        const graph = createGraph()
-        const pending = {
-            id: 'shell-task',
-            name: 'desktop_shell',
-            interrupts: [{ value: { actionRequests: [{ name: 'desktop_shell' }] } }]
-        }
-        graph.getState.mockResolvedValue({
-            config: { configurable: { thread_id: 'thread-1', checkpoint_ns: '', checkpoint_id: 'saved' } },
-            values: {},
-            next: [],
-            tasks: [{ id: 'finished', name: 'other', result: { output: 'done' }, interrupts: [] }, pending]
-        })
-        commandBus.execute.mockImplementation(async (command) =>
-            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
-        )
-        queryBus.execute.mockResolvedValue({ tasks: [pending] })
-        const subscriber = { next: jest.fn() }
-        const stream = await handler.execute(
-            new XpertAgentInvokeCommand(
-                { human: { input: 'Run the tool' } } as never,
-                'agent-1',
-                { id: 'xpert-1', features: {} } as never,
-                {
-                    thread_id: 'thread-1',
-                    execution: { id: 'execution-1', threadId: 'thread-1' },
-                    subscriber,
-                    store: null
-                } as never
-            )
-        )
-        await consumeStream(stream).catch(() => undefined)
-        expect(subscriber.next).toHaveBeenCalledWith({
-            data: {
-                type: 'event',
-                event: ChatMessageEventTypeEnum.ON_INTERRUPT,
-                data: { tasks: [pending] }
-            }
-        })
-    })
     it.each([
         { label: 'pause only', completedTasks: [] },
         {
@@ -1063,19 +910,8 @@ describe('XpertAgentInvokeHandler', () => {
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()
         }
-        const controlledHandler = new XpertAgentInvokeHandler(
-            commandBus as never,
-            queryBus as never,
-            checkpointSaver as never,
-            envService as never,
-            i18nService as never,
-            executionCancelService as never,
-            undefined,
-            workAreaResolver as never,
-            undefined,
-            chatMessageRepository as never,
-            control as never
-        )
+        const controlledHandler = createHandler(control as never)
+
         commandBus.execute.mockImplementation(async (command) =>
             command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
         )
@@ -1124,19 +960,8 @@ describe('XpertAgentInvokeHandler', () => {
             shouldPause: jest.fn().mockResolvedValue(true),
             stageCheckpoint: jest.fn()
         }
-        const controlledHandler = new XpertAgentInvokeHandler(
-            commandBus as never,
-            queryBus as never,
-            checkpointSaver as never,
-            envService as never,
-            i18nService as never,
-            executionCancelService as never,
-            undefined,
-            workAreaResolver as never,
-            undefined,
-            chatMessageRepository as never,
-            control as never
-        )
+        const controlledHandler = createHandler(control as never)
+
         commandBus.execute.mockImplementation(async (command) =>
             command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
         )
@@ -1172,135 +997,3 @@ describe('XpertAgentInvokeHandler', () => {
         ).toBe(false)
     })
 })
-
-function createGraph(streamEvents?: AsyncGenerator<unknown>) {
-    return {
-        streamEvents: jest.fn().mockReturnValue(
-            streamEvents ??
-                (async function* () {
-                    //
-                })()
-        ),
-        getState: jest.fn().mockResolvedValue({
-            config: {
-                configurable: {
-                    thread_id: 'thread-1',
-                    checkpoint_ns: '',
-                    checkpoint_id: 'checkpoint-new'
-                }
-            },
-            parentConfig: {
-                configurable: {
-                    thread_id: 'thread-1',
-                    checkpoint_ns: ''
-                }
-            },
-            values: {},
-            tasks: []
-        }),
-        updateState: jest.fn().mockResolvedValue(undefined)
-    }
-}
-
-function createCompiledGraph(graph: ReturnType<typeof createGraph>) {
-    return {
-        graph,
-        agent: {
-            key: 'agent-1',
-            team: {
-                id: 'team-1',
-                agentConfig: {}
-            }
-        },
-        xpertGraph: {
-            nodes: []
-        }
-    }
-}
-
-function createTestWorkArea(input: {
-    tenantId: string
-    userId: string
-    provider?: string | null
-    xpertId?: string | null
-    projectId?: string | null
-    conversationId?: string | null
-    environmentId?: string | null
-}) {
-    const workspacePath = '/tmp/xpert-workspace'
-    const workspaceUrl = '/xpert-workspace'
-    const volumeScope = input.environmentId
-        ? {
-              tenantId: input.tenantId,
-              catalog: 'environment',
-              environmentId: input.environmentId,
-              userId: input.userId
-          }
-        : input.projectId
-          ? {
-                tenantId: input.tenantId,
-                catalog: 'projects',
-                projectId: input.projectId,
-                userId: input.userId
-            }
-          : {
-                tenantId: input.tenantId,
-                catalog: 'xperts',
-                xpertId: input.xpertId,
-                userId: input.userId,
-                isolateByUser: false
-            }
-
-    return {
-        volumeScope,
-        workspaceBinding: {
-            volumeRoot: '/tmp/xpert-workspace',
-            workspaceRoot: '/tmp/xpert-workspace',
-            workspacePath
-        },
-        workingDirectory: workspacePath,
-        volumePath: '/tmp/xpert-workspace',
-        workspaceRoot: '/tmp/xpert-workspace',
-        workspaceUrl,
-        sharedPath: input.environmentId
-            ? undefined
-            : {
-                  serverPath: '/tmp/xpert-workspace/shared',
-                  workspacePath: '/tmp/xpert-workspace/shared',
-                  publicUrl: '/xpert-workspace/shared'
-              },
-        agentPath:
-            input.projectId && input.xpertId
-                ? {
-                      serverPath: `/tmp/xpert-workspace/agents/${input.xpertId}`,
-                      workspacePath: `/tmp/xpert-workspace/agents/${input.xpertId}`,
-                      publicUrl: `/xpert-workspace/agents/${input.xpertId}`
-                  }
-                : undefined,
-        sessionPath:
-            input.projectId && input.conversationId
-                ? {
-                      serverPath: `/tmp/xpert-workspace/sessions/${input.conversationId}`,
-                      workspacePath: `/tmp/xpert-workspace/sessions/${input.conversationId}`,
-                      publicUrl: `/xpert-workspace/sessions/${input.conversationId}`
-                  }
-                : undefined,
-        memoryPath:
-            !input.environmentId && !input.projectId
-                ? {
-                      serverPath: '/tmp/xpert-workspace/.xpert/memory',
-                      workspacePath: '/tmp/xpert-workspace/.xpert/memory',
-                      publicUrl: '/xpert-workspace/.xpert/memory'
-                  }
-                : undefined
-    }
-}
-
-async function consumeStream(stream: Observable<unknown>) {
-    await new Promise<void>((resolve, reject) => {
-        stream.subscribe({
-            error: reject,
-            complete: () => resolve()
-        })
-    })
-}

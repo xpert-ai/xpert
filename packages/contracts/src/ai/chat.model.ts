@@ -127,7 +127,11 @@ export type TChatThreadDisplayPause = {
 
 export type TChatThreadRunControl = {
   executionId: string
-  state: 'running' | 'pausing' | 'paused' | 'terminating'
+  state: 'running' | 'pausing' | 'paused' | 'terminating' | 'settling' | 'input_wait'
+  /** Trusted checkpoint node names allowed to finish the current input continuation during pause. */
+  inputNodes?: string[]
+  /** Saved graph outcome while attached work still lacks settlement evidence. */
+  pendingFinish?: { status: TChatConversationStatus; error?: string | null; operation?: TSensitiveOperation | null }
   pauseId?: string
   /** Fences late finalizers while a resume is claimed but not yet bound to its new execution. */
   resumeClaimed?: boolean

@@ -82,6 +82,7 @@ describe('MCP read-only connection runtime', () => {
         }).compile()
         return {
             service: module.get(McpClientRuntimeService),
+            connections: module.get(McpClientConnectionService),
             repo,
             workspaces,
             loader,
@@ -93,6 +94,18 @@ describe('MCP read-only connection runtime', () => {
             connection
         }
     }
+    it('retains only pinned stop authority after workspace access is revoked', async () => {
+        const f = await fixture(),
+            input = scope()
+        const version = await f.connections.pin(input)
+        f.workspaces.assertCanRead.mockRejectedValue(new ForbiddenException())
+        await expect(f.connections.pin(input)).rejects.toThrow()
+        expect(await f.connections.pinForStop(input)).toBe(version)
+        f.connection.schema = 'replaced endpoint'
+        expect(await f.connections.pinForStop(input)).not.toBe(version)
+        await expect(f.connections.pinForStop({ ...input, actor: { ...actor, userId: 'foreign' } })).rejects.toThrow()
+        expect(f.call).not.toHaveBeenCalled()
+    })
     it('uses exact current-viewer scope, preserves connection ownership and closes discovery/call runtimes', async () => {
         const f = await fixture(),
             input = scope(),
@@ -132,7 +145,8 @@ describe('MCP read-only connection runtime', () => {
             { region: 'East' },
             'sales',
             expect.any(AbortSignal),
-            expect.any(Function)
+            expect.any(Function),
+            undefined
         )
         expect(f.runtime.close).toHaveBeenCalledTimes(2)
     })

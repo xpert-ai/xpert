@@ -264,7 +264,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     ...options,
                     shouldPause:
                         this.threadRunControl && options.thread_id && execution?.id
-                            ? () => this.threadRunControl.shouldPause(options.thread_id, execution.id)
+                            ? (nodeKey) => this.threadRunControl.shouldPause(options.thread_id, execution.id, nodeKey)
                             : undefined,
                     planMode,
                     execution,
@@ -575,7 +575,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     // finish, then the next persisted boundary is resumed
                     // from the checkpoint we just recorded.
                     const pauseRequested = Boolean(await this.threadRunControl?.shouldPause(threadId, execution.id))
-                    if (pauseRequested) {
+                    const needsInput = state.tasks?.some(
+                        (task) =>
+                            task.result === undefined && task.interrupts?.some((item) => !isThreadPause(item.value))
+                    )
+                    if (pauseRequested && !needsInput) {
                         if (execution.checkpointId) {
                             await this.threadRunControl?.stageCheckpoint(threadId, execution.id, {
                                 threadId,
@@ -599,6 +603,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
+                        await this.threadRunControl?.stageInput(
+                            threadId,
+                            execution.id,
+                            pendingTasks
+                                .filter((task) => task.interrupts?.some((item) => !isThreadPause(item.value)))
+                                .map((task) => task.name)
+                        )
                         const operation = await this.queryBus.execute(
                             new CompleteToolCallsQuery(
                                 xpert.id,
