@@ -5,6 +5,7 @@ import threading
 import time
 import uuid
 
+from job_control import JobControl
 import runner
 from compute_process import ComputeJob, ROOTFS, STATE_ROOT
 from compute_storage import runtime_id
@@ -29,6 +30,7 @@ class ComputeService:
         self.health_checked = 0
         self.error = None
         self.definition = None
+        self.control = None
         try:
             self.definition = json.loads((self.rootfs / "opt/xpert/sandbox-runtime/definition.json").read_text())
             if not runner.USE_CGROUP_V2:
@@ -37,8 +39,12 @@ class ComputeService:
             if self.state_root.is_symlink():
                 raise RuntimeError("Invalid Sandbox Job state root")
             self.state_root.chmod(0o755)
+            self.control = JobControl(self.state_root, self.definition["name"])
             for root in self.state_root.iterdir():
+                if root.name == ".control":
+                    continue
                 self.job_class.recover(root, self.definition)
+                self.control.receipt(root.name, "exited")
         except (OSError, ValueError, RuntimeError) as error:
             self.error = str(error)
 
@@ -78,7 +84,7 @@ class ComputeService:
             return result
 
     def create(self, payload):
-        if not isinstance(payload, dict) or set(payload) != {"runtimeId", "definition"}:
+        if not isinstance(payload, dict) or set(payload) not in ({"runtimeId", "definition"}, {"runtimeId", "definition", "controlTarget"}):
             raise runner.RunnerError("Invalid Sandbox Job create request")
         identity = runtime_id(payload["runtimeId"])
         if payload["definition"] != self.definition:
@@ -90,8 +96,20 @@ class ComputeService:
                 raise runner.RunnerError("Sandbox Job runtime already exists", 409)
             if len(self.jobs) >= self.max_jobs:
                 raise runner.RunnerError("Sandbox Job runtime capacity exhausted", 429)
+            target = payload.get("controlTarget")
+            if target:
+                if target.get("runtimeRef") != identity:
+                    raise runner.RunnerError("Execution target mismatch", 409)
+                self.control.admit(target)
+            elif self.control.read(identity):
+                raise runner.RunnerError("Controlled execution requires its original target", 409)
             job = self.job_class(identity, self.definition)
-            job.prepare()
+            try:
+                job.prepare()
+            except BaseException:
+                if target and job.destroyed:
+                    self.control.receipt(identity, "not_started")
+                raise
             self.jobs[identity] = job
         return job
 
@@ -110,6 +128,40 @@ class ComputeService:
             with self.lock:
                 if self.jobs.get(identity) is job:
                     self.jobs.pop(identity)
+                self.control.receipt(identity, "exited")
+
+    def prepare_control(self, target):
+        with self.lock:
+            if self.error or not self.control:
+                raise runner.RunnerError("Execution control unavailable", 503)
+            return self.control.prepare(target)
+
+    def control_execution(self, target, action):
+        with self.lock:
+            if self.error or not self.control:
+                raise runner.RunnerError("Execution control unavailable", 503)
+            if not self.control.validate(target):
+                return self.control.evidence(target, "unknown")
+            record = self.control.read(target["runtimeRef"])
+            if not record or record["target"] != target:
+                return self.control.evidence(target, "unknown")
+            identity = target["runtimeRef"]
+            job = self.jobs.get(identity)
+            if record["state"] in ("exited", "not_started"):
+                state = record["state"]
+            elif job:
+                if action in ("stop", "cleanup"):
+                    job.cancel()
+                state = job.execution_state()
+            elif record["state"] == "reserved" and action in ("stop", "cleanup"):
+                state = "not_started"
+            else:
+                state = "unknown"
+            if state in ("exited", "not_started"):
+                self.control.receipt(identity, state)
+                if action == "cleanup" and job:
+                    self.destroy(identity)
+            return self.control.evidence(target, state)
 
     def reap(self):
         with self.lock:
@@ -121,5 +173,9 @@ class ComputeService:
                 print(f"[nsjail-jobs] cleanup failed: {error!r}", flush=True)
 
     def close(self):
-        for identity in list(self.jobs):
-            self.destroy(identity)
+        try:
+            for identity in list(self.jobs):
+                self.destroy(identity)
+        finally:
+            if self.control:
+                self.control.close()

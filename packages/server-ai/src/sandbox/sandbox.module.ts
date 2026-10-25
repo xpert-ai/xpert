@@ -1,7 +1,9 @@
 import { SandboxTerminalAuthGuard } from './sandbox-terminal-auth.guard'
 import { FileActivityStorage } from './middlewares/file-activity-storage.service'
 import { SandboxToolsCapabilityProvider } from '../xpert-template/capabilities/builtin-capabilities'
-import { TenantModule } from '@xpert-ai/server-core'
+import { SandboxJobControlStore } from './sandbox-job/sandbox-job-control.store'
+import { SandboxJobControlService } from './sandbox-job/sandbox-job-control.service'
+import { TenantModule, TaskControlModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -48,6 +50,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
     imports: [
         RouterModule.register([{ path: '/sandbox', module: SandboxModule }]),
         TenantModule,
+        TaskControlModule,
         CqrsModule,
         DiscoveryModule,
         TypeOrmModule.forFeature([
@@ -83,6 +86,8 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxRuntimeHealthService,
         SandboxActionRegistry,
         SandboxJobCapacityService,
+        SandboxJobControlStore,
+        SandboxJobControlService,
         SandboxJobRuntimeCapabilityService,
         NsjailSandboxProvider,
         NsjailWorkspacePathMapper,

@@ -65,6 +65,12 @@ export const defaultConfiguration: IPluginConfig = {
     ...dbConnectionConfig
   },
   plugins: [],
+  sandboxJobOptions: {
+    globalLimit: positiveInteger(process.env.SANDBOX_JOB_GLOBAL_LIMIT, 20),
+    tenantLimit: positiveInteger(process.env.SANDBOX_JOB_TENANT_LIMIT, 4),
+    userLimit: positiveInteger(process.env.SANDBOX_JOB_USER_LIMIT, 2),
+    capacityPollMs: Math.max(250, positiveInteger(process.env.SANDBOX_JOB_CAPACITY_POLL_MS, 1000))
+  },
   authOptions: {
     expressSessionSecret: process.env.SESSION_SECRET || 'metad',
     userPasswordBcryptSaltRounds: 12,
@@ -77,4 +83,9 @@ export const defaultConfiguration: IPluginConfig = {
     dataPath,
     agentPluginPath: process.env.XPERT_AGENT_PLUGIN_PATH || undefined
   }
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.trunc(parsed) : fallback
 }

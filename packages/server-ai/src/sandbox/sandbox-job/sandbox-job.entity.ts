@@ -1,6 +1,7 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import type { SandboxJobErrorCode, SandboxJobOutput, SandboxJobProgress, SandboxJobStatus } from '@xpert-ai/plugin-sdk'
 import { Column, Entity, Index } from 'typeorm'
+import type { SandboxJobControlRecord } from './sandbox-job-control-record'
 
 /**
  * Provider-neutral execution evidence for a Sandbox Job.
@@ -12,7 +13,24 @@ import { Column, Entity, Index } from 'typeorm'
 @Index(['tenantId', 'idempotencyKey'], { unique: true })
 @Index(['tenantId', 'status', 'hardDeadlineAt'])
 @Index(['tenantId', 'businessResourceType', 'businessResourceId'])
+@Index('sandbox_job_control_due', ['nextControlAt'], { where: '"nextControlAt" IS NOT NULL' })
+@Index('sandbox_job_capacity_held', ['tenantId', 'userId'], { where: '"capacityHeld"' })
 export class SandboxJobEntity extends TenantOrganizationBaseEntity {
+    @Column({ type: 'uuid', nullable: true })
+    generation?: string | null
+
+    @Column({ type: 'varchar', nullable: true })
+    inputHash?: string | null
+
+    @Column({ type: 'jsonb', nullable: true })
+    control?: SandboxJobControlRecord | null
+
+    @Column({ type: 'boolean', default: false })
+    capacityHeld: boolean
+
+    @Column({ type: 'timestamptz', nullable: true })
+    nextControlAt?: Date | null
+
     @Column({ type: 'varchar' })
     runtimeProfile: string
 

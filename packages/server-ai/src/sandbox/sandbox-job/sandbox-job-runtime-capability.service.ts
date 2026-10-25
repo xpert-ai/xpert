@@ -1,3 +1,6 @@
+import { SandboxJobControlStore } from './sandbox-job-control.store'
+import { SandboxJobControlService } from './sandbox-job-control.service'
+import { readControlledSandboxJob } from './sandbox-job-control-record'
 import { SandboxJobInvocationSession } from './sandbox-job-invocation'
 import {
     createVerifiedReadOnlyInputSnapshot,
@@ -26,9 +29,9 @@ import { createHash } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { t } from 'i18next'
 import path from 'node:path'
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, LessThan, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import {
     SandboxJobsRuntimeCapability,
     SandboxJobRuntimeError,
@@ -53,7 +56,7 @@ import {
 import { VOLUME_CLIENT, VolumeClient } from '../../shared/volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { RuntimeCapabilityProvider } from '../../shared/runtime'
-import { SandboxJobCapacityService, type SandboxJobCapacityLease } from './sandbox-job-capacity.service'
+import { SandboxJobCapacityService } from './sandbox-job-capacity.service'
 import { SandboxJobEntity } from './sandbox-job.entity'
 import {
     lifecycleSandboxJobProgress,
@@ -70,32 +73,16 @@ import { SandboxRuntimeHealthService } from './sandbox-runtime-health.service'
 
 export { truncateSandboxRunnerOutput, classifyRunnerFailure } from './sandbox-job-files'
 
-const CLEANUP_INTERVAL_MS = 60_000
-const WAITING_HEARTBEAT_INTERVAL_MS = 30_000
-const WAITING_HEARTBEAT_TTL_MS = 120_000
 const MAX_JOB_INPUT_BYTES = 350 * 1024 * 1024
 const MAX_JOB_OUTPUT_BYTES = 350 * 1024 * 1024
 const RUNTIME_JOB_WORKSPACE_DIRECTORY = 'workspace'
 
-type ActiveSandbox = {
-    runtime: SandboxRuntimeInstance
-    resolution: SandboxRuntimeResolution
-    invocations?: SandboxJobInvocationSession
-}
-
-/**
- * Core implementation of the Action-oriented Sandbox Jobs API.
- *
- * It owns idempotency, capacity, action/input materialization, output validation,
- * runtime evidence, and cleanup. The API process owns Runtime selection,
- * instance creation, cancellation, and orphan cleanup for every execution pool.
- */
+// The business body may stop waiting before the runtime or callback exits.
+// The control service alone confirms settlement and releases capacity.
 @Injectable()
 @RuntimeCapabilityProvider(SandboxJobsRuntimeCapability)
-export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnModuleInit, OnModuleDestroy {
+export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi {
     private readonly logger = new Logger(SandboxJobRuntimeCapabilityService.name)
-    private readonly active = new Map<string, ActiveSandbox>()
-    private cleanupTimer?: ReturnType<typeof setInterval>
 
     constructor(
         @InjectRepository(SandboxJobEntity)
@@ -108,74 +95,80 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         private readonly workspaceFiles: WorkspaceFilesRuntimeCapabilityService,
         private readonly capacity: SandboxJobCapacityService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly control: SandboxJobControlService,
+        private readonly controlStore: SandboxJobControlStore
     ) {}
 
-    onModuleInit(): void {
-        void this.cleanupOrphans()
-        this.cleanupTimer = setInterval(() => void this.cleanupOrphans(), CLEANUP_INTERVAL_MS)
-        this.cleanupTimer.unref()
-    }
-
-    onModuleDestroy(): void {
-        if (this.cleanupTimer) clearInterval(this.cleanupTimer)
-    }
-
-    /**
-     * Reuses prior success, reattaches active work, or executes a new attempt
-     * after resolving a trusted Action, Definition, and healthy Binding.
-     */
+    /** Reserve once; duplicate calls only wait for the original generation. */
     async run(input: SandboxJobRunInput, options?: SandboxJobRunOptions): Promise<SandboxJobRunResult> {
         options?.signal?.throwIfAborted()
         const { action, definition } = await this.requireRunnableAction(input)
-        let job = await this.findIdempotent(input.scope.tenantId, input.idempotencyKey)
-        if (job?.status === 'succeeded') return this.toSucceeded(job)
-        if (job && (job.status === 'waiting' || job.status === 'starting' || job.status === 'running')) {
-            try {
-                return await this.waitForAttachedJob(job.id as string, definition.hardDeadlineMs, options?.signal)
-            } catch (error) {
-                const current = await this.repository.findOne({ where: { id: job.id as string } })
-                if (!(error instanceof SandboxJobRuntimeError) || current?.status !== 'lost') throw error
-                return this.run(input, options)
-            }
+        const existing = await this.findIdempotent(input.scope.tenantId, input.idempotencyKey)
+        if (existing) {
+            this.controlStore.assertInput(existing, input)
+            return this.waitForAttachedJob(existing.id, definition.hardDeadlineMs, options?.signal)
         }
-        if (job?.cleanupPending) await this.requirePreviousAttemptCleanup(job)
-        const resolution = await this.bindingSelector.require(definition, job?.id as string | undefined, {
-            readOnlyFileMounts: hasReadOnlySeekableInputs(input)
+        const resolution = await this.bindingSelector.require(definition, input.jobId, {
+            readOnlyFileMounts: hasReadOnlySeekableInputs(input),
+            executionControl: true
         })
-        const prepared = await this.prepareAttempt(job, input, action, definition, resolution)
-        if (prepared.attached)
-            return this.waitForAttachedJob(prepared.job.id as string, definition.hardDeadlineMs, options?.signal)
-        job = prepared.job
-        const jobId = job.id as string
-        const lease = await this.waitForCapacity(job, input, definition, options)
-
+        const seed = this.prepareAttempt(input, action, definition, resolution)
+        const { job, owner } = await this.controlStore.reserve(
+            seed,
+            input,
+            resolution.provider.version,
+            options?.controlPolicy ?? 'attached'
+        )
+        if (owner) {
+            const controller = new AbortController()
+            this.control.own(job, () => controller.abort())
+            // The promise owns real work independently of HTTP/tool wait cancellation.
+            void this.control
+                .inContext(job, async () => {
+                    try {
+                        await this.waitForCapacity(job, controller.signal)
+                        await this.execute(job, input, action, definition, resolution, {
+                            ...options,
+                            signal: controller.signal
+                        })
+                    } catch (error) {
+                        await this.control.report(job, controller.signal.aborted ? 'cancelled' : 'failed', {
+                            errorCode: controller.signal.aborted ? 'SANDBOX_CANCELLED' : 'SANDBOX_START_FAILED',
+                            errorMessage: messageOf(error)
+                        })
+                    } finally {
+                        await this.control.hostExited(job)
+                    }
+                })
+                .catch(() => this.logger.warn('Sandbox host settlement remains pending'))
+        }
+        const stop = () => {
+            void this.control.requestStop(job).catch(() => this.logger.warn('Sandbox cancellation persistence failed'))
+        }
+        if ((options?.controlPolicy ?? 'attached') === 'attached')
+            options?.signal?.addEventListener('abort', stop, { once: true })
         try {
-            return await this.execute(job, input, action, definition, resolution, options)
+            if (options?.signal?.aborted && (options?.controlPolicy ?? 'attached') === 'attached')
+                await this.control.requestStop(job)
+            return await this.waitForAttachedJob(job.id, definition.hardDeadlineMs, options?.signal)
         } finally {
-            await this.capacity.release(lease).catch((error) => {
-                this.logger.warn(`Failed to release sandbox job capacity lease ${jobId}: ${messageOf(error)}`)
-            })
+            options?.signal?.removeEventListener('abort', stop)
         }
     }
 
-    /** Cancels tenant-scoped state, terminates an active Runtime, and schedules cleanup evidence. */
+    /** Accept durable intent; a terminal snapshot requires actual exit evidence. */
     async cancel(input: { jobId: string }): Promise<SandboxJobSnapshot> {
         const job = await this.findTenantScopedJob(input.jobId)
         if (!job)
-            throw new SandboxJobRuntimeError('SANDBOX_CANCELLED', 'Sandbox job was not found.', false, input.jobId)
-        const active = this.active.get(input.jobId)
-        job.status = 'cancelled'
-        job.progress = lifecycleSandboxJobProgress(job.progress, 'cancelled')
-        job.errorCode = 'SANDBOX_CANCELLED'
-        job.errorMessage = 'Sandbox job was cancelled.'
-        job.finishedAt = new Date()
-        await this.repository.save(job)
-        active?.invocations?.close()
-        if (active?.runtime.terminate) await Promise.resolve(active.runtime.terminate()).catch(() => undefined)
-        const cleaned = await this.destroySandbox(job, active?.resolution)
-        if (cleaned) await this.cleanupVolume(job)
-        return this.toSnapshot(job)
+            throw new SandboxJobRuntimeError(
+                'SANDBOX_CANCELLED',
+                t('server-ai:Error.SandboxJobCancelled'),
+                false,
+                input.jobId
+            )
+        await this.control.requestStop(job)
+        return this.toSnapshot(await this.controlStore.read(job.id))
     }
 
     /** Reads a Job only within the current tenant context. */
@@ -192,7 +185,8 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
     private async findTenantScopedJob(jobId: string): Promise<SandboxJobEntity | null> {
         const tenantId = RequestContext.currentTenantId()
         if (!tenantId) return null
-        return this.repository.findOne({ where: { id: jobId, tenantId } })
+        const job = await this.repository.findOne({ where: { id: jobId, tenantId } })
+        return job ? readControlledSandboxJob(job) : null
     }
 
     /** Aggregates Action compatibility with API-local Runtime readiness. */
@@ -290,15 +284,14 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         return { action, definition }
     }
 
-    private async prepareAttempt(
-        existing: SandboxJobEntity | null,
+    private prepareAttempt(
         input: SandboxJobRunInput,
         action: RegisteredSandboxAction,
         definition: SandboxRuntimeDefinition,
         resolution: SandboxRuntimeResolution
-    ): Promise<{ job: SandboxJobEntity; attached: boolean }> {
-        const job = existing ?? this.repository.create()
-        if (!existing && input.jobId) job.id = input.jobId
+    ): SandboxJobEntity {
+        const job = this.repository.create()
+        if (input.jobId) job.id = input.jobId
         job.tenantId = input.scope.tenantId
         job.organizationId = input.scope.organizationId ?? undefined
         job.userId = input.scope.userId ?? null
@@ -318,7 +311,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             artifactDigest(resolution.binding.artifact.reference, resolution.binding.artifact.digest) ?? null
         job.status = 'waiting'
         job.progress = lifecycleSandboxJobProgress(null, 'waiting')
-        job.attempt = (existing?.attempt ?? 0) + 1
+        job.attempt = 1
         job.runtimeRef = null
         job.containerRef = null
         job.cleanupPending = false
@@ -328,72 +321,20 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         job.errorMessage = null
         job.startedAt = null
         job.finishedAt = null
-        job.hardDeadlineAt = new Date(Date.now() + WAITING_HEARTBEAT_TTL_MS)
-        try {
-            return { job: await this.repository.save(job), attached: false }
-        } catch (error) {
-            if (existing) throw error
-            const concurrent = await this.findIdempotent(input.scope.tenantId, input.idempotencyKey)
-            if (!concurrent) throw error
-            return { job: concurrent, attached: true }
-        }
+        job.hardDeadlineAt = new Date(Date.now() + definition.hardDeadlineMs)
+        return job
     }
 
-    private async waitForCapacity(
-        job: SandboxJobEntity,
-        input: SandboxJobRunInput,
-        definition: SandboxRuntimeDefinition,
-        options?: SandboxJobRunOptions
-    ): Promise<SandboxJobCapacityLease> {
-        const jobId = job.id as string
-        let lastCapacityMessage: string | null = null
-        let nextHeartbeatAt = 0
+    private async waitForCapacity(job: SandboxJobEntity, signal: AbortSignal): Promise<void> {
         for (;;) {
-            if (options?.signal?.aborted) {
-                await this.cancel({ jobId })
-                throw new SandboxJobRuntimeError(
-                    'SANDBOX_CANCELLED',
-                    t('server-ai:Error.SandboxJobCancelled'),
-                    false,
-                    jobId
-                )
-            }
-            const current = await this.repository.findOne({ where: { id: jobId } })
-            if (!current || current.status === 'cancelled') {
-                throw new SandboxJobRuntimeError(
-                    'SANDBOX_CANCELLED',
-                    'Sandbox job was cancelled while waiting for capacity.',
-                    false,
-                    jobId
-                )
-            }
-            if (current.status === 'lost') {
-                throw new SandboxJobRuntimeError(
-                    'SANDBOX_START_FAILED',
-                    current.errorMessage ?? 'Sandbox job ownership was lost.',
-                    true,
-                    jobId
-                )
-            }
+            signal.throwIfAborted()
+            if ((await this.control.desired(job)) === 'terminated') throw new Error('Sandbox execution terminated')
+            if (Date.now() >= job.hardDeadlineAt.getTime()) throw new Error('Sandbox capacity wait exceeded deadline')
             try {
-                return await this.capacity.acquire({
-                    jobId,
-                    tenantId: input.scope.tenantId,
-                    userId: input.scope.userId,
-                    durationMs: definition.hardDeadlineMs + 60_000
-                })
+                return await this.capacity.acquire(job)
             } catch (error) {
                 if (!(error instanceof SandboxJobRuntimeError) || error.code !== 'SANDBOX_CAPACITY_UNAVAILABLE')
                     throw error
-                if (lastCapacityMessage !== error.message || Date.now() >= nextHeartbeatAt) {
-                    current.status = 'waiting'
-                    current.errorCode = error.code
-                    current.errorMessage = error.message
-                    current.hardDeadlineAt = new Date(Date.now() + WAITING_HEARTBEAT_TTL_MS)
-                    await this.repository.save(current)
-                    lastCapacityMessage = error.message
-                    nextHeartbeatAt = Date.now() + WAITING_HEARTBEAT_INTERVAL_MS
-                }
                 await wait(capacityPollInterval())
             }
         }
@@ -408,14 +349,12 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         options?: SandboxJobRunOptions
     ): Promise<SandboxJobRunResult> {
         const jobId = job.id as string
-        const volume = await this.volumeClient
-            .resolve({ tenantId: input.scope.tenantId, catalog: 'runtime-jobs', jobId })
-            .ensureRoot()
         let runtime: SandboxRuntimeInstance | undefined
         let invocations: SandboxJobInvocationSession | undefined
         let invocationDeadline: ReturnType<typeof setTimeout> | undefined
         let invocationTimedOut = false
         const abort = () => {
+            invocations?.close()
             void Promise.resolve()
                 .then(() => runtime?.terminate?.())
                 .catch(() => undefined)
@@ -423,17 +362,18 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         options?.signal?.addEventListener('abort', abort, { once: true })
         try {
             options?.signal?.throwIfAborted()
-            job.status = 'starting'
-            job.progress = lifecycleSandboxJobProgress(job.progress, 'starting')
-            job.startedAt = new Date()
-            job.hardDeadlineAt = new Date(Date.now() + definition.hardDeadlineMs)
-            job.errorCode = null
-            job.errorMessage = null
-            await this.repository.save(job)
+            await this.controlStore.update(jobId, job.generation, (current) => {
+                current.cleanupPending = true
+            })
+            const volume = await this.volumeClient
+                .resolve({ tenantId: input.scope.tenantId, catalog: 'runtime-jobs', jobId })
+                .ensureRoot()
             await ensureExactRuntimeJobDirectory(volume, RUNTIME_JOB_WORKSPACE_DIRECTORY)
             const readOnlyFiles = await this.prepareReadOnlyInputs(input, volume)
+            job = await this.control.prepare(job, resolution)
             const createOptions: SandboxRuntimeCreateOptions = {
                 ephemeral: true,
+                controlTarget: job.control.target,
                 tenantId: input.scope.tenantId,
                 workFor: { type: 'job', id: jobId },
                 definition,
@@ -449,12 +389,12 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 ...(readOnlyFiles.length ? { readOnlyFiles } : {})
             }
             runtime = await resolution.provider.create(createOptions)
-            this.active.set(jobId, { runtime, resolution })
-            job.runtimeRef = runtime.id
-            job.cleanupPending = true
-            job.status = 'running'
-            job.progress = lifecycleSandboxJobProgress(job.progress, 'running')
-            await this.repository.save(job)
+            job = await this.controlStore.update(jobId, job.generation, (current) => {
+                current.runtimeRef = runtime.id
+                current.control.phase = 'running'
+                if (current.status !== 'cancelling') current.status = 'running'
+            })
+            options?.signal?.throwIfAborted()
 
             const materializedAction = await this.materializeAction(runtime, runtime.workspaceRoot, action, definition)
             await this.materializeInputs(runtime, runtime.workspaceRoot, input, materializedAction, definition)
@@ -469,16 +409,27 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 progressWrites = progressWrites
                     .then(async () => {
                         job.progress = persisted
-                        await this.repository.update({ id: jobId, status: 'running' }, { progress: persisted })
+                        await this.repository.update(
+                            { id: jobId, generation: job.generation, status: 'running' },
+                            { progress: persisted }
+                        )
                     })
                     .catch((error) => {
                         this.logger.warn(`Failed to persist sandbox job progress ${jobId}: ${messageOf(error)}`)
                     })
             }
             options?.signal?.throwIfAborted()
+            if ((await this.control.desired(job)) === 'terminated')
+                throw new SandboxJobRuntimeError(
+                    'SANDBOX_CANCELLED',
+                    t('server-ai:Error.SandboxJobCancelled'),
+                    false,
+                    jobId
+                )
             if (options?.invocation) {
-                invocations = new SandboxJobInvocationSession(jobId, runtime, options)
-                this.active.get(jobId).invocations = invocations
+                invocations = new SandboxJobInvocationSession(jobId, runtime, options, (id, work) =>
+                    this.control.callback(job, id, work)
+                )
                 invocationDeadline = setTimeout(() => {
                     invocationTimedOut = true
                     invocations?.close()
@@ -530,60 +481,42 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             await this.assertReadOnlyInputsUnchanged(readOnlyFiles, jobId)
             const outputs = await this.collectOutputs(runtime, runtime.workspaceRoot, input.outputs)
             options?.signal?.throwIfAborted()
-            job.outputs = outputs
-            job.status = 'succeeded'
-            job.progress = lifecycleSandboxJobProgress(job.progress, 'complete', 1)
-            job.errorCode = null
-            job.errorMessage = null
-            job.finishedAt = new Date()
-            await this.repository.save(job)
-            return this.toSucceeded(job)
+            await this.control.report(job, 'succeeded', { outputs })
+            return this.toSucceeded({ ...job, outputs })
         } catch (error) {
-            const persisted = await this.repository.findOne({ where: { id: jobId } })
-            const runtimeError =
-                persisted?.status === 'cancelled' || options?.signal?.aborted
+            const runtimeError = options?.signal?.aborted
+                ? new SandboxJobRuntimeError(
+                      'SANDBOX_CANCELLED',
+                      t('server-ai:Error.SandboxJobCancelled'),
+                      false,
+                      jobId
+                  )
+                : invocationTimedOut
+                  ? new SandboxJobRuntimeError(
+                        'EXPORT_TIMEOUT',
+                        t('server-ai:Error.SandboxInvocationTimeout'),
+                        true,
+                        jobId
+                    )
+                  : invocations?.error
                     ? new SandboxJobRuntimeError(
-                          'SANDBOX_CANCELLED',
-                          t('server-ai:Error.SandboxJobCancelled'),
+                          'SANDBOX_INVOCATION_FAILED',
+                          t('server-ai:Error.SandboxInvocationFailed'),
                           false,
                           jobId
                       )
-                    : invocationTimedOut
-                      ? new SandboxJobRuntimeError(
-                            'EXPORT_TIMEOUT',
-                            t('server-ai:Error.SandboxInvocationTimeout'),
-                            true,
-                            jobId
-                        )
-                      : invocations?.error
-                        ? new SandboxJobRuntimeError(
-                              'SANDBOX_INVOCATION_FAILED',
-                              t('server-ai:Error.SandboxInvocationFailed'),
-                              false,
-                              jobId
-                          )
-                        : normalizeRuntimeError(error, jobId)
-            if (persisted?.status === 'cancelled') {
-                job = persisted
-                throw runtimeError
-            }
-            job.status = runtimeError.code === 'SANDBOX_CANCELLED' ? 'cancelled' : 'failed'
-            job.progress = lifecycleSandboxJobProgress(
-                job.progress,
-                runtimeError.code === 'SANDBOX_CANCELLED' ? 'cancelled' : 'failed'
-            )
-            job.errorCode = runtimeError.code
-            job.errorMessage = runtimeError.message
-            job.finishedAt = new Date()
-            await this.repository.save(job)
+                    : normalizeRuntimeError(error, jobId)
+            await this.control.report(job, runtimeError.code === 'SANDBOX_CANCELLED' ? 'cancelled' : 'failed', {
+                errorCode: runtimeError.code,
+                errorMessage: runtimeError.message
+            })
             throw runtimeError
         } finally {
             if (invocationDeadline) clearTimeout(invocationDeadline)
             invocations?.close()
             options?.signal?.removeEventListener('abort', abort)
-            this.active.delete(jobId)
-            const cleaned = await this.destroySandbox(job, resolution)
-            if (cleaned) await this.cleanupVolume(job)
+            // Closing the protocol wait does not close the actual callback or its file writes.
+            await invocations?.drain()
         }
     }
 
@@ -839,7 +772,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         timeoutMs: number,
         signal?: AbortSignal
     ): Promise<SandboxJobRunResult> {
-        let deadline = Date.now() + timeoutMs
+        const deadline = Date.now() + timeoutMs
         while (Date.now() < deadline) {
             if (signal?.aborted)
                 throw new SandboxJobRuntimeError(
@@ -857,8 +790,19 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                     jobId
                 )
             if (current.status === 'succeeded') return this.toSucceeded(current)
-            if (current.status === 'waiting') deadline = Date.now() + timeoutMs
-            if (current.status === 'failed' || current.status === 'cancelled' || current.status === 'lost') {
+            if (!current.control)
+                throw new SandboxJobRuntimeError(
+                    'SANDBOX_CONTROL_UNCONFIRMED',
+                    t('server-ai:Error.SandboxControlUnconfirmed'),
+                    false,
+                    jobId
+                )
+            if (
+                current.status === 'failed' ||
+                current.status === 'cancelled' ||
+                current.status === 'lost' ||
+                current.status === 'unknown'
+            ) {
                 throw new SandboxJobRuntimeError(
                     current.errorCode ?? 'SANDBOX_START_FAILED',
                     current.errorMessage ?? `Sandbox job ended with status ${current.status}.`,
@@ -880,96 +824,6 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         return this.repository.findOne({ where: { tenantId, idempotencyKey } })
     }
 
-    private async requirePreviousAttemptCleanup(job: SandboxJobEntity): Promise<void> {
-        const cleaned = await this.destroySandbox(job)
-        if (!cleaned) {
-            throw new SandboxJobRuntimeError(
-                'SANDBOX_START_FAILED',
-                'The previous Sandbox Runtime attempt is still awaiting cleanup.',
-                true,
-                job.id as string
-            )
-        }
-        await this.cleanupVolume(job)
-    }
-
-    private async destroySandbox(job: SandboxJobEntity, resolution?: SandboxRuntimeResolution): Promise<boolean> {
-        const runtimeRef = job.runtimeRef ?? job.containerRef
-        const providerType = resolution?.provider.type ?? job.provider
-        if (!runtimeRef && !providerType) {
-            job.cleanupPending = false
-            job.cleanedAt ??= new Date()
-            await this.repository.save(job)
-            return true
-        }
-        if (!providerType) {
-            job.cleanupPending = true
-            job.cleanedAt = null
-            await this.repository.save(job).catch(() => undefined)
-            this.logger.warn(`Sandbox job ${job.id} has runtimeRef ${runtimeRef} but no persisted Runtime Provider.`)
-            return false
-        }
-        let provider = resolution?.provider
-        try {
-            provider ??= this.providers.get(providerType)
-            await provider.destroy({
-                tenantId: job.tenantId,
-                workFor: { type: 'job', id: job.id as string },
-                runtimeProfile: job.runtimeProfile,
-                runtimeBindingId: job.runtimeBindingId ?? 'legacy',
-                artifact: {
-                    kind: job.runtimeArtifactKind ?? 'oci-image',
-                    reference: job.runtimeArtifactReference ?? '',
-                    ...(job.runtimeArtifactDigest ? { digest: job.runtimeArtifactDigest } : {})
-                },
-                runtimeRef: runtimeRef ?? null
-            })
-            job.cleanupPending = false
-            job.cleanedAt = new Date()
-            await this.repository.save(job)
-            return true
-        } catch (error) {
-            job.cleanupPending = true
-            job.cleanedAt = null
-            await this.repository.save(job).catch(() => undefined)
-            this.logger.warn(`Failed to destroy sandbox job ${job.id}: ${messageOf(error)}`)
-            return false
-        }
-    }
-
-    private async cleanupVolume(job: SandboxJobEntity): Promise<void> {
-        if (!job.id || !job.tenantId) return
-        const volume = this.volumeClient.resolve({ tenantId: job.tenantId, catalog: 'runtime-jobs', jobId: job.id })
-        await volume
-            .destroyRuntimeJob()
-            .catch((error) => this.logger.warn(`Failed to cleanup sandbox job volume ${job.id}: ${messageOf(error)}`))
-    }
-
-    private async cleanupOrphans(): Promise<void> {
-        const expired = await this.repository.find({
-            where: {
-                status: In(['waiting', 'starting', 'running']),
-                hardDeadlineAt: LessThan(new Date())
-            }
-        })
-        for (const job of expired) {
-            job.status = 'lost'
-            job.progress = lifecycleSandboxJobProgress(job.progress, 'lost')
-            job.errorCode = 'EXPORT_TIMEOUT'
-            job.errorMessage = 'Sandbox job exceeded its hard deadline and was reclaimed.'
-            job.finishedAt = new Date()
-            await this.repository.save(job)
-            const cleaned = await this.destroySandbox(job)
-            if (cleaned) await this.cleanupVolume(job)
-        }
-        const pendingCleanup = await this.repository.find({ where: { cleanupPending: true } })
-        for (const job of pendingCleanup) {
-            if (job.status === 'waiting' || job.status === 'starting' || job.status === 'running') continue
-            const cleaned = await this.destroySandbox(job)
-            if (cleaned) await this.cleanupVolume(job)
-        }
-    }
-
     private toSucceeded(job: SandboxJobEntity): SandboxJobRunResult {
         return { ...this.toSnapshot(job), status: 'succeeded' }
     }
@@ -984,6 +838,8 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             status: job.status,
             progress: job.progress,
             attempt: job.attempt,
+            generation: job.generation ?? undefined,
+            controlState: job.control?.phase === 'settled' ? 'settled' : job.control ? 'pending' : 'unknown',
             provider: job.provider,
             runtimeBindingId: job.runtimeBindingId,
             runtimeRef: job.runtimeRef ?? job.containerRef,

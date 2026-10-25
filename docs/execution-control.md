@@ -2,7 +2,7 @@
 
 本文维护会话执行控制的**已实现功能**，供后端开发、测试和后续功能迭代使用。后续阶段完成后继续更新本文；尚未实现的设计保留在[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)中。
 
-当前实现阶段：**第三阶段 3.2——原宿主控制与进程收尾**。前两批已提交（`a6b9b85a9e`、`7eb273ccb`），第三批已提交为 `94bc86fb6`；第四批已按功能重新整理，待审核提交，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
+当前审核阶段：**第五批——Sandbox 持久控制与执行、宿主回调收尾（3.3.1）**。Xpert 前四批已提交（`a6b9b85a9e`、`7eb273ccb`、`94bc86fb6`、`4820bf36b`）；本批仅整理 Xpert，待审核提交。Pro 配套改动留待 Xpert 审核完成后处理，未部署。本文描述本地实现能力，不代表生产环境已具备这些能力。
 
 ## 模块与契约边界
 
@@ -24,6 +24,7 @@
 | 独立、共享工作 | 控制账本支持独立根隔离；不因父执行终止而级联取消这些根                                               |
 | 业务收尾确认 | 3.1 接入 Pipeline Assistant / Runtime、Project 重试准入和群控制；取消应答与实际执行结束分离 |
 | 后台与队列任务 | 第二阶段接入原生跨线程 Assistant、Invocation、受控 Handoff，以及显式接入的 Managed Queue；远端物理退出仍需各适配器确认 |
+| Sandbox Job | 3.3.1 将 Job、宿主回调及其受控子任务接入同一归属；实际收尾证据齐全后释放容量，按原环境和代次补送控制 |
 
 ## 暂停和终止的区别
 
@@ -355,7 +356,66 @@ Desktop 的旧操作若仍为 `unknown` 且没有完整收尾证据，服务端�
 - 运行时插件通过 Nx 源码验证和 dist-first plugin-dev-harness；使用真实已安装 Claude SDK 验证自定义 spawn 接线，使用受控 CLI 协议替身及真实 OS 进程验证 Codex/Pi/Claude 收尾。这不等于已验收所有供应商 CLI 的真实模型/外部工具组合。
 - 同时回归前两阶段及 3.1 的 PostgreSQL / Redis / LangGraph：暂停恢复、父子暂停互等、终止后旧执行禁止恢复、独立/共享根隔离、队列领取和 Pipeline 实际收尾后释放。
 
-Sandbox/MCP 仍属于 3.3，管理员调试界面仍待后续实现。ChatKit 没有新增技术细节界面或 patch。
+Sandbox 的实现见下文 3.3.1；MCP 双端控制属于后续批次。管理员调试界面仍待后续实现。ChatKit 没有新增技术细节界面或 patch。
+
+## 第三阶段 3.3.1：Sandbox Job 与宿主回调收尾
+
+### 修复的故障
+
+修改前的隔离复现证明了两条不同路径：另一副本调用 `cancel()` 后已保存 `cancelled` 和 `finishedAt`，原副本的实际工作仍在运行且未收到终止；宿主 callback 忽略取消时，包装层已结束并销毁 Runtime，但 callback 仍在运行。它们都是“等待结束”被误当作“工作结束”。
+
+```mermaid
+flowchart TD
+    C[取消请求] --> D[持久保存终止意图]
+    D --> P[原宿主轮询 + 其他副本补送原目标控制]
+    P --> R{原代次 Runtime 退出证据}
+    R --> H{实际宿主执行、回调及 attached 子树已结束}
+    H -->|是| F[同一事务保存终态、finishedAt、任务回执并释放容量]
+    R -->|证据不足| W[保持待确认和容量占用]
+    H -->|否| W
+    W --> P
+    F --> G[容器和临时目录清理，失败独立补偿]
+```
+
+`cancel()` 只接受持久终止意图。`cancelling` 表示正在终止，`settling` 表示已有业务结果但执行仍待确认；两者都不是终态。`controlState` 区分 `pending` / `settled` / `unknown`。技术字段供后端与未来管理员调试使用，不增加 ChatKit 技术提示。
+
+### 归属、唯一准入和补送
+
+- `sandbox-job` 与 `sandbox-callback` 是明确的 TaskControl 类型。默认 attached，继承可信调用上下文；`controlPolicy: 'detached' | 'shared'` 建立独立控制根，父任务停止不终止这些工作。调用方停止等待与任务终止分别处理。
+- PostgreSQL 保存一次性 generation、原宿主、Provider 版本、原环境、Runtime Profile、Runtime 身份及回执。幂等键登记和 TaskControl 领取在事务中完成；两个副本发出的十二个并发请求只产生一个执行资格。
+- 相同 `(tenantId, idempotencyKey)` 永远只等待或读取原结果；输入变化被拒绝。失败、丢失、超时或终止不会自动重开旧调用。明确的业务重试使用新幂等键和 `retryOf: { jobId, generation }`，必须核验原 Job 的范围、代次及实际收尾。普通不同调用不根据业务名称推断为重试。
+- 原宿主独立轮询持久意图；其他副本按投递租约补送。控制使用独立的十秒超时，异常退避一至三十秒；重复投递只查询或停止原目标，不携带业务输入。Provider 版本、环境或代次不匹配时保留未知。
+- 创建准入与根控制互斥。控制目标在实际创建前持久保存；取消发生在句柄返回前时，迟到句柄仍只能绑定原代次，禁止进入 Action。状态写入、回执、清理都绑定 generation。
+- 业务结果、原宿主退出、callback 实际退出回执在瞬时数据库故障后保留本机待写队列，补写时不重新调用业务代码。原宿主永久丢失且没有可信退出证据时保持待确认，不凭租约失效接管或重放。
+
+### 暂停与父子互等
+
+暂停保留当前已准入 Job 的收尾许可，不取消或重启容器。它的必要同步 callback 和受控后代也可完成，从而避免父等子、子又被父暂停挡住。结果持久化并确认子树安全后，外层图在已有节点边界暂停；继续时消费原结果或检查点。新的业务分支仍受暂停准入限制。
+
+终止是单向屏障，不能恢复旧 TaskControl claim 或重新执行原 Action。暂停后终止、重复恢复、队列重领等沿用第二阶段的根锁和唯一领取规则。未响应取消的 callback 可以继续收尾，其真实 Promise 和文件写入一直被跟踪；不发布迟到协议响应，也不因此执行第二次 callback。
+
+### 容量、资源与 Provider 证据
+
+容量改为 PostgreSQL 的 `capacityHeld` 持久账本。全局、tenant、user 配额在短事务中原子检查；只有确认收尾的事务释放。默认仍为 **20 / 4 / 2**，配置统一经 `getConfig().sandboxJobOptions` 获取，现有环境变量在配置模块解析。Redis TTL、心跳过期和硬超时都不能证明物理空闲。
+
+Runtime 已退出、实际宿主工作已结束、attached 子树已收尾，三个条件齐全才设置 `finishedAt` 和释放容量。尚未进入 create 的任务可凭持久准入阶段及实际宿主返回证明“未启动”。清理失败不覆盖成功结果；临时目录每个 Job 独立，重试建立新 Job，不复用旧工作目录。
+
+| Provider                  | 本批证据与代次隔离                                                                         | 边界                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Local Browser             | 每次进程启动的宿主身份、原目标登记、Linux 监督器确认后代收尾；执行只准入一次               | 其他宿主 Map 为空不算退出；macOS 缺少强后代证明时保持 unknown                                |
+| Docker Job（Pro，后续单独审核） | 原 Docker engine ID、容器名、generation 标签和 profile；停止后 wait + inspect 确认容器退出 | 创建中、另一引擎或容器不存在均不补造退出；只处理精确 Job 容器，不销毁交互式/共享 Sandbox     |
+| NsJail Compute / Document | 原 Runner 环境 ID、持久控制账本、generation 和 runtimeId；执行函数结束且 cgroup 无存活进程 | 控制账本在 Job 目录之外保留；启动/终止准入持久封闭；环境改变或 cgroup 无法核验时保持 unknown |
+
+新 Job 的运行时选择和健康检查要求 `executionControl: 1` 及完整的 prepare/control 方法。旧 Provider 不能被误选为可安全控制的新 Job 执行器；未修改 Runtime Definition 的隔离协议。
+
+### 迁移、测试和交付边界
+
+- 在启用新代码前应用 [Sandbox 迁移](../packages/server-ai/src/sandbox/sandbox-job/migration.sql)；TaskControl 表及其[迁移](../packages/server/src/task-control/migration.sql)是前置条件。新字段与索引可重复应用。历史 active/lost 或 cleanupPending 记录缺少可信证据，标记 unknown 并保留容量；不为它们生成假回执。历史占用须核验原执行后再处理，本批不提供管理员解除占用界面。
+- 必须协调升级同一控制链的 Host、SDK 和 Provider/Runner，旧、新 worker 不能同时写同一批 Job。NsJail 控制账本随原 Runner 的 state storage 保留；不是允许多个 Runner 同时共享写入，文件锁会拒绝第二个 owner。Runner 状态存储丢失时使用新环境身份，旧控制保持未知。
+- [公共 API 数据库回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-api.postgres.spec.ts)覆盖并发 `run()`、真实文件 materialize、迟到 create 和未响应取消的 callback；[控制数据库回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-control.integration.spec.ts)覆盖原目标补送、容量、显式重试、父子暂停互等、回执补写、独立/共享根与迁移；[两个 OS 进程回归](../packages/server-ai/src/sandbox/sandbox-job/sandbox-job-host.postgres.spec.ts)验证无通知通道时只启动一次并等待真实 callback 返回。
+- 原阶段实现曾完成真实 Linux 子进程监督、Docker 容器及 NsJail HTTP/cgroup 控制验证；这些是历史验收记录，不替代当前分批快照的验证。本次仅重新审核 Xpert；Pro Docker 配套后续单独审核，Document 全部办公/媒体镜像及此前暂缓的产品验证不在本批重跑范围内。
+- 本批按已审核的 `server/task-control`、contracts 接口及显式模块依赖重新整理，并保留 SDK 独立监督程序。Pro 公共宿主及 Provider 的配套改动不纳入本批；完成 Xpert 分层审核后再处理，不能据本批宣称 Pro 全链路已通过审核。
+- 任意外部副作用无法回滚；本批保证唯一准入、禁止自动重放及证据不足时不释放，不能声称通用 exactly-once。MCP 仍属于 3.3.2。本批待审核提交，未部署，ChatKit patch 未纳入。
 
 ## 功能演进记录
 
@@ -364,11 +424,12 @@ Sandbox/MCP 仍属于 3.3，管理员调试界面仍待后续实现。ChatKit �
 | 第一阶段 | 2026-10-23 | 统一归属、持久控制、本地安全暂停与终止、并发恢复和工具回执        | 已提交、审核通过，未部署   |
 | 第二阶段 | 2026-10-23 | 稳定任务身份、跨线程原生任务、Invocation 控制、受控队列和结果限制 | 已提交 `7eb273ccb`；未部署 |
 | 第三阶段 3.1 | 2026-10-23 | 类型化收尾证据、Pipeline / Project / 群业务桥接及准入限制 | 已提交 `94bc86fb6`；未部署 |
-| 第三阶段 3.2 | 2026-10-24 | 原宿主补送、执行代次、Linux 后代监督、Desktop/Computer 收尾及远端取消保护 | 第四批待审核提交；未部署 |
+| 第三阶段 3.2 | 2026-10-24 | 原宿主补送、执行代次、Linux 后代监督、Desktop/Computer 收尾及远端取消保护 | Xpert 已提交 `4820bf36b`；Pro 配套待审核；未部署 |
+| 第三阶段 3.3.1 | 2026-10-24 | Sandbox 持久控制、代次隔离、宿主 callback 收尾、容量账本、Local/NsJail 证据 | 第五批 Xpert 待审核；Pro 后续单独审核；未部署 |
 
 后续阶段完成后，在本文补充对应功能章节并追加本表，同时更新“功能范围”、接口状态、兼容要求及回归入口。每次补充说明实际接入的执行器、暂停与终止的确认条件、失败或未知状态如何处理，以及验证范围；不要仅把计划中的能力改成“已支持”。
 
-未接入队列、缺少可靠证据的远端 Runtime、Sandbox / MCP 的实际退出确认，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
+未接入队列、缺少可靠证据的远端 Runtime、MCP 的实际退出确认，以及管理员调试界面，仍以[升级计划](./proposal/issue-1217-execution-pause-and-termination.md)跟踪，完成实现后再写入本文的已实现范围。
 
 ### 模块与契约分层
 

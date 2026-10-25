@@ -156,7 +156,15 @@ describe('invocation limits and lifecycle', () => {
         await new Promise((done) => setImmediate(done))
         f.abort.abort()
         await expect(bridge.finish()).rejects.toThrow('CANCELLED')
+        let drained = false
+        const drain = bridge.drain().then(() => {
+            drained = true
+        })
+        await new Promise((done) => setImmediate(done))
+        expect(drained).toBe(false)
         resolve({ rows: [] })
+        await drain
+        expect(drained).toBe(true)
         await new Promise((done) => setImmediate(done))
         expect(f.runtime.uploadFiles).not.toHaveBeenCalled()
         bridge.push({ stream: 'stdout', text: line('two') })

@@ -213,6 +213,24 @@ class ComputeJob:
         import select
         return bool(select.select([self.process.stdout], [], [], 0)[0])
 
+    def execution_state(self):
+        with self.lock:
+            if self.destroyed:
+                return "exited"
+            if not self.cancelled.is_set() and not self.finished.is_set():
+                return "running"
+            if self.sealed and not self.finished.is_set():
+                return "running"
+            if self.process and self.process.poll() is None:
+                return "running"
+            try:
+                events = dict(line.split() for line in (self.cgroup / "cgroup.events").read_text().splitlines())
+                if events.get("populated") != "0":
+                    return "running"
+            except OSError:
+                return "unknown"
+            return "exited" if self.sealed else "not_started"
+
     def destroy(self):
         self.cancel()
         if self.sealed and not self.finished.wait(6):

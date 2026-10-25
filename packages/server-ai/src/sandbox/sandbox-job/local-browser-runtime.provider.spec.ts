@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
 import {
     LOCAL_AI_BROWSER_RUNTIME_BINDING,
@@ -64,6 +65,8 @@ describe('LocalBrowserRuntimeProvider', () => {
             if (/[/\\]soffice(?:\.exe)?$/.test(String(file))) {
                 return Promise.reject(Object.assign(new Error('missing soffice'), { code: 'ENOENT' }))
             }
+            if (String(file).endsWith('manifest.json') || String(file).endsWith('runner-host.mjs'))
+                return Promise.resolve()
             return originalAccess(file, mode)
         })
         const provider = new LocalBrowserRuntimeProvider()
@@ -73,7 +76,7 @@ describe('LocalBrowserRuntimeProvider', () => {
 
         await expect(provider.getBindingHealth({ definition, binding })).resolves.toMatchObject({
             available: false,
-            reason: 'Install LibreOffice and expose the soffice executable on PATH.'
+            reason: 'Install LibreOffice, Poppler (pdftotext), fontconfig, Noto CJK and Noto Color Emoji fonts on PATH.'
         })
     })
 
@@ -102,6 +105,7 @@ describe('LocalBrowserRuntimeProvider', () => {
 
         expect(provider.type).toBe(LOCAL_BROWSER_RUNTIME_PROVIDER)
         expect(provider.capabilities).toEqual({
+            executionControl: 1,
             isolation: 'process',
             ephemeral: true,
             resourceLimits: false,
@@ -239,6 +243,35 @@ describe('LocalBrowserRuntimeProvider', () => {
             { path: 'input/media/asset/source.mov', content: Buffer.from('seekable-media'), error: null }
         ])
     })
+
+    it.each([false, true])(
+        'seals controlled create across duplicate calls and a late preparation stop (%s)',
+        async (stopDuringPreparation) => {
+            const provider = new LocalBrowserRuntimeProvider()
+            const options = await createOptions(provider)
+            const identity = {
+                tenantId: options.tenantId,
+                workFor: options.workFor,
+                runtimeProfile: options.definition.name,
+                runtimeBindingId: options.binding.id,
+                artifact: options.binding.artifact
+            }
+            const target = await provider.prepareControl({ ...identity, generation: randomUUID() })
+            if (stopDuringPreparation) {
+                const originalRealpath = fs.realpath
+                jest.spyOn(fs, 'realpath').mockImplementationOnce(async (file) => {
+                    await provider.control(target, 'stop')
+                    return originalRealpath(file)
+                })
+                await expect(provider.create({ ...options, controlTarget: target })).rejects.toThrow('create cancelled')
+            } else {
+                await provider.create({ ...options, controlTarget: target })
+                await expect(provider.create({ ...options, controlTarget: target })).rejects.toThrow('admission closed')
+            }
+            await provider.destroy({ ...identity, controlTarget: target })
+            await expect(provider.create({ ...options, controlTarget: target })).rejects.toThrow('admission closed')
+        }
+    )
 
     it('executes the fixed Runner Host against a materialized Action', async () => {
         const provider = new LocalBrowserRuntimeProvider()

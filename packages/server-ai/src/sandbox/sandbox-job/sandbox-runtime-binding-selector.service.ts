@@ -26,6 +26,7 @@ export type SandboxRuntimeSelectionHealth = {
 /** Per-Job capabilities that are stricter than the static Runtime Definition. */
 export type SandboxRuntimeSelectionRequirements = {
     readOnlyFileMounts?: boolean
+    executionControl?: boolean
 }
 
 /** Deterministically selects the first healthy Binding that satisfies a Definition's guarantees. */
@@ -58,6 +59,10 @@ export class SandboxRuntimeBindingSelector {
                         binding.provider === provider.type &&
                         isBindingEligible(provider, binding, definition) &&
                         (!requirements.readOnlyFileMounts || provider.capabilities.readOnlyFileMounts === true) &&
+                        (!requirements.executionControl ||
+                            (provider.capabilities.executionControl === 1 &&
+                                typeof provider.prepareControl === 'function' &&
+                                typeof provider.control === 'function')) &&
                         isArtifactAllowed(binding)
                     ) {
                         candidates.push({ provider, binding })

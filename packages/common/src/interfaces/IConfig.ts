@@ -52,5 +52,7 @@ export interface IPluginConfig {
 
   authOptions?: IAuthOptions
 
+  sandboxJobOptions?: { globalLimit: number; tenantLimit: number; userLimit: number; capacityPollMs: number }
+
   assetOptions?: IAssetOptions
 }

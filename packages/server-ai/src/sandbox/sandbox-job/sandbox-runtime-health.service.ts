@@ -115,7 +115,7 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
         const key = probeKey(definition)
         const pending = this.pendingProbes.get(key)
         if (pending) return pending
-        const probe = this.selector.inspect(definition).then((health) => {
+        const probe = this.selector.inspect(definition, { executionControl: true }).then((health) => {
             const record = recordFromSelection(this.executorId, definition, health)
             this.latest.set(key, record)
             return record

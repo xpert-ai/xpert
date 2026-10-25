@@ -10,6 +10,7 @@ export class TaskControlRunner implements OnModuleDestroy {
 	private readonly logger = new Logger(TaskControlRunner.name)
 	private readonly timer: ReturnType<typeof setInterval>
 	private polling = false
+	private readonly receipts = new Map<string, { claim: string; outcome: 'succeeded' | 'failed' }>()
 	constructor(private readonly store: TaskControlStore) {
 		this.timer = setInterval(() => void this.reconcile(), 1000)
 		this.timer.unref()
@@ -38,7 +39,19 @@ export class TaskControlRunner implements OnModuleDestroy {
 		} finally {
 			// If receipt persistence fails, keep the durable claim: another worker must not replay the body.
 			this.active.delete(reference.targetId)
-			await this.store.finishClaim(reference.targetId, claim, outcome)
+			this.receipts.set(reference.targetId, { claim, outcome })
+			await this.flushReceipt(reference.targetId)
+		}
+	}
+
+	private async flushReceipt(id: string) {
+		const receipt = this.receipts.get(id)
+		if (!receipt) return
+		try {
+			await this.store.finishClaim(id, receipt.claim, receipt.outcome)
+			this.receipts.delete(id)
+		} catch {
+			this.logger.warn('Actual handler exit receipt persistence remains pending')
 		}
 	}
 
@@ -46,6 +59,7 @@ export class TaskControlRunner implements OnModuleDestroy {
 		if (this.polling) return
 		this.polling = true
 		try {
+			for (const id of this.receipts.keys()) await this.flushReceipt(id)
 			for (const [id, controller] of this.active) {
 				try {
 					if ((await this.store.desired(id)) === 'terminated') controller.abort()
