@@ -9,6 +9,7 @@ const { DataSource, EntitySchema } = require('typeorm')
 const { verifyLegacyAdoption } = require('./schema-migration-legacy-fixture.cjs')
 const { seedContentDocuments, verifyContentDocuments } = require('./schema-migration-content-fixture.cjs')
 const { verifyLegacyCompatibility } = require('./schema-migration-compatibility-fixture.cjs')
+const { verifyCatalogRevisions } = require('./schema-migration-catalog-fixture.cjs')
 const root = path.resolve(__dirname, '../..')
 const silent = {
   log() {},
@@ -354,6 +355,7 @@ async function main() {
       path.join(assets, 'database-migrations.json')
     )
     const hostBundle = await loadSchemaMigrations(assets)
+    await verifyCatalogRevisions(admin, connect, hostBundle, synchronizeWithMigrations)
     assert.ok(hostBundle.migrations.length > 0)
     const manifestPath = path.join(assets, 'database-migrations.json')
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'))

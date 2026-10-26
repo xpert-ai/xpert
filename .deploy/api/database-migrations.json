@@ -90,6 +90,7 @@
     "ai/desktop-shell/migrations/checks/20261024000300-desktop-shell-completion.sql",
     "ai/shared/stream/display-snapshot/migrations/checks/20261025010000-run-display-snapshot.sql",
     "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
-    "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql"
+    "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql",
+    "ai/content-resource/catalog/migrations/checks/20261027000000-content-revision-capacity.sql"
   ]
 }
