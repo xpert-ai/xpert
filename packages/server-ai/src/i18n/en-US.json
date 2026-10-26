@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PluginRuntimeRequirementsChanged": "Plugin runtime requirements changed. Refresh plugin state before retrying the restart.",
         "McpToolUnavailable": "MCP tool is unavailable.",
         "McpToolInvalidArguments": "Invalid MCP tool arguments: {{details}}",
         "McpToolInvalidOutput": "Invalid MCP tool output.",

@@ -1,6 +1,6 @@
 import { IApiKey, RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
 import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
-import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
 import { RuntimeControlService } from './runtime-control.service'
 import type { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
@@ -10,6 +10,7 @@ describe('RuntimeControlService', () => {
 		requestRestart: jest.fn(),
 		getStatus: jest.fn(),
 		getPluginConvergenceStatus: jest.fn(),
+		getPluginRuntimeSnapshot: jest.fn(),
 		recordPluginChange: jest.fn()
 	}
 	const instances = { getRegisteredInstanceDetails: jest.fn(), retireInstance: jest.fn() }
@@ -50,7 +51,12 @@ describe('RuntimeControlService', () => {
 		]
 		await expect(
 			service.requestRestart(
-				{ confirmation: RUNTIME_RESTART_CONFIRMATION, reason: 'activate staged plugin', runtimeRequirements },
+				{
+					confirmation: RUNTIME_RESTART_CONFIRMATION,
+					reason: 'activate staged plugin',
+					runtimeRequirements,
+					expectedGeneration: 0
+				},
 				{ sourceIp: '127.0.0.1' }
 			)
 		).resolves.toMatchObject({
@@ -64,7 +70,8 @@ describe('RuntimeControlService', () => {
 			actorUserId: 'user-1',
 			tenantId: 'tenant-default',
 			sourceIp: '127.0.0.1',
-			runtimeRequirements
+			runtimeRequirements,
+			expectedGeneration: 0
 		})
 	})
 
@@ -78,6 +85,37 @@ describe('RuntimeControlService', () => {
 			status: 'retired'
 		})
 		expect(instances.retireInstance).toHaveBeenCalledWith('api-old', 'boot-1')
+	})
+
+	it('rejects legacy tabs before forwarding requirements without a generation fence', async () => {
+		await expect(
+			service.requestRestart({
+				confirmation: RUNTIME_RESTART_CONFIRMATION,
+				runtimeRequirements: [{ scopeKey: 'org-1', pluginName: 'plugin', version: '0.5.5', state: 'loaded' }]
+			})
+		).rejects.toBeInstanceOf(ConflictException)
+		expect(coordinator.requestRestart).not.toHaveBeenCalled()
+	})
+
+	it('allows server-owned setup results to introduce new requirements', async () => {
+		const requirements = [{ scopeKey: 'org-1', pluginName: 'plugin', version: '0.6.1', state: 'loaded' as const }]
+		await service.activateStagedPlugins(requirements, 'setup')
+		expect(coordinator.requestRestart).toHaveBeenCalledWith(
+			expect.objectContaining({ runtimeRequirements: requirements })
+		)
+		expect(coordinator.requestRestart.mock.calls[0][0]).not.toHaveProperty('expectedGeneration')
+	})
+
+	it('returns the durable current target only to authorized operators', async () => {
+		coordinator.getPluginRuntimeSnapshot.mockResolvedValue({
+			generation: 62,
+			status: 'completed',
+			requirements: []
+		})
+		await expect(service.pluginRuntimeSnapshot()).resolves.toMatchObject({ generation: 62, status: 'completed' })
+		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('other-tenant')
+		await expect(service.pluginRuntimeSnapshot()).rejects.toBeInstanceOf(ForbiddenException)
+		expect(coordinator.getPluginRuntimeSnapshot).toHaveBeenCalledTimes(1)
 	})
 
 	it('forwards explicit outage consent from an authorized interactive operator', async () => {
