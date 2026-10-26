@@ -4576,6 +4576,8 @@
       "UploadAFile": "上传一个文件",
       "Recent": "最近",
       "UploadAttachmentsTooltip": "上传附件（仅识别文字和图片）",
+      "DeleteProjectWarning": "删除此项目会同时删除其对话、任务及相关记录，此操作无法恢复。",
+      "DeleteInApplication": "此项目由应用管理，请前往对应应用删除，以确保业务数据一致。",
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
       "Collaborators": "协作者",
       "Edit": "编辑",

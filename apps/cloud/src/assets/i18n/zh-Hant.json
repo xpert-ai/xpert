@@ -2542,6 +2542,8 @@
       "UploadAFile": "上傳一個文件",
       "Recent": "最近",
       "UploadAttachmentsTooltip": "上傳附件（僅識別文字和圖片）",
+      "DeleteProjectWarning": "刪除此項目會同時刪除其對話、任務及相關記錄，此操作無法復原。",
+      "DeleteInApplication": "此項目由應用管理，請前往對應應用刪除，以確保業務資料一致。",
       "DeleteProjectAndAll": "刪除項目及其中所有的材料",
       "Collaborators": "協作者",
       "Edit": "編輯",

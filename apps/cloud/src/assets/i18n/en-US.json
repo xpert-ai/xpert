@@ -4167,6 +4167,8 @@
       "UploadAFile": "Upload a file",
       "Recent": "Recent",
       "UploadAttachmentsTooltip": "Upload attachments (text and image recognition only)",
+      "DeleteProjectWarning": "Deleting this project also deletes its conversations, tasks and related records. This action cannot be undone.",
+      "DeleteInApplication": "This project is managed by an application. Delete it from the application to keep business data consistent.",
       "DeleteProjectAndAll": "Delete the project and all its materials",
       "Collaborators": "Collaborators",
       "Edit": "Edit",
