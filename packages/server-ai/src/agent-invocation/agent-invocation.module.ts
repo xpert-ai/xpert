@@ -1,4 +1,6 @@
+import { RuntimeDeploymentsService } from './managed/runtime-deployments.service'
 import { TaskControlCoordinator } from './task-control-coordinator.service'
+import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../handoff/runtime-messaging/runtime-message.entity'
 import { RuntimeMessageAccessService } from '../handoff/runtime-messaging/runtime-message-access.service'
 import {
@@ -67,6 +69,8 @@ import { InvocationCardProvider } from './execution-view/invocation-card.provide
     ],
     controllers: [RuntimeDeliveryController, AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        ManagedRuntimeService,
+        RuntimeDeploymentsService,
         TaskControlCoordinator,
         InvocationActivityService,
         ExecutionReaderService,
