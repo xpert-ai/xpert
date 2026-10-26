@@ -9,6 +9,7 @@ on:
       - 'apps/desktop/**'
       - 'libs/template-installation/**'
       - 'packages/desktop-protocol/**'
+      - 'packages/plugin-sdk/src/lib/agent/runtime/process-supervisor.ts'
       - 'packages/contracts/**'
       - 'packages/shadcn-ui/**'
       - 'pnpm-workspace.yaml'

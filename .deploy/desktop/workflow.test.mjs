@@ -18,6 +18,7 @@ test('Desktop planning pins main from the fetched repository history', () => {
 
 test('release tooling repairs run checks while installer builds and publication retain their gates', () => {
   assert.ok(workflow.on.pull_request.paths.includes('libs/template-installation/**'))
+  assert.ok(workflow.on.pull_request.paths.includes('packages/plugin-sdk/src/lib/agent/runtime/process-supervisor.ts'))
   assert.deepEqual(workflow.on.push.branches, ['develop', 'main'])
   for (const file of ['.changeset/**', '.deploy/desktop/**', '.github/workflows/desktop-release.yml']) {
     assert.ok(workflow.on.push.paths.includes(file))

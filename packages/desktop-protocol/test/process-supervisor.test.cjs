@@ -6,12 +6,8 @@ const { tmpdir } = require('node:os')
 const { join } = require('node:path')
 const { AGENT_PROCESS_SUPERVISOR } = require('../process-supervisor')
 
-test('SDK supervisor loads without package imports and matches the device supervisor', async () => {
-  const source = await readFile(join(__dirname, '../../plugin-sdk/src/lib/agent/runtime/process-supervisor.ts'), 'utf8')
-  // A data URL has no package resolution context: the SDK payload must be self-contained.
-  const sdk = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)
-  assert.equal(sdk.AGENT_PROCESS_SUPERVISOR, AGENT_PROCESS_SUPERVISOR)
-})
+// Process-group tests require POSIX signals; cross-package parity is checked in the CI prepare job.
+const posixTest = process.platform === 'win32' ? test.skip : test
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 async function until(fn) {
@@ -71,7 +67,7 @@ async function size(root) {
   }
 }
 
-test('parent exit drains its still-running child and only supported platforms certify descendants', async (t) => {
+posixTest('parent exit drains its still-running child and only supported platforms certify descendants', async (t) => {
   const root = await directory(t)
   const run = supervised(
     `const c=require('child_process').spawn(process.execPath,['-e',${JSON.stringify(heartbeat + ";console.log('ready')")}],{stdio:['ignore','pipe','ignore']});c.stdout.once('data',()=>setTimeout(()=>process.exit(0),150))`,
@@ -95,7 +91,7 @@ test('parent exit drains its still-running child and only supported platforms ce
   )
 })
 
-test(
+posixTest(
   'subreaper drains a detached grandchild and a child that ignores SIGTERM',
   { skip: process.platform !== 'linux' },
   async (t) => {
@@ -118,7 +114,7 @@ test(
   }
 )
 
-test('stopping one supervised family does not signal a separately owned family', async (t) => {
+posixTest('stopping one supervised family does not signal a separately owned family', async (t) => {
   const root = await directory(t)
   const a = supervised('setInterval(()=>{},1000)', root)
   const b = supervised(heartbeat, root)
@@ -134,7 +130,7 @@ test('stopping one supervised family does not signal a separately owned family',
   await b.finished
 })
 
-test(
+posixTest(
   'unsupported platforms cannot manufacture descendant completion',
   { skip: process.platform === 'linux' },
   async (t) => {
@@ -144,7 +140,7 @@ test(
   }
 )
 
-test('supervisor closes its copy of stdin so child transport failure is observable', async (t) => {
+posixTest('supervisor closes its copy of stdin so child transport failure is observable', async (t) => {
   const run = supervised("require('fs').closeSync(0);console.log('ready');setInterval(()=>{},1000)", await directory(t))
   t.after(run.stop)
   await until(() => run.output().includes('ready'))
@@ -155,7 +151,7 @@ test('supervisor closes its copy of stdin so child transport failure is observab
   await run.finished
 })
 
-test(
+posixTest(
   'original host death causes the surviving supervisor to drain its child',
   { skip: process.platform !== 'linux' },
   async (t) => {
@@ -178,7 +174,7 @@ test(
   }
 )
 
-test('an exited original host cannot be replaced by the supervisor current parent during startup', async (t) => {
+posixTest('an exited original host cannot be replaced by the supervisor current parent during startup', async (t) => {
   const root = await directory(t)
   const run = supervised(heartbeat, root, 0)
   const result = await run.finished
