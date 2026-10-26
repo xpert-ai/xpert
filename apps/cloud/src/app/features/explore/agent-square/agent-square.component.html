@@ -491,8 +491,9 @@
                 <p class="mt-6 line-clamp-2 min-h-12 text-sm leading-6 text-muted-foreground">
                   {{ expertSummary(item) }}
                 </p>
+                <!-- Repeated backdrop filters caused page-wide paint gaps; keep hover surfaces self-contained. -->
                 <div
-                  class="absolute bottom-0 left-0 w-full flex justify-between min-h-7 flex-wrap gap-2 p-4 rounded-2xl backdrop-blur-sm bg-card/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  class="absolute bottom-0 left-0 w-full flex justify-between min-h-7 flex-wrap gap-2 p-4 rounded-2xl bg-card/95 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 >
                   <div class="flex flex-wrap gap-2">
                     @for (tag of expertTags(item).slice(0, 3); track tag) {
@@ -859,7 +860,7 @@
                   </p>
                 </a>
                 <div
-                  class="pointer-events-none absolute bottom-0 left-0 z-20 w-full p-2 flex justify-between min-h-7 flex-wrap gap-2 rounded-2xl backdrop-blur-sm bg-card/5 opacity-0 group-hover/template:opacity-100 group-focus-within/template:opacity-100 transition-opacity duration-200"
+                  class="pointer-events-none absolute bottom-0 left-0 z-20 w-full p-2 flex justify-between min-h-7 flex-wrap gap-2 rounded-2xl bg-card/95 opacity-0 group-hover/template:opacity-100 group-focus-within/template:opacity-100 transition-opacity duration-200"
                 >
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
