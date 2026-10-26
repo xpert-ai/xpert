@@ -1,0 +1,69 @@
+identity:
+    author: Serply
+    name: serply
+    label:
+        en_US: Serply
+        zh_Hans: Serply
+        pt_BR: Serply
+    description:
+        en_US: Serply is a real-time Google search API that returns ranked results with a title, link and snippet for each result.
+        zh_Hans: Serply 是一个实时 Google 搜索 API，为每条结果返回标题、链接和摘要。
+        pt_BR: Serply is a real-time Google search API that returns ranked results with a title, link and snippet for each result.
+    icon: icon.svg
+    tags:
+        - search
+        - news
+credentials_for_provider:
+    serply_api_key:
+        type: secret-input
+        required: true
+        label:
+            en_US: Serply API key
+            zh_Hans: Serply API key
+            pt_BR: Serply API key
+        placeholder:
+            en_US: Please input your Serply API key
+            zh_Hans: 请输入你的 Serply API key
+            pt_BR: Please input your Serply API key
+        help:
+            en_US: Get your Serply API key from Serply
+            zh_Hans: 从 Serply 获取您的 Serply API key
+            pt_BR: Get your Serply API key from Serply
+        url: https://serply.io
+    num:
+        type: number
+        default: 10
+        label:
+            en_US: Number of results
+            zh_Hans: 结果数
+            pt_BR: Number of results
+        placeholder:
+            en_US: Please input the number of results
+            zh_Hans: 请输入结果数
+            pt_BR: Please input the number of results
+        help:
+            en_US: 'The number of results to return, from 1 to 10 (default: 10)'
+            zh_Hans: '要返回的结果数，1 到 10（默认值：10）'
+            pt_BR: 'The number of results to return, from 1 to 10 (default: 10)'
+    gl:
+        type: text-input
+        required: false
+        label:
+            en_US: Country
+            zh_Hans: 国家
+            pt_BR: Country
+        placeholder:
+            en_US: Two-letter country code of the search, for example US
+            zh_Hans: 搜索的两位国家代码，例如 US
+            pt_BR: Two-letter country code of the search, for example US
+    hl:
+        type: text-input
+        required: false
+        label:
+            en_US: Language
+            zh_Hans: 语言
+            pt_BR: Language
+        placeholder:
+            en_US: Interface language of the search, for example en
+            zh_Hans: 搜索的界面语言，例如 en
+            pt_BR: Interface language of the search, for example en

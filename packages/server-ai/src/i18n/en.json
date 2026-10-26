@@ -1340,6 +1340,9 @@
             "WebSearch": "Web Search",
             "Searching": "Searching"
         },
+        "SerplySearch": {
+            "WebSearch": "Web Search"
+        },
         "Python": {
             "ExecPythonCode": "Executing Python code"
         },
