@@ -10,7 +10,7 @@ import type { ViewExtensionApiService } from '../../../@core/services/view-exten
 import { canRenderViewInChatkit, findResolvedViewByKey } from './conversation-detail/workspace/fixed-views'
 import type { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 
-/** Prefer ChatKit for supported Views, retaining the outer renderer for legacy schemas. */
+/** ChatKit owns rendering; the host authorizes and persists View navigation. */
 export function createChatkitWorkbenchNavigation(options: {
   assistantId: () => string | null
   projectId: () => string | null
@@ -88,8 +88,6 @@ export function createChatkitWorkbenchNavigation(options: {
   const onNavigationChange = async (navigation: ChatKitWorkbenchNavigation) => {
     if (navigation.projectId !== options.projectId() || options.url.projectId()) return
     if (navigation.view && !options.isChatkitView(navigation.view.viewKey)) return
-    // Closing the embedded panel must not erase another plugin's outer View URL.
-    if (!navigation.view && options.url.viewKey() && !options.isChatkitView(options.url.viewKey())) return
     revision++
     await options.url.setViewState(
       navigation.view?.viewKey ?? null,

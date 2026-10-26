@@ -90,7 +90,7 @@ export function initiallyOpenViews<T extends { viewKey: string; openMode?: 'auto
   )
 }
 
-/** Match ChatKit's current iframe renderer; other schemas retain legacy host rendering. */
+/** Match ChatKit's iframe renderer; unsupported schemas cannot open in the embedded workbench. */
 export function canRenderViewInChatkit(view: XpertViewSchema | undefined) {
   return view?.type === 'remote_component' && view.component.isolation === 'iframe'
 }

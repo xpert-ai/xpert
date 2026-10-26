@@ -5,6 +5,14 @@ class ZardIconComponent {
   @Input() zType?: string
 }
 
+@Directive({ selector: '[z-button]' })
+class ZardButtonComponent {
+  @Input() zType?: string
+  @Input() zSize?: string
+  @Input() zDisabled?: boolean
+  @Input() zLoading?: boolean
+}
+
 @Directive({ selector: '[zTooltip]' })
 class ZTooltipDirective {
   @Input() zTooltip?: string
@@ -24,6 +32,8 @@ export class AssistantMenuStub {
 }
 
 export const headlessUi = {
+  XpDialogFrameImports: [],
+  ZardButtonComponent,
   ZardIconComponent,
   ZardTooltipImports: [ZTooltipDirective],
   ZardMenuImports: [ZMenuDirective]

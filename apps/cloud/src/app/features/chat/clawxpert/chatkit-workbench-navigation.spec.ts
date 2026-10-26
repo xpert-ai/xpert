@@ -117,7 +117,7 @@ describe('ChatKit Workbench route ownership', () => {
     expect(h.url.setViewState).toHaveBeenCalledWith(null, null, { closed: true })
   })
 
-  it('leaves unsupported legacy View URLs under outer Workbench ownership', async () => {
+  it('clears a dismissed legacy View URL and refuses to reopen its unsupported renderer', async () => {
     const h = setup()
     h.defaultViewKey.set('other-plugin')
     expect(h.state().view).toBeNull()
@@ -125,6 +125,8 @@ describe('ChatKit Workbench route ownership', () => {
     h.url.viewQuery.set({ selectionId: 'document' })
     expect(h.state().view).toBeNull()
     await h.onNavigationChange({ projectId: 'project-a', view: null })
+    expect(h.url.setViewState).toHaveBeenCalledWith(null, null, { closed: true })
+    h.url.setViewState.mockClear()
     await h.onNavigationChange({ projectId: 'project-a', view: { viewKey: 'other-plugin' } })
     expect(h.url.setViewState).not.toHaveBeenCalled()
   })
