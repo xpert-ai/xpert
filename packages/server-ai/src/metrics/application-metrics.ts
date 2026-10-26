@@ -324,6 +324,7 @@ export class ApplicationMetricsRegistry {
     recordModelExecution(
         event:
             | 'BridgeUnsupported'
+            | 'ParametersUnsupported'
             | 'ConversationRequired'
             | 'RateLimit'
             | 'Unavailable'

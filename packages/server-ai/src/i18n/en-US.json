@@ -215,6 +215,7 @@
         "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
         "ModelExecutionUnavailable": "Model execution is disabled or unavailable in this context.",
         "ModelExecutionBridgeUnsupported": "This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.",
+        "ModelExecutionParametersUnsupported": "The configured model parameters are invalid or unsupported by this model or execution protocol.",
         "ModelExecutionInvalid": "The model execution configuration is invalid.",
         "ModelExecutionConversationRequired": "Create a conversation with the current Assistant before opening coding tools.",
         "ModelExecutionDenied": "The execution authorization has expired, changed, or been revoked.",

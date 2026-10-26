@@ -215,6 +215,7 @@
         "ConversationArtifactUnavailable": "此已保存文件在当前对话中不可用。",
         "ModelExecutionUnavailable": "当前上下文未启用模型执行或暂不可用。",
         "ModelExecutionBridgeUnsupported": "此 Chat 协议转换仅支持文本和客户端工具，请关闭原生思考、多媒体、服务端工具及不支持的协议选项。",
+        "ModelExecutionParametersUnsupported": "配置的模型参数无效，或当前模型及执行协议不支持这些参数。",
         "ModelExecutionInvalid": "模型执行配置无效。",
         "ModelExecutionConversationRequired": "请先为当前 Assistant 创建会话，再打开编程工具。",
         "ModelExecutionDenied": "执行授权已过期、发生变化或被撤销。",

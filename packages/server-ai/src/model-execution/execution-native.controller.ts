@@ -1,4 +1,5 @@
 import { executionRequestLifetime } from './execution-request-lifetime'
+import { inheritNativeParameters } from './execution-model-parameters'
 import { z } from 'zod/v3'
 import { ModelExecutionChatService } from './execution-chat.service'
 import { parseChatBridgeRequest } from './execution-chat-bridge-request'
@@ -94,6 +95,7 @@ export class ModelExecutionNativeController {
             if (!policy.nativeProtocols?.includes(protocol) || !model.protocols.includes(protocol))
                 throw executionError('Unavailable')
             const parsed = parseNativeRequest(body, protocol)
+            inheritNativeParameters(parsed, protocol, model.parameters)
             if (!model) throw executionError('Model')
             const outputKey = protocol === 'openai_responses' ? 'max_output_tokens' : 'max_tokens'
             const output = parsed[outputKey]

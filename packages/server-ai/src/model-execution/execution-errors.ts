@@ -3,6 +3,8 @@ import { BadRequestException, ForbiddenException, HttpException, HttpStatus } fr
 import { t } from 'i18next'
 
 const messages = {
+    ParametersUnsupported:
+        'The configured model parameters are invalid or unsupported by this model or execution protocol.',
     Unavailable: 'Model execution is disabled or unavailable in this context.',
     BridgeUnsupported:
         'This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.',
@@ -20,7 +22,7 @@ export function executionError(code: keyof typeof messages) {
     const message = t(`server-ai:Error.ModelExecution${code}`, { defaultValue: messages[code] })
     return code === 'Budget' || code === 'RateLimit'
         ? new HttpException(message, HttpStatus.TOO_MANY_REQUESTS)
-        : ['Invalid', 'BridgeUnsupported', 'ConversationRequired'].includes(code)
+        : ['Invalid', 'BridgeUnsupported', 'ParametersUnsupported', 'ConversationRequired'].includes(code)
           ? new BadRequestException(message)
           : new ForbiddenException(message)
 }

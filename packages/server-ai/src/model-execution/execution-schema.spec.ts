@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
-import { executionContextSchema, executionJson, executionLimitsSchema } from './execution-schema'
+import { executionContextSchema, executionJson, executionLimitsSchema, executionModelSchema } from './execution-schema'
 import { defaultExecutionLimits } from './execution-policy.defaults'
 import { executionUsageFactSchema } from './execution-usage-schema'
 
@@ -51,6 +51,15 @@ const fact = {
 }
 
 describe('persisted execution boundaries', () => {
+    it('round-trips typed tuning snapshots, accepts legacy models and rejects persisted secrets', () => {
+        expect(executionModelSchema.parse(fact.model)).toEqual(fact.model)
+        const parameters = { temperature: 0, enable_thinking: false, max_tokens: 12345 }
+        expect(executionModelSchema.parse({ ...fact.model, parameters }).parameters).toEqual(parameters)
+        expect(() =>
+            executionModelSchema.parse({ ...fact.model, parameters: { ...parameters, api_key: 'secret' } })
+        ).toThrow()
+        expect(() => executionModelSchema.parse({ ...fact.model, parameters: { temperature: 'secret' } })).toThrow()
+    })
     it('loads legacy grant limits without retaining their input cap', () => {
         const transformer = executionJson(executionLimitsSchema)
         expect(transformer.from({ ...defaultExecutionLimits, maxInputTokens: 128000 })).toEqual(defaultExecutionLimits)
