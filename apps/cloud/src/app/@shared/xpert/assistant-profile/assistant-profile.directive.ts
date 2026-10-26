@@ -8,7 +8,13 @@ import { AssistantProfileComponent } from './assistant-profile.component'
   standalone: true,
   selector: '[xpAssistantProfile]',
   exportAs: 'xpAssistantProfile',
-  hostDirectives: [{ directive: ZardHoverCardDirective, inputs: ['zPlacement'] }],
+  hostDirectives: [
+    {
+      directive: ZardHoverCardDirective,
+      inputs: ['zPlacement'],
+      outputs: ['zVisibleChange: profileVisibleChange']
+    }
+  ],
   host: { '(keydown.alt.arrowdown)': 'open($event)' }
 })
 export class AssistantProfileDirective {

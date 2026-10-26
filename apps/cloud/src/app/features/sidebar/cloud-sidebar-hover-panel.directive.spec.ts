@@ -164,6 +164,30 @@ describe('CloudSidebarHoverPanelDirective', () => {
     expect(open()).toBe(region)
   }))
 
+  it('keeps the retained CDK pane transparent to pointer input across repeated open and close cycles', fakeAsync(() => {
+    const region = open()
+    const pane = region.closest<HTMLElement>('.cdk-overlay-pane')!
+    for (let cycle = 0; cycle < 3; cycle++) {
+      expect(open()).toBe(region)
+      expect(region.classList.contains('pointer-events-auto')).toBe(true)
+      pointer(tasks, 'pointerout')
+      tick(180)
+      fixture.detectChanges()
+      expect(region.getAttribute('aria-hidden')).toBe('true')
+      expect(region.hasAttribute('inert')).toBe(true)
+      // CDK attach enables pointer input on the outer pane independently of the hidden content.
+      expect(pane.style.pointerEvents).toBe('none')
+      fixture.componentInstance.collapsed = false
+      fixture.detectChanges()
+      expect(pane.style.pointerEvents).toBe('none')
+      fixture.componentInstance.collapsed = true
+      fixture.detectChanges()
+    }
+    expect(container.querySelectorAll('.cdk-overlay-pane')).toHaveLength(1)
+    fixture.destroy()
+    expect(container.querySelector('.cdk-overlay-pane')).toBeNull()
+  }))
+
   it('supports keyboard entry, keeps focused content open and restores focus on Escape', fakeAsync(() => {
     tasks.focus()
     const key = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })

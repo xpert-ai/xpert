@@ -1,3 +1,4 @@
+import { of } from 'rxjs'
 import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideHttpClient } from '@angular/common/http'
@@ -8,7 +9,7 @@ import { AgentPluginsComponent } from './agent-plugins.component'
 import { BindingSummary, PackageSummary } from './agent-plugins.model'
 
 const mockScope = signal({ level: 'organization', organizationId: 'organization-one' })
-const mockRoute = { snapshot: { queryParamMap: convertToParamMap({}) } }
+const mockRoute = { queryParamMap: of(convertToParamMap({})), snapshot: { queryParamMap: convertToParamMap({}) } }
 jest.mock('@cloud/app/@core/state', () => ({ injectActiveScope: () => mockScope }))
 jest.mock('@cloud/app/@core', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : 'Request failed'),

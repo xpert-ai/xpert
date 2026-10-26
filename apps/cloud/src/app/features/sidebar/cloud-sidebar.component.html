@@ -1,7 +1,9 @@
 <nav
   class="cloud-sidebar"
   [class.is-collapsed]="collapsed()"
-  [xpSidebarHoverPanel]="collapsed() && !isMobile() && hoverPanelEnabled()"
+  [xpSidebarHoverPanel]="hoverPanelEnabled()"
+  [xpSidebarPanelMobile]="isMobile()"
+  [xpSidebarPanelScope]="panelScope()"
   (pinnedPanelWidthChange)="pinnedPanelWidthChange.emit($event)"
   (panelResizingChange)="panelResizingChange.emit($event)"
 >

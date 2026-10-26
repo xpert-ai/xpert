@@ -1,3 +1,5 @@
+import { ActivatedRoute } from '@angular/router'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import {
@@ -119,6 +121,7 @@ export class McpRuntimesComponent implements OnInit {
   readonly filteredRuntimes = computed(() => {
     const status = this.statusFilter()
     return this.runtimes().filter((runtime) => {
+      if (this.requestedRuntimeId() && runtime.id !== this.requestedRuntimeId()) return false
       if (status === 'all') {
         return true
       }
@@ -146,26 +149,50 @@ export class McpRuntimesComponent implements OnInit {
   readonly closedCount = computed(() => this.runtimes().filter((runtime) => runtime.status === 'closed').length)
   readonly actionableCount = computed(() => this.filteredRuntimes().filter((runtime) => this.canStop(runtime)).length)
 
+  private readonly requestedRuntimeId = signal<string | null>(null)
+  private refreshSequence = 0
+  private initialized = false
+
+  constructor() {
+    inject(ActivatedRoute, { optional: true })
+      ?.queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const id = params.get('runtimeId')
+        this.requestedRuntimeId.set(id)
+        if (id) this.statusFilter.set('all')
+        if (this.initialized) void this.refresh()
+      })
+  }
+
   ngOnInit() {
+    this.initialized = true
     void this.refresh()
   }
 
   async refresh() {
+    const sequence = ++this.refreshSequence
     this.loading.set(true)
     this.error.set(null)
     try {
-      const response = await firstValueFrom(this.#runtimeService.list(this.listFilter()))
+      const response = this.requestedRuntimeId()
+        ? {
+            items: await firstValueFrom(this.#runtimeService.listAll({ status: 'all' })),
+            options: EMPTY_FILTER_OPTIONS
+          }
+        : await firstValueFrom(this.#runtimeService.list(this.listFilter()))
+      if (sequence !== this.refreshSequence) return
       this.runtimes.set(response.items ?? [])
       this.filterOptions.set(response.options ?? EMPTY_FILTER_OPTIONS)
       this.lastLoadedAt.set(new Date())
     } catch (error) {
-      this.error.set(getErrorMessage(error))
+      if (sequence === this.refreshSequence) this.error.set(getErrorMessage(error))
     } finally {
-      this.loading.set(false)
+      if (sequence === this.refreshSequence) this.loading.set(false)
     }
   }
 
   clearFilters() {
+    this.requestedRuntimeId.set(null)
     this.workspaceId.set('')
     this.toolsetId.set('')
     this.pluginName.set('')

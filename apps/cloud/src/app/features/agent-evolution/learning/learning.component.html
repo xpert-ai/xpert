@@ -61,51 +61,64 @@
         </div>
       </z-card-header>
       <z-card-content class="max-h-[620px] overflow-auto p-2">
-        @for (event of filteredEvents(); track event.eventId) {
-          @let presentation = eventPresentation(event);
-          <button
-            type="button"
-            class="mb-1 w-full rounded-lg border px-3 py-3 text-left transition-colors"
-            [class.border-primary-300]="selectedEvent()?.eventId === event.eventId"
-            [class.bg-primary-50]="selectedEvent()?.eventId === event.eventId"
-            [class.border-transparent]="selectedEvent()?.eventId !== event.eventId"
-            [class.hover:bg-background-default-subtle]="selectedEvent()?.eventId !== event.eventId"
-            (click)="select(event)"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <span class="line-clamp-2 text-sm font-medium text-text-primary">
-                @if (presentation.titleLabelKey) {
-                  <span class="text-text-secondary">{{ presentation.titleLabelKey | translate }}</span>
-                  <span class="mx-1 text-text-secondary">·</span>
-                }
-                {{ presentation.title }}
-              </span>
-              <span class="shrink-0 text-[10px] font-semibold text-text-success">{{
-                percent(event.confidence, 0)
-              }}</span>
-            </div>
-            <div class="mt-2 flex items-center gap-1.5 text-[11px] text-text-secondary">
-              <i class="ri-error-warning-line"></i>
-              <span>{{
-                'XP.AgentEvolution.EventType.' + event.eventType | translate: { Default: event.eventType }
-              }}</span>
-              <span>·</span>
-              <span>{{
-                event.reasonCodes[0]
-                  ? reasonLabel(event.reasonCodes[0])
-                  : ('XP.AgentEvolution.Unclassified' | translate)
-              }}</span>
-            </div>
-            <div class="mt-1 truncate font-mono text-[10px] text-text-secondary">{{ event.subjectRef }}</div>
+        @if (isSearchDestination() && eventLookup().loading) {
+          <p role="status" class="px-3 py-2 text-sm text-text-secondary">
+            {{ 'XP.Sidebar.Search.Loading' | translate }}
+          </p>
+        } @else if (isSearchDestination() && eventLookup().error) {
+          <p role="alert" class="px-3 py-2 text-sm text-text-destructive">
+            {{ 'XP.Sidebar.Search.Error' | translate }}
+          </p>
+          <button z-button zType="outline" type="button" (click)="refreshSearchDestination()">
+            {{ 'XP.Common.ErrorState.Retry' | translate }}
           </button>
-        } @empty {
-          <div class="flex min-h-52 flex-col items-center justify-center px-4 text-center">
-            <i class="ri-inbox-2-line text-3xl text-text-secondary"></i>
-            <div class="mt-3 text-sm font-medium text-text-primary">
-              {{ 'XP.AgentEvolution.NoMatchingSignals' | translate }}
+        } @else {
+          @for (event of filteredEvents(); track event.eventId) {
+            @let presentation = eventPresentation(event);
+            <button
+              type="button"
+              class="mb-1 w-full rounded-lg border px-3 py-3 text-left transition-colors"
+              [class.border-primary-300]="selectedEvent()?.eventId === event.eventId"
+              [class.bg-primary-50]="selectedEvent()?.eventId === event.eventId"
+              [class.border-transparent]="selectedEvent()?.eventId !== event.eventId"
+              [class.hover:bg-background-default-subtle]="selectedEvent()?.eventId !== event.eventId"
+              (click)="select(event)"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <span class="line-clamp-2 text-sm font-medium text-text-primary">
+                  @if (presentation.titleLabelKey) {
+                    <span class="text-text-secondary">{{ presentation.titleLabelKey | translate }}</span>
+                    <span class="mx-1 text-text-secondary">·</span>
+                  }
+                  {{ presentation.title }}
+                </span>
+                <span class="shrink-0 text-[10px] font-semibold text-text-success">{{
+                  percent(event.confidence, 0)
+                }}</span>
+              </div>
+              <div class="mt-2 flex items-center gap-1.5 text-[11px] text-text-secondary">
+                <i class="ri-error-warning-line"></i>
+                <span>{{
+                  'XP.AgentEvolution.EventType.' + event.eventType | translate: { Default: event.eventType }
+                }}</span>
+                <span>·</span>
+                <span>{{
+                  event.reasonCodes[0]
+                    ? reasonLabel(event.reasonCodes[0])
+                    : ('XP.AgentEvolution.Unclassified' | translate)
+                }}</span>
+              </div>
+              <div class="mt-1 truncate font-mono text-[10px] text-text-secondary">{{ event.subjectRef }}</div>
+            </button>
+          } @empty {
+            <div class="flex min-h-52 flex-col items-center justify-center px-4 text-center">
+              <i class="ri-inbox-2-line text-3xl text-text-secondary"></i>
+              <div class="mt-3 text-sm font-medium text-text-primary">
+                {{ 'XP.AgentEvolution.NoMatchingSignals' | translate }}
+              </div>
+              <p class="mt-1 text-xs text-text-secondary">{{ 'XP.AgentEvolution.LearningEmptyHint' | translate }}</p>
             </div>
-            <p class="mt-1 text-xs text-text-secondary">{{ 'XP.AgentEvolution.LearningEmptyHint' | translate }}</p>
-          </div>
+          }
         }
       </z-card-content>
     </z-card>

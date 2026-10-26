@@ -8,25 +8,31 @@ import {
   HostListener,
   OnChanges,
   OnDestroy,
+  SimpleChanges,
+  TemplateRef,
   ViewContainerRef,
   inject,
   input,
-  output
+  output,
+  signal
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NavigationStart, Router } from '@angular/router'
 import { CloudSidebarHoverPanelComponent } from './cloud-sidebar-hover-panel.component'
+import type { SidebarPanelContext, SidebarPanelHeaderContext } from './cloud-sidebar-panel-trigger.directive'
 
-const TRIGGER_SELECTOR = 'button[data-sidebar-panel-title]'
+const TRIGGER_SELECTOR = '[data-sidebar-panel-title]'
 export const SIDEBAR_PANEL_WIDTH_STORAGE_KEY = 'xpert.cloud-sidebar.panel-width'
 const DEFAULT_WIDTH = 268
 const MIN_WIDTH = 240
 const MAX_WIDTH = 480
 
-/** One portal per sidebar: switching triggers updates its title without remounting or moving it. */
+/** One overlay per sidebar. Hover previews, explicit clicks switch even when pinned; scope changes discard content. */
 @Directive({ standalone: true, selector: '[xpSidebarHoverPanel]' })
 export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
   readonly xpSidebarHoverPanel = input(false)
+  readonly xpSidebarPanelMobile = input(false)
+  readonly xpSidebarPanelScope = input('')
   readonly pinnedPanelWidthChange = output<number>()
   readonly panelResizingChange = output<boolean>()
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement
@@ -37,12 +43,65 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
   private overlayRef?: OverlayRef
   private panel?: ComponentRef<CloudSidebarHoverPanelComponent>
   private trigger?: HTMLElement
+  private readonly activeTrigger = signal<HTMLElement | undefined>(undefined)
+  private focusReturnTrigger?: HTMLElement
+  private primaryTrigger = false
   private openTimer?: ReturnType<typeof setTimeout>
   private closeTimer?: ReturnType<typeof setTimeout>
   private panelHovered = false
   private pinnedWidth = 0
+  private readonly sidebarResizeObserver =
+    typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => this.onResize())
+  private readonly entries = new Map<
+    HTMLElement,
+    () => {
+      key: string
+      template: TemplateRef<SidebarPanelContext> | null
+      assistant?: SidebarPanelContext['assistant']
+      header?: TemplateRef<SidebarPanelHeaderContext> | null
+      activate: () => void
+    }
+  >()
+
+  register(
+    element: HTMLElement,
+    entry: () => {
+      key: string
+      template: TemplateRef<SidebarPanelContext> | null
+      assistant?: SidebarPanelContext['assistant']
+      header?: TemplateRef<SidebarPanelHeaderContext> | null
+      activate: () => void
+    }
+  ) {
+    this.entries.set(element, entry)
+  }
+
+  unregister(element: HTMLElement) {
+    this.entries.delete(element)
+    if (this.trigger === element && this.primaryTrigger) {
+      this.close(false, true)
+      this.panel?.instance.clearContent()
+    }
+  }
+
+  openRegistered(element: HTMLElement) {
+    if (!this.xpSidebarHoverPanel() || !this.entries.get(element)?.().template) return false
+    this.show(element)
+    this.panel?.location.nativeElement.querySelector('[data-sidebar-panel-search]')?.focus()
+    return true
+  }
+
+  isTriggerOpen(element: HTMLElement) {
+    return this.activeTrigger() === element && !!this.panel?.instance.opened()
+  }
+
+  get panelId() {
+    return this.panel?.instance.id ?? null
+  }
 
   constructor() {
+    // Sidebar expansion and dragging change the anchor without resizing the window.
+    this.sidebarResizeObserver?.observe(this.host)
     inject(Router)
       .events.pipe(takeUntilDestroyed())
       .subscribe((event) => {
@@ -50,13 +109,22 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
       })
   }
 
-  ngOnChanges() {
-    if (!this.xpSidebarHoverPanel()) this.close(false, true)
+  ngOnChanges(changes: SimpleChanges) {
+    if (!this.xpSidebarHoverPanel() || changes['xpSidebarPanelScope'] || changes['xpSidebarPanelMobile']) {
+      this.close(false, true)
+      this.panel?.instance.clearContent()
+    }
   }
 
   @HostListener('pointerover', ['$event'])
   onPointerOver(event: PointerEvent) {
-    if (!this.xpSidebarHoverPanel() || event.pointerType !== 'mouse' || this.panel?.instance.pinned()) return
+    if (
+      !this.xpSidebarHoverPanel() ||
+      this.xpSidebarPanelMobile() ||
+      event.pointerType !== 'mouse' ||
+      this.panel?.instance.pinned()
+    )
+      return
     const trigger = this.findTrigger(event.target)
     if (!trigger || trigger === this.findTrigger(event.relatedTarget)) return
     this.cancelTimers()
@@ -80,7 +148,7 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
     if (!trigger) return
     event.preventDefault()
     this.show(trigger)
-    this.panel?.location.nativeElement.querySelector('button')?.focus()
+    this.panel?.location.nativeElement.querySelector('[data-sidebar-panel-search]')?.focus()
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -93,13 +161,17 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
 
   @HostListener('document:pointerdown', ['$event'])
   onPointerDown(event: PointerEvent) {
-    if (!this.containsPanel(event.target)) this.close()
+    if (!this.containsPanel(event.target) && !this.findTrigger(event.target)) this.close()
   }
 
-  @HostListener('click')
-  onClick() {
-    // Leave existing navigation and click-to-open menus in charge after a click.
-    this.close()
+  @HostListener('click', ['$event'])
+  onClick(event: MouseEvent) {
+    const trigger = this.findTrigger(event.target)
+    if (trigger && this.entries.get(trigger)?.().template && this.xpSidebarHoverPanel()) {
+      event.preventDefault()
+      this.show(trigger)
+      this.panel?.location.nativeElement.querySelector('[data-sidebar-panel-search]')?.focus()
+    } else this.close()
   }
 
   @HostListener('window:resize')
@@ -113,6 +185,7 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.sidebarResizeObserver?.disconnect()
     this.cancelTimers()
     this.panel?.instance.stopResize()
     this.updatePinnedWidth(0)
@@ -138,9 +211,10 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
           'motion-reduce:transition-none'
         ]
       })
-      // Keep the empty portal mounted, including during its exit transition, but never intercept input when closed.
-      this.overlayRef.overlayElement.style.pointerEvents = 'none'
       this.panel = this.overlayRef.attach(new ComponentPortal(CloudSidebarHoverPanelComponent, this.viewContainerRef))
+      // CDK attach resets the pane's pointer events. Only the visible panel content should accept input;
+      // the retained outer pane must stay transparent to input during closing and sidebar expansion.
+      this.overlayRef.overlayElement.style.pointerEvents = 'none'
       this.panel.instance.entered.subscribe(() => {
         this.panelHovered = true
         this.cancelTimers()
@@ -150,6 +224,7 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
         this.scheduleClose()
       })
       this.panel.instance.pinToggled.subscribe(() => this.togglePinned())
+      this.panel.instance.dismissed.subscribe(() => this.close())
       this.panel.instance.blurred.subscribe(() => this.scheduleClose())
       this.panel.instance.widthChanged.subscribe((width) => {
         if (!this.panel?.instance.pinned()) return
@@ -163,12 +238,28 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
         this.panelResizingChange.emit(resizing)
       })
       this.panel.instance.resizeEnded.subscribe(() => this.persistWidth())
+      this.panel.instance.interactionHeldChange.subscribe((held) => {
+        if (held) this.cancelTimers()
+        else if (this.panel?.instance.opened()) this.scheduleClose()
+      })
     }
     if (!this.panel) return
-    if (trigger !== this.trigger) this.panel.instance.resetSearch()
+    const changed = trigger !== this.trigger
     this.trigger?.classList.remove('bg-hover-bg')
     this.trigger = trigger
+    this.activeTrigger.set(trigger)
+    if (this.host.contains(trigger)) this.focusReturnTrigger = trigger
+    this.primaryTrigger = this.host.contains(trigger)
     this.trigger.classList.add('bg-hover-bg')
+    const entry = this.entries.get(trigger)?.()
+    if (entry?.template) {
+      // Activate before swapping content: a directory trigger can be destroyed by the swap.
+      entry.activate()
+      this.panel.instance.selectContent(entry.key, entry.template, entry.assistant, entry.header)
+    } else if (changed) {
+      this.panel.instance.selectContent('', null)
+      this.panel.instance.resetSearch()
+    }
     this.panel.instance.title.set(trigger.getAttribute('data-sidebar-panel-title') ?? '')
     this.positionPanel()
     this.panel.instance.opened.set(true)
@@ -178,6 +269,17 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
   private positionPanel() {
     const viewport = this.document.documentElement
     const bounds = this.host.getBoundingClientRect()
+    if (this.xpSidebarPanelMobile()) {
+      this.panel?.instance.canPin.set(false)
+      this.overlayRef?.updatePositionStrategy(this.overlay.position().global().left('8px').top('8px'))
+      this.overlayRef?.updateSize({
+        width: Math.max(0, viewport.clientWidth - 16),
+        height: Math.max(0, viewport.clientHeight - 16)
+      })
+      this.updatePinnedWidth(0)
+      return
+    }
+    this.panel?.instance.canPin.set(true)
     const pinned = this.panel?.instance.pinned() ?? false
     const inset = pinned ? 0 : 4
     const left = Math.min(bounds.right + inset, viewport.clientWidth - inset)
@@ -243,14 +345,16 @@ export class CloudSidebarHoverPanelDirective implements OnChanges, OnDestroy {
 
   private close(restoreFocus = false, force = false) {
     this.cancelTimers()
-    if (this.panel?.instance.pinned() && !force) return
+    if (!force && (this.panel?.instance.pinned() || this.panel?.instance.interactionHeld())) return
     this.panel?.instance.stopResize()
-    if (restoreFocus && this.containsPanel(this.document.activeElement)) this.trigger?.focus()
+    this.panel?.instance.rememberContent()
+    if (restoreFocus && this.containsPanel(this.document.activeElement)) this.focusReturnTrigger?.focus()
     this.panelHovered = false
     this.trigger?.classList.remove('bg-hover-bg')
     this.trigger = undefined
+    this.activeTrigger.set(undefined)
     this.panel?.instance.pinned.set(false)
-    this.panel?.instance.resetSearch()
+    if (!this.panel?.instance.content()) this.panel?.instance.resetSearch()
     this.panel?.instance.opened.set(false)
     this.updatePinnedWidth(0)
   }

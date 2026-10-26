@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -285,6 +286,12 @@ export class XpertAccessRequestReviewListComponent {
   })
 
   constructor() {
+    inject(ActivatedRoute, { optional: true })
+      ?.queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        this.searchControl.setValue(params.get('search') || '')
+      })
+
     this.searchControl.valueChanges
       .pipe(debounceTime(150), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((value) => {

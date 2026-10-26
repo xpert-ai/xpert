@@ -1,3 +1,5 @@
+import { CloudSidebarPanelTriggerDirective } from './cloud-sidebar-panel-trigger.directive'
+import { CloudSidebarModulePanelComponent } from './cloud-sidebar-module-panel.component'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -14,7 +16,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { injectWorkspace, injectWorkspaceId } from '@cloud/app/@core/state'
 import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isNil } from '@xpert-ai/contracts'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.component'
@@ -23,6 +25,8 @@ import { CloudSidebarWorkspacesComponent } from './cloud-sidebar-workspaces.comp
 import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawxpert-conversation-start-intent.service'
 import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
+import { modulePanelLinks } from './cloud-sidebar-module-navigation'
+import { SettingsNavigationService } from '../setting/settings-navigation.service'
 import {
   addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
@@ -47,6 +51,8 @@ import {
   templateUrl: './cloud-sidebar-menu.component.html',
   styleUrl: './cloud-sidebar-menu.component.scss',
   imports: [
+    CloudSidebarPanelTriggerDirective,
+    CloudSidebarModulePanelComponent,
     CommonModule,
     RouterModule,
     TranslateModule,
@@ -67,6 +73,7 @@ export class CloudSidebarMenuComponent {
   readonly clicked = output<void>()
 
   private readonly settings = inject(XpertSettingsService)
+  private readonly settingsNavigation = inject(SettingsNavigationService)
   private readonly viewContainerRef = inject(ViewContainerRef)
   readonly #router = inject(Router)
   readonly #selectedWorkspace = injectWorkspace()
@@ -89,6 +96,25 @@ export class CloudSidebarMenuComponent {
     const groups = addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus()))
     return this.assistants()?.isClawXpertConfigured() ? addWorkspaceMoreMenuItem(groups, workspaceId) : groups
   })
+
+  private readonly translate = inject(TranslateService)
+  bosiActive() {
+    return (
+      this.groups()
+        .find((group) => group.key === 'work')
+        ?.items.some((item) => this.isActive(item)) ?? false
+    )
+  }
+
+  matchesQuery(item: CloudMenuItem, query: string) {
+    return (
+      !query.trim() ||
+      this.translate
+        .instant(this.menuTitleKey(item), { Default: item.title })
+        .toLocaleLowerCase()
+        .includes(query.trim().toLocaleLowerCase())
+    )
+  }
 
   hasActiveChild(menu: CloudMenuItem) {
     this.currentUrl()
@@ -176,7 +202,42 @@ export class CloudSidebarMenuComponent {
     return item.link ?? null
   }
 
-  onMenuClick(event: MouseEvent, item: CloudMenuItem) {
+  openBosi(event: Event) {
+    const first = this.groups()
+      .find((group) => group.key === 'work')
+      ?.items.find((item) => !item.hidden)
+    if (first) this.openPrimaryMenu(event, first)
+  }
+
+  openPrimaryMenu(event: Event, item: CloudMenuItem) {
+    if (item.hidden) return
+    if (isNewClawXpertTaskMenuItem(item) || getWorkspaceModuleSection(item) || item.data?.action) {
+      this.onMenuClick(event, item)
+      return
+    }
+    // Each module's first entry is available whenever its primary menu is authorized.
+    const destination = modulePanelLinks(item.data?.panel, {
+      resourceAdmin: false,
+      monitoring: false,
+      usage: false
+    })[0]
+    const settingsPage = item.data?.panel === 'settings' ? this.settingsNavigation.groups()[0]?.items[0]?.path : null
+    const path =
+      item.data?.panel === 'settings'
+        ? settingsPage
+          ? '/settings/' + settingsPage
+          : null
+        : (destination?.path ?? item.link)
+    if (!path) return
+    const target = destination?.queryParams
+      ? this.#router.createUrlTree([path], { queryParams: destination.queryParams })
+      : path
+    void this.#router.navigateByUrl(target).then((navigated) => {
+      if (navigated) this.clicked.emit()
+    })
+  }
+
+  onMenuClick(event: Event, item: CloudMenuItem) {
     if (item.data?.action === 'openAssistantSettings') {
       event.preventDefault()
       this.openSettings()

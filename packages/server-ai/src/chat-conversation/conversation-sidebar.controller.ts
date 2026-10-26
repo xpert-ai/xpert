@@ -1,4 +1,7 @@
+import { t } from 'i18next'
+import { conversationSidebarSearchSchema, ConversationSidebarSearch } from './conversation-sidebar-search.schema'
 import {
+    BadRequestException,
     Body,
     Controller,
     DefaultValuePipe,
@@ -11,7 +14,7 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TChatConversationSidebarState } from '@xpert-ai/contracts'
-import { UUIDValidationPipe } from '@xpert-ai/server-core'
+import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { ChatConversationSidebarService } from './conversation-sidebar.service'
 
 @ApiTags('ChatConversation')
@@ -25,9 +28,22 @@ export class ChatConversationSidebarController {
         @Query('xpertId', UUIDValidationPipe) xpertId: string,
         @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
         @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-        @Query('archived', new DefaultValuePipe(false), ParseBoolPipe) archived: boolean
+        @Query('archived', new DefaultValuePipe(false), ParseBoolPipe) archived: boolean,
+        @Query(
+            'search',
+            new ZodValidationPipe(
+                conversationSidebarSearchSchema,
+                () =>
+                    new BadRequestException(
+                        t('server-ai:Error.InvalidSidebarSearch', {
+                            defaultValue: 'Search must be a single string of at most 200 characters.'
+                        })
+                    )
+            )
+        )
+        search: ConversationSidebarSearch
     ) {
-        return this.sidebar.list(xpertId, take, skip, archived)
+        return this.sidebar.list(xpertId, take, skip, archived, search)
     }
 
     @Patch(':id/sidebar')

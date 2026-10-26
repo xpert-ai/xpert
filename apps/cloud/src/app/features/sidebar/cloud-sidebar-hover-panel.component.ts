@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common'
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -6,6 +6,7 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
+  TemplateRef,
   inject,
   output,
   signal,
@@ -13,13 +14,14 @@ import {
 } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+import type { SidebarPanelContext, SidebarPanelHeaderContext } from './cloud-sidebar-panel-trigger.directive'
 
 let nextPanelId = 0
 
 @Component({
   standalone: true,
   selector: 'xp-cloud-sidebar-hover-panel',
-  imports: [TranslateModule, ZardSearchInputComponent],
+  imports: [TranslateModule, ZardSearchInputComponent, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block size-full pointer-events-none' },
   template: `
@@ -43,13 +45,20 @@ let nextPanelId = 0
       (keydown.escape)="onEscape($event)"
     >
       <header class="flex min-h-14 shrink-0 items-center gap-1 px-3 py-2">
-        <h2 [id]="id + '-title'" [title]="title()" class="min-w-0 flex-1 truncate pl-1 text-base font-semibold">
+        @if (opened()) {
+          <ng-container
+            [ngTemplateOutlet]="headerContent()"
+            [ngTemplateOutletContext]="{ assistant: assistantContext(), holdOpen: holdOpen }"
+          />
+        }
+        <h2 [id]="id + '-title'" [title]="title()" class="min-w-0 flex-1 truncate pl-1 text-[16px] font-semibold">
           {{ title() }}
         </h2>
         <button
           #searchButton
+          data-sidebar-panel-search
           type="button"
-          class="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           [class]="searchOpened() ? 'bg-hover-bg text-text-primary' : ''"
           [attr.aria-label]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           [title]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
@@ -57,25 +66,46 @@ let nextPanelId = 0
           [attr.aria-controls]="id + '-search'"
           (click)="toggleSearch($event)"
         >
-          <i class="ri-search-line text-xl" aria-hidden="true"></i>
+          <i
+            class="ri-search-line inline-flex size-[20px] items-center justify-center text-[20px] leading-none"
+            aria-hidden="true"
+          ></i>
         </button>
-        <button
-          type="button"
-          data-sidebar-panel-pin
-          class="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          [attr.aria-label]="
-            (pinned() ? 'XP.Sidebar.UnpinPanel' : 'XP.Sidebar.PinPanel')
-              | translate: { Default: pinned() ? 'Unpin panel' : 'Pin panel' }
-          "
-          [title]="
-            (pinned() ? 'XP.Sidebar.UnpinPanel' : 'XP.Sidebar.PinPanel')
-              | translate: { Default: pinned() ? 'Unpin panel' : 'Pin panel' }
-          "
-          [attr.aria-pressed]="pinned()"
-          (click)="togglePin($event)"
-        >
-          <i class="ri-side-bar-line text-xl" aria-hidden="true"></i>
-        </button>
+        @if (canPin()) {
+          <button
+            type="button"
+            data-sidebar-panel-pin
+            class="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            [attr.aria-label]="
+              (pinned() ? 'XP.Sidebar.UnpinPanel' : 'XP.Sidebar.PinPanel')
+                | translate: { Default: pinned() ? 'Unpin panel' : 'Pin panel' }
+            "
+            [title]="
+              (pinned() ? 'XP.Sidebar.UnpinPanel' : 'XP.Sidebar.PinPanel')
+                | translate: { Default: pinned() ? 'Unpin panel' : 'Pin panel' }
+            "
+            [attr.aria-pressed]="pinned()"
+            [class]="pinned() ? 'text-text-primary!' : ''"
+            (click)="togglePin($event)"
+          >
+            <i
+              class="ri-side-bar-line inline-flex size-[20px] items-center justify-center text-[20px] leading-none"
+              aria-hidden="true"
+            ></i>
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="flex size-8 items-center justify-center rounded-lg hover:bg-hover-bg"
+            [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+            (click)="dismissed.emit()"
+          >
+            <i
+              class="ri-close-line inline-flex size-[20px] items-center justify-center text-[20px] leading-none"
+              aria-hidden="true"
+            ></i>
+          </button>
+        }
       </header>
       @if (searchOpened()) {
         <div [id]="id + '-search'" class="shrink-0 px-3 pb-3">
@@ -89,7 +119,12 @@ let nextPanelId = 0
           />
         </div>
       }
-      <div class="min-h-0 flex-1 overflow-y-auto"></div>
+      <div #body class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" (click)="onContentClick($event)">
+        <ng-container
+          [ngTemplateOutlet]="content()"
+          [ngTemplateOutletContext]="{ $implicit: searchQuery(), assistant: assistantContext() }"
+        />
+      </div>
       @if (pinned() && opened()) {
         <button
           type="button"
@@ -119,6 +154,17 @@ export class CloudSidebarHoverPanelComponent implements OnDestroy {
   readonly title = signal('')
   readonly opened = signal(false)
   readonly pinned = signal(false)
+  readonly canPin = signal(true)
+  readonly assistantContext = signal<SidebarPanelContext['assistant']>(undefined)
+  readonly content = signal<TemplateRef<SidebarPanelContext> | null>(null)
+  readonly headerContent = signal<TemplateRef<SidebarPanelHeaderContext> | null>(null)
+  readonly interactionHeld = signal(false)
+  readonly interactionHeldChange = output<boolean>()
+  readonly holdOpen = (held: boolean) => {
+    this.interactionHeld.set(held)
+    this.interactionHeldChange.emit(held)
+  }
+  readonly dismissed = output<void>()
   readonly width = signal(268)
   readonly minWidth = signal(240)
   readonly maxWidth = signal(480)
@@ -144,6 +190,51 @@ export class CloudSidebarHoverPanelComponent implements OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef)
   private readonly searchField = viewChild('searchField', { read: ElementRef<HTMLElement> })
   private readonly searchButton = viewChild.required('searchButton', { read: ElementRef<HTMLButtonElement> })
+  private readonly body = viewChild.required('body', { read: ElementRef<HTMLElement> })
+  private contentKey = ''
+  private readonly contentStates = new Map<string, { query: string; search: boolean; scroll: number }>()
+
+  selectContent(
+    key: string,
+    template: TemplateRef<SidebarPanelContext> | null,
+    assistant?: SidebarPanelContext['assistant'],
+    header: TemplateRef<SidebarPanelHeaderContext> | null = null
+  ) {
+    this.assistantContext.set(assistant)
+    this.headerContent.set(header)
+    if (this.contentKey === key && this.content() === template) return
+    if (this.contentKey) this.rememberContent()
+    this.contentKey = key
+    const state = this.contentStates.get(key)
+    this.searchQuery.set(state?.query ?? '')
+    this.searchOpened.set(state?.search ?? false)
+    this.content.set(template)
+    this.changeDetector.detectChanges()
+    this.body().nativeElement.scrollTop = state?.scroll ?? 0
+  }
+
+  rememberContent() {
+    if (this.contentKey)
+      this.contentStates.set(this.contentKey, {
+        query: this.searchQuery(),
+        search: this.searchOpened(),
+        scroll: this.body().nativeElement.scrollTop
+      })
+  }
+
+  clearContent() {
+    this.headerContent.set(null)
+    this.interactionHeld.set(false)
+    this.assistantContext.set(undefined)
+    this.contentStates.clear()
+    this.contentKey = ''
+    this.content.set(null)
+    this.resetSearch()
+  }
+
+  onContentClick(event: MouseEvent) {
+    if (event.target instanceof Element && event.target.closest('[data-sidebar-panel-action]')) this.dismissed.emit()
+  }
 
   toggleSearch(event?: MouseEvent) {
     if (this.searchOpened()) {

@@ -1,0 +1,134 @@
+@if (enabled()) {
+  <section class="mb-3 min-w-0" [attr.aria-label]="'XP.Groups.Title' | translate">
+    <div class="flex min-h-9 items-center gap-1 px-2">
+      <button
+        type="button"
+        class="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-lg px-1 text-sm font-medium text-muted-foreground hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="sectionId"
+        (click)="expanded.set(!expanded())"
+      >
+        <i
+          class="ri-arrow-right-s-line transition-transform motion-reduce:transition-none"
+          [class]="expanded() ? 'rotate-90' : ''"
+          aria-hidden="true"
+        ></i>
+        <span>{{ 'XP.Groups.Title' | translate }}</span>
+      </button>
+      <button
+        type="button"
+        data-create-group
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+        [disabled]="busy()"
+        [attr.aria-label]="'XP.Groups.New' | translate"
+        [title]="'XP.Groups.New' | translate"
+        (click)="createGroup()"
+      >
+        <i class="ri-add-line text-[18px]" aria-hidden="true"></i>
+      </button>
+    </div>
+    @if (expanded()) {
+      <div [id]="sectionId" [attr.aria-busy]="loading()">
+        @if (loading()) {
+          <p role="status" class="px-3 py-2 text-sm text-muted-foreground">{{ 'XP.Common.Loading' | translate }}</p>
+        } @else if (failed()) {
+          <p role="alert" class="px-3 py-2 text-sm text-muted-foreground">{{ 'XP.Groups.LoadFailed' | translate }}</p>
+          <button
+            type="button"
+            class="mx-3 rounded-lg px-2 py-1 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+            (click)="reload()"
+          >
+            {{ 'XP.KEY_WORDS.Retry' | translate }}
+          </button>
+        } @else {
+          @for (group of visibleGroups(); track group.id) {
+            <div
+              class="flex min-w-0 items-center rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-within:bg-hover-bg focus-within:text-text-primary"
+              [class]="isActive(group) ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
+            >
+              <button
+                type="button"
+                [attr.data-group-option]="group.id"
+                [attr.aria-current]="isActive(group) ? 'page' : null"
+                [disabled]="busy()"
+                class="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                (click)="selectGroup(group.id)"
+              >
+                <span
+                  class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-hover-bg"
+                  aria-hidden="true"
+                >
+                  <i class="ri-group-line text-[18px]"></i>
+                </span>
+                <span
+                  class="min-w-0 flex-1 truncate"
+                  [class]="group.unread ? 'font-medium text-text-primary' : ''"
+                  [title]="group.title"
+                  >{{ group.title }}</span
+                >
+                @if (group.pinned) {
+                  <i class="ri-pushpin-line shrink-0 text-sm text-muted-foreground" aria-hidden="true"></i>
+                }
+              </button>
+              <button
+                type="button"
+                class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                [disabled]="busy()"
+                [attr.aria-label]="('XP.Groups.Options' | translate) + ': ' + group.title"
+                [attr.aria-expanded]="optionsId() === group.id"
+                [attr.aria-controls]="sectionId + '-' + group.id"
+                (click)="optionsId.set(optionsId() === group.id ? null : group.id)"
+              >
+                <i class="ri-more-line" aria-hidden="true"></i>
+              </button>
+            </div>
+            @if (optionsId() === group.id) {
+              <div [id]="sectionId + '-' + group.id" class="mb-1 flex flex-wrap gap-1 pl-11 pr-2">
+                <button
+                  type="button"
+                  [disabled]="busy()"
+                  class="rounded-lg px-2 py-1 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:opacity-40"
+                  (click)="preferences(group, { pinned: !group.pinned })"
+                >
+                  {{ (group.pinned ? 'XP.Groups.Unpin' : 'XP.Groups.Pin') | translate }}
+                </button>
+                <button
+                  type="button"
+                  [disabled]="busy()"
+                  class="rounded-lg px-2 py-1 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:opacity-40"
+                  (click)="preferences(group, { archived: !group.archived })"
+                >
+                  {{ (group.archived ? 'XP.Groups.Restore' : 'XP.Groups.Archive') | translate }}
+                </button>
+              </div>
+            }
+          } @empty {
+            <p role="status" class="px-3 py-2 text-sm text-muted-foreground">
+              {{
+                (query().trim()
+                  ? 'XP.Groups.NoMatchingGroups'
+                  : archived()
+                    ? 'XP.Groups.NoArchivedGroups'
+                    : 'XP.Groups.NoGroups'
+                ) | translate
+              }}
+            </p>
+          }
+        }
+        <button
+          type="button"
+          data-toggle-archived
+          class="mt-1 flex min-h-9 w-full items-center gap-2.5 rounded-lg px-3 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          [attr.aria-pressed]="archived()"
+          (click)="toggleArchived()"
+        >
+          <i class="ri-archive-line inline-flex size-7 items-center justify-center text-[18px]" aria-hidden="true"></i
+          >{{ (archived() ? 'XP.Groups.Active' : 'XP.Groups.Archived') | translate }}
+        </button>
+      </div>
+    }
+    @if (actionFailed()) {
+      <p role="alert" class="px-3 py-2 text-sm text-text-destructive">{{ 'XP.Groups.ActionFailed' | translate }}</p>
+    }
+  </section>
+}

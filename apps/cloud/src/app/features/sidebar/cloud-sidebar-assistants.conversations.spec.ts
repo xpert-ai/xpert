@@ -1,3 +1,7 @@
+import { getDebugNode } from '@angular/core'
+import { AssistantProfileDirective } from '../../@shared/xpert/assistant-profile/assistant-profile.directive'
+import { OverlayContainer } from '@angular/cdk/overlay'
+import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.directive'
 import { Component, signal, type WritableSignal } from '@angular/core'
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
@@ -30,13 +34,14 @@ import {
 } from './cloud-sidebar-assistants.utils'
 
 jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
-  const { Directive, Input } = jest.requireActual('@angular/core')
+  const { Directive, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
 
   @Directive({ standalone: true, selector: '[xpAssistantProfile]', exportAs: 'xpAssistantProfile' })
   class AssistantProfileDirective {
     @Input('xpAssistantProfile') instanceId?: string
     @Input() summary?: unknown
     @Input() zPlacement?: string
+    @Output() profileVisibleChange = new EventEmitter<boolean>()
     open = jest.fn()
   }
 
@@ -47,6 +52,15 @@ jest.mock('@xpert-ai/headless-ui', () => jest.requireActual('./cloud-sidebar-ass
 jest.mock('../chat/workbench-chat/workbench-assistant-menu.component', () => ({
   WorkbenchAssistantMenuComponent: jest.requireActual('./cloud-sidebar-assistants.test-support').AssistantMenuStub
 }))
+
+jest.mock('./cloud-sidebar-groups.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+  @Component({ standalone: true, selector: 'xp-sidebar-groups', template: '<span data-inline-groups></span>' })
+  class Groups {
+    @Input() query = ''
+  }
+  return { CloudSidebarGroupsComponent: Groups }
+})
 
 jest.mock('../../@core/services/xpert-settings.service', () => ({ XpertSettingsService: class {} }))
 
@@ -284,7 +298,11 @@ describe('CloudSidebarAssistantsComponent', () => {
           useValue: viewExtensionApi
         }
       ]
-    }).compileComponents()
+    })
+      .overrideComponent(CloudSidebarAssistantsComponent, {
+        add: { hostDirectives: [{ directive: CloudSidebarHoverPanelDirective, inputs: ['xpSidebarHoverPanel'] }] }
+      })
+      .compileComponents()
   })
 
   afterEach(() => {
@@ -296,6 +314,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
   it('keeps normal assistant rows on the assistant chat route', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -323,6 +342,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       ])
     )
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -336,8 +356,34 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
   })
 
+  it('shows inline groups and rounded avatar fallbacks in the directory, retaining keyboard assistant switching', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
+    fixture.componentRef.setInput('embedded', true)
+    fixture.componentRef.setInput('collapsed', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    fixture.nativeElement.querySelector('[xpSidebarPanelKey="assistants"]').click()
+    fixture.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelector('[data-inline-groups]')).not.toBeNull()
+    const row = overlay.querySelector<HTMLElement>('[role="button"][data-sidebar-panel-title="Other Assistant"]')!
+    const avatar = row.querySelector('emoji-avatar')!
+    expect(avatar).not.toBeNull()
+    expect(getDebugNode(avatar)!.componentInstance.fallbackLabel).toBe('Other Assistant')
+    row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(overlay.querySelector('header h2')?.textContent).toContain('Other Assistant')
+    expect(overlay.querySelector('[data-inline-groups]')).toBeNull()
+    fixture.destroy()
+  })
+
   it('loads and opens assistant result items from the expandable menu', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -346,7 +392,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
+    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item')
     expect(toggle).not.toBeNull()
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
 
@@ -355,24 +401,35 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
     expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__children-label')).toHaveLength(1)
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
+    expect(TestBed.inject(OverlayContainer).getContainerElement().textContent).toContain(
       'XP.Sidebar.RecentConversations'
     )
 
-    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
+    const panel = TestBed.inject(OverlayContainer).getContainerElement().querySelector('[role="region"]')!
+    const avatar = panel.querySelector('header button[xpAssistantProfile], header button emoji-avatar')!
+    expect(avatar).not.toBeNull()
+    const profileButton = panel.querySelector<HTMLButtonElement>('header button')!
+    const profile = getDebugNode(profileButton)!.injector.get(AssistantProfileDirective)
+    expect(profile.summary).toEqual(expect.objectContaining({ id: 'other-xpert' }))
+    expect(panel.querySelectorAll('[aria-label^="XP.AssistantProfile.Title"]')).toHaveLength(1)
+    expect(panel.querySelector('.overflow-y-auto')!.textContent).not.toContain('XP.AssistantProfile.Title')
+    profileButton.click()
+    expect(profile.open).toHaveBeenCalled()
+
+    const child = TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector('.cloud-sidebar-assistants__child-item')
     expect(child.textContent).toContain('未清销售订单')
     expect(child.querySelector('.icon-emoji')?.textContent).toContain('📦')
     child.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
-      queryParams: { view: 'sales-orders' }
+      queryParams: { view: 'sales-orders', viewLayout: 'maximized' }
     })
 
-    toggle.click()
-    fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
   })
 
@@ -381,18 +438,21 @@ describe('CloudSidebarAssistantsComponent', () => {
     await router.navigateByUrl('/chat/x/other-assistant/c?view=sales-orders')
 
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     fixture.componentRef.setInput('embedded', true)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
-    toggle.click()
+    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item')
+    toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
+    const child = TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector('.cloud-sidebar-assistants__child-item')
     expect(child.classList.contains('is-active')).toBe(true)
     expect(child.getAttribute('aria-current')).toBe('page')
 
@@ -437,6 +497,7 @@ describe('CloudSidebarAssistantsComponent', () => {
         })
       )
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -445,31 +506,43 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item').click()
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
     expect(conversationService.getSidebarConversations).toHaveBeenNthCalledWith(1, 'other-xpert', 10, 0)
-    expect(fixture.nativeElement.querySelectorAll('xp-sidebar-conversation a')).toHaveLength(10)
     expect(
-      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-group-label')).map(
-        (item: Element) => item.textContent?.trim()
-      )
+      TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('xp-sidebar-conversation a')
+    ).toHaveLength(10)
+    expect(
+      Array.from(
+        TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('[data-conversation-group-label]')
+      ).map((item: Element) => item.textContent?.trim())
     ).toEqual(['XP.KEY_WORDS.Date_Today', 'XP.KEY_WORDS.Date_Yesterday'])
 
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier').click()
+    TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector('.cloud-sidebar-assistants__load-earlier')
+      .click()
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
     expect(conversationService.getSidebarConversations).toHaveBeenNthCalledWith(2, 'other-xpert', 10, 10)
-    expect(fixture.nativeElement.querySelectorAll('xp-sidebar-conversation a')).toHaveLength(12)
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier')).toBeNull()
+    expect(
+      TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('xp-sidebar-conversation a')
+    ).toHaveLength(12)
+    expect(
+      TestBed.inject(OverlayContainer).getContainerElement().querySelector('.cloud-sidebar-assistants__load-earlier')
+    ).toBeNull()
 
-    expect(fixture.nativeElement.querySelectorAll('xp-sidebar-conversation a')[10].getAttribute('href')).toBe(
-      '/chat/x/other-assistant/c/thread-11'
-    )
+    expect(
+      TestBed.inject(OverlayContainer)
+        .getContainerElement()
+        .querySelectorAll('xp-sidebar-conversation a')[10]
+        .getAttribute('href')
+    ).toBe('/chat/x/other-assistant/c/thread-11')
   })
 
   it('marks the recent conversation matching the route thread as active', async () => {
@@ -490,44 +563,80 @@ describe('CloudSidebarAssistantsComponent', () => {
     const router = TestBed.inject(Router)
     await router.navigateByUrl('/chat/x/other-assistant/c/thread-active')
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.componentRef.setInput('embedded', true)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.nativeElement
+      .querySelector('.cloud-sidebar-assistants__item')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const activeConversation = fixture.nativeElement.querySelector('xp-sidebar-conversation a[aria-current="page"]')
+    const activeConversation = TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector('xp-sidebar-conversation a[aria-current="page"]')
     expect(activeConversation).not.toBeNull()
     expect(activeConversation.textContent).toContain('Active conversation')
     expect(activeConversation.getAttribute('aria-current')).toBe('page')
   })
 
+  it('ignores late view and conversation responses after the scope changes', async () => {
+    const oldViews = new Subject<never[]>()
+    const oldConversations = new Subject<{ items: never[]; total: number }>()
+    viewExtensionApi.getSlotViews.mockReturnValueOnce(oldViews)
+    conversationService.getSidebarConversations.mockReturnValueOnce(oldConversations)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item').click()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.assistantMenuState({ id: 'other-xpert' }).loading).toBe(true)
+    scopeService.activeScope.set({ level: 'tenant' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    oldViews.next([])
+    oldConversations.next({ items: [], total: 99 })
+    fixture.detectChanges()
+    expect(fixture.componentInstance.assistantMenuState({ id: 'other-xpert' }).loading).toBe(false)
+    expect(fixture.componentInstance.assistantConversationState({ id: 'other-xpert' }).loaded).toBe(false)
+    expect(fixture.componentInstance.assistantConversationState({ id: 'other-xpert' }).total).toBe(0)
+    oldViews.complete()
+    oldConversations.complete()
+  })
+
   it('shows the view empty state when an assistant has no fixed views', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(of([]))
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.componentRef.setInput('embedded', true)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
+    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item').click()
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-state').textContent).toContain(
-      'XP.Sidebar.NoAssistantViews'
-    )
+    expect(
+      TestBed.inject(OverlayContainer).getContainerElement().querySelector('.cloud-sidebar-assistants__children-state')
+        .textContent
+    ).toContain('XP.Sidebar.NoAssistantViews')
   })
 
   it('opens normal assistant settings through the settings service', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const settings = TestBed.inject(XpertSettingsService)
 
     fixture.detectChanges()
@@ -544,6 +653,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
   it('routes the create shortcut to the selected workspace digital experts page', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -561,6 +671,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   it('hides the create shortcut without xpert edit permission', async () => {
     store.hasPermission.mockReturnValue(false)
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     await fixture.whenStable()
@@ -607,6 +718,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       ])
     )
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     const router = TestBed.inject(Router)
     const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
 
@@ -646,6 +758,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       ])
     )
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     await fixture.whenStable()
@@ -656,6 +769,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
   it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     tick()
@@ -675,6 +789,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   it('pauses unread polling while hidden and refreshes immediately when visible again', fakeAsync(() => {
     documentVisibilityState = 'hidden'
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     tick()
@@ -700,6 +815,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     const pendingUnread = new Subject<unknown>()
     conversationService.getUnreadByXperts.mockReturnValue(pendingUnread.asObservable())
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     tick()
@@ -738,6 +854,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       })
     )
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
 
     fixture.detectChanges()
     await fixture.whenStable()

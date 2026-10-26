@@ -1,3 +1,5 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.directive'
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { Component } from '@angular/core'
@@ -42,14 +44,23 @@ describe('CloudSidebarWorkspacesComponent', () => {
           useValue: { user$: user, selectedWorkspace$: selectedWorkspace, selectOrganizationId: () => organizationId }
         }
       ]
-    }).compileComponents()
+    })
+      .overrideComponent(CloudSidebarWorkspacesComponent, {
+        add: { hostDirectives: [{ directive: CloudSidebarHoverPanelDirective, inputs: ['xpSidebarHoverPanel'] }] }
+      })
+      .compileComponents()
     http = TestBed.inject(HttpTestingController)
     history = TestBed.inject(WorkspaceHistoryService)
     history.remember('user-1', 'organization-1', 'workspace-1')
     history.remember('user-1', 'organization-1', 'workspace-2')
     fixture = TestBed.createComponent(CloudSidebarWorkspacesComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     fixture.detectChanges()
     overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    fixture.nativeElement
+      .querySelector('button')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    fixture.detectChanges()
   })
 
   afterEach(() => {
@@ -69,11 +80,51 @@ describe('CloudSidebarWorkspacesComponent', () => {
   async function openPopup() {
     fixture.componentRef.setInput('collapsed', true)
     fixture.detectChanges()
-    fixture.nativeElement.querySelector('button').click()
+    fixture.nativeElement
+      .querySelector('button')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
   }
+
+  it('preserves the environment action and its workspace write permission', async () => {
+    const dialog = jest.spyOn(TestBed.inject(Dialog), 'open').mockImplementation()
+    const readOnly = {
+      ...workspaces[0],
+      capabilities: { canRead: true, canRun: true, canWrite: false, canManage: false }
+    }
+    flushWorkspaces([readOnly])
+    selectedWorkspace.next(readOnly)
+    fixture.detectChanges()
+    expect(overlay.querySelector<HTMLButtonElement>('[data-sidebar-panel-action]')?.disabled).toBe(true)
+    await fixture.componentInstance.openEnvironments()
+    expect(dialog).not.toHaveBeenCalled()
+    TestBed.inject(XpertWorkspaceService).refresh()
+    const writable = { ...readOnly, capabilities: { ...readOnly.capabilities, canWrite: true } }
+    flushWorkspaces([writable])
+    expect(overlay.querySelector<HTMLButtonElement>('[data-sidebar-panel-action]')?.disabled).toBe(false)
+    await fixture.componentInstance.openEnvironments()
+    expect(dialog).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ data: { workspaceId: writable.id } })
+    )
+  })
+
+  it('opens the selected authorized workspace on primary click and falls back after scope changes', async () => {
+    flushWorkspaces()
+    selectedWorkspace.next(workspaces[1])
+    fixture.detectChanges()
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    fixture.nativeElement.querySelector('button').click()
+    await fixture.whenStable()
+    expect(navigate).toHaveBeenLastCalledWith(['/xpert/w', 'workspace-2'])
+    organizationId.next('organization-2')
+    flushWorkspaces([])
+    fixture.nativeElement.querySelector('button').click()
+    await fixture.whenStable()
+    expect(navigate).toHaveBeenLastCalledWith(['/xpert/w'])
+  })
 
   it('shows five recently used accessible workspaces rather than recently updated ones', () => {
     for (const workspace of workspaces) history.remember('user-1', 'organization-1', workspace.id)
@@ -94,18 +145,18 @@ describe('CloudSidebarWorkspacesComponent', () => {
       'workspace-4',
       'workspace-3'
     ])
-    expect(fixture.nativeElement.querySelectorAll('ul a')).toHaveLength(5)
+    expect(overlay.querySelectorAll('ul a')).toHaveLength(5)
     expect(fixture.nativeElement.querySelector('button').getAttribute('aria-expanded')).toBe('true')
   })
 
   it('shows all accessible workspaces without refetching and remembers selection through the shared store', () => {
     flushWorkspaces()
-    const buttons: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('button')
+    const buttons: NodeListOf<HTMLButtonElement> = overlay.querySelectorAll('button')
     Array.from(buttons)
       .find((button) => button.textContent?.includes('XP.Sidebar.AllWorkspaces'))
       ?.click()
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('ul a')).toHaveLength(7)
+    expect(overlay.querySelectorAll('ul a')).toHaveLength(7)
     http.expectNone((request) => request.url === '/api/xpert-workspace/my')
 
     selectedWorkspace.next(workspaces[6])
@@ -122,7 +173,7 @@ describe('CloudSidebarWorkspacesComponent', () => {
     flushWorkspaces()
     await openPopup()
     expect(fixture.nativeElement.querySelector('a')).toBeNull()
-    expect(overlay.querySelector('[role="dialog"]')?.textContent).toContain('Workspace 2')
+    expect(overlay.querySelector('[role="region"]')?.textContent).toContain('Workspace 2')
     const clicked = jest.fn()
     fixture.componentInstance.clicked.subscribe(clicked)
     overlay.querySelector('a')?.click()
@@ -131,7 +182,7 @@ describe('CloudSidebarWorkspacesComponent', () => {
 
     expect(TestBed.inject(Router).url).toBe('/xpert/w/workspace-2')
     expect(clicked).toHaveBeenCalledTimes(1)
-    expect(overlay.querySelector('[role="dialog"]')).toBeNull()
+    expect(overlay.querySelector('[role="region"]')?.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('closes the popup with Escape and retains the expanded list', async () => {
@@ -142,54 +193,25 @@ describe('CloudSidebarWorkspacesComponent', () => {
     expect(fixture.componentInstance.menuOpen()).toBe(false)
     fixture.componentRef.setInput('collapsed', false)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelectorAll('ul a')).toHaveLength(2)
+    expect(overlay.querySelectorAll('ul a')).toHaveLength(2)
   })
 
-  it('keeps the loaded list stable when navigating between workspaces', async () => {
+  it('switches from workspace selection to scoped navigation and back without refetching', async () => {
     flushWorkspaces()
     const state = fixture.componentInstance.state()
-    const firstLink = fixture.nativeElement.querySelector('a[href="/xpert/w/workspace-1"]')
-    const visibleOrder = fixture.componentInstance.visibleWorkspaces().map((workspace) => workspace.id)
-    for (const workspace of workspaces.slice(0, 2)) {
-      fixture.nativeElement.querySelector(`a[href="/xpert/w/${workspace.id}"]`).click()
-      await fixture.whenStable()
-      selectedWorkspace.next(workspace)
-      fixture.detectChanges()
-      await fixture.whenStable()
-      fixture.detectChanges()
-
-      http.expectNone((request) => request.url === '/api/xpert-workspace/my')
-      expect(fixture.componentInstance.state()).toBe(state)
-      expect(fixture.componentInstance.visibleWorkspaces().map((workspace) => workspace.id)).toEqual(visibleOrder)
-      expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull()
-      expect(fixture.nativeElement.querySelector('a[aria-current="page"]').getAttribute('href')).toBe(
-        `/xpert/w/${workspace.id}`
-      )
-      expect(fixture.nativeElement.querySelector('a[href="/xpert/w/workspace-1"]')).toBe(firstLink)
-    }
-  })
-
-  it('keeps all-workspaces mode when selecting an entry and applies recent order when reopening the list', async () => {
-    flushWorkspaces()
+    overlay.querySelector<HTMLAnchorElement>('a[href="/xpert/w/workspace-1"]')!.click()
+    await fixture.whenStable()
+    selectedWorkspace.next(workspaces[0])
+    fixture.detectChanges()
+    await openPopup()
+    expect(overlay.textContent).toContain('Workspace 1')
+    expect(overlay.querySelector('a[href="/xpert/w/workspace-1/skills"]')).not.toBeNull()
+    expect(fixture.componentInstance.state()).toBe(state)
+    fixture.componentInstance.browsing.set(true)
     fixture.componentInstance.showAll.set(true)
     fixture.detectChanges()
-    const links = Array.from(fixture.nativeElement.querySelectorAll('ul a'))
-
-    fixture.nativeElement.querySelector('a[href="/xpert/w/workspace-7"]').click()
-    await fixture.whenStable()
-    selectedWorkspace.next(workspaces[6])
-    fixture.detectChanges()
-
-    expect(fixture.componentInstance.showAll()).toBe(true)
-    expect(Array.from(fixture.nativeElement.querySelectorAll('ul a'))).toEqual(links)
-    http.expectNone((request) => request.url === '/api/xpert-workspace/my')
-    expect(history.recent('user-1', 'organization-1')[0]).toBe('workspace-7')
-
-    fixture.componentInstance.toggle()
-    fixture.componentInstance.showAll.set(false)
-    fixture.componentInstance.toggle()
-    fixture.detectChanges()
-    expect(fixture.componentInstance.visibleWorkspaces()[0].id).toBe('workspace-7')
+    expect(overlay.querySelectorAll('ul a')).toHaveLength(7)
+    expect(history.recent('user-1', 'organization-1')[0]).toBe('workspace-1')
     http.expectNone((request) => request.url === '/api/xpert-workspace/my')
   })
 
@@ -197,8 +219,8 @@ describe('CloudSidebarWorkspacesComponent', () => {
     flushWorkspaces()
     TestBed.inject(XpertWorkspaceService).refresh()
     flushWorkspaces([{ ...workspaces[0], name: 'Renamed workspace' }])
-    expect(fixture.nativeElement.textContent).toContain('Renamed workspace')
-    expect(fixture.nativeElement.textContent).not.toContain('Workspace 2')
+    expect(overlay.textContent).toContain('Renamed workspace')
+    expect(overlay.textContent).not.toContain('Workspace 2')
   })
 
   it('cancels stale requests on organization change and clears history from the previous user on logout', () => {
@@ -208,8 +230,8 @@ describe('CloudSidebarWorkspacesComponent', () => {
     organizationId.next('organization-2')
     fixture.detectChanges()
     expect(stale.cancelled).toBe(true)
-    expect(fixture.nativeElement.textContent).not.toContain('Workspace 1')
-    expect(fixture.nativeElement.textContent).not.toContain('Workspace 2')
+    expect(overlay.textContent).not.toContain('Workspace 1')
+    expect(overlay.textContent).not.toContain('Workspace 2')
     flushWorkspaces()
     expect(fixture.componentInstance.recentWorkspaces()).toEqual([])
 
@@ -222,9 +244,9 @@ describe('CloudSidebarWorkspacesComponent', () => {
   it('supports retry and shows the empty state when no workspaces exist', () => {
     listRequest().flush({ message: 'Load failed' }, { status: 500, statusText: 'Server error' })
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull()
+    expect(overlay.querySelector('[role="alert"]')).not.toBeNull()
     fixture.componentInstance.reload()
     flushWorkspaces([])
-    expect(fixture.nativeElement.textContent).toContain('XP.Sidebar.NoRecentWorkspaces')
+    expect(overlay.textContent).toContain('XP.Sidebar.NoRecentWorkspaces')
   })
 })

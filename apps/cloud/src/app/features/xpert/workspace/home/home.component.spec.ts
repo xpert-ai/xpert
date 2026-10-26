@@ -22,6 +22,7 @@ import {
   XpertWorkspaceService
 } from '../../../../@core'
 import { XpertWorkspaceHomeComponent } from './home.component'
+import { CloudSidebarPanelLinksComponent } from '../../../sidebar/cloud-sidebar-panel-links.component'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'workspace-1' })
 
@@ -290,6 +291,38 @@ describe('XpertWorkspaceHomeComponent', () => {
     expectActiveSection(harness, 'database')
     expect(component.type()).toBeNull()
     expect(component.isAll()).toBe(false)
+  })
+
+  it('keeps the original workspace tabs and panel links synchronized in both directions', async () => {
+    await setup()
+    const harness = await RouterTestingHarness.create()
+    await harness.navigateByUrl(`${workspaceUrl}/xperts`, XpertWorkspaceHomeComponent)
+    const panel = TestBed.createComponent(CloudSidebarPanelLinksComponent)
+    panel.componentRef.setInput(
+      'items',
+      sections.map((section) => ({
+        id: section || 'all',
+        label: section || 'All',
+        translationKey: section || 'All',
+        path: `${workspaceUrl}${section ? '/' + section : ''}`
+      }))
+    )
+    panel.detectChanges()
+    panel.nativeElement.querySelector(`a[href="${workspaceUrl}/skills"]`).click()
+    await settle(harness)
+    panel.detectChanges()
+    expectActiveSection(harness, 'skills')
+    expect(panel.nativeElement.querySelector('[aria-current="page"]').getAttribute('href')).toBe(
+      `${workspaceUrl}/skills`
+    )
+    harness.routeNativeElement!.querySelector<HTMLAnchorElement>(`a[href="${workspaceUrl}/builtin"]`)!.click()
+    await settle(harness)
+    panel.detectChanges()
+    expectActiveSection(harness, 'builtin')
+    expect(panel.nativeElement.querySelector('[aria-current="page"]').getAttribute('href')).toBe(
+      `${workspaceUrl}/builtin`
+    )
+    panel.destroy()
   })
 
   it('sets the default workspace without switching the selected workspace', async () => {

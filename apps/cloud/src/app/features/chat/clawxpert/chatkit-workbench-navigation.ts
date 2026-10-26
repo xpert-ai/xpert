@@ -18,7 +18,10 @@ export function createChatkitWorkbenchNavigation(options: {
   defaultViewKey: () => string | null
   isChatkitView: (key: string | null) => boolean
   views: Pick<ViewExtensionApiService, 'getSlotViews'>
-  url: Pick<ClawXpertWorkbenchViewUrlState, 'viewKey' | 'viewQuery' | 'projectId' | 'viewClosed' | 'setViewState'>
+  url: Pick<
+    ClawXpertWorkbenchViewUrlState,
+    'viewKey' | 'viewQuery' | 'viewLayout' | 'projectId' | 'viewClosed' | 'setViewState'
+  >
   selectProject: (projectId: string, view?: WorkbenchExtensionViewOpenRequest) => Promise<boolean> | void
 }) {
   let revision = 0
@@ -28,7 +31,14 @@ export function createChatkitWorkbenchNavigation(options: {
       // Legacy deep links carry a separately scoped Project; never apply that
       // query to the current session before its destination has been authorized.
       projectId: options.url.projectId() ?? options.projectId(),
-      view: viewKey && options.isChatkitView(viewKey) ? { viewKey, ...options.url.viewQuery() } : null
+      view:
+        viewKey && options.isChatkitView(viewKey)
+          ? {
+              viewKey,
+              ...options.url.viewQuery(),
+              ...(options.url.viewLayout() ? { layout: options.url.viewLayout()! } : {})
+            }
+          : null
     }
   })
 
@@ -92,7 +102,7 @@ export function createChatkitWorkbenchNavigation(options: {
     await options.url.setViewState(
       navigation.view?.viewKey ?? null,
       navigation.view ? viewQuery(navigation.view) : null,
-      { closed: !navigation.view }
+      { closed: !navigation.view, ...(navigation.view?.layout ? { layout: navigation.view.layout } : {}) }
     )
   }
   return { state, openProject, openView, onNavigationChange }

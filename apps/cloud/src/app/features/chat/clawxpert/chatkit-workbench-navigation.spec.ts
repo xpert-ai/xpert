@@ -28,6 +28,7 @@ function setup() {
   const url = {
     viewClosed: signal(false),
     viewKey: signal<string | null>(null),
+    viewLayout: signal<'split' | 'maximized' | null>(null),
     projectId: signal<string | null>(null),
     viewQuery: signal<XpertViewQuery | null>(null),
     setViewState: jest.fn(async () => true)
@@ -49,6 +50,16 @@ function setup() {
 afterEach(() => TestBed.resetTestingModule())
 
 describe('ChatKit Workbench route ownership', () => {
+  it('opens an authorized URL view maximized and persists a manual return to split layout', async () => {
+    const h = setup()
+    h.url.viewKey.set(manifest.key)
+    h.url.viewLayout.set('maximized')
+    expect(h.state().view).toEqual({ viewKey: manifest.key, layout: 'maximized' })
+    await h.onNavigationChange({ projectId: 'project-a', view: { viewKey: manifest.key, layout: 'split' } })
+    expect(h.url.setViewState).toHaveBeenCalledWith(manifest.key, {}, { closed: false, layout: 'split' })
+    h.url.viewKey.set('unauthorized')
+    expect(h.state().view).toBeNull()
+  })
   it.each(['new-project', 'project-b'])(
     'opens %s atomically with the complete View query after target authorization',
     async (projectId) => {

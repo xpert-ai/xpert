@@ -132,46 +132,9 @@
     class="relative max-h-full min-w-0 flex-1 overflow-auto bg-background transition-[padding-left] duration-200 ease-out motion-reduce:transition-none"
     [style.transition-duration]="sidebarPanelResizing() ? '0s' : null"
     [class]="platformSidebarHidden() ? '' : 'rounded-l-[16px] shadow-page'"
-    [style.padding-left.px]="
-      platformSidebarHidden() || !renderedSidebarCollapsed() || isMobile() ? 0 : sidebarPanelWidth()
-    "
+    [style.padding-left.px]="platformSidebarHidden() || isMobile() ? 0 : sidebarPanelWidth()"
     cdkDropListGroup
   >
-    <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">
-      <div class="flex justify-start items-center gap-2">
-        @if (navigation$ | async; as navigation) {
-          <div class="flex items-center text-sm overflow-hidden">
-            @if (appService.inProject()) {
-              <xp-header-project class="h-full rounded-none"/>
-            }
-
-            @if (appService.inWorkspace()) {
-              <xp-workspace-selector class="rounded-xl hover:bg-hover-bg" />
-            }
-            <span class="font-bold flex items-center cursor-pointer
-            text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"
-              (click)="navigate(navigation.catalog)">
-              <z-icon zSize="sm" class="mx-1" [zType]="navigation.icon"></z-icon>
-              @if (!isMobile()) {
-                <span>{{ navigation.catalogName }}</span>
-              }
-            </span>
-            @if(navigation.id && !isMobile()) {
-              <span class="mx-1 font-bold">|</span>
-              <span class="text-ellipsis overflow-hidden">{{ navigation.label }}</span>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="flex flex-1">
-      </div>
-
-      @if (isAuthenticated$ | async; as user) {
-        <xp-header-user [user]="user" />
-      }
-    </header> -->
-
     <div
       class="min-h-full h-full flex-1 relative flex flex-col"
       [@.disabled]="disableContentRouteAnimations()"

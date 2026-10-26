@@ -1,3 +1,4 @@
+import { injectPublicationSearchSelection } from './publication-search-selection'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
@@ -301,6 +302,10 @@ export class XpertMcpPublicationsComponent {
     return `Transport: Streamable HTTP\nProtocol: 2026-07-28\nURL: ${endpoint}\nAuthorization: Bearer $XPERT_MCP_API_KEY`
   })
 
+  private readonly requestedPublicationId = injectPublicationSearchSelection(
+    this.publications, this.loading, (id) => this.selectPublication(id)
+  )
+
   constructor() {
     if (!this.oauthAvailable) this.oauthForm.disable({ emitEvent: false })
 
@@ -330,7 +335,9 @@ export class XpertMcpPublicationsComponent {
           !!toolset.id && !toolset.workspaceId && (toolset.category === 'builtin' || toolset.category === 'mcp')
       )
       this.publishableToolsetIds.set(publishableToolsets.flatMap(({ id }) => (id ? [id] : [])))
-      const selectedId = publications.some(({ id }) => id === this.selectedPublicationId())
+      const selectedId = publications.some(({ id }) => id === this.requestedPublicationId())
+        ? this.requestedPublicationId()
+        : publications.some(({ id }) => id === this.selectedPublicationId())
         ? this.selectedPublicationId()
         : (publications[0]?.id ?? null)
       if (selectedId) {

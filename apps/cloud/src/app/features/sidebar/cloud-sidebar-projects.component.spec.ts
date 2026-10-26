@@ -1,3 +1,4 @@
+import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.directive'
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
 import { Component } from '@angular/core'
@@ -30,11 +31,20 @@ describe('CloudSidebarProjectsComponent', () => {
         provideRouter([{ path: 'project/:id', component: ProjectRouteStubComponent }]),
         { provide: Store, useValue: { selectOrganizationId: () => organizationId } }
       ]
-    }).compileComponents()
+    })
+      .overrideComponent(CloudSidebarProjectsComponent, {
+        add: { hostDirectives: [{ directive: CloudSidebarHoverPanelDirective, inputs: ['xpSidebarHoverPanel'] }] }
+      })
+      .compileComponents()
     http = TestBed.inject(HttpTestingController)
     fixture = TestBed.createComponent(CloudSidebarProjectsComponent)
+    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
     fixture.detectChanges()
     overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    fixture.nativeElement
+      .querySelector('button')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    fixture.detectChanges()
   })
 
   afterEach(() => {
@@ -54,7 +64,9 @@ describe('CloudSidebarProjectsComponent', () => {
   async function openPopup() {
     fixture.componentRef.setInput('collapsed', true)
     fixture.detectChanges()
-    fixture.nativeElement.querySelector('button').click()
+    fixture.nativeElement
+      .querySelector('button')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
@@ -64,15 +76,15 @@ describe('CloudSidebarProjectsComponent', () => {
     const request = listRequest()
     expect(JSON.parse(request.request.params.get('data')!)).toEqual({
       where: { status: 'active' },
-      order: { updatedAt: 'DESC' },
+      order: { updatedAt: 'DESC', id: 'ASC' },
       skip: 0,
       take: 5
     })
-    expect(fixture.nativeElement.querySelector('[role="status"]')).not.toBeNull()
+    expect(overlay.querySelector('[role="status"]')).not.toBeNull()
     request.flush({ items: projects, total: 2 })
     fixture.detectChanges()
 
-    const links: NodeListOf<HTMLAnchorElement> = fixture.nativeElement.querySelectorAll('a')
+    const links: NodeListOf<HTMLAnchorElement> = overlay.querySelectorAll('a')
     expect(Array.from(links, (link) => link.getAttribute('href'))).toEqual([
       '/project/project-1',
       '/project/project-2',
@@ -81,11 +93,19 @@ describe('CloudSidebarProjectsComponent', () => {
     expect(fixture.nativeElement.querySelector('button').getAttribute('aria-expanded')).toBe('true')
   })
 
+  it('opens all projects from the primary menu when no current project is authorized', async () => {
+    flushProjects()
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    fixture.nativeElement.querySelector('button').click()
+    await fixture.whenStable()
+    expect(navigate).toHaveBeenCalledWith(['/project'])
+  })
+
   it('opens a popup when collapsed and closes it after navigating to a project', async () => {
     flushProjects()
     await openPopup()
     expect(fixture.nativeElement.querySelector('a')).toBeNull()
-    expect(overlay.querySelector('[role="dialog"]')?.textContent).toContain('Latest project')
+    expect(overlay.querySelector('[role="region"]')?.textContent).toContain('Latest project')
     const router = TestBed.inject(Router)
     const navigate = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true)
     const selected = jest.fn()
@@ -98,7 +118,7 @@ describe('CloudSidebarProjectsComponent', () => {
     const target = navigate.mock.calls[0][0]
     expect(typeof target === 'string' ? target : router.serializeUrl(target)).toBe('/project/project-1')
     expect(selected).toHaveBeenCalledTimes(1)
-    expect(overlay.querySelector('[role="dialog"]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('a')).toBeNull()
   })
 
   it('closes the popup on Escape or outside click and preserves the inline list', async () => {
@@ -115,7 +135,7 @@ describe('CloudSidebarProjectsComponent', () => {
 
     fixture.componentRef.setInput('collapsed', false)
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('a[href="/project/project-1"]')).not.toBeNull()
+    expect(overlay.querySelector('a[href="/project/project-1"]')).not.toBeNull()
   })
 
   it('clears projects and cancels stale requests when organization scope changes', () => {
@@ -127,31 +147,30 @@ describe('CloudSidebarProjectsComponent', () => {
     fixture.detectChanges()
 
     expect(stale.cancelled).toBe(true)
-    expect(fixture.nativeElement.textContent).not.toContain('Latest project')
+    expect(overlay.textContent).not.toContain('Latest project')
     flushProjects([{ ...projects[0], id: 'other-project', name: 'Other organization project' }])
-    expect(fixture.nativeElement.textContent).toContain('Other organization project')
+    expect(overlay.textContent).toContain('Other organization project')
   })
 
-  it('preserves the list and only changes the active project when navigating between projects', async () => {
+  it('loads the authorized current project on direct navigation without reloading the recent list', async () => {
     flushProjects()
-    const router = TestBed.inject(Router)
     const state = fixture.componentInstance.state()
-    const firstLink = fixture.nativeElement.querySelector('a[href="/project/project-1"]')
-
-    for (const project of projects) {
-      await router.navigateByUrl(`/project/${project.id}`)
-      fixture.detectChanges()
-      await fixture.whenStable()
-      fixture.detectChanges()
-
-      http.expectNone((request) => request.url === '/api/xpert-project/my')
-      expect(fixture.componentInstance.state()).toBe(state)
-      expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull()
-      expect(fixture.nativeElement.querySelector('a[aria-current="page"]').getAttribute('href')).toBe(
-        `/project/${project.id}`
-      )
-      expect(fixture.nativeElement.querySelector('a[href="/project/project-1"]')).toBe(firstLink)
-    }
+    await TestBed.inject(Router).navigateByUrl('/project/project-1')
+    fixture.detectChanges()
+    http.expectOne((request) => request.url === '/api/xpert-project/project-1').flush(projects[0])
+    fixture.detectChanges()
+    await openPopup()
+    expect(fixture.componentInstance.state()).toBe(state)
+    expect(overlay.textContent).toContain('Latest project')
+    expect(overlay.querySelector('a[href="/project/project-1/config"]')).not.toBeNull()
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    fixture.nativeElement.querySelector('button').click()
+    await fixture.whenStable()
+    expect(navigate).toHaveBeenCalledWith(['/project', 'project-1'])
+    http.expectNone((request) => request.url === '/api/xpert-project/my')
+    fixture.componentInstance.browsing.set(true)
+    fixture.detectChanges()
+    expect(overlay.querySelectorAll('ul a')).toHaveLength(2)
   })
 
   it('refreshes names after a successful project update', () => {
@@ -161,8 +180,8 @@ describe('CloudSidebarProjectsComponent', () => {
     request.flush({ ...projects[0], name: 'Renamed project' })
     flushProjects([{ ...projects[0], name: 'Renamed project' }])
 
-    expect(fixture.nativeElement.textContent).toContain('Renamed project')
-    expect(fixture.nativeElement.textContent).not.toContain('Latest project')
+    expect(overlay.textContent).toContain('Renamed project')
+    expect(overlay.textContent).not.toContain('Latest project')
   })
 
   it('removes an archived project from the recent list after persistence succeeds', () => {
@@ -171,22 +190,22 @@ describe('CloudSidebarProjectsComponent', () => {
     http.expectOne('/api/xpert-project/project-1/archive').flush({ ...projects[0], status: 'archived' })
     flushProjects([projects[1]])
 
-    expect(fixture.nativeElement.textContent).not.toContain('Latest project')
-    expect(fixture.nativeElement.textContent).toContain('Earlier project')
+    expect(overlay.textContent).not.toContain('Latest project')
+    expect(overlay.textContent).toContain('Earlier project')
   })
 
   it('allows retry after a loading failure and keeps the all-projects link in the empty state', () => {
     listRequest().flush({ message: 'Load failed' }, { status: 500, statusText: 'Server error' })
     fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull()
+    expect(overlay.querySelector('[role="alert"]')).not.toBeNull()
 
-    const buttons: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('button')
+    const buttons: NodeListOf<HTMLButtonElement> = overlay.querySelectorAll('button')
     Array.from(buttons)
       .find((button) => button.textContent?.includes('XP.Common.ErrorState.Retry'))
       ?.click()
     flushProjects([])
 
-    expect(fixture.nativeElement.textContent).toContain('XP.Sidebar.NoRecentProjects')
-    expect(fixture.nativeElement.querySelector('a[href="/project"]')).not.toBeNull()
+    expect(overlay.textContent).toContain('XP.Sidebar.NoRecentProjects')
+    expect(overlay.querySelector('a[href="/project"]')).not.toBeNull()
   })
 })

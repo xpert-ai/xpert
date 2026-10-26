@@ -81,6 +81,26 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     expect(state.viewQuery()).toBeNull()
   })
 
+  it('restores layout from navigation and clears it when the view closes', async () => {
+    router.url = '/chat/clawxpert/c/thread-1?view=review&viewLayout=maximized'
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    expect(state.viewLayout()).toBe('maximized')
+    await state.setViewState('review', null, { layout: 'split' })
+    expect(state.viewLayout()).toBe('split')
+    expect(router.parseUrl(router.url).queryParams.viewLayout).toBe('split')
+    router.url = '/chat/clawxpert/c/thread-1?view=review&viewLayout=maximized'
+    navigationEvents.next(new NavigationEnd(2, router.url, router.url))
+    expect(state.viewLayout()).toBe('maximized')
+    await state.setViewState(null, null, { closed: true })
+    expect(state.viewLayout()).toBeNull()
+    expect(router.parseUrl(router.url).queryParams.viewLayout).toBeUndefined()
+  })
+
+  it.each(['?view=review&viewLayout=invalid', '?viewLayout=maximized'])('ignores invalid layout state %s', (query) => {
+    router.url = '/chat/clawxpert/c' + query
+    expect(TestBed.inject(ClawXpertWorkbenchViewUrlState).viewLayout()).toBeNull()
+  })
+
   it('persists the selected record and view parameters for refresh recovery', async () => {
     const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
 

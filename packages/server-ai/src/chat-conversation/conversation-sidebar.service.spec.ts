@@ -1,5 +1,5 @@
 import { ForbiddenException, BadRequestException } from '@nestjs/common'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
 import { ChatConversationService } from './conversation.service'
@@ -80,6 +80,21 @@ describe('ChatConversationSidebarService', () => {
     })
 
     afterEach(() => jest.restoreAllMocks())
+
+    it('filters literal titles before pagination while retaining owner and archive constraints', async () => {
+        findPreference.mockResolvedValue({ preferences: { conversationSidebar: { saved: { archived: true } } } })
+        await service.list('assistant-1', 20, 40, true, '  100%_! test  ')
+        expect(listQuery.andWhere).toHaveBeenCalledWith("conversation.title ILIKE :search ESCAPE '!'", {
+            search: '%100!%!_!! test%'
+        })
+        expect(listQuery.andWhere).toHaveBeenCalledWith('conversation.id IN (:...archivedIds)', { archivedIds: ['saved'] })
+        expect(listQuery.where).toHaveBeenCalledWith({
+            tenantId: 'tenant-1', organizationId: 'org-1', createdById: 'user-1', xpertId: 'assistant-1'
+        })
+        expect(listQuery.take).toHaveBeenCalledWith(20)
+        expect(listQuery.skip).toHaveBeenCalledWith(40)
+        expect(listQuery.andWhere.mock.invocationCallOrder[2]).toBeLessThan(listQuery.take.mock.invocationCallOrder[0])
+    })
 
     it('scopes listings to the current tenant, organization, owner and Assistant', async () => {
         await service.list('assistant-1', 10, 20)

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { IUser } from '../../@core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
+import { IUser, ScopeService } from '../../@core'
 import { HeaderUserComponent } from '../../@theme/header'
 import { CloudSidebarIdentityComponent } from './cloud-sidebar-identity.component'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
@@ -22,6 +22,8 @@ import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.dir
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarComponent {
+  private readonly scope = inject(ScopeService).activeScope
+  readonly panelScope = computed(() => JSON.stringify([this.user()?.id, this.user()?.tenantId, this.scope()]))
   readonly collapsed = input(false)
   readonly isMobile = input(false)
   readonly hoverPanelEnabled = input(true)

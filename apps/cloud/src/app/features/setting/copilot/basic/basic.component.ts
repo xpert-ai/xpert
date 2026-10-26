@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
@@ -132,6 +133,10 @@ export class CopilotBasicComponent {
       label: capitalize(AiProviderRole.Reasoning)
     }
   ])
+
+  readonly selectedCopilotId = toSignal(
+    inject(ActivatedRoute, { optional: true })?.queryParamMap.pipe(map((params) => params.get('copilotId'))) ?? of(null)
+  )
 
   readonly loading = signal(false)
 

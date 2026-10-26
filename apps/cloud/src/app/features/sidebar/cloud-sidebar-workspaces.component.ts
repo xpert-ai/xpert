@@ -1,3 +1,7 @@
+import { matchesSidebarSearch } from './search/sidebar-search.types'
+import { Dialog } from '@angular/cdk/dialog'
+import { CloudSidebarPanelTriggerDirective } from './cloud-sidebar-panel-trigger.directive'
+import { CloudSidebarPanelLinksComponent, SidebarPanelLink } from './cloud-sidebar-panel-links.component'
 import { A11yModule } from '@angular/cdk/a11y'
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
@@ -25,7 +29,15 @@ const LOADING_STATE: WorkspaceListState = { items: [], loading: true, error: '' 
 @Component({
   standalone: true,
   selector: 'xp-cloud-sidebar-workspaces',
-  imports: [CommonModule, A11yModule, OverlayModule, RouterModule, TranslateModule],
+  imports: [
+    CloudSidebarPanelTriggerDirective,
+    CloudSidebarPanelLinksComponent,
+    CommonModule,
+    A11yModule,
+    OverlayModule,
+    RouterModule,
+    TranslateModule
+  ],
   templateUrl: './cloud-sidebar-workspaces.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block min-w-0' }
@@ -42,6 +54,7 @@ export class CloudSidebarWorkspacesComponent {
     { originX: 'end', originY: 'bottom', overlayX: 'start', overlayY: 'bottom', offsetX: 8 },
     { originX: 'start', originY: 'top', overlayX: 'end', overlayY: 'top', offsetX: -8 }
   ]
+  private readonly dialog = inject(Dialog)
   readonly #api = inject(XpertWorkspaceService)
   readonly #store = inject(Store)
   readonly #history = inject(WorkspaceHistoryService)
@@ -90,6 +103,67 @@ export class CloudSidebarWorkspacesComponent {
   })
   readonly visibleWorkspaces = computed(() => (this.showAll() ? this.state().items : this.recentWorkspaces()))
 
+  readonly browsing = signal(false)
+  readonly currentWorkspace = computed(
+    () => this.state().items.find((item) => item.id === this.#selectedWorkspace()?.id) ?? null
+  )
+  readonly workspaceLinks = computed<SidebarPanelLink[]>(() => {
+    const id = this.currentWorkspace()?.id
+    return id
+      ? [
+          ['', 'XP.KEY_WORDS.All', 'All', 'ri-layout-grid-line'],
+          ['xperts', 'XP.Xpert.DigitalExpert', 'Digital Expert', 'ri-team-line'],
+          ['builtin', 'XP.Xpert.BuiltinTool', 'Built-in Tool', 'ri-tools-line'],
+          ['mcp', 'XP.Xpert.MCPAccess', 'MCP access', 'ri-plug-line'],
+          ['custom', 'XP.Xpert.APITool', 'API Tool', 'ri-code-s-slash-line'],
+          ['connectors', 'XP.Xpert.Connectors', 'Connectors', 'ri-links-line'],
+          ['knowledges', 'XP.Xpert.Knowledgebase', 'Knowledgebase', 'ri-book-open-line'],
+          ['database', 'XP.KEY_WORDS.Database', 'Database', 'ri-database-2-line'],
+          ['skills', 'XP.KEY_WORDS.Skills', 'Skills', 'ri-magic-line'],
+          ['prompt-workflows', 'XP.PromptWorkflow.ShortTitle', 'Prompt Workflows', 'ri-chat-quote-line'],
+          ['files', 'XP.MENU.Library', 'Resource library', 'ri-folder-line']
+        ].map(([path, key, label, icon]) => ({
+          icon,
+          id: path || 'all',
+          path: '/xpert/w/' + encodeURIComponent(id) + (path ? '/' + path : ''),
+          translationKey: key,
+          label,
+          exact: !path
+        }))
+      : []
+  })
+
+  readonly canWriteWorkspace = computed(() => this.#api.canWrite(this.currentWorkspace()))
+
+  async openEnvironments() {
+    const workspace = this.currentWorkspace()
+    if (!workspace || !this.canWriteWorkspace()) return
+    const { XpertEnvironmentManageComponent } = await import('@cloud/app/@shared/environment')
+    if (workspace !== this.currentWorkspace() || !this.canWriteWorkspace()) return
+    this.dialog.open(XpertEnvironmentManageComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      data: { workspaceId: workspace.id }
+    })
+  }
+
+  filteredWorkspaces(query: string) {
+    return (query.trim() ? this.state().items : this.visibleWorkspaces()).filter(
+      (item) => !query.trim() || matchesSidebarSearch(query, item.name, item.description)
+    )
+  }
+
+  openPanel() {
+    this.captureRecentWorkspaces()
+  }
+
+  async openDefault() {
+    this.browsing.set(false)
+    const id = this.currentWorkspace()?.id
+    if (await this.#router.navigate(id ? ['/xpert/w', id] : ['/xpert/w'])) this.clicked.emit()
+  }
+
   constructor() {
     this.#router.events
       .pipe(
@@ -107,6 +181,7 @@ export class CloudSidebarWorkspacesComponent {
       this.#scope()
       this.menuOpen.set(false)
       this.showAll.set(false)
+      this.browsing.set(false)
       untracked(() => this.captureRecentWorkspaces())
     })
     effect(() => {
@@ -134,6 +209,7 @@ export class CloudSidebarWorkspacesComponent {
 
   selectWorkspace() {
     this.menuOpen.set(false)
+    this.browsing.set(false)
     this.clicked.emit()
   }
 

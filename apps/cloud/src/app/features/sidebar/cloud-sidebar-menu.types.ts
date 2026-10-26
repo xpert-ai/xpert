@@ -20,6 +20,7 @@ export interface CloudMenuData {
   workspaceSection?: 'skills' | 'connectors' | 'files' | 'knowledges' | 'settings'
   action?: 'newClawXpertConversation' | 'openAssistantSettings'
   sidebarSection?: 'projects' | 'workspaces'
+  panel?: 'evolution' | 'plugins' | 'mcp' | 'models' | 'approvals' | 'settings'
   [key: string]: unknown
 }
 

@@ -1,3 +1,4 @@
+import { applyEvolutionSearch } from './evolution-search'
 import { verifyEvolutionPersistence } from './evolution-persistence-proof'
 import { EvolutionRuntimeStore } from './evolution-runtime.store'
 import {
@@ -188,11 +189,11 @@ export class AgentEvolutionStore {
             tenantId: tenant.tenantId
         })
         applyOrganizationScope(qb, tenant, 'target')
-        if (query.search) {
-            qb.andWhere('(target.targetId ILIKE :search OR target.providerKey ILIKE :search)', {
-                search: `%${query.search}%`
-            })
-        }
+        applyEvolutionSearch(qb, query.search, [
+            'target.targetId',
+            'target.providerKey',
+            "target.descriptor ->> 'displayName'"
+        ])
         if (query.status) qb.andWhere('target.status = :status', { status: query.status })
         const [items, total] = await qb
             .orderBy('target.targetId', query.order ?? 'ASC')
@@ -214,12 +215,13 @@ export class AgentEvolutionStore {
         applyOrganizationScope(qb, tenant, 'event')
         if (query.targetId) qb.andWhere('event.targetId = :targetId', { targetId: query.targetId })
         if (query.status) qb.andWhere("event.value ->> 'reviewStatus' = :status", { status: query.status })
-        if (query.search) {
-            qb.andWhere(
-                "(event.eventId ILIKE :search OR event.value ->> 'subjectRef' ILIKE :search OR event.value ->> 'predictionSummary' ILIKE :search)",
-                { search: `%${query.search}%` }
-            )
-        }
+        applyEvolutionSearch(qb, query.search, [
+            'event.eventId',
+            'event.targetId',
+            "event.value ->> 'subjectRef'",
+            "event.value ->> 'predictionSummary'",
+            "event.value ->> 'finalOutcomeSummary'"
+        ])
         const [items, total] = await qb
             .orderBy('event.createdAt', query.order ?? 'DESC')
             .skip(pagination.skip)
@@ -278,7 +280,8 @@ export class AgentEvolutionStore {
             'status',
             false,
             undefined,
-            'self'
+            'self',
+            ['candidateId', 'targetId', 'providerKey', 'status', 'proposalId']
         )
     }
 
@@ -287,7 +290,7 @@ export class AgentEvolutionStore {
     }
 
     async listEvaluations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        const result = await this.listJsonValues(
+        const result = await this.listJsonValues<EvaluationRunEntity, EvaluationRunEntity['value']>(
             this.evaluationRepository,
             tenant,
             query,
@@ -296,7 +299,8 @@ export class AgentEvolutionStore {
             'status',
             true,
             { field: 'evaluatorKind', value: 'golden_replay' },
-            'candidate'
+            'candidate',
+            ['runId', 'targetId', 'candidateId', 'status']
         )
         return { ...result, items: result.items.filter(isReplayEvaluation) }
     }
@@ -320,7 +324,18 @@ export class AgentEvolutionStore {
     }
 
     async listDeployments(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.deploymentRepository, tenant, query, 'deployment', undefined, 'status')
+        return this.listJsonValues<ReleaseDeploymentEntity, ReleaseDeployment>(
+            this.deploymentRepository,
+            tenant,
+            query,
+            'deployment',
+            undefined,
+            'status',
+            false,
+            undefined,
+            undefined,
+            ['deploymentId', 'releasePackageId', 'channel', 'status']
+        )
     }
 
     async listRuntimeObservations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
@@ -436,7 +451,8 @@ export class AgentEvolutionStore {
         statusColumn?: string,
         targetInValue = false,
         mechanism?: { field: 'sourceKind' | 'evaluatorKind' | 'publicationKind'; value: string },
-        strategyOwner?: 'self' | 'candidate'
+        strategyOwner?: 'self' | 'candidate',
+        searchFields: readonly (keyof TValue & string)[] = []
     ): Promise<EvolutionPage<TValue>> {
         const pagination = normalizePage(query)
         const qb = repository.createQueryBuilder(alias).where(`${alias}.tenantId = :tenantId`, {
@@ -459,6 +475,11 @@ export class AgentEvolutionStore {
         if (query.status && statusColumn) qb.andWhere(`${alias}.${statusColumn} = :status`, { status: query.status })
         if (mechanism)
             qb.andWhere(`${alias}.value ->> '${mechanism.field}' = :mechanism`, { mechanism: mechanism.value })
+        applyEvolutionSearch(
+            qb,
+            query.search,
+            searchFields.map((field) => `${alias}.value ->> '${field}'`)
+        )
         const sortColumn = query.sort === 'updatedAt' ? 'updatedAt' : 'createdAt'
         const [items, total] = await qb
             .orderBy(`${alias}.${sortColumn}`, query.order ?? 'DESC')

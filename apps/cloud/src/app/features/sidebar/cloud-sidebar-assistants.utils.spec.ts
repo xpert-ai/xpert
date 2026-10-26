@@ -1,21 +1,6 @@
-import { Component, signal, type WritableSignal } from '@angular/core'
-import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
-import { provideRouter, Router } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
-import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
-import {
-  AiFeatureEnum,
-  AssistantBindingService,
-  ChatConversationService,
-  OrderTypeEnum,
-  ScopeService,
-  Store,
-  ViewExtensionApiService,
-  XpertAPIService
-} from '../../@core'
-import { CloudSidebarAssistantsComponent, formatConversationUpdatedAt } from './cloud-sidebar-assistants.component'
 import {
   type AssistantXpertLike,
+  formatConversationUpdatedAt,
   filterAssistantXperts,
   getAssistantBusinessArea,
   getAssistantBusinessAreaInitial,
@@ -27,110 +12,6 @@ import {
   normalizeAssistantXperts,
   orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
-
-jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
-  const { Directive, Input } = jest.requireActual('@angular/core')
-
-  @Directive({ standalone: true, selector: '[xpAssistantProfile]', exportAs: 'xpAssistantProfile' })
-  class AssistantProfileDirective {
-    @Input('xpAssistantProfile') instanceId?: string
-    @Input() summary?: unknown
-    @Input() zPlacement?: string
-    open = jest.fn()
-  }
-
-  return { AssistantProfileDirective }
-})
-
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    selector: 'z-icon',
-    template: ''
-  })
-  class ZardIconComponent {
-    @Input() zType?: string
-  }
-
-  @Directive({
-    standalone: true,
-    // eslint-disable-next-line @angular-eslint/directive-selector
-    selector: '[zTooltip]'
-  })
-  class ZTooltipDirective {
-    @Input() zTooltip?: string
-    @Input() zPosition?: string
-    @Input() zDisabled?: boolean
-  }
-
-  return {
-    ZardIconComponent,
-    ZardTooltipImports: [ZTooltipDirective]
-  }
-})
-
-jest.mock('../../@core', () => {
-  class AssistantBindingService {}
-  class ChatConversationService {}
-  class Store {}
-  class XpertAPIService {}
-  class ViewExtensionApiService {}
-
-  return {
-    AiFeatureEnum: {
-      FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
-    },
-    AIPermissionsEnum: {
-      XPERT_EDIT: 'XPERT_EDIT'
-    },
-    AssistantBindingScope: {
-      TENANT: 'tenant',
-      ORGANIZATION: 'organization',
-      USER: 'user'
-    },
-    AssistantCode: {
-      CHAT_COMMON: 'chat_common',
-      XPERT_SHARED: 'xpert_shared',
-      CLAWXPERT: 'clawxpert'
-    },
-    RequestScopeLevel: {
-      TENANT: 'tenant',
-      ORGANIZATION: 'organization'
-    },
-    OrderTypeEnum: {
-      DESC: 'DESC'
-    },
-    AssistantBindingService,
-    ChatConversationService,
-    ScopeService: class ScopeService {},
-    Store,
-    XpertAPIService,
-    ViewExtensionApiService
-  }
-})
-
-jest.mock('../../@shared/avatar/emoji-avatar/avatar.component', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    // eslint-disable-next-line @angular-eslint/component-selector
-    selector: 'emoji-avatar',
-    template: '<span data-testid="emoji-avatar"></span>'
-  })
-  class EmojiAvatarComponent {
-    @Input() avatar?: unknown
-    @Input() alt?: string
-    @Input() fallbackLabel?: string
-  }
-
-  return {
-    EmojiAvatarComponent
-  }
-})
 
 function xpert(item: Partial<AssistantXpertLike>): AssistantXpertLike {
   return item

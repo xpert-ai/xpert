@@ -66,7 +66,6 @@ export class AssistantProfileComponent {
     return (this.language()?.startsWith('zh') ? info?.titleCN : null) || info?.title || info?.name || ''
   })
   readonly avatar = computed(() => this.profile()?.avatar ?? this.summary()?.avatar ?? undefined)
-  readonly description = computed(() => this.profile()?.description ?? this.summary()?.description)
 
   constructor() {
     const destroyRef = inject(DestroyRef)

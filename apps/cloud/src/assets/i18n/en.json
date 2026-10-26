@@ -357,6 +357,11 @@
       "ToggleTheme": "Toggle light / dark theme"
     },
     "Groups": {
+      "NoGroups": "No groups yet",
+      "NoArchivedGroups": "No archived groups",
+      "NoMatchingGroups": "No matching groups",
+      "LoadFailed": "Could not load groups. Please retry.",
+      "ActionFailed": "Could not complete the action. Please retry.",
       "Pin": "Pin",
       "Unpin": "Unpin",
       "Archive": "Archive",
@@ -5031,6 +5036,29 @@
       }
     },
     "Sidebar": {
+      "Search": {
+        "automations": "Automations",
+        "projects": "Projects",
+        "conversations": "Conversations",
+        "archivedConversations": "Archived conversations",
+        "plugins": "Installed plugins",
+        "marketplace": "Plugin marketplace",
+        "agentPlugins": "Agent plugins",
+        "models": "Providers and models",
+        "publications": "MCP services",
+        "runtimes": "MCP runtimes",
+        "targets": "Evolution targets",
+        "learning": "Learning events",
+        "candidates": "Candidates",
+        "evaluations": "Evaluations",
+        "deployments": "Deployments",
+        "approvals": "Access requests",
+        "Loading": "Searching…",
+        "Empty": "No matching results",
+        "Error": "Could not search. Please retry.",
+        "More": "Show more results",
+        "Partial": "Some sources could not be loaded. Results may be incomplete."
+      },
       "PinPanel": "Pin panel",
       "UnpinPanel": "Unpin panel",
       "UntitledConversation": "Untitled conversation",
@@ -5080,7 +5108,10 @@
       "AssistantResults": "Assistant results",
       "LoadingAssistantResults": "Loading results...",
       "Results": "Results",
-      "NoAssistantResults": "No results yet"
+      "NoAssistantResults": "No results yet",
+      "Resources": "Resources",
+      "ChooseProject": "Choose a project",
+      "ChooseWorkspace": "Choose a workspace"
     },
     "Workflow": {
       "Trigger": "Trigger",

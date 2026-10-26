@@ -31,7 +31,20 @@ export class AssistantMenuStub {
   @Output() selected = new EventEmitter<void>()
 }
 
+@Component({ selector: 'z-search-input', template: '<input [value]="value" (input)="onInput($event)" />' })
+class SearchInputStub {
+  onInput(event: Event) {
+    if (event.target instanceof HTMLInputElement) this.valueChange.emit(event.target.value)
+  }
+  @Input() value = ''
+  @Input() placeholder = ''
+  @Input() clearLabel = ''
+  @Input('aria-label') ariaLabel = ''
+  @Output() valueChange = new EventEmitter<string>()
+}
+
 export const headlessUi = {
+  ZardSearchInputComponent: SearchInputStub,
   XpDialogFrameImports: [],
   ZardButtonComponent,
   ZardIconComponent,

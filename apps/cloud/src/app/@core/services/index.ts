@@ -102,3 +102,5 @@ export * from './chatkit-lifecycle.service'
 export * from './artifact-presentation.service'
 
 export * from './analytics-definitions.service'
+
+export * from './sidebar-search.service'

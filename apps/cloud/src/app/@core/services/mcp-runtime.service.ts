@@ -1,3 +1,4 @@
+import { EMPTY, expand, map, reduce } from 'rxjs'
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_MCP_RUNTIMES } from '../constants/app.constants'
@@ -92,6 +93,22 @@ export class McpRuntimeService {
       }
     }
     return this.#http.get<McpRuntimeListResponse>(API_MCP_RUNTIMES, { params })
+  }
+
+  listAll(filter: McpRuntimeListFilter = {}) {
+    const page = (offset: number) =>
+      this.list({ ...filter, limit: 100, offset }).pipe(map((response) => ({ ...response, offset })))
+    return page(0).pipe(
+      expand((response) =>
+        response.items.length &&
+        (response.total == null
+          ? response.items.length === 100
+          : response.offset + response.items.length < response.total)
+          ? page(response.offset + response.items.length)
+          : EMPTY
+      ),
+      reduce((items: McpStdioRuntimeSnapshot[], response) => [...items, ...response.items], [])
+    )
   }
 
   stop(runtimeId: string) {

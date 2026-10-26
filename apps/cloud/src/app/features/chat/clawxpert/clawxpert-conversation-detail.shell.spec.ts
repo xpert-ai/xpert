@@ -71,11 +71,16 @@ describe('ChatKit-only conversation shell', () => {
     viewExtensionApi.getSlotViews.mockReturnValue(of([embedded, buildFixedViewManifest('legacy')]))
     facade.defaultViewKey.set(embedded.key)
     url.viewKey.set(embedded.key)
+    url.viewLayout.set('maximized')
     url.viewQuery.set({ selectionId: 'record-a' })
     let fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
     const frame = fixture.nativeElement.querySelector('xpert-chatkit')
-    expect(getRuntimeInput().workbench?.().navigation?.view).toEqual({ viewKey: 'embedded', selectionId: 'record-a' })
+    expect(getRuntimeInput().workbench?.().navigation?.view).toEqual({
+      viewKey: 'embedded',
+      selectionId: 'record-a',
+      layout: 'maximized'
+    })
     await expect(fixture.componentInstance.openWorkbenchView({ viewKey: 'legacy' })).rejects.toThrow('not available')
     url.viewQuery.set({ selectionId: 'record-b' })
     await settle(fixture)

@@ -1,3 +1,4 @@
+import { TranslateModule } from '@ngx-translate/core'
 import { type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
@@ -7,6 +8,7 @@ import { Store } from '../../@core/state'
 import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
+import { SettingsNavigationService } from '../setting/settings-navigation.service'
 
 jest.mock('./cloud-sidebar-assistants.component', () => {
   const { Component, signal } = jest.requireActual('@angular/core')
@@ -22,8 +24,9 @@ jest.mock('./cloud-sidebar-assistants.component', () => {
 describe('CloudSidebarMenuComponent binding visibility', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [CloudSidebarMenuComponent],
+      imports: [CloudSidebarMenuComponent, TranslateModule.forRoot()],
       providers: [
+        { provide: SettingsNavigationService, useValue: { groups: () => [] } },
         provideRouter([]),
         { provide: XpertSettingsService, useValue: { openBoundAssistant: jest.fn() } },
         {

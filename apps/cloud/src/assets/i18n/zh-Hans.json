@@ -562,6 +562,11 @@
       "ToggleTheme": "切换浅色 / 深色主题"
     },
     "Groups": {
+      "NoGroups": "暂无群组",
+      "NoArchivedGroups": "暂无已归档群组",
+      "NoMatchingGroups": "没有匹配的群组",
+      "LoadFailed": "群组加载失败，请重试。",
+      "ActionFailed": "操作失败，请重试。",
       "Pin": "置顶",
       "Unpin": "取消置顶",
       "Archive": "归档",
@@ -3504,6 +3509,29 @@
       "Management": "管理"
     },
     "Sidebar": {
+      "Search": {
+        "automations": "自动化",
+        "projects": "项目",
+        "conversations": "会话",
+        "archivedConversations": "已归档会话",
+        "plugins": "已安装插件",
+        "marketplace": "插件市场",
+        "agentPlugins": "智能体插件",
+        "models": "提供商与模型",
+        "publications": "MCP 服务",
+        "runtimes": "MCP 运行实例",
+        "targets": "进化目标",
+        "learning": "学习事件",
+        "candidates": "候选版本",
+        "evaluations": "评估",
+        "deployments": "发布部署",
+        "approvals": "访问审批",
+        "Loading": "搜索中…",
+        "Empty": "没有匹配的结果",
+        "Error": "搜索失败，请重试。",
+        "More": "加载更多结果",
+        "Partial": "部分来源加载失败，结果可能不完整。"
+      },
       "PinPanel": "固定面板",
       "UnpinPanel": "取消固定面板",
       "UntitledConversation": "未命名会话",
@@ -3553,7 +3581,10 @@
       "AssistantResults": "助理成果",
       "LoadingAssistantResults": "正在加载成果...",
       "Results": "成果",
-      "NoAssistantResults": "暂无成果"
+      "NoAssistantResults": "暂无成果",
+      "Resources": "资源与配置",
+      "ChooseProject": "选择项目",
+      "ChooseWorkspace": "选择工作空间"
     },
     "XProject": {
       "ListView": {

@@ -292,6 +292,7 @@ export function configureConversationDetailTests() {
     viewClosed: ReturnType<typeof signal<boolean>>
     projectId: ReturnType<typeof signal<string | null>>
     viewKey: ReturnType<typeof signal<string | null>>
+    viewLayout: ReturnType<typeof signal<'split' | 'maximized' | null>>
     viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
     setViewKey: jest.Mock
     setViewState: jest.Mock
@@ -315,6 +316,7 @@ export function configureConversationDetailTests() {
       viewClosed: signal(false),
       projectId: viewProjectId,
       viewKey,
+      viewLayout: signal<'split' | 'maximized' | null>(null),
       viewQuery,
       setViewKey: jest.fn((nextViewKey: string | null) => {
         viewProjectId.set(null)

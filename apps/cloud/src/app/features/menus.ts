@@ -309,6 +309,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Agent Evolution',
+        panel: 'evolution',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT]
       }
@@ -321,7 +322,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       admin: true,
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Settings'
+        translationKey: 'Settings',
+        panel: 'settings'
       }
     },
     {
@@ -332,6 +334,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'organization-only',
       data: {
         translationKey: 'Xpert Access Requests',
+        panel: 'approvals',
         featureKey: [
           AiFeatureEnum.FEATURE_XPERT,
           AiFeatureEnum.FEATURE_XPERT_MARKETPLACE,
@@ -348,6 +351,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Plugins',
+        panel: 'plugins',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
         onboardingTarget: 'plugins-marketplace'
@@ -361,6 +365,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'MCP Management',
+        panel: 'mcp',
         permissionKeys: [RolesEnum.SUPER_ADMIN]
       }
     },
@@ -373,6 +378,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'AI Copilot',
+        panel: 'models',
         featureKey: AiFeatureEnum.FEATURE_COPILOT,
         permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
         activePathPrefixes: ['/copilot'],
