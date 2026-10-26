@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { ContentCatalogService } from './content-catalog.service'
-import type { ContentResourceEntry } from './content-entry.entity'
+import { getMetadataArgsStorage } from 'typeorm'
+import { ContentResourceEntry } from './content-entry.entity'
 import { contentSnapshotSchema } from './catalog.schema'
 
 it('rejects contained paths that escape the Project or ambiguously cover its root', () => {
@@ -108,6 +109,24 @@ function fixture() {
     }
 }
 describe('project content catalog', () => {
+    it.each([200, 201, 256])('can persist an accepted opaque revision of %i characters', async (length) => {
+        const f = fixture()
+        const revision = 'r'.repeat(length)
+        f.catalog.describe.mockResolvedValue({ ...f.snapshot, revision })
+        const column = getMetadataArgsStorage().columns.find(
+            ({ target, propertyName }) => target === ContentResourceEntry && propertyName === 'sourceRevision'
+        )
+        // Validate persistence capacity as well as the provider boundary; a mock repository
+        // alone would accept values that PostgreSQL rejects after registration.
+        expect(contentSnapshotSchema.safeParse({ ...f.snapshot, revision }).success).toBe(true)
+        expect(Number(column?.options.length)).toBeGreaterThanOrEqual(length)
+        const item = await f.service.register({ ...input, source: { providerKey: 'decks', resourceId: 'deck-1' } })
+        expect(item.revision).toBe(revision)
+        expect(f.entries.update).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ sourceRevision: revision })
+        )
+    })
     it('does not discover or register providers excluded by the consuming directory', async () => {
         const f = fixture()
         await f.service.register({ ...input, source: { providerKey: 'decks', resourceId: 'deck-1' } })
