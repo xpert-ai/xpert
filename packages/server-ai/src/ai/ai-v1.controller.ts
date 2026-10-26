@@ -91,6 +91,7 @@ export class AIV1Controller {
                     tenantId: RequestContext.currentTenantId(),
                     organizationId: RequestContext.getOrganizationId(),
                     user: RequestContext.currentUser(),
+                    streamPersistence: { transport: 'redis-stream' },
                     from: 'api'
                 })
             )

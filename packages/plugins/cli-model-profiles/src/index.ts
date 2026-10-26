@@ -12,7 +12,7 @@ type ComputerCliModelBinding = {
   managed: boolean
   permissionMode?: CliPermissionMode
   defaultModelId?: string
-  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols' | 'contextWindow' | 'outputTokenLimit'>>
+  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols' | 'contextWindow' | 'outputTokenLimit' | 'parameters'>>
 }
 
 export type ComputerCliConfiguration = {
@@ -56,6 +56,9 @@ function configureBuiltinCli(
           ? ['-c', 'model_reasoning_summary="none"', '-c', 'features.multi_agent=false', '-c', 'features.goals=false']
           : []),
         ...(contextWindow ? ['-c', `model_context_window=${contextWindow}`] : []),
+        ...(selected?.parameters?.reasoning_effort
+          ? ['-c', `model_reasoning_effort=${JSON.stringify(selected.parameters.reasoning_effort)}`]
+          : []),
         '--model',
         'assistant-default',
         '-c',
@@ -381,7 +384,7 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
-    revision: '7',
+    revision: '8',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',

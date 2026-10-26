@@ -18,7 +18,9 @@ export interface NativeModelClient {
 }
 export type NativeModelClientFactory = (
   protocol: NativeModelProtocol,
-  model: ICopilotModel
+  model: ICopilotModel,
+  /** Host-resolved custom model settings, including credentials; never serialized into a grant. */
+  options?: { modelProperties?: Record<string, unknown> }
 ) => Promise<NativeModelClient>
 
 /** A single fetch is one billable attempt. No SDK retries or redirects to another credential origin. */

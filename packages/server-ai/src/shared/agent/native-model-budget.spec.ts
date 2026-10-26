@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { CommandBus } from '@nestjs/cqrs'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { BaseLanguageModel } from '@langchain/core/language_models/base'
+import { RunnableLambda } from '@langchain/core/runnables'
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { FakeStreamingChatModel } from './fake-streaming-chat-model'
 import { createNativeModelBudgetGate } from './native-model-budget'
@@ -61,6 +63,36 @@ describe('native model admission at the real LangChain callback boundary', () =>
             ).rejects.toThrow('budget denied')
         expect(f.provider).not.toHaveBeenCalled()
         expect(f.streamProvider).not.toHaveBeenCalled()
+    })
+    it.each(['invoke', 'stream'] as const)('gates %s across separate LangChain module instances', async (mode) => {
+        const f = setup()
+        let model: FakeStreamingChatModel
+        jest.isolateModules(() => {
+            const isolated: typeof import('./fake-streaming-chat-model') = require('./fake-streaming-chat-model')
+            model = new isolated.FakeStreamingChatModel({ sleep: 0 })
+        })
+        expect(model).not.toBeInstanceOf(BaseLanguageModel)
+        const generate = jest.spyOn(model, '_generate')
+        const stream = jest.spyOn(model, '_streamResponseChunks')
+        f.gate.attach(model)
+        f.execute.mockRejectedValue(new Error('budget denied'))
+        await expect(
+            (async () => {
+                if (mode === 'invoke') await model.invoke('hello')
+                else
+                    for await (const _chunk of await model.stream('hello')) {
+                        /* exhaust */
+                    }
+            })()
+        ).rejects.toThrow('budget denied')
+        expect(generate).not.toHaveBeenCalled()
+        expect(stream).not.toHaveBeenCalled()
+    })
+    it('rejects ordinary runnables and objects without the language-model contract', () => {
+        const f = setup()
+        for (const model of [null, {}, { callbacks: [] }, RunnableLambda.from(() => 'ok')]) {
+            expect(() => f.gate.attach(model)).toThrow()
+        }
     })
     it('settles the admitted execution even if the shared model is resumed under a different execution', async () => {
         const f = setup(),

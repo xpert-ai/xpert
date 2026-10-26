@@ -104,7 +104,7 @@ export class AssistantExecutionPolicyService {
             const candidate = candidates[i]
             const copilot = await this.copilots.findOneBy({ tenantId: actor.tenantId, id: candidate.model.copilotId })
             if (!copilot?.enabled || !copilot.modelProvider?.id) continue
-            const metadata = await this.native.metadata(labels[i].provider, candidate.model.model)
+            const metadata = await this.native.metadata(labels[i].provider, candidate.model.model, copilot)
             models.push({
                 id: candidate.id,
                 copilotId: copilot.id,

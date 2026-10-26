@@ -1,9 +1,34 @@
 import { EventEmitter } from 'node:events'
+import { Logger } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { AiModelTypeEnum, ModelGatewayUsageSourceEnum, type ModelExecutionParameters } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionNativeController } from './execution-native.controller'
 import { captureRequestContext } from '../shared/request-context'
+
+it('logs only safe transport diagnostics while keeping the client error sanitized', async () => {
+    const f = fixture()
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
+    try {
+        f.generate.mockRejectedValueOnce(
+            Object.assign(new TypeError('private-key-and-request-body'), {
+                cause: { code: 'UND_ERR_HEADERS_TIMEOUT', message: 'private-provider-body' }
+            })
+        )
+        await f.invoke()
+        expect(warn).toHaveBeenCalledWith(
+            expect.objectContaining({
+                event: 'native_model_request_failed',
+                errorType: 'TypeError',
+                transportCode: 'UND_ERR_HEADERS_TIMEOUT'
+            })
+        )
+        expect(JSON.stringify(warn.mock.calls)).not.toContain('private-')
+        expect(JSON.stringify(f.response.json.mock.calls)).not.toContain('private-')
+    } finally {
+        warn.mockRestore()
+    }
+})
 
 function fixture(streaming = true, parameters?: ModelExecutionParameters) {
     const model = {

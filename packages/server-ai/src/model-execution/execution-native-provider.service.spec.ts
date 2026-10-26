@@ -1,4 +1,6 @@
-import { AiModelTypeEnum, type ModelExecutionModel } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, type ICopilotProviderModel, type ModelExecutionModel } from '@xpert-ai/contracts'
+import { GetCopilotProviderModelQuery } from '../copilot-provider/queries/get-model.query'
+import { CopilotGetOneQuery } from '../copilot/queries/get-one.query'
 import { ModelExecutionNativeProviderService } from './execution-native-provider.service'
 
 describe('native model provider binding', () => {
@@ -31,8 +33,26 @@ describe('native model provider binding', () => {
                 .fn()
                 .mockReturnValue([{ model: model.model, native_protocols: ['openai_responses'] }])
         }
-        const queries = { execute: jest.fn().mockResolvedValueOnce(copilot).mockResolvedValue(provider) }
-        return { model, copilot, provider, client, service: new ModelExecutionNativeProviderService(queries as never) }
+        const records: Pick<
+            ICopilotProviderModel,
+            'providerId' | 'tenantId' | 'organizationId' | 'modelName' | 'modelType' | 'isValid' | 'modelProperties'
+        >[] = []
+        const queries = {
+            execute: jest.fn(async (query) => {
+                if (query instanceof CopilotGetOneQuery) return copilot
+                if (query instanceof GetCopilotProviderModelQuery) return records
+                return provider
+            })
+        }
+        return {
+            model,
+            copilot,
+            provider,
+            client,
+            records,
+            queries,
+            service: new ModelExecutionNativeProviderService(queries as never)
+        }
     }
 
     it('passes the authorized model and Copilot to the provider-owned client factory', async () => {
@@ -74,6 +94,57 @@ describe('native model provider binding', () => {
         test.client.protocol = 'anthropic_messages'
         await expect(test.service.client('tenant', test.model, 'openai_responses')).rejects.toThrow()
     })
+
+    it('resolves custom protocol metadata and credentials from the same scoped record', async () => {
+        const test = setup()
+        const properties = { api_protocol: 'responses', api_key: 'server-only', context_size: 32768 }
+        test.records.push({
+            providerId: test.model.providerScopeId,
+            tenantId: 'tenant',
+            organizationId: 'credential-org',
+            modelName: 'coding',
+            modelType: AiModelTypeEnum.LLM,
+            isValid: true,
+            modelProperties: properties
+        })
+        const getModelSchema = jest.fn(() => ({
+            native_protocols: ['openai_responses'],
+            model_properties: { context_size: 32768 },
+            parameter_rules: [{ name: 'max_tokens', max: 8192 }]
+        }))
+        Object.assign(test.provider, { getModelManager: () => ({ getModelSchema }) })
+        await expect(test.service.metadata('fixture', 'coding', test.copilot as never)).resolves.toEqual({
+            protocols: ['openai_responses'],
+            contextWindow: 32768,
+            outputTokenLimit: 8192
+        })
+        await test.service.client('tenant', test.model, 'openai_responses')
+        expect(getModelSchema).toHaveBeenCalledWith('coding', properties)
+        expect(test.provider.getNativeModelClient).toHaveBeenCalledWith(
+            'openai_responses',
+            expect.objectContaining({ model: 'coding' }),
+            { modelProperties: properties }
+        )
+    })
+
+    it.each(['providerId', 'tenantId', 'organizationId', 'modelName', 'modelType', 'isValid'])(
+        'rejects a custom record with a changed %s',
+        async (field) => {
+            const test = setup()
+            const record = {
+                providerId: 'credentials',
+                tenantId: 'tenant',
+                organizationId: 'credential-org',
+                modelName: 'coding',
+                modelType: AiModelTypeEnum.LLM,
+                isValid: true,
+                modelProperties: {}
+            }
+            test.records.push({ ...record, [field]: field === 'isValid' ? false : 'other' })
+            await expect(test.service.client('tenant', test.model, 'openai_responses')).rejects.toThrow()
+            expect(test.provider.getNativeModelClient).not.toHaveBeenCalled()
+        }
+    )
 })
 
 it('reads a context hint independently of native protocol support', async () => {

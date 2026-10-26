@@ -56,6 +56,7 @@ export class ChatExecutionAdmissionService {
             execution?: { id: string }
             xpertId?: string
             agentKey?: string
+            context?: Record<string, unknown>
         },
         execute: (executionId?: string) => Promise<Observable<T>>
     ): Promise<Observable<T>> {
@@ -74,7 +75,7 @@ export class ChatExecutionAdmissionService {
             options.execution?.id ??
             (request.action === 'resume' ? request.target.executionId : undefined) ??
             randomUUID()
-        await this.dataSource.transaction(async (manager) => {
+        const claimed = await this.dataSource.transaction(async (manager) => {
             const thread = await lockRuntimeThread(manager, conversation, threadId)
             if (
                 options.automatic &&
@@ -112,9 +113,14 @@ export class ChatExecutionAdmissionService {
                 thread.runControl = { executionId, state: 'running' }
                 thread.status = 'busy'
                 await manager.save(thread)
+                return true
             }
+            return false
         })
         try {
+            // Preassigned execution IDs bypass the handler's direct-run start.
+            // Establish the lease before graph execution and display capture.
+            if (claimed) await this.control.start(threadId, executionId, options.context)
             const stream = await execute(executionId)
             return new Observable<T>((subscriber) => {
                 const subscription = stream.subscribe({
