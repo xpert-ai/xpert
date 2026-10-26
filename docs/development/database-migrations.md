@@ -90,6 +90,12 @@ node main.js --command schema-sync --action verify
 
 `baseline` 只验证并登记配置中明确列出的接管集合，复用 TypeORM 的 fake migration 能力，不重放旧数据转换。检查失败则接管记录回滚，需要针对该旧版本编写补齐迁移或完成历史转换，不能直接伪造成功记录。
 
+接管旧库的兼容检查由清单中的 `baselineChecks` 明确声明，与不可修改的历史迁移后置检查分开。当前集合包含平台结构、类型和历史转换证据检查；不能传空集合。未声明时仍使用原有基线迁移后置检查。兼容规则只影响旧库接管和当前结构校验，新库执行 SQL 后仍使用该迁移原有后置检查与校验值。
+
+已确认可保留的旧结构只有：15 张 Pipeline 表的 `tenantId` / `projectId` 更强的非空约束、这些表 `deletedAt` 的带时区时间类型，以及 3 张 Assistant 模板表 ID 的 `uuid_generate_v4()` 默认函数。这些差异逐字段列在 `current.sql` 中，不全局放宽类型、非空或默认值检查，也不改写旧时间值。
+
+名称不同的约束和索引仍需核对定义、有效性及验证状态，再通过显式修复对齐；真实缺失的约束和索引必须补齐。修复在共享迁移锁和事务中执行，全部接管检查通过才提交。旧库存在已关闭但缺少到期时间的调用活动时，沿用历史迁移的 `updatedAt + interval '30 days'` 规则补齐 `expiresAt`，不重启调用或重放工具。其余历史证据异常仍阻止接管。
+
 本地启动遇到 `BASELINE_REQUIRED` 同样会停止，不会自动尝试接管。核对并备份旧库后，可显式运行 `corepack pnpm schema:baseline`：构建 → baseline → apply → verify，通过后重新运行 `start:api`。若出现 `SCHEMA_VERIFICATION_FAILED`，说明旧库结构或历史转换证据与基线不符，必须先针对差异修复；重复启动或重复 baseline 不能补齐这些差异。
 
 ModelExecution 的调用可能在派发前失败，因此 `dispatchedAt=NULL` 本身不代表遗漏历史转换。接管保留正常的待派发、预检失败和未派发恢复记录；若同时存在成功、待结算、用量或扣费证据，则仍阻止接管并要求核对，不自动补写派发时间。

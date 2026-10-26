@@ -75,6 +75,11 @@
     "core.platform.20261020000400-platform-constraints-b",
     "core.platform.20261020000500-validate-adoption"
   ],
+  "baselineChecks": [
+    "core/database/platform-baseline/current.sql",
+    "core/database/platform-baseline/types.sql",
+    "core/database/platform-baseline/migrations/checks/20261020000500-validate-adoption.sql"
+  ],
   "checks": [
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",

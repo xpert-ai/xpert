@@ -8,7 +8,8 @@ const configSchema = z
   .object({
     managedTables: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)),
     checks: z.array(z.string()),
-    baseline: z.array(z.string())
+    baseline: z.array(z.string()),
+    baselineChecks: z.array(z.string()).nonempty().optional()
   })
   .strict()
 const componentSchema = z
@@ -90,5 +91,7 @@ export async function loadSchemaMigrations(
   }
   const checks = await Promise.all(config.checks.map(read))
   checks.forEach((sql) => validateSql(sql, true))
-  return { managedTables: config.managedTables, migrations, checks }
+  const baselineChecks = config.baselineChecks ? await Promise.all(config.baselineChecks.map(read)) : undefined
+  baselineChecks?.forEach((sql) => validateSql(sql, true))
+  return { managedTables: config.managedTables, migrations, checks, baselineChecks }
 }

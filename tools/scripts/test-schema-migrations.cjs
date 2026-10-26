@@ -8,6 +8,7 @@ const ts = require('typescript')
 const { DataSource, EntitySchema } = require('typeorm')
 const { verifyLegacyAdoption } = require('./schema-migration-legacy-fixture.cjs')
 const { seedContentDocuments, verifyContentDocuments } = require('./schema-migration-content-fixture.cjs')
+const { verifyLegacyCompatibility } = require('./schema-migration-compatibility-fixture.cjs')
 const root = path.resolve(__dirname, '../..')
 const silent = {
   log() {},
@@ -354,6 +355,13 @@ async function main() {
     )
     const hostBundle = await loadSchemaMigrations(assets)
     assert.ok(hostBundle.migrations.length > 0)
+    const manifestPath = path.join(assets, 'database-migrations.json')
+    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'))
+    for (const baselineChecks of [[], ['../outside.sql'], ['missing.sql']]) {
+      await fs.writeFile(manifestPath, JSON.stringify({ ...manifest, baselineChecks }))
+      await assert.rejects(() => loadSchemaMigrations(assets))
+    }
+    await fs.writeFile(manifestPath, JSON.stringify(manifest))
     require('reflect-metadata')
     process.env.DB_TYPE = 'postgres'
     require('ts-node').register({
@@ -472,7 +480,9 @@ async function main() {
         throw new Error(`${entry.source}: ${error.message}`)
       }
     }
+    const verifyPreserved = await verifyLegacyCompatibility(legacy, hostBundle, synchronizeWithMigrations, root)
     await verifyLegacyAdoption(legacy, hostBundle, synchronizeWithMigrations)
+    await verifyPreserved()
     console.log('PASS legacy Entity synchronization + 38 original SQL scripts -> baseline -> apply -> verify')
   } finally {
     for (const source of sources) if (source.isInitialized) await source.destroy()
