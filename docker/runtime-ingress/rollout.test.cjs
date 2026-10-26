@@ -47,7 +47,15 @@ test(
       fs.rmSync(dir, { recursive: true, force: true })
     })
     const sources = {}
-    for (const name of ['runtime-lifecycle.service', 'runtime-drain.middleware', 'runtime-traffic-withdrawal']) {
+    for (const name of [
+      'runtime-lifecycle.service',
+      'runtime-drain.middleware',
+      'runtime-traffic-withdrawal',
+      'runtime-plugin-admission',
+      'runtime-admission-monitor',
+      'plugin-runtime-requirements',
+      'plugin-rollout-admission'
+    ]) {
       sources[name] = ts.transpileModule(
         fs.readFileSync(path.join(root, 'packages/server/src/runtime-control', name + '.ts'), 'utf8'),
         {
@@ -60,6 +68,7 @@ test(
       ).outputText
     }
     fs.writeFileSync(path.join(dir, 'sources.json'), JSON.stringify(sources))
+    await require('./prepare-install-fixture.cjs')(root, dir)
     fs.copyFileSync(path.join(__dirname, 'fixture.cjs'), path.join(dir, 'fixture.cjs'))
     fs.writeFileSync(
       path.join(dir, 'nginx.conf'),
@@ -69,6 +78,15 @@ test(
     function start(id, aliases, mounts, image, command) {
       const name = network + '-' + id
       const args = ['run', '-d', '--name', name, '--network', network, '-p', '127.0.0.1::3000', '-e', 'TEST_NODE=' + id]
+      if (id.startsWith('api'))
+        args.push(
+          '-e',
+          'PATH=/fixture/bin:/usr/local/bin:/usr/bin:/bin',
+          '-e',
+          'PLUGIN_TEST_DELAY_MS=7000',
+          '-e',
+          'PLUGIN_TEST_EVENTS=/fixture/npm-events.jsonl'
+        )
       for (const alias of aliases) args.push('--network-alias', alias)
       for (const mount of mounts) args.push('-v', mount)
       containers.push(name)
@@ -141,6 +159,37 @@ test(
         await sleep(100)
       }
     })()
+    // Both remaining replicas receive slow installs while a peer withdraws and restarts.
+    const installRollIndex = (streamIndex + 1) % 3
+    const installPeers = [0, 1, 2].filter((i) => i !== installRollIndex)
+    const installing = installPeers.map((i) =>
+      fetch(addresses[i] + '/__test/install', {
+        method: 'POST',
+        signal: AbortSignal.timeout(30000)
+      }).then(async (response) => {
+        assert.equal(response.status, 200)
+        return response.json()
+      })
+    )
+    const beforeInstallRoll = await status(installRollIndex)
+    await request(addresses[installRollIndex] + '/__test/withdraw', { method: 'POST' })
+    await Promise.all(installing)
+    await until(async () => {
+      const s = await status(installRollIndex)
+      return s.status === 'ready' && s.bootId !== beforeInstallRoll.bootId
+    }, 'replacement during slow installation')
+    for (const i of installPeers) {
+      const s = await status(i)
+      assert.equal(s.admission.reason, 'ready')
+      assert.ok(s.admission.validationAgeMs < 5000)
+    }
+    const installs = fs.readFileSync(path.join(dir, 'npm-events.jsonl'), 'utf8').trim().split('\n').map(JSON.parse)
+    assert.deepEqual(
+      installs.map((event) => event.action),
+      ['start', 'finish'],
+      'same-version install shared across replicas'
+    )
+    await sleep(3500)
     // First drain preserves an existing SSE while new requests move to peers.
     const previous = await status(streamIndex)
     await request(addresses[streamIndex] + '/__test/withdraw', { method: 'POST' })
@@ -196,6 +245,8 @@ test(
     )
     for (const address of addresses) await request(address + '/__test/ready', { method: 'POST' })
     await until(async () => (await request(origin + '/api/list')).status === 200, 'recovery readmission')
-    t.diagnostic(`${sent} requests, two rolling passes, SSE preserved, no 503 during rolls, no duplicate POSTs`)
+    t.diagnostic(
+      `${sent} requests, slow shared installation overlapping restart, two rolling passes, SSE preserved, no 503 during rolls, no duplicate POSTs`
+    )
   }
 )

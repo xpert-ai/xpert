@@ -20,6 +20,13 @@ function load(name) {
         }
       }
     if (id === 'i18next') return { t: (_key, options) => options.defaultValue }
+    if (id === './runtime-execution-recovery') return require('/fixture/recovery.cjs')
+    if (id === '../plugin/plugin-startup-state')
+      return {
+        isPluginStartupListening: () => ready,
+        admitPluginStartup: () => true,
+        canRestorePluginStartup: () => false
+      }
     if (id.startsWith('./')) return load(id.slice(2))
     return require(id)
   }, exports)
@@ -36,7 +43,19 @@ let cancelled = false
 setTimeout(() => {
   ready = true
 }, 1200)
-lifecycle.setReadinessGuard(() => ready)
+const { RuntimePluginAdmission } = load('runtime-plugin-admission')
+const { RuntimeAdmissionMonitor } = load('runtime-admission-monitor')
+const admission = new RuntimePluginAdmission(
+  {
+    isLeaseValid: () => true,
+    getLeaseRemainingMs: () => 45000,
+    getPluginState: () => ({ reportedAt: '', plugins: [], failures: [] }),
+    setReady: async () => {}
+  },
+  lifecycle
+)
+const monitor = new RuntimeAdmissionMonitor(admission, { readDesired: async () => null }, async () => undefined)
+monitor.start()
 http
   .createServer(async (req, res) => {
     res.status = (code) => {
@@ -46,6 +65,16 @@ http
     res.json = (value) => {
       res.setHeader('content-type', 'application/json')
       res.end(JSON.stringify(value))
+    }
+    if (req.url === '/__test/install') {
+      try {
+        await require('/fixture/registry.cjs').installOrganizationPlugins('org-1', ['@test/slow@1.0.0'], {
+          rootDir: '/fixture/plugins'
+        })
+        return res.json({ ok: true })
+      } catch (error) {
+        return res.status(500).json({ error: error.message })
+      }
     }
     if (req.url === '/__test/withdraw') {
       const state = { restartId: randomUUID(), requestedAt: new Date().toISOString() }
