@@ -26,6 +26,7 @@
 
   <footer class="cloud-sidebar__footer">
     @if (user(); as currentUser) {
+      <xp-cloud-sidebar-membership [collapsed]="collapsed()" />
       <xp-header-user
         class="cloud-sidebar__user"
         [user]="currentUser"

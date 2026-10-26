@@ -34,6 +34,7 @@ export class MembershipService {
   readonly #store = inject(Store)
   readonly #copilotServer = inject(CopilotServerService)
   readonly #membershipStateRefresh = new BehaviorSubject<void>(undefined)
+  readonly membershipStateChanges$ = this.#membershipStateRefresh.asObservable()
 
   getPlans() {
     return this.#http.get<IMembershipPlan[]>(`${API_MEMBERSHIP}/plans`)

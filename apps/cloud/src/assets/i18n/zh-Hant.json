@@ -71,6 +71,20 @@
       "ActionFailed": "操作失敗，請重試。"
     },
     "Sidebar": {
+      "Membership": {
+        "Label": "方案與用量",
+        "Loading": "正在載入用量…",
+        "Unavailable": "暫時無法取得用量",
+        "NoPlan": "暫無可用方案",
+        "Unlimited": "本期 · 不限額度",
+        "CycleRemaining": "本期 · 剩餘 {{percent}}%",
+        "Source": "用量來源：",
+        "CycleQuota": "本期額度",
+        "PercentLeft": "剩餘 {{percent}}%",
+        "PlanStatus": "方案狀態",
+        "PeriodEnd": "本期結束於",
+        "Manage": "管理用量"
+      },
       "Search": {
         "automations": "自動化",
         "projects": "專案",

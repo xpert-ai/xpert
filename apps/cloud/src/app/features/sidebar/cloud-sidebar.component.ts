@@ -6,6 +6,7 @@ import { CloudSidebarIdentityComponent } from './cloud-sidebar-identity.componen
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.directive'
+import { CloudSidebarMembershipComponent } from './cloud-sidebar-membership.component'
 
 @Component({
   standalone: true,
@@ -17,6 +18,7 @@ import { CloudSidebarHoverPanelDirective } from './cloud-sidebar-hover-panel.dir
     CloudSidebarIdentityComponent,
     HeaderUserComponent,
     CloudSidebarMenuComponent,
+    CloudSidebarMembershipComponent,
     CloudSidebarHoverPanelDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush

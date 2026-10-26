@@ -3509,6 +3509,20 @@
       "Management": "管理"
     },
     "Sidebar": {
+      "Membership": {
+        "Label": "套餐与用量",
+        "Loading": "正在加载用量…",
+        "Unavailable": "暂时无法获取用量",
+        "NoPlan": "暂无可用套餐",
+        "Unlimited": "本期 · 不限额度",
+        "CycleRemaining": "本期 · 剩余 {{percent}}%",
+        "Source": "用量来源：",
+        "CycleQuota": "本期额度",
+        "PercentLeft": "剩余 {{percent}}%",
+        "PlanStatus": "套餐状态",
+        "PeriodEnd": "本期结束于",
+        "Manage": "管理用量"
+      },
       "Search": {
         "automations": "自动化",
         "projects": "项目",

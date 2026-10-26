@@ -5036,6 +5036,20 @@
       }
     },
     "Sidebar": {
+      "Membership": {
+        "Label": "Plan & usage",
+        "Loading": "Loading usage…",
+        "Unavailable": "Usage temporarily unavailable",
+        "NoPlan": "No active plan",
+        "Unlimited": "Current cycle · Unlimited",
+        "CycleRemaining": "Current cycle · {{percent}}% left",
+        "Source": "Usage source:",
+        "CycleQuota": "Cycle allowance",
+        "PercentLeft": "{{percent}}% left",
+        "PlanStatus": "Plan status",
+        "PeriodEnd": "Period ends",
+        "Manage": "Manage usage"
+      },
       "Search": {
         "automations": "Automations",
         "projects": "Projects",

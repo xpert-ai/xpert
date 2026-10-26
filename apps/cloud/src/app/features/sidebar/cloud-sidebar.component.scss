@@ -74,14 +74,16 @@
 }
 
 .cloud-sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   flex: 0 0 auto;
   background: var(--sidebar);
   padding: 0.5rem;
 }
 
 .cloud-sidebar.is-collapsed .cloud-sidebar__footer {
-  display: flex;
-  justify-content: center;
+  align-items: center;
 }
 
 .cloud-sidebar__user {
