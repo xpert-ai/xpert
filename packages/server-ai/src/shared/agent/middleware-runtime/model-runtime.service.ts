@@ -46,6 +46,7 @@ import { wrapAgentExecution } from '../execution'
 import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createNativeModelBudgetGate } from '../native-model-budget'
 import { resolveAgentExecutionScope } from './execution-scope'
+import { resolveExecutionModelOptions } from '../../../model-execution/execution-model-parameters'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -172,7 +173,9 @@ export class AgentMiddlewareModelRuntimeService {
                 modelProvider
                     .getModelManager(copilotModel.modelType)
                     ?.getParameterRules(modelName, customModels[0]?.modelProperties) ?? []
-            copilotModel.options = resolveModelParameterOptions(copilotModel.options, rules)
+            copilotModel.options = expected
+                ? resolveExecutionModelOptions(copilotModel.options, rules)
+                : resolveModelParameterOptions(copilotModel.options, rules)
         }
 
         const model = await modelProvider.getModelInstance(

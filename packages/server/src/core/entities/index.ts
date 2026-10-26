@@ -1,3 +1,5 @@
+import { ExecutionTaskControl } from '../../task-control/task-control.entity'
+import { TaskControlPublication } from '../../task-control/task-control-publication.entity'
 import {
 	ApiKey,
 	Organization,
@@ -42,6 +44,8 @@ import {
 } from './internal'
 
 export const coreEntities = [
+	ExecutionTaskControl,
+	TaskControlPublication,
 	ApiKey,
 	Organization,
 	PasswordReset,

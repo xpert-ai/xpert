@@ -15,7 +15,8 @@ import {
     projectTaskDispatchInputSchema,
     projectTaskSpecificationSchema
 } from '@xpert-ai/contracts'
-import { AgentInvocation, AgentInvocationScope, isAgentInvocationTerminal } from '@xpert-ai/plugin-sdk'
+import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
+import { AgentInvocation, AgentInvocationScope } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
 import { agentInvocationId, sameInvocationData } from '../../agent-invocation/invocation-runtime'
@@ -165,7 +166,7 @@ export class ProjectTaskDispatchService {
                         assistantTaskGroupContext(record.invocation.request.target)
                     )
                         return false
-                    return !record || !isAgentInvocationTerminal(record.invocation.status)
+                    return !record || !invocationCanRelease(record.invocation)
                 })
             )
                 throw projectTaskRuntimeError('Busy')

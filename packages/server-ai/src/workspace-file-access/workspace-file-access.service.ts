@@ -33,6 +33,7 @@ import { User, ViewExtensionService, runWithRequestContext as runWithLegacyReque
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
 import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
+import type { ImagePreviewRequest } from './image-preview/image-preview.schema'
 
 export const WORKSPACE_FILE_ACCESS_COOKIE_NAME = 'xpert_workspace_file_access'
 const WORKSPACE_FILE_ACCESS_AUDIENCE = 'workspace-view-file-access'
@@ -83,6 +84,14 @@ export type WorkspaceFileAccessAuthorization = {
 export type WorkspaceFileAccessResolvedFile = {
     volume: VolumeHandle
     filePath: string
+}
+
+export type AuthorizedImagePreview = {
+    volume: VolumeHandle
+    relativePath: string
+    fileName: string
+    mimeType: string
+    scopeKey: string
 }
 
 type WorkspaceFileAccessCookie = {
@@ -231,6 +240,56 @@ export class WorkspaceFileAccessService {
             fileName,
             mimeType: grant.mimeType,
             ...(typeof grant.size === 'number' ? { size: grant.size } : {})
+        }
+    }
+
+    /** Resolve current View/file authority on every read, including thumbnail cache hits. */
+    async authorizeImagePreview(input: ImagePreviewRequest): Promise<AuthorizedImagePreview> {
+        const resolved = await this.viewExtensionService.resolveViewFileResource(
+            input.hostType,
+            input.hostId,
+            input.viewKey,
+            { fileKey: input.fileKey, targetId: input.targetId, purpose: 'preview' },
+            { runtimeScope: input.runtimeScope }
+        )
+        const context = resolved.context
+        if (
+            !context.tenantId ||
+            !context.userId ||
+            context.tenantId !== RequestContext.currentTenantId() ||
+            context.userId !== RequestContext.currentUserId() ||
+            (context.organizationId ?? null) !== (RequestContext.getOrganizationId() ?? null) ||
+            context.hostType !== input.hostType ||
+            context.hostId !== input.hostId
+        )
+            throw new ForbiddenException(errorMessage('WorkspaceFileAccessDenied', 'Workspace file access was denied.'))
+        await this.assertAssistantFileAccess(context)
+        const reference = resolved.resource.reference
+        this.assertPortableReference(context, reference)
+        const scope = resolveWorkspaceVolumeScope(reference, {
+            tenantId: context.tenantId,
+            userId: reference.userId ?? context.userId
+        })
+        if (!scope)
+            throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
+        return {
+            volume: this.volumeClient.resolve(scope.volumeScope),
+            relativePath: reference.filePath,
+            fileName: normalizeFileName(resolved.resource.fileName),
+            mimeType: resolved.resource.mimeType.split(';')[0].trim().toLowerCase(),
+            scopeKey: JSON.stringify([
+                context.tenantId,
+                context.organizationId ?? null,
+                context.userId,
+                context.hostType,
+                context.hostId,
+                resolved.manifest.key,
+                context.runtimeScope?.projectId ?? null,
+                context.runtimeScope?.conversationId ?? null,
+                input.fileKey,
+                input.targetId ?? null,
+                scope.volumeScope
+            ])
         }
     }
 
@@ -488,10 +547,7 @@ export class WorkspaceFileAccessService {
         }
     }
 
-    private assertPortableReference(
-        session: WorkspaceFileAccessSessionRecord,
-        reference: WorkspacePortableFileReference
-    ) {
+    private assertPortableReference(session: { tenantId: string }, reference: WorkspacePortableFileReference) {
         if (
             reference.source !== 'platform.workspace.files' ||
             !reference.filePath?.trim() ||

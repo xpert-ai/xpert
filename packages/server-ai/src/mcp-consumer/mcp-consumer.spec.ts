@@ -591,7 +591,10 @@ describe('McpConsumer', () => {
         )
     })
 
-    it('runs task-required modern LangChain tools through the task lifecycle', async () => {
+    it.each([
+        { execution: { taskSupport: 'required' } },
+        { _meta: { 'ai.xpert/execution-control': { version: 1, taskSupport: 'required' } } }
+    ])('runs task-required modern LangChain tools through the task lifecycle: %j', async (declaration) => {
         const connection = new FakeConnection(createSdkClient(), ['generic'], true)
         connection.extensionResponses.push({
             resultType: 'complete',
@@ -599,7 +602,7 @@ describe('McpConsumer', () => {
                 {
                     name: 'long_report',
                     inputSchema: { type: 'object' },
-                    execution: { taskSupport: 'required' }
+                    ...declaration
                 }
             ]
         })

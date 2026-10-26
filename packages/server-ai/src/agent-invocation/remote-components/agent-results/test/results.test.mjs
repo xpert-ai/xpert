@@ -24,7 +24,13 @@ test('uses the public result entry without pulling server SDK modules into the b
     const sdkInputs = inputs.filter((path) => path.includes('/plugin-sdk/src/'))
     assert.equal(sdkInputs.length, 2)
     assert.ok(sdkInputs.every((path) => path.endsWith('/src/agent-results.ts') || path.endsWith('/runtime/results.ts')))
-    assert.ok(!inputs.some((path) => path.includes('/@nestjs/') || path.includes('/@langchain/')))
+    // The contracts barrel may visit server-only modules that tree shaking removes entirely.
+    const emitted = Object.values(bundle.metafile.outputs).flatMap((output) =>
+        Object.entries(output.inputs)
+            .filter(([, input]) => input.bytesInOutput > 0)
+            .map(([path]) => path)
+    )
+    assert.ok(!emitted.some((path) => path.includes('/@nestjs/') || path.includes('/@langchain/')))
 })
 
 function fixture(t) {
@@ -125,7 +131,7 @@ test('requests an authorized grant on click and blocks executable download URLs'
     f.reply(request, { url: 'javascript:alert(1)', fileName: 'result.txt' })
     await tick()
     assert.deepEqual(f.downloads, [])
-    assert.match(f.w.document.querySelector('[role="alert"]').textContent, /Invalid download URL/)
+    assert.match(f.w.document.querySelector('[role="alert"]').textContent, /下载地址无效/)
     assert.equal(button.disabled, false)
     button.click()
     f.reply(f.sent.at(-1), { url: 'https://host.example/download/grant', fileName: 'result.txt' })

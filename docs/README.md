@@ -94,3 +94,11 @@ ingress withdrawal and recovery, diagnostics, Desktop recovery, and remaining
 ingress acknowledgement work. Keep implemented behavior separate from deployment
 migration and proposed capabilities. Process cleanup details remain in the
 existing graceful API shutdown guides.
+
+## Conversation execution control
+
+[会话执行控制：暂停、继续与终止](./execution-control.md) documents the implemented
+ownership, durable control, local pause/resume and termination behavior. Append
+completed stages there and update its capability and compatibility boundaries.
+Keep future adapters and rollout proposals in the linked upgrade plan; implementation
+status does not imply deployment acceptance.

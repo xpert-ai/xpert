@@ -1,3 +1,4 @@
+import type { McpConsumerExecutor, McpConsumerExecution } from './execution/mcp-consumer-executor'
 import { McpConsumerApps } from './apps/mcp-consumer-apps'
 import { McpConsumerCompletion } from './completion/mcp-consumer-completion'
 import { McpConsumerConnection } from './connection/mcp-consumer-connection'
@@ -19,33 +20,50 @@ export class McpConsumer {
     readonly tasks: McpConsumerTasks
     readonly subscriptions: McpConsumerSubscriptions
 
-    constructor(readonly connection: McpConsumerConnection) {
+    constructor(
+        readonly connection: McpConsumerConnection,
+        private readonly execute?: McpConsumerExecutor
+    ) {
         this.elicitation = new McpConsumerElicitation(connection)
-        this.tools = new McpConsumerTools(connection, (inputRequests, serverName, handler) =>
-            this.elicitation.respond(inputRequests, serverName, handler)
+        this.tools = new McpConsumerTools(
+            connection,
+            (inputRequests, serverName, handler) => this.elicitation.respond(inputRequests, serverName, handler),
+            execute
         )
         this.resources = new McpConsumerResources(connection)
         this.prompts = new McpConsumerPrompts(connection)
         this.completion = new McpConsumerCompletion(connection)
         this.apps = new McpConsumerApps(this.tools, this.resources, () => connection.serverNames())
-        this.tasks = new McpConsumerTasks(connection, (name, arguments_, serverName, signal) =>
-            this.tools.startTask(name, arguments_, serverName, signal)
+        this.tasks = new McpConsumerTasks(connection, (name, arguments_, serverName, signal, identity) =>
+            this.tools.startTask(name, arguments_, serverName, signal, identity)
         )
-        this.tools.setTaskRunner(async (name, arguments_, serverName, signal, handler) => {
-            const started = await this.tasks.start(name, arguments_, serverName, signal)
-            const completed = await this.tasks.wait(started, {
+        this.tools.setTaskRunner((name, arguments_, serverName, signal, input, operationKey) =>
+            this.runTask({
+                mode: 'task',
+                toolName: name,
+                arguments: arguments_,
                 serverName,
                 signal,
-                ...(handler
-                    ? {
-                          onInputRequired: async (task) =>
-                              this.elicitation.respond(taskInputRequests(task.inputRequests), serverName, handler)
-                      }
-                    : {})
+                input,
+                operationKey
             })
-            return this.tasks.result(completed)
-        })
+        )
         this.subscriptions = new McpConsumerSubscriptions(connection)
+    }
+    async runTask(input: McpConsumerExecution) {
+        if (this.execute) return this.execute(input)
+        const started = await this.tasks.start(input.toolName, input.arguments, input.serverName, input.signal)
+        const completed = await this.tasks.wait(started, {
+            serverName: input.serverName,
+            signal: input.signal,
+            ...(input.input
+                ? {
+                      onInputRequired: (task) =>
+                          this.elicitation.respond(taskInputRequests(task.inputRequests), input.serverName, input.input)
+                  }
+                : {})
+        })
+        return this.tasks.result(completed)
     }
 }
 

@@ -336,14 +336,16 @@ export class ToolRuntimeService {
                           requireToolArguments(request.arguments),
                           request.serverName,
                           request.signal,
-                          request.host?.input
+                          request.host?.input,
+                          request.requestId
                       )
                     : await toolset.callMcpTool(
                           request.remoteName,
                           requireToolArguments(request.arguments),
                           request.serverName,
                           request.signal,
-                          request.host?.input
+                          request.host?.input,
+                          request.requestId
                       )
                 return normalizeToolResult(result)
             }

@@ -9,6 +9,12 @@ export type ShellState =
   | 'timed_out'
   | 'rejected'
   | 'unknown'
+export interface ShellExecutionEvidence {
+  version: 1
+  generation: string
+  state: 'exited' | 'not_started'
+  coverage: 'descendants'
+}
 export interface ShellSettings {
   name: string
   shell: '/bin/zsh' | '/bin/bash'
@@ -82,6 +88,7 @@ export interface ShellOutputReport extends WireBase {
   data: string
 }
 export interface ShellStateReport extends WireBase {
+  completion?: ShellExecutionEvidence
   type: 'state'
   state: ShellState
   seq: number
@@ -115,6 +122,7 @@ export interface IDesktopShellGrant extends ShellScope {
   expiresAt: Date
 }
 export interface IDesktopShellOperation extends ShellScope {
+  completion?: ShellExecutionEvidence | null
   id: string
   deviceId: string
   grantId: string

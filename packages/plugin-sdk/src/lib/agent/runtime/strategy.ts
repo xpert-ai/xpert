@@ -16,6 +16,13 @@ import type {
 
 /** Trusted per-operation host context, independent of graph and provider transport details. */
 export interface AgentRuntimeContext {
+  /** Original host-assigned attempt; include it in version 2 completion evidence. */
+  settlement?: {
+    status: 'succeeded' | 'failed' | 'cancelled'
+    result?: AgentRuntimeObservation['result']
+    error?: string
+  }
+  executionTarget?: import('@xpert-ai/contracts').ExecutionRuntimeTarget
   /** Durable host invocation ID used to correlate provider receipts. */
   invocationId: string
   scope: Readonly<AgentInvocationScope>

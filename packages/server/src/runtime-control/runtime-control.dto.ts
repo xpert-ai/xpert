@@ -9,10 +9,14 @@ import {
 	IsArray,
 	IsBoolean,
 	IsIn,
+	IsInt,
 	IsNotEmpty,
 	IsOptional,
 	IsString,
+	Max,
 	MaxLength,
+	Min,
+	ValidateIf,
 	ValidateNested
 } from 'class-validator'
 
@@ -58,6 +62,12 @@ export class RuntimeRestartRequestDto {
 	@ValidateNested({ each: true })
 	@Type(() => RuntimePluginRequirementDto)
 	runtimeRequirements?: RuntimePluginRequirementDto[]
+
+	@ValidateIf((_object, value) => value !== undefined)
+	@IsInt()
+	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
+	expectedGeneration?: number
 }
 
 export class RuntimeInstanceRetirementDto implements IRuntimeInstanceRetirementRequest {

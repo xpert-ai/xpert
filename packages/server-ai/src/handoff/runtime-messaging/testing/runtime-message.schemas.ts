@@ -1,3 +1,5 @@
+import { executionControlTestEntities } from '../../../execution-control/testing/scope.fixture'
+import { ExecutionTaskControl, TaskControlPublication } from '@xpert-ai/server-core'
 import { EntitySchema } from 'typeorm'
 import { ChatConversation } from '../../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../../chat-conversation/conversation-thread.entity'
@@ -31,6 +33,9 @@ const common = {
     attempts: { type: 'int' as const, default: 0 }
 }
 export const runtimeMessageTestSchemas = [
+    ExecutionTaskControl,
+    TaskControlPublication,
+    ...executionControlTestEntities,
     new EntitySchema<AgentRuntimeDelivery>({
         name: 'AgentRuntimeDelivery',
         target: AgentRuntimeDelivery,
@@ -58,6 +63,7 @@ export const runtimeMessageTestSchemas = [
             projectId: { ...uuid, nullable: true },
             purpose: nullableText,
             status: text,
+            error: nullableText,
             operation: json
         }
     }),

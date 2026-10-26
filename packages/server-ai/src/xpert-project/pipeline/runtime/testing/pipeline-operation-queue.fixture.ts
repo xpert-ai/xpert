@@ -4,6 +4,9 @@ import {
     ManagedQueueService,
     ManagedQueueHandlerRegistryService,
     ManagedQueueProcessor,
+    TaskControlStore,
+    TaskControlRunner,
+    ControlRuntimeAdmissionService,
     type ManagedQueueEnvelope,
     type UserService
 } from '@xpert-ai/server-core'
@@ -19,7 +22,12 @@ export function operationQueueFixture(
     const url = new URL(redisUrl),
         connection = { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
     const queue = new Queue<ManagedQueueEnvelope>(`pipeline-operation-test-${randomUUID()}`, { connection })
-    const managed = new ManagedQueueService(queue)
+    // This fixture tests Pipeline's own queue lifecycle; unexpected controlled dispatch must fail closed.
+    const controls = { producer: jest.fn().mockResolvedValue(undefined) } as unknown as TaskControlStore
+    const admission = {
+        requireQueueWorker: jest.fn().mockRejectedValue(new Error('Unexpected controlled queue dispatch'))
+    } as unknown as ControlRuntimeAdmissionService
+    const managed = new ManagedQueueService(queue, queue, queue, queue, controls, queue, queue, admission)
     const service = () => new ProjectPipelineOperationWorkerService(store, runner, managed)
     const workers: Worker<ManagedQueueEnvelope>[] = []
     return {
@@ -33,7 +41,10 @@ export function operationQueueFixture(
                 handler: (job, scope) => observer.handle(job, scope)
             })
             const users = { findOneByIdWithinTenant: async (id: string, tenantId: string) => ({ id, tenantId }) }
-            const processor = new ManagedQueueProcessor(handlers, users as UserService)
+            const controlRunner = {
+                run: jest.fn().mockRejectedValue(new Error('Unexpected controlled queue delivery'))
+            } as unknown as TaskControlRunner
+            const processor = new ManagedQueueProcessor(handlers, users as UserService, controls, controlRunner)
             const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
                 connection,
                 concurrency: 4

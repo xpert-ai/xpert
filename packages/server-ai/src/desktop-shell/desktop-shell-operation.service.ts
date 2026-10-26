@@ -1,8 +1,9 @@
 // Invariants: DB state is authoritative; notification delivery never authorizes a second execution.
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { Injectable, Inject } from '@nestjs/common'
-import { In } from 'typeorm'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { In, IsNull } from 'typeorm'
+import { Interval } from '@nestjs/schedule'
+import { REDIS_CLIENT, TaskControlStore } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import type { ShellExecInput, ShellResult, ShellScope, ShellReport } from '@xpert-ai/contracts'
 import { LIMITS, isFinal, isId } from '@xpert-ai/desktop-protocol'
@@ -22,8 +23,49 @@ export interface ShellRunScope extends ShellScope {
 export class DesktopShellOperationService {
     constructor(
         readonly auth: DesktopShellAuthService,
-        @Inject(REDIS_CLIENT) private readonly redis: RedisClientType
+        @Inject(REDIS_CLIENT) private readonly redis: RedisClientType,
+        private readonly tasks: TaskControlStore
     ) {}
+
+    private scanning = false
+
+    @Interval(1000)
+    async reconcileControl() {
+        if (this.scanning) return
+        this.scanning = true
+        try {
+            for (const task of await this.tasks.due(['desktop-shell'])) {
+                const token = await this.tasks.delivery(task.id)
+                if (!token) continue
+                let failure: string | null = null
+                try {
+                    const op = await this.auth.operations.findOneBy({
+                        id: task.resourceId,
+                        tenantId: task.tenantId,
+                        organizationId: task.organizationId
+                    })
+                    if (!op) continue
+                    if (
+                        op.completion?.version === 1 &&
+                        op.completion.generation === op.id &&
+                        op.completion.coverage === 'descendants' &&
+                        ['exited', 'not_started'].includes(op.completion.state)
+                    ) {
+                        await this.tasks.receipt(task.id, 'completed')
+                    } else if ((await this.tasks.desired(task.id)) === 'terminated') {
+                        await this.cancel(op.id, op)
+                    }
+                } catch {
+                    failure = 'control_unconfirmed'
+                } finally {
+                    // Advance the scan cursor even while an old device is unavailable.
+                    await this.tasks.delivered(task.id, token, failure)
+                }
+            }
+        } finally {
+            this.scanning = false
+        }
+    }
 
     async notify(deviceId: string) {
         // The gateway also polls its connected devices: a lost notification cannot lose a durable operation.
@@ -81,12 +123,29 @@ export class DesktopShellOperationService {
                 lockedDevice.leaseExpiresAt.getTime() <= Date.now()
             )
                 shellError('DEVICE_OFFLINE', 409)
-            const busy = await operations.countBy({
-                deviceId: device.id,
-                state: In(['pending', 'running', 'cancel_requested'])
-            })
+            const busy = await operations.countBy([
+                { deviceId: device.id, state: In(['pending', 'running', 'cancel_requested']) },
+                { deviceId: device.id, state: 'unknown', completion: IsNull() }
+            ])
             if (busy) shellError('DEVICE_BUSY', 409)
+            const id = randomUUID()
+            const parent = await this.tasks.execution(scope.runId, manager)
+            if (parent) {
+                if (parent.currentExecutionId !== scope.runId) shellError('OPERATION_CONFLICT', 409)
+                const task = await this.tasks.register(
+                    {
+                        ...scope,
+                        kind: 'desktop-shell',
+                        resourceId: id,
+                        parent: { version: 2, targetId: parent.id },
+                        drainOnPause: true
+                    },
+                    manager
+                )
+                await this.tasks.claim(task.id, manager)
+            }
             return operations.save({
+                id,
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId,
                 userId: scope.userId,
@@ -130,7 +189,7 @@ export class DesktopShellOperationService {
     async cancel(id: string, scope: ShellScope, threadId?: string) {
         const op = await this.requireOperation(id, scope, threadId)
         await this.auth.operations.update(
-            { id: op.id, state: In(['pending', 'running']) },
+            { id: op.id, state: In(['pending', 'running', 'unknown']) },
             { state: 'cancel_requested' }
         )
         await this.notify(op.deviceId)
@@ -204,7 +263,7 @@ export class DesktopShellOperationService {
                 lock: { mode: 'pessimistic_write' }
             })
             if (!op) return false
-            if (isFinal(op.state)) return true
+            if (isFinal(op.state) && op.completion) return true
             if (report.type === 'output') {
                 if (report.seq <= op.seq) return true
                 if (report.seq !== op.seq + 1) return false
@@ -223,8 +282,10 @@ export class DesktopShellOperationService {
                 if (report.seq > op.seq + 1) return false
                 if (op.state === 'cancel_requested' && !isFinal(report.state)) return true
                 if (report.state === 'pending') return true
+                if (isFinal(op.state) && !isFinal(report.state)) return true
                 if (report.state === 'succeeded' && report.exitCode !== 0) shellError('INVALID_MESSAGE')
                 op.seq = report.seq
+                if (report.completion) op.completion = report.completion
                 op.state = report.state
                 op.exitCode = report.exitCode
                 op.signal = report.signal ?? null

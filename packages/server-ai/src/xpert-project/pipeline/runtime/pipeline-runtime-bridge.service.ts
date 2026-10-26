@@ -3,7 +3,11 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { projectPipelineRuntimeInputSchema, type ProjectPipelineOperationReceipt } from '@xpert-ai/contracts'
+import {
+    unknownExecutionControl,
+    projectPipelineRuntimeInputSchema,
+    type ProjectPipelineOperationReceipt
+} from '@xpert-ai/contracts'
 import {
     ProjectPipelineRuntimeAdapterRegistry,
     RequestContext,
@@ -12,6 +16,7 @@ import {
     type ProjectPipelineContext,
     type ProjectPipelineRuntimeContext
 } from '@xpert-ai/plugin-sdk'
+import { invocationCanRelease } from '../../../agent-invocation/invocation-control-evidence'
 import { AgentInvocationFactoryService } from '../../../agent-invocation/invocation-factory.service'
 import { agentInvocationId, sameInvocationData } from '../../../agent-invocation/invocation-runtime'
 import { projectionScope } from '../../services/task-projection/project-task-projection.writer'
@@ -186,12 +191,17 @@ export class ProjectPipelineRuntimeBridgeService {
             status: invocation.status
         }
         const receiptKey = operation.id
+        const control =
+            invocation.controlEvidence ??
+            unknownExecutionControl({ kind: 'invocation', id: invocation.id }, 'unsupported')
+        if ((invocation.control || invocation.status === 'cancelled') && !invocationCanRelease(invocation))
+            return { status: 'pending', receiptKey, control, execution: { ...execution, status: 'cancelling' } }
         if (invocation.status === 'failed')
-            return { status: 'failed', receiptKey, execution, code: 'RUNTIME_EXECUTION_FAILED' }
-        if (invocation.status === 'cancelled') return { status: 'cancelled', receiptKey, execution }
-        if (invocation.status === 'unknown') return { status: 'unknown', receiptKey, execution }
-        if (invocation.status !== 'succeeded') return { status: 'pending', receiptKey, execution }
-        if (!invocation.result) return { status: 'unknown', receiptKey, execution }
+            return { status: 'failed', receiptKey, control, execution, code: 'RUNTIME_EXECUTION_FAILED' }
+        if (invocation.status === 'cancelled') return { status: 'cancelled', receiptKey, control, execution }
+        if (invocation.status === 'unknown') return { status: 'unknown', receiptKey, control, execution }
+        if (invocation.status !== 'succeeded') return { status: 'pending', receiptKey, control, execution }
+        if (!invocation.result) return { status: 'unknown', receiptKey, control, execution }
         const executor: ProjectPipelineRuntimeContext['executor'] = {
             bindingId: intent.target.bindingId,
             provider: intent.target.provider,
@@ -203,13 +213,14 @@ export class ProjectPipelineRuntimeBridgeService {
             return {
                 status: 'succeeded',
                 receiptKey,
+                control,
                 execution,
                 outputs: await this.adapters
                     .resolve('runtime_operation', operation.handlerRef, context.actor)
                     .collect({ ...operation.context, executor }, invocation.result)
             }
         } catch {
-            return { status: 'unknown', receiptKey, execution }
+            return { status: 'unknown', receiptKey, control, execution }
         }
     }
 }

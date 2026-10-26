@@ -1,3 +1,4 @@
+import { CqrsModule } from '@nestjs/cqrs'
 import { Module, forwardRef } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -10,6 +11,7 @@ import { Organization, User, UserOrganization } from '../core/entities/internal'
 
 @Module({
 	imports: [
+		CqrsModule,
 		RouterModule.register([{ path: '/user-groups', module: UserGroupModule }]),
 		TypeOrmModule.forFeature([UserGroup, UserOrganization, User, Organization]),
 		forwardRef(() => UserModule),

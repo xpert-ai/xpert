@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
@@ -65,7 +66,8 @@ import {
     ExecutionContext,
     ForbiddenException,
     INestApplication,
-    NotFoundException
+    NotFoundException,
+    ServiceUnavailableException
 } from '@nestjs/common'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
@@ -74,7 +76,7 @@ import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/s
 import { AddressInfo } from 'net'
 import { json } from 'express'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
-import { EMPTY, Subject } from 'rxjs'
+import { EMPTY, Observable, Subject } from 'rxjs'
 import { AiService } from './ai.service'
 import { RedisSseStreamService, SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { RunCreateStreamCommand } from './commands'
@@ -132,6 +134,7 @@ describe('ThreadsController', () => {
                     if (query instanceof XpertAgentExecutionOneQuery) {
                         throw new Error('Full execution details and checkpoints are unavailable')
                     }
+                    if (query instanceof ReadThreadControlViewQuery) return { controlView: undefined }
                     if (query instanceof GetAgentExecutionRunSummaryQuery) return row
                     if (query instanceof GetAgentExecutionRunStatusQuery)
                         return { ...row, businessOutcome: row.metadata?.businessOutcome }
@@ -207,7 +210,7 @@ describe('ThreadsController', () => {
             await expect(controller.getThreadRun('thread', 'selected-run')).resolves.toMatchObject({
                 run_id: 'selected-run'
             })
-            expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('selected-run'))
+            expect(queries.execute).toHaveBeenCalledWith(new GetAgentExecutionRunSummaryQuery('selected-run'))
         })
 
         it('preserves resume ancestry and extension metadata through the HTTP response', async () => {
@@ -273,7 +276,7 @@ describe('ThreadsController', () => {
                         }
                     }
                 })
-                expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('resumed-root'))
+                expect(queries.execute).toHaveBeenCalledWith(new GetAgentExecutionRunSummaryQuery('resumed-root'))
             } finally {
                 await app.close()
             }
@@ -398,7 +401,8 @@ describe('ThreadsController', () => {
         const stream = await controller.streamThreadActivity(response as never, 'thread')
         await firstValueFrom(stream)
         response.emit('close')
-        expect(queries.execute).toHaveBeenCalledTimes(2)
+        expect(queries.execute).toHaveBeenCalledTimes(3)
+        expect(queries.execute).toHaveBeenLastCalledWith(new ReadThreadControlViewQuery('thread'))
         expect(activity.snapshot).toHaveBeenCalledWith(conversation, 'thread')
         queries.execute.mockRejectedValue(new ForbiddenException())
         await expect(controller.streamThreadActivity(response as never, 'thread')).rejects.toBeInstanceOf(
@@ -853,6 +857,58 @@ describe('run stream HTTP admission with Nest interceptors', () => {
         const body = await response.text()
         expect(body).toContain('resumed output')
         expect(body).toContain('event: complete')
+    })
+
+    it('keeps an accepted background run successful when subsequent reads return 503', async () => {
+        const started = jest.fn()
+        commandBus.execute.mockReset().mockResolvedValue({
+            execution: {
+                id: 'run-1',
+                threadId: 'thread-1',
+                xpertId: 'assistant',
+                type: 'llm',
+                category: 'agent',
+                status: XpertAgentExecutionStatusEnum.RUNNING,
+                createdAt: new Date('2026-10-26T00:00:00Z'),
+                updatedAt: new Date('2026-10-26T00:00:00Z')
+            } satisfies TAgentExecutionRunSummary,
+            stream: new Observable((subscriber) => {
+                started()
+                subscriber.complete()
+            })
+        })
+        queryBus.execute.mockReset().mockRejectedValue(new ServiceUnavailableException('Control read unavailable'))
+        try {
+            const response = await fetch(endpoint.replace('/stream', ''), {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ assistant_id: 'assistant', input: { input: 'hello' } })
+            })
+            expect(response.status).toBe(201)
+            expect(await response.json()).toMatchObject({ run_id: 'run-1' })
+            expect(started).toHaveBeenCalledTimes(1)
+            for (let attempt = 0; attempt < 3; attempt++) {
+                const read = await fetch(endpoint.replace('/stream', '/run-1'))
+                expect(read.status).toBe(503)
+                await read.text()
+            }
+            expect(commandBus.execute).toHaveBeenCalledTimes(1)
+            expect(started).toHaveBeenCalledTimes(1)
+        } finally {
+            queryBus.execute.mockReset().mockResolvedValue({ threadId: 'thread-1' })
+        }
+    })
+
+    it('preserves a background run admission failure before execution starts', async () => {
+        commandBus.execute.mockReset().mockRejectedValue(new ConflictException('Run already admitted'))
+        const response = await fetch(endpoint.replace('/stream', ''), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ assistant_id: 'assistant' })
+        })
+        expect(response.status).toBe(409)
+        expect(await response.json()).toMatchObject({ message: 'Run already admitted' })
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
     })
 
     it('returns an actual admission error without an acknowledgement header', async () => {

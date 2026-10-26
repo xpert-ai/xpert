@@ -62,7 +62,8 @@ File edits requested by the user may use the CLI's edit-only approval mode. Do n
 use `--yolo`, permission-bypass flags, blanket tool allowlists, override the host's
 application sandbox policy, or grant broader container privileges. Managed Codex in
 Xpert Pro Computer inherits the tenant policy described in its reference, including container-isolated
-execution without a second sandbox by default. For an operation the CLI cannot
+execution without a second sandbox when the host selects that policy. Read its
+`isolation` catalog field; command readiness is verified separately before launch. For an operation the CLI cannot
 approve headlessly, inspect what it requested. The parent Agent can run an already
 authorized build/test command via `sandbox_shell`; an action requiring user
 approval must go through the existing confirmation flow. Never change channels to

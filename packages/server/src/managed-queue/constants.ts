@@ -1,3 +1,5 @@
+import { getConfig } from '@xpert-ai/server-config'
+import type { TaskControlRef } from '@xpert-ai/plugin-sdk'
 import type { ManagedQueueExecutionPool } from '@xpert-ai/plugin-sdk'
 import type {
 	ApiKeyBindingType,
@@ -9,6 +11,11 @@ import type {
 
 export const MANAGED_QUEUE_PHYSICAL_QUEUE_NAME = 'plugin-jobs'
 export const MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME = 'plugin-jobs-sandbox-browser'
+export const MANAGED_QUEUE_CONTROLLED_NAME = 'plugin-jobs-control-v2'
+export const MANAGED_QUEUE_CONTROLLED_BROWSER_NAME = 'plugin-jobs-browser-control-v2'
+// Older control-v2 workers cannot enforce handler contracts. Keep their queues for draining only.
+export const MANAGED_QUEUE_ADMITTED_NAME = 'plugin-jobs-control-v3'
+export const MANAGED_QUEUE_ADMITTED_BROWSER_NAME = 'plugin-jobs-browser-control-v3'
 /**
  * BullMQ keys must be isolated when independent Xpert environments share Redis.
  * Replicas of one environment should use the same explicit prefix; local clones
@@ -22,15 +29,8 @@ export const MANAGED_QUEUE_NAMES: Record<ManagedQueueExecutionPool, string> = {
 	'sandbox-browser': MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME
 }
 
-export function managedQueuePhysicalQueuePrefix(environment: NodeJS.ProcessEnv = process.env) {
-	const value = environment.MANAGED_QUEUE_PREFIX?.trim()
-	if (!value) return 'xpert:managed-queue'
-	if (value.length > 160 || !/^[a-zA-Z0-9:_-]+$/.test(value)) {
-		throw new Error(
-			'MANAGED_QUEUE_PREFIX must contain only letters, numbers, colon, underscore, or hyphen and be at most 160 characters.'
-		)
-	}
-	return value
+export function managedQueuePhysicalQueuePrefix(options = getConfig().managedQueueOptions) {
+	return options?.prefix ?? 'xpert:managed-queue'
 }
 
 /** Server-derived business actor captured when a plugin job is enqueued. */
@@ -76,6 +76,9 @@ export type ManagedQueuePrincipalSnapshot = ManagedQueueDelegationSnapshot & {
 }
 
 export type ManagedQueueEnvelope<TPayload = unknown> = {
+	control?: TaskControlRef
+	controlContract?: string
+	controlProtocol?: 3
 	pluginName: string
 	queueName: string
 	jobName: string

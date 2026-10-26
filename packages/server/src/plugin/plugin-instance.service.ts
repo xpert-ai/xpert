@@ -9,14 +9,16 @@ import {
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
 import { DEFAULT_TENANT, PLUGIN_LEVEL } from '@xpert-ai/contracts'
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 import { In, IsNull, Repository } from 'typeorm'
 import { PluginInstance } from './plugin-instance.entity'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
 import { deserializePluginConfig, serializePluginConfig } from './plugin-config.crypto'
 import {
-	getOrganizationManifestPath,
+	removeOrganizationManifestPlugins,
+	withOrganizationPluginStoreLock,
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot
 } from './organization-plugin.store'
@@ -241,10 +243,11 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			pluginName: In(normalizedNames)
 		})
 		// Keep loaded code alive until restart, but prevent the disk manifest from reinstalling it.
-		this.removeFromManifest(
-			getOrganizationManifestPath(organizationId, { tenantId, defaultTenantId, scopeKey: scope.scopeKey }),
-			new Set(normalizedNames)
-		)
+		await removeOrganizationManifestPlugins(organizationId, new Set(normalizedNames), {
+			tenantId,
+			defaultTenantId,
+			scopeKey: scope.scopeKey
+		})
 		if (scope.isSystem) {
 			await this.repo.delete({
 				scopeKey: IsNull(),
@@ -335,65 +338,55 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		const defaultTenantId = options.defaultTenantId ?? (await this.getDefaultTenantId())
 		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
 		const storeOptions = { tenantId, defaultTenantId, scopeKey: scope.scopeKey }
-		const manifestPath = getOrganizationManifestPath(organizationId, storeOptions)
 		const rootDir = getOrganizationPluginRoot(organizationId, storeOptions)
 		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
-		clearPluginLoadFailure(scope.scopeKey, ...Array.from(normalizedTargets))
-		for (const pluginName of normalizedTargets) {
-			if (options.cause) {
-				this.strategyBus.remove(scope.scopeKey, pluginName, options.cause)
-			} else {
-				this.strategyBus.remove(scope.scopeKey, pluginName)
-			}
-			const pluginIndex = this.loadedPlugins.findIndex(
-				(plugin) =>
-					(plugin.scopeKey ?? plugin.organizationId) === scope.scopeKey &&
-					normalizePluginName(plugin.name) === pluginName
-			)
-			if (pluginIndex !== -1) {
-				this.loadedPlugins.splice(pluginIndex, 1)
-			}
+		await withOrganizationPluginStoreLock(storeOptions, async (lease) => {
+			clearPluginLoadFailure(scope.scopeKey, ...Array.from(normalizedTargets))
+			for (const pluginName of normalizedTargets) {
+				await lease.assertOwned()
+				if (options.cause) {
+					this.strategyBus.remove(scope.scopeKey, pluginName, options.cause)
+				} else {
+					this.strategyBus.remove(scope.scopeKey, pluginName)
+				}
+				const pluginIndex = this.loadedPlugins.findIndex(
+					(plugin) =>
+						(plugin.scopeKey ?? plugin.organizationId) === scope.scopeKey &&
+						normalizePluginName(plugin.name) === pluginName
+				)
+				if (pluginIndex !== -1) {
+					this.loadedPlugins.splice(pluginIndex, 1)
+				}
 
-			const pluginDir = getOrganizationPluginPath(organizationId, pluginName, storeOptions)
-			rmSync(pluginDir, { recursive: true, force: true })
+				const pluginDir = getOrganizationPluginPath(organizationId, pluginName, storeOptions)
+				await rm(pluginDir, { recursive: true, force: true })
 
-			const segments = pluginName.split('/')
-			// Remove versioned plugin directories (e.g., @scope/pkg@1.2.3 or pkg@1.2.3) under the org root.
-			if (segments[0]?.startsWith('@') && segments[1]) {
-				const scopeDir = join(rootDir, segments[0])
-				if (existsSync(scopeDir)) {
-					for (const entry of readdirSync(scopeDir, { withFileTypes: true })) {
+				const segments = pluginName.split('/')
+				// Remove versioned plugin directories (e.g., @scope/pkg@1.2.3 or pkg@1.2.3) under the org root.
+				if (segments[0]?.startsWith('@') && segments[1]) {
+					const scopeDir = join(rootDir, segments[0])
+					if (existsSync(scopeDir)) {
+						for (const entry of readdirSync(scopeDir, { withFileTypes: true })) {
+							if (!entry.isDirectory()) continue
+							if (entry.name === segments[1] || entry.name.startsWith(`${segments[1]}@`)) {
+								await lease.assertOwned()
+								await rm(join(scopeDir, entry.name), { recursive: true, force: true })
+							}
+						}
+					}
+				} else if (existsSync(rootDir)) {
+					for (const entry of readdirSync(rootDir, { withFileTypes: true })) {
 						if (!entry.isDirectory()) continue
-						if (entry.name === segments[1] || entry.name.startsWith(`${segments[1]}@`)) {
-							rmSync(join(scopeDir, entry.name), { recursive: true, force: true })
+						if (entry.name === pluginName || entry.name.startsWith(`${pluginName}@`)) {
+							await lease.assertOwned()
+							await rm(join(rootDir, entry.name), { recursive: true, force: true })
 						}
 					}
 				}
-			} else if (existsSync(rootDir)) {
-				for (const entry of readdirSync(rootDir, { withFileTypes: true })) {
-					if (!entry.isDirectory()) continue
-					if (entry.name === pluginName || entry.name.startsWith(`${pluginName}@`)) {
-						rmSync(join(rootDir, entry.name), { recursive: true, force: true })
-					}
-				}
 			}
-		}
 
-		this.removeFromManifest(manifestPath, normalizedTargets)
-	}
-
-	private removeFromManifest(manifestPath: string, normalizedTargets: Set<string>) {
-		if (existsSync(manifestPath)) {
-			try {
-				const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as string[]
-				const filteredManifest = manifest.filter((entry) => !normalizedTargets.has(normalizePluginName(entry)))
-				if (filteredManifest.length !== manifest.length) {
-					writeFileSync(manifestPath, JSON.stringify(filteredManifest, null, 2))
-				}
-			} catch (error) {
-				this.logger.warn(`Failed to update plugin manifest ${manifestPath}`, error)
-			}
-		}
+			await removeOrganizationManifestPlugins(organizationId, normalizedTargets, storeOptions)
+		})
 	}
 
 	private getOrganizationValue(organizationId?: string | null) {

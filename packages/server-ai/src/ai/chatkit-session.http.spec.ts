@@ -20,6 +20,8 @@ describe('unified ChatKit session HTTP boundary', () => {
     const commands = { execute: jest.fn() }
     const tokens = { createHashed: jest.fn() }
     const assistants = { getAccessiblePublishedXpert: jest.fn() }
+    const projects = { assertCanUseXpert: jest.fn() }
+    const navigation = { resolve: jest.fn() }
     beforeAll(async () => {
         await init({
             lng: 'en',
@@ -42,8 +44,8 @@ describe('unified ChatKit session HTTP boundary', () => {
                 { provide: KnowledgeDocumentService, useValue: {} },
                 { provide: SecretTokenService, useValue: tokens },
                 { provide: PublishedXpertAccessService, useValue: assistants },
-                { provide: XpertProjectAccessService, useValue: {} },
-                { provide: WorkbenchAssistantConversationNavigationService, useValue: {} }
+                { provide: XpertProjectAccessService, useValue: projects },
+                { provide: WorkbenchAssistantConversationNavigationService, useValue: navigation }
             ]
         })
             .overrideGuard(ApiKeyOrClientSecretAuthGuard)
@@ -109,9 +111,34 @@ describe('unified ChatKit session HTTP boundary', () => {
         expect(await response.json()).toMatchObject({ expires_after: 600 })
         expect(assistants.getAccessiblePublishedXpert).toHaveBeenCalledWith('assistant-C')
         expect(tokens.createHashed).toHaveBeenCalledWith(
-            expect.objectContaining({ type: SecretTokenBindingType.USER_XPERT })
+            expect.objectContaining({ type: SecretTokenBindingType.USER_XPERT, grantSource: { kind: 'assistant' } })
         )
         expect(commands.execute).not.toHaveBeenCalled()
+    })
+    it('persists the Project grant used to authorize the session', async () => {
+        const response = await post({ assistant: { id: 'assistant-C' }, project: { id: 'project-P' } })
+        expect(response.status).toBe(201)
+        expect(projects.assertCanUseXpert).toHaveBeenCalledWith('project-P', 'assistant-C')
+        expect(tokens.createHashed).toHaveBeenCalledWith(
+            expect.objectContaining({
+                grantSource: { kind: 'project', projectId: 'project-P' }
+            })
+        )
+        expect(assistants.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+    })
+    it('persists the original conversation navigation grant', async () => {
+        navigation.resolve.mockResolvedValue({ xpertId: 'assistant-C', conversationId })
+        const response = await post({
+            assistant: { id: 'assistant-C' },
+            conversation: { id: conversationId, requesterXpertId: 'requester-A' }
+        })
+        expect(response.status).toBe(201)
+        expect(tokens.createHashed).toHaveBeenCalledWith(
+            expect.objectContaining({
+                grantSource: { kind: 'conversation', conversationId, requesterXpertId: 'requester-A' }
+            })
+        )
+        expect(assistants.getAccessiblePublishedXpert).not.toHaveBeenCalled()
     })
     it.each([
         { scope: { kind: 'group', conversationId } },

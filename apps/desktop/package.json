@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/desktop",
-  "version": "0.3.9",
+  "version": "0.3.11",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -34,7 +34,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "44.4.5",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "26.18.0",
     "jsdom": "26.1.0",
     "tailwindcss": "^4.1.18",
     "typescript": "5.9.3",
@@ -106,5 +106,6 @@
     "electron-updater": "6.8.9",
     "semver": "7.7.3",
     "socket.io-client": "^4.7.5"
-  }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

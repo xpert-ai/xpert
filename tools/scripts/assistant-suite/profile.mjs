@@ -1,3 +1,4 @@
+import { roleDependencyOrder } from '../../../packages/server-ai/src/plugin-resource/application-update/engine/profile.cjs'
 import fs from 'node:fs'
 import path from 'node:path'
 import { DEFAULT_API_URL, LocalPluginCliError, getJson, assertResponseOk } from '../local-plugin-cli.mjs'
@@ -72,24 +73,6 @@ export function readSuiteProfile(file) {
   return { profile, profilePath }
 }
 
-/** Children publish before their callers, so embedded external descriptors always use the completed graph. */
-export function roleDependencyOrder(profile) {
-  const ordered = [],
-    visiting = new Set(),
-    visited = new Set()
-  const visit = (definition) => {
-    if (visiting.has(definition.key)) throw new LocalPluginCliError(`External role dependency cycle: ${definition.key}`)
-    if (visited.has(definition.key)) return
-    visiting.add(definition.key)
-    for (const key of definition.externalRoleKeys ?? []) visit(profile.roles.find((role) => role.key === key))
-    visiting.delete(definition.key)
-    visited.add(definition.key)
-    ordered.push(definition)
-  }
-  profile.roles.forEach(visit)
-  return ordered
-}
-
 /** Validates the stable template and Agent identity needed for safe installation or resume. */
 export function validateAssistantDefinition(definition, label) {
   if (!definition || typeof definition !== 'object' || Array.isArray(definition)) {
@@ -111,21 +94,6 @@ export function resolveApiRoot(args) {
   if (input.endsWith('/api/plugin')) return input.slice(0, -'/plugin'.length)
   if (input.endsWith('/api')) return input
   return `${input}/api`
-}
-
-/** Creates a canonical plugin template id from portable plugin and template keys. */
-export function templateId(profile, definition) {
-  return `${profile.plugin.name}:${definition.templateKey}`
-}
-
-/** Produces a fresh name for one installation batch without changing the reusable template identity. */
-export function installedName(definition, runId) {
-  return `${definition.name}-${runId}`
-}
-
-/** Produces a human title that makes parallel acceptance Assistants distinguishable. */
-export function installedTitle(definition, runId) {
-  return `${definition.title} ${runId}`
 }
 
 /** Fetches an exact name match in the target workspace for collision detection and explicit resume. */
@@ -150,34 +118,12 @@ export async function getTeam(apiRoot, headers, xpertId) {
   return response.body
 }
 
-/** Extracts canonical template provenance from draft or published options. */
-export function readTemplateSource(xpert) {
-  return xpert?.draft?.team?.options?.templateSource ?? xpert?.options?.templateSource ?? null
-}
-
-/** Resolves the primary Agent key from the current draft or published Assistant. */
-export function readPrimaryAgentKey(xpert) {
-  const graph = Array.isArray(xpert?.draft?.nodes) ? xpert.draft : xpert?.graph
-  if (Array.isArray(graph?.nodes)) {
-    const rootAgents = graph.nodes.filter((node) => node?.type === 'agent' && node?.entity?.leaderKey == null)
-    return rootAgents.length === 1 ? (rootAgents[0]?.entity?.key ?? rootAgents[0]?.key ?? null) : null
-  }
-  const direct = xpert?.draft?.team?.agent?.key ?? xpert?.agent?.key
-  if (direct) return direct
-  const configured = Object.keys(xpert?.options?.agent ?? {})
-  return configured.length === 1 ? configured[0] : null
-}
-
-/** Prevents a resume from adopting an unrelated Assistant with a colliding name. */
-export function assertAssistantIdentity(xpert, profile, definition) {
-  const source = readTemplateSource(xpert)
-  if (
-    source?.pluginName !== profile.plugin.name ||
-    source?.templateKey !== definition.templateKey ||
-    readPrimaryAgentKey(xpert) !== definition.primaryAgentKey
-  ) {
-    throw new LocalPluginCliError(
-      `Existing Assistant ${xpert?.name ?? '<unknown>'} does not match official template ${templateId(profile, definition)} and primary Agent ${definition.primaryAgentKey}.`
-    )
-  }
-}
+export {
+  roleDependencyOrder,
+  templateId,
+  installedName,
+  installedTitle,
+  readTemplateSource,
+  readPrimaryAgentKey,
+  assertAssistantIdentity
+} from '../../../packages/server-ai/src/plugin-resource/application-update/engine/profile.cjs'

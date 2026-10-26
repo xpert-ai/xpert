@@ -73,7 +73,7 @@
           },
           {
             "glob": "**/*",
-            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app/pets",
+            "input": ".cache/chatkit-pets",
             "output": "./pets"
           },
           "apps/cloud/src/favicon.ico",
@@ -144,6 +144,7 @@
       },
       "defaultConfiguration": "production",
       "dependsOn": [
+        "prepare-chatkit-pets",
         {
           "projects": ["contracts"],
           "target": "build",
@@ -151,7 +152,15 @@
         }
       ]
     },
+    "prepare-chatkit-pets": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "node .deploy/webapp/prepare-chatkit-pets.cjs"
+      }
+    },
     "serve": {
+      "dependsOn": ["prepare-chatkit-pets"],
       "executor": "@angular/build:dev-server",
       "options": {
         "proxyConfig": "apps/cloud/proxy.conf.cjs",

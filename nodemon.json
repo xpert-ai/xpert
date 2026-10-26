@@ -1,20 +1,34 @@
 {
   "restartable": "rs",
-  "ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
+  "signal": "SIGTERM",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/remote-components/**/app.js",
+    "**/remote-components/**/app.css",
+    "**/*.spec.ts",
+    "**/*.test.*"
+  ],
   "watch": [
-    "apps/api/src",
-    "packages/contacts/src",
+    "apps/api",
+    "packages/contracts/src",
     "packages/common/src",
     "packages/config/src",
     "packages/server/src",
     "packages/auth/src",
     "packages/server-ai/src",
     "packages/plugin-sdk/src",
-    "packages/plugins"
+    "packages/plugins",
+    ".deploy/api/database-migrations.json",
+    "tools/scripts/start-api.mjs",
+    "package.json",
+    "tsconfig.base.json",
+    "nx.json"
   ],
-  "exec": "pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
+  "exec": "node tools/scripts/start-api.mjs",
   "env": {
     "NODE_ENV": "development"
   },
-  "ext": "ts"
+  "ext": "ts,js,mjs,cjs,cts,json,sql"
 }

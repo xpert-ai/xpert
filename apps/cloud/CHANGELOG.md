@@ -1,5 +1,64 @@
 # @xpert-ai/xpert-ui
 
+## 3.26.2
+
+### Patch Changes
+
+- d80b159: Include Poppler and validate LibreOffice, fonts and two-page UTF-8 extraction before document preview execution. Add the isolated LibreOffice NsJail binding and retain dependency, conversion, extraction and timeout diagnostics. Publish a new Runtime Suite artifact and regenerate production digest bindings through the release workflow; existing production locks are not changed by this source fix.
+- 8ac278b: Restore missing assistant settings translations across English, Simplified Chinese, and Traditional Chinese, and remove duplicate translation sections that hid existing labels.
+- 389933d: Require pipeline templates to declare their supported application and project types. Filter the configuration catalog and enforce the persisted project type when saving configurations and starting runs, so templates cannot execute in unrelated projects.
+
+  Upgrade pipeline contributions together with the host and create compatible configurations for typed projects; legacy definitions without an explicit project type are not implicitly accepted. Preserve runtime scope in the remote-view preview host for realistic plugin verification.
+
+  This release intentionally remains on the 3.x patch line. Before upgrading, add
+  explicit `projectTypes` declarations to existing pipeline contributions and saved
+  templates. Older templates are rejected; no compatibility fallback is provided.
+
+- 32d695d: Withdraw API replicas from readiness-aware ingress before draining, refresh plugin admission independently of rollout bookkeeping, and expose validation and lease diagnostics. Preserve structured runtime errors in Desktop with bounded recovery for safe requests and clear recovered session errors. Compose deployments must route all API ingress through the new readiness-aware gateway.
+
+  Give admission monitoring an independent provider lifecycle, validate a configurable ingress propagation budget, and distinguish runtime completion from ingress acknowledgement.
+
+  Keep authenticated readiness independent of tenant settings, bound Redis cache reads and writes with database fallback, and stop queuing cache calls while timed-out operations remain pending.
+
+- f168ddf: Use the shared searchable model selector during template installation, constrained to the setup response's eligible model identities. Preserve valid selections and defaults across refreshes, reject invalid selections before submission, and disable interaction during installation. Hide parameter editing in this identity-only flow and support keyboard selection in the model menu.
+
+## 3.26.1
+
+### Patch Changes
+
+- c553b26: Introduce one canonical Analytics source model and runtime for database connections, versioned Definitions and Artifacts. Add scoped configuration management and settings UI, and restrict DataSource Types to real database drivers. Remove versioned protocol adapters and migration inventory. Analytics plugins and saved documents must use the canonical source envelope; this release intentionally does not decode historical Bindings.
+
+  Use the shared JSON Schema form and Zard controls for Analytics settings, including nested schema references, union choices and JSON values. Fix the settings navigation icon.
+
+  Add scoped Agent definition authoring, provider inspection/preflight, and retry-safe immutable registration. Make Analytics settings a management-only surface.
+
+  Resolve unnamed MCP servers consistently between automatic definition discovery and the MCP runtime, and reject ambiguous normalized server identities.
+
+  Explain duplicate-grain validation failures to Agent tools without exposing upstream errors, enabling repair of search-result tables that contain multiple snippets per URL.
+
+- f15330e: Refresh the coordinated ChatKit package locks to the latest compatible published patches. Align transitive-only ChatKit dependencies in Desktop with the selected versions while preserving the workspace's dependency and override policies.
+- 2984151: Show the explicit Project tasks capability label in Studio middleware settings before falling back to linked view titles. Preserve runtime activation, navigation and access checks for task results and coding execution views.
+- 968e11c: Fix the isolated Cloud production build by resolving JSON Schema references with an ES2020-compatible own-property check, preserving protection against inherited properties.
+- d55c27c: Use an empty configuration only when middleware options are omitted across tool preview, testing, execution and View runtime resolution, including previously published Assistant nodes. Preserve explicit invalid values for provider validation and keep runtime node context consistent without rewriting saved graphs.
+- a6f9323: Allow signed-in Assistant sessions to start Project pipelines with live Project, Assistant and Connector permission checks, without development-only environment or Project allowlists. Preserve durable delegation requirements for resource credentials and log safe diagnostics when pipeline observation is deferred.
+
+  Resolve saved pipeline subjects to their authorized business Workbench view through an optional subject adapter entry, so opening the business workspace stays inside Bosi and selects the associated review.
+
+  Make pipeline cards and headers more compact, add persistent zoom and fit-to-view controls, and combine zoom with the status bar. Separate sequential steps and logical nodes into dependency-ordered columns with dedicated control headers and dividers, and place lane execution indicators at the bottom right.
+
+- 2bdca1e: Align the active Project tasks tab underline with the navigation bar's bottom border by removing the tab list inset and making tab buttons fill its height.
+- 37ae32f: Centralize GitHub App settings in system integrations, including App slug and protected credential fields. Reuse the built-in integration read permission service for signed callbacks, with tenant-only integration selection and secret-preserving partial updates.
+
+  Add an optional integration.readConfiguration(id) capability bound to the plugin scope by the host. Validate tenant, organization and declared integration access inside the capability; system configuration resolves in the Default tenant without request context. Keep existing runtime read APIs compatible and keep PluginContext free of configuration storage details.
+
+  Return a client validation error for invalid plugin configuration without exposing rejected configuration values.
+
+  Add a validated, provider-independent workspace Connector command contract with optional authentication-method and system-integration constraints. Resolve capabilities from Connector declarations for both OAuth and API key methods, pin the host-owned dialog, and reject conflicting active or pending shared connections. Keep provider-specific policies and error guidance in plugins.
+
+  Keep narrowly scoped login and plugin recovery routes reachable through their existing authentication and authorization guards when plugin version drift makes the runtime unready. Continue fencing business traffic and all new requests during shutdown drain.
+
+  Move GitHub System Integration into the automatically loaded built-in plugin. Register its metadata and configuration handling through IntegrationStrategy, add a generic prepareConfig hook, and preserve existing integration IDs, provider keys, OAuth-only settings and saved secrets.
+
 ## 3.26.0
 
 ### Minor Changes

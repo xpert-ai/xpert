@@ -89,9 +89,10 @@ it('keeps input and latest distinct as the graph advances', async () => {
     expect(f.execution.metadata.recovery.latest.checkpointId).toBe('loop')
 })
 
-it.each(['new-owner', 'terminated'] as const)('fences a late checkpoint after %s', async (reason) => {
+it.each(['new-owner', 'terminated', 'terminating'] as const)('fences a late checkpoint after %s', async (reason) => {
     const f = checkpointRecoveryFixture()
     if (reason === 'new-owner') f.thread.runControl.executionId = 'next-run'
+    else if (reason === 'terminating') f.thread.runControl.state = 'terminating'
     else f.execution.status = XpertAgentExecutionStatusEnum.INTERRUPTED
     await expect(
         f.saver.put(f.config, emptyCheckpoint(), { source: 'input', step: -1, parents: {} })

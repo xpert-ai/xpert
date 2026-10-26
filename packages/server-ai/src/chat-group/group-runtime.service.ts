@@ -276,6 +276,7 @@ export class GroupRuntimeService {
             .update({ id: receipt.id }, { contextSequence: receipt.contextSequence })
         let resumeCheckpoint: TChatCheckpointReference | undefined
         if (action === 'resume' && receipt.control.pauseId) {
+            const resumeClaimId = randomUUID()
             const graph = await this.queries.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
                 new GetXpertWorkflowQuery(member.subjectId, undefined, false)
             )
@@ -284,7 +285,14 @@ export class GroupRuntimeService {
                 receipt.executionId,
                 receipt.control.pauseId,
                 threadGraphRevision(graph.graph, undefined, graph.agent?.team),
-                legacyThreadGraphRevision(graph.graph)
+                legacyThreadGraphRevision(graph.graph),
+                resumeClaimId
+            )
+            await this.control.bindResumedExecution(
+                member.runtimeThreadId,
+                receipt.control.pauseId,
+                receipt.executionId,
+                resumeClaimId
             )
             await this.db
                 .getRepository(XpertAgentExecution)

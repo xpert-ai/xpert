@@ -16,6 +16,7 @@ import { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.
 import { RuntimeQueueShutdownService } from './runtime-queue-shutdown.service'
 import { runtimeAdmissionMonitorProvider, runtimePluginAdmissionProvider } from './runtime-admission.providers'
 import { RUNTIME_TRAFFIC_OPTIONS, readRuntimeTrafficOptions } from './runtime-traffic-options'
+import { TaskControlModule } from '../task-control/task-control.module'
 
 const processSignaler: RuntimeProcessSignaler = {
 	signal: (signal) => {
@@ -24,7 +25,7 @@ const processSignaler: RuntimeProcessSignaler = {
 }
 
 @Module({
-	imports: [RedisModule, ManagedConnectionModule, DiscoveryModule],
+	imports: [RedisModule, ManagedConnectionModule, DiscoveryModule, TaskControlModule],
 	controllers: [RuntimeControlController],
 	providers: [
 		RuntimeLifecycleService,

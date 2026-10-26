@@ -1,3 +1,6 @@
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
+import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
+jest.mock('../../../execution-control/execution-control.store', () => ({ ExecutionControlStore: class {} }))
 jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({
     MessageCheckpointService: class {}
 }))
@@ -62,8 +65,7 @@ jest.mock('../../../shared', () => ({
         getVolumePath(workspace?: string) {
             return workspace ? `/volume/${workspace}` : '/volume'
         }
-    },
-    ExecutionCancelService: class ExecutionCancelService {}
+    }
 }))
 
 jest.mock('../../../chat-message/chat-message.entity', () => ({
@@ -84,7 +86,8 @@ import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
-import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
+import { XpertWorkAreaResolver } from '../../../shared'
+import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, type TXpertOptions } from '@xpert-ai/contracts'
@@ -102,7 +105,7 @@ describe('Assistant template runtime gate', () => {
     let checkpointSaver: { getCopilotCheckpoint: jest.Mock }
     let envService: { findOne: jest.Mock }
     let i18nService: { t: jest.Mock }
-    let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
+    let executionCancelService: { check: jest.Mock; register: jest.Mock; unregister: jest.Mock }
     let chatMessageRepository: { find: jest.Mock; save: jest.Mock }
     let workAreaResolver: { resolve: jest.Mock }
     let module: TestingModule
@@ -129,6 +132,7 @@ describe('Assistant template runtime gate', () => {
         }
         executionCancelService = {
             register: jest.fn(),
+            check: jest.fn(),
             unregister: jest.fn()
         }
         workAreaResolver = {
@@ -148,6 +152,7 @@ describe('Assistant template runtime gate', () => {
                 { provide: EnvironmentService, useValue: envService },
                 { provide: I18nService, useValue: i18nService },
                 { provide: ExecutionCancelService, useValue: executionCancelService },
+                { provide: ExecutionControlStore, useValue: {} },
                 { provide: XpertWorkAreaResolver, useValue: workAreaResolver },
                 { provide: getRepositoryToken(ChatMessage), useValue: chatMessageRepository }
             ]

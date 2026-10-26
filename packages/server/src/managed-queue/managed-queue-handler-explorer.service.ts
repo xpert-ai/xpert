@@ -98,6 +98,7 @@ export class ManagedQueueHandlerExplorerService implements OnModuleInit, OnModul
 				jobName: processor.jobName,
 				scopeKey,
 				concurrency: processor.concurrency,
+				controlContract: processor.controlContract,
 				handler: (job: ManagedQueueJob, context: ManagedQueueJobContext) =>
 					handlerMethod.call(instance, job, { ...context, ...registeredContext })
 			})

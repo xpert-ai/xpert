@@ -36,9 +36,9 @@ import { AgentStateAnnotation } from '../../shared/agent/state'
 import { CompileGraphCommand } from '../commands/compile-graph.command'
 import { wrapAgentExecution } from '../../shared/agent/execution'
 import { withExecutionContext } from '../../shared/agent/execution-context'
-import { ExecutionCancelService } from '../../shared/execution/execution-cancel.service'
-import { executionAbortScope } from '../../shared/execution/execution-abort-scope'
-import { ExecutionCancelledError } from '../../shared/execution/execution-cancelled.error'
+import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
+import { executionAbortScope } from '../../execution-control/execution-abort-scope'
+import { ExecutionCancelledError } from '../../execution-control/execution-cancelled.error'
 import { XpertWorkAreaResolver } from '../../shared/volume/work-area'
 import { SandboxAcquireBackendCommand } from '../../sandbox/commands/acquire-backend.command'
 import { resolveSandboxWorkFor } from '../../sandbox/sandbox-work-for'
@@ -180,7 +180,9 @@ export class TemplateSubagentRuntimeService {
                                 status: missingConnector.status
                             })
                         )
+                    await this.cancellations.attach(invocationId, parentExecutionId, 'attached')
                     const abort = executionAbortScope(invocationId, this.cancellations, [options.signal, config.signal])
+                    await this.cancellations.check(invocationId)
                     const execution: IXpertAgentExecution = {
                         id: invocationId,
                         xpert: owner,

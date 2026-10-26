@@ -700,7 +700,24 @@
           "knowledgebase": "知识库"
         },
         "InstallationTarget": "安装范围",
-        "PersonalDataScope": "此安装及其数据仅属于你；分享需另行授权。"
+        "PersonalDataScope": "此安装及其数据仅属于你；分享需另行授权。",
+        "Update": {
+          "Action": "更新应用",
+          "Resume": "继续更新",
+          "Description": "原位更新并发布整套助理和模板技能，保留实例配置。离开页面后进度仍会保存。",
+          "Progress": "应用更新进度",
+          "Main": "主助理",
+          "running": "正在更新",
+          "failed": "更新中断",
+          "completed": "更新完成",
+          "pending": "等待中",
+          "preparing": "更新模板和技能",
+          "prepared": "草稿已就绪",
+          "binding": "刷新依赖",
+          "publishing": "正在发布",
+          "published": "已发布",
+          "FailureHint": "已完成的步骤已保存。解决资源或权限问题后继续更新；若模板或草稿已变化，请先检查冲突。"
+        }
       }
     },
     "Referral": {

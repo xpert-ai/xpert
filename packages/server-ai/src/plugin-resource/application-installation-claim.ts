@@ -1,8 +1,9 @@
 // One database uniqueness claim per installation, never per App definition alone.
 import { PLUGIN_APPLICATION_INSTALLATION_STATUS } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { ConflictException } from '@nestjs/common'
-import { In, LessThan, Repository } from 'typeorm'
+import { In, LessThan, Raw, Repository } from 'typeorm'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
 import { ResolvedApplication } from './application-setup/plugin-application-setup.service'
 import { applicationInstallationIdentity } from './application-scope'
@@ -40,6 +41,8 @@ export async function claimApplicationInstallation(
     if (!installation) {
         throw new ConflictException('application_installation_conflict')
     }
+    if (installation.updateRelease && installation.updateRelease.status !== 'completed')
+        throw new ConflictException(t('server-ai:Error.ApplicationUpdatePending'))
     if (
         installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING ||
         installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED ||
@@ -49,6 +52,7 @@ export async function claimApplicationInstallation(
             {
                 ...identity,
                 id: installation.id,
+                updateRelease: Raw((alias) => `(${alias} IS NULL OR ${alias}->>'status' = 'completed')`),
                 status: In([
                     PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING,
                     PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED,

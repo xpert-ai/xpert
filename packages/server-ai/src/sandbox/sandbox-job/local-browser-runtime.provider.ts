@@ -1,6 +1,10 @@
-import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { LocalBrowserRuntimeInstance, requireDevelopmentRuntime } from './local-browser-runtime-instance'
+import { exposeLocalReadOnlyFile } from './local-browser-runtime-files'
+import { LocalRuntimeControl } from './local-runtime-control'
+import { sandboxTargetsEqual, type SandboxRuntimeTarget } from '@xpert-ai/contracts'
+import { execFile } from 'node:child_process'
 import { constants as fsConstants } from 'node:fs'
-import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'node:fs/promises'
+import { access, mkdir, readFile, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -17,14 +21,7 @@ import {
     type SandboxRuntimeBindingHealth,
     type SandboxRuntimeCreateOptions,
     type SandboxRuntimeDestroyOptions,
-    type SandboxRuntimeExecuteResponse,
-    type SandboxRuntimeExecutionOptions,
-    type SandboxRuntimeFileDownloadResponse,
-    type SandboxRuntimeFileOperationError,
-    type SandboxRuntimeFileUploadResponse,
-    type SandboxRuntimeInstance,
-    type SandboxRuntimeReadOnlyFile,
-    type SandboxRuntimeTerminationReason
+    type SandboxRuntimeInstance
 } from '@xpert-ai/plugin-sdk'
 import {
     AI_BROWSER_RUNTIME_PROFILE,
@@ -48,7 +45,6 @@ const HEALTH_TIMEOUT_MS = 15_000
 const DOCUMENT_HEALTH_TIMEOUT_MS = 60_000
 const HEALTH_CACHE_TTL_MS = 30_000
 const FAILED_HEALTH_CACHE_TTL_MS = 5_000
-const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
 const LOCAL_AI_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai'
 const LOCAL_VIDEO_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:video'
@@ -157,6 +153,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
     readonly type = LOCAL_BROWSER_RUNTIME_PROVIDER
     readonly version = LOCAL_PROVIDER_VERSION
     readonly capabilities = {
+        executionControl: 1,
         isolation: 'process',
         ephemeral: true,
         resourceLimits: false,
@@ -166,6 +163,13 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
     } as const
 
     private readonly instances = new Map<string, LocalBrowserRuntimeInstance>()
+    private readonly localControl = new LocalRuntimeControl(this.type, this.instances)
+    prepareControl(options: SandboxRuntimeDestroyOptions & { generation: string }) {
+        return this.localControl.prepare(options)
+    }
+    control(target: SandboxRuntimeTarget, action: 'inspect' | 'stop') {
+        return this.localControl.control(target, action)
+    }
     private readonly pendingAssetInstalls = new Map<string, Promise<LocalRuntimeAssets>>()
     private readonly healthCache = new Map<string, { expiresAt: number; health: SandboxRuntimeBindingHealth }>()
     private readonly pendingHealth = new Map<string, Promise<SandboxRuntimeBindingHealth>>()
@@ -280,34 +284,56 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         if (!isLocalBinding(options.binding, options.definition.name)) {
             throw new Error('Local Browser Runtime received an incompatible Binding.')
         }
-        const runtimeId = localRuntimeId(options.workFor.id)
-        const existing = this.instances.get(runtimeId)
-        if (existing) return existing
-
-        const assets = await this.resolveAssetsForCreate(options.definition)
-        const workspaceRoot = path.resolve(options.volume.serverRoot)
-        await mkdir(workspaceRoot, { recursive: true })
-        await Promise.all(
-            ['input', 'output', 'runtime'].map((directory) =>
-                mkdir(path.join(workspaceRoot, directory), { recursive: true })
-            )
+        const runtimeId = options.controlTarget?.runtimeRef ?? localRuntimeId(options.workFor.id)
+        const controlled = options.controlTarget ? this.localControl.controls.get(runtimeId) : undefined
+        if (
+            options.controlTarget &&
+            (!controlled ||
+                !sandboxTargetsEqual(controlled.target, options.controlTarget) ||
+                controlled.sealed ||
+                controlled.creating)
         )
-        for (const file of options.readOnlyFiles ?? []) {
-            await exposeLocalReadOnlyFile(workspaceRoot, file)
+            throw new Error('Sandbox create admission closed')
+        const existing = this.instances.get(runtimeId)
+        if (existing) {
+            if (controlled) throw new Error('Sandbox create admission closed')
+            return existing
         }
-        const instance = new LocalBrowserRuntimeInstance({
-            id: runtimeId,
-            workspaceRoot: await realpath(workspaceRoot),
-            runnerPath: assets.runnerPath,
-            nodePath: assets.nodePath,
-            environment: localRuntimeConfiguration(options.definition.name).requiresLibreOffice
+        if (controlled) controlled.creating = true
+
+        try {
+            const assets = await this.resolveAssetsForCreate(options.definition)
+            const workspaceRoot = path.resolve(options.volume.serverRoot)
+            await mkdir(workspaceRoot, { recursive: true })
+            await Promise.all(
+                ['input', 'output', 'runtime'].map((directory) =>
+                    mkdir(path.join(workspaceRoot, directory), { recursive: true })
+                )
+            )
+            for (const file of options.readOnlyFiles ?? []) {
+                await exposeLocalReadOnlyFile(workspaceRoot, file)
+            }
+            const canonicalRoot = await realpath(workspaceRoot)
+            const environment = localRuntimeConfiguration(options.definition.name).requiresLibreOffice
                 ? await localDocumentFontEnvironment(workspaceRoot, assets.environment)
-                : assets.environment,
-            trustedCommand: options.definition.command,
-            hardDeadlineMs: options.hardDeadlineMs
-        })
-        this.instances.set(runtimeId, instance)
-        return instance
+                : assets.environment
+            // All asynchronous preparation must finish before the final stop/admission check.
+            if (controlled?.sealed) throw new Error('Sandbox create cancelled')
+            const instance = new LocalBrowserRuntimeInstance({
+                controlled: !!controlled,
+                id: runtimeId,
+                workspaceRoot: canonicalRoot,
+                runnerPath: assets.runnerPath,
+                nodePath: assets.nodePath,
+                environment,
+                trustedCommand: options.definition.command,
+                hardDeadlineMs: options.hardDeadlineMs
+            })
+            this.instances.set(runtimeId, instance)
+            return instance
+        } finally {
+            if (controlled) controlled.creating = false
+        }
     }
 
     private resolveAssetsForCreate(definition: SandboxRuntimeCreateOptions['definition']): Promise<LocalRuntimeAssets> {
@@ -325,222 +351,18 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
 
     /** Idempotently terminates a live local process; persisted stale refs require no host cleanup. */
     async destroy(options: SandboxRuntimeDestroyOptions): Promise<void> {
-        const runtimeId = options.runtimeRef ?? localRuntimeId(options.workFor.id)
+        if (options.controlTarget) {
+            const evidence = await this.control(options.controlTarget, 'stop')
+            if (evidence.state !== 'exited' && evidence.state !== 'not_started')
+                throw new Error('Sandbox exit is unconfirmed')
+        }
+        const runtimeId = options.controlTarget?.runtimeRef ?? options.runtimeRef ?? localRuntimeId(options.workFor.id)
         const instance = this.instances.get(runtimeId)
         if (!instance) return
         await instance.dispose()
+        const control = this.localControl.controls.get(runtimeId)
+        if (control) control.exited = true
         this.instances.delete(runtimeId)
-    }
-}
-
-/**
- * Development-only copy-on-write mapping. A forced filesystem clone creates a
- * distinct read-only inode without eagerly copying media blocks, so the Action
- * can seek it without learning or mutating the original Workspace file.
- * Production relies on a hardened Provider bind mount instead.
- */
-async function exposeLocalReadOnlyFile(workspaceRoot: string, file: SandboxRuntimeReadOnlyFile): Promise<void> {
-    const source = await lstat(file.source.serverPath)
-    if (
-        !source.isFile() ||
-        source.size !== file.source.size ||
-        source.mtimeMs !== file.source.mtimeMs ||
-        source.dev !== file.source.device ||
-        source.ino !== file.source.inode ||
-        source.size !== file.size
-    ) {
-        throw new Error(`Local Browser Runtime read-only input changed: ${file.targetPath}`)
-    }
-    const target = resolveWorkspaceFile(workspaceRoot, file.targetPath)
-    await ensureSafeDirectory(workspaceRoot, path.dirname(target))
-    const existing = await lstat(target).catch(() => null)
-    if (existing?.isSymbolicLink() || (existing && !existing.isFile())) {
-        throw invalidPathError('Runtime read-only input target is invalid.')
-    }
-    if (existing) await unlink(target)
-    await cloneLocalFile(file.source.serverPath, target).catch((error) => {
-        throw new Error(
-            `Local Browser Runtime could not clone read-only input ${file.targetPath}; ` +
-                `the Workspace and Job volume must share a clone-capable filesystem: ${error instanceof Error ? error.message : String(error)}`
-        )
-    })
-    await chmod(target, 0o444)
-}
-
-async function cloneLocalFile(source: string, target: string): Promise<void> {
-    const args =
-        process.platform === 'darwin'
-            ? ['-c', '--', source, target]
-            : process.platform === 'linux'
-              ? ['--reflink=always', '--', source, target]
-              : null
-    if (!args) throw new Error(`copy-on-write file cloning is unsupported on ${process.platform}`)
-    await execFileAsync('cp', args, { windowsHide: true })
-}
-
-type LocalBrowserRuntimeInstanceOptions = {
-    id: string
-    workspaceRoot: string
-    runnerPath: string
-    nodePath: string
-    environment: NodeJS.ProcessEnv
-    trustedCommand: readonly string[]
-    hardDeadlineMs: number
-}
-
-/** Runtime instance that confines file I/O and one fixed Runner process to a Job workspace. */
-class LocalBrowserRuntimeInstance implements SandboxRuntimeInstance {
-    readonly id: string
-    readonly workspaceRoot: string
-
-    private readonly runnerPath: string
-    private readonly nodePath: string
-    private readonly environment: NodeJS.ProcessEnv
-    private readonly trustedCommand: readonly string[]
-    private readonly hardDeadlineTimer: ReturnType<typeof setTimeout>
-    private activeChild?: ChildProcessWithoutNullStreams
-    private terminationReason?: SandboxRuntimeTerminationReason
-
-    constructor(options: LocalBrowserRuntimeInstanceOptions) {
-        this.id = options.id
-        this.workspaceRoot = options.workspaceRoot
-        this.runnerPath = options.runnerPath
-        this.nodePath = options.nodePath
-        this.environment = options.environment
-        this.trustedCommand = options.trustedCommand
-        this.hardDeadlineTimer = setTimeout(() => {
-            this.terminationReason = 'deadline'
-            this.killActiveChild()
-        }, options.hardDeadlineMs)
-        this.hardDeadlineTimer.unref()
-    }
-
-    /** Executes only the Definition command plus Core-owned, workspace-confined arguments. */
-    async execute(
-        argv: readonly string[],
-        options: SandboxRuntimeExecutionOptions = {}
-    ): Promise<SandboxRuntimeExecuteResponse> {
-        requireDevelopmentRuntime()
-        if (this.activeChild) throw new Error('Local Browser Runtime already has an active Runner process.')
-        const runnerArgs = validateRunnerCommand(argv, this.trustedCommand, this.workspaceRoot)
-        const timeoutMs = positiveInteger(options.timeoutMs, 300_000)
-        const maxOutputBytes = positiveInteger(options.maxOutputBytes, DEFAULT_OUTPUT_LIMIT)
-
-        return new Promise<SandboxRuntimeExecuteResponse>((resolve, reject) => {
-            const child = spawn(this.nodePath, [this.runnerPath, ...runnerArgs], {
-                cwd: this.workspaceRoot,
-                env: this.environment,
-                detached: process.platform !== 'win32',
-                stdio: ['ignore', 'pipe', 'pipe']
-            })
-            this.activeChild = child
-            let output = ''
-            let truncated = false
-            let timedOut = false
-            const append = (stream: 'stdout' | 'stderr', chunk: Buffer | string) => {
-                const text = String(chunk)
-                const next = `${output}${String(chunk)}`
-                if (Buffer.byteLength(next) <= maxOutputBytes) {
-                    output = next
-                } else {
-                    truncated = true
-                    output = Buffer.from(next).subarray(-maxOutputBytes).toString()
-                }
-                try {
-                    options.onOutput?.({ stream, text })
-                } catch {
-                    // Output observers are diagnostic and must never fail execution.
-                }
-            }
-            child.stdout.on('data', (chunk: Buffer) => append('stdout', chunk))
-            child.stderr.on('data', (chunk: Buffer) => append('stderr', chunk))
-            const timeout = setTimeout(() => {
-                timedOut = true
-                this.killActiveChild()
-            }, timeoutMs)
-            timeout.unref()
-
-            child.once('error', (error) => {
-                clearTimeout(timeout)
-                if (this.activeChild === child) this.activeChild = undefined
-                reject(error)
-            })
-            child.once('exit', (exitCode) => {
-                clearTimeout(timeout)
-                if (this.activeChild === child) this.activeChild = undefined
-                resolve({
-                    output: output.trim(),
-                    exitCode,
-                    truncated,
-                    ...(timedOut ? { timedOut: true } : {}),
-                    ...(this.terminationReason ? { terminationReason: this.terminationReason } : {})
-                })
-            })
-        })
-    }
-
-    /** Writes regular files below this Job workspace and refuses link traversal. */
-    async uploadFiles(files: Array<[string, Uint8Array]>): Promise<SandboxRuntimeFileUploadResponse[]> {
-        const responses: SandboxRuntimeFileUploadResponse[] = []
-        for (const [requestedPath, content] of files) {
-            try {
-                const target = resolveWorkspaceFile(this.workspaceRoot, requestedPath)
-                await ensureSafeDirectory(this.workspaceRoot, path.dirname(target))
-                await writeRegularFile(target, content)
-                responses.push({ path: requestedPath, error: null })
-            } catch (error) {
-                responses.push({ path: requestedPath, error: fileOperationError(error) })
-            }
-        }
-        return responses
-    }
-
-    /** Reads regular non-link files below this Job workspace. */
-    async downloadFiles(paths: string[]): Promise<SandboxRuntimeFileDownloadResponse[]> {
-        const responses: SandboxRuntimeFileDownloadResponse[] = []
-        for (const requestedPath of paths) {
-            try {
-                const target = resolveWorkspaceFile(this.workspaceRoot, requestedPath)
-                const stat = await lstat(target)
-                if (stat.isSymbolicLink()) throw invalidPathError('Runtime output cannot be a symbolic link.')
-                if (!stat.isFile()) throw isDirectoryError('Runtime output must be a regular file.')
-                assertWithinWorkspace(this.workspaceRoot, await realpath(target), false)
-                responses.push({ path: requestedPath, content: await readFile(target), error: null })
-            } catch (error) {
-                responses.push({ path: requestedPath, content: null, error: fileOperationError(error) })
-            }
-        }
-        return responses
-    }
-
-    /** Best-effort cancellation for the Runner and its process group. */
-    terminate(): void {
-        if (!this.terminationReason) this.terminationReason = 'cancelled'
-        this.killActiveChild()
-    }
-
-    async dispose(): Promise<void> {
-        clearTimeout(this.hardDeadlineTimer)
-        this.terminate()
-        await waitForExit(this.activeChild, 2_000)
-    }
-
-    private killActiveChild(): void {
-        const child = this.activeChild
-        if (!child || child.exitCode !== null) return
-        if (process.platform !== 'win32' && child.pid) {
-            try {
-                process.kill(-child.pid, 'SIGTERM')
-            } catch {
-                child.kill('SIGTERM')
-            }
-        } else {
-            child.kill('SIGTERM')
-        }
-        const forceKill = setTimeout(() => {
-            if (child.exitCode === null) child.kill('SIGKILL')
-        }, 1_000)
-        forceKill.unref()
     }
 }
 
@@ -573,12 +395,6 @@ function localRuntimeConfiguration(runtimeProfile: string): LocalRuntimeConfigur
     const configuration = LOCAL_RUNTIME_CONFIGURATIONS[runtimeProfile]
     if (!configuration) throw new Error(`Local Browser Runtime does not support profile ${runtimeProfile}.`)
     return configuration
-}
-
-function requireDevelopmentRuntime(): void {
-    if (!isDevelopmentSandboxRuntimeEnvironment()) {
-        throw new Error('local-browser-runtime is forbidden outside development/test.')
-    }
 }
 
 function localRuntimeId(jobId: string): string {
@@ -781,84 +597,6 @@ function prependPath(directory: string, currentPath: string | undefined): string
     return currentPath ? `${directory}${path.delimiter}${currentPath}` : directory
 }
 
-function validateRunnerCommand(
-    argv: readonly string[],
-    trustedCommand: readonly string[],
-    workspaceRoot: string
-): string[] {
-    if (argv.length !== trustedCommand.length + 8 || trustedCommand.some((value, index) => argv[index] !== value)) {
-        throw new Error('Local Browser Runtime rejected an untrusted Runner command.')
-    }
-    const args = Array.from(argv.slice(trustedCommand.length))
-    const expectedFlags = ['--request', '--output', '--action-root', '--action-manifest']
-    for (let index = 0; index < expectedFlags.length; index += 1) {
-        const offset = index * 2
-        if (args[offset] !== expectedFlags[index] || !args[offset + 1]) {
-            throw new Error('Local Browser Runtime rejected malformed Runner arguments.')
-        }
-        assertWithinWorkspace(workspaceRoot, path.resolve(args[offset + 1]), false)
-    }
-    return args
-}
-
-function resolveWorkspaceFile(workspaceRoot: string, requestedPath: string): string {
-    if (!requestedPath || requestedPath.includes('\0')) throw invalidPathError('Runtime file path is invalid.')
-    const target = path.isAbsolute(requestedPath)
-        ? path.resolve(requestedPath)
-        : path.resolve(workspaceRoot, requestedPath)
-    assertWithinWorkspace(workspaceRoot, target, false)
-    return target
-}
-
-function assertWithinWorkspace(workspaceRoot: string, candidate: string, allowRoot: boolean): void {
-    const relative = path.relative(path.resolve(workspaceRoot), path.resolve(candidate))
-    if (
-        (!allowRoot && relative === '') ||
-        relative === '..' ||
-        relative.startsWith(`..${path.sep}`) ||
-        path.isAbsolute(relative)
-    ) {
-        throw invalidPathError('Runtime path escapes the Job workspace.')
-    }
-}
-
-async function ensureSafeDirectory(workspaceRoot: string, directory: string): Promise<void> {
-    assertWithinWorkspace(workspaceRoot, directory, true)
-    const relative = path.relative(workspaceRoot, directory)
-    let current = workspaceRoot
-    for (const segment of relative.split(path.sep).filter(Boolean)) {
-        current = path.join(current, segment)
-        await mkdir(current).catch((error) => {
-            if (nodeErrorCode(error) !== 'EEXIST') throw error
-        })
-        const stat = await lstat(current)
-        if (!stat.isDirectory() || stat.isSymbolicLink()) {
-            throw invalidPathError('Runtime workspace contains an unsafe directory component.')
-        }
-    }
-}
-
-async function writeRegularFile(target: string, content: Uint8Array): Promise<void> {
-    const existing = await lstat(target).catch((error) => {
-        if (nodeErrorCode(error) === 'ENOENT') return null
-        throw error
-    })
-    if (existing?.isSymbolicLink() || existing?.isDirectory()) {
-        throw invalidPathError('Runtime upload target must be a regular file.')
-    }
-    const noFollow = typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0
-    const handle = await open(
-        target,
-        fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_TRUNC | noFollow,
-        0o600
-    )
-    try {
-        await handle.writeFile(content)
-    } finally {
-        await handle.close()
-    }
-}
-
 function localRuntimeEnvironment(additions: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     const names = [
         'PATH',
@@ -906,43 +644,6 @@ function manifestMismatch(expected: Record<string, string>, actual: Record<strin
         }
     }
     return null
-}
-
-function fileOperationError(error: unknown): SandboxRuntimeFileOperationError {
-    const code = nodeErrorCode(error)
-    if (code === 'ENOENT') return 'file_not_found'
-    if (code === 'EACCES' || code === 'EPERM') return 'permission_denied'
-    if (code === 'EISDIR' || code === 'ENOTDIR') return 'is_directory'
-    return 'invalid_path'
-}
-
-function invalidPathError(message: string): Error & { code: 'EINVAL' } {
-    return Object.assign(new Error(message), { code: 'EINVAL' as const })
-}
-
-function isDirectoryError(message: string): Error & { code: 'EISDIR' } {
-    return Object.assign(new Error(message), { code: 'EISDIR' as const })
-}
-
-function nodeErrorCode(error: unknown): string | undefined {
-    if (!error || typeof error !== 'object' || !('code' in error)) return undefined
-    return typeof error.code === 'string' ? error.code : undefined
-}
-
-function positiveInteger(value: number | undefined, fallback: number): number {
-    return Number.isFinite(value) && Number(value) > 0 ? Math.trunc(Number(value)) : fallback
-}
-
-function waitForExit(child: ChildProcessWithoutNullStreams | undefined, timeoutMs: number): Promise<void> {
-    if (!child || child.exitCode !== null) return Promise.resolve()
-    return new Promise((resolve) => {
-        const timeout = setTimeout(resolve, timeoutMs)
-        timeout.unref()
-        child.once('exit', () => {
-            clearTimeout(timeout)
-            resolve()
-        })
-    })
 }
 
 function messageOf(error: unknown): string {

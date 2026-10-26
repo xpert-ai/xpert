@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../../../chat-conversation/control-view/read-thread-control-view.query'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import {
     AssertChatConversationAccessQuery,
@@ -29,6 +30,10 @@ export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
         await assertPublicXpertSessionConversationAccess(chatConversation, this.queryBus)
 
         // Full execution values belong to /state; ordinary reads must not hydrate checkpoints.
-        return new ThreadDTO(chatConversation, undefined, thread ?? undefined)
+        if (!thread) return new ThreadDTO(chatConversation)
+        const snapshot = await this.queryBus.execute(new ReadThreadControlViewQuery(command.threadId))
+        return Object.assign(new ThreadDTO(chatConversation, undefined, snapshot.thread), {
+            controlView: snapshot.controlView
+        })
     }
 }

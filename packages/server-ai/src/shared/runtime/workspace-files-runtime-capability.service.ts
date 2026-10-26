@@ -1,3 +1,4 @@
+import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
 import { readWorkspaceFile } from '../volume/workspace-file-io'
 import { ContentFileOwnershipService } from '../volume/content-file-ownership.service'
 import {
@@ -27,7 +28,6 @@ import {
     RequestContext,
     WorkspaceAppDataOptions,
     WorkspaceStorage,
-    ProjectAccessRuntimeCapability,
     WorkspaceFile,
     WorkspaceFileBuffer,
     WorkspaceFileLocator,
@@ -49,9 +49,7 @@ import {
     WorkspaceUnderstandingChunk,
     WorkspaceUnderstandingChunkPage,
     WorkspaceValidateUnderstandingReferencesInput,
-    WorkspaceValidatedUnderstandingReference,
-    type RuntimeCapabilityResolver,
-    XPERT_RUNTIME_CAPABILITIES_TOKEN
+    WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -118,8 +116,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
-        @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
-        private readonly capabilities: RuntimeCapabilityResolver,
+        @Inject(ProjectAccessRuntimeService)
+        private readonly projectAccess: Pick<ProjectAccessRuntimeService, 'listReadable' | 'assertEdit'>,
         @Optional()
         @Inject(QueryBus)
         private readonly queryBus?: Pick<QueryBus, 'execute'>
@@ -131,7 +129,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
      * Middleware tools receive this scoped API so `/workspace/foo` can be read
      * without exposing catalog, scopeId, tenantId, or projectId to the Agent.
      */
-    @Optional() @Inject(ContentFileOwnershipService)
+    @Optional()
+    @Inject(ContentFileOwnershipService)
     private readonly contentOwnership?: ContentFileOwnershipService
 
     createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
@@ -677,7 +676,12 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
     }
 
     private async resolveVolumeScope(
-        input: WorkspaceFileScope & { filePath?: string; folder?: string | null; fileName?: string | null; originalName?: string },
+        input: WorkspaceFileScope & {
+            filePath?: string
+            folder?: string | null
+            fileName?: string | null
+            originalName?: string
+        },
         operation: 'read' | 'write' | 'delete' = 'read'
     ): Promise<{
         volumeScope: WorkspaceVolumeScopeResolution['volumeScope']
@@ -725,15 +729,21 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             return { volumeScope: scope, catalog: scope.catalog, scopeId: scope.xpertId }
         }
         if (resolved.catalog === 'projects') {
-            const access = this.capabilities.get(ProjectAccessRuntimeCapability)
             const actor = {
                 tenantId,
                 organizationId: RequestContext.getOrganizationId() ?? input.organizationId,
                 userId: actorUserId ?? userId
             }
-            if (!access || !actor.userId || !(await access.listReadable({
-                actor: { ...actor, userId: actor.userId }, projectIds: [resolved.scopeId]
-            })).length) throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))
+            if (
+                !actor.userId ||
+                !(
+                    await this.projectAccess.listReadable({
+                        actor: { ...actor, userId: actor.userId },
+                        projectIds: [resolved.scopeId]
+                    })
+                ).length
+            )
+                throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))
         }
         return resolved
     }
@@ -746,11 +756,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         if (!projectId) {
             throw new BadRequestException('projectId is required for Project workspace file mutation')
         }
-        const projectAccess = this.capabilities.get(ProjectAccessRuntimeCapability)
-        if (!projectAccess) {
-            throw new InternalServerErrorException('Project access runtime capability is unavailable')
-        }
-        await projectAccess.assertEdit({
+        await this.projectAccess.assertEdit({
             projectId,
             actor: {
                 tenantId: RequestContext.currentTenantId(),

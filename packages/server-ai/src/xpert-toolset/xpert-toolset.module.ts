@@ -1,9 +1,13 @@
+import { McpRemoteOperation } from '../mcp-consumer/execution/mcp-operation.entity'
+import { McpOperationStore } from '../mcp-consumer/execution/mcp-operation.store'
+import { McpOperationService } from '../mcp-consumer/execution/mcp-operation.service'
+import { McpOperationTransport } from '../mcp-consumer/execution/mcp-operation.transport'
 import { RestClientRuntimeService } from './runtime/rest-client-runtime.service'
 import { RestClientTransport } from './runtime/rest-client.transport'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
 import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
-import { RedisModule, TenantModule } from '@xpert-ai/server-core'
+import { RedisModule, TenantModule, TaskControlModule, User } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -46,9 +50,12 @@ import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runt
 
 @Module({
     imports: [
+        TaskControlModule,
         RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
         TypeOrmModule.forFeature([
             XpertToolset,
+            User,
+            McpRemoteOperation,
             McpRuntimeInstanceEntity,
             PluginResourceInstallation,
             McpCapabilityCatalog,
@@ -75,6 +82,9 @@ import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runt
         McpConsumerCapabilitiesController
     ],
     providers: [
+        McpOperationStore,
+        McpOperationService,
+        McpOperationTransport,
         XpertToolsetService,
         McpAppsService,
         McpRuntimeAuditService,

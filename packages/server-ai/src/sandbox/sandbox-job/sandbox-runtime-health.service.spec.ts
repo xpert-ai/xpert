@@ -67,7 +67,7 @@ describe('SandboxRuntimeHealthService API Runtime executor', () => {
             available: false,
             reason: 'RUNTIME_UNBOUND'
         })
-        expect(selector.inspect).toHaveBeenCalledWith(definition)
+        expect(selector.inspect).toHaveBeenCalledWith(definition, { executionControl: true })
         expect(redis.eval).toHaveBeenCalled()
     })
 

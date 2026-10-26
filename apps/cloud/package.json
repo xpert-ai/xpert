@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/xpert-ui",
-  "version": "3.26.0",
+  "version": "3.26.2",
   "private": true,
   "type": "commonjs",
   "license": "AGPL-3.0",
@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@xpert-ai/chatkit-assets": "0.1.0",
     "tailwindcss": "^4.1.18"
   },
   "dependencies": {

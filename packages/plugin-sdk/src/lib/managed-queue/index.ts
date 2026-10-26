@@ -1,8 +1,11 @@
+import type { TaskControlContext, TaskControlPolicy } from '../execution-control'
 export const MANAGED_QUEUE_SERVICE_TOKEN = 'XPERT_MANAGED_QUEUE_SERVICE'
 export const MANAGED_QUEUE_HANDLER_REGISTRY_TOKEN = 'XPERT_MANAGED_QUEUE_HANDLER_REGISTRY'
 export const PLUGIN_JOB_PROCESSOR_METADATA = 'XPERT_PLUGIN_JOB_PROCESSOR_METADATA'
 
 export type PluginJobProcessorOptions = {
+  /** Explicit handler compatibility contract for controlled jobs; not a package version. */
+  controlContract?: string
   pluginName: string
   queueName?: string
   queue?: string
@@ -12,6 +15,7 @@ export type PluginJobProcessorOptions = {
 }
 
 export type PluginJobProcessorMetadata = {
+  controlContract?: string
   pluginName: string
   queueName: string
   jobName: string
@@ -61,6 +65,12 @@ export type ManagedQueueRedis = {
 }
 
 export type ManagedQueueEnqueueInput<TPayload = unknown> = {
+  /** Trusted producer lifecycle policy; omission inherits an active host control scope. */
+  /** Explicitly enroll work in the current host task context; omitted retains the existing independent queue lifecycle. */
+  controlPolicy?: TaskControlPolicy
+  /** Required when enrolling a new controlled job. Must match the registered handler. */
+  controlContract?: string
+  drainOnPause?: boolean
   pluginName: string
   queueName: string
   jobName: string
@@ -108,6 +118,7 @@ export type ManagedQueueJob<TPayload = unknown> = {
 }
 
 export type ManagedQueueJobContext = {
+  control?: TaskControlContext
   pluginName: string
   queueName: string
   jobName: string
@@ -138,6 +149,7 @@ export interface ManagedQueueJobProcessor<TPayload = unknown> {
 }
 
 export type ManagedQueueHandlerRegistration<TPayload = unknown> = {
+  controlContract?: string
   pluginName: string
   queueName: string
   jobName: string
@@ -185,6 +197,9 @@ function normalizePluginJobProcessorMetadata(options: PluginJobProcessorOptions)
     pluginName,
     queueName,
     jobName,
+    ...(options.controlContract === undefined
+      ? {}
+      : { controlContract: requireManagedQueueDecoratorValue(options.controlContract, 'controlContract') }),
     ...(concurrency === undefined ? {} : { concurrency: Math.trunc(concurrency) })
   }
 }

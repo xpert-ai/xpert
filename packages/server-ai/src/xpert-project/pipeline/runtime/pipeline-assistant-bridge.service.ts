@@ -22,6 +22,7 @@ import { ProjectPipelineOperationStore, type PipelineOperationClaim } from './pi
 import { lockManagedProject } from './pipeline-transaction'
 import { pipelineAssistantIntentSchema } from './pipeline-assistant-intent.schema'
 import { readPipelineModelBudgetDenial } from '../budget/pipeline-model-budget-denial'
+import { assistantControl } from './pipeline-assistant-control'
 
 /** Native Assistant Task owns execution and Invocation persistence. Pipeline owns only the governed intent and acceptance. */
 @Injectable()
@@ -160,8 +161,9 @@ export class ProjectPipelineAssistantBridgeService {
                 clientMessageId: operation.id
             })
         if (!native) return { status: 'unknown', receiptKey: operation.id }
+        const control = assistantControl(native, intent.executionId)
         if (
-            (native.executionId && native.executionId !== intent.executionId) ||
+            (native.executionId && native.executionId !== intent.executionId && control.source !== 'platform') ||
             (native.conversationId && native.conversationId !== intent.conversationId) ||
             (native.executorXpertId && native.executorXpertId !== intent.xpertId) ||
             (native.executorPublishedVersion && native.executorPublishedVersion !== intent.publishedVersion)
@@ -175,8 +177,31 @@ export class ProjectPipelineAssistantBridgeService {
             publishedVersion: intent.publishedVersion,
             status: native.status === 'interrupted' ? ('waiting' as const) : native.status
         }
+        if (control.state !== 'settled')
+            return {
+                status:
+                    native.status === 'unknown' ||
+                    (control.state === 'unknown' && ['succeeded', 'failed'].includes(native.status))
+                        ? 'unknown'
+                        : 'pending',
+                receiptKey: operation.id,
+                control,
+                execution: { ...execution, status: native.status === 'interrupted' ? 'waiting' : 'running' }
+            }
+        if (
+            control.source === 'platform' &&
+            control.desired === 'terminated' &&
+            !['succeeded', 'failed'].includes(native.status)
+        )
+            return {
+                status: 'cancelled',
+                receiptKey: operation.id,
+                control,
+                execution: { ...execution, status: 'cancelled' }
+            }
         if (native.status === 'failed')
             return {
+                control,
                 status: 'failed',
                 receiptKey: operation.id,
                 code:
@@ -188,6 +213,7 @@ export class ProjectPipelineAssistantBridgeService {
         if (native.status !== 'succeeded') return { status: 'pending', receiptKey: operation.id, execution }
         try {
             return {
+                control,
                 status: 'succeeded',
                 receiptKey: operation.id,
                 execution,
@@ -225,24 +251,13 @@ export class ProjectPipelineAssistantBridgeService {
         if (!(await this.store.beginCancel(context, row.id, workerId, claim.fence)))
             return { status: 'unknown', receiptKey: row.id }
         if (!api.cancelTask) return this.observe(context, { ...claim, mode: 'inspect' }, workerId, selectionKey)
-        const result = await api.cancelTask({
+        await api.cancelTask({
             xpertId: intent.xpertId,
             executionId: intent.executionId,
             conversationId: intent.conversationId,
             clientMessageId: row.id
         })
-        if (!result.canceledExecutionIds.includes(intent.executionId)) return { status: 'unknown', receiptKey: row.id }
-        return {
-            status: 'cancelled',
-            receiptKey: row.id,
-            execution: {
-                kind: 'assistant_task',
-                xpertId: intent.xpertId,
-                executionId: intent.executionId,
-                conversationId: intent.conversationId,
-                publishedVersion: intent.publishedVersion,
-                status: 'cancelled'
-            }
-        }
+        // Request acknowledgement is not completion. Inspect the original task without dispatching again.
+        return this.observe(context, { ...claim, mode: 'inspect' }, workerId, selectionKey)
     }
 }

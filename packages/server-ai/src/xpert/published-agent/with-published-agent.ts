@@ -8,10 +8,10 @@ export function publishedAgentDelegation() {
 }
 
 /** Called only after resolving an authorized resource; credential audience and parent request stay unchanged. */
-export function runWithPublishedAgent<T>(
+export function runWithPublishedAgent<T, Target extends Pick<AgentMiddlewareResolvedAgent, 'xpertId'>>(
     requesterXpertId: string,
-    target: AgentMiddlewareResolvedAgent,
-    operation: (target: AgentMiddlewareResolvedAgent) => Promise<T>
+    target: Target,
+    operation: (target: Target) => Promise<T>
 ): Promise<T> {
     return delegation.run({ requesterXpertId, xpertId: target.xpertId }, () => operation(target))
 }

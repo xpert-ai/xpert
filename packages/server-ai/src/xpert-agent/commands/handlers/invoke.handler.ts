@@ -1,3 +1,7 @@
+import { taskControlledStream } from '@xpert-ai/server-core'
+import { resolveAgentExecutionScope } from '../../../shared/agent/middleware-runtime/execution-scope'
+import { executionToolReceipts } from '../../../execution-control/adapters/execution-tool-receipts'
+import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { dependencyUpdateEvent } from '../../../plugin-resource/template-installation/dependency-update-event'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
@@ -56,7 +60,8 @@ import {
     mergeEnvironmentWithEnvState,
     mergeRuntimeContextWithEnv
 } from '../../../environment'
-import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
+import { isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
+import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
@@ -85,6 +90,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
         private readonly executionCancelService: ExecutionCancelService,
+        private readonly executionControls: ExecutionControlStore,
         private readonly workAreaResolver: XpertWorkAreaResolver,
         @Optional()
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
@@ -245,7 +251,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const abortController = new AbortController()
         if (execution?.id) {
+            await this.threadRunControl?.ensureExecution(threadId, execution.id)
             this.executionCancelService.register(execution.id, abortController)
+            await this.executionCancelService.check(execution.id)
+            abortController.signal.throwIfAborted()
         }
         const executionContext: ExecutionContext = { sandbox: sandboxContext }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
@@ -255,7 +264,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     ...options,
                     shouldPause:
                         this.threadRunControl && options.thread_id && execution?.id
-                            ? () => this.threadRunControl.shouldPause(options.thread_id, execution.id)
+                            ? (nodeKey) => this.threadRunControl.shouldPause(options.thread_id, execution.id, nodeKey)
                             : undefined,
                     planMode,
                     execution,
@@ -494,6 +503,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 executionId: execution.id,
                 rootExecutionId
             },
+            callbacks: [executionToolReceipts(this.executionControls, execution.id)],
             signal: abortController.signal
             // debug: true
         }
@@ -510,8 +520,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
             graphInput = null
         }
+        const controlTask = await this.executionControls.tasks.execution(execution.id)
+        const source = () => graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
         const contentStream = defer(() =>
-            graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
+            controlTask
+                ? taskControlledStream(
+                      { version: 2, targetId: controlTask.id },
+                      source,
+                      () => resolveAgentExecutionScope({}).executionId ?? execution.id
+                  )
+                : source()
         ).pipe(
             map(
                 createMapStreamEvents(this.#logger, subscriber, {
@@ -557,7 +575,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     // finish, then the next persisted boundary is resumed
                     // from the checkpoint we just recorded.
                     const pauseRequested = Boolean(await this.threadRunControl?.shouldPause(threadId, execution.id))
-                    if (pauseRequested) {
+                    const needsInput = state.tasks?.some(
+                        (task) =>
+                            task.result === undefined && task.interrupts?.some((item) => !isThreadPause(item.value))
+                    )
+                    if (pauseRequested && !needsInput) {
                         if (execution.checkpointId) {
                             await this.threadRunControl?.stageCheckpoint(threadId, execution.id, {
                                 threadId,
@@ -581,6 +603,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
+                        await this.threadRunControl?.stageInput(
+                            threadId,
+                            execution.id,
+                            pendingTasks
+                                .filter((task) => task.interrupts?.some((item) => !isThreadPause(item.value)))
+                                .map((task) => task.name)
+                        )
                         const operation = await this.queryBus.execute(
                             new CompleteToolCallsQuery(
                                 xpert.id,

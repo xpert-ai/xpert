@@ -1,3 +1,4 @@
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
 jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({ MessageCheckpointService: class {} }))
 jest.mock('../../../chat-conversation/thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
 jest.mock('isolated-vm', () => ({ ExternalCopy: class {}, Isolate: class {} }))
@@ -12,7 +13,6 @@ jest.mock('../../../environment', () => ({
     EnvironmentService: jest.requireActual('../../../environment/environment.service').EnvironmentService
 }))
 jest.mock('../../../shared', () => ({
-    ExecutionCancelService: class {},
     XpertWorkAreaResolver: class {},
     isPlanModeEnabledFromState: () => false
 }))
@@ -111,6 +111,7 @@ describe('Agent environment runtime authorization', () => {
             null,
             null,
             environments,
+            null,
             null,
             null,
             workAreas as unknown as XpertWorkAreaResolver,

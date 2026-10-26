@@ -33,6 +33,7 @@ import {
 	SAFE_ANALYTICS_ERRORS
 } from './analytics-errors'
 import { analyticsRuntimeDependencyError } from './analytics-runtime-errors'
+import { PROVIDER_VALIDATION_ERRORS } from './analytics-error-details'
 
 /** Only platform modules supply resource adapters. Plugin providers cannot supply source options or ACLs. */
 export const ANALYTICS_SOURCE_RESOLVERS = Symbol('ANALYTICS_SOURCE_RESOLVERS')
@@ -185,8 +186,8 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 						throw analyticsError(
 							error instanceof Error && SAFE_ANALYTICS_ERRORS.has(error.message)
 								? error.message
-								: error instanceof Error && error.message === 'read_only_violation'
-									? 'ANALYTICS_READ_ONLY_VIOLATION'
+								: error instanceof Error
+									? (PROVIDER_VALIDATION_ERRORS.get(error.message) ?? 'ANALYTICS_QUERY_FAILED')
 									: 'ANALYTICS_QUERY_FAILED'
 						)
 					}

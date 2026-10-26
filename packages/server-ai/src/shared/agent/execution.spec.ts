@@ -1,7 +1,7 @@
 import { type IXpertAgentExecution, XpertAgentExecutionStatusEnum as Status } from '@xpert-ai/contracts'
 import { type CommandBus, type QueryBus } from '@nestjs/cqrs'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
-import { ExecutionCancelledError } from '../execution/execution-cancelled.error'
+import { ExecutionCancelledError } from '../../execution-control/execution-cancelled.error'
 import { wrapAgentExecution } from './execution'
 
 function fixture() {

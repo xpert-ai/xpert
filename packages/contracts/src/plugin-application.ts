@@ -271,6 +271,7 @@ export interface PluginApplicationCompositionItem {
 }
 
 export interface PluginApplicationDetail {
+  canUpdate?: boolean
   composition: PluginApplicationCompositionItem[]
   application: PluginTemplateApplicationSummary
   status: PluginApplicationStatusSummary
@@ -314,4 +315,19 @@ export function getPluginApplicationScopes(value: unknown): PluginApplicationSco
 
 export function isPluginApplicationScope(value: unknown): value is PluginApplicationScope {
   return value === 'organization' || value === 'personal' || value === 'tenant'
+}
+
+/** A scoped, durable release; clients never select resource IDs or template versions. */
+export interface PluginApplicationUpdateInput extends PluginApplicationSetupInput {
+  operationId: string
+  resume?: boolean
+}
+export interface PluginApplicationUpdateProgress {
+  operationId: string
+  status: 'running' | 'failed' | 'completed'
+  updatedAt: string
+  errorCode: 'UPDATE_FAILED' | null
+  completed: number
+  total: number
+  entries: Array<{ key: string; stage: 'pending' | 'preparing' | 'prepared' | 'binding' | 'publishing' | 'published' }>
 }

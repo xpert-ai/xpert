@@ -8,11 +8,27 @@ import {
 } from '../../file-understanding/queries'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { VolumeHandle } from '../volume'
-import { DefaultRuntimeCapabilityRegistry, ProjectAccessRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
 describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
     const roots: string[] = []
+
+    it('denies revoked Project membership before resolving the file volume', async () => {
+        const resolve = jest.fn()
+        const listReadable = jest.fn().mockResolvedValue([])
+        const service = new WorkspaceFilesRuntimeCapabilityService(
+            { execute: jest.fn() },
+            { resolve },
+            { listReadable, assertEdit: jest.fn() }
+        )
+        await expect(service.readRuntimeBuffer(reference('private.txt'))).rejects.toBeInstanceOf(ForbiddenException)
+        expect(listReadable).toHaveBeenCalledWith({
+            actor: { tenantId: 'tenant-1', organizationId: undefined, userId: 'user-1' },
+            projectIds: ['project-1']
+        })
+        expect(resolve).not.toHaveBeenCalled()
+    })
 
     afterEach(async () => {
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
@@ -116,14 +132,12 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const service = new WorkspaceFilesRuntimeCapabilityService(
             commandBus,
             { resolve: jest.fn().mockReturnValue({ exposesDirectFileUrls: () => false }) },
-            new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+            {
                 listReadable: jest
                     .fn()
                     .mockResolvedValue([{ projectId: 'project-1', role: 'member', canManage: false, archived: false }]),
-                assertEdit: jest.fn(),
-                assertManage: jest.fn(),
-                assertAssistant: jest.fn()
-            })
+                assertEdit: jest.fn()
+            }
         )
 
         await expect(
@@ -410,18 +424,14 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         return new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
             { resolve: jest.fn().mockReturnValue(volume) },
-            new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+            {
                 listReadable: jest
                     .fn()
                     .mockResolvedValue([{ projectId: 'project-1', role: 'editor', canManage: false, archived: false }]),
-                assertAssistant: jest.fn(),
                 assertEdit: jest
                     .fn()
-                    .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false }),
-                assertManage: jest
-                    .fn()
-                    .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
-            }),
+                    .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false })
+            },
             queryBus
         )
     }

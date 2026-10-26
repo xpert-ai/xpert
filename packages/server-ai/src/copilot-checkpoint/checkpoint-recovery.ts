@@ -1,5 +1,6 @@
 // Invariants: only a live root writer can record recovery. The checkpoint, its execution
 // reference and candidate-branch admission commit together; no latest-checkpoint guessing.
+import { assertTaskExecutionWritable, TaskControlRejected } from '@xpert-ai/server-core'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import type { CheckpointMetadata } from '@langchain/langgraph-checkpoint'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
@@ -53,6 +54,7 @@ export async function persistRecoveryCheckpoint(
     if (
         !thread ||
         thread.runControl?.executionId !== writer.executionId ||
+        !['running', 'pausing'].includes(thread.runControl.state) ||
         !['busy', 'pausing'].includes(thread.status) ||
         (lease && Date.parse(lease.expiresAt) <= Date.now())
     )
@@ -71,6 +73,12 @@ export async function persistRecoveryCheckpoint(
         ![XpertAgentExecutionStatusEnum.RUNNING, XpertAgentExecutionStatusEnum.PENDING].includes(execution.status)
     )
         throw recoveryConflict('conversation_recovery_unavailable', execution?.error)
+    try {
+        await assertTaskExecutionWritable(manager, writer, writer.executionId)
+    } catch (error) {
+        if (error instanceof TaskControlRejected) throw recoveryConflict('conversation_recovery_unavailable')
+        throw error
+    }
     const latest = { threadId: writer.thread_id, checkpointNs: '', checkpointId: row.checkpoint_id }
     const previous = readExecutionRecovery(execution.metadata?.recovery)
     if (

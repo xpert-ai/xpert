@@ -209,6 +209,50 @@ describe('SecretTokenStrategy', () => {
 		})
 	})
 
+	it.each([
+		{ kind: 'assistant' },
+		{ kind: 'project', projectId: 'project-1' },
+		{ kind: 'conversation', conversationId: 'conversation-1', requesterXpertId: 'assistant-1' }
+	])('restores the persisted delegation source: %j', async (grantSource) => {
+		const { strategy, secretTokenService, userService } = createStrategy(null)
+		secretTokenService.findBySecret.mockResolvedValue({
+			id: 'secret',
+			type: SecretTokenBindingType.USER_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdById: 'user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false,
+			grantSource
+		})
+		userService.findOneByIdWithinTenant.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1', type: 'user' })
+		const result = await authenticate(strategy, { headers: { 'x-client-secret': 'cs-x-test' } })
+		expect(result).toMatchObject({ grantSource })
+	})
+	it.each([
+		{ kind: 'project', projectId: '' },
+		{ kind: 'project', projectId: 'project-1', tenantId: 'forged' },
+		{ kind: 'conversation', conversationId: 'conversation-1' },
+		{ kind: 'all' }
+	])('rejects malformed persisted delegation without widening its source: %j', async (grantSource) => {
+		const { strategy, secretTokenService, userService } = createStrategy(null)
+		secretTokenService.findBySecret.mockResolvedValue({
+			id: 'secret',
+			type: SecretTokenBindingType.USER_XPERT,
+			entityId: 'xpert-1',
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			createdById: 'user-1',
+			validUntil: new Date(Date.now() + 60_000),
+			expired: false,
+			grantSource
+		})
+		userService.findOneByIdWithinTenant.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1', type: 'user' })
+		await expect(authenticate(strategy, { headers: { 'x-client-secret': 'cs-x-test' } })).rejects.toBeInstanceOf(
+			UnauthorizedException
+		)
+	})
 	it('resolves user xpert client secrets as an assistant-scoped delegated user', async () => {
 		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
 		secretTokenService.findBySecret.mockResolvedValue({

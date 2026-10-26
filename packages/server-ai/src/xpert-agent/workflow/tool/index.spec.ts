@@ -1,3 +1,5 @@
+import { Annotation, StateGraph, START, END, MemorySaver, Command, interrupt } from '@langchain/langgraph'
+import { getToolCallIdFromConfig } from '@xpert-ai/contracts'
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -12,6 +14,7 @@ import { z } from 'zod'
 import { _BaseToolset } from '../../../shared'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { createToolNode } from '.'
+import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
 
 const nodeKey = 'Tool_1'
 const toolsetId = 'toolset-1'
@@ -269,4 +272,63 @@ describe('workflow tool node cleanup', () => {
         expect(output[channelName(nodeKey)].json).toEqual({ ok: true })
         expect(loggerDebug).toHaveBeenCalledWith(closeError)
     })
+})
+
+describe('workflow tool identity on real checkpoint continuation', () => {
+    it.each([undefined, 'defaultValue', 'failBranch'] as const)(
+        'preserves input continuation with error handling %s',
+        async (handling) => {
+            const callIds: string[] = []
+            const tool = new DynamicStructuredTool({
+                name: toolName,
+                description: 'Input barrier',
+                schema: z.object({ query: z.string() }),
+                func: async (_args, _manager, config) => {
+                    callIds.push(getToolCallIdFromConfig(config))
+                    interrupt('Continue original operation')
+                    return 'done'
+                }
+            })
+            const toolset = new WorkflowTestToolset(tool)
+            const { commandBus, queryBus } = createBuses(toolset)
+            const node = createNode({
+                errorHandling: handling ? { type: handling, defaultValue: { result: 'fallback' } } : undefined
+            })
+            const workflow = createToolNode(createGraph(node), node, {
+                commandBus: commandBus as unknown as CommandBus,
+                queryBus: queryBus as unknown as QueryBus,
+                xpertId: 'xpert-1',
+                workspaceId: 'workspace-1',
+                environment: { name: 'Test', variables: [] },
+                conversationId: 'conversation-1'
+            })
+            const graph = new StateGraph(Annotation.Root({}))
+                .addNode('tool', workflow.workflowNode.graph)
+                .addEdge(START, 'tool')
+                .addEdge('tool', END)
+                .compile({ checkpointer: new MemorySaver() })
+            const config = { configurable: { thread_id: 'identity-thread', executionId: 'execution-1' } }
+            await graph.invoke({}, config)
+            expect((await graph.getState(config)).tasks[0].interrupts).toHaveLength(1)
+            await graph.invoke(new Command({ resume: true }), config)
+            expect(callIds).toHaveLength(2)
+            expect(callIds[1]).toBe(callIds[0])
+            await graph.invoke({}, config)
+            expect(callIds[2]).not.toBe(callIds[0])
+        }
+    )
+    it.each(['defaultValue', 'failBranch'] as const)(
+        'does not turn termination into a successful %s result',
+        async (handling) => {
+            const cancelled = new ExecutionCancelledError('execution-1', 'Test termination')
+            const toolset = new WorkflowTestToolset(
+                createTool(() => {
+                    throw cancelled
+                })
+            )
+            const node = createNode({ errorHandling: { type: handling, defaultValue: { result: 'fallback' } } })
+            await expect(invokeWorkflowToolNode(toolset, node)).rejects.toBe(cancelled)
+            expect(toolset.close).toHaveBeenCalledTimes(1)
+        }
+    )
 })

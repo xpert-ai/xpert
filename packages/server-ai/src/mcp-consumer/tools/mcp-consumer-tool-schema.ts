@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ListToolsResultSchema, ToolSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
+import { mcpToolTaskSupport } from './mcp-tool-task-support'
 
 const jsonSchemaType = z.enum(['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'])
 const outputSchema = ToolSchema.shape.outputSchema.unwrap().extend({
@@ -8,7 +9,18 @@ const outputSchema = ToolSchema.shape.outputSchema.unwrap().extend({
     type: z.union([jsonSchemaType, z.array(jsonSchemaType).nonempty()]).optional()
 })
 
-export const mcpConsumerToolSchema = ToolSchema.extend({ outputSchema: outputSchema.optional() })
+export const mcpConsumerToolSchema = ToolSchema.extend({ outputSchema: outputSchema.optional() }).transform((tool) => {
+    // Normalize once at discovery so legacy adapters and App metadata retain the same task semantics.
+    const taskSupport = mcpToolTaskSupport(tool)
+    if (taskSupport) {
+        const execution = tool.execution
+        tool.execution = {
+            ...(typeof execution === 'object' && execution !== null && !Array.isArray(execution) ? execution : {}),
+            taskSupport
+        }
+    }
+    return tool
+})
 export const mcpConsumerListToolsResultSchema = ListToolsResultSchema.extend({
     tools: z.array(mcpConsumerToolSchema)
 })

@@ -1,4 +1,5 @@
-import type { JSONValue, TAvatar, ProjectPipelineNativeSource } from '@xpert-ai/contracts'
+import type { TaskControlPolicy } from '../../../execution-control'
+import type { JSONValue, TAvatar, ProjectPipelineNativeSource, ExecutionControlEvidence } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../../core/runtime-capability'
 
 /** Task lifecycle snapshot. interrupted means paused; unknown does not confirm failure. */
@@ -129,6 +130,8 @@ export type AgentMiddlewareCorrelatedExecution = {
 
 /** Start an asynchronous task on the current Assistant or a resolved external Assistant. */
 export type AgentMiddlewareAssistantTaskInput = {
+  /** Trusted host lifecycle selection; background mode alone never selects independence. */
+  controlPolicy?: TaskControlPolicy
   /** Current/requesting Assistant ID; must match target.requesterXpertId when target is supplied. */
   xpertId: string
   /** Fail before dispatch if the accessible published executor changed after the caller prepared its intent. */
@@ -160,6 +163,8 @@ export type AgentMiddlewareAssistantTaskInput = {
 /** Task receipt, not necessarily a completed result. Use status and execution identifiers to follow progress. */
 export type AgentMiddlewareAssistantTaskResult = {
   status: AgentMiddlewareAssistantTaskStatus
+  /** Actual execution evidence, independent of legacy business status and cancellation acknowledgements. */
+  control?: ExecutionControlEvidence
   taskId?: string
   executionId?: string
   conversationId?: string

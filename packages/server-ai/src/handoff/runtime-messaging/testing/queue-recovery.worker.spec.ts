@@ -183,7 +183,9 @@ child(
                         crash()
                     }
                 })
-                const continuation = new RuntimeMessageContinuationService(database, access, commands)
+                const continuation = new RuntimeMessageContinuationService(database, access, commands, {
+                    execution: async () => null
+                } as never)
                 await continuation.reconcile()
                 expect(
                     (await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ invocationId: record.id })).state

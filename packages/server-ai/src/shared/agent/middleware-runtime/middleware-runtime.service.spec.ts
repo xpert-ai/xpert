@@ -1,7 +1,9 @@
+import { unknownExecutionControl } from '@xpert-ai/contracts'
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
 }))
 import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
+import { GetAccessiblePublishedXpertQuery } from '../../../xpert/published-agent/get-accessible-published-xpert.query'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationRuntime } from '../../../agent-invocation/invocation-runtime'
@@ -220,9 +222,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         }
         queryBus = {
             execute: jest.fn(async (query: unknown) =>
-                query instanceof FindXpertQuery
+                query instanceof FindXpertQuery || query instanceof GetAccessiblePublishedXpertQuery
                     ? {
-                          id: query.conditions.id,
+                          id: query instanceof FindXpertQuery ? query.conditions.id : query.xpertId,
                           organizationId: 'org-1',
                           workspaceId: 'workspace-1',
                           publishAt: new Date('2026-01-01'),
@@ -247,7 +249,11 @@ describe('AgentMiddlewareRuntimeService', () => {
                 .fn()
                 .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
         })
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, platformCapabilities)
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(
+            commandBus,
+            volumeClient,
+            platformCapabilities.get(ProjectAccessRuntimeCapability)!
+        )
         connectors = {
             createScopedApi: jest.fn(() => ({
                 getConnector: jest.fn().mockResolvedValue(undefined),
@@ -330,7 +336,9 @@ describe('AgentMiddlewareRuntimeService', () => {
                             }
                           : undefined
                 )
-            } as never
+            } as never,
+            { execution: jest.fn().mockResolvedValue(null) } as never,
+            { read: jest.fn(async (id: string) => unknownExecutionControl({ kind: 'execution', id })) } as never
         )
         const knowledgebaseCatalog: jest.Mocked<Pick<KnowledgebaseCatalogService, 'query' | 'get' | 'getAccess'>> = {
             query: jest.fn(),
@@ -2395,6 +2403,9 @@ describe('AgentMiddlewareRuntimeService', () => {
         const requester = orchestratorFixture(['bom-assistant-1'])
         const executor = roleAssistantFixture('bom-assistant-1')
         queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof GetAccessiblePublishedXpertQuery) {
+                return query.xpertId === requester.id ? requester : executor
+            }
             if (query instanceof FindXpertQuery) {
                 return query.conditions.id === requester.id ? requester : executor
             }
@@ -2717,6 +2728,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         expect(result).toEqual({
+            control: expect.objectContaining({ state: 'unknown', subject: { kind: 'execution', id: 'execution-1' } }),
             status: 'failed',
             taskId: undefined,
             executionId: 'execution-1',

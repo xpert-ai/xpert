@@ -1,5 +1,6 @@
 import { buttonVariants, installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
+import { downloadRemoteFile } from '../../../../view-extension/remote-file-download'
 import { agentInvocationStatusSchema } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { agentResultItemSchema } from '@xpert-ai/plugin-sdk/agent-results'
@@ -182,6 +183,7 @@ async function load(query: unknown) {
             }
             button.onclick = async () => {
                 if (!file.versionId) return
+                const version = epoch
                 button.disabled = true
                 error.textContent = ''
                 try {
@@ -192,17 +194,8 @@ async function load(query: unknown) {
                             purpose: 'download'
                         })
                     )
-                    const url = new URL(grant.url, window.location.href)
-                    if (!['http:', 'https:'].includes(url.protocol)) throw Error('Invalid download URL')
-                    // Use a top-level download: opaque sandbox subframe navigation omits the session's SameSite cookie.
-                    const link = document.createElement('a')
-                    link.href = url.href
-                    link.download = grant.fileName
-                    link.target = '_blank'
-                    link.rel = 'noopener noreferrer'
-                    document.body.append(link)
-                    link.click()
-                    link.remove()
+                    if (version !== epoch) return
+                    downloadRemoteFile(grant, zh ? '下载地址无效' : 'Invalid download URL')
                 } catch (e) {
                     error.textContent = e instanceof Error ? e.message : zh ? '下载失败' : 'Download failed'
                 } finally {

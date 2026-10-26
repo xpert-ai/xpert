@@ -1,6 +1,8 @@
+import { publicRunControl, PublicRunControl } from '../../chat-conversation/control-view/public-run-control'
+import type { ThreadControlView } from '@xpert-ai/contracts'
 import { RUN_LEASE_KEY } from '../../chat-conversation/thread-run-lease'
 import { DISPLAY_PAUSE_KEY } from '../../chat-conversation/thread-display-pause'
-import { IUser, TChatConversationStatus, TChatThreadRunControl, TSensitiveOperation } from '@xpert-ai/contracts'
+import { IUser, TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
@@ -47,7 +49,10 @@ export class ThreadDTO {
     values: Record<string, unknown>
 
     @Expose()
-    runControl?: TChatThreadRunControl | null
+    runControl?: PublicRunControl | null
+
+    @Expose()
+    controlView?: ThreadControlView
 
     @Expose()
     operation?: TSensitiveOperation | null
@@ -61,7 +66,7 @@ export class ThreadDTO {
         Object.assign(this, conversation)
         if (thread) {
             this.operation = thread.operation ?? null
-            this.runControl = thread.runControl ?? null
+            this.runControl = publicRunControl(thread.runControl)
             this.threadId = thread.threadId
             this.status = thread.status
             this.createdAt = thread.createdAt

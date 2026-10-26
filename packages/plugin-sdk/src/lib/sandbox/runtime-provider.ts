@@ -1,3 +1,6 @@
+import type { SandboxRuntimeTarget, SandboxRuntimeEvidence } from '@xpert-ai/contracts'
+export type { SandboxRuntimeTarget, SandboxRuntimeEvidence } from '@xpert-ai/contracts'
+
 /** Per-execution limits applied to the Runtime Definition's fixed Runner command. */
 export type SandboxRuntimeExecutionOptions = {
   timeoutMs?: number
@@ -93,6 +96,8 @@ export type SandboxRuntimeSecurity = {
 
 /** Isolation guarantees a Provider advertises before it can be selected. */
 export type SandboxRuntimeProviderCapabilities = {
+  /** Versioned original-target control and actual execution receipts. */
+  executionControl?: 1
   isolation: 'process' | 'hardened'
   ephemeral: boolean
   resourceLimits: boolean
@@ -175,6 +180,8 @@ export type SandboxRuntimeVolume = {
 
 /** Fully resolved policy used to create or reattach one ephemeral Job Runtime. */
 export type SandboxRuntimeCreateOptions = {
+  /** Host-persisted identity, prepared before create; never replace it with a new target. */
+  controlTarget?: SandboxRuntimeTarget
   tenantId: string
   workFor: {
     type: 'job'
@@ -198,6 +205,7 @@ export type SandboxRuntimeCreateOptions = {
 
 /** Persisted evidence required to destroy a Runtime even after Provider reload. */
 export type SandboxRuntimeDestroyOptions = {
+  controlTarget?: SandboxRuntimeTarget
   tenantId: string
   workFor: {
     type: 'job'
@@ -251,4 +259,7 @@ export interface ISandboxRuntimeProvider {
   create(options: SandboxRuntimeCreateOptions): Promise<SandboxRuntimeInstance>
   /** Idempotently reclaims a Runtime by persisted scope, Binding, and runtimeRef evidence. */
   destroy(options: SandboxRuntimeDestroyOptions): Promise<void>
+  /** Resolve identity without starting business work; control never calls create/execute. */
+  prepareControl?(options: SandboxRuntimeDestroyOptions & { generation: string }): Promise<SandboxRuntimeTarget>
+  control?(target: SandboxRuntimeTarget, action: 'inspect' | 'stop'): Promise<SandboxRuntimeEvidence>
 }

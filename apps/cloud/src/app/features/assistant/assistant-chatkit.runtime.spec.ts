@@ -247,6 +247,7 @@ describe('assistant chatkit runtime helpers', () => {
     })
     flushAngularEffects()
 
+    expect(createChatKitMock.mock.calls[0][0].pet).not.toHaveProperty('assetsBaseUrl')
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',

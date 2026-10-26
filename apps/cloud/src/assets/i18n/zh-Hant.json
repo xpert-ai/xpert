@@ -618,7 +618,24 @@
           "knowledgebase": "知識庫"
         },
         "InstallationTarget": "安裝範圍",
-        "PersonalDataScope": "此安裝及其資料僅屬於你；分享需另行授權。"
+        "PersonalDataScope": "此安裝及其資料僅屬於你；分享需另行授權。",
+        "Update": {
+          "Action": "更新應用",
+          "Resume": "繼續更新",
+          "Description": "原位更新並發布整套助理和範本技能，保留執行個體設定。離開頁面後進度仍會儲存。",
+          "Progress": "應用更新進度",
+          "Main": "主助理",
+          "running": "正在更新",
+          "failed": "更新中斷",
+          "completed": "更新完成",
+          "pending": "等待中",
+          "preparing": "更新範本和技能",
+          "prepared": "草稿已就緒",
+          "binding": "重新整理相依項目",
+          "publishing": "正在發布",
+          "published": "已發布",
+          "FailureHint": "已完成的步驟已儲存。解決資源或權限問題後繼續更新；若範本或草稿已變更，請先檢查衝突。"
+        }
       }
     },
     "McpPublication": {

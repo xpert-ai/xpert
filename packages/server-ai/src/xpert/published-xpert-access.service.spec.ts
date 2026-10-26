@@ -945,9 +945,24 @@ describe('Published human access for collaboration recipients', () => {
         expect(qb.where).toHaveBeenCalledWith('xpert.tenantId = :tenantId', { tenantId: actor.tenantId })
         expect(repository.findOne).toHaveBeenCalledWith(
             expect.objectContaining({
-                where: expect.objectContaining({ tenantId: actor.tenantId, organizationId: actor.organizationId })
+                where: { id: 'assistant', tenantId: actor.tenantId, publishAt: expect.anything() }
             })
         )
+    })
+    it('loads a tenant-shared Assistant authorized for an actor inside an organization', async () => {
+        const qb = createQueryBuilderMock({ count: 1 })
+        const xpert = { id: 'shared-assistant', tenantId: actor.tenantId, organizationId: null }
+        const repository = {
+            createQueryBuilder: jest.fn().mockReturnValue(qb),
+            findOne: jest
+                .fn()
+                .mockImplementation(async (options: { where: { organizationId?: string } }) =>
+                    options.where.organizationId === undefined ? xpert : null
+                )
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        await expect(service.getAccessiblePublishedXpertForActor(xpert.id, actor)).resolves.toBe(xpert)
+        expect(qb.getCount).toHaveBeenCalled()
     })
     it('fails closed when the human grant is revoked', async () => {
         const qb = createQueryBuilderMock({ count: 0 })

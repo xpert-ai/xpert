@@ -4,9 +4,10 @@ import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/co
 import { ConfigService } from '@nestjs/config'
 import { Reflector, RouterModule } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
 import { ApiKeyBindingType, IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
-import { ViewExtensionService } from '@xpert-ai/server-core'
+import { User, ViewExtensionService } from '@xpert-ai/server-core'
 import type { Request } from 'express'
 import { mkdtemp, open, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -24,6 +25,9 @@ import { XpertService } from '../xpert/xpert.service'
 import { WorkspaceFileAccessController } from '../workspace-file-access/workspace-file-access.controller'
 import { WorkspaceFileContentController } from '../workspace-file-access/workspace-file-content.controller'
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
+import { ImagePreviewService } from '../workspace-file-access/image-preview/image-preview.service'
+import { VolumeHandle } from '../shared/volume'
+import sharp from 'sharp'
 
 jest.mock('../xpert/xpert.service', () => ({ XpertService: class {} }))
 jest.mock('../xpert-workspace/workspace.service', () => ({ XpertWorkspaceService: class {} }))
@@ -80,6 +84,14 @@ describe('workspace file HTTP authentication', () => {
         }))
     }
 
+    // Register fixtures on both package-local Passport copies used by the real guards.
+    const authenticators = new Set([
+        passport,
+        jest.requireActual(
+            require.resolve('passport', { paths: [path.resolve(__dirname, '../../../server')] })
+        ) as typeof passport
+    ])
+
     class FixtureStrategy extends Strategy {
         constructor(readonly name: string) {
             super()
@@ -102,12 +114,14 @@ describe('workspace file HTTP authentication', () => {
         directory = await mkdtemp(path.join(tmpdir(), 'workspace-file-http-'))
         await writeFile(path.join(directory, 'result.txt'), 'complete')
         for (const name of ['jwt', 'basic', 'oidc', 'api-key', 'client-secret']) {
-            passport.use(name, new FixtureStrategy(name))
+            for (const authenticator of authenticators) authenticator.use(name, new FixtureStrategy(name))
         }
         const providers = [
             AssistantFileAccessGuard,
             { provide: CommandBus, useValue: { execute: jest.fn().mockResolvedValue({}) } },
             WorkspaceFileAccessService,
+            { provide: getRepositoryToken(User), useValue: { findOne: async () => ({ ...user, isActive: true }) } },
+            ImagePreviewService,
             {
                 provide: CACHE_MANAGER,
                 useValue: {
@@ -124,7 +138,15 @@ describe('workspace file HTTP authentication', () => {
             { provide: ViewExtensionService, useValue: views },
             {
                 provide: VOLUME_CLIENT,
-                useValue: { resolve: () => ({ path: () => path.join(directory, 'result.txt') }) }
+                useValue: {
+                    resolve: () =>
+                        new VolumeHandle(
+                            { tenantId: user.tenantId, catalog: 'xperts', xpertId: assistantId },
+                            directory,
+                            directory,
+                            ''
+                        )
+                }
             },
             { provide: AssistantFilesService, useValue: { forRuntime: () => files } },
             {
@@ -220,6 +242,106 @@ describe('workspace file HTTP authentication', () => {
             headers: headers(token),
             body: JSON.stringify({ hostType: 'agent', hostId, viewKey: manifest.key })
         })
+
+    describe('direct image previews', () => {
+        const body = {
+            hostType: 'agent',
+            hostId: assistantId,
+            viewKey: manifest.key,
+            fileKey: 'image',
+            variant: 'thumbnail'
+        }
+        const preview = (input: object = body, token = 'cs-x-user', org = 'org-1') =>
+            fetch(`${origin}/api/ai/workspace-files/view-sessions/preview`, {
+                method: 'POST',
+                headers: { ...headers(token), 'organization-id': org },
+                body: JSON.stringify(input)
+            })
+        beforeEach(async () => {
+            await sharp({ create: { width: 1600, height: 1200, channels: 3, background: '#cc2244' } })
+                .png()
+                .toFile(path.join(directory, 'preview.png'))
+            views.resolveViewFileResource.mockImplementation(async () => ({
+                context: context(),
+                manifest,
+                resource: {
+                    reference: {
+                        source: 'platform.workspace.files',
+                        tenantId: user.tenantId,
+                        filePath: 'preview.png',
+                        catalog: 'xperts',
+                        scopeId: assistantId,
+                        xpertId: assistantId
+                    },
+                    fileName: '图片.png',
+                    mimeType: 'image/png',
+                    size: 4096
+                }
+            }))
+        })
+        afterEach(() => {
+            // Restore the surrounding suite's text fixture without changing its authority checks.
+            views.resolveViewFileResource.mockImplementation(async () => ({
+                context: context(),
+                manifest,
+                resource: {
+                    reference: {
+                        source: 'platform.workspace.files',
+                        tenantId: user.tenantId,
+                        filePath: 'result.txt',
+                        catalog: 'xperts',
+                        scopeId: assistantId,
+                        xpertId: assistantId
+                    },
+                    fileName: 'result.txt',
+                    mimeType: 'text/plain',
+                    size: 8
+                }
+            }))
+        })
+
+        it.each(['fixture-jwt', 'cs-x-user', 'cs-x-enterprise'])(
+            'reads a thumbnail in one authenticated request (%s)',
+            async (token) => {
+                const result = await preview(body, token)
+                expect(result.status).toBe(200)
+                expect(result.headers.get('content-type')).toBe('image/webp')
+                expect(result.headers.get('content-disposition')).toContain("filename*=UTF-8''")
+                expect(result.headers.get('cache-control')).toBe('private, no-store')
+                expect(result.headers.get('set-cookie')).toBeNull()
+                expect(await sharp(Buffer.from(await result.arrayBuffer())).metadata()).toMatchObject({
+                    width: 640,
+                    height: 480
+                })
+                expect(values.size).toBe(0)
+                expect(views.resolveViewFileAccessContext).not.toHaveBeenCalled()
+                expect(views.resolveViewFileResource).toHaveBeenCalledTimes(1)
+            }
+        )
+
+        it('retains caller binding, organization and fresh resource authorization', async () => {
+            expect((await preview(body, '')).status).toBe(401)
+            expect((await preview(body, 'cs-x-public')).status).toBe(403)
+            expect((await preview({ ...body, hostId: otherAssistantId })).status).toBe(403)
+            expect((await preview(body, 'cs-x-user', 'another-org')).status).toBe(403)
+            expect((await preview()).status).toBe(200)
+            views.resolveViewFileResource.mockRejectedValueOnce(new ForbiddenException())
+            expect((await preview()).status).toBe(403)
+        })
+
+        it.each([
+            { variant: 'download' },
+            { fileKey: '' },
+            { fileKey: 123 },
+            { path: '/private/secret' },
+            { runtimeScope: { userId: 'other' } },
+            { runtimeScope: { projectId: 123 } },
+            { runtimeScope: { conversationId: 'c', isDraft: true } }
+        ])('validates the request before resolving files: %j', async (change) => {
+            expect((await preview({ ...body, ...change })).status).toBe(400)
+            expect(views.resolveViewFileResource).not.toHaveBeenCalled()
+        })
+    })
 
     it('returns file capabilities only for an authenticated, correctly bound runtime caller', async () => {
         const url = `${origin}/api/ai/assistants/${assistantId}/workspace/capabilities`

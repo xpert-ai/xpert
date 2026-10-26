@@ -1,6 +1,6 @@
 import { ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
@@ -15,9 +15,10 @@ export class WorkbenchFilesAuthGuard extends ApiKeyOrClientSecretAuthGuard {
     constructor(
         reflector: Reflector,
         @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        queries: QueryBus
     ) {
-        super(reflector)
+        super(reflector, queries)
     }
     override async canActivate(context: ExecutionContext) {
         if (!(await super.canActivate(context))) return false

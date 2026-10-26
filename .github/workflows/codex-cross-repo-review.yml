@@ -44,7 +44,9 @@ permissions:
 jobs:
   review:
     name: Read-only cross-repository inspection
-    runs-on: ubuntu-latest
+    # Codex drop-sudo cannot revoke D-Bus socket access on Ubuntu 26.04.
+    # Keep the ACL-compatible runner until https://github.com/openai/codex-action/issues/188 is resolved.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read

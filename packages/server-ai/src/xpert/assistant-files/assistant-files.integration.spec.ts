@@ -1,5 +1,10 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
+import { ConfigService } from '@nestjs/config'
+import { ViewExtensionService } from '@xpert-ai/server-core'
+import { WorkspaceFileAccessService } from '../../workspace-file-access/workspace-file-access.service'
+import { ImagePreviewService } from '../../workspace-file-access/image-preview/image-preview.service'
+import sharp from 'sharp'
 import { Test, TestingModule } from '@nestjs/testing'
 import {
     ApiKeyBindingType,
@@ -26,7 +31,6 @@ import { AssistantFileAccessService } from './assistant-file-access.service'
 import { ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
 import { AssistantFilesService } from './assistant-files.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
-import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
 import {
     AuthorizeTemplateExecutionCommand,
     AuthorizeTemplateExecutionHandler
@@ -206,6 +210,74 @@ describe('Assistant file authority integration', () => {
         await runtime.uploadToFolder('', { originalname: 'private.txt', buffer: Buffer.from('B private') })
         actor = { ...actor, id: 'user-a' }
         await expect(runtime.read('private.txt')).resolves.toMatchObject({ contents: 'A private' })
+    })
+
+    it('revalidates real published ACLs and user isolation before returning cached image previews', async () => {
+        const original = await sharp({ create: { width: 100, height: 80, channels: 3, background: '#224466' } })
+            .png()
+            .toBuffer()
+        const runtime = files.forRuntime(assistant.id)
+        await runtime.uploadToFolder('', { originalname: 'preview.png', buffer: original })
+        const viewProvider = {
+            resolveViewFileResource: async (_hostType: string, hostId: string) => ({
+                context: {
+                    tenantId: actor.tenantId,
+                    organizationId: 'org-1',
+                    userId: actor.id,
+                    hostType: 'agent',
+                    hostId
+                },
+                manifest: { key: 'view' },
+                resource: {
+                    reference: {
+                        source: 'platform.workspace.files',
+                        tenantId: actor.tenantId,
+                        filePath: 'preview.png',
+                        catalog: assistant.workspaceDataScope === 'user' ? 'user-xperts' : 'xperts',
+                        xpertId: hostId,
+                        userId: actor.id
+                    },
+                    fileName: 'preview.png',
+                    mimeType: 'image/png'
+                }
+            })
+        } as unknown as ViewExtensionService
+        const access = new WorkspaceFileAccessService(
+            null,
+            new ConfigService(),
+            viewProvider,
+            {
+                resolve,
+                resolveRoot: () => {
+                    throw new Error('Unexpected root resolution')
+                }
+            },
+            module.get(CommandBus),
+            null
+        )
+        const previews = new ImagePreviewService(access)
+        const input = {
+            hostType: 'agent' as const,
+            hostId: assistant.id,
+            viewKey: 'view',
+            fileKey: 'image',
+            variant: 'thumbnail' as const
+        }
+        const first = await previews.read(input)
+        expect((await previews.read(input)).bytes).toBe(first.bytes)
+        await expect(studio.list(assistant.id)).rejects.toThrow(ForbiddenException)
+        await expect(previews.read({ ...input, hostId: 'other-assistant' })).rejects.toThrow(ForbiddenException)
+        groupGrant = false
+        await expect(previews.read(input)).rejects.toThrow(ForbiddenException)
+        groupGrant = true
+        assistant.workspaceDataScope = 'user'
+        actor = { ...actor, id: 'user-a' }
+        await runtime.uploadToFolder('', { originalname: 'preview.png', buffer: original })
+        await expect(previews.read(input)).resolves.toMatchObject({ mimeType: 'image/webp' })
+        actor = { ...actor, id: 'user-b' }
+        await expect(previews.read(input)).rejects.toThrow(NotFoundException)
+        await runtime.uploadToFolder('', { originalname: 'preview.png', buffer: original })
+        expect((await previews.read(input)).bytes).not.toBe(first.bytes)
     })
 
     it('preserves explicit requirements in old publications without promoting automatic pins or draft requirements', async () => {
@@ -455,7 +527,10 @@ describe('Assistant file authority integration', () => {
         new WorkspaceFilesRuntimeCapabilityService(
             module.get(CommandBus),
             { resolve },
-            new DefaultRuntimeCapabilityRegistry(),
+            {
+                listReadable: jest.fn().mockResolvedValue([]),
+                assertEdit: jest.fn().mockRejectedValue(new ForbiddenException())
+            },
             { execute: jest.fn().mockResolvedValue('meetings') }
         )
     const privateApp = { pluginName: '@xpert-ai/plugin-meetings', requireUserIsolation: true }

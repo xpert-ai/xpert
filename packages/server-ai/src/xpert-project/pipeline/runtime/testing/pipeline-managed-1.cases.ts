@@ -1,3 +1,4 @@
+import { nativeCompletion } from './control-evidence.fixture'
 import * as hostProfile from '../../configuration/pipeline-host-profile'
 import { observeProjectTaskInvocations } from '../../../runtime/project-task-invocation-view'
 import { AgentInvocationEntity } from '../../../../agent-invocation/invocation.entity'
@@ -329,6 +330,7 @@ export function registerManagedCases1(fixture: ReturnType<typeof managedPipeline
         const operation = (await fixture.operations())[0]
         fixture.nativeStart.mockImplementationOnce(async (input) => ({
             status: 'succeeded',
+            control: nativeCompletion(input.executionId!),
             executionId: input.executionId!
         }))
         fixture.collect.mockRejectedValueOnce(new Error('Domain evidence unavailable'))

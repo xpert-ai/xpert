@@ -12,6 +12,7 @@ import { GroupParticipant } from '../../chat-group/group.entity'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { WorkspaceFileAccessService } from '../../workspace-file-access/workspace-file-access.service'
+import { ImagePreviewService } from '../../workspace-file-access/image-preview/image-preview.service'
 import { GroupViewFilesController } from './group-view-files.controller'
 
 import type { Request, Response, NextFunction } from 'express'
@@ -31,6 +32,11 @@ describe('group Views use the original protocol with main Assistant scope', () =
         getViewManifest: jest.fn(),
         getRemoteComponentEntry: jest.fn(),
         executeAction: jest.fn()
+    }
+    const images = {
+        read: jest
+            .fn()
+            .mockResolvedValue({ bytes: Buffer.from('image'), mimeType: 'image/webp', fileName: 'image.webp' })
     }
     const files = {
         createSession: jest.fn(),
@@ -52,6 +58,7 @@ describe('group Views use the original protocol with main Assistant scope', () =
                 { provide: GroupAccessService, useValue: access },
                 { provide: ViewExtensionService, useValue: views },
                 { provide: WorkspaceFileAccessService, useValue: files },
+                { provide: ImagePreviewService, useValue: images },
                 { provide: XpertProjectAccessService, useValue: projects },
                 {
                     provide: DataSource,
@@ -208,6 +215,38 @@ describe('group Views use the original protocol with main Assistant scope', () =
         participants.findOneBy.mockResolvedValue(null)
         expect((await fetch(`${base}/agent/main/views/tasks/data`)).status).toBe(403)
         expect(views.getViewData).not.toHaveBeenCalled()
+    })
+    it('reads an image only in the trusted group runtime scope', async () => {
+        const input = { hostType: 'agent', hostId: 'main', viewKey: 'tasks', fileKey: 'image' }
+        const read = (body = input) =>
+            fetch(`${base}/workspace-files/view-sessions/preview`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+        const response = await read()
+        expect(response.status).toBe(200)
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(await response.text()).toBe('image')
+        expect(images.read).toHaveBeenCalledWith({
+            ...input,
+            variant: 'thumbnail',
+            runtimeScope: { conversationId: 'runtime', projectId: 'project' }
+        })
+        expect(files.createSession).not.toHaveBeenCalled()
+        expect(files.createGrant).not.toHaveBeenCalled()
+        for (const body of [
+            { ...input, hostId: 'other' },
+            { ...input, runtimeScope: { projectId: 'other' } },
+            { ...input, runtimeScope: { conversationId: 'other' } }
+        ])
+            expect((await read(body)).status).toBe(403)
+        expect((await read({ ...input, fileKey: '' })).status).toBe(400)
+        access.authorize.mockRejectedValueOnce(new ForbiddenException())
+        expect((await read()).status).toBe(403)
+        projects.assertCanReadXpert.mockRejectedValueOnce(new ForbiddenException())
+        expect((await read()).status).toBe(403)
+        expect(images.read).toHaveBeenCalledTimes(1)
     })
     it('creates file sessions in the main runtime scope and keeps the existing grant validation', async () => {
         const headers = { 'content-type': 'application/json' }

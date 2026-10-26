@@ -1,29 +1,45 @@
-import fs from 'node:fs'
-import path from 'node:path'
+import { MCPToolset } from './mcp-toolset'
+import { XpertToolset } from '../../xpert-toolset.entity'
 
-describe('MCPToolset transport cleanup', () => {
-    it('does not pass graph abort signals into individual MCP requests', () => {
-        const content = fs.readFileSync(path.join(__dirname, 'mcp-toolset.ts'), 'utf8')
+function fixture() {
+    const toolset = new MCPToolset(Object.assign(new XpertToolset(), { id: 'fixture', name: 'fixture' }))
+    const source = { onerror: jest.fn(), onmessage: jest.fn(), onopen: jest.fn(), close: jest.fn() }
+    const abort = jest.fn(),
+        destroy = jest.fn(async () => undefined),
+        close = jest.fn(async () => undefined)
+    const transport = { _eventSource: source, _abortController: { abort }, _endpoint: '/events' }
+    Reflect.set(toolset, 'client', { close, _transportInstances: { fixture: transport } })
+    Reflect.set(toolset, 'destroy', destroy)
+    return { toolset, source, transport, abort, destroy, close }
+}
 
-        expect(content).toContain('function omitSignalFromRunnableConfig')
-        expect(content).toContain('delete nextConfig.signal')
-        expect(content).toContain('const result = await tool.func(input, runManager, runnableConfig)')
-        expect(content).toContain('wrapMCPTool(tool, client, this.toolset, this.params?.userId)')
+describe('MCPToolset transport settlement', () => {
+    it('closes an idle transport once and removes its EventSource callbacks', async () => {
+        const f = fixture()
+        await f.toolset.close()
+        await f.toolset.close()
+        expect(f.close).toHaveBeenCalledTimes(1)
+        expect(f.destroy).toHaveBeenCalledTimes(1)
+        expect(f.source.onerror).toBeNull()
+        expect(f.source.onmessage).toBeNull()
+        expect(f.source.onopen).toBeNull()
+        expect(f.transport._eventSource).toBeUndefined()
+        expect(f.abort).toHaveBeenCalledTimes(2)
     })
 
-    it('force-closes EventSource transports before and after client close', () => {
-        const content = fs.readFileSync(path.join(__dirname, 'mcp-toolset.ts'), 'utf8')
-
-        expect(content).toContain('function forceCloseSSETransport')
-        expect(content).toContain("Reflect.set(value, 'onerror', null)")
-        expect(content).toContain("Reflect.set(value, 'onmessage', null)")
-        expect(content).toContain("Reflect.set(value, 'onopen', null)")
-        expect(content).toContain('abort.call(abortController)')
-        expect(content).toContain("Reflect.set(transport, '_eventSource', undefined)")
-        expect(content).toContain('await this.destroy?.()')
-        expect(content).toContain('await this.client.close().catch((err) => this.#logger.debug(err))')
-        expect(content).toMatch(
-            /forceCloseMCPClientTransports\(this\.client\)[\s\S]+finally[\s\S]+forceCloseMCPClientTransports\(this\.client\)/
-        )
+    it('retains the original transport until registered work actually settles', async () => {
+        const f = fixture()
+        let settle!: () => void
+        const drain = new Promise<void>((resolve) => {
+            settle = resolve
+        })
+        Reflect.set(f.toolset, 'executionDrains', new Set([drain]))
+        await f.toolset.close()
+        expect(f.abort).not.toHaveBeenCalled()
+        expect(f.close).not.toHaveBeenCalled()
+        settle()
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        expect(f.destroy).toHaveBeenCalledTimes(1)
+        expect(f.close).toHaveBeenCalledTimes(1)
     })
 })

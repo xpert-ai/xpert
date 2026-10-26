@@ -10,6 +10,8 @@ export type AgentRunnerEnvironment = Extract<ModelExecutionEnvironment, { type: 
 interface AgentRunnerReceiptBase {
   /** Owning platform invocation; never a caller-selected process launch key. */
   invocationId: string
+  /** Set only by hosts using the owned-descendant supervisor. Historical receipts remain unconfirmed. */
+  supervision?: 1
   /** Bound environment instance; replacing the instance invalidates this receipt. */
   environment: AgentRunnerEnvironment
   /** Opaque host process reference, not necessarily an operating-system PID. */
@@ -27,12 +29,22 @@ interface AgentRunnerReceiptBase {
 /** V1 retains its original cwd; V2 separates per-invocation records from the business cwd. */
 export type AgentRunnerReceipt = AgentRunnerReceiptBase & ({ version: 1 } | { version: 2; executionDirectory: string })
 
+export interface AgentRunnerExitEvidence {
+  version: 1
+  coverage: 'descendants'
+  invocationId: string
+  environment: AgentRunnerEnvironment
+  processId: string
+}
+
 /** Per-scope host capability. Methods recheck the persisted invocation and receipt before side effects. */
 export interface AgentExecutionRunner {
   /** Resolve the already persisted Invocation/Binding. Checkpoint before sending launch input. */
   start(invocationId: string, checkpoint: (receipt: AgentRunnerReceipt) => Promise<void>): Promise<AgentRunnerReceipt>
   /** Observe the existing process. Unknown is not permission to relaunch or proof of completion. */
-  inspect(receipt: AgentRunnerReceipt): Promise<{ state: 'running' | 'exited' | 'unknown'; exitCode?: number }>
+  inspect(
+    receipt: AgentRunnerReceipt
+  ): Promise<{ state: 'running' | 'exited' | 'unknown'; exitCode?: number; completion?: AgentRunnerExitEvidence }>
   /** Relative HTTP request over the approved local service transport; no caller-supplied URL or headers. */
   request(
     receipt: AgentRunnerReceipt,
@@ -44,7 +56,9 @@ export interface AgentExecutionRunner {
     selection?: AgentArtifactSelection
   ): Promise<NonNullable<AgentInvocationResult['artifacts']>>
   /** Revoke model access and request process termination. Only exited confirms termination. */
-  stop(receipt: AgentRunnerReceipt): Promise<{ state: 'exited' | 'stopping' | 'unknown' }>
+  stop(
+    receipt: AgentRunnerReceipt
+  ): Promise<{ state: 'exited' | 'stopping' | 'unknown'; completion?: AgentRunnerExitEvidence }>
 }
 
 export const AgentExecutionRunnerCapability = createRuntimeCapability<AgentExecutionRunner>(

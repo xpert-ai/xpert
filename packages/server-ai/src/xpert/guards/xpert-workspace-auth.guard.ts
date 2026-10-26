@@ -1,3 +1,4 @@
+import { QueryBus } from '@nestjs/cqrs'
 import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
 import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
@@ -12,8 +13,8 @@ import { assertWorkbenchPrincipal } from '../../ai/workbench-principal'
  */
 @Injectable()
 export class XpertWorkspaceAuthGuard extends ApiKeyOrClientSecretAuthGuard {
-    constructor(reflector: Reflector) {
-        super(reflector)
+    constructor(reflector: Reflector, queries: QueryBus) {
+        super(reflector, queries)
     }
 
     override async canActivate(context: ExecutionContext): Promise<boolean> {

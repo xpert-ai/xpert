@@ -1,5 +1,6 @@
 import { getAvailableFrameHeight } from './remote-frame-layout'
 import { remoteViewState } from './remote-view-state'
+import { remoteFileDataUrl } from './remote-file-data-url'
 import { createRemoteTheme, type RemoteComponentTheme, type RemoteComponentThemeMode } from './remote-component-theme'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import {
@@ -586,6 +587,11 @@ export class RemoteComponentRendererComponent {
       this.#api.readViewFileAccessContent(session.sessionId, grant, this.runtimeScope() ?? undefined)
     )
     if (revision !== this.#entryRequestId || this.#destroyRef.destroyed) throw new Error('View context changed')
+    if (purpose === 'download') {
+      const url = await remoteFileDataUrl(blob, grant.mimeType)
+      if (revision !== this.#entryRequestId || this.#destroyRef.destroyed) throw new Error('View context changed')
+      return { ...grant, url }
+    }
     const url = URL.createObjectURL(new Blob([blob], { type: grant.mimeType }))
     this.#fileObjectUrls.add(url)
     return { ...grant, url }

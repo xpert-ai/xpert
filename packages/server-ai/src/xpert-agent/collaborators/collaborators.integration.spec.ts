@@ -1,3 +1,4 @@
+import { ExecutionControlStore } from '../../execution-control/execution-control.store'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 // Reference loading has its own tests; this fixture exercises native delegation and resume.
 jest.mock('../../xpert-middleware/thread-reference.runtime', () => ({
@@ -45,7 +46,7 @@ import { NativeAgentRuntimeStrategy } from '../../agent-invocation/native-agent.
 import { MemoryInvocationStore } from '../../agent-invocation/invocation-test-store'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { ExecutionCancelService } from '../../shared/execution/execution-cancel.service'
+import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
 import type { RedisClientType } from 'redis'
 import { THREAD_REFERENCE_MIDDLEWARE_NAME } from '../../xpert-middleware/thread-reference.middleware'
 import { PARALLEL_DELEGATION_TOOL } from '../../agent-invocation/parallel-delegation'
@@ -228,9 +229,12 @@ function fixture(
     registry.register('xpert', new NativeAgentRuntimeStrategy(), { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
     const store = new MemoryInvocationStore()
     const invocations = new AgentInvocationRuntime(store, registry)
-    const cancellations = new ExecutionCancelService({
-        publish: jest.fn().mockResolvedValue(1)
-    } as unknown as RedisClientType)
+    const cancellations = new ExecutionCancelService(
+        {
+            publish: jest.fn().mockResolvedValue(1)
+        } as unknown as RedisClientType,
+        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn() } as unknown as ExecutionControlStore
+    )
     const runtime = new AgentInvocationGraphService(
         commandBus as unknown as CommandBus,
         queryBus as unknown as QueryBus,

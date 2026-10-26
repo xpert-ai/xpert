@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/desktop-protocol",
-  "version": "0.3.8",
+  "version": "0.3.10",
   "license": "AGPL-3.0",
   "publishConfig": {
     "access": "public"
@@ -12,7 +12,9 @@
     "index.js",
     "index.d.ts",
     "audio-capture.js",
-    "audio-capture.d.ts"
+    "audio-capture.d.ts",
+    "process-supervisor.js",
+    "process-supervisor.d.ts"
   ],
   "dependencies": {
     "@xpert-ai/contracts": "workspace:*"

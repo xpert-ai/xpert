@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { recoveryConflict } from '../../../chat-conversation/recovery/recovery-error'
 import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
@@ -592,6 +593,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         }
 
         const ownsRunClaim = chatRequest.action !== 'follow_up'
+        const resumeClaimId = command.resumePaused ? randomUUID() : undefined
         let resumeCheckpoint: TChatCheckpointReference | undefined
         if (command.resumePaused && this.threadRunControl) {
             const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
@@ -602,7 +604,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 command.resumePaused.executionId,
                 command.resumePaused.pauseId,
                 threadGraphRevision(workflow.graph, undefined, workflow.agent?.team),
-                legacyThreadGraphRevision(workflow.graph)
+                legacyThreadGraphRevision(workflow.graph),
+                resumeClaimId
             )
         } else if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)
@@ -646,7 +649,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             }
 
             if (command.resumePaused) {
-                await this.threadRunControl.bindResumedExecution(threadId, command.resumePaused.pauseId, execution.id)
+                await this.threadRunControl.bindResumedExecution(
+                    threadId,
+                    command.resumePaused.pauseId,
+                    execution.id,
+                    resumeClaimId
+                )
             } else if (ownsRunClaim) {
                 await this.threadRunControl?.start(
                     threadId,
@@ -691,7 +699,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 await this.threadRunControl?.releaseResume(
                     threadId,
                     command.resumePaused.executionId,
-                    command.resumePaused.pauseId
+                    command.resumePaused.pauseId,
+                    resumeClaimId
                 )
             } else if (ownsRunClaim && this.conversationThreadService) {
                 if (execution?.id && this.threadRunControl) {

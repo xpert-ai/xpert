@@ -6,7 +6,8 @@ import {
 	IApiPrincipal,
 	ISecretToken,
 	SecretTokenBindingType,
-	UserType
+	UserType,
+	clientSecretGrantSourceSchema
 } from '@xpert-ai/contracts'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
@@ -177,6 +178,8 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			requestedOrganizationId: secretToken.organizationId ?? null,
 			principalType: 'client_secret'
 		})
+		principal.grantSource =
+			secretToken.grantSource == null ? null : clientSecretGrantSourceSchema.parse(secretToken.grantSource)
 		principal.clientSecretBindingType = SecretTokenBindingType.USER_XPERT
 		principal.clientSecretId = secretToken.id ?? null
 		return principal

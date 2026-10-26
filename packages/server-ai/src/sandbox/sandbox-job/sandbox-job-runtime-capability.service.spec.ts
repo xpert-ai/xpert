@@ -1,3 +1,4 @@
+import { unitControl } from './testing/unit-control'
 import {
     RequestContext,
     type SandboxJobRunInput,
@@ -102,6 +103,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             getCachedBundle: jest.fn().mockResolvedValue([]),
             ...actionRegistryOverrides
         }
+        const control = unitControl()
         return new SandboxJobRuntimeCapabilityService(
             repository as never,
             new SandboxRuntimeDefinitionRegistry(),
@@ -120,7 +122,9 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             } as never,
             workspaceFiles as never,
             {} as never,
-            volumeClient as never
+            volumeClient as never,
+            control.service,
+            control.store
         )
     }
 
@@ -263,7 +267,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
             ).rejects.toMatchObject({ code: 'SANDBOX_INVOCATION_FAILED', retryable: false })
             expect(JSON.stringify(harness.repository.save.mock.calls)).not.toContain('private connection detail')
-            expect(harness.provider.destroy).toHaveBeenCalled()
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
         } finally {
             await harness.dispose()
         }
@@ -281,9 +285,9 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 code: 'SANDBOX_CANCELLED',
                 retryable: false
             })
-            expect(harness.job.status).toBe('cancelled')
+            expect(harness.job.status).toBe('cancelling')
             expect(harness.runtime.terminate).toHaveBeenCalled()
-            expect(harness.provider.destroy).toHaveBeenCalled()
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
         } finally {
             await harness.dispose()
         }
@@ -291,7 +295,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
 
     it('bounds host callbacks by the execution deadline even if the script has already exited', async () => {
         const harness = await createExecuteHarness({ timeoutMs: 25 })
-        const handle = jest.fn().mockImplementation(() => new Promise(() => undefined))
+        const handle = jest.fn().mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({}), 75)))
         try {
             harness.runtime.execute.mockImplementation(async (_command, options) => {
                 options.onOutput({
@@ -305,7 +309,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             ).rejects.toMatchObject({ code: 'EXPORT_TIMEOUT' })
             expect(handle).toHaveBeenCalledTimes(1)
             expect(harness.runtime.terminate).toHaveBeenCalled()
-            expect(harness.provider.destroy).toHaveBeenCalled()
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
         } finally {
             await harness.dispose()
         }
@@ -344,7 +348,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                     }
                 })
             ).rejects.toMatchObject({ code: 'SANDBOX_CANCELLED' })
-            expect(harness.job.status).toBe('cancelled')
+            expect(harness.job.status).toBe('cancelling')
         } finally {
             await harness.dispose()
         }
@@ -357,10 +361,13 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             started = resolve
         })
         let childSignal: AbortSignal | undefined
+        let release: () => void
         const handle = jest.fn().mockImplementation((_operation, _payload, context) => {
             childSignal = context.signal
             started()
-            return new Promise(() => undefined)
+            return new Promise<void>((resolve) => {
+                release = resolve
+            })
         })
         try {
             harness.repository.findOne.mockImplementation(async () => harness.job)
@@ -375,7 +382,9 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
                 harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
             ).rejects.toMatchObject({ code: 'SANDBOX_CANCELLED' })
             await called
-            await expect(harness.service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'cancelled' })
+            await expect(harness.service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'cancelling' })
+            expect(childSignal?.aborted).toBe(true)
+            release()
             await execution
             expect(childSignal?.aborted).toBe(true)
         } finally {
@@ -438,14 +447,14 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             expect(snapshot.serverPath).not.toBe(harness.sourcePath)
             expect(snapshot.serverPath).toEqual(expect.stringContaining(path.join('.platform', 'inputs')))
             expect(path.relative(path.join(harness.jobRoot, 'workspace'), snapshot.serverPath)).toMatch(/^\.\./)
-            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
-            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
+            await expect(access(harness.jobRoot)).resolves.toBeUndefined()
         } finally {
             await harness.dispose()
         }
     })
 
-    it('rejects a seekable input whose copied bytes do not match the declared digest and cleans the Job volume', async () => {
+    it('rejects a seekable input whose copied bytes do not match the declared digest and retains the Job volume for controlled cleanup', async () => {
         const harness = await createExecuteHarness({ declaredSha256: '0'.repeat(64) })
         try {
             await expect(harness.execute()).rejects.toMatchObject({
@@ -454,14 +463,14 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             })
 
             expect(harness.provider.create).not.toHaveBeenCalled()
-            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
-            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
+            await expect(access(harness.jobRoot)).resolves.toBeUndefined()
         } finally {
             await harness.dispose()
         }
     })
 
-    it('cleans the isolated snapshot and workspace when Runtime execution fails', async () => {
+    it('retains the isolated snapshot until Runtime failure is physically settled', async () => {
         const harness = await createExecuteHarness()
         try {
             harness.runtime.execute.mockResolvedValue({
@@ -477,8 +486,8 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             })
 
             expect(harness.provider.create).toHaveBeenCalledTimes(1)
-            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
-            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+            expect(harness.provider.destroy).not.toHaveBeenCalled()
+            await expect(access(harness.jobRoot)).resolves.toBeUndefined()
         } finally {
             await harness.dispose()
         }
@@ -597,36 +606,23 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         const save = jest.fn().mockImplementation(async (value) => value)
         const service = createService({}, { findOne: jest.fn().mockResolvedValue(job), save })
 
-        await expect(service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'cancelled' })
+        await expect(service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'unknown' })
         expect(job.cleanupPending).toBe(true)
         expect(job.cleanedAt).toBeNull()
     })
 
-    it('asks the persisted Provider to sweep Job labels even when runtimeRef was never saved', async () => {
+    it('does not sweep legacy jobs without an original generation receipt', async () => {
         const job = sandboxJob({ runtimeRef: null, provider: 'fake-runtime' })
-        const save = jest.fn().mockImplementation(async (value) => value)
-        const destroy = jest.fn().mockResolvedValue(undefined)
-        const destroyRuntimeJob = jest.fn().mockResolvedValue(undefined)
+        const destroy = jest.fn()
         const service = createService(
             {},
-            { findOne: jest.fn().mockResolvedValue(job), save },
+            { findOne: jest.fn().mockResolvedValue(job) },
             {},
-            { get: jest.fn().mockReturnValue({ destroy }) },
-            { resolve: jest.fn().mockReturnValue({ destroyRuntimeJob }) }
+            { get: () => ({ destroy }) }
         )
-
-        await service.cancel({ jobId: 'job-1' })
-
-        expect(destroy).toHaveBeenCalledWith(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                workFor: { type: 'job', id: 'job-1' },
-                runtimeRef: null
-            })
-        )
-        expect(job.cleanupPending).toBe(false)
-        expect(job.cleanedAt).toBeInstanceOf(Date)
-        expect(destroyRuntimeJob).toHaveBeenCalled()
+        await expect(service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'unknown', finishedAt: null })
+        expect(destroy).not.toHaveBeenCalled()
+        expect(job.cleanupPending).toBe(true)
     })
 })
 
@@ -763,7 +759,8 @@ async function createExecuteHarness(options: { declaredSha256?: string; timeoutM
         }),
         destroy: jest.fn().mockResolvedValue(undefined)
     }
-    const service = createServiceForExecute(repository, workspaceFiles, volume, provider)
+    const control = unitControl()
+    const service = createServiceForExecute(repository, workspaceFiles, volume, provider, control)
     const definition = new SandboxRuntimeDefinitionRegistry().require(PROFILE)
     const action = {
         pluginName: '@acme/plugin-document-export',
@@ -849,12 +846,21 @@ async function createExecuteHarness(options: { declaredSha256?: string; timeoutM
                         options?: SandboxJobRunOptions
                     ) => Promise<unknown>
                 }
-            ).execute(job, input, action, definition, resolution, options),
+            ).execute(job, input, action, definition, resolution, {
+                ...options,
+                signal: options?.signal ? AbortSignal.any([options.signal, control.signal]) : control.signal
+            }),
         dispose: () => rm(temporaryRoot, { recursive: true, force: true })
     }
 }
 
-function createServiceForExecute(repository: object, workspaceFiles: object, volume: VolumeHandle, provider: object) {
+function createServiceForExecute(
+    repository: object,
+    workspaceFiles: object,
+    volume: VolumeHandle,
+    provider: object,
+    control: ReturnType<typeof unitControl>
+) {
     const actions = {
         get: jest.fn(),
         getCachedBundle: jest.fn().mockResolvedValue([])
@@ -868,7 +874,9 @@ function createServiceForExecute(repository: object, workspaceFiles: object, vol
         { getProfileHealth: jest.fn() } as never,
         workspaceFiles as never,
         {} as never,
-        { resolve: jest.fn().mockReturnValue(volume) } as never
+        { resolve: jest.fn().mockReturnValue(volume) } as never,
+        control.service,
+        control.store
     )
 }
 
@@ -897,9 +905,9 @@ describe('document failure persistence', () => {
                 output: `${code}: document command failed`
             })
             await expect(harness.execute()).rejects.toMatchObject({ code })
-            expect(harness.repository.save).toHaveBeenLastCalledWith(
+            expect(harness.job).toEqual(
                 expect.objectContaining({
-                    status: 'failed',
+                    status: 'settling',
                     errorCode: code,
                     errorMessage: expect.any(String)
                 })

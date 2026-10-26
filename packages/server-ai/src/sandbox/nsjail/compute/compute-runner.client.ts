@@ -1,3 +1,8 @@
+import {
+    sandboxRuntimeEvidenceSchema,
+    sandboxRuntimeTargetSchema,
+    type SandboxRuntimeTarget
+} from '@xpert-ai/contracts'
 // Invariants: this client speaks only the fixed Jobs protocol, never interactive exec.
 // Deadlines cover the response body as well as headers; Runner diagnostics never become public errors.
 import type {
@@ -50,15 +55,38 @@ export class NsjailComputeClient {
         return health.manifest
     }
 
-    async create(id: string, definition: SandboxRuntimeDefinition): Promise<void> {
+    async create(
+        id: string,
+        definition: SandboxRuntimeDefinition,
+        controlTarget?: SandboxRuntimeTarget
+    ): Promise<void> {
         const result = z.object({ runtimeId: z.literal(id) }).strict()
         result.parse(
             await this.json(
                 `${this.options.root}/jobs`,
                 'POST',
-                { runtimeId: id, definition },
+                { runtimeId: id, definition, ...(controlTarget ? { controlTarget } : {}) },
                 this.options.healthTimeoutMs + 5000
             )
+        )
+    }
+
+    async prepareControl(target: Omit<SandboxRuntimeTarget, 'environmentId'>): Promise<SandboxRuntimeTarget> {
+        const environment = z
+            .object({ environmentId: z.string().uuid() })
+            .strict()
+            .parse(await this.json(`${this.options.root}/control-environment`, 'GET'))
+        return sandboxRuntimeTargetSchema.parse(
+            await this.json(`${this.options.root}/controls/prepare`, 'POST', {
+                ...target,
+                environmentId: environment.environmentId
+            })
+        )
+    }
+
+    async control(target: SandboxRuntimeTarget, action: 'inspect' | 'stop' | 'cleanup') {
+        return sandboxRuntimeEvidenceSchema.parse(
+            await this.json(`${this.options.root}/controls/${action}`, 'POST', target)
         )
     }
 

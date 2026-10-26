@@ -50,9 +50,13 @@ COPY --chown=node:node libs/template-installation ./libs/template-installation
 # Connector contracts are browser-safe source; do not install the server SDK.
 COPY --chown=node:node packages/plugin-sdk/src/connector.ts ./packages/plugin-sdk/src/
 COPY --chown=node:node packages/plugin-sdk/src/lib/connector/strategy.interface.ts ./packages/plugin-sdk/src/lib/connector/
+COPY --chown=node:node packages/plugin-sdk/src/lib/connector/document-source.ts ./packages/plugin-sdk/src/lib/connector/
 COPY --chown=node:node packages/plugin-sdk/src/lib/connector/integration.interface.ts ./packages/plugin-sdk/src/lib/connector/
 RUN pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline
 
+# Optional extracted @xpert-ai/chatkit-assets package for air-gapped builds.
+COPY --chown=node:node .deploy/webapp/prepare-chatkit-pets.cjs ./.deploy/webapp/
+COPY --chown=node:node .deploy/webapp/pet-assets ./.deploy/webapp/pet-assets
 RUN pnpm nx build cloud --configuration=production --verbose
 
 # ==================================================== Stage ==========================================================#

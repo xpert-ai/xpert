@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ExecuteMcpOperationCommand } from '../execution/mcp-operation.command'
 import { createServer } from 'node:http'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -125,9 +127,20 @@ describe('MCP read-only protocol integration', () => {
                     }
                 })
             })
+            // This fixture tests connection authorization. The durable executor has a separate PostgreSQL/HTTP suite.
+            const commandBus = {
+                execute: async ({ input }: ExecuteMcpOperationCommand) =>
+                    input.consumer.tools.callDirect(
+                        input.toolName,
+                        input.arguments,
+                        input.serverName,
+                        input.signal,
+                        input.input
+                    )
+            } as unknown as CommandBus
             const loader = {
                 loadToolsets: jest.fn(async (scope) => [
-                    new MCPToolset(saved, { ...scope, userId: scope.principal.userId, env: {} })
+                    new MCPToolset(saved, { ...scope, userId: scope.principal.userId, env: {}, commandBus })
                 ])
             }
             const module = await Test.createTestingModule({

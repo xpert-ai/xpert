@@ -51,6 +51,21 @@ export class RuntimeMessageAccessService {
     async withActor<T>(scope: AgentInvocationScope, work: (user: User) => Promise<T>): Promise<T> {
         const parsed = scopeSchema.safeParse(scope)
         if (!parsed.success) throw runtimeMessageError('Invalid')
+        return this.withControlActor(scope, work)
+    }
+
+    /** Control delivery revalidates the original actor; it never restores a bearer token. */
+    async withControlActor<T>(
+        scope: Pick<AgentInvocationScope, 'tenantId' | 'organizationId' | 'userId'>,
+        work: (user: User) => Promise<T>
+    ): Promise<T> {
+        if (
+            !scopeSchema
+                .pick({ tenantId: true, organizationId: true, userId: true })
+                .safeParse({ tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.userId })
+                .success
+        )
+            throw runtimeMessageError('Invalid')
         const [user, membership] = await Promise.all([
             this.dataSource
                 .getRepository(User)

@@ -36,6 +36,7 @@ export class SandboxJobInvocationSession {
     private bytes = 0
     private accepted = 0
     private pending = Promise.resolve()
+    private readonly actual = new Set<Promise<unknown>>()
     private failure?: Error
     private closed = false
     private readonly invoke: (line: string) => Promise<void>
@@ -46,7 +47,8 @@ export class SandboxJobInvocationSession {
     constructor(
         jobId: string,
         private readonly runtime: SandboxRuntimeInstance,
-        private readonly options: SandboxJobRunOptions
+        private readonly options: SandboxJobRunOptions,
+        private readonly control?: <T>(id: string, work: (signal: AbortSignal) => Promise<T>) => Promise<T>
     ) {
         const bridge = options.invocation
         if (
@@ -69,10 +71,14 @@ export class SandboxJobInvocationSession {
                 throw new Error('SANDBOX_INVOCATION_DENIED')
             this.ids.add(request.id)
             const value = await this.untilClosed(() =>
-                bridge.handle(request.operation, request.payload, {
-                    jobId,
-                    signal: this.controller.signal
-                })
+                this.control
+                    ? this.control(request.id, (signal) =>
+                          bridge.handle(request.operation, request.payload, {
+                              jobId,
+                              signal: AbortSignal.any([signal, this.controller.signal])
+                          })
+                      )
+                    : bridge.handle(request.operation, request.payload, { jobId, signal: this.controller.signal })
             )
             this.controller.signal.throwIfAborted()
             const content = Buffer.from(JSON.stringify({ id: request.id, value }))
@@ -126,6 +132,11 @@ export class SandboxJobInvocationSession {
         this.controller.signal.throwIfAborted()
     }
 
+    async drain(): Promise<void> {
+        await this.pending
+        while (this.actual.size) await Promise.allSettled([...this.actual])
+    }
+
     close(): void {
         this.closed = true
         this.controller.abort()
@@ -163,7 +174,13 @@ export class SandboxJobInvocationSession {
             signal.addEventListener('abort', abort, { once: true })
         })
         try {
-            return await Promise.race([work(), cancelled])
+            const actual = Promise.resolve().then(work)
+            this.actual.add(actual)
+            void actual.then(
+                () => this.actual.delete(actual),
+                () => this.actual.delete(actual)
+            )
+            return await Promise.race([actual, cancelled])
         } finally {
             signal.removeEventListener('abort', abort)
         }
