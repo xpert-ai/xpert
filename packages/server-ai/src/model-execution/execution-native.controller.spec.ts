@@ -1,11 +1,11 @@
 import { EventEmitter } from 'node:events'
 import type { Request, Response } from 'express'
-import { AiModelTypeEnum, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ModelGatewayUsageSourceEnum, type ModelExecutionParameters } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionNativeController } from './execution-native.controller'
 import { captureRequestContext } from '../shared/request-context'
 
-function fixture(streaming = true) {
+function fixture(streaming = true, parameters?: ModelExecutionParameters) {
     const model = {
         id: 'selected',
         copilotId: 'copilot',
@@ -15,7 +15,8 @@ function fixture(streaming = true) {
         model: 'actual-model',
         modelType: AiModelTypeEnum.LLM,
         protocols: ['openai_responses', 'anthropic_messages'],
-        capabilities: []
+        capabilities: [],
+        parameters
     }
     const grant = {
         id: 'grant',
@@ -98,6 +99,7 @@ function fixture(streaming = true) {
     return {
         controller,
         chatExecution,
+        providers,
         invoke,
         model,
         identity,
@@ -112,6 +114,39 @@ function fixture(streaming = true) {
     }
 }
 describe('native gateway execution lifecycle', () => {
+    it('inherits native tuning and reserves its configured output without changing explicit fields', async () => {
+        const f = fixture(false, { temperature: 0.6, top_p: 0.37, max_tokens: 12345, reasoning_effort: 'high' })
+        await f.controller.responses(f.request as Request, f.response as unknown as Response, {
+            model: 'assistant-default',
+            input: 'offline',
+            stream: false,
+            temperature: 0
+        })
+        expect(f.generate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                temperature: 0,
+                top_p: 0.37,
+                max_output_tokens: 12345,
+                reasoning: { effort: 'high' }
+            }),
+            {},
+            expect.any(AbortSignal)
+        )
+        expect(f.admission.begin).toHaveBeenCalledWith(
+            f.identity.grant,
+            f.identity.models[0],
+            12345,
+            expect.any(Number)
+        )
+    })
+
+    it('rejects an incompatible inherited parameter before opening the provider client', async () => {
+        const f = fixture(false, { enable_thinking: true })
+        await f.invoke()
+        expect(f.providers.client).not.toHaveBeenCalled()
+        expect(f.generate).not.toHaveBeenCalled()
+        expect(f.response.status).toHaveBeenCalledWith(400)
+    })
     it.each([true, false])(
         'maps the pinned model, preserves native output and meters actual unpriced facts (stream=%s)',
         async (stream) => {

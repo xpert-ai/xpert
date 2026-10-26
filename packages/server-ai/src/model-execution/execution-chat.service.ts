@@ -16,6 +16,7 @@ import { executionError } from './execution-errors'
 import { ModelExecutionGrantService } from './execution-grant.service'
 import { ModelExecutionMeteringService } from './execution-metering.service'
 import type { ModelGatewayCall } from '../model-gateway/model-gateway-call.entity'
+import { executionChatParameters } from './execution-model-parameters'
 
 @Injectable()
 export class ModelExecutionChatService {
@@ -37,7 +38,8 @@ export class ModelExecutionChatService {
     }) {
         const { identity, model, protocol, parsed, response, abort, writer } = input
         const { grant } = identity
-        const requestedOutput = parsed.options.max_tokens
+        const parameters = executionChatParameters(model.parameters, parsed.options)
+        const requestedOutput = parameters.max_tokens
         if (requestedOutput !== undefined && (!Number.isSafeInteger(requestedOutput) || requestedOutput <= 0))
             throw executionError('Invalid')
         const outputReservation = requestedOutput ?? model.outputTokenLimit ?? 0
@@ -49,7 +51,11 @@ export class ModelExecutionChatService {
                 await executeGatewayChat({
                     response,
                     writer,
-                    parsed,
+                    parsed: {
+                        ...parsed,
+                        // Constructor parameters have already been merged; bind only invocation-owned options.
+                        options: { stop: parsed.options.stop, seed: parameters.seed }
+                    },
                     signal: abort.signal,
                     onActivity: lifetime.activity,
                     lifecycle: {
@@ -78,7 +84,7 @@ export class ModelExecutionChatService {
                                     model: model.model,
                                     modelType: model.modelType,
                                     options: {
-                                        ...(requestedOutput !== undefined ? { max_tokens: requestedOutput } : {}),
+                                        ...parameters,
                                         maxRetries: 0
                                     }
                                 },

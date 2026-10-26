@@ -58,6 +58,12 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PluginInstallationLockLost": "The plugin installation lock was lost. Retry the operation.",
+        "PluginInstallationCancelled": "Plugin installation was cancelled because storage ownership was lost.",
+        "PluginInstallationTimeout": "Plugin installation exceeded its time limit.",
+        "PluginInstallationFailed": "Plugin installation failed (exit {{code}}): {{details}}",
+        "PluginInstallationIncomplete": "Plugin {{plugin}} has an incomplete or mismatched installation.",
+        "PluginRuntimeRequirementsChanged": "Plugin runtime requirements changed. Refresh plugin state before retrying the restart.",
         "McpToolUnavailable": "MCP tool is unavailable.",
         "McpToolInvalidArguments": "Invalid MCP tool arguments: {{details}}",
         "McpToolInvalidOutput": "Invalid MCP tool output.",
@@ -215,6 +221,7 @@
         "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
         "ModelExecutionUnavailable": "Model execution is disabled or unavailable in this context.",
         "ModelExecutionBridgeUnsupported": "This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.",
+        "ModelExecutionParametersUnsupported": "The configured model parameters are invalid or unsupported by this model or execution protocol.",
         "ModelExecutionInvalid": "The model execution configuration is invalid.",
         "ModelExecutionConversationRequired": "Create a conversation with the current Assistant before opening coding tools.",
         "ModelExecutionDenied": "The execution authorization has expired, changed, or been revoked.",

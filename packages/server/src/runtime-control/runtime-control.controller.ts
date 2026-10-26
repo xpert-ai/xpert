@@ -1,5 +1,6 @@
 import {
 	IPluginRuntimeConvergenceStatus,
+	IPluginRuntimeSnapshot,
 	IRuntimeInstanceRegistration,
 	IRuntimeInstanceRetirementResult,
 	IRuntimeRestartCapability,
@@ -71,6 +72,13 @@ export class RuntimeControlController {
 		@Param('generation', ParseIntPipe) generation: number
 	): Promise<IPluginRuntimeConvergenceStatus> {
 		return await this.runtimeControl.pluginConvergenceStatus(generation)
+	}
+
+	@Get('plugin-state')
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.SUPER_ADMIN)
+	async pluginRuntimeSnapshot(): Promise<IPluginRuntimeSnapshot> {
+		return this.runtimeControl.pluginRuntimeSnapshot()
 	}
 
 	@ApiOperation({ summary: 'Gracefully restart all active API runtime replicas one at a time' })
