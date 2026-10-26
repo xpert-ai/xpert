@@ -1,7 +1,8 @@
-import type { ICollaborationDocumentProvider } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type ICollaborationDocumentProvider } from '@xpert-ai/plugin-sdk'
 import * as Y from 'yjs'
 import { CollaborationDocument, CollaborationUpdate } from './entities'
 import { CollaborationService } from './collaboration.service'
+import { runWithCapturedRequestContext } from '../shared/request-context'
 
 function matches(value: Record<string, unknown>, where: Record<string, unknown>) {
     return Object.entries(where).every(([key, expected]) => value[key] === expected)
@@ -96,15 +97,16 @@ function createHarness(redis?: TestRedis) {
         materializeDocument: jest.fn()
     }
     const providers = { get: jest.fn(() => provider) }
+    const queue = { enqueue: jest.fn() }
     const service = new CollaborationService(
         documentRepository as never,
         updateRepository as never,
         providers as never,
         redis as never,
-        undefined
+        queue as never
     )
     const api = service.createScopedApi({ tenantId: 'tenant', organizationId: 'organization', userId: 'user' })
-    return { api, documents, updates, provider }
+    return { api, service, documents, updates, provider, providers, queue }
 }
 
 class TestRedis {
@@ -144,6 +146,71 @@ class TestRedis {
 }
 
 describe('CollaborationService', () => {
+    it('keeps accepted edits durable, rejects failed worker attempts and repairs the latest state', async () => {
+        const { api, service, documents, provider, queue } = createHarness()
+        const created = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+        jest.mocked(provider.materializeDocument).mockRejectedValue(new Error('source disk unavailable'))
+        const local = new Y.Doc()
+        local.getText('body').insert(0, 'Accepted while the projection is unavailable')
+        const accepted = await api.applyUpdate({
+            documentId: created.id,
+            updateBase64: Buffer.from(Y.encodeStateAsUpdate(local)).toString('base64')
+        })
+        expect(accepted.sequenceNumber).toBe(5)
+        expect(accepted.materializationStatus).toBe('failed')
+        expect(documents[0].materializedSequence).toBe(4)
+        expect(queue.enqueue).toHaveBeenCalledTimes(1)
+        await expect(service.retryMaterialization(created.id)).rejects.toThrow('source disk unavailable')
+        expect(queue.enqueue).toHaveBeenCalledTimes(1)
+        jest.mocked(provider.materializeDocument).mockResolvedValue(undefined)
+        await service.retryMaterialization(created.id)
+        expect(documents[0]).toMatchObject({
+            materializationStatus: 'ready',
+            materializedSequence: 5,
+            sequenceNumber: 5,
+            lastMaterializationError: null
+        })
+        const event = jest.mocked(provider.materializeDocument).mock.calls.at(-1)![0]
+        const recovered = new Y.Doc()
+        Y.applyUpdate(recovered, Buffer.from(event.stateBase64, 'base64'))
+        expect(recovered.getText('body').toString()).toBe(local.getText('body').toString())
+        expect(event).toMatchObject({ userId: 'user', sequenceNumber: 5, origin: 'platform:materialization-retry' })
+        const calls = jest.mocked(provider.materializeDocument).mock.calls.length
+        await service.retryMaterialization(created.id)
+        expect(provider.materializeDocument).toHaveBeenCalledTimes(calls)
+        recovered.destroy()
+        local.destroy()
+    })
+
+    it('does not replay archived documents from stale background jobs', async () => {
+        const { api, service, documents, provider } = createHarness()
+        const created = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+        documents[0].status = 'archived'
+        documents[0].materializationStatus = 'failed'
+        await service.retryMaterialization(created.id)
+        expect(provider.materializeDocument).not.toHaveBeenCalled()
+    })
+
+    it('resolves retry providers in the persisted tenant without inheriting another caller', async () => {
+        const { api, service, documents, provider, providers } = createHarness()
+        const created = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+        documents[0].materializationStatus = 'failed'
+        providers.get.mockImplementation(() => {
+            expect(RequestContext.getScope().tenantId).toBe('tenant')
+            expect(RequestContext.getOrganizationId()).toBe('organization')
+            expect(RequestContext.currentUserId()).toBeFalsy()
+            return provider
+        })
+        await runWithCapturedRequestContext(
+            { user: null, headers: { 'tenant-id': 'unrelated', 'organization-id': 'other' } },
+            async () => {
+                await service.retryMaterialization(created.id)
+                expect(RequestContext.getScope().tenantId).toBe('unrelated')
+            }
+        )
+        expect(documents[0].materializationStatus).toBe('ready')
+    })
+
     it('initializes once, applies updates monotonically, and deduplicates by hash', async () => {
         const { api, provider, updates } = createHarness()
         const created = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
@@ -213,5 +280,33 @@ describe('CollaborationService', () => {
         await api.removeVirtualPresence({ documentId: created.id, actorKey: 'agent-a' })
         expect(await api.listPresence({ documentId: created.id })).toEqual([])
         expect(redis.published.some(({ message }) => message.includes('presence-remove'))).toBe(true)
+    })
+})
+
+describe('archived collaboration recovery', () => {
+    it('retains canonical state and sequence while enforcing manage permission and CAS', async () => {
+        const { api, provider } = createHarness()
+        const doc = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+        const archived = await api.archiveDocument({ documentId: doc.id, expectedSequence: 4 })
+        expect(archived.status).toBe('archived')
+        await expect(api.restoreDocument({ documentId: doc.id, expectedSequence: 3 })).rejects.toThrow(
+            'sequence conflict'
+        )
+        const restored = await api.restoreDocument({ documentId: doc.id, expectedSequence: 4 })
+        expect(restored).toMatchObject({ id: doc.id, status: 'active', sequenceNumber: 5 })
+        expect(await api.restoreDocument({ documentId: doc.id })).toMatchObject({ sequenceNumber: 5 })
+        await expect(api.restoreDocument({ documentId: doc.id, expectedSequence: 4 })).rejects.toThrow(
+            'sequence conflict'
+        )
+        expect(provider.authorize).toHaveBeenLastCalledWith(expect.objectContaining({ operation: 'manage' }))
+        jest.mocked(provider.authorize).mockReturnValue(false)
+        await expect(api.archiveDocument({ documentId: doc.id })).rejects.toThrow('access was denied')
+        await expect(api.restoreDocument({ documentId: doc.id })).rejects.toThrow('access was denied')
+    })
+    it('does not restore a deleted collaboration document', async () => {
+        const { api } = createHarness()
+        const doc = await api.ensureDocument({ providerKey: 'example.document', resourceId: 'resource' })
+        await api.deleteDocument({ documentId: doc.id })
+        await expect(api.restoreDocument({ documentId: doc.id })).rejects.toThrow('not found')
     })
 })

@@ -206,17 +206,15 @@ export class ContentDocumentLocations {
             }
             await this.changes.manager.transaction(async (manager) => {
                 for (const document of current.documents)
-                    await manager
-                        .getRepository(ContentDocument)
-                        .update(
-                            { id: document.id, epoch: document.epoch, status: 'moving' },
-                            {
-                                path: document.to,
-                                ...(document.from === input.path ? { title: input.title } : {}),
-                                status: input.deleted ? 'deleted' : 'ready',
-                                projectionPending: !input.deleted
-                            }
-                        )
+                    await manager.getRepository(ContentDocument).update(
+                        { id: document.id, epoch: document.epoch, status: 'moving' },
+                        {
+                            path: document.to,
+                            ...(document.from === input.path ? { title: input.title } : {}),
+                            status: input.deleted ? 'deleted' : 'ready',
+                            projectionPending: !input.deleted
+                        }
+                    )
                 await manager.getRepository(ContentLocationChange).update(current.id, { status: 'committed' })
             })
         }

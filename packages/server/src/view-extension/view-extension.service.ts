@@ -382,7 +382,7 @@ export class ViewExtensionService {
 				}
 
 				const normalized = normalizeManifest(manifest, providerKey, context, slot.key)
-				if (!isManifestActiveForContext(normalized, context)) {
+				if (!isManifestActiveForContext(normalized, context, 'open')) {
 					throw new NotFoundException(`View '${publicViewKey}' was not found`)
 				}
 

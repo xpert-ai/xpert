@@ -25,14 +25,18 @@ integration('thread control schema preflight during upgrades and rollback', () =
     it.each(['id', 'createdAt', 'updatedAt', 'createdById', 'updatedById'])(
         'withholds execution when the inherited projection column %s is not migrated',
         async (column) => {
-            await f.db.query(`ALTER TABLE chat_thread_control_projection RENAME COLUMN "${column}" TO unavailable_column`)
+            await f.db.query(
+                `ALTER TABLE chat_thread_control_projection RENAME COLUMN "${column}" TO unavailable_column`
+            )
             const read = () => f.db.manager.findOneByOrFail(ChatConversationThread, { threadId: f.threadId })
             const before = await read()
             await expect(f.control.start(f.threadId, randomUUID())).rejects.toMatchObject({
                 response: { errorCode: 'EXECUTION_CONTROL_UNAVAILABLE', reason: 'schema' }
             })
             expect((await read()).runControl).toEqual(before.runControl)
-            await f.db.query(`ALTER TABLE chat_thread_control_projection RENAME COLUMN unavailable_column TO "${column}"`)
+            await f.db.query(
+                `ALTER TABLE chat_thread_control_projection RENAME COLUMN unavailable_column TO "${column}"`
+            )
             expect((await f.views.read(f.threadId)).controlView.state).toBe('running')
         }
     )

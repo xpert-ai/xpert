@@ -100,7 +100,10 @@ export interface FileContentEditorRegistration extends ContentEditorMetadata {
   kind: 'file'
   concurrency: 'versioned'
 }
-export type ContentEditorRegistration = TextContentEditorRegistration | FileContentEditorRegistration
+export type ContentEditorRegistration =
+  | TextContentEditorRegistration
+  | FileContentEditorRegistration
+  | import('./content-resource.model').ResourceContentEditorRegistration
 
 /**
  * Resolve an authorized resource to its registered editor, without opening UI.
@@ -122,6 +125,8 @@ export interface ContentEditorOpenRequest {
   /** Omit for a platform text document; resource providers are reauthorized server-side. */
   providerKey?: string
   resourceId: string
+  /** Explicit choice, accepted only if the model and edit protocol are compatible. */
+  editorKey?: string
 }
 export interface ContentEditorResolveResult {
   success: true

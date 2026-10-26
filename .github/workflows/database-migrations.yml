@@ -14,6 +14,9 @@ on:
       - 'docker-compose.yml'
       - 'docker/docker-compose*.yml'
       - 'tools/scripts/test-schema-migrations.cjs'
+      - 'tools/scripts/start-api*.mjs'
+      - 'nodemon*.json'
+      - 'package.json'
       - 'tools/scripts/schema-migration-legacy-fixture.cjs'
       - '.github/workflows/database-migrations.yml'
 jobs:
@@ -26,6 +29,7 @@ jobs:
           node-version: '22'
       - run: corepack enable
       - run: corepack pnpm install --frozen-lockfile
+      - run: node --test tools/scripts/start-api.test.mjs
       - run: node tools/scripts/test-schema-migrations.cjs
       - run: node --test .deploy/api/schema-compose.test.cjs .deploy/api/health-diagnostics.test.cjs
       - run: corepack pnpm exec jest --config apps/api/jest.config.ts --runInBand --runTestsByPath apps/api/src/schema-sync.spec.ts apps/api/src/bootstrap/plugins.spec.ts apps/api/src/bootstrap/schema-sync-bootstrap.spec.ts

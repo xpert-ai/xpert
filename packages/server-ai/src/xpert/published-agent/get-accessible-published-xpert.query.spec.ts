@@ -2,7 +2,10 @@ import { ForbiddenException } from '@nestjs/common'
 import { CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { Test, type TestingModule } from '@nestjs/testing'
 import { PublishedXpertAccessService } from '../published-xpert-access.service'
-import { GetAccessiblePublishedXpertHandler, GetAccessiblePublishedXpertQuery } from './get-accessible-published-xpert.query'
+import {
+    GetAccessiblePublishedXpertHandler,
+    GetAccessiblePublishedXpertQuery
+} from './get-accessible-published-xpert.query'
 
 describe('published Assistant access query wiring', () => {
     let module: TestingModule
@@ -12,10 +15,7 @@ describe('published Assistant access query wiring', () => {
     beforeAll(async () => {
         module = await Test.createTestingModule({
             imports: [CqrsModule],
-            providers: [
-                GetAccessiblePublishedXpertHandler,
-                { provide: PublishedXpertAccessService, useValue: access }
-            ]
+            providers: [GetAccessiblePublishedXpertHandler, { provide: PublishedXpertAccessService, useValue: access }]
         }).compile()
         await module.init()
         queries = module.get(QueryBus)
@@ -27,7 +27,9 @@ describe('published Assistant access query wiring', () => {
         const assistant = { id: 'published', agent: { key: 'executor' } }
         const relations = ['agent', 'agent.copilotModel', 'copilotModel']
         access.getAccessiblePublishedXpert.mockResolvedValue(assistant)
-        await expect(queries.execute(new GetAccessiblePublishedXpertQuery('published', relations))).resolves.toBe(assistant)
+        await expect(queries.execute(new GetAccessiblePublishedXpertQuery('published', relations))).resolves.toBe(
+            assistant
+        )
         expect(access.getAccessiblePublishedXpert).toHaveBeenCalledWith('published', { relations })
     })
 

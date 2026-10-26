@@ -120,7 +120,9 @@ function fixture(external: boolean) {
         scopeKey: BUILTIN_GLOBAL_SCOPE
     })
     const runtime = new AgentInvocationRuntime(store, registry)
-    const published = jest.fn(async (_id: string, _options?: Omit<FindOneOptions<Xpert>, 'where'>): Promise<IXpert> => target)
+    const published = jest.fn(
+        async (_id: string, _options?: Omit<FindOneOptions<Xpert>, 'where'>): Promise<IXpert> => target
+    )
     const accessHandler = new GetAccessiblePublishedXpertHandler({
         getAccessiblePublishedXpert: published
     } as unknown as PublishedXpertAccessService)

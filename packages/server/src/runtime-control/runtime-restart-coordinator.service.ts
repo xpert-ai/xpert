@@ -23,6 +23,7 @@ import { createRestartMetadata, INITIAL_OPERATION_TTL_MS } from './runtime-rollo
 import { preparePluginStartupRetry, getPluginStartupFailure } from '../plugin/plugin-startup-state'
 import {
 	IPluginRuntimeConvergenceStatus,
+	IPluginRuntimeSnapshot,
 	IRuntimePluginRequirement,
 	IRuntimeRestartResponse,
 	IRuntimeRestartStatus,
@@ -124,19 +125,23 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		tenantId?: string
 		sourceIp?: string
 		runtimeRequirements?: IRuntimePluginRequirement[]
+		expectedGeneration?: number
 	}): Promise<IRuntimeRestartResponse> {
 		const runtimeRequirements = mergeRuntimeRequirements(input.runtimeRequirements ?? [])
 		if (runtimeRequirements.length) {
-			const generation = await this.generations.publish({
-				generation: 0,
-				requirements: runtimeRequirements,
-				source: 'interactive',
-				allowDowntime: input.source === 'interactive' && input.allowDowntime === true,
-				reason: input.reason,
-				actorUserId: input.actorUserId,
-				tenantId: input.tenantId,
-				sourceIp: input.sourceIp
-			})
+			const generation = await this.generations.publish(
+				{
+					generation: 0,
+					requirements: runtimeRequirements,
+					source: 'interactive',
+					allowDowntime: input.source === 'interactive' && input.allowDowntime === true,
+					reason: input.reason,
+					actorUserId: input.actorUserId,
+					tenantId: input.tenantId,
+					sourceIp: input.sourceIp
+				},
+				input.expectedGeneration
+			)
 			this.writeAuditLog('runtime.restart.queued', {
 				generation,
 				reason: input.reason,
@@ -226,6 +231,15 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		}
 		const targets = await this.targets.read(restartId)
 		return restartStatus(metadata, targets)
+	}
+
+	async getPluginRuntimeSnapshot(): Promise<IPluginRuntimeSnapshot> {
+		const desired = await this.generations.readDesired()
+		const activeRestartId = await this.redis.get(ACTIVE_RESTART_KEY)
+		return {
+			...(desired ?? { generation: 0, status: null, requirements: [] }),
+			...(activeRestartId ? { activeRestartId } : {})
+		}
 	}
 
 	async getPluginConvergenceStatus(generation: number): Promise<IPluginRuntimeConvergenceStatus | null> {

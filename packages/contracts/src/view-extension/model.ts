@@ -184,6 +184,10 @@ export interface XpertViewPolling {
 }
 
 export interface XpertViewActivation {
+  /** Allow direct document opening in an authorized Project without enabling Assistant tools.
+   * Discovery still observes requiredFeatures. Providers must authorize each selected resource
+   * and action; this flag grants neither Project membership nor resource write access. */
+  projectResource?: boolean
   requiredFeatures?: string[]
 }
 

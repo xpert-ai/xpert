@@ -26,6 +26,14 @@ export interface IPluginRuntimeConvergence {
   generation: number
 }
 
+/** Durable cluster target, independent of expiring operation history. */
+export interface IPluginRuntimeSnapshot {
+  generation: number
+  status: RuntimeRestartStatus | null
+  requirements: IRuntimePluginRequirement[]
+  activeRestartId?: string
+}
+
 export type RuntimeRestartCapabilityReason =
   | 'allowed'
   | 'interactive-auth-required'
@@ -47,6 +55,8 @@ export interface IRuntimeRestartRequest {
   allowDowntime?: boolean
   /** Plugin runtime state that every replacement process must confirm after boot. */
   runtimeRequirements?: IRuntimePluginRequirement[]
+  /** Compare-and-set fence for publishing an approved plugin restart. */
+  expectedGeneration?: number
 }
 
 export interface IRuntimeRestartResponse {

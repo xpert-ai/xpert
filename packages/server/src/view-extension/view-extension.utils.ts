@@ -163,9 +163,13 @@ function normalizeRuntime(
 
 export function isManifestActiveForContext(
 	manifest: XpertExtensionViewManifest,
-	context: XpertResolvedViewHostContext
+	context: XpertResolvedViewHostContext,
+	purpose: 'discover' | 'open' = 'discover'
 ): boolean {
 	const activation = manifest.activation
+	// Project editors must be discoverable so ChatKit can mount them locally on demand.
+	// This grants no tool capability or resource access: provider actions still authorize the actor.
+	if (activation?.projectResource && (context.hostType === 'project' || context.runtimeScope?.projectId)) return true
 	const requiredFeatures = normalizeStringList(activation?.requiredFeatures)
 
 	if (requiresFeatureActivation(manifest, context) && requiredFeatures.length === 0) {

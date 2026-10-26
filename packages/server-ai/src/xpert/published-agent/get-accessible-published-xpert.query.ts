@@ -4,7 +4,10 @@ import { PublishedXpertAccessService } from '../published-xpert-access.service'
 
 /** Load a published Assistant through the current actor's audience and live access checks. */
 export class GetAccessiblePublishedXpertQuery extends Query<IXpert> {
-    constructor(readonly xpertId: string, readonly relations?: string[]) {
+    constructor(
+        readonly xpertId: string,
+        readonly relations?: string[]
+    ) {
         super()
     }
 }

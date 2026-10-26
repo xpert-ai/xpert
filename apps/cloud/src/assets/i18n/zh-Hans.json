@@ -4427,6 +4427,8 @@
       "RestartRequiredGenericDescription": "进程级插件变更已预安装，重启 API 服务后生效。",
       "RestartAdminRequired": "请由默认租户范围内的超级管理员重启 API 服务。",
       "RestartLater": "稍后处理",
+      "RestartStatusUnavailable": "无法核实当前插件状态，请在 API 恢复后重试。",
+      "RestartRequirementsChanged": "无法核实插件要求，请刷新或重试插件变更后再重启。",
       "RestartNow": "立即重启",
       "RestartConfirmTitle": "确认重启 API 服务？",
       "RestartConfirmDescription": "重启会等待正在处理的请求结束。若当前只有一个可用实例，服务将短暂不可用，连接会在服务恢复后重新建立。",

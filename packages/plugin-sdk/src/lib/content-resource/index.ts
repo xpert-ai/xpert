@@ -37,9 +37,14 @@ export interface ContentPageProvider {
 }
 export interface ContentPublicationObserver {
   /** Retryable projection: compare the supplied head before updating derived data. */
-  onDocumentPublished(input: ContentSourceInput & {
-    path: string; hash: string; revisionId: string; sequence: number
-  }): Promise<void>
+  onDocumentPublished(
+    input: ContentSourceInput & {
+      path: string
+      hash: string
+      revisionId: string
+      sequence: number
+    }
+  ): Promise<void>
 }
 export interface ContentLocationProvider {
   validateLocationChange(input: import('./document').ContentLocationChangeInput): Promise<void>
@@ -55,6 +60,7 @@ export interface IContentResourceProvider {
   readonly pages?: ContentPageProvider
   readonly publication?: ContentPublicationObserver
   readonly locations?: ContentLocationProvider
+  readonly catalog?: import('./catalog').ContentCatalogProvider
 }
 export const CONTENT_RESOURCE_PROVIDER = 'XPERT_CONTENT_RESOURCE_PROVIDER'
 export const ContentResourceProvider = (key: string) =>
@@ -76,6 +82,7 @@ export interface ContentIdentitiesApi {
 export interface ContentResourcesApi {
   readonly identities: ContentIdentitiesApi
   authorize(input: ContentResourceRequest): Promise<ContentResourceDescriptor>
+  readonly catalog: import('./catalog').ContentCatalogApi
 }
 export const ContentResourcesRuntimeCapability = createRuntimeCapability<ContentResourcesApi>(
   'platform.content.resources',
@@ -86,3 +93,4 @@ export * from './document'
 export * from './reference'
 
 export * from './editor'
+export * from './catalog'

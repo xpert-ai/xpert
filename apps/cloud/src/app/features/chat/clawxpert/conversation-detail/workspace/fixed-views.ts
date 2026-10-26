@@ -1,4 +1,10 @@
-import type { IconDefinition, I18nObject, XpertViewQuery, XpertViewSchema } from '@xpert-ai/contracts'
+import type {
+  XpertExtensionViewManifest,
+  IconDefinition,
+  I18nObject,
+  XpertViewQuery,
+  XpertViewSchema
+} from '@xpert-ai/contracts'
 import type { ClawXpertFixedViewTab } from '../../clawxpert-fixed-view-stack.component'
 
 export const DEFAULT_FIXED_VIEW_ICON = {
@@ -93,4 +99,16 @@ export function initiallyOpenViews<T extends { viewKey: string; openMode?: 'auto
 /** Match ChatKit's iframe renderer; unsupported schemas cannot open in the embedded workbench. */
 export function canRenderViewInChatkit(view: XpertViewSchema | undefined) {
   return view?.type === 'remote_component' && view.component.isolation === 'iframe'
+}
+
+/** Availability follows the renderer, not the outer shell's command registry.
+ * ChatKit checks required commands against its own handlers before mounting an iframe.
+ * Applying the legacy shell's gate here would discard valid URLs and deep-link queries.
+ * This is discovery only: server authorization and ChatKit command checks still apply.
+ */
+export function supportsWorkbenchView(
+  manifest: XpertExtensionViewManifest,
+  legacySupports: (manifest: XpertExtensionViewManifest) => boolean
+) {
+  return canRenderViewInChatkit(manifest.view) || legacySupports(manifest)
 }

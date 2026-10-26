@@ -10,6 +10,7 @@ import { Column, Entity, Index } from 'typeorm'
 @Entity('collaboration_document')
 @Index(['scopeKey', 'providerKey', 'resourceId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'providerKey', 'status'])
+@Index(['status', 'materializationStatus', 'updatedAt'])
 /** Persistent authoritative CRDT snapshot and its plugin materialization checkpoint. */
 export class CollaborationDocument extends TenantOrganizationBaseEntity implements ICollaborationDocument {
     @Column({ type: 'varchar' })

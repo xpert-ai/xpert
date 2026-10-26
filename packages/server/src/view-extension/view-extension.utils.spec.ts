@@ -67,9 +67,14 @@ describe('view extension utils', () => {
 	})
 
 	it('preserves required client commands for host compatibility checks', () => {
-    const normalized = normalizeManifest({ ...manifest, clientCommands: [{ key: 'editor.status', required: true }] }, 'provider_a', context, 'detail.main_tabs')
-    expect(normalized.clientCommands).toEqual([{ key: 'editor.status', required: true }])
-  })
+		const normalized = normalizeManifest(
+			{ ...manifest, clientCommands: [{ key: 'editor.status', required: true }] },
+			'provider_a',
+			context,
+			'detail.main_tabs'
+		)
+		expect(normalized.clientCommands).toEqual([{ key: 'editor.status', required: true }])
+	})
 
 	it('normalizes manifests into public view keys and default action placement', () => {
 		const normalized = normalizeManifest(manifest, 'provider_a', context, 'detail.main_tabs')
@@ -319,6 +324,26 @@ describe('view extension utils', () => {
 
 		expect(isManifestActiveForContext(activatedManifest, activeContext)).toBe(true)
 		expect(isManifestActiveForContext(activatedManifest, inactiveContext)).toBe(false)
+	})
+
+	it('discovers Project resource editors without granting their Assistant tool feature', () => {
+		const editor = { ...manifest, activation: { projectResource: true, requiredFeatures: ['site-tools'] } }
+		const project = {
+			...context,
+			capabilities: { features: [] },
+			runtimeScope: {
+				projectId: 'project',
+				conversationId: null,
+				dataScopeKey: 'project:project',
+				workspaceFiles: null
+			}
+		}
+		expect(isManifestActiveForContext(editor, project)).toBe(true)
+		expect(isManifestActiveForContext(editor, project, 'open')).toBe(true)
+		expect(isManifestActiveForContext(editor, { ...project, hostType: 'agent', runtimeScope: undefined })).toBe(
+			false
+		)
+		expect(project.capabilities.features).toEqual([])
 	})
 
 	it('requires feature activation for slots with that manifest policy', () => {

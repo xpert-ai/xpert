@@ -159,14 +159,26 @@ integration.each(['fresh', 'legacy'] as const)('thread projection %s schema / Po
         const paused = (await f.makeView().read(f.threadId)).controlView
         expect(paused).toMatchObject({ state: 'paused', revision: '9007199254740995', actions: { canResume: true } })
         const updated = await repository.findOneByOrFail({ threadId: f.threadId })
-        expect(updated).toMatchObject({ id: original.id, createdAt: original.createdAt, createdById: principal().userId })
+        expect(updated).toMatchObject({
+            id: original.id,
+            createdAt: original.createdAt,
+            createdById: principal().userId
+        })
         expect(updated.fingerprint).not.toBe(fingerprint)
         expect(await repository.count()).toBe(1)
         threadControlViewSchema.parse(paused)
         expect(Object.keys(paused)).not.toEqual(
             expect.arrayContaining(['id', 'tenantId', 'organizationId', 'createdAt', 'createdById'])
         )
-        for (const field of ['id', 'tenantId', 'organizationId', 'createdAt', 'updatedAt', 'createdById', 'updatedById'])
+        for (const field of [
+            'id',
+            'tenantId',
+            'organizationId',
+            'createdAt',
+            'updatedAt',
+            'createdById',
+            'updatedById'
+        ])
             expect(paused).not.toHaveProperty(field)
     })
 

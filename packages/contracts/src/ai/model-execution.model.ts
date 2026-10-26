@@ -1,6 +1,7 @@
 import { z } from 'zod/v3'
 import type { AiModelTypeEnum } from '../agent'
 import type { ModelFeature } from './ai-model.model'
+import type { ModelExecutionParameters } from './model-execution-parameters.model'
 
 /** Entry point and execution location are independent dimensions. */
 export type ModelExecutionEntry = 'cli' | 'agent_runtime' | 'shell'
@@ -57,6 +58,8 @@ export interface ModelExecutionModel {
   model: string
   modelType: AiModelTypeEnum.LLM
   capabilities: ModelFeature[]
+  /** Validated non-secret Assistant parameters frozen at grant issuance; absent on legacy grants. */
+  parameters?: ModelExecutionParameters
   /** Provider catalog context window; a CLI hint, not an execution policy limit. */
   contextWindow?: number
   /** Provider catalog maximum output; a CLI hint, never an additional execution cap. */

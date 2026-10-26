@@ -10,7 +10,17 @@
 
 ## 开发方式
 
-开发环境修改 Entity 或 SQL 后，也先执行下方 `schema-sync` 命令，再启动 API。普通表仍由该命令自动同步；不要打开 API 的全局 `synchronize`，否则 TypeORM 会删除 SQL 维护的约束。
+本地使用 `corepack pnpm start:api`（或 `start:api:dev` / `start:api:debug`）启动时，每次都会先构建依赖库与 API/SQL 资源，再依次执行 `schema-sync --action apply`、`schema-sync --action verify`，通过后才启动本次构建的 API。构建、升级、校验任一步失败，API 均不会启动；nodemon 保留错误输出，修复后输入 `rs` 重试。
+
+Entity、SQL、迁移清单等受监听源码变化触发重启时，也会重新执行整个流程。停止/重启会先终止上一轮子进程；生成的 `dist` 不触发循环重启。调试入口同样经过升级校验，仅最终 API 打开本机 `127.0.0.1:9229` 调试端口。
+
+只升级和校验、不启动 API 时运行：
+
+```bash
+corepack pnpm schema:sync
+```
+
+这些本地入口使用开发环境配置，目标数据库与 API 相同，请先确认 `.env`。普通表仍由独立升级命令自动同步；不要打开 API 的全局 `synchronize`，否则 TypeORM 会删除 SQL 维护的约束。直接运行 `node dist/apps/api/main.js` 或 `nx serve api` 不包含上述编排；本地联调应使用 `start:api`，生产继续使用下方部署任务。
 
 普通表不必手写迁移。需要特殊约束、索引或数据转换时，在所属模块的 `migrations/` 中添加：
 
@@ -80,6 +90,8 @@ node main.js --command schema-sync --action verify
 
 `baseline` 只验证并登记配置中明确列出的接管集合，复用 TypeORM 的 fake migration 能力，不重放旧数据转换。检查失败则接管记录回滚，需要针对该旧版本编写补齐迁移或完成历史转换，不能直接伪造成功记录。
 
+本地启动遇到 `BASELINE_REQUIRED` 同样会停止，不会自动尝试接管。核对并备份旧库后，可显式运行 `corepack pnpm schema:baseline`：构建 → baseline → apply → verify，通过后重新运行 `start:api`。若出现 `SCHEMA_VERIFICATION_FAILED`，说明旧库结构或历史转换证据与基线不符，必须先针对差异修复；重复启动或重复 baseline 不能补齐这些差异。
+
 ModelExecution 的调用可能在派发前失败，因此 `dispatchedAt=NULL` 本身不代表遗漏历史转换。接管保留正常的待派发、预检失败和未派发恢复记录；若同时存在成功、待结算、用量或扣费证据，则仍阻止接管并要求核对，不自动补写派发时间。
 
 当前 SQL 基线覆盖 55 张既有表；另外 5 张向量表及 5 张内容文档表由新增 SQL 创建，其余未登记的实体表仍由 TypeORM 同步。基线来源与 38 个历史 SQL 的哈希保存在 `platform-baseline/legacy-inventory.json`。原有 8 位日期脚本是历史参考，部署不再次执行；新增脚本使用 14 位格式。基线包含旧数据转换的必要条件，不能仅凭表存在就自动接管。
@@ -99,6 +111,7 @@ ModelExecution 的调用可能在派发前失败，因此 `dispatchedAt=NULL` �
 ## 验证与边界
 
 ```bash
+node --test tools/scripts/start-api.test.mjs
 node tools/scripts/test-schema-migrations.cjs
 node --test .deploy/api/health-diagnostics.test.cjs .deploy/api/schema-compose.test.cjs
 node .deploy/api/check-image.cjs <已构建的镜像ID>

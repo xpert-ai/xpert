@@ -1,4 +1,5 @@
 import type { IRuntimeAdmissionDiagnostics } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 /** A lost Redis lease closes traffic immediately; returning boots must revalidate desired plugin state. */
 import type { InstanceRegistryService } from '../managed-connection/instance-registry.service'
 import { admitPluginStartup, canRestorePluginStartup, isPluginStartupListening } from '../plugin/plugin-startup-state'
@@ -15,6 +16,8 @@ export type RestartRegistry = Pick<
 	Partial<Pick<InstanceRegistryService, 'getLeaseRemainingMs'>>
 
 export class RuntimePluginAdmission {
+	private readonly logger = new Logger(RuntimePluginAdmission.name)
+	private lastMismatch?: string
 	private admitted = false
 	private checkedUntil = 0
 	private committed = false
@@ -91,8 +94,13 @@ export class RuntimePluginAdmission {
 		const state = this.registry.getPluginState()
 		const admission = await resolveRolloutAdmission(generations, desired, rollout, state)
 		const continuous = this.admitted && Date.now() < this.checkedUntil && this.registry.isLeaseValid()
-		const matches =
-			!!state && (!desired || evaluateRuntimeRequirements(desired.requirements, state).status === 'satisfied')
+		const evaluation = desired ? evaluateRuntimeRequirements(desired.requirements, state) : undefined
+		const matches = !!state && (!desired || evaluation?.status === 'satisfied')
+		// Report only changed metadata mismatches, never plugin configuration or credentials.
+		// A generic readiness 503 alone cannot tell an operator which installation needs repair.
+		const mismatch = evaluation?.status === 'failed' ? evaluation.error : undefined
+		if (mismatch && mismatch !== this.lastMismatch) this.logger.warn(mismatch)
+		this.lastMismatch = mismatch
 		// Only the active operation's replacement may join against a verified rollout manifest.
 		// Other new/returning boots still have to satisfy the latest desired generation.
 		const matchesRollout =

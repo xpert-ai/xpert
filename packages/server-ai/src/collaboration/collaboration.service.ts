@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { t } from 'i18next'
 import {
     BadRequestException,
     ForbiddenException,
@@ -46,6 +47,7 @@ import * as Y from 'yjs'
 import { CollaborationDocument, CollaborationUpdate } from './entities'
 import { sanitizePresence } from './collaboration-presence'
 import { optionalBase64, optionalText, positiveInteger, requiredText } from './collaboration-input'
+import { runWithCapturedRequestContext } from '../shared/request-context'
 
 const SESSION_TTL_SECONDS = 600
 const PRESENCE_TTL_SECONDS = 30
@@ -143,6 +145,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
                     defaults
                 ),
             archiveDocument: (input) => this.setDocumentStatus(input, 'archived', this.resolveScope(defaults)),
+            restoreDocument: (input) => this.setDocumentStatus(input, 'active', this.resolveScope(defaults)),
             deleteDocument: (input) => this.deleteDocumentWithScope(input, this.resolveScope(defaults))
         }
     }
@@ -173,6 +176,9 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     }
     archiveDocument(input: GetCollaborationDocumentInput) {
         return this.api.archiveDocument(input)
+    }
+    restoreDocument(input: GetCollaborationDocumentInput & { expectedSequence?: number }) {
+        return this.api.restoreDocument(input)
     }
     deleteDocument(input: GetCollaborationDocumentInput) {
         return this.api.deleteDocument(input)
@@ -242,8 +248,27 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     /** Retry projection of the latest authoritative state; stale intermediate jobs are harmless. */
     async retryMaterialization(documentId: string) {
         const document = await this.documentRepository.findOne({ where: { id: documentId } })
-        if (!document || document.status === 'deleted') return
-        await this.materialize(document, null, 'platform:materialization-retry')
+        if (
+            !document ||
+            document.status !== 'active' ||
+            (document.materializationStatus === 'ready' && document.materializedSequence >= document.sequenceNumber)
+        )
+            return
+        // A worker must reject failed work so the queue uses its bounded backoff.
+        // Enqueuing the same active job and resolving it would silently lose the retry.
+        // Background scans have no HTTP context. Resolve tenant-global providers
+        // using the persisted document scope, never an unrelated caller's scope.
+        const ready = await runWithCapturedRequestContext(
+            {
+                user: null,
+                headers: {
+                    'tenant-id': document.tenantId,
+                    ...(document.organizationId ? { 'organization-id': document.organizationId } : {})
+                }
+            },
+            () => this.materialize(document, null, 'platform:materialization-retry', false)
+        )
+        if (!ready) throw new Error(document.lastMaterializationError ?? t('server-ai:Error.ContentProjectionFailed'))
     }
 
     /** Lazily initialize exactly one collaboration document per scope/provider/resource tuple. */
@@ -481,14 +506,14 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
 
     private async setDocumentStatus(
         input: GetCollaborationDocumentInput & { expectedSequence?: number },
-        status: 'archived',
+        status: 'active' | 'archived',
         scope: CollaborationScope
     ) {
         const document = await this.requireDocument(input, scope)
         await this.authorize(document, scope, 'manage')
         // Serialize retirement with writes. Saving a previously read entity could otherwise
         // overwrite the last accepted state while an editor is being migrated.
-        return this.documentRepository.manager.transaction(async (manager) => {
+        const saved = await this.documentRepository.manager.transaction(async (manager) => {
             const repository = manager.getRepository(CollaborationDocument)
             const current = await repository.findOneOrFail({
                 where: { id: document.id },
@@ -497,9 +522,19 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             await this.authorize(current, scope, 'manage')
             if (input.expectedSequence !== undefined && current.sequenceNumber !== input.expectedSequence)
                 throw new BadRequestException('Collaboration sequence conflict.')
+            // Restoring is a new revision boundary even though the Yjs bytes are unchanged.
+            // Otherwise a pre-archive CAS could succeed after archive + restore (ABA).
+            // Repeated restore requests remain idempotent and do not advance again.
+            if (status === 'active' && current.status === 'archived') {
+                current.sequenceNumber += 1
+                current.materializationStatus = 'pending'
+            }
             current.status = status
-            return toRecord(await repository.save(current))
+            return repository.save(current)
         })
+        if (status === 'active' && saved.materializationStatus === 'pending')
+            await this.materialize(saved, null, 'platform:restored')
+        return toRecord(saved)
     }
 
     private async deleteDocumentWithScope(input: GetCollaborationDocumentInput, scope: CollaborationScope) {
@@ -531,7 +566,12 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
      * Project authoritative state into the plugin model. A projection failure never rejects an
      * already committed CRDT update; it marks the document failed and schedules retry instead.
      */
-    private async materialize(document: CollaborationDocument, updateBase64: string | null, origin: string | null) {
+    private async materialize(
+        document: CollaborationDocument,
+        updateBase64: string | null,
+        origin: string | null,
+        enqueueRetry = true
+    ) {
         try {
             const provider = this.providers.get(document.providerKey, document.organizationId ?? undefined)
             const scope = documentScope(document)
@@ -559,6 +599,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             document.materializedSequence = document.sequenceNumber
             document.materializationStatus = 'ready'
             document.lastMaterializationError = null
+            return true
         } catch (error) {
             const message = errorMessage(error).slice(0, 2_000)
             document.materializationStatus = 'failed'
@@ -571,9 +612,11 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
                 }
             )
             this.logger.warn(`Collaboration materialization failed for ${document.id}: ${message}`)
-            await this.enqueueMaterialization(document).catch((queueError) =>
-                this.logger.warn(`Failed to enqueue collaboration materialization: ${errorMessage(queueError)}`)
-            )
+            if (enqueueRetry)
+                await this.enqueueMaterialization(document).catch((queueError) =>
+                    this.logger.warn(`Failed to enqueue collaboration materialization: ${errorMessage(queueError)}`)
+                )
+            return false
         }
     }
 
