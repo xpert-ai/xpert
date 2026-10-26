@@ -1,4 +1,5 @@
 ---
+'@xpert-ai/desktop-protocol': patch
 '@xpert-ai/contracts': minor
 '@xpert-ai/plugin-sdk': minor
 '@xpert-ai/server-ai': patch

@@ -11,6 +11,9 @@ import {
 import {
     ManagedQueueService,
     ManagedQueueProcessor,
+    TaskControlStore,
+    TaskControlRunner,
+    ControlRuntimeAdmissionService,
     ManagedQueueHandlerRegistryService,
     type ManagedQueueEnvelope,
     type UserService
@@ -33,13 +36,11 @@ export function pipelineQueueFixture(
     const url = new URL(redisUrl)
     const connection = { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
     const queue = new Queue<ManagedQueueEnvelope>(`pipeline-acceptance-${randomUUID()}`, { connection })
-    const managed = new ManagedQueueService(
-        queue,
-        queue,
-        { getJob: jest.fn().mockResolvedValue(null) } as never,
-        { getJob: jest.fn().mockResolvedValue(null) } as never,
-        { producer: jest.fn().mockResolvedValue(undefined) } as never
-    )
+    const controls = { producer: jest.fn().mockResolvedValue(undefined) } as unknown as TaskControlStore
+    const admission = {
+        requireQueueWorker: jest.fn().mockRejectedValue(new Error('Unexpected controlled projection dispatch'))
+    } as unknown as ControlRuntimeAdmissionService
+    const managed = new ManagedQueueService(queue, queue, queue, queue, controls, queue, queue, admission)
     const enqueue = managed.enqueue.bind(managed)
     jest.spyOn(managed, 'enqueue').mockImplementation((input) => enqueue({ ...input, backoffMs: 500 }))
     const registry = new ProjectPipelineProjectionProviderRegistry({} as DiscoveryService, new Reflector())
@@ -90,12 +91,10 @@ export function pipelineQueueFixture(
                 handler: (job, scope) => service.handle(job, scope)
             })
             const users = { findOneByIdWithinTenant: async (id: string, tenantId: string) => ({ id, tenantId }) }
-            const processor = new ManagedQueueProcessor(
-                registry,
-                users as UserService,
-                undefined as never,
-                undefined as never
-            )
+            const controlRunner = {
+                run: jest.fn().mockRejectedValue(new Error('Unexpected controlled projection delivery'))
+            } as unknown as TaskControlRunner
+            const processor = new ManagedQueueProcessor(registry, users as UserService, controls, controlRunner)
             const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
                 connection,
                 concurrency: 2

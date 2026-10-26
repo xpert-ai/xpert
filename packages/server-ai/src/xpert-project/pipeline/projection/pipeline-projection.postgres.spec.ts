@@ -22,6 +22,7 @@ import { ProjectPipelineProjectionStore } from './pipeline-projection.store'
 import { ProjectPipelineQueryService } from '../queries/pipeline-query.service'
 import { ProjectPipelinePortfolioService } from '../queries/pipeline-portfolio.service'
 import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
+import type { XpertProjectAccessService } from '../../services/project-access.service'
 import { XpertProjectMembership } from '../../entities/project-membership.entity'
 import { ProjectPipelineAnalyticsService } from '../queries/pipeline-analytics.service'
 import { pipelineEntryFocus } from '../queries/pipeline-entry-focus'
@@ -429,7 +430,10 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
     })
 
     it('authorizes every portfolio Project in one snapshot, including active membership and exact organization', async () => {
-        const access = new ProjectAccessRuntimeService(db.getRepository(XpertProject))
+        const assistantAccess = {
+            assertCanReadXpert: jest.fn().mockRejectedValue(new Error('Unexpected Assistant access lookup'))
+        } as unknown as XpertProjectAccessService
+        const access = new ProjectAccessRuntimeService(db.getRepository(XpertProject), assistantAccess)
         await db.getRepository(XpertProject).update(context.projectId, { ownerId: context.actor.userId })
         const second = { ...context, projectId: randomUUID() }
         await db

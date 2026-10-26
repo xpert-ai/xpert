@@ -41,6 +41,12 @@ import { threadGraphRevisionMatches } from './thread-graph-revision'
 
 export { threadGraphRevision } from './thread-graph-revision'
 
+// Control updates touch scalar columns, not the entity's cyclic relation graph.
+type ConversationControlUpdate = Pick<
+    ChatConversation,
+    'id' | 'threadId' | 'tenantId' | 'organizationId' | 'status' | 'operation' | 'error'
+>
+
 export function threadControlConflict(key: string, defaultValue: string): ConflictException {
     return new ConflictException(t(`server-ai:Error.${key}`, { defaultValue }))
 }
@@ -649,7 +655,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 this.owned.delete(threadId)
                 if (task) await this.controls.tasks.receipt(task.id, 'paused', undefined, manager)
                 await manager.save(thread)
-                await manager.update(
+                await manager.update<ConversationControlUpdate>(
                     ChatConversation,
                     {
                         id: thread.conversationId,
