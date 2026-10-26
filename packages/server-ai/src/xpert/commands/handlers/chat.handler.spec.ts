@@ -591,9 +591,9 @@ describe('XpertChatHandler', () => {
         expect(redisSseStreamService.wrapChatStream).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({
-                target: {
+                target: expect.objectContaining({
                     transport: 'redis-stream'
-                },
+                }),
                 threadId: 'thread-1',
                 runId: 'execution-1'
             })

@@ -1,4 +1,5 @@
 import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
+import { chatStreamPersistence } from './chat-stream-persistence'
 import { assertConversationMutationAccess } from '../../conversation-mutation-access'
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
@@ -1590,7 +1591,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
         const persistedStream =
             this.redisSseStreamService?.wrapChatStream(stream, {
-                target: options?.streamPersistence,
+                target: chatStreamPersistence(
+                    options?.streamPersistence,
+                    conversation,
+                    activeThreadId,
+                    executionId,
+                    options?.streamPersistence
+                        ? this.threadRunControl?.displaySnapshotOwner(activeThreadId, executionId)
+                        : undefined
+                ),
                 threadId: activeThreadId,
                 runId: executionId
             }) ?? stream

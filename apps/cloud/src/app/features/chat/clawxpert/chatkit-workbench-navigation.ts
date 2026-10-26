@@ -8,7 +8,13 @@ import {
 import { firstValueFrom } from 'rxjs'
 import type { ViewExtensionApiService } from '../../../@core/services/view-extension-api.service'
 import { canRenderViewInChatkit, findResolvedViewByKey } from './conversation-detail/workspace/fixed-views'
-import type { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
+import type { ClawXpertWorkbenchViewUrlState, WorkbenchViewLayout } from './clawxpert-workbench-view-url-state.service'
+
+// ChatKit 0.19's published types predate optional layout notifications.
+// Keep the newer source contract compatible at the embedding boundary.
+type LayoutAwareNavigation = ChatKitWorkbenchNavigation & {
+  view: (NonNullable<ChatKitWorkbenchNavigation['view']> & { layout?: WorkbenchViewLayout }) | null
+}
 
 /** ChatKit owns rendering; the host authorizes and persists View navigation. */
 export function createChatkitWorkbenchNavigation(options: {
@@ -25,7 +31,7 @@ export function createChatkitWorkbenchNavigation(options: {
   selectProject: (projectId: string, view?: WorkbenchExtensionViewOpenRequest) => Promise<boolean> | void
 }) {
   let revision = 0
-  const state = computed<ChatKitWorkbenchNavigation>(() => {
+  const state = computed<LayoutAwareNavigation>(() => {
     const viewKey = options.url.viewKey() ?? (options.url.viewClosed() ? null : options.defaultViewKey())
     return {
       // Legacy deep links carry a separately scoped Project; never apply that
@@ -95,7 +101,7 @@ export function createChatkitWorkbenchNavigation(options: {
     return options.url.setViewState(manifest.key, viewQuery(view))
   }
 
-  const onNavigationChange = async (navigation: ChatKitWorkbenchNavigation) => {
+  const onNavigationChange = async (navigation: LayoutAwareNavigation) => {
     if (navigation.projectId !== options.projectId() || options.url.projectId()) return
     if (navigation.view && !options.isChatkitView(navigation.view.viewKey)) return
     revision++

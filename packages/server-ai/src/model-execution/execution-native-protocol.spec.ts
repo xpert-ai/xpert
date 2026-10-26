@@ -32,6 +32,46 @@ describe('native execution protocol', () => {
     ])('rejects unowned provider state and unmetered hosted operations %j', (patch) => {
         expect(() => parseNativeRequest({ model: 'm', input: 'x', ...patch }, 'openai_responses')).toThrow()
     })
+    it('preserves Codex namespaces of client-executed functions and custom tools', () => {
+        const body = {
+            model: 'assistant-default',
+            input: 'hello',
+            stream: true,
+            store: false,
+            tools: [
+                {
+                    type: 'namespace',
+                    name: 'multi_agent_v1',
+                    description: 'Client tools',
+                    tools: [
+                        { type: 'function', name: 'wait_agent', parameters: { type: 'object' } },
+                        { type: 'custom', name: 'apply_patch', format: { type: 'text' } }
+                    ]
+                }
+            ]
+        }
+        expect(parseNativeRequest(body, 'openai_responses')).toEqual(body)
+    })
+    it.each([
+        { tools: [{ type: 'web_search' }] },
+        { tools: [{ type: 'file_search' }] },
+        { tools: [{ type: 'namespace', name: 'inner', tools: [{ type: 'function', name: 'f' }] }] },
+        { tools: [] },
+        { tools: null },
+        { name: '' },
+        { tools: [null] }
+    ])('rejects malformed namespaces and hidden hosted tools %j', (patch) => {
+        expect(() =>
+            parseNativeRequest(
+                {
+                    model: 'm',
+                    input: 'x',
+                    tools: [{ type: 'namespace', name: 'n', tools: [{ type: 'function', name: 'f' }], ...patch }]
+                },
+                'openai_responses'
+            )
+        ).toThrow()
+    })
     it('retains Anthropic signatures, tool blocks and cache controls', () => {
         const body = {
             model: 'm',

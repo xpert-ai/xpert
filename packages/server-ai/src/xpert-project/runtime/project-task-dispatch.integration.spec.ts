@@ -1,3 +1,4 @@
+import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
 import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
@@ -324,6 +325,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             query,
             new AgentInvocationRuntime(store, registry),
             capabilities,
+            { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
             database.getRepository(AgentInvocationEntity)
         )
         cards = new ProjectTaskCardProvider(

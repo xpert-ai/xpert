@@ -1,3 +1,4 @@
+import { ResolveManagedRuntimeActorHandler } from './resolve-managed-runtime-actor.handler'
 import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ShellCliExecution, ShellProcessExecution } from '../shell-execution/shell-execution.entity'
 import { ShellExecutionSourceService } from '../shell-execution/shell-execution-source.service'
@@ -62,6 +63,7 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
         ModelExecutionAdminController
     ],
     providers: [
+        ResolveManagedRuntimeActorHandler,
         ShellExecutionSourceService,
         ModelExecutionReconciliationService,
         ModelExecutionChatService,

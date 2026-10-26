@@ -19,6 +19,7 @@
     "@swc/helpers": "0.5.3",
     "@xpert-ai/chatkit-types": "catalog:",
     "@xpert-ai/plugin-sdk": "workspace:*",
+    "@xpert-ai/desktop-protocol": "workspace:*",
     "bullmq": "^5.78.1",
     "core-js": "3.37.1",
     "glob": "^11.0.3",

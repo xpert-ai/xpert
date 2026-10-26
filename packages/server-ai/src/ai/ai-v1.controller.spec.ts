@@ -2,6 +2,8 @@ import { BadRequestException } from '@nestjs/common'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIV1Controller } from './ai-v1.controller'
+import { EventEmitter } from 'node:events'
+import { lastValueFrom, of, toArray } from 'rxjs'
 
 describe('AIV1Controller ChatKit sessions', () => {
     function createController() {
@@ -54,6 +56,39 @@ describe('AIV1Controller ChatKit sessions', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('enables replay for compatibility chat and rejects client-provided persistence scope overrides', async () => {
+        const { controller, commandBus } = createController()
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1' } as never)
+        const event = { data: { type: 'message', data: 'Hello' } }
+        commandBus.execute.mockResolvedValue(of(event))
+        const options = {
+            xpertId: 'assistant-1',
+            streamPersistence: {
+                transport: 'redis-stream',
+                threadId: 'forged',
+                runId: 'forged',
+                snapshotScope: { tenantId: 'forged' }
+            }
+        }
+        const stream = await controller.chat(new EventEmitter() as never, {
+            request: { action: 'send', message: { input: { input: 'Hello' } } },
+            options
+        })
+        expect(await lastValueFrom(stream.pipe(toArray()))).toEqual([event])
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    user: { id: 'user-1' },
+                    streamPersistence: { transport: 'redis-stream' }
+                })
+            })
+        )
     })
 
     it('issues an assistant-scoped client secret from the authenticated user', async () => {
