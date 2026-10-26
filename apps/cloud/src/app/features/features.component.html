@@ -62,12 +62,12 @@
   (zFinish)="onEntryOnboardingFinish()"
 />
 
-<z-layout class="flex-1 h-full" zDirection="horizontal">
+<z-layout class="flex-1 h-full bg-sidebar" zDirection="horizontal">
   <z-sidebar
     [class]="
       sidebarResizing()
-        ? 'xp-features__sidenav transition-none flex flex-col p-0!'
-        : 'xp-features__sidenav flex flex-col p-0!'
+        ? 'xp-features__sidenav transition-none flex flex-col border-r-0 p-0!'
+        : 'xp-features__sidenav flex flex-col border-r-0 p-0!'
     "
     data-platform-sidebar
     [attr.data-workbench-hidden]="workbenchImmersive()"
@@ -104,7 +104,7 @@
         type="button"
         role="separator"
         aria-orientation="vertical"
-        class="group absolute inset-y-0 -left-[1px] flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
+        class="group absolute inset-y-4 -left-[1px] flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
         [attr.aria-label]="'XP.Sidebar.Resize' | translate: { Default: 'Resize sidebar' }"
         [attr.aria-valuemin]="sidebarMinWidth"
         [attr.aria-valuemax]="sidebarMaxWidth"
@@ -118,14 +118,18 @@
           [class]="
             sidebarResizing()
               ? 'pointer-events-none h-full w-px bg-primary'
-              : 'pointer-events-none h-full w-px bg-divider-subtle transition-colors group-hover:bg-primary group-focus-visible:bg-primary'
+              : 'pointer-events-none h-full w-px bg-transparent transition-colors group-hover:bg-primary group-focus-visible:bg-primary'
           "
         ></span>
       </button>
     </div>
   }
 
-  <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
+  <z-content
+    class="relative max-h-full min-w-0 flex-1 overflow-auto bg-background"
+    [class]="platformSidebarHidden() ? '' : 'rounded-l-[16px] shadow-page'"
+    cdkDropListGroup
+  >
     <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
         @if (navigation$ | async; as navigation) {

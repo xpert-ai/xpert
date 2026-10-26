@@ -63,6 +63,8 @@
   --color-elevation-drag-shadow-3: color-mix(in oklab, #000000 12%, transparent);
   --color-elevation-toolbar-shadow-1: color-mix(in oklab, #000000 11%, transparent);
   --color-elevation-toolbar-shadow-2: color-mix(in oklab, #000000 13%, transparent);
+  --color-elevation-page-outline: color-mix(in oklab, var(--foreground) 4%, transparent);
+  --color-elevation-page-shadow: color-mix(in oklab, #000000 5%, transparent);
   --color-components-option-card-option-selected-border: var(--sys-primary);
   --color-components-accent-indicator-bg: var(--sys-accent);
   --color-divider-burn: color-mix(in oklab, var(--sys-border) 55%, transparent);
@@ -171,6 +173,8 @@
   --color-elevation-drag-shadow-3: color-mix(in oklab, #000000 26%, transparent);
   --color-elevation-toolbar-shadow-1: color-mix(in oklab, #000000 22%, transparent);
   --color-elevation-toolbar-shadow-2: color-mix(in oklab, #000000 28%, transparent);
+  --color-elevation-page-outline: color-mix(in oklab, var(--foreground) 8%, transparent);
+  --color-elevation-page-shadow: color-mix(in oklab, #000000 24%, transparent);
   --color-components-option-card-option-selected-border: var(--sys-primary);
   --color-components-accent-indicator-bg: var(--sys-accent);
   --color-text-highlight-bg: color-mix(in oklab, var(--sys-primary) 10%, transparent);
