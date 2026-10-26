@@ -221,6 +221,8 @@
         "ModelExecutionBudget": "已达到明确配置的执行 Token 预算。",
         "ModelExecutionRateLimit": "已达到执行并发数或请求频率限制，请等待当前请求完成后重试。",
         "ModelExecutionModel": "本次执行无法使用所请求的模型。",
+        "ModelExecutionIsolationConflict": "托管 Codex 参数与平台策略冲突。请使用 codex exec，不要覆盖沙箱、审批、配置档案、配置或工作目录参数。",
+        "ModelExecutionSandboxUnavailable": "当前隔离环境无法执行 Codex 命令。请管理员检查容器安全配置和命名空间支持。策略未更改，请勿扩大权限重试。",
         "ModelExecutionUnknown": "先前执行的结果未知，不会自动重新启动。",
         "SandboxWorkspaceMapperUnavailable": "沙箱提供者缺少工作区路径映射：{{provider}}",
         "SandboxProviderNotRegistered": "沙箱提供者未注册：{{provider}}",
