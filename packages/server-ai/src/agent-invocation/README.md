@@ -1,5 +1,56 @@
 # Agent invocation runtime
 
+## Automatic runtime presets
+
+The strategy `managedProfiles` declaration and caller-scoped `listManaged()` /
+`resolveManaged()` API remove profile and binding forms. The Agent Runtimes plugin
+retains Computer adapters, Codex App Server, Claude Agent SDK, Pi RPC and an external
+OpenCode service. Protocol/approval support is independent of configuration UI.
+Discovery happens during tool execution, after the actual conversation identity is
+available, and does not create bindings, directories or credentials.
+
+Computer admission uses the optional edition-owned `ResolveManagedRuntimeToolsCommand`
+handler. It checks current Computer, published Assistant/model and CLI policy access.
+Open-source hosts can resolve deployed process/SDK/service presets without that
+handler. `ResolveManagedRuntimeActorCommand`, registered in `ModelExecutionModule`,
+revalidates the current actor, conversation and published Assistant. Project callers
+also require project edit access; pipelines remain unsupported. A declaration is
+infrastructure availability, not permission to impersonate its installer.
+
+Installed strategies supply launch settings through
+`resolveManagedDeployment(reference, scope)`, after actor authorization. There is no
+host provider allowlist or runtime-specific environment configuration. The strategy
+owns protocol defaults and resolves dependencies/connections; returning `undefined`
+makes a preset unavailable. The host validates the SDK contract, fingerprints the
+settings and strategy provenance, and owns workspace paths and bindings. Discovery
+must not launch processes or provision infrastructure.
+
+Computer uses the platform model gateway and billing policy. Direct transports keep
+their deployment-owned model/credentials and original protocol behavior; this change
+does not silently replace those credentials or claim platform metering for them.
+SDK/process execution requires an appropriately isolated deployment, as before.
+An external OpenCode service must share the generated workspace path with the host.
+
+First use creates an immutable binding under a PostgreSQL transaction/advisory lock.
+Keys include tenant, organization, workspace, provider, preset, revision, deployment
+fingerprint and project model source. Strategy settings or credential changes changes
+the strategy settings fingerprint. Old bindings/receipts are not repointed; unavailable
+revisions fail closed. Explicit disablement applies across revisions of the same
+preset/workspace, without disabling another transport for the same provider.
+
+Secrets and launch settings never enter targets, receipts or model-visible choices.
+The factory supplies `AgentRuntimeDeploymentCapability` only after authorizing the
+persisted target. Its no-argument `resolve()` rechecks that target and actor before
+returning ephemeral settings to the concrete SDK/process/service adapter. It uses a
+stable capability ID across plugin copies; host commands never cross that boundary.
+Actor/conversation directories are isolated under the configured asset data path.
+
+Agent Runtimes exposes no configuration schema and accepts empty middleware options.
+Old profile lists, manual binding options and their receipts are not imported or
+migrated. Stored records are not deleted. Update old middleware options to `{}` and
+deploy matching SDK, host and plugin artifacts. All execution backends remain in the
+package; removing the old configuration format does not remove their protocols.
+
 The functional design and rollout sequence are in
 [Unified Agent Invocation](../../../../docs/plans/2026-09-22-unified-agent-invocation.md).
 

@@ -1,3 +1,4 @@
+import { ManagedRuntimeService } from '../../../../agent-invocation/managed/managed-runtime.service'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { DataSource } from 'typeorm'
@@ -53,6 +54,7 @@ export function pipelineRuntimeBridgeFixture(
         } as unknown as QueryBus,
         runtime,
         new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, access),
+        { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
         db.getRepository(AgentInvocationEntity),
         commands as unknown as CommandBus
     )

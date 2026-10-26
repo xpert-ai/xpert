@@ -55,6 +55,9 @@ importers:
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:packages/contracts/dist
+      '@xpert-ai/desktop-protocol':
+        specifier: workspace:*
+        version: link:packages/desktop-protocol
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:packages/plugin-sdk/dist

@@ -1,3 +1,4 @@
+import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { AuthorizeProjectPipelineRuntimeCommand } from '../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DiscoveryService, Reflector } from '@nestjs/core'
@@ -64,11 +65,13 @@ function fixture() {
         listReadable: jest.fn()
     }
     const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
+    const managed = { assertEnabled: jest.fn(), list: jest.fn(), resolve: jest.fn(), deployment: jest.fn() }
     const factory = new AgentInvocationFactoryService(
         repository as unknown as Repository<AgentRuntimeBindingEntity>,
         query as unknown as QueryBus,
         runtime,
-        capabilities
+        capabilities,
+        managed as unknown as ManagedRuntimeService
     )
     const identity: RuntimeIdentityScope = {
         tenantId: 'tenant',
@@ -85,6 +88,7 @@ function fixture() {
         query,
         provider,
         factory,
+        managed,
         projects,
         capabilities,
         identity,
@@ -148,6 +152,7 @@ describe('Agent invocation factory and controller boundaries', () => {
             f.query as unknown as QueryBus,
             f.runtime,
             f.capabilities,
+            f.managed as unknown as ManagedRuntimeService,
             undefined,
             { execute } as unknown as CommandBus
         )
@@ -288,6 +293,7 @@ describe('Agent invocation factory and controller boundaries', () => {
             f.query as unknown as QueryBus,
             f.runtime,
             f.capabilities,
+            f.managed as unknown as ManagedRuntimeService,
             undefined,
             commands as unknown as CommandBus
         )
@@ -344,6 +350,7 @@ describe('Agent invocation factory and controller boundaries', () => {
             f.query as unknown as QueryBus,
             f.runtime,
             f.capabilities,
+            f.managed as unknown as ManagedRuntimeService,
             undefined,
             commands as unknown as CommandBus
         )
@@ -362,6 +369,61 @@ describe('Agent invocation factory and controller boundaries', () => {
         expect(f.provider.start).not.toHaveBeenCalled()
     })
 
+    it('binds managed discovery to each caller and revalidates the selected target', async () => {
+        const f = fixture()
+        const selection = { provider: 'remote', reference: 'profile' }
+        f.managed.list.mockResolvedValue([selection])
+        f.managed.resolve.mockResolvedValue(f.binding.target)
+        for (const userId of ['first-user', 'second-user']) {
+            const api = f.factory.createScopedApi({ ...f.identity, userId, conversationId: `conversation-${userId}` })
+            expect(await api.listManaged()).toEqual([selection])
+            expect(f.managed.list).toHaveBeenLastCalledWith(
+                expect.objectContaining({ userId, conversationId: `conversation-${userId}`, workspaceId: 'workspace' })
+            )
+            expect(await api.resolveManaged(selection)).toEqual(f.binding.target)
+            expect(f.managed.assertEnabled).toHaveBeenLastCalledWith(expect.objectContaining({ userId }), f.binding)
+        }
+        f.managed.assertEnabled.mockRejectedValueOnce(new Error('managed runtime disabled'))
+        await expect(f.api.resolveManaged(selection)).rejects.toThrow('managed runtime disabled')
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('exposes deployment secrets only through an authorized per-caller capability, including cross-copy keys', async () => {
+        const f = fixture()
+        f.binding.target.configuration = Object.assign({ profileVersion: '1' }, { deploymentRevision: 'revision' })
+        f.managed.deployment.mockImplementation(async (scope) => ({ secretFor: scope.userId }))
+        const captured = []
+        f.provider.start = jest.fn(async (_request, context) => {
+            const capability = context.capabilities.require<{ resolve(): Promise<{ secretFor: string }> }>({
+                id: 'platform.agent_runtime.deployment'
+            })
+            captured.push(capability)
+            return { status: 'succeeded' as const, result: { text: (await capability.resolve()).secretFor } }
+        })
+        for (const userId of ['first-user', 'second-user']) {
+            const api = f.factory.createScopedApi({ ...f.identity, userId })
+            const task = await api.start({
+                target: await api.resolve(bindingId),
+                callId: userId,
+                input: { prompt: 'test' }
+            })
+            expect(task.result.text).toBe(userId)
+            expect(JSON.stringify(task.request.target)).not.toContain('secretFor')
+        }
+        f.binding.enabled = false
+        await expect(captured[0].resolve()).rejects.toThrow()
+        expect(f.managed.deployment).toHaveBeenCalledTimes(2)
+    })
+    it('checks current project edit access before managed discovery or binding creation', async () => {
+        const f = fixture()
+        f.projects.assertEdit.mockRejectedValue(new Error('project access revoked'))
+        const api = f.factory.createScopedApi({ ...f.identity, projectId: 'project' })
+        await expect(api.listManaged()).rejects.toThrow('project access revoked')
+        await expect(api.resolveManaged({ provider: 'remote', reference: 'profile' })).rejects.toThrow(
+            'project access revoked'
+        )
+        expect(f.managed.list).not.toHaveBeenCalled()
+        expect(f.managed.resolve).not.toHaveBeenCalled()
+    })
     it('resolves workspace-authorized immutable bindings and rejects modified configuration', async () => {
         const f = fixture()
         const target = await f.api.resolve(bindingId)
