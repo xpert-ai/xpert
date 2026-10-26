@@ -40,6 +40,10 @@
     "USERS": "用戶"
   },
   "XP": {
+    "Sidebar": {
+      "PinPanel": "固定面板",
+      "UnpinPanel": "取消固定面板"
+    },
     "SettingsValue": {
       "FormatJson": "格式化 JSON",
       "InvalidJson": "JSON 格式有誤，請修正語法錯誤後儲存。",

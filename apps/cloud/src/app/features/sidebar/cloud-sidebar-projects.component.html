@@ -12,6 +12,7 @@
         active() || menuOpen() ? 'bg-components-list-option-active-bg text-text-primary!' : 'bg-transparent'
       ]"
       [attr.aria-label]="'XP.MENU.Project' | translate"
+      [attr.data-sidebar-panel-title]="'XP.MENU.Project' | translate"
       [attr.aria-expanded]="collapsed() ? menuOpen() : expanded()"
       [attr.aria-haspopup]="collapsed() ? 'dialog' : null"
       [attr.aria-controls]="collapsed() ? 'cloud-sidebar-projects-popup' : 'cloud-sidebar-projects-list'"

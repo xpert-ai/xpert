@@ -89,9 +89,12 @@
       <xp-cloud-sidebar
         [collapsed]="renderedSidebarCollapsed()"
         [isMobile]="isMobile()"
+        [hoverPanelEnabled]="!platformSidebarHidden()"
         [menus]="menus()"
         [user]="user$()"
         (collapsedChange)="onCollapsedChange($event)"
+        (pinnedPanelWidthChange)="sidebarPanelWidth.set($event)"
+        (panelResizingChange)="sidebarPanelResizing.set($event)"
         (brandClick)="onBrandClick()"
         (entryGuideClick)="openEntryOnboardingGuide()"
       />
@@ -126,8 +129,12 @@
   }
 
   <z-content
-    class="relative max-h-full min-w-0 flex-1 overflow-auto bg-background"
+    class="relative max-h-full min-w-0 flex-1 overflow-auto bg-background transition-[padding-left] duration-200 ease-out motion-reduce:transition-none"
+    [style.transition-duration]="sidebarPanelResizing() ? '0s' : null"
     [class]="platformSidebarHidden() ? '' : 'rounded-l-[16px] shadow-page'"
+    [style.padding-left.px]="
+      platformSidebarHidden() || !renderedSidebarCollapsed() || isMobile() ? 0 : sidebarPanelWidth()
+    "
     cdkDropListGroup
   >
     <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">

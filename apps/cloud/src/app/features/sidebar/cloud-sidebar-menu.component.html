@@ -35,9 +35,10 @@
                   class="cloud-sidebar-menu__item"
                   [class.is-active]="isActive(item)"
                   [attr.aria-label]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
+                  [attr.data-sidebar-panel-title]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
                   [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
                   z-menu
-                  zTrigger="hover"
+                  zTrigger="click"
                   zPlacement="rightTop"
                   [zMenuTriggerFor]="submenu"
                 >
@@ -78,10 +79,12 @@
                   [class.has-children]="visibleChildren(item).length"
                   [attr.aria-expanded]="visibleChildren(item).length ? isExpanded(item) : null"
                   [routerLink]="routerLinkFor(item)"
+                  [attr.aria-label]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
+                  [attr.data-sidebar-panel-title]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
                   [zTooltip]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
                   [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
                   zPosition="right"
-                  [zDisabled]="!collapsed()"
+                  [zDisabled]="!collapsed() || !isMobile()"
                   (click)="onMenuClick($event, item)"
                 >
                   <span class="cloud-sidebar-menu__icon">

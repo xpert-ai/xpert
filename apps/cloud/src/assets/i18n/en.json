@@ -5031,6 +5031,8 @@
       }
     },
     "Sidebar": {
+      "PinPanel": "Pin panel",
+      "UnpinPanel": "Unpin panel",
       "UntitledConversation": "Untitled conversation",
       "ConversationMore": "More conversation actions",
       "PinConversation": "Pin",

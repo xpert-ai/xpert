@@ -120,6 +120,8 @@ export class FeaturesComponent implements OnInit {
   readonly workbenchImmersive = inject(WorkbenchPresentationService).immersive
   readonly sidebarCollapsed = signal(true)
   readonly sidebarWidth = signal(this.readSidebarWidth())
+  readonly sidebarPanelWidth = signal(0)
+  readonly sidebarPanelResizing = signal(false)
   readonly sidebarResizing = signal(false)
   readonly sidebarMinWidth = FEATURE_SIDEBAR_MIN_WIDTH
   readonly sidebarMaxWidth = FEATURE_SIDEBAR_MAX_WIDTH

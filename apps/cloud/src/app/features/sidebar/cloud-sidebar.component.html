@@ -1,4 +1,10 @@
-<nav class="cloud-sidebar" [class.is-collapsed]="collapsed()">
+<nav
+  class="cloud-sidebar"
+  [class.is-collapsed]="collapsed()"
+  [xpSidebarHoverPanel]="collapsed() && !isMobile() && hoverPanelEnabled()"
+  (pinnedPanelWidthChange)="pinnedPanelWidthChange.emit($event)"
+  (panelResizingChange)="panelResizingChange.emit($event)"
+>
   <header class="cloud-sidebar__header">
     <xp-cloud-sidebar-identity
       [collapsed]="collapsed()"

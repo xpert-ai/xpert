@@ -6,6 +6,7 @@
     class="mx-auto flex size-10 cursor-pointer items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [class]="menuOpen() ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
     [attr.aria-label]="'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }"
+    [attr.data-sidebar-panel-title]="'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }"
     [attr.aria-expanded]="menuOpen()"
     aria-haspopup="dialog"
     aria-controls="cloud-sidebar-recent-tasks-popup"
