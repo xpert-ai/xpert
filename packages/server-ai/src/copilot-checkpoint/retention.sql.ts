@@ -1,4 +1,6 @@
 // Shared protection rules for scheduled retention and explicit administrator cleanup.
+// Resolve protected primary keys once: correlated scans inside preview's aggregate otherwise
+// rescan the ancestor set and execution table for every candidate. IDs must remain non-null.
 export const checkpointProtectionCte = `WITH RECURSIVE branch_checkpoints AS (
     SELECT checkpoint.id, checkpoint.thread_id, checkpoint.checkpoint_ns, checkpoint.checkpoint_id,
            checkpoint.parent_id, checkpoint."tenantId", checkpoint."organizationId"
@@ -19,24 +21,26 @@ export const checkpointProtectionCte = `WITH RECURSIVE branch_checkpoints AS (
      AND parent.checkpoint_id = child.parent_id
      AND parent."tenantId" IS NOT DISTINCT FROM child."tenantId"
      AND parent."organizationId" IS NOT DISTINCT FROM child."organizationId"
+), recovery_checkpoints AS MATERIALIZED (
+    SELECT checkpoint.id
+    FROM xpert_agent_execution execution
+    JOIN copilot_checkpoint checkpoint
+      ON execution."threadId" = checkpoint.thread_id
+     AND execution."tenantId" IS NOT DISTINCT FROM checkpoint."tenantId"
+     AND execution."organizationId" IS NOT DISTINCT FROM checkpoint."organizationId"
+     AND execution.metadata->'recovery'->'input'->>'threadId' = checkpoint.thread_id
+     AND execution.metadata->'recovery'->'input'->>'checkpointNs' = checkpoint.checkpoint_ns
+     AND execution.metadata->'recovery'->'input'->>'checkpointId' = checkpoint.checkpoint_id
+    WHERE execution.status IN ('pending', 'running', 'interrupted', 'error')
+      AND execution.metadata->'recovery'->>'version' = '1'
 )`
 
-export const checkpointEligiblePredicate = `NOT EXISTS (SELECT 1 FROM branch_checkpoints pinned WHERE pinned.id = c.id)
+export const checkpointEligiblePredicate = `c.id NOT IN (SELECT id FROM branch_checkpoints)
+AND c.id NOT IN (SELECT id FROM recovery_checkpoints)
 AND NOT EXISTS (
     SELECT 1 FROM chat_conversation_thread thread
     WHERE thread."threadId" = c.thread_id
       AND thread."runControl" IS NOT NULL
-)
-AND NOT EXISTS (
-    SELECT 1 FROM xpert_agent_execution execution
-    WHERE execution."threadId" = c.thread_id
-      AND execution."tenantId" IS NOT DISTINCT FROM c."tenantId"
-      AND execution."organizationId" IS NOT DISTINCT FROM c."organizationId"
-      AND execution.status IN ('pending', 'running', 'interrupted', 'error')
-      AND execution.metadata->'recovery'->>'version' = '1'
-      AND execution.metadata->'recovery'->'input'->>'threadId' = c.thread_id
-      AND execution.metadata->'recovery'->'input'->>'checkpointNs' = c.checkpoint_ns
-      AND execution.metadata->'recovery'->'input'->>'checkpointId' = c.checkpoint_id
 )
 AND NOT EXISTS (
     SELECT 1 FROM chat_message message

@@ -14,15 +14,24 @@ import {
     buildDeleteWritesByCheckpointIdsSql
 } from '../copilot-checkpoint/retention.sql'
 import { ManualRetentionExecute, storedRetentionPreviewSchema } from './manual-retention.schema'
-import { deleteSelectedGatewayCallsSql, manualRetentionCandidates, relatedWritesSql } from './manual-retention.sql'
+import {
+    deleteSelectedGatewayCallsSql,
+    manualRetentionCandidates,
+    manualRetentionPreviewSql,
+    relatedWritesSql
+} from './manual-retention.sql'
 
 const BATCH_LIMIT = 1000
 const PREVIEW_TTL = 5 * 60 * 1000
 const rowsSchema = z.array(z.object({ id: z.string().uuid() }))
 const countSchema = z.array(z.object({ count: z.coerce.number().int().nonnegative() })).length(1)
-const totalsSchema = z
+const previewRowsSchema = z
     .array(
-        z.object({ matched: z.coerce.number().int().nonnegative(), eligible: z.coerce.number().int().nonnegative() })
+        z.object({
+            matched: z.coerce.number().int().nonnegative(),
+            eligible: z.coerce.number().int().nonnegative(),
+            ids: z.array(z.string().uuid()).max(BATCH_LIMIT)
+        })
     )
     .length(1)
 
@@ -57,24 +66,10 @@ export class ManualRetentionService {
         const identity = this.assertAccess()
         const result = await this.database.transaction('REPEATABLE READ', async (manager) => {
             await manager.query("SET LOCAL statement_timeout = '30s'")
-            const cte = manualRetentionCandidates(range)
-            const params = [range.start, range.end]
-            const [totals] = totalsSchema.parse(
-                await manager.query(
-                    `${cte}
-                SELECT count(*)::int AS matched, count(*) FILTER (WHERE eligible)::int AS eligible FROM matching`,
-                    params
-                )
+            const [totals] = previewRowsSchema.parse(
+                await manager.query(manualRetentionPreviewSql(range), [range.start, range.end, BATCH_LIMIT])
             )
-            const ids = rowsSchema
-                .parse(
-                    await manager.query(
-                        `${cte}
-                SELECT id FROM matching WHERE eligible ORDER BY date, id LIMIT $3::int`,
-                        [...params, BATCH_LIMIT]
-                    )
-                )
-                .map(({ id }) => id)
+            const { ids } = totals
             const writeCount =
                 range.target === 'copilot_checkpoint'
                     ? countSchema.parse(await manager.query(relatedWritesSql, [ids]))[0].count
