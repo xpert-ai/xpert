@@ -325,6 +325,8 @@ export class ApplicationMetricsRegistry {
         event:
             | 'BridgeUnsupported'
             | 'ParametersUnsupported'
+            | 'IsolationConflict'
+            | 'SandboxUnavailable'
             | 'ConversationRequired'
             | 'RateLimit'
             | 'Unavailable'

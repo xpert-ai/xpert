@@ -1,47 +1,43 @@
 /**
  * Waiting for restart approval retains the generation and continues polling: capacity can recover automatically.
- * Automatic convergence and manual restart entries stay separate so one completion cannot clear unrelated work.
+ * Failed operations retain their identity; only authoritative completion can supersede their cached requirements.
+ * Automatic convergence and unpublished manual work stay separate so unrelated completion cannot clear them.
  */
 import { HttpErrorResponse } from '@angular/common/http'
-import { computed, effect, inject, Injectable, signal } from '@angular/core'
+import { computed, DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core'
 import { getErrorMessage, injectUser } from '@cloud/app/@core'
 import { injectActiveScope, injectRuntimeControlAPI } from '@cloud/app/@core/state'
 import {
   type IPluginRuntimeConvergence,
+  type IPluginRuntimeSnapshot,
   type IRuntimePluginRequirement,
   RUNTIME_RESTART_CONFIRMATION,
   RolesEnum,
+  RequestScopeLevel,
   type IRuntimeRestartCapability
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { catchError, filter, firstValueFrom, map, of, switchMap, take, takeWhile, throwError, timer } from 'rxjs'
 
-const STORAGE_KEY = 'xpert:plugins:runtime-restart-required:v1'
-const CONVERGENCE_STORAGE_KEY = 'xpert:plugins:runtime-convergence:v1'
-const RESTART_POLL_MS = 1_000
+import { currentRequirements, isRestartResolved } from './plugin-runtime-restart-policy'
+import {
+  PluginRestartStorage,
+  type PluginRestartScope,
+  type RestartStateMigrationResult,
+  type PendingPluginRuntimeRestart,
+  type PendingPluginRuntimeConvergence
+} from '@cloud/app/@core/services/plugin-restart-storage'
+export type { PendingPluginRuntimeRestart } from '@cloud/app/@core/services/plugin-restart-storage'
 
-export interface PendingPluginRuntimeRestart {
-  pluginNames: string[]
-  requestedAt: string
-  restartId?: string
-  generation?: number
-  awaitingRestart?: boolean
-  runtimeRequirements?: IRuntimePluginRequirement[]
-  error?: string
-}
+type StorageEntry = 'pending' | 'convergence'
+type StorageIssue = 'invalid' | 'unavailable' | 'migration-incomplete'
+
+const RESTART_POLL_MS = 1_000
 
 interface RuntimeRestartInProgressPayload {
   errorCode: 'RUNTIME_RESTART_IN_PROGRESS'
   restartId: string
-}
-
-interface PendingPluginRuntimeConvergence {
-  pluginNames: string[]
-  requestedAt: string
-  generation: number
-  awaitingRestart?: boolean
-  runtimeRequirements: IRuntimePluginRequirement[]
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +48,11 @@ export class PluginRuntimeRestartService {
   readonly #currentUser = injectUser()
   readonly #activeScope = injectActiveScope()
 
+  readonly #storage = inject(PluginRestartStorage)
+  readonly storageIssues = signal<{ pending?: StorageIssue; convergence?: StorageIssue }>({})
+  #storageScope = this.storageScope()
+  #contextRevision = 0
+  #reconciliation: Promise<IPluginRuntimeSnapshot | null> | null = null
   readonly pending = signal<PendingPluginRuntimeRestart | null>(this.readPending())
   readonly convergence = signal<PendingPluginRuntimeConvergence | null>(this.readConvergence())
   readonly restartCapability = signal<IRuntimeRestartCapability | null>(null)
@@ -93,19 +94,111 @@ export class PluginRuntimeRestartService {
   )
 
   #prompting = false
+  #monitors = new Set<string>()
 
   constructor() {
     effect((onCleanup) => {
-      this.#currentUser()
-      this.#activeScope()
-      this.restartCapability.set(null)
+      const scope = this.storageScope()
+      untracked(() => {
+        if (!this.isSameStorageScope(scope)) {
+          this.#contextRevision++
+          this.#reconciliation = null
+          this.#storageScope = scope
+          this.pending.set(this.readPending())
+          this.convergence.set(this.readConvergence())
+          this.#prompting = false
+        }
+        this.restartCapability.set(null)
+      })
+      if (!scope) return
       const subscription = this.#runtimeControlAPI
         .restartCapability()
         .pipe(catchError(() => of(null)))
-        .subscribe((capability) => this.restartCapability.set(capability))
+        .subscribe((capability) =>
+          untracked(() => {
+            this.restartCapability.set(capability)
+            if (capability?.allowed) this.migrateLegacyState()
+            this.reconcilePendingState()
+            void this.reconcileCurrentState()
+          })
+        )
       onCleanup(() => subscription.unsubscribe())
     })
-    this.reconcilePendingState()
+    const refresh = () => {
+      void this.reconcileCurrentState()
+    }
+    const subscription = timer(5_000, 5_000).subscribe(refresh)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    inject(DestroyRef).onDestroy(() => {
+      this.#contextRevision++
+      subscription.unsubscribe()
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    })
+  }
+
+  private storageScope(): PluginRestartScope | null {
+    const user = this.#currentUser()
+    const tenantId = user?.tenantId ?? user?.tenant?.id
+    const scope = this.#activeScope()
+    return user?.id && tenantId && scope ? { userId: user.id, tenantId, ...scope } : null
+  }
+
+  private isSameStorageScope(scope: PluginRestartScope | null) {
+    const current = this.#storageScope
+    if (!scope || !current) return scope === current
+    return (
+      scope.userId === current.userId &&
+      scope.tenantId === current.tenantId &&
+      scope.level === current.level &&
+      (scope.level !== RequestScopeLevel.ORGANIZATION ||
+        (current.level === RequestScopeLevel.ORGANIZATION && scope.organizationId === current.organizationId))
+    )
+  }
+
+  private migrateLegacyState() {
+    const scope = this.#storageScope
+    if (!scope) return
+    // Only the capability-authorized coordinator may adopt unscoped legacy state.
+    if (!this.pending()) this.pending.set(this.storedValue('pending', this.#storage.migrateLegacyPending(scope)))
+    if (!this.convergence())
+      this.convergence.set(this.storedValue('convergence', this.#storage.migrateLegacyConvergence(scope)))
+  }
+
+  private reconcileCurrentState(): Promise<IPluginRuntimeSnapshot | null> {
+    if (!this.canRestart() || (!this.pending() && !this.convergence())) return Promise.resolve(null)
+    if (!this.#reconciliation) {
+      const request = this.readCurrentState().finally(() => {
+        if (this.#reconciliation === request) this.#reconciliation = null
+      })
+      this.#reconciliation = request
+    }
+    return this.#reconciliation
+  }
+
+  private async readCurrentState(): Promise<IPluginRuntimeSnapshot | null> {
+    const context = this.#contextRevision
+    const pending = this.pending()
+    const convergence = this.convergence()
+    try {
+      const snapshot = await firstValueFrom(this.#runtimeControlAPI.pluginRuntimeSnapshot())
+      if (context !== this.#contextRevision) return null
+      let completed = false
+      if (pending && this.pending() === pending && isRestartResolved(pending, snapshot)) {
+        this.clearPending()
+        completed = true
+      }
+      if (convergence && this.convergence() === convergence && isRestartResolved(convergence, snapshot)) {
+        this.setConvergence(null)
+        completed = true
+      }
+      if (completed) this.completedRevision.update((revision) => revision + 1)
+      return snapshot
+    } catch {
+      // An unavailable or unauthorized status endpoint is not evidence of recovery.
+      return null
+    }
   }
 
   markRequired(pluginName?: string | null, runtimeRequirements: IRuntimePluginRequirement[] = []) {
@@ -116,6 +209,10 @@ export class PluginRuntimeRestartService {
     )
     const pending: PendingPluginRuntimeRestart = {
       pluginNames,
+      unpublishedRequirements: this.mergeRuntimeRequirements([
+        ...(existing?.unpublishedRequirements ?? []),
+        ...runtimeRequirements
+      ]),
       requestedAt: existing?.requestedAt ?? new Date().toISOString(),
       runtimeRequirements: this.mergeRuntimeRequirements([
         ...(existing?.runtimeRequirements ?? []),
@@ -150,6 +247,7 @@ export class PluginRuntimeRestartService {
   }
 
   async prompt() {
+    const context = this.#contextRevision
     if (!this.canRestart() || this.#prompting || this.hasActiveRestart()) {
       return
     }
@@ -167,7 +265,7 @@ export class PluginRuntimeRestartService {
           maskClosable: false
         })
       )
-      if (shouldRestart) {
+      if (shouldRestart && context === this.#contextRevision) {
         await this.confirmAndRestart()
       }
     } finally {
@@ -176,6 +274,7 @@ export class PluginRuntimeRestartService {
   }
 
   async confirmAndRestart() {
+    const context = this.#contextRevision
     if (!this.canRestart() || this.hasActiveRestart()) {
       return
     }
@@ -196,13 +295,14 @@ export class PluginRuntimeRestartService {
       })
     )
     // Capacity may have recovered and completed this release while the confirmation dialog was open.
-    if (!confirmed || !this.requiresManualRestart()) {
+    if (!confirmed || context !== this.#contextRevision || !this.requiresManualRestart()) {
       return
     }
 
     try {
       await this.startRestartInBackground()
     } catch (error) {
+      if (context !== this.#contextRevision) return
       const activeRestartId = this.restartInProgressId(error)
       if (activeRestartId && !this.pending()?.runtimeRequirements?.length) {
         this.trackRestart(activeRestartId, 0)
@@ -213,17 +313,39 @@ export class PluginRuntimeRestartService {
   }
 
   private async startRestartInBackground() {
+    const context = this.#contextRevision
     const waiting = this.convergence()
     if (waiting?.awaitingRestart) this.convertConvergenceToManualRestart(waiting.generation)
+    // Fetch before requesting consented work; only the server can supply current requirements.
+    const snapshot = await this.reconcileCurrentState()
+    if (context !== this.#contextRevision || !this.requiresManualRestart()) return
+    if (!snapshot)
+      throw new Error(
+        this.t(
+          'XP.Plugin.RestartStatusUnavailable',
+          'Unable to verify current plugin state. Try again when the API is available.'
+        )
+      )
+    const pending = this.pending()
+    const requirements = pending?.runtimeRequirements?.length ? currentRequirements(pending, snapshot) : []
+    if (!requirements)
+      throw new Error(
+        this.t(
+          'XP.Plugin.RestartRequirementsChanged',
+          'Plugin requirements could not be verified. Refresh or retry the plugin change before restarting.'
+        )
+      )
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
         allowDowntime: true,
         reason: 'Activate staged process-level plugin changes',
-        runtimeRequirements: this.pending()?.runtimeRequirements
+        runtimeRequirements: requirements,
+        expectedGeneration: snapshot.generation
       })
     )
-
+    if (context !== this.#contextRevision || this.pending() !== pending) return restart
+    if (pending) this.setPending({ ...pending, runtimeRequirements: requirements, unpublishedRequirements: [] })
     if (restart.pluginGeneration) {
       this.trackPendingGeneration(restart.pluginGeneration)
     } else {
@@ -238,7 +360,8 @@ export class PluginRuntimeRestartService {
       const current = { ...pending }
       delete current.error
       delete current.awaitingRestart
-      this.setPending({ ...current, generation })
+      delete current.restartId
+      this.setPending({ ...current, generation, status: 'in_progress', unpublishedRequirements: [] })
     }
     void this.monitorPendingGeneration(generation)
   }
@@ -249,7 +372,8 @@ export class PluginRuntimeRestartService {
       const current = { ...pending }
       delete current.error
       delete current.awaitingRestart
-      this.setPending({ ...current, restartId })
+      delete current.generation
+      this.setPending({ ...current, restartId, status: 'in_progress' })
     }
     void this.monitorRestart(restartId, initialDelay)
   }
@@ -264,6 +388,7 @@ export class PluginRuntimeRestartService {
     if (!pending) {
       return
     }
+    if (pending.status === 'failed' || pending.status === 'unknown') return
     if (pending.restartId) {
       void this.monitorRestart(pending.restartId, 0)
     } else if (pending.generation) {
@@ -272,10 +397,14 @@ export class PluginRuntimeRestartService {
   }
 
   private async monitorPluginConvergence(generation: number) {
+    const context = this.#contextRevision
+    const key = `convergence:${context}:${generation}`
+    if (this.#monitors.has(key)) return
+    this.#monitors.add(key)
     try {
       const status = await this.pollPluginConvergence(
         generation,
-        () => this.convergence()?.generation === generation,
+        () => context === this.#contextRevision && this.convergence()?.generation === generation,
         (awaitingRestart) => {
           const current = this.convergence()
           if (current?.generation === generation && !!current.awaitingRestart !== awaitingRestart) {
@@ -283,40 +412,51 @@ export class PluginRuntimeRestartService {
           }
         }
       )
-      if (status && this.convergence()?.generation === generation) {
+      if (status && context === this.#contextRevision && this.convergence()?.generation === generation) {
         this.setConvergence(null)
         this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
-      this.convertConvergenceToManualRestart(generation, getErrorMessage(error))
+      if (context === this.#contextRevision) this.convertConvergenceToManualRestart(generation, getErrorMessage(error))
+    } finally {
+      this.#monitors.delete(key)
     }
   }
 
   private async monitorRestart(restartId: string, initialDelay: number) {
+    const context = this.#contextRevision
+    const key = `restart:${context}:${restartId}`
+    if (this.#monitors.has(key)) return
+    this.#monitors.add(key)
     try {
-      await this.pollRestart(restartId, initialDelay)
-      if (this.pending()?.restartId === restartId) {
+      const status = await this.pollRestart(restartId, initialDelay, context)
+      if (status && context === this.#contextRevision && this.pending()?.restartId === restartId) {
         this.clearPending()
         this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
       const current = this.pending()
-      if (current?.restartId === restartId) {
+      if (context === this.#contextRevision && current?.restartId === restartId) {
         this.setPending({
-          pluginNames: current.pluginNames,
-          requestedAt: current.requestedAt,
-          runtimeRequirements: current.runtimeRequirements,
+          ...current,
+          status: this.isNotFound(error) ? 'unknown' : 'failed',
           error: getErrorMessage(error)
         })
       }
+    } finally {
+      this.#monitors.delete(key)
     }
   }
 
   private async monitorPendingGeneration(generation: number) {
+    const context = this.#contextRevision
+    const key = `generation:${context}:${generation}`
+    if (this.#monitors.has(key)) return
+    this.#monitors.add(key)
     try {
       const status = await this.pollPluginConvergence(
         generation,
-        () => this.pending()?.generation === generation,
+        () => context === this.#contextRevision && this.pending()?.generation === generation,
         (awaitingRestart) => {
           const current = this.pending()
           if (current?.generation === generation && !!current.awaitingRestart !== awaitingRestart) {
@@ -324,23 +464,29 @@ export class PluginRuntimeRestartService {
           }
         }
       )
-      if (status && this.pending()?.generation === generation) {
+      if (status && context === this.#contextRevision && this.pending()?.generation === generation) {
         this.clearPending()
         this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
       const current = this.pending()
-      if (current?.generation === generation) {
-        const retryable = { ...current, error: getErrorMessage(error) }
-        delete retryable.generation
+      if (context === this.#contextRevision && current?.generation === generation) {
+        const retryable: PendingPluginRuntimeRestart = {
+          ...current,
+          status: this.isNotFound(error) ? 'unknown' : 'failed',
+          error: getErrorMessage(error)
+        }
         delete retryable.awaitingRestart
         this.setPending(retryable)
       }
+    } finally {
+      this.#monitors.delete(key)
     }
   }
 
   private hasActiveRestart() {
     const pending = this.pending()
+    if (pending?.status === 'failed' || pending?.status === 'unknown') return false
     return !!pending?.restartId || (!!pending?.generation && !pending.awaitingRestart)
   }
 
@@ -373,9 +519,10 @@ export class PluginRuntimeRestartService {
     )
   }
 
-  private async pollRestart(restartId: string, initialDelay: number) {
+  private async pollRestart(restartId: string, initialDelay: number, context: number) {
     return await firstValueFrom(
       timer(initialDelay, RESTART_POLL_MS).pipe(
+        takeWhile(() => context === this.#contextRevision && this.pending()?.restartId === restartId),
         switchMap(() =>
           this.#runtimeControlAPI
             .restartStatus(restartId)
@@ -389,7 +536,8 @@ export class PluginRuntimeRestartService {
         }),
         filter((status) => status !== null),
         take(1)
-      )
+      ),
+      { defaultValue: null }
     )
   }
 
@@ -403,6 +551,10 @@ export class PluginRuntimeRestartService {
     this.setPending({
       pluginNames: Array.from(new Set([...(pending?.pluginNames ?? []), ...current.pluginNames])),
       requestedAt: pending?.requestedAt ?? current.requestedAt,
+      generation,
+      unpublishedRequirements: pending?.unpublishedRequirements,
+      status: error ? 'failed' : 'awaiting_restart',
+      awaitingRestart: !error,
       runtimeRequirements: this.mergeRuntimeRequirements([
         ...(pending?.runtimeRequirements ?? []),
         ...current.runtimeRequirements
@@ -466,80 +618,61 @@ export class PluginRuntimeRestartService {
 
   private setPending(value: PendingPluginRuntimeRestart | null) {
     this.pending.set(value)
-    try {
-      if (value) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-      } else {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    } catch {
-      // Storage may be unavailable in privacy-restricted contexts; the signal still preserves session state.
-    }
+    const scope = this.#storageScope
+    if (!scope) return
+    const result = value ? this.#storage.savePending(scope, value) : this.#storage.clearPending(scope)
+    this.setStorageIssue('pending', result.kind === 'unavailable' ? 'unavailable' : undefined)
   }
 
   private setConvergence(value: PendingPluginRuntimeConvergence | null) {
     this.convergence.set(value)
-    try {
-      if (value) {
-        localStorage.setItem(CONVERGENCE_STORAGE_KEY, JSON.stringify(value))
-      } else {
-        localStorage.removeItem(CONVERGENCE_STORAGE_KEY)
-      }
-    } catch {
-      // Storage may be unavailable in privacy-restricted contexts; the signal still preserves session state.
-    }
+    const scope = this.#storageScope
+    if (!scope) return
+    const result = value ? this.#storage.saveConvergence(scope, value) : this.#storage.clearConvergence(scope)
+    this.setStorageIssue('convergence', result.kind === 'unavailable' ? 'unavailable' : undefined)
   }
 
   private readPending(): PendingPluginRuntimeRestart | null {
-    try {
-      const value = localStorage.getItem(STORAGE_KEY)
-      if (!value) {
-        return null
-      }
-      const parsed = JSON.parse(value) as Partial<PendingPluginRuntimeRestart>
-      if (!Array.isArray(parsed.pluginNames) || typeof parsed.requestedAt !== 'string') {
-        localStorage.removeItem(STORAGE_KEY)
-        return null
-      }
-      return {
-        pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
-        requestedAt: parsed.requestedAt,
-        ...(typeof parsed.restartId === 'string' ? { restartId: parsed.restartId } : {}),
-        ...(typeof parsed.generation === 'number' ? { generation: parsed.generation } : {}),
-        ...(parsed.awaitingRestart === true ? { awaitingRestart: true } : {}),
-        ...(typeof parsed.error === 'string' ? { error: parsed.error } : {}),
-        ...(Array.isArray(parsed.runtimeRequirements)
-          ? { runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[] }
-          : {})
-      }
-    } catch {
-      return null
-    }
+    return this.storedValue(
+      'pending',
+      this.#storageScope ? this.#storage.loadPending(this.#storageScope) : { kind: 'missing' }
+    )
   }
 
   private readConvergence(): PendingPluginRuntimeConvergence | null {
-    try {
-      const value = localStorage.getItem(CONVERGENCE_STORAGE_KEY)
-      if (!value) return null
-      const parsed = JSON.parse(value) as Partial<PendingPluginRuntimeConvergence>
-      if (
-        !Array.isArray(parsed.pluginNames) ||
-        typeof parsed.requestedAt !== 'string' ||
-        typeof parsed.generation !== 'number' ||
-        !Array.isArray(parsed.runtimeRequirements)
-      ) {
-        localStorage.removeItem(CONVERGENCE_STORAGE_KEY)
+    return this.storedValue(
+      'convergence',
+      this.#storageScope ? this.#storage.loadConvergence(this.#storageScope) : { kind: 'missing' }
+    )
+  }
+
+  private storedValue<T>(entry: StorageEntry, result: RestartStateMigrationResult<T>): T | null {
+    switch (result.kind) {
+      case 'found':
+        this.setStorageIssue(entry)
+        return result.value
+      case 'migrated':
+        this.setStorageIssue(entry, result.legacyRetained ? 'migration-incomplete' : undefined)
+        return result.value
+      case 'unpersisted':
+        this.setStorageIssue(entry, result.reason === 'unavailable' ? 'unavailable' : 'migration-incomplete')
+        return result.value
+      case 'invalid':
+      case 'unavailable':
+        this.setStorageIssue(entry, result.kind)
         return null
-      }
-      return {
-        pluginNames: parsed.pluginNames.filter((name): name is string => typeof name === 'string'),
-        requestedAt: parsed.requestedAt,
-        generation: parsed.generation,
-        ...(parsed.awaitingRestart === true ? { awaitingRestart: true } : {}),
-        runtimeRequirements: parsed.runtimeRequirements as IRuntimePluginRequirement[]
-      }
-    } catch {
-      return null
+      case 'missing':
+        this.setStorageIssue(entry)
+        return null
     }
+  }
+
+  private setStorageIssue(entry: StorageEntry, issue?: StorageIssue) {
+    this.storageIssues.update((current) => {
+      const next = { ...current }
+      if (issue) next[entry] = issue
+      else delete next[entry]
+      return next
+    })
   }
 }

@@ -11,6 +11,7 @@ import chalk from 'chalk'
 import path from 'path'
 import { dbConnectionConfig } from './database'
 import { readManagedQueueConfig } from './managed-queue-config'
+import { readPluginInstallationConfig } from './plugin-installation-config'
 
 process.cwd()
 
@@ -51,6 +52,7 @@ console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublic
  */
 export const defaultConfiguration: IPluginConfig = {
   managedQueueOptions: readManagedQueueConfig(process.env),
+  pluginInstallationOptions: readPluginInstallationConfig(process.env),
   apiConfigOptions: {
     host: process.env.HOST || DEFAULT_API_HOST,
     port: process.env.PORT || DEFAULT_API_PORT,

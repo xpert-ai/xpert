@@ -125,6 +125,7 @@ export * from './assistant-trigger.model'
 
 export * from './model-execution.model'
 export * from './model-execution-parameters.model'
+export * from './computer-codex-isolation.model'
 export * from './agent-runtime.model'
 export * from './assistant-task-context.model'
 export * from './project-task-runtime.model'

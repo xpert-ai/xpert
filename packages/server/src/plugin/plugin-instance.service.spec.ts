@@ -30,7 +30,13 @@ jest.mock('node:fs', () => {
 	}
 })
 
+jest.mock('node:fs/promises', () => ({ rm: jest.fn(async () => undefined) }))
+
 jest.mock('./organization-plugin.store', () => ({
+	removeOrganizationManifestPlugins: jest.fn(async () => undefined),
+	withOrganizationPluginStoreLock: jest.fn(async (_options, action) =>
+		action({ assertOwned: async () => undefined })
+	),
 	getOrganizationManifestPath: jest.fn((organizationId: string) => `/tmp/${organizationId}/manifest.json`),
 	getOrganizationPluginPath: jest.fn(
 		(organizationId: string, pluginName: string) => `/tmp/${organizationId}/${pluginName}`
@@ -66,7 +72,9 @@ jest.mock('../core/crud', () => ({
 }))
 
 const { IsNull } = require('typeorm')
-const { existsSync, readFileSync, rmSync, writeFileSync } = require('node:fs')
+const { existsSync } = require('node:fs')
+const { rm } = require('node:fs/promises')
+const { removeOrganizationManifestPlugins, withOrganizationPluginStoreLock } = require('./organization-plugin.store')
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { clearPluginLoadFailure } = require('./plugin.helper')
 const {
@@ -105,6 +113,9 @@ describe('PluginInstanceService', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		withOrganizationPluginStoreLock.mockImplementation(async (_options, action) =>
+			action({ assertOwned: async () => undefined })
+		)
 		defaultTenantQuery.select.mockReturnValue(defaultTenantQuery)
 		defaultTenantQuery.from.mockReturnValue(defaultTenantQuery)
 		defaultTenantQuery.where.mockReturnValue(defaultTenantQuery)
@@ -149,10 +160,6 @@ describe('PluginInstanceService', () => {
 	})
 
 	it('deactivates system plugins without deleting runtime files or live strategies', async () => {
-		existsSync.mockReturnValueOnce(true)
-		readFileSync.mockReturnValueOnce(
-			JSON.stringify(['@xpert-ai/plugin-system-demo@1.0.0', '@xpert-ai/plugin-other'])
-		)
 		const removePluginsSpy = jest.spyOn(service, 'removePlugins').mockResolvedValue(undefined)
 
 		await service.deactivate(null, '__global__', ['@xpert-ai/plugin-system-demo'], {
@@ -169,12 +176,13 @@ describe('PluginInstanceService', () => {
 			pluginName: expect.anything()
 		})
 		expect(removePluginsSpy).not.toHaveBeenCalled()
-		expect(writeFileSync).toHaveBeenCalledWith(
-			'/tmp/__global__/manifest.json',
-			JSON.stringify(['@xpert-ai/plugin-other'], null, 2)
+		expect(removeOrganizationManifestPlugins).toHaveBeenCalledWith(
+			'__global__',
+			new Set(['@xpert-ai/plugin-system-demo']),
+			{ tenantId: null, defaultTenantId: 'default-tenant', scopeKey: 'system:global' }
 		)
 		expect(strategyBus.remove).not.toHaveBeenCalled()
-		expect(rmSync).not.toHaveBeenCalled()
+		expect(rm).not.toHaveBeenCalled()
 	})
 
 	it('finds the single owning tenant for a tenant-level plugin', async () => {
@@ -224,7 +232,7 @@ describe('PluginInstanceService', () => {
 		expect(clearPluginLoadFailure).toHaveBeenCalledWith('org-1', '@xpert-ai/plugin-broken-demo')
 		expect(strategyBus.remove).toHaveBeenCalledWith('org-1', '@xpert-ai/plugin-broken-demo')
 		expect(loadedPlugins).toHaveLength(0)
-		expect(rmSync).toHaveBeenCalled()
+		expect(rm).toHaveBeenCalled()
 	})
 
 	it('preserves stored sourceConfig when updating an existing code plugin record', async () => {

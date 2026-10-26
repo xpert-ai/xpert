@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
   IPluginRuntimeConvergenceStatus,
+  IPluginRuntimeSnapshot,
   IRuntimeReadiness,
   IRuntimeRestartCapability,
   IRuntimeRestartRequest,
@@ -34,6 +35,10 @@ export class RuntimeControlAPIService {
 
   readiness() {
     return this.#httpClient.get<IRuntimeReadiness>(`${API_PREFIX}/health/ready`)
+  }
+
+  pluginRuntimeSnapshot() {
+    return this.#httpClient.get<IPluginRuntimeSnapshot>(`${API_PREFIX}/system/runtime/plugin-state`)
   }
 }
 

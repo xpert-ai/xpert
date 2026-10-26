@@ -1,5 +1,6 @@
 import {
 	IPluginRuntimeConvergenceStatus,
+	IPluginRuntimeSnapshot,
 	IRuntimeInstanceRegistration,
 	IRuntimePluginRequirement,
 	IRuntimeInstanceRetirementResult,
@@ -15,6 +16,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, No
 import { RequestContext } from '../core/context'
 import { InstanceRegistryService } from '../managed-connection/instance-registry.service'
 import { RuntimeInstanceRetirementDto, RuntimeRestartRequestDto } from './runtime-control.dto'
+import { stalePluginRestart } from './plugin-restart-conflict'
 import {
 	PluginRuntimeChangeInput,
 	PluginRuntimeChangeResult,
@@ -85,6 +87,32 @@ export class RuntimeControlService {
 		audit: RuntimeRestartAuditContext = {}
 	): Promise<IRuntimeRestartResponse> {
 		this.assertAuthorizedActor()
+		if (input.runtimeRequirements?.length && input.expectedGeneration === undefined) throw stalePluginRestart()
+		return this.startAuthorizedRestart(input, audit)
+	}
+
+	/** Only server-owned installation results may introduce new desired requirements. */
+	async activateStagedPlugins(
+		requirements: IRuntimePluginRequirement[],
+		reason: string
+	): Promise<IRuntimeRestartResponse> {
+		return this.startAuthorizedRestart({
+			confirmation: RUNTIME_RESTART_CONFIRMATION,
+			runtimeRequirements: requirements,
+			reason
+		})
+	}
+
+	async pluginRuntimeSnapshot(): Promise<IPluginRuntimeSnapshot> {
+		this.assertAuthorizedActor()
+		return this.coordinator.getPluginRuntimeSnapshot()
+	}
+
+	private async startAuthorizedRestart(
+		input: RuntimeRestartRequestDto,
+		audit: RuntimeRestartAuditContext = {}
+	): Promise<IRuntimeRestartResponse> {
+		this.assertAuthorizedActor()
 		if (input.confirmation !== RUNTIME_RESTART_CONFIRMATION) {
 			throw new BadRequestException({
 				statusCode: 400,
@@ -100,7 +128,8 @@ export class RuntimeControlService {
 			actorUserId: RequestContext.currentUserId(),
 			tenantId: RequestContext.currentTenantId(),
 			sourceIp: audit.sourceIp,
-			runtimeRequirements: input.runtimeRequirements
+			runtimeRequirements: input.runtimeRequirements,
+			...(input.expectedGeneration !== undefined ? { expectedGeneration: input.expectedGeneration } : {})
 		})
 	}
 

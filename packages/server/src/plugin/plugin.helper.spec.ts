@@ -160,7 +160,7 @@ describe('plugin helper registerPluginsAsync', () => {
 				manifestName: undefined
 			})
 		)
-		expect(installOrganizationPlugins).toHaveBeenCalledWith('org-1', [], expect.any(Object))
+		expect(installOrganizationPlugins).not.toHaveBeenCalled()
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo',
 			source: 'code',
@@ -635,6 +635,45 @@ describe('plugin helper registerPluginsAsync', () => {
 		} finally {
 			consoleErrorSpy.mockRestore()
 		}
+	})
+
+	it.each([true, false])(
+		'reports registry installation failure before loading or activation (stageOnly=%s)',
+		async (stageOnly) => {
+			installOrganizationPlugins.mockRejectedValueOnce(new Error('npm failed'))
+			const result = await registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [{ name: '@test/broken@1.0.0', source: 'npm' }],
+				stageOnly
+			})
+			expect(result.errors).toEqual([
+				expect.objectContaining({ pluginName: '@test/broken', error: 'npm failed' })
+			])
+			expect(result.modules).toEqual([])
+			expect(loadPlugin).not.toHaveBeenCalled()
+		}
+	)
+
+	it('awaits registry staging before reporting it ready for activation', async () => {
+		let finish: () => void
+		installOrganizationPlugins.mockReturnValueOnce(
+			new Promise<void>((resolve) => {
+				finish = resolve
+			})
+		)
+		let completed = false
+		const operation = registerPluginsAsync({
+			organizationId: 'org-1',
+			plugins: [{ name: '@test/plugin@1.0.0', source: 'npm' }],
+			stageOnly: true
+		}).then((result) => {
+			completed = true
+			return result
+		})
+		await Promise.resolve()
+		expect(completed).toBe(false)
+		finish()
+		await expect(operation).resolves.toMatchObject({ errors: [] })
 	})
 
 	it('collects providers only from modules added after the module snapshot', () => {

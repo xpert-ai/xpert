@@ -427,8 +427,8 @@ describe('organization-plugin.store', () => {
 		)
 	})
 
-	it('keeps only the latest spec for each package in an organization manifest', () => {
-		writeOrganizationManifest(
+	it('keeps only the latest spec for each package in an organization manifest', async () => {
+		await writeOrganizationManifest(
 			'org-1',
 			['@xpert-ai/plugin-markitdown', '@xpert-ai/plugin-other@1.0.0', '@xpert-ai/plugin-markitdown@0.0.5'],
 			{ rootDir: pluginRoot }
@@ -440,7 +440,7 @@ describe('organization-plugin.store', () => {
 		])
 	})
 
-	it('replaces stale manifest specs when an installed plugin is reused', () => {
+	it('replaces stale manifest specs when an installed plugin is reused', async () => {
 		const pluginSpec = '@xpert-ai/plugin-markitdown@0.0.5'
 		const installedPackageDir = path.join(
 			pluginRoot,
@@ -455,9 +455,19 @@ describe('organization-plugin.store', () => {
 			path.join(installedPackageDir, 'package.json'),
 			JSON.stringify({ name: '@xpert-ai/plugin-markitdown', version: '0.0.5' })
 		)
-		writeOrganizationManifest('org-1', ['@xpert-ai/plugin-markitdown'], { rootDir: pluginRoot })
+		fs.writeFileSync(path.join(installedPackageDir, 'index.js'), 'module.exports = {}')
+		fs.writeFileSync(
+			path.join(pluginRoot, 'org-1', pluginSpec, '.xpert-registry-install.json'),
+			JSON.stringify({
+				schemaVersion: 1,
+				spec: pluginSpec,
+				name: '@xpert-ai/plugin-markitdown',
+				version: '0.0.5'
+			})
+		)
+		await writeOrganizationManifest('org-1', ['@xpert-ai/plugin-markitdown'], { rootDir: pluginRoot })
 
-		installOrganizationPlugins('org-1', [pluginSpec], { rootDir: pluginRoot })
+		await installOrganizationPlugins('org-1', [pluginSpec], { rootDir: pluginRoot })
 
 		expect(readOrganizationManifest('org-1', { rootDir: pluginRoot })).toEqual([pluginSpec])
 	})

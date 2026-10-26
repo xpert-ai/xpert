@@ -7,6 +7,7 @@
  */
 import type { IRuntimePluginRequirement, RuntimeRestartStatus } from '@xpert-ai/contracts'
 import type { PluginGenerationChange, PluginGenerationState, RuntimeRestartRedisClient } from './runtime-restart.types'
+import { stalePluginRestart } from './plugin-restart-conflict'
 
 export const PLUGIN_GENERATION_KEY = 'xpert:system:plugin-runtime:generation'
 const PLUGIN_GENERATION_PREFIX = 'xpert:system:plugin-runtime:generation:'
@@ -15,8 +16,19 @@ const DESIRED_PLUGINS_KEY = 'xpert:system:plugin-runtime:desired'
 export const REPLICA_ATTEMPTS_KEY = 'xpert:system:plugin-runtime:attempts'
 const PUBLISH_PLUGIN_GENERATION_SCRIPT = `
 -- xpert-publish-plugin-generation
-local generation = redis.call('incr', KEYS[1])
 local change = cjson.decode(ARGV[1])
+-- Check before any write: stale tabs must never replace the current desired manifest.
+if ARGV[4] ~= '' then
+  if (redis.call('get', KEYS[1]) or '0') ~= ARGV[4] then return -1 end
+  for _, requirement in ipairs(change['requirements']) do
+    local value = redis.call('hget', KEYS[2], cjson.encode({requirement['scopeKey'], requirement['pluginName']}))
+    if not value then return -1 end
+    local current = cjson.decode(value)
+    if current['state'] ~= requirement['state'] or current['version'] ~= requirement['version'] or
+       current['runtimeRevision'] ~= requirement['runtimeRevision'] then return -1 end
+  end
+end
+local generation = redis.call('incr', KEYS[1])
 change['generation'] = generation
 local state = { generation = generation, status = 'in_progress' }
 redis.call('set', ARGV[2] .. generation .. ':change', cjson.encode(change), 'EX', tonumber(ARGV[3]))
@@ -69,16 +81,22 @@ const ACTIVE_RESTART_KEY = 'xpert:system:runtime:restart:active'
 export class PluginRuntimeGenerationStore {
 	constructor(private readonly redis: RuntimeRestartRedisClient) {}
 
-	async publish(change: PluginGenerationChange): Promise<number> {
+	async publish(change: PluginGenerationChange, expectedGeneration?: number): Promise<number> {
 		if (!this.redis.eval) {
 			throw new Error('Redis scripting is required for atomic plugin generation publication')
 		}
 		const generation = Number(
 			await this.redis.eval(PUBLISH_PLUGIN_GENERATION_SCRIPT, {
 				keys: [PLUGIN_GENERATION_KEY, DESIRED_PLUGINS_KEY],
-				arguments: [JSON.stringify(change), PLUGIN_GENERATION_PREFIX, `${PLUGIN_GENERATION_TTL_SECONDS}`]
+				arguments: [
+					JSON.stringify(change),
+					PLUGIN_GENERATION_PREFIX,
+					`${PLUGIN_GENERATION_TTL_SECONDS}`,
+					expectedGeneration === undefined ? '' : `${expectedGeneration}`
+				]
 			})
 		)
+		if (generation === -1) throw stalePluginRestart()
 		if (!Number.isInteger(generation) || generation <= 0) {
 			throw new Error('Redis returned an invalid plugin runtime generation')
 		}

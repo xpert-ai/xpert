@@ -54,6 +54,8 @@ export interface IPluginConfig {
 
   plugins?: Array<DynamicModule | Type<any>>
 
+  pluginInstallationOptions?: { timeoutMs: number; lockWaitMs: number }
+
   logger?: ILogger
 
   authOptions?: IAuthOptions
