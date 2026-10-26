@@ -37,3 +37,5 @@ export * from './lib/project-task/index'
 export * from './lib/project-pipeline'
 
 export * from './lib/agent-plugin/import-default-agent-plugins.command'
+
+export * from './lib/execution-control'

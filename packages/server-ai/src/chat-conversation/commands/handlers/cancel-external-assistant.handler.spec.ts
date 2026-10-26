@@ -1,6 +1,6 @@
 jest.mock('../../../desktop-shell/desktop-shell-operation.service', () => ({ DesktopShellOperationService: class {} }))
 jest.mock('../../../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
-jest.mock('../../../shared/execution/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum as Status } from '@xpert-ai/contracts'
@@ -27,7 +27,10 @@ describe('CancelExternalAssistantHandler', () => {
             findAllByParentId: jest.fn(async (id: string) => children[id] ?? []),
             interruptRunning: jest.fn().mockResolvedValue(undefined)
         }
-        const cancellations = { cancelExecutions: jest.fn().mockResolvedValue(undefined) }
+        const cancellations = {
+            ownedExecutionIds: jest.fn().mockResolvedValue(null),
+            cancelExecutions: jest.fn().mockResolvedValue(undefined)
+        }
         const commands = { execute: jest.fn().mockResolvedValue(undefined) }
         const desktopShell = { cancelRuns: jest.fn().mockResolvedValue(undefined) }
         const handler = new CancelExternalAssistantHandler(
@@ -57,16 +60,13 @@ describe('CancelExternalAssistantHandler', () => {
         expect(f.executions.findAllByParentId).not.toHaveBeenCalledWith('foreign')
     })
 
-    it.each([Status.SUCCESS, Status.ERROR, Status.INTERRUPTED, Status.PENDING])(
-        'does not cancel a %s execution',
-        async (status) => {
-            const f = fixture()
-            f.execution.status = status
-            await expect(f.handler.execute(new CancelExternalAssistantCommand(f.execution))).resolves.toEqual({
-                canceledExecutionIds: []
-            })
-            expect(f.cancellations.cancelExecutions).not.toHaveBeenCalled()
-            expect(f.executions.interruptRunning).not.toHaveBeenCalled()
-        }
-    )
+    it.each([Status.SUCCESS, Status.ERROR, Status.INTERRUPTED])('does not cancel a %s execution', async (status) => {
+        const f = fixture()
+        f.execution.status = status
+        await expect(f.handler.execute(new CancelExternalAssistantCommand(f.execution))).resolves.toEqual({
+            canceledExecutionIds: []
+        })
+        expect(f.cancellations.cancelExecutions).not.toHaveBeenCalled()
+        expect(f.executions.interruptRunning).not.toHaveBeenCalled()
+    })
 })

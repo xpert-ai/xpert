@@ -47,6 +47,15 @@
   scrollbar-width: thin;
 }
 
+// The compact rail stays centered across its full width, including when the list scrolls.
+.cloud-sidebar.is-collapsed .cloud-sidebar__scroll {
+  scrollbar-width: none;
+}
+
+.cloud-sidebar.is-collapsed .cloud-sidebar__scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .cloud-sidebar__scroll::-webkit-scrollbar {
   width: 0.4rem;
 }
@@ -65,10 +74,16 @@
 }
 
 .cloud-sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   flex: 0 0 auto;
-  border-top: 1px solid var(--color-divider-regular);
   background: var(--sidebar);
   padding: 0.5rem;
+}
+
+.cloud-sidebar.is-collapsed .cloud-sidebar__footer {
+  align-items: center;
 }
 
 .cloud-sidebar__user {

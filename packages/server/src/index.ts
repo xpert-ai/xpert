@@ -35,3 +35,5 @@ export * from './referral/index'
 export * from './actor-token/index'
 
 export * from './analytics/analytics.module'
+
+export * from './task-control'

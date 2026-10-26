@@ -1,3 +1,4 @@
+import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { Annotation, END, MemorySaver, START, StateGraph } from '@langchain/langgraph'
 import { TXpertGraph } from '@xpert-ai/contracts'
@@ -56,6 +57,14 @@ function fixture(legacy = false) {
             transaction: async (work: (manager: EntityManager) => Promise<unknown>) =>
                 work(manager as unknown as EntityManager)
         } as DataSource,
+        {
+            tasks: { execution: jest.fn().mockResolvedValue(null), bind: jest.fn() },
+            has: jest.fn(),
+            root: jest.fn().mockResolvedValue({ desired: 'running' }),
+            intent: jest.fn(),
+            end: jest.fn().mockResolvedValue(true),
+            drainedExecution: jest.fn().mockResolvedValue(true)
+        } as unknown as ExecutionControlStore,
         undefined
     )
     const State = Annotation.Root({ result: Annotation<string> })

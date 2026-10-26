@@ -1,3 +1,5 @@
+jest.mock('../../../execution-control/execution-cancel.service', () => ({ ExecutionCancelService: class {} }))
+jest.mock('../../../execution-control/execution-control.store', () => ({ ExecutionControlStore: class {} }))
 jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({ MessageCheckpointService: class {} }))
 jest.mock('../../../chat-conversation/thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
 jest.mock('isolated-vm', () => ({ ExternalCopy: class {}, Isolate: class {} }))
@@ -7,7 +9,7 @@ jest.mock('@xpert-ai/server-core', () => ({
 jest.mock('../../../copilot-checkpoint', () => ({ CopilotCheckpointSaver: class {} }))
 jest.mock('../../agent', () => ({ createMapStreamEvents: jest.fn() }))
 jest.mock('../../../environment', () => ({ EnvironmentService: class {} }))
-jest.mock('../../../shared', () => ({ ExecutionCancelService: class {}, XpertWorkAreaResolver: class {} }))
+jest.mock('../../../shared', () => ({ XpertWorkAreaResolver: class {} }))
 jest.mock('../../../chat-message/chat-message.entity', () => ({ ChatMessage: class {} }))
 jest.mock('../../../knowledgebase', () => ({ KnowledgebaseTaskService: class {}, KnowledgeTaskServiceQuery: class {} }))
 
@@ -43,6 +45,7 @@ describe('Agent sandbox target selection', () => {
             const commandBus = { execute: jest.fn().mockRejectedValue(stopBeforeAcquisition) }
             const handler = new XpertAgentInvokeHandler(
                 commandBus as never,
+                undefined,
                 undefined,
                 undefined,
                 undefined,

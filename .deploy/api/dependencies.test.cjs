@@ -21,6 +21,16 @@ test('API workspace dependencies are included in deployment and the Docker insta
   }
 })
 
+test('production root resolves JavaScript-only workspace modules externalized by the API bundle', () => {
+  const root = path.resolve(__dirname, '../..')
+  const production = JSON.parse(fs.readFileSync(path.join(__dirname, 'package-prod.json')))
+  for (const dir of packages) {
+    if (fs.existsSync(path.join(root, dir, 'project.json'))) continue
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, dir, 'package.json')))
+    assert.equal(production.dependencies[manifest.name], 'workspace:*', `${manifest.name} must resolve from main.js`)
+  }
+})
+
 test('runtime dependencies retain source protocols and compiler entry points', () => {
   const source = {
     name: 'example',

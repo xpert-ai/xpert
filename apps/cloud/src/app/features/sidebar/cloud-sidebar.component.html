@@ -1,4 +1,12 @@
-<nav class="cloud-sidebar" [class.is-collapsed]="collapsed()">
+<nav
+  class="cloud-sidebar"
+  [class.is-collapsed]="collapsed()"
+  [xpSidebarHoverPanel]="hoverPanelEnabled()"
+  [xpSidebarPanelMobile]="isMobile()"
+  [xpSidebarPanelScope]="panelScope()"
+  (pinnedPanelWidthChange)="pinnedPanelWidthChange.emit($event)"
+  (panelResizingChange)="panelResizingChange.emit($event)"
+>
   <header class="cloud-sidebar__header">
     <xp-cloud-sidebar-identity
       [collapsed]="collapsed()"
@@ -18,6 +26,7 @@
 
   <footer class="cloud-sidebar__footer">
     @if (user(); as currentUser) {
+      <xp-cloud-sidebar-membership [collapsed]="collapsed()" />
       <xp-header-user
         class="cloud-sidebar__user"
         [user]="currentUser"

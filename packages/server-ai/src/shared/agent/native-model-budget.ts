@@ -2,6 +2,7 @@
 // Settlement consumes the existing SDK usage callback; missing/estimated usage keeps the durable hold.
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
+import type { Callbacks } from '@langchain/core/callbacks/manager'
 import { t } from 'i18next'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import type { CommandBus } from '@nestjs/cqrs'
@@ -12,6 +13,39 @@ import {
     type PipelineModelBudgetActor,
     type PipelineModelBudgetCall
 } from '../../xpert-project/pipeline/budget/pipeline-model-budget.command'
+
+function supportsModelCallbacks(model: unknown): model is { callbacks?: Callbacks } {
+    if (model instanceof BaseLanguageModel) return true
+    // ESM plugins and the CommonJS host can load separate LangChain constructors.
+    // Check the language-model callback contract, not just Runnable membership.
+    if (
+        !model ||
+        typeof model !== 'object' ||
+        !('lc_namespace' in model) ||
+        !Array.isArray(model.lc_namespace) ||
+        model.lc_namespace[0] !== 'langchain' ||
+        !['chat_models', 'llms'].includes(model.lc_namespace[1]) ||
+        !('generatePrompt' in model) ||
+        typeof model.generatePrompt !== 'function' ||
+        !('invoke' in model) ||
+        typeof model.invoke !== 'function' ||
+        !('stream' in model) ||
+        typeof model.stream !== 'function' ||
+        !('_modelType' in model) ||
+        typeof model._modelType !== 'function' ||
+        !['base_chat_model', 'base_llm'].includes(model._modelType())
+    )
+        return false
+    if (!('callbacks' in model) || model.callbacks == null || Array.isArray(model.callbacks)) return true
+    const callbacks = model.callbacks
+    return (
+        typeof callbacks === 'object' &&
+        'copy' in callbacks &&
+        typeof callbacks.copy === 'function' &&
+        'addHandler' in callbacks &&
+        typeof callbacks.addHandler === 'function'
+    )
+}
 
 export function createNativeModelBudgetGate(
     commands: CommandBus,
@@ -37,7 +71,7 @@ export function createNativeModelBudgetGate(
     callback.raiseError = true
     return {
         attach(model: unknown) {
-            if (!(model instanceof BaseLanguageModel))
+            if (!supportsModelCallbacks(model))
                 throw new Error(
                     t('server-ai:Error.ProjectPipelineModelGateUnsupported', {
                         defaultValue: 'This model client does not support native model admission callbacks.'

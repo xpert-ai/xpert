@@ -1,7 +1,8 @@
+import { SidebarSearchResultsComponent } from './search/sidebar-search-results.component'
 import { A11yModule } from '@angular/cdk/a11y'
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -25,7 +26,7 @@ const RECENT_TASK_LIMIT = 10
   selector: 'xp-cloud-sidebar-recent-tasks',
   templateUrl: './cloud-sidebar-recent-tasks.component.html',
   styleUrl: './cloud-sidebar-recent-tasks.component.scss',
-  imports: [
+  imports: [SidebarSearchResultsComponent,
     CommonModule,
     A11yModule,
     OverlayModule,
@@ -37,6 +38,8 @@ const RECENT_TASK_LIMIT = 10
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarRecentTasksComponent {
+  readonly panelMode = input(false)
+  readonly query = input('')
   readonly collapsed = input(false)
   readonly expanded = signal(false)
   readonly menuOpen = signal(false)
@@ -91,6 +94,11 @@ export class CloudSidebarRecentTasksComponent {
     ),
     { initialValue: [] as IChatConversation[] }
   )
+
+  readonly filteredConversations = computed(() => {
+    const query = this.query().trim().toLocaleLowerCase()
+    return this.conversations().filter((item) => !query || item.title?.toLocaleLowerCase().includes(query))
+  })
 
   constructor() {
     effect(() => {

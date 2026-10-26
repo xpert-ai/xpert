@@ -1,6 +1,8 @@
+import { AuthorizeAssistantMcpHandler } from './mcp-access/authorize-assistant-mcp.handler'
 import { AssistantMiddlewareAccessService } from './middleware-access/assistant-middleware-access.service'
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
 import { PublishedAgentContextHandler } from './published-agent/published-agent-context.query'
+import { GetAccessiblePublishedXpertHandler } from './published-agent/get-accessible-published-xpert.query'
 import { AssistantSharingModule } from './sharing/sharing.module'
 import { AssistantSharingController } from './sharing/sharing.controller'
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
@@ -145,8 +147,10 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
         XpertAccessController
     ],
     providers: [
+        AuthorizeAssistantMcpHandler,
         ResolvePublishedAgentHandler,
         PublishedAgentContextHandler,
+        GetAccessiblePublishedXpertHandler,
         XpertPublicationPersistence,
         TemplateAuthoring,
         TemplatePublicationService,

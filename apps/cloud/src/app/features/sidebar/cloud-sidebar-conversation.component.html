@@ -1,11 +1,10 @@
 <div
-  class="group/conversation flex min-w-0 items-center rounded-md text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-within:bg-hover-bg focus-within:text-text-primary"
+  class="group/conversation flex min-w-0 items-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-within:bg-hover-bg focus-within:text-text-primary"
   [class]="active() ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
   [attr.data-conversation-id]="conversation().id"
 >
   <a
-    class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    [class]="compact() ? 'h-8 text-sm' : 'h-10 text-base'"
+    class="flex min-w-0 flex-1 h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [routerLink]="route()"
     [queryParamsHandling]="preserveQueryParams() ? 'preserve' : null"
     [attr.aria-current]="active() ? 'page' : null"
@@ -14,18 +13,19 @@
     (click)="selected.emit()"
   >
     <i
-      [class]="compact() ? 'ri-chat-3-line shrink-0 text-base' : 'ri-file-text-line shrink-0 text-xl'"
+      class="inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+      [class]="compact() ? 'ri-chat-3-line' : 'ri-file-text-line'"
       aria-hidden="true"
     ></i>
     <span class="min-w-0 flex-1 truncate">{{ title() }}</span>
     @if (conversation().sidebar?.pinned) {
       <i
-        class="ri-pushpin-2-fill shrink-0 text-xs text-text-tertiary group-hover/conversation:hidden group-focus-within/conversation:hidden"
+        class="ri-pushpin-2-fill shrink-0 text-xs text-muted-foreground group-hover/conversation:hidden group-focus-within/conversation:hidden"
         aria-hidden="true"
       ></i>
     }
     <time
-      class="max-w-0 shrink-0 overflow-hidden whitespace-nowrap text-xs tabular-nums text-text-tertiary opacity-0 group-hover/conversation:max-w-28 group-hover/conversation:opacity-100 group-focus-within/conversation:max-w-28 group-focus-within/conversation:opacity-100"
+      class="max-w-0 shrink-0 overflow-hidden whitespace-nowrap text-xs tabular-nums text-muted-foreground opacity-0 group-hover/conversation:max-w-28 group-hover/conversation:opacity-100 group-focus-within/conversation:max-w-28 group-focus-within/conversation:opacity-100"
       >{{ updatedAt() }}</time
     >
   </a>
@@ -35,7 +35,7 @@
   >
     <button
       type="button"
-      class="flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      class="flex size-7 shrink-0 items-center justify-center rounded text-text-secondary transition-colors duration-150 motion-reduce:transition-none enabled:hover:bg-hover-bg enabled:hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
       [cdkMenuTriggerFor]="moreMenu"
       (cdkMenuOpened)="menuOpen.set(true)"
       (cdkMenuClosed)="menuOpen.set(false)"
@@ -47,7 +47,7 @@
     </button>
     <button
       type="button"
-      class="flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      class="flex size-7 shrink-0 items-center justify-center rounded text-text-secondary transition-colors duration-150 motion-reduce:transition-none enabled:hover:bg-hover-bg enabled:hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
       [disabled]="busy()"
       (click)="toggleArchive()"
       [attr.aria-label]="
@@ -66,7 +66,7 @@
     </button>
     <button
       type="button"
-      class="mr-1 flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      class="mr-1 flex size-7 shrink-0 items-center justify-center rounded text-text-secondary transition-colors duration-150 motion-reduce:transition-none enabled:hover:bg-hover-bg enabled:hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
       [disabled]="busy()"
       (click)="togglePin()"
       [attr.aria-pressed]="!!conversation().sidebar?.pinned"
@@ -97,20 +97,19 @@
     <button
       type="button"
       cdkMenuItem
-      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-hover-bg focus:bg-hover-bg focus:outline-none"
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus:bg-hover-bg focus:text-text-primary focus:outline-none"
       (cdkMenuItemTriggered)="openFolder()"
     >
-      <i class="ri-folder-open-line text-lg text-text-secondary" aria-hidden="true"></i
+      <i class="ri-folder-open-line text-lg" aria-hidden="true"></i
       >{{ 'XP.Sidebar.OpenConversationFolder' | translate }}
     </button>
     <button
       type="button"
       cdkMenuItem
-      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-hover-bg focus:bg-hover-bg focus:outline-none"
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus:bg-hover-bg focus:text-text-primary focus:outline-none"
       (cdkMenuItemTriggered)="rename()"
     >
-      <i class="ri-edit-line text-lg text-text-secondary" aria-hidden="true"></i
-      >{{ 'XP.Sidebar.RenameConversation' | translate }}
+      <i class="ri-edit-line text-lg" aria-hidden="true"></i>{{ 'XP.Sidebar.RenameConversation' | translate }}
     </button>
     <button
       type="button"

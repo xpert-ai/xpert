@@ -31,7 +31,7 @@ export class RuntimeObservationMonitorService {
                 .createQueryBuilder('invocation')
                 .where({ nextObservationAt: LessThanOrEqual(new Date()) })
                 .andWhere(
-                    "(invocation.invocation->'request'->'dispatch' IS NOT NULL OR invocation.invocation->'activity' IS NOT NULL)"
+                    "(invocation.invocation->'request'->'dispatch' IS NOT NULL OR invocation.invocation->'activity' IS NOT NULL OR invocation.invocation->'control' IS NOT NULL)"
                 )
                 .orderBy('invocation.nextObservationAt', 'ASC')
                 .take(20)

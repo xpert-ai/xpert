@@ -172,6 +172,7 @@
       hideToggle
       class="shadow-sm rounded-[1rem]"
       [disabled]="!copilot.enabled"
+      [expanded]="copilot.id === selectedCopilotId() && copilot.enabled"
     >
       <z-accordion-header>
         <z-accordion-title>

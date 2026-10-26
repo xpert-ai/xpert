@@ -1,3 +1,8 @@
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { catchError, map, of, startWith, switchMap } from 'rxjs'
+import { injectActiveScope } from '@cloud/app/@core/state'
+import { AgentEvolutionApiService } from '../agent-evolution-api.service'
+import { EvolutionDetailKind, EvolutionDetailResource, findEvolutionResource } from '../evolution-resource-lookup'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject } from '@angular/core'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
@@ -6,7 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
 import { EvolutionBaselinePanelComponent } from './evolution-baseline-panel.component'
 
-type DetailKind = 'target' | 'candidate' | 'evaluation' | 'deployment'
+type ResourceState = { loading: boolean; error: boolean; item: EvolutionDetailResource | null }
 
 @Component({
   standalone: true,
@@ -27,11 +32,30 @@ export class AgentEvolutionDetailComponent {
   readonly #route = inject(ActivatedRoute)
   readonly facade = inject(AgentEvolutionFacade)
   private readonly router = inject(Router)
-  readonly kind = this.#route.snapshot.data['kind'] as DetailKind
-  readonly resourceId = this.#route.snapshot.paramMap.get('resourceId') ?? ''
+  readonly kind = this.#route.snapshot.data['kind'] as EvolutionDetailKind
+  readonly resourceId = toSignal(this.#route.paramMap.pipe(map((params) => params.get('resourceId') ?? '')), {
+    initialValue: ''
+  })
+  private readonly scope = injectActiveScope()
+  private readonly api = inject(AgentEvolutionApiService)
+  private readonly request = computed(() => ({ id: this.resourceId(), scope: this.scope() }))
+  readonly state = toSignal(
+    toObservable(this.request).pipe(
+      switchMap(({ id }) =>
+        id
+          ? findEvolutionResource(this.api, this.kind, id).pipe(
+              map((item): ResourceState => ({ item, error: false, loading: false })),
+              catchError(() => of<ResourceState>({ item: null, error: true, loading: false })),
+              startWith<ResourceState>({ item: null, error: false, loading: true })
+            )
+          : of<ResourceState>({ item: null, error: false, loading: false })
+      )
+    ),
+    { initialValue: { item: null, error: false, loading: true } }
+  )
   constructor() {
     effect(() => {
-      const record = this.facade.lifecycleRecords().find((item) => item.id === this.resourceId)
+      const record = this.facade.lifecycleRecords().find((item) => item.id === this.resourceId())
       if (this.kind === 'candidate' && record) {
         void this.router.navigate(['/agent-evolution/evaluation'], {
           queryParams: { changeId: record.id },
@@ -40,13 +64,5 @@ export class AgentEvolutionDetailComponent {
       }
     })
   }
-  readonly item = computed(() => {
-    const dashboard = this.facade.dashboard()
-    if (this.kind === 'target') return dashboard.targets.find((item) => item.targetId === this.resourceId) ?? null
-    if (this.kind === 'candidate') {
-      return dashboard.candidates.find((item) => item.candidateId === this.resourceId) ?? null
-    }
-    if (this.kind === 'evaluation') return dashboard.evaluations.find((item) => item.runId === this.resourceId) ?? null
-    return dashboard.deployments.find((item) => item.deploymentId === this.resourceId) ?? null
-  })
+  readonly item = computed(() => this.state().item)
 }

@@ -229,6 +229,8 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
   const presenceStaleMs = positiveInteger(options.presenceStaleMs, 15_000)
   let presence: CollaborationPresencePatch = { ...(options.initialPresence ?? {}) }
   let pending: Uint8Array[] = []
+  let inFlight: Uint8Array[] = []
+  let synchronized = false
   let flushTimer: ReturnType<typeof setTimeout> | undefined
   let syncTimer: ReturnType<typeof setInterval> | undefined
   let presenceTimer: ReturnType<typeof setInterval> | undefined
@@ -245,9 +247,12 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
   const flush = () => {
     if (flushTimer) clearTimeout(flushTimer)
     flushTimer = undefined
-    if (!pending.length || !options.transport.connected) return
+    if (!pending.length || inFlight.length || !synchronized || !options.transport.connected) return
     const updates = pending
     pending = []
+    // Keep bytes until the server acknowledges persistence. Replaying a Yjs update
+    // after a lost acknowledgement is idempotent; dropping it could lose an edit.
+    inFlight = updates
     options.transport.emit('update', {
       updateBase64: bytesToBase64(options.document.mergeUpdates(updates)),
       origin: 'plugin-client'
@@ -278,26 +283,48 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     options.onConnectionChange?.('connecting')
     cleanups.push(
       options.document.onUpdate((update, origin) => {
-        if (origin === remoteOrigin) return
+        if (origin === remoteOrigin || options.session.access !== 'write') return
         pending.push(update)
         if (!flushTimer) flushTimer = setTimeout(flush, batchMs)
       })
     )
     cleanups.push(
       options.transport.on('connect', () => {
+        synchronized = false
         selfClientId = options.transport.clientId ?? selfClientId
         options.onConnectionChange?.('connected')
         requestSync()
         emitPresence()
       })
     )
-    cleanups.push(options.transport.on('disconnect', () => options.onConnectionChange?.('disconnected')))
-    cleanups.push(options.transport.on('sync', applyRemote))
+    cleanups.push(
+      options.transport.on('disconnect', () => {
+        synchronized = false
+        pending = [...inFlight, ...pending]
+        inFlight = []
+        options.onConnectionChange?.('disconnected')
+      })
+    )
+    cleanups.push(
+      options.transport.on('sync', (payload) => {
+        applyRemote(payload)
+        // The initial sync is sent only after session authorization and room setup.
+        // A raw socket connect can precede that setup, so do not flush on connect.
+        if (stringValue(payload['updateBase64'])) {
+          synchronized = true
+          flush()
+        }
+      })
+    )
     cleanups.push(options.transport.on('update', applyRemote))
     cleanups.push(
       options.transport.on('update-ack', (payload) => {
         const ack = parseAck(payload)
-        if (ack) options.onAck?.(ack)
+        if (ack && ack.documentId === options.session.documentId) {
+          inFlight = []
+          options.onAck?.(ack)
+          flush()
+        }
       })
     )
     cleanups.push(

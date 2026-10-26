@@ -19,7 +19,7 @@ import { wrapNativeAgentInvocation } from './native-graph-adapter'
 import { RequestContext, type WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import type { IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { createHash } from 'crypto'
-import { ExecutionCancelService } from '../shared/execution/execution-cancel.service'
+import { ExecutionCancelService } from '../execution-control/execution-cancel.service'
 import { parallelDelegationTool, PARALLEL_DELEGATION_TOOL } from './parallel-delegation'
 
 export interface AgentInvocationGraphScope {

@@ -72,6 +72,14 @@ describe('Project task invocation read projection', () => {
             expect(attempt.status).toBe('queued')
         }
     )
+    it('does not project a legacy cancelled string as an actual completion', () => {
+        const observed = { ...invocation('cancelled'), handle: { sessionId: 'session', runId: 'run' } }
+        expect(projectTaskInvocationView(attempt, observed)).toMatchObject({
+            status: 'running',
+            invocationStatus: 'cancelling',
+            runtimeCompletedAt: null
+        })
+    })
     it('projects Runtime success without modifying the persisted attempt or business task', () => {
         const observed = invocation('succeeded')
         expect(projectTaskInvocationView(attempt, observed)).toMatchObject({

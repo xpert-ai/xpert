@@ -359,4 +359,69 @@ describe('AgentInvocationRuntime', () => {
         await f.api.cancel(run.id)
         expect((await f.api.inspect(run.id)).status).toBe('cancelling')
     })
+    it.each([false, true])(
+        'reconciles a lost cancel response without replaying business start (idempotent=%s)',
+        async (idempotent) => {
+            const f = fixture()
+            f.strategy.capabilities.idempotentCancellation = idempotent
+            f.strategy.capabilities.completionEvidence = 1
+            f.start.mockResolvedValue({ status: 'running', handle: { sessionId: 'session', runId: 'same-run' } })
+            const cancel = jest
+                .fn()
+                .mockRejectedValueOnce(new Error('Response lost'))
+                .mockImplementation(async (handle, context) => ({
+                    status: 'cancelled',
+                    controlEvidence: {
+                        version: 1,
+                        source: 'provider',
+                        subject: { kind: 'invocation', id: context.invocationId },
+                        scope: 'operation',
+                        state: 'settled',
+                        outcome: 'cancelled',
+                        sessionId: handle.sessionId,
+                        runId: handle.runId,
+                        receiptKey: 'exit-1',
+                        observedAt: new Date().toISOString()
+                    }
+                }))
+            f.strategy.cancel = cancel
+            const invocation = await f.api.start(f.request)
+            await expect(f.api.cancel(invocation.id)).rejects.toThrow('Response lost')
+            const other = new AgentInvocationRuntime(f.store, f.registry).scoped(f.access)
+            const result = await other.inspect(invocation.id)
+            expect(cancel).toHaveBeenCalledTimes(idempotent ? 2 : 1)
+            expect(result.status).toBe(idempotent ? 'cancelled' : 'cancelling')
+            expect(f.start).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('leases concurrent cancellation and uses a control signal independent of the stopped business signal', async () => {
+        const f = fixture(),
+            business = new AbortController()
+        f.start.mockResolvedValue({ status: 'running', handle: { sessionId: 'session', runId: 'same-run' } })
+        f.strategy.capabilities.idempotentCancellation = true
+        let release!: () => void, started!: () => void
+        const gate = new Promise<void>((done) => {
+                release = done
+            }),
+            entered = new Promise<void>((done) => {
+                started = done
+            })
+        const cancel = jest.fn(async (_handle, context) => {
+            expect(context.signal.aborted).toBe(false)
+            started()
+            await gate
+            return { status: 'cancelled' as const }
+        })
+        f.strategy.cancel = cancel
+        const api = f.runtime.scoped({ ...f.access, signal: business.signal })
+        const invocation = await api.start(f.request)
+        business.abort()
+        const first = api.cancel(invocation.id)
+        await entered
+        await new AgentInvocationRuntime(f.store, f.registry).scoped(f.access).cancel(invocation.id)
+        release()
+        await first
+        expect(cancel).toHaveBeenCalledTimes(1)
+    })
 })

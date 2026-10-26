@@ -1,3 +1,5 @@
+import { ActivatedRoute } from '@angular/router'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import {
   ZardButtonComponent,
   XpDialogFrameImports,
@@ -190,6 +192,12 @@ export class ChatTasksComponent {
   readonly taskLastExecution = getTaskLastExecution
 
   constructor() {
+    inject(ActivatedRoute, { optional: true })
+      ?.queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        if (params.get('taskId')) this.taskId.set(params.get('taskId'))
+      })
+
     effect((onCleanup) => {
       const open = this.templatePickerOpen()
       const template = this.templatePickerDialog()

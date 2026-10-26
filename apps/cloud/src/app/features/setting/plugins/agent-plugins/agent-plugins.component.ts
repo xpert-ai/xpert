@@ -26,7 +26,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
-import { firstValueFrom, map } from 'rxjs'
+import { firstValueFrom, map, of } from 'rxjs'
 import { API_PREFIX } from '@cloud/app/@core/state/constants'
 import { injectActiveScope } from '@cloud/app/@core/state'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
@@ -125,6 +125,9 @@ export class AgentPluginsComponent {
   readonly bindings = signal<BindingSummary[]>([])
   readonly options = signal<ResourceOptions>({ workspaces: [], experts: [] })
   readonly search = signal('')
+  private readonly routeSearch = toSignal(
+    this.route?.queryParamMap.pipe(map((params) => params.get('search'))) ?? of(null)
+  )
   readonly status = signal<PluginStatus | 'all'>('all')
   readonly page = signal(0)
   readonly pageSize = 8
@@ -187,6 +190,8 @@ export class AgentPluginsComponent {
   })
 
   constructor() {
+    effect(() => this.search.set(this.routeSearch() || ''))
+
     inject(DestroyRef).onDestroy(() => {
       this.stopDefaultPolling()
       this.stopUpdatePolling()

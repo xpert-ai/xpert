@@ -134,6 +134,16 @@ npm ci --prefix .deploy/desktop/release-tools --ignore-scripts --no-audit --no-f
 node --test .deploy/desktop/*.test.*
 ```
 
+The prepare job runs these release checks with only `release-tools` installed.
+Tests under `.deploy/desktop/installed/` require the actual Desktop packaging
+dependencies and run on every selected build target after its frozen-lockfile
+install, before the renderer build:
+
+```bash
+cd .local/desktop-ci
+node --test .deploy/desktop/installed/*.test.mjs
+```
+
 Root `lockfile:update` / `lockfile:check` also maintain this profile, including after
 Changesets versioning. CI does not rely on developer-built `dist` directories.
 

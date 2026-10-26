@@ -59,6 +59,27 @@ describe('SandboxRuntimeBindingSelector', () => {
         ).resolves.toMatchObject({ provider: { type: 'b-provider' }, binding: { id: 'seekable' } })
     })
 
+    it('skips legacy or incomplete control providers before health or create', async () => {
+        const legacy = provider('legacy', [binding('legacy', 'legacy', 0)])
+        const incomplete = provider('incomplete', [binding('incomplete', 'incomplete', 1)])
+        incomplete.capabilities.executionControl = 1
+        const controlled = provider('controlled', [binding('controlled', 'controlled', 2)])
+        controlled.capabilities.executionControl = 1
+        controlled.prepareControl = jest.fn()
+        controlled.control = jest.fn()
+        await expect(
+            createSelector([legacy, incomplete, controlled]).require(definition, undefined, {
+                executionControl: true
+            })
+        ).resolves.toMatchObject({ provider: { type: 'controlled' } })
+        expect(legacy.getBindingHealth).not.toHaveBeenCalled()
+        expect(incomplete.getBindingHealth).not.toHaveBeenCalled()
+        await expect(createSelector([legacy]).inspect(definition, { executionControl: true })).resolves.toMatchObject({
+            available: false,
+            reason: 'RUNTIME_UNBOUND'
+        })
+    })
+
     it('rejects mutable OCI references in production', async () => {
         process.env.NODE_ENV = 'production'
         const selector = createSelector([provider('docker-runtime', [binding('mutable', 'docker-runtime', 0)])])

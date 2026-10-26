@@ -1,3 +1,4 @@
+import { mcpConnectionVersion } from './mcp-connection-version'
 // Invariants: identities and connection configuration stay with the platform. Recheck access
 // around remote I/O; a previously authorized session never survives connection/workspace revocation.
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
@@ -29,7 +30,7 @@ export class McpClientConnectionService {
         @InjectRepository(XpertToolset) private readonly toolsets: Repository<XpertToolset>
     ) {}
 
-    private async authorize(scope: McpClientScope) {
+    private async authorize(scope: McpClientScope, stopOnly = false) {
         if (
             scope.actor.tenantId !== RequestContext.currentTenantId() ||
             scope.actor.organizationId !== RequestContext.getOrganizationId() ||
@@ -38,7 +39,7 @@ export class McpClientConnectionService {
             throw new ForbiddenException(
                 t('server-ai:Error.McpClientAccessDenied', { defaultValue: 'MCP connection access denied.' })
             )
-        await this.workspaces.assertCanRead(scope.workspaceId)
+        if (!stopOnly) await this.workspaces.assertCanRead(scope.workspaceId)
         const connection = await this.toolsets.findOne({
             where: {
                 id: scope.toolsetId,
@@ -53,25 +54,22 @@ export class McpClientConnectionService {
             throw new ForbiddenException(
                 t('server-ai:Error.McpClientAccessDenied', { defaultValue: 'MCP connection access denied.' })
             )
-        // Include tool selection as well as connection changes in the revocation check.
-        return JSON.stringify({
-            schema: connection.schema,
-            options: connection.options,
-            updatedAt: connection.updatedAt,
-            tools: connection.tools
-                ?.map((tool) => ({
-                    name: tool.name,
-                    enabled: tool.enabled,
-                    disabled: tool.disabled,
-                    updatedAt: tool.updatedAt
-                }))
-                .sort((a, b) => a.name.localeCompare(b.name))
-        })
+        return mcpConnectionVersion(connection)
+    }
+
+    /** Internal stop capability: still binds actor, tenant, workspace, saved endpoint and credential revision. */
+    async pinForStop(scope: McpClientScope) {
+        return this.authorize(scope, true)
+    }
+
+    async pin(scope: McpClientScope) {
+        return this.authorize(scope)
     }
 
     async withConnection<T>(
         original: McpClientScope,
-        operation: (session: McpClientSession) => Promise<T>
+        operation: (session: McpClientSession) => Promise<T>,
+        expectedVersion?: string
     ): Promise<T> {
         const { signal, ...input } = original
         const parsed = connectionScope.parse(input)
@@ -95,6 +93,7 @@ export class McpClientConnectionService {
         const work = async () => {
             try {
                 const version = await this.authorize(scope)
+                if (expectedVersion && version !== expectedVersion) throw new Error('MCP_CLIENT_CONNECTION_CHANGED')
                 controller.signal.throwIfAborted()
                 const loaded = await this.runtime.loadToolsets({
                     source: 'api',

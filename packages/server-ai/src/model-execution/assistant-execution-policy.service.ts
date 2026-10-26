@@ -15,6 +15,7 @@ import { AssistantUserPreference } from '../xpert/assistant-user-preference.enti
 import { assistantModelCandidates } from '../xpert/assistant-model-selection.util'
 import { executionError } from './execution-errors'
 import { ModelExecutionNativeProviderService } from './execution-native-provider.service'
+import { snapshotExecutionParameters } from './execution-model-parameters'
 
 export type ExecutionActor = { tenantId: string; organizationId: string; userId: string }
 
@@ -103,7 +104,7 @@ export class AssistantExecutionPolicyService {
             const candidate = candidates[i]
             const copilot = await this.copilots.findOneBy({ tenantId: actor.tenantId, id: candidate.model.copilotId })
             if (!copilot?.enabled || !copilot.modelProvider?.id) continue
-            const metadata = await this.native.metadata(labels[i].provider, candidate.model.model)
+            const metadata = await this.native.metadata(labels[i].provider, candidate.model.model, copilot)
             models.push({
                 id: candidate.id,
                 copilotId: copilot.id,
@@ -113,6 +114,7 @@ export class AssistantExecutionPolicyService {
                 model: candidate.model.model,
                 modelType: candidate.model.modelType,
                 capabilities: labels[i].capabilities,
+                parameters: snapshotExecutionParameters(candidate.model.options),
                 ...metadata,
                 protocols: ['openai_chat', ...metadata.protocols]
             })
@@ -192,7 +194,9 @@ export class AssistantExecutionPolicyService {
                 model.modelType === snapshot.modelType
         )
         if (!selected) throw executionError('Model')
-        return { ...selection, models: [selected], defaultModelId: selected.id, parent }
+        // The active execution owns its tuning snapshot even if the published Assistant changes mid-run.
+        const parameters = snapshotExecutionParameters(snapshot.options)
+        return { ...selection, models: [{ ...selected, parameters }], defaultModelId: selected.id, parent }
     }
 
     async authorize(actor: ExecutionActor, xpertId: string, model: ModelExecutionModel) {

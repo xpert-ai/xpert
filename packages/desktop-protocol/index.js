@@ -147,7 +147,27 @@ function parseReport(value) {
     (value.errorCode !== undefined && !text(value.errorCode, 80))
   )
     fail()
+  if (
+    value.completion !== undefined &&
+    (!object(value.completion) ||
+      value.completion.version !== 1 ||
+      value.completion.generation !== value.operationId ||
+      value.completion.coverage !== 'descendants' ||
+      !['exited', 'not_started'].includes(value.completion.state) ||
+      !isFinal(value.state))
+  )
+    fail()
   return {
+    ...(value.completion
+      ? {
+          completion: {
+            version: 1,
+            generation: value.operationId,
+            coverage: 'descendants',
+            state: value.completion.state
+          }
+        }
+      : {}),
     type: 'state',
     version: VERSION,
     operationId: value.operationId,

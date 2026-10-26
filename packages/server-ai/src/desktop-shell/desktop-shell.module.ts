@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RedisModule, TenantModule } from '@xpert-ai/server-core'
+import { RedisModule, TenantModule, TaskControlModule } from '@xpert-ai/server-core'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { DesktopShellMiddleware } from '../xpert-middleware/desktop-shell.middleware'
 import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
@@ -17,6 +17,7 @@ import { DesktopShellController } from './desktop-shell.controller'
         RouterModule.register([{ path: '/desktop-shell', module: DesktopShellModule }]),
         CqrsModule,
         TenantModule,
+        TaskControlModule,
         RedisModule,
         TypeOrmModule.forFeature([DesktopShellDevice, DesktopShellGrant, DesktopShellOperation, ChatConversationThread])
     ],

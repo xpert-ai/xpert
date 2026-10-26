@@ -31,7 +31,7 @@ flowchart LR
     J --> A["SandboxActionRegistry"]
     J --> R["SandboxRuntimeDefinitionRegistry"]
     J --> B["Binding Selector"]
-    J --> L["Redis 容量租约"]
+    J --> L["PostgreSQL 容量账本"]
     B --> D["Runtime Provider SPI"]
     D --> PR["OSS Local 开发 / Pro Docker / 其他 Provider"]
     PR --> S["Ephemeral Job Sandbox<br/>Browser Runtime + Action Bundle"]
@@ -178,7 +178,7 @@ Core 的主要 class 负责维护上述边界：
 | `SandboxRuntimeBindingSelector`      | 过滤必需能力与不可变 artifact，执行 health 检查，再按优先级确定性选择 Binding。                 |
 | `SandboxRuntimeHealthService`        | 探测 API 本地 Provider、短期缓存 readiness，并向 Redis 发布有 TTL 的可观测证据。                |
 | `SandboxJobRuntimeCapabilityService` | 在 API 进程负责幂等、容量、materialize、执行、输出校验、运行证据、取消和清理。                  |
-| `SandboxJobCapacityService`          | 在创建 Runtime 前原子获取全局/tenant/user 有期限租约，并幂等释放。                              |
+| `SandboxJobCapacityService`          | 创建 Runtime 前原子登记全局/tenant/user 容量；实际执行与所属子任务收尾后释放。                  |
 
 ## Job 作用域、幂等与容量
 
@@ -190,13 +190,21 @@ workFor: { type: 'job', id: sandboxJobId }
 
 `SandboxJob` 保存 `runtimeProfile`、`sandboxRuntimeVersion`、`action`、`actionVersion`、调用插件、tenant/organization/user、业务资源、attempt、provider、`runtimeBindingId`、artifact digest、`runtimeRef`、输出 references、时间和标准错误。`containerRef` 只保留一版兼容读取。
 
-平台按 `(tenantId, idempotencyKey)` 保证唯一：成功任务直接返回原输出；运行中的任务重新附着；失败或丢失任务由下一 Managed Queue attempt 使用新容器。推荐 key：
+平台按 `(tenantId, idempotencyKey)` 保证唯一：成功任务直接返回原输出；运行中的任务重新附着；失败、丢失或终止的旧调用不会自动重开。明确业务重试须使用新 key 和 `retryOf: { jobId, generation }`，核验原任务已实际收尾；未确认时拒绝重试。推荐 key：
 
 ```text
 <plugin>:<operation>:<businessId>:<immutable-checksum>
 ```
 
-Redis 有期限租约默认限制全局 20、单租户 4、单用户 2。容量满时 Job 保持 `waiting`，不创建部分容器，也不消耗业务 attempt。
+PostgreSQL 持久容量账本默认限制全局 20、单租户 4、单用户 2。租约或心跳过期不释放容量。容量满时 Job 保持 `waiting`，不创建部分容器，也不消耗业务 attempt。
+
+## 执行控制与实际收尾
+
+Job 在创建前持久登记 generation、原 Provider 版本和原环境目标。`cancel()` 接受终止意图后可返回 `cancelling`；`settling` 表示业务已有结果但实际工作仍待确认。只有 Runtime 退出、原宿主实际工作结束及 attached 子树收尾后，才设置终态和 `finishedAt`。控制调用超时、404 或进程 Map 为空都不是退出证据。
+
+控制补偿只向原代次查询或停止，不重新 create 或发送 Action 输入。callback 的真实 Promise 和文件写入须收尾；协议等待结束不会释放容量。暂停允许已准入 Job 和必要子任务完成并保存结果，外层在安全节点边界暂停，避免父子互等。独立/共享任务由 `controlPolicy` 明确隔离。
+
+升级必须先应用 `packages/server-ai/src/sandbox/sandbox-job/migration.sql` 和 TaskControl 前置表，再协调升级 Host、SDK、Provider/Runner；同一 Job 不允许新旧 worker 混用。历史缺证据的 active/lost/cleanupPending 记录保留 unknown 和容量占用。macOS 本地 Provider 不能提供 Linux 后代退出强证明；需要强确认时使用已验证的 Linux、Docker 或 NsJail 环境。
 
 ## 文件与执行流
 
@@ -229,7 +237,7 @@ sequenceDiagram
 - 默认无公网；仅 Runtime Definition 显式允许内部端点
 - 2 CPU、4096 MiB 内存、1024 MiB `/dev/shm`、4096 MiB 临时空间
 - action timeout 300 秒，container hard deadline 360 秒
-- 成功、失败、取消后立即回收；scheduler 补偿 orphan cleanup
+- 实际 Runtime、宿主 callback 和 attached 子树确认收尾后释放容量；容器和目录清理单独补偿
 
 通用 Job 生命周期位于 OSS `server-ai`；具体容器生命周期由 Provider SPI 实现，不进入 `packages/sandbox-runtime`。Pro 专用的 Docker Job Runtime Provider、共享 engine adapter、不可变 Runtime Suite lock 与部署 overlay 放在现有 Docker Sandbox 模块中；`xpert-plugins` 不再维护第二套 Docker 实现 package。
 
@@ -263,11 +271,11 @@ HTML 继续走无浏览器路径。生产强制 `exportBackend='sandbox-job'`；
 | `EXPORT_INPUT_INVALID` / `EXPORT_OUTPUT_INVALID` | 否       | 输入或产物确定性错误                 |
 | `SANDBOX_CANCELLED`                              | 否       | 用户或业务取消                       |
 
-插件维护用户可见业务状态。只有 `retryable: true` 的错误继续抛给 Managed Queue。
+插件维护用户可见业务状态。`retryable: true` 仅表示故障性质允许业务决定重试，并不授权重放同一幂等调用。队列重领先读取原状态；新业务尝试必须显式关联已收尾的旧 generation。
 
 ## API Runtime 执行器与部署
 
-每个 API 启动后立即探测所有 Runtime Definition，随后每 15 秒刷新一次，readiness 缓存为 45 秒，并向 Redis 发布可观测证据。`getActionHealth()` 使用 API 本地探测结果；真正执行前会再次选择和验证 Binding。没有兼容 Binding 时返回 `RUNTIME_UNBOUND`；已注册 Provider 无法枚举 Binding 时返回 `PROVIDER_UNAVAILABLE`。
+每个 API 启动后立即探测所有 Runtime Definition，随后每 15 秒刷新一次，readiness 缓存为 45 秒，并向 Redis 发布可观测证据。`getActionHealth()` 使用 API 本地探测结果；真正执行前会再次选择和验证 Binding。新 Job 和健康探测均要求 Provider 声明 `executionControl: 1` 并实现原目标 prepare/control，旧 Provider 不会被误选。没有兼容 Binding 时返回 `RUNTIME_UNBOUND`；已注册 Provider 无法枚举 Binding 时返回 `PROVIDER_UNAVAILABLE`。
 
 源码环境下，开发/测试 API 自动以单并发启动 Local Browser consumer。首次执行 `corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser` 安装固定版本浏览器；artifact、版本或 Runner manifest 不满足时，capability health 会在 warning 中返回该命令，而不是静默禁用导出。该路径不使用 `CHROME_PATH`，也不会让生产 API image 依赖 Runtime Suite package。
 

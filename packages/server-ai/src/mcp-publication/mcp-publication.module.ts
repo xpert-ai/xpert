@@ -1,6 +1,8 @@
+import { AuthorizePublicationMcpHandler } from './control/authorize-publication-mcp.handler'
+import { McpTaskControlStore } from './control/mcp-task-control.store'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { RedisModule, User } from '@xpert-ai/server-core'
+import { RedisModule, User, TaskControlModule } from '@xpert-ai/server-core'
 import { MCP_PUBLICATION_ENTITIES } from './entities'
 import { XpertToolsetModule } from '../xpert-toolset'
 import { McpPublicationService } from './mcp-publication.service'
@@ -31,6 +33,7 @@ import { McpSourceConfigurationService } from './configuration/configuration.ser
 
 @Module({
     imports: [
+        TaskControlModule,
         TypeOrmModule.forFeature([...MCP_PUBLICATION_ENTITIES, XpertToolset, User]),
         RedisModule,
         XpertWorkspaceModule,
@@ -45,6 +48,7 @@ import { McpSourceConfigurationService } from './configuration/configuration.ser
         McpFilesController
     ],
     providers: [
+        AuthorizePublicationMcpHandler,
         McpSourceConfigurationService,
         McpFilesGuard,
         McpFilesService,
@@ -60,6 +64,7 @@ import { McpSourceConfigurationService } from './configuration/configuration.ser
         McpOAuthService,
         McpElicitationService,
         McpTaskService,
+        McpTaskControlStore,
         McpTaskExecutionService,
         McpTaskProcessor,
         McpPublicationRuntimeService

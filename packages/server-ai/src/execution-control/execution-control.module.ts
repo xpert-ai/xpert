@@ -1,0 +1,21 @@
+// Owns durable execution control and local delivery; consumers import this module explicitly.
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { ExecutionControl } from './execution-control.entity'
+import { ExecutionControlStore } from './execution-control.store'
+import { ExecutionControlEvidenceService } from './execution-control-evidence.service'
+import { Module } from '@nestjs/common'
+import { RedisModule, TaskControlModule } from '@xpert-ai/server-core'
+import { ExecutionCancelService } from './execution-cancel.service'
+import { ExecutionControlAdmissionRegistration } from './control-admission'
+
+@Module({
+    imports: [RedisModule, TaskControlModule, TypeOrmModule.forFeature([ExecutionControl])],
+    providers: [
+        ExecutionCancelService,
+        ExecutionControlStore,
+        ExecutionControlEvidenceService,
+        ExecutionControlAdmissionRegistration
+    ],
+    exports: [ExecutionCancelService, ExecutionControlStore, ExecutionControlEvidenceService]
+})
+export class ExecutionControlModule {}

@@ -1,3 +1,4 @@
+import { SettingsNavigationService } from './settings-navigation.service'
 import { A11yModule } from '@angular/cdk/a11y'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { NgTemplateOutlet } from '@angular/common'
@@ -28,12 +29,10 @@ import {
   ZardSheetService,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
-import { AiFeatureEnum, AIPermissionsEnum, Store, UserType, injectTheme } from '../../@core'
+import { filter, map, startWith } from 'rxjs'
+import { Store, injectTheme } from '../../@core'
 import { HeaderUserComponent, OrganizationSelectorComponent } from '../../@theme/header'
-import { getSettingsMenuItems } from '../menus'
-import { buildSettingsNavigation, findSettingsNavigationItem } from './settings-navigation'
+import { findSettingsNavigationItem } from './settings-navigation'
 
 @Component({
   standalone: true,
@@ -60,8 +59,6 @@ import { buildSettingsNavigation, findSettingsNavigationItem } from './settings-
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpSettingComponent {
-  private readonly rolesService = inject(NgxRolesService)
-  private readonly permissionsService = inject(NgxPermissionsService)
   private readonly store = inject(Store)
   private readonly router = inject(Router)
   private readonly breakpoints = inject(BreakpointObserver)
@@ -77,12 +74,6 @@ export class XpSettingComponent {
     initialValue: this.breakpoints.isMatched('(max-width: 767px)')
   })
   readonly user = toSignal(this.store.user$, { initialValue: this.store.user })
-  readonly activeScope = toSignal(this.store.selectActiveScope(), { initialValue: this.store.activeScope })
-  readonly permissions = toSignal(this.permissionsService.permissions$.pipe(distinctUntilChanged()))
-  readonly rolePermissions = toSignal(this.store.userRolePermissions$)
-  readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
-    initialValue: this.store.featureContextHydrated
-  })
   readonly language = toSignal(this.i18nService.stream('XP.SettingsShell'))
   readonly currentPath = toSignal(
     this.router.events.pipe(
@@ -94,39 +85,9 @@ export class XpSettingComponent {
     { requireSync: true }
   )
 
-  readonly menus = computed(() => {
-    const scopeLevel = this.activeScope().level
-    this.permissions()
-    const featureContextHydrated = this.featureContextHydrated()
-
-    return getSettingsMenuItems(scopeLevel).filter((item) => {
-      if (item.data?.featureKey && featureContextHydrated) {
-        const featureKey = Array.isArray(item.data.featureKey) ? item.data.featureKey : [item.data.featureKey]
-        if (!featureKey.every((key) => this.store.hasFeatureEnabled(key))) return false
-      }
-      if (item.data?.permissionKeys) {
-        return item.data.permissionKeys.some(
-          (key) => !!this.rolesService.getRole(key) || !!this.permissionsService.getPermission(key)
-        )
-      }
-      return true
-    })
-  })
-
-  readonly groups = computed(() => {
-    this.rolePermissions()
-    this.featureContextHydrated()
-    const regularUser = this.user()?.type !== UserType.COMMUNICATION
-    return buildSettingsNavigation(this.menus(), {
-      membership: this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE),
-      models: regularUser,
-      personalApiKeys: this.user()?.type === UserType.USER,
-      gateway:
-        regularUser &&
-        this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MODEL_GATEWAY) &&
-        this.store.hasPermission(AIPermissionsEnum.MODEL_GATEWAY_USE)
-    })
-  })
+  private readonly navigation = inject(SettingsNavigationService)
+  readonly menus = this.navigation.menus
+  readonly groups = this.navigation.groups
   readonly activeItem = computed(() => findSettingsNavigationItem(this.groups(), this.currentPath()))
   readonly activeGroup = computed(() =>
     this.groups().find((group) => group.items.some((item) => item === this.activeItem()))

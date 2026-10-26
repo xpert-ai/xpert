@@ -5,7 +5,8 @@ import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
-    UseValidationPipe
+    UseValidationPipe,
+    ZodValidationPipe
 } from '@xpert-ai/server-core'
 import type { Request, Response } from 'express'
 import {
@@ -15,6 +16,13 @@ import {
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
 import { sendWorkspaceFileContent } from '../workspace-file-access/workspace-file-content.response'
 import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-access.guard'
+import { ImagePreviewService } from '../workspace-file-access/image-preview/image-preview.service'
+import {
+    imagePreviewSchema,
+    imagePreviewInvalid,
+    ImagePreviewRequest
+} from '../workspace-file-access/image-preview/image-preview.schema'
+import { sendImagePreview } from '../workspace-file-access/image-preview/image-preview.response'
 
 /** ChatKit authenticates content reads here; direct content URLs retain their cookie-bound policy. */
 @ApiTags('WorkspaceFilesRuntime')
@@ -24,7 +32,19 @@ import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @Controller('workspace-files/view-sessions')
 export class WorkspaceFileAccessRuntimeController {
-    constructor(private readonly service: WorkspaceFileAccessService) {}
+    constructor(
+        private readonly service: WorkspaceFileAccessService,
+        private readonly images: ImagePreviewService
+    ) {}
+
+    @Post('preview')
+    @AssistantFileAccess('view-session-create')
+    async preview(
+        @Body(new ZodValidationPipe(imagePreviewSchema, imagePreviewInvalid)) body: ImagePreviewRequest,
+        @Res() response: Response
+    ) {
+        return sendImagePreview(await this.images.read(body), response)
+    }
 
     @Post()
     @AssistantFileAccess('view-session-create')

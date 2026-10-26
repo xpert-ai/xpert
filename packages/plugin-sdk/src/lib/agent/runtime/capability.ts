@@ -6,6 +6,10 @@ import type { ConversationResourceCard } from '@xpert-ai/contracts'
 
 /** Invocation API bound to one authorized caller/execution. Each operation revalidates access. */
 export interface AgentInvocationApi {
+  /** Discover inherited runtime presets without creating bindings or starting processes. */
+  listManaged?(): Promise<import('./managed').ManagedAgentRuntimeOption[]>
+  /** Resolve an installed preset using the captured caller's current permissions. */
+  resolveManaged?(selection: import('./managed').ManagedAgentRuntimeSelection): Promise<AgentTarget>
   /** Create a host-owned presentation receipt after a successful dispatch, without inspecting the runtime. */
   getResourceCard?(invocationId: string): Promise<ConversationResourceCard | null>
   /** Resolve a binding to a pinned target. Optional on hosts with pre-resolved native targets. */

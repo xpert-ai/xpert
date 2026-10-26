@@ -1,6 +1,8 @@
+import type { SandboxJobRetryReference } from '@xpert-ai/contracts'
 import type { JSONValue } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { WorkspaceFileScope, WorkspacePortableFileReference } from './workspace-files'
+import type { TaskControlPolicy } from '../../execution-control'
 
 /** Stable machine-readable failures emitted by the Sandbox Jobs capability. */
 export const SANDBOX_JOB_ERROR_CODES = [
@@ -21,12 +23,23 @@ export const SANDBOX_JOB_ERROR_CODES = [
   'EXPORT_MEDIA_FAILED',
   'EXPORT_INPUT_INVALID',
   'EXPORT_OUTPUT_INVALID',
-  'SANDBOX_CANCELLED'
+  'SANDBOX_CANCELLED',
+  'SANDBOX_CONTROL_UNCONFIRMED'
 ] as const
 
 export type SandboxJobErrorCode = (typeof SANDBOX_JOB_ERROR_CODES)[number]
 /** Persisted lifecycle states for a generic isolated background execution. */
-export type SandboxJobStatus = 'waiting' | 'starting' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'lost'
+export type SandboxJobStatus =
+  | 'waiting'
+  | 'starting'
+  | 'running'
+  | 'settling'
+  | 'cancelling'
+  | 'unknown'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled'
+  | 'lost'
 
 /** Line prefix used by trusted Actions to report structured, provider-neutral progress. */
 export const SANDBOX_JOB_PROGRESS_PREFIX = 'XPERT_SANDBOX_PROGRESS '
@@ -94,6 +107,8 @@ export type SandboxJobRunInput = {
   actionVersion: string
   /** Stable tenant-scoped key combining business identity and immutable input checksum. */
   idempotencyKey: string
+  /** A new call identity that explicitly retries a settled original generation. */
+  retryOf?: SandboxJobRetryReference
   scope: SandboxJobScope
   /** Small structured request; file bytes must be supplied through `files`. */
   payload: JSONValue
@@ -117,6 +132,9 @@ export type SandboxJobOutput = {
 
 /** Provider-neutral persisted view of a Sandbox Job and its runtime evidence. */
 export type SandboxJobSnapshot = {
+  /** Business result and physical completion are independent facts. */
+  controlState?: 'pending' | 'settled' | 'unknown'
+  generation?: string
   id: string
   runtimeProfile: string
   sandboxRuntimeVersion: string
@@ -164,6 +182,8 @@ export type SandboxJobInvocation = {
 
 /** Live execution controls; kept separate from the persisted, JSON-only RunInput. */
 export type SandboxJobRunOptions = {
+  /** Trusted host ownership; independent/shared work must not inherit caller termination. */
+  controlPolicy?: TaskControlPolicy
   /** Cancels an owned attempt; on reattachment, cancels only this caller's wait. */
   signal?: AbortSignal
   invocation?: SandboxJobInvocation
@@ -214,7 +234,7 @@ export type SandboxJobActionHealth = {
 export interface SandboxJobsApi {
   /** Starts, reattaches, or reuses a successful execution by tenant-scoped idempotency key. */
   run(input: SandboxJobRunInput, options?: SandboxJobRunOptions): Promise<SandboxJobRunResult>
-  /** Cancels the logical Job and terminates its active Runtime when one exists. */
+  /** Persists stop intent; terminal status is returned only after actual execution and host settlement. */
   cancel(input: { jobId: string }): Promise<SandboxJobSnapshot>
   /** Returns the active tenant's persisted Job snapshot, or null when inaccessible or absent. */
   getJob(input: { jobId: string }): Promise<SandboxJobSnapshot | null>

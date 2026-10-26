@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import type { TEnterpriseH5Platform } from './ai/xpert.model'
 
@@ -6,6 +7,16 @@ export type TEnterpriseH5TokenScope = {
   platform: TEnterpriseH5Platform
   integrationId: string
 }
+
+/** Immutable authorization source; live access is rechecked on every delegated request. */
+export const clientSecretGrantSourceSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('assistant') }).strict(),
+  z.object({ kind: z.literal('project'), projectId: z.string().min(1) }).strict(),
+  z
+    .object({ kind: z.literal('conversation'), conversationId: z.string().min(1), requesterXpertId: z.string().min(1) })
+    .strict()
+])
+export type TClientSecretGrantSource = z.infer<typeof clientSecretGrantSourceSchema>
 
 /**
  * Selects how an opaque client secret is authorized and how entityId is
@@ -44,6 +55,8 @@ export interface ISecretToken extends IBasePerTenantAndOrganizationEntityModel {
   token: string
   /** Exact enterprise channel that issued an ENTERPRISE_XPERT token. */
   enterpriseH5Scope?: TEnterpriseH5TokenScope | null
+  /** Authorization source for USER_XPERT grants; entityId remains the resource binding. */
+  grantSource?: TClientSecretGrantSource | null
   validUntil?: Date
   expired?: boolean
 }

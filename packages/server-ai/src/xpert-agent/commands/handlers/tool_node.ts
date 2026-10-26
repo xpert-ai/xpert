@@ -1,5 +1,5 @@
 import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
-import { ExecutionCancelledError } from '../../../shared/execution/execution-cancelled.error'
+import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
 import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
 import { ToolMessage, AIMessage, isBaseMessage, isToolMessage } from '@langchain/core/messages'
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'

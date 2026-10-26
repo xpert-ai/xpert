@@ -5,7 +5,7 @@ import {
     IChatConversation,
     TChatConversationSidebarState
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
@@ -21,7 +21,7 @@ export class ChatConversationSidebarService {
         private readonly preferences: Repository<AssistantUserPreference>
     ) {}
 
-    async list(xpertId: string, take = 10, skip = 0, archived = false) {
+    async list(xpertId: string, take = 10, skip = 0, archived = false, search = '') {
         const scope = this.scope()
         const preference = await this.preferences.findOne({ where: this.preferenceWhere(scope, xpertId) })
         const states = preference?.preferences.conversationSidebar ?? {}
@@ -46,6 +46,12 @@ export class ChatConversationSidebarService {
             })
             .andWhere('conversation.threadId IS NOT NULL')
             .andWhere("conversation.purpose = 'private'")
+        if (search.trim()) {
+            // Treat SQL wildcard characters as literal title text, before pagination.
+            query.andWhere("conversation.title ILIKE :search ESCAPE '!'", {
+                search: `%${search.trim().replace(/[!%_]/g, '!$&')}%`
+            })
+        }
         if (archived && !archivedIds.length) return { items: [], total: 0 }
         if (archivedIds.length) {
             query.andWhere(`conversation.id ${archived ? 'IN' : 'NOT IN'} (:...archivedIds)`, { archivedIds })

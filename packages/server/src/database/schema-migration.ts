@@ -20,6 +20,8 @@ export interface SchemaMigrationBundle {
 	managedTables: string[]
 	migrations: SchemaSqlMigration[]
 	checks: string[]
+	/** Reviewed legacy variants, independent of immutable migration postconditions/checksums. */
+	baselineChecks?: string[]
 }
 export type SchemaMigrationAction = 'apply' | 'verify' | 'baseline'
 
@@ -92,6 +94,8 @@ export async function synchronizeWithMigrations(
 		validateSql(migration.check, true)
 	}
 	bundle.checks.forEach((sql) => validateSql(sql, true))
+	if (bundle.baselineChecks?.length === 0) throw new Error('EMPTY_BASELINE_CHECKS')
+	bundle.baselineChecks?.forEach((sql) => validateSql(sql, true))
 	const originalMigrations = [...source.migrations]
 	const setMigrations = (migrations: MigrationInterface[]) => {
 		source.migrations.splice(0, source.migrations.length, ...migrations)
@@ -187,7 +191,8 @@ export async function synchronizeWithMigrations(
 					await executor.executePendingMigrations()
 					for (const migration of baseline) await record(migration)
 					await runner.query('SET LOCAL transaction_read_only = on')
-					for (const migration of baseline) await verifySql(runner, migration.check)
+					for (const sql of bundle.baselineChecks ?? baseline.map((migration) => migration.check))
+						await verifySql(runner, sql)
 					await runner.commitTransaction()
 				} catch (error) {
 					await runner.rollbackTransaction()

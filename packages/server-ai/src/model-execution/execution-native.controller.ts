@@ -1,10 +1,11 @@
 import { executionRequestLifetime } from './execution-request-lifetime'
+import { inheritNativeParameters } from './execution-model-parameters'
 import { z } from 'zod/v3'
 import { ModelExecutionChatService } from './execution-chat.service'
 import { parseChatBridgeRequest } from './execution-chat-bridge-request'
 import { ChatBridgeWriter } from './execution-chat-bridge-writer'
 import { chatBridgeProtocol } from './execution-tool-model'
-import { Body, Controller, HttpException, Post, Req, Res } from '@nestjs/common'
+import { Body, Controller, HttpException, Logger, Post, Req, Res } from '@nestjs/common'
 import { Public } from '@xpert-ai/server-core'
 import { ILLMUsage, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
 import { countTokensSafe, type NativeModelProtocol } from '@xpert-ai/plugin-sdk'
@@ -29,6 +30,7 @@ import { executionError } from './execution-errors'
 @Public()
 @Controller('model-execution')
 export class ModelExecutionNativeController {
+    private readonly logger = new Logger(ModelExecutionNativeController.name)
     constructor(
         private readonly grants: ModelExecutionGrantService,
         private readonly policies: ModelExecutionPolicyService,
@@ -94,6 +96,7 @@ export class ModelExecutionNativeController {
             if (!policy.nativeProtocols?.includes(protocol) || !model.protocols.includes(protocol))
                 throw executionError('Unavailable')
             const parsed = parseNativeRequest(body, protocol)
+            inheritNativeParameters(parsed, protocol, model.parameters)
             if (!model) throw executionError('Model')
             const outputKey = protocol === 'openai_responses' ? 'max_output_tokens' : 'max_tokens'
             const output = parsed[outputKey]
@@ -113,6 +116,7 @@ export class ModelExecutionNativeController {
                 const streamUsage = new NativeStreamUsage(protocol)
                 let receipt: ReturnType<typeof readNativeUsage> = null,
                     error: unknown
+                let upstreamStatus: number | undefined
                 try {
                     const fresh = (await this.grants.revalidate(grant)).models.find(
                         (item) => item.id === model.id && item.protocols.includes(protocol)
@@ -127,6 +131,7 @@ export class ModelExecutionNativeController {
                             headers[key] = value
                     lifetime.activity()
                     const upstream = await client.generate(parsed, headers, abort.signal)
+                    upstreamStatus = upstream.status
                     lifetime.activity()
                     if (!upstream.ok || !upstream.body) {
                         await upstream.body?.cancel()
@@ -173,6 +178,23 @@ export class ModelExecutionNativeController {
                 } catch (caught) {
                     error = caught
                     receipt ??= streamUsage.receipt
+                    // Never log request bodies, credentials or raw upstream errors. Keep
+                    // enough evidence to distinguish relay HTTP failures from transport loss.
+                    const diagnostic = z
+                        .object({
+                            name: z.enum(['AbortError', 'TimeoutError', 'TypeError', 'Error']).catch('Error'),
+                            cause: z.object({ code: z.string().regex(/^[A-Z_]{1,64}$/) }).optional()
+                        })
+                        .safeParse(caught)
+                    this.logger.warn({
+                        event: 'native_model_request_failed',
+                        callId: call.id,
+                        protocol,
+                        upstreamStatus,
+                        aborted: abort.signal.aborted,
+                        errorType: diagnostic.success ? diagnostic.data.name : 'unknown',
+                        transportCode: diagnostic.success ? diagnostic.data.cause?.code : undefined
+                    })
                 }
                 const tokens = receipt?.usage
                 let price: ILLMUsage | null = null

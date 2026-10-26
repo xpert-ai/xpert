@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
-import { ExecutionCancelService } from '../execution/execution-cancel.service'
-import { executionAbortScope } from '../execution/execution-abort-scope'
+import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
+import { executionAbortScope } from '../../execution-control/execution-abort-scope'
 import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
@@ -144,8 +144,10 @@ export class XpertCollaborator implements IXpertSubAgent {
                     }
                 }
 
+                await cancellations.attach(_execution.id, executionId, 'attached')
                 const scope = executionAbortScope(_execution.id, cancellations, [signal, config.signal])
                 try {
+                    await cancellations.check(_execution.id)
                     scope.controller.signal.throwIfAborted()
                     const { graph } = await commandBus.execute<XpertAgentSubgraphCommand, TAgentSubgraphResult>(
                         new XpertAgentSubgraphCommand(agent.key, xpert, {

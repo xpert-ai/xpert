@@ -3,17 +3,26 @@ import { EntityManager } from 'typeorm'
 import { checkpointEligiblePredicate, checkpointProtectionCte } from '../copilot-checkpoint/retention.sql'
 import { modelGatewayArchiveDeleteSql } from '../model-gateway/model-gateway-call-retention'
 
-export function manualRetentionCandidates(range: ManualRetentionRange) {
+export function manualRetentionCandidates(range: ManualRetentionRange, materialized = false) {
     const checkpoints = range.target === 'copilot_checkpoint'
     const date = checkpoints ? 'c."createdAt"' : 'COALESCE(c."completedAt", c."createdAt")'
     const eligible = checkpoints
         ? checkpointEligiblePredicate
         : `c.status IN ('${ModelGatewayCallStatusEnum.Succeeded}', '${ModelGatewayCallStatusEnum.Failed}')`
-    return `${checkpoints ? checkpointProtectionCte + ',' : 'WITH'} matching AS (
+    return `${checkpoints ? checkpointProtectionCte + ',' : 'WITH'} matching AS ${materialized ? 'MATERIALIZED ' : ''}(
         SELECT c.id, ${date} AS date, (${eligible}) AS eligible
         FROM ${checkpoints ? 'copilot_checkpoint' : 'model_gateway_call'} c
         WHERE ${date} >= $1::timestamptz AND ${date} < $2::timestamptz
     )`
+}
+
+export function manualRetentionPreviewSql(range: ManualRetentionRange) {
+    // Share eligibility evaluation between exact totals and the bounded, deterministic batch.
+    // Execution keeps its separate candidate query so receipt IDs can still be pushed down.
+    return `${manualRetentionCandidates(range, true)}
+    SELECT count(*)::int AS matched, count(*) FILTER (WHERE eligible)::int AS eligible,
+        ARRAY(SELECT id FROM matching WHERE eligible ORDER BY date, id LIMIT $3::int) AS ids
+    FROM matching`
 }
 
 export const relatedWritesSql = `SELECT count(*)::int AS count FROM copilot_checkpoint_writes w

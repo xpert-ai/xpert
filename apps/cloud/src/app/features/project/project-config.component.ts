@@ -27,6 +27,7 @@ import { XpertProjectConnectorsDialogComponent } from './project-connectors-dial
 import { XpertProjectMembersDialogComponent } from './project-members-dialog.component'
 import { XpertProjectSkillsDialogComponent } from './project-skills-dialog.component'
 import { XpertProjectFacade } from './project.facade'
+import { XpertProjectDeleteComponent } from './project-delete.component'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { UserAvatarComponent } from '../../@shared/user/avatar/avatar.component'
 
@@ -43,6 +44,7 @@ import { UserAvatarComponent } from '../../@shared/user/avatar/avatar.component'
     ZardInputDirective,
     EmojiAvatarComponent,
     UserAvatarComponent,
+    XpertProjectDeleteComponent,
     ...ZardFormImports,
     ...ZardMenuImports,
     ...ZardSelectImports
@@ -355,6 +357,7 @@ import { UserAvatarComponent } from '../../@shared/user/avatar/avatar.component'
           }
         </div>
       </section>
+      <xp-project-delete />
     </section>
   `,
   host: { class: 'block w-full min-w-0' }

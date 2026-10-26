@@ -1,6 +1,8 @@
+import { McpControlError } from '../../../mcp-consumer/execution/mcp-control.error'
+import { mcpConnectionVersion } from '../../../mcp-consumer/runtime/mcp-connection-version'
+import { ExecuteMcpOperationCommand } from '../../../mcp-consumer/execution/mcp-operation.command'
 import { readMcpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import type { RunnableConfig } from '@langchain/core/runnables'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import {
@@ -37,7 +39,7 @@ import {
 } from './app-support'
 import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 import { filterMcpTools } from './mcp-tool-filter'
-import { buildMcpTaskStatusMessage, isMcpTaskTerminalStatus, type McpConsumerTaskStatusUpdate } from './mcp-task-status'
+import { buildMcpTaskStatusMessage } from './mcp-task-status'
 
 function isObject(value: unknown): value is object {
     return typeof value === 'object' && value !== null
@@ -87,16 +89,6 @@ function forceCloseMCPClientTransports(client: MultiServerMCPClient) {
     }
 }
 
-function omitSignalFromRunnableConfig(config?: RunnableConfig) {
-    if (!config?.signal) {
-        return config
-    }
-
-    const nextConfig: RunnableConfig = { ...config }
-    delete nextConfig.signal
-    return nextConfig
-}
-
 function wrapMCPTool(
     tool: DynamicStructuredTool,
     client: MultiServerMCPClient,
@@ -109,11 +101,11 @@ function wrapMCPTool(
         schema: tool.schema,
         returnDirect: tool.returnDirect,
         responseFormat: tool.responseFormat,
-        defaultConfig: omitSignalFromRunnableConfig(tool.defaultConfig),
+        defaultConfig: tool.defaultConfig,
         verboseParsingErrors: tool.verboseParsingErrors,
         metadata: tool.metadata,
         func: async (input, runManager, config) => {
-            const runnableConfig = omitSignalFromRunnableConfig(config)
+            const runnableConfig = config
             mcpStdioRuntimeManager.touchClient(client)
             const result = await tool.func(input, runManager, runnableConfig)
             const appData = registerMcpAppInstance({
@@ -147,6 +139,7 @@ export class MCPToolset extends _BaseToolset {
     // MCP Client
     protected client: MultiServerMCPClient = null
     protected consumer: McpConsumer = null
+    private readonly executionDrains = new Set<Promise<void>>()
     protected destroy: (() => Promise<void>) | null = null
     constructor(
         protected toolset: IXpertToolset,
@@ -166,7 +159,7 @@ export class MCPToolset extends _BaseToolset {
         const { client, destroy } = environment.pro
             ? await createProMCPClient(
                   this.toolset,
-                  this.params?.signal,
+                  undefined,
                   this.params.commandBus,
                   JSON.parse(this.toolset.schema),
                   this.params.env,
@@ -181,7 +174,29 @@ export class MCPToolset extends _BaseToolset {
                   this.params
               )
         this.client = client
-        this.consumer = new McpConsumer(new LangChainMcpConnection(client))
+        const connectionVersion = mcpConnectionVersion(this.toolset)
+        this.consumer = new McpConsumer(new LangChainMcpConnection(client), (input) => {
+            if (!this.params?.commandBus) throw new McpControlError('scope')
+            return this.params.commandBus.execute(
+                new ExecuteMcpOperationCommand({
+                    ...input,
+                    connectionVersion,
+                    authority: this.params?.xpertId
+                        ? {
+                              kind: 'assistant',
+                              xpertId: this.params.xpertId,
+                              ...(this.params.projectId ? { projectId: this.params.projectId } : {})
+                          }
+                        : undefined,
+                    toolsetId: this.toolset.id,
+                    consumer: this.consumer,
+                    retain: (drain) => {
+                        this.executionDrains.add(drain)
+                        void drain.then(() => this.executionDrains.delete(drain))
+                    }
+                })
+            )
+        })
         this.destroy = destroy
         const tools = await this.consumer.tools.asLangChain()
         this.tools = filterMcpTools(this.toolset, tools).map((tool) =>
@@ -200,7 +215,8 @@ export class MCPToolset extends _BaseToolset {
         arguments_: Record<string, unknown>,
         serverName?: string,
         signal?: AbortSignal,
-        input?: ToolInputApi
+        input?: ToolInputApi,
+        operationKey?: string
     ): Promise<McpConsumerCallToolResult> {
         const consumer = await this.getMcpConsumer()
         return consumer.tools.call(
@@ -208,7 +224,8 @@ export class MCPToolset extends _BaseToolset {
             arguments_,
             serverName,
             signal,
-            input ? createRemoteElicitationHandler(input) : undefined
+            input ? createRemoteElicitationHandler(input) : undefined,
+            operationKey
         )
     }
 
@@ -217,47 +234,24 @@ export class MCPToolset extends _BaseToolset {
         arguments_: Record<string, unknown>,
         serverName: string,
         signal?: AbortSignal,
-        input?: ToolInputApi
+        input?: ToolInputApi,
+        operationKey?: string
     ): Promise<unknown> {
         const consumer = await this.getMcpConsumer()
-        const started = await consumer.tasks.start(name, arguments_, serverName, signal)
-        let latest: McpConsumerTaskStatusUpdate = started
-        try {
-            const completed = await consumer.tasks.wait(started, {
-                serverName,
-                signal,
-                onStatus: async (task) => {
-                    latest = task
-                    await dispatchCustomEvent(
-                        ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-                        buildMcpTaskStatusMessage({ task, toolset: this.toolset, serverName, toolName: name })
-                    )
-                },
-                ...(input
-                    ? {
-                          onInputRequired: async (task) => resolveRemoteTaskInputResponses(task.inputRequests, input)
-                      }
-                    : {})
-            })
-            return consumer.tasks.result(completed)
-        } catch (error) {
-            if (!isMcpTaskTerminalStatus(latest) && latest.status !== 'input_required') {
-                await dispatchCustomEvent(
+        return consumer.runTask({
+            mode: 'task',
+            toolName: name,
+            arguments: arguments_,
+            serverName,
+            signal,
+            operationKey,
+            input: input ? createRemoteElicitationHandler(input) : undefined,
+            onStatus: (task) =>
+                dispatchCustomEvent(
                     ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-                    buildMcpTaskStatusMessage({
-                        task: {
-                            ...latest,
-                            status: signal?.aborted ? 'cancelled' : 'failed',
-                            lastUpdatedAt: new Date().toISOString()
-                        },
-                        toolset: this.toolset,
-                        serverName,
-                        toolName: name
-                    })
-                ).catch(() => undefined)
-            }
-            throw error
-        }
+                    buildMcpTaskStatusMessage({ task, toolset: this.toolset, serverName, toolName: name })
+                )
+        })
     }
 
     async readMcpResource(uri: string, serverName?: string): Promise<McpResourceReadResult> {
@@ -333,25 +327,30 @@ export class MCPToolset extends _BaseToolset {
     }
 
     async close() {
-        if (!this.client) {
+        const client = this.client,
+            destroy = this.destroy
+        if (!client) return
+        this.client = null
+        this.consumer = null
+        this.destroy = null
+        const cleanup = async () => {
+            try {
+                detachMcpAppInstancesForClient(client)
+                forceCloseMCPClientTransports(client)
+                await destroy?.()
+            } finally {
+                await client.close().catch((err) => this.#logger.debug(err))
+                forceCloseMCPClientTransports(client)
+            }
+        }
+        // A caller ending its wait cannot kill a shared/independent task in the original stdio host.
+        if (this.executionDrains.size) {
+            void Promise.allSettled([...this.executionDrains])
+                .then(cleanup)
+                .catch((err) => this.#logger.debug(err))
             return
         }
-
-        try {
-            const detachedMcpApps = detachMcpAppInstancesForClient(this.client)
-            if (detachedMcpApps) {
-                this.#logger.debug(`detached ${detachedMcpApps} mcp app instance(s) for '${this.toolset.name}'.`)
-            }
-            forceCloseMCPClientTransports(this.client)
-            await this.destroy?.()
-        } finally {
-            await this.client.close().catch((err) => this.#logger.debug(err))
-            forceCloseMCPClientTransports(this.client)
-            this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
-            this.client = null
-            this.consumer = null
-            this.destroy = null
-        }
+        await cleanup()
     }
 
     async getMcpConsumer() {
@@ -406,19 +405,6 @@ function normalizePromptContent(content: unknown): McpPromptContent {
         }
     }
     throw new Error('Remote MCP Prompt returned invalid content')
-}
-
-async function resolveRemoteTaskInputResponses(value: unknown, input: ToolInputApi) {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new Error('Remote MCP task returned invalid input requests')
-    }
-    const responses: Record<string, object> = {}
-    for (const [key, request] of Object.entries(value)) {
-        const parsed = parseRemoteTaskInputRequest(request)
-        const content = await input.request(parsed)
-        responses[key] = { action: 'accept', content }
-    }
-    return responses
 }
 
 function createRemoteElicitationHandler(input: ToolInputApi): McpConsumerElicitationHandler {

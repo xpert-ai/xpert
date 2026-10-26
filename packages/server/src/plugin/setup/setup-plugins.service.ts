@@ -6,7 +6,6 @@ import { CommandBus } from '@nestjs/cqrs'
  */
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import {
-	RUNTIME_RESTART_CONFIRMATION,
 	RolesEnum,
 	type SetupPluginProgress,
 	type SetupPluginsResponse,
@@ -183,11 +182,10 @@ export class SetupPluginsService {
 		}
 		progress.phase = 'restarting'
 		await this.store.save(tenantId, progress)
-		const restart = await this.runtime.requestRestart({
-			confirmation: RUNTIME_RESTART_CONFIRMATION,
-			reason: 'Apply plugins selected during system setup',
-			runtimeRequirements: requirements
-		})
+		const restart = await this.runtime.activateStagedPlugins(
+			requirements,
+			'Apply plugins selected during system setup'
+		)
 		progress.restartId = restart.restartId
 		progress.generation = restart.pluginGeneration
 		await this.store.save(tenantId, progress)

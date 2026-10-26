@@ -19,6 +19,11 @@
     "chat_message",
     "chat_run_display_snapshot",
     "cli_session",
+    "content_comment",
+    "content_document",
+    "content_location_change",
+    "content_proposal",
+    "content_revision",
     "copilot_knowledge_collection",
     "copilot_knowledge_vector",
     "copilot_store_vectors",
@@ -70,12 +75,21 @@
     "core.platform.20261020000400-platform-constraints-b",
     "core.platform.20261020000500-validate-adoption"
   ],
+  "baselineChecks": [
+    "core/database/platform-baseline/current.sql",
+    "core/database/platform-baseline/types.sql",
+    "core/database/platform-baseline/migrations/checks/20261020000500-validate-adoption.sql"
+  ],
   "checks": [
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",
     "ai/rag-vstore/migrations/checks/20261020120000-vector-store-tables.sql",
     "ai/knowledgebase/migrations/checks/20261020120100-knowledge-filter-indexes.sql",
+    "ai/shared/stream/display-snapshot/migrations/checks/20261024000100-display-snapshot.sql",
+    "ai/chat-conversation/migrations/checks/20261024000200-conversation-recovery.sql",
+    "ai/desktop-shell/migrations/checks/20261024000300-desktop-shell-completion.sql",
     "ai/shared/stream/display-snapshot/migrations/checks/20261025010000-run-display-snapshot.sql",
-    "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql"
+    "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
+    "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql"
   ]
 }

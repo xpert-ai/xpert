@@ -9,6 +9,7 @@ import {
     McpError
 } from '@modelcontextprotocol/sdk/types.js'
 import { installMcpToolSchemaBridge, mcpConsumerListToolsResultSchema } from './mcp-consumer-tool-schema'
+import { MCP_EXECUTION_CONTROL_EXTENSION_ID } from '@xpert-ai/contracts'
 
 const nullableAccount = {
     type: ['object', 'null'],
@@ -25,6 +26,20 @@ const tool = {
 }
 
 describe('MCP tool output schema compatibility', () => {
+    it.each([undefined, { taskSupport: 'optional' }])(
+        'retains required tasks for legacy metadata consumers: %j',
+        (execution) => {
+            const declaration = {
+                ...tool,
+                execution,
+                _meta: { ...tool._meta, [MCP_EXECUTION_CONTROL_EXTENSION_ID]: { version: 1, taskSupport: 'required' } }
+            }
+            const parsed = mcpConsumerListToolsResultSchema.parse({ tools: [declaration] }).tools[0]
+            expect(parsed.execution).toEqual({ taskSupport: 'required' })
+            expect(parsed._meta).toEqual(declaration._meta)
+            expect(parsed.outputSchema).toEqual(nullableAccount)
+        }
+    )
     it.each([
         nullableAccount,
         { type: ['null', 'object'], properties: { login: { type: 'string' } } },

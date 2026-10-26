@@ -1,3 +1,4 @@
+import { parseInvocationControlRecord } from './invocation-control-record'
 import { EventBus } from '@nestjs/cqrs'
 import { TaskObservationCommittedEvent } from '../runtime-task/task-observation.event'
 import { Injectable, Logger, Optional } from '@nestjs/common'
@@ -56,7 +57,9 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             organizationId: scope.organizationId,
             ownerId: scope.userId
         })
-        return entity ? { invocation: entity.invocation, providerSource: entity.providerSource } : undefined
+        return entity
+            ? { invocation: parseInvocationControlRecord(entity.invocation), providerSource: entity.providerSource }
+            : undefined
     }
 
     async replace(record: StoredAgentInvocation, expectedRevision: number): Promise<boolean> {

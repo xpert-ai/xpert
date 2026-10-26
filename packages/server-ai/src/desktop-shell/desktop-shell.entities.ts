@@ -47,6 +47,7 @@ export class DesktopShellGrant extends TenantOrganizationBaseEntity implements I
 @Index(['tenantId', 'runId', 'toolCallId'], { unique: true })
 @Index(['deviceId', 'state'])
 export class DesktopShellOperation extends TenantOrganizationBaseEntity implements IDesktopShellOperation {
+    @Column({ type: 'jsonb', nullable: true }) completion: import('@xpert-ai/contracts').ShellExecutionEvidence | null
     declare id: string
     declare tenantId: string
     declare organizationId: string

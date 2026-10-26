@@ -17,10 +17,14 @@ type ArchiveData = { xpertId: string; routeBase: string[] }
   template: `
     <button
       type="button"
-      class="flex items-center gap-1 rounded px-2 py-1 text-xs text-text-tertiary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       (click)="$event.stopPropagation(); open()"
     >
-      <i class="ri-archive-line" aria-hidden="true"></i>{{ 'XP.Sidebar.ArchivedConversations' | translate }}
+      <i
+        class="ri-archive-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+        aria-hidden="true"
+      ></i
+      >{{ 'XP.Sidebar.ArchivedConversations' | translate }}
     </button>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush

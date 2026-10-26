@@ -135,7 +135,7 @@
               <i class="ri-search-line shrink-0 text-sm" aria-hidden="true"></i>
               <input
                 type="search"
-                class="w-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-text-primary outline-none placeholder:text-text-tertiary"
+                class="w-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-text-primary outline-none placeholder:text-muted-foreground"
                 [value]="query()"
                 [attr.aria-label]="'XP.Assistant.SearchAll' | translate: { Default: 'Search all assistants' }"
                 [placeholder]="'XP.Assistant.SearchAll' | translate: { Default: 'Search all assistants' }"
@@ -180,7 +180,7 @@
 
           <button
             type="button"
-            class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-tertiary hover:bg-hover-bg hover:text-text-primary"
+            class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             z-menu
             #conversationMenuTrigger="zMenuTrigger"
             [zMenuTriggerFor]="conversationMenu"
@@ -238,6 +238,18 @@
         }
       }
 
+      @if (embedded() && collapsed()) {
+        <button
+          type="button"
+          class="mx-auto flex size-10 items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary aria-expanded:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          [attr.aria-label]="'XP.Assistant.SearchAll' | translate"
+          [attr.data-sidebar-panel-title]="'XP.MENU.Assistants' | translate"
+          [xpSidebarPanelTrigger]="directoryPanel"
+          xpSidebarPanelKey="assistants"
+        >
+          <i class="ri-team-line inline-flex size-[20px] items-center justify-center text-[20px] leading-none"></i>
+        </button>
+      }
       @if (collapsed() || expanded()) {
         <ul
           class="cloud-sidebar-assistants__list"
@@ -257,28 +269,46 @@
               <div
                 class="cloud-sidebar-assistants__item group relative"
                 [class.is-active]="isActive(xpert)"
-                (click)="openAssistant($event, xpert)"
+                [attr.role]="embedded() ? 'button' : null"
+                [attr.tabindex]="embedded() ? 0 : null"
+                [attr.aria-label]="assistantLabel(xpert)"
+                [attr.data-sidebar-panel-title]="embedded() ? assistantLabel(xpert) : null"
+                [xpSidebarPanelTrigger]="embedded() ? assistantContent : null"
+                [xpSidebarPanelHeader]="assistantHeader"
+                [xpSidebarPanelAssistant]="xpert"
+                [xpSidebarPanelKey]="'assistant:' + xpert.id"
+                (panelActivated)="activateAssistantPanel(xpert)"
+                (panelSelected)="openAssistant($event, xpert)"
+                (click)="!embedded() && openAssistant($event, xpert)"
               >
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
                 <div class="cloud-sidebar-assistants__item-layout">
-                  <emoji-avatar
-                    xs
-                    class="cloud-sidebar-assistants__avatar"
-                    [xpAssistantProfile]="xpert.id"
-                    [summary]="xpert"
-                    zPlacement="right"
-                    [avatar]="xpert.avatar"
-                    [alt]="assistantLabel(xpert)"
-                    [fallbackLabel]="assistantLabel(xpert)"
-                  />
+                  @if (embedded()) {
+                    <emoji-avatar
+                      xs
+                      class="cloud-sidebar-assistants__avatar"
+                      [avatar]="xpert.avatar"
+                      [alt]="assistantLabel(xpert)"
+                      [fallbackLabel]="assistantLabel(xpert)"
+                    />
+                  } @else {
+                    <emoji-avatar
+                      xs
+                      class="cloud-sidebar-assistants__avatar"
+                      [xpAssistantProfile]="xpert.id"
+                      [summary]="xpert"
+                      zPlacement="right"
+                      [avatar]="xpert.avatar"
+                      [alt]="assistantLabel(xpert)"
+                      [fallbackLabel]="assistantLabel(xpert)"
+                    />
+                  }
 
                   @if (!collapsed()) {
                     <span class="cloud-sidebar-assistants__content">
-                      <span
-                        class="cloud-sidebar-assistants__name text-sidebar-foreground! group-hover:text-text-primary! group-focus-within:text-text-primary!"
-                      >
+                      <span class="cloud-sidebar-assistants__name">
                         @if (assistantBusinessAreaName(xpert); as businessAreaName) {
                           @if (canFilterByAssistantBusinessArea(xpert)) {
                             <button
@@ -321,7 +351,7 @@
                   @if (hasAssistantUnread(xpert)) {
                     <span class="cloud-sidebar-assistants__status absolute"></span>
                   }
-                  @if (canEditAssistant(xpert)) {
+                  @if (!embedded() && canEditAssistant(xpert)) {
                     <button
                       type="button"
                       class="cloud-sidebar-assistants__settings absolute right-1"
@@ -331,157 +361,8 @@
                       <i class="ri-equalizer-2-line"></i>
                     </button>
                   }
-                  @if (embedded()) {
-                    <button
-                      type="button"
-                      class="cloud-sidebar-assistants__item-toggle"
-                      [attr.aria-label]="
-                        (isAssistantExpanded(xpert) ? 'XP.Sidebar.CollapseAssistant' : 'XP.Sidebar.ExpandAssistant')
-                          | translate
-                            : { Default: isAssistantExpanded(xpert) ? 'Collapse assistant' : 'Expand assistant' }
-                      "
-                      [attr.aria-expanded]="isAssistantExpanded(xpert)"
-                      [attr.aria-controls]="assistantMenuId(xpert)"
-                      (click)="toggleAssistantExpanded($event, xpert)"
-                    >
-                      <i
-                        class="cloud-sidebar-assistants__item-chevron text-sidebar-foreground! group-hover:text-text-primary!"
-                        [class.ri-arrow-right-s-line]="!isAssistantExpanded(xpert)"
-                        [class.ri-arrow-down-s-line]="isAssistantExpanded(xpert)"
-                        aria-hidden="true"
-                      ></i>
-                    </button>
-                  }
                 }
               </div>
-
-              @if (embedded() && !collapsed() && isAssistantExpanded(xpert)) {
-                <div
-                  class="cloud-sidebar-assistants__children"
-                  [id]="assistantMenuId(xpert)"
-                  role="group"
-                  [attr.aria-label]="assistantLabel(xpert)"
-                >
-                  @if (assistantMenuState(xpert).loading) {
-                    <div class="cloud-sidebar-assistants__children-state">
-                      {{ 'XP.Sidebar.LoadingAssistantViews' | translate: { Default: 'Loading views...' } }}
-                    </div>
-                  } @else if (assistantMenuState(xpert).items.length) {
-                    @for (item of assistantMenuState(xpert).items; track item.viewKey) {
-                      <button
-                        type="button"
-                        class="flex h-8 w-full min-w-0 cursor-pointer items-center gap-1 rounded-md border-0 px-2 py-1 text-left text-sm leading-5 transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        [class]="
-                          isAssistantMenuItemActive(xpert, item)
-                            ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
-                            : 'cloud-sidebar-assistants__child-item bg-transparent text-sidebar-foreground'
-                        "
-                        [attr.aria-label]="item.title"
-                        [attr.aria-current]="isAssistantMenuItemActive(xpert, item) ? 'page' : null"
-                        (click)="openAssistantMenuItem($event, xpert, item)"
-                      >
-                        @if (item.icon) {
-                          <xp-icon
-                            class="cloud-sidebar-assistants__child-icon flex items-center justify-center"
-                            [icon]="item.icon"
-                            [size]="14"
-                            aria-hidden="true"
-                          />
-                        } @else {
-                          <i class="ri-file-list-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
-                        }
-                        <span class="min-w-0 truncate">{{ item.title }}</span>
-                      </button>
-                    }
-                  } @else {
-                    <div class="cloud-sidebar-assistants__children-state">
-                      {{ 'XP.Sidebar.NoAssistantViews' | translate: { Default: 'No views yet' } }}
-                    </div>
-                  }
-
-                  <section
-                    class="cloud-sidebar-assistants__recent-conversations"
-                    [attr.aria-label]="
-                      'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' }
-                    "
-                  >
-                    <div class="cloud-sidebar-assistants__children-label">
-                      {{ 'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' } }}
-                    </div>
-
-                    @if (
-                      assistantConversationState(xpert).loading && assistantConversationState(xpert).items.length === 0
-                    ) {
-                      <div class="cloud-sidebar-assistants__children-state">
-                        {{
-                          'XP.Sidebar.LoadingRecentConversations' | translate: { Default: 'Loading conversations...' }
-                        }}
-                      </div>
-                    } @else if (assistantConversationState(xpert).error) {
-                      <div class="cloud-sidebar-assistants__children-state">
-                        {{
-                          'XP.Sidebar.RecentConversationsLoadFailed'
-                            | translate: { Default: 'Could not load conversations' }
-                        }}
-                      </div>
-                    } @else if (assistantConversationState(xpert).items.length) {
-                      @for (group of assistantConversationGroups(xpert); track group.name) {
-                        <div class="cloud-sidebar-assistants__conversation-group-label">
-                          {{
-                            (group.name === 'Pinned'
-                              ? 'XP.Sidebar.PinnedConversations'
-                              : 'XP.KEY_WORDS.Date_' + group.name
-                            ) | translate: { Default: group.name }
-                          }}
-                        </div>
-
-                        @for (conversation of group.values; track conversation.id || conversation.threadId) {
-                          <xp-sidebar-conversation
-                            [conversation]="conversation"
-                            [route]="assistantConversationRoute(xpert, conversation)"
-                            [active]="isAssistantConversationActive(xpert, conversation)"
-                            [compact]="true"
-                            [preserveQueryParams]="true"
-                          />
-                        }
-                      }
-
-                      @if (
-                        canLoadEarlierConversations(xpert) ||
-                        (assistantConversationState(xpert).loading &&
-                          assistantConversationState(xpert).items.length > 0)
-                      ) {
-                        <button
-                          type="button"
-                          class="cloud-sidebar-assistants__load-earlier"
-                          [disabled]="assistantConversationState(xpert).loading"
-                          (click)="loadEarlierConversations($event, xpert)"
-                        >
-                          @if (assistantConversationState(xpert).loading) {
-                            {{
-                              'XP.Sidebar.LoadingRecentConversations'
-                                | translate: { Default: 'Loading conversations...' }
-                            }}
-                          } @else {
-                            {{
-                              'XP.Sidebar.LoadEarlierConversations'
-                                | translate: { Default: 'Load earlier conversations' }
-                            }}
-                          }
-                        </button>
-                      }
-                    } @else if (assistantConversationState(xpert).loaded) {
-                      <div class="cloud-sidebar-assistants__children-state">
-                        {{ 'XP.Sidebar.NoRecentConversations' | translate: { Default: 'No recent conversations' } }}
-                      </div>
-                    }
-                    <xp-sidebar-conversation-archive
-                      [xpertId]="xpert.id"
-                      [routeBase]="['/chat/x', xpert.slug || xpert.id, 'c']"
-                    />
-                  </section>
-                </div>
-              }
             </li>
           } @empty {
             @if (!collapsed() && hasAssistantFilter()) {
@@ -495,7 +376,7 @@
             <li>
               <button
                 type="button"
-                class="cloud-sidebar-assistants__more mx-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-3 text-left text-sidebar-foreground underline-offset-2 hover:text-text-primary hover:underline focus-visible:text-text-primary focus-visible:underline focus-visible:outline-none"
+                class="cloud-sidebar-assistants__more transition-colors duration-150 motion-reduce:transition-none mx-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-3 text-left text-text-secondary underline-offset-2 hover:text-text-primary hover:underline focus-visible:text-text-primary focus-visible:underline focus-visible:outline-none"
                 [class]="embedded() ? 'mt-1 min-h-9! justify-center text-center' : ''"
                 [class.is-open]="moreExpanded()"
                 [attr.aria-expanded]="moreExpanded()"
@@ -516,3 +397,259 @@
     }
   </section>
 }
+
+<ng-template #directoryPanel let-query>
+  @if (canCreateDigitalExpert()) {
+    <button
+      type="button"
+      class="mb-2 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      (click)="openCreateDigitalExpert($event)"
+    >
+      <i
+        class="ri-add-line inline-flex size-7 shrink-0 items-center justify-center text-[18px] leading-none"
+        aria-hidden="true"
+      ></i>
+      {{ 'XP.Xpert.CreateDigitalExpert' | translate }}
+    </button>
+  }
+  @if (!activeBusinessAreaFilter()) {
+    <xp-sidebar-groups [query]="query" />
+  }
+  <h3 class="mb-1 px-3 py-1 text-sm font-medium text-muted-foreground">{{ 'XP.MENU.Assistants' | translate }}</h3>
+  @if (showCategoryFilters()) {
+    <div class="mb-3 flex flex-wrap gap-1 px-2">
+      @for (categoryItem of categories(); track categoryItem.value) {
+        <button
+          type="button"
+          class="rounded-lg px-2 py-1 text-sm text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg"
+          [class]="activeCategory() === categoryItem.value ? 'bg-hover-bg text-text-primary!' : ''"
+          (click)="selectCategory(categoryItem.value)"
+        >
+          {{ categoryItem.labelKey ? (categoryItem.labelKey | translate) : categoryItem.labelDefault }}
+        </button>
+      }
+    </div>
+  }
+  @if (activeBusinessAreaFilter(); as area) {
+    <button
+      type="button"
+      class="m-2 rounded-lg px-2 py-1 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg"
+      (click)="clearBusinessAreaFilter($event)"
+    >
+      {{ area.name }} <i class="ri-close-line"></i>
+    </button>
+  }
+  @for (xpert of directoryAssistants(query); track xpert.id) {
+    <div
+      role="button"
+      tabindex="0"
+      class="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      [attr.data-sidebar-panel-title]="assistantLabel(xpert)"
+      [attr.aria-label]="assistantLabel(xpert)"
+      [xpSidebarPanelTrigger]="assistantContent"
+      [xpSidebarPanelHeader]="assistantHeader"
+      [xpSidebarPanelAssistant]="xpert"
+      [xpSidebarPanelKey]="'assistant:' + xpert.id"
+      (panelActivated)="activateAssistantPanel(xpert)"
+      (panelSelected)="openAssistant($event, xpert)"
+    >
+      <emoji-avatar
+        xs
+        class="size-7! shrink-0 overflow-hidden rounded-lg"
+        [avatar]="xpert.avatar"
+        [alt]="assistantLabel(xpert)"
+        [fallbackLabel]="assistantLabel(xpert)"
+        aria-hidden="true"
+      />
+      <span class="min-w-0 flex-1 truncate" [title]="assistantLabel(xpert)">{{ assistantLabel(xpert) }}</span>
+      @if (canFilterByAssistantBusinessArea(xpert)) {
+        <button
+          type="button"
+          class="rounded px-1 text-sm text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg"
+          [attr.aria-label]="'XP.Sidebar.FilterByBusinessArea' | translate: { Default: 'Filter by business area' }"
+          (click)="filterByAssistantBusinessArea($event, xpert)"
+        >
+          <i class="ri-filter-line"></i>
+        </button>
+      }
+    </div>
+  } @empty {
+    <p class="px-3 py-4 text-base text-muted-foreground">{{ 'XP.Assistant.EmptySearch' | translate }}</p>
+  }
+</ng-template>
+
+<ng-template #assistantHeader let-xpert="assistant" let-holdOpen="holdOpen">
+  @if (shouldRender() && availableAssistant(xpert)) {
+    <button
+      type="button"
+      class="flex size-8 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      [attr.aria-label]="('XP.AssistantProfile.Title' | translate) + ': ' + assistantLabel(xpert)"
+      [xpAssistantProfile]="xpert.id"
+      [summary]="xpert"
+      zPlacement="right"
+      #profile="xpAssistantProfile"
+      (profileVisibleChange)="holdOpen($event)"
+      (click)="profile.open($event)"
+    >
+      <emoji-avatar
+        xs
+        class="overflow-hidden rounded-lg"
+        [avatar]="xpert.avatar"
+        [alt]="assistantLabel(xpert)"
+        [fallbackLabel]="assistantLabel(xpert)"
+      />
+    </button>
+  }
+</ng-template>
+
+<ng-template #assistantContent let-xpert="assistant" let-query>
+  @if (shouldRender() && availableAssistant(xpert)) {
+    <button
+      type="button"
+      class="mb-1 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-base leading-5 text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      (click)="startAssistantConversation($event, xpert)"
+    >
+      <i
+        class="ri-chat-new-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+      ></i
+      >{{ 'XP.Assistant.NewConversation' | translate }}
+    </button>
+
+    <div
+      class="flex min-w-0 flex-col"
+      [id]="assistantMenuId(xpert)"
+      role="group"
+      [attr.aria-label]="assistantLabel(xpert)"
+    >
+      @if (assistantMenuState(xpert).loading) {
+        <div class="cloud-sidebar-assistants__children-state">
+          {{ 'XP.Sidebar.LoadingAssistantViews' | translate: { Default: 'Loading views...' } }}
+        </div>
+      } @else if (assistantMenuState(xpert).items.length) {
+        @for (item of filteredAssistantViews(xpert, query); track item.viewKey) {
+          <button
+            type="button"
+            class="flex min-h-10 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 px-3 py-2 text-left text-base leading-5 transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            [class]="
+              isAssistantMenuItemActive(xpert, item)
+                ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
+                : 'cloud-sidebar-assistants__child-item bg-transparent text-text-secondary'
+            "
+            [attr.aria-label]="item.title"
+            [attr.aria-current]="isAssistantMenuItemActive(xpert, item) ? 'page' : null"
+            (click)="openAssistantMenuItem($event, xpert, item)"
+          >
+            @if (item.icon) {
+              <xp-icon
+                class="flex size-[24px] shrink-0 items-center justify-center"
+                [icon]="item.icon"
+                [size]="24"
+                aria-hidden="true"
+              />
+            } @else {
+              <i
+                class="ri-file-list-3-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+                aria-hidden="true"
+              ></i>
+            }
+            <span class="min-w-0 truncate">{{ item.title }}</span>
+          </button>
+        }
+      } @else {
+        <div class="cloud-sidebar-assistants__children-state">
+          {{ 'XP.Sidebar.NoAssistantViews' | translate: { Default: 'No views yet' } }}
+        </div>
+      }
+
+      @if (query?.trim()) {
+        <xp-sidebar-search-results
+          source="conversations"
+          [query]="query"
+          [context]="{ assistantId: xpert.id, conversationRoute: ['/chat/x', xpert.slug || xpert.id, 'c'] }"
+        />
+        <xp-sidebar-search-results
+          source="archivedConversations"
+          [query]="query"
+          [context]="{ assistantId: xpert.id, conversationRoute: ['/chat/x', xpert.slug || xpert.id, 'c'] }"
+        />
+      } @else {
+        <section
+          class="mt-4 min-w-0"
+          [attr.aria-label]="'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' }"
+        >
+          <div class="mb-1 px-3 py-1 text-sm font-medium leading-5 text-muted-foreground">
+            {{ 'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' } }}
+          </div>
+
+          @if (assistantConversationState(xpert).loading && assistantConversationState(xpert).items.length === 0) {
+            <div class="cloud-sidebar-assistants__children-state">
+              {{ 'XP.Sidebar.LoadingRecentConversations' | translate: { Default: 'Loading conversations...' } }}
+            </div>
+          } @else if (assistantConversationState(xpert).error) {
+            <div class="cloud-sidebar-assistants__children-state">
+              {{ 'XP.Sidebar.RecentConversationsLoadFailed' | translate: { Default: 'Could not load conversations' } }}
+            </div>
+          } @else if (assistantConversationState(xpert).items.length) {
+            @for (group of assistantConversationGroups(xpert, query); track group.name) {
+              <div data-conversation-group-label class="px-3 py-2 text-sm text-muted-foreground">
+                {{
+                  (group.name === 'Pinned' ? 'XP.Sidebar.PinnedConversations' : 'XP.KEY_WORDS.Date_' + group.name)
+                    | translate: { Default: group.name }
+                }}
+              </div>
+
+              @for (conversation of group.values; track conversation.id || conversation.threadId) {
+                <xp-sidebar-conversation
+                  [conversation]="conversation"
+                  [route]="assistantConversationRoute(xpert, conversation)"
+                  [active]="isAssistantConversationActive(xpert, conversation)"
+                  [compact]="true"
+                  [preserveQueryParams]="true"
+                />
+              }
+            }
+
+            @if (
+              canLoadEarlierConversations(xpert) ||
+              (assistantConversationState(xpert).loading && assistantConversationState(xpert).items.length > 0)
+            ) {
+              <button
+                type="button"
+                class="cloud-sidebar-assistants__load-earlier"
+                [disabled]="assistantConversationState(xpert).loading"
+                (click)="loadEarlierConversations($event, xpert)"
+              >
+                @if (assistantConversationState(xpert).loading) {
+                  {{ 'XP.Sidebar.LoadingRecentConversations' | translate: { Default: 'Loading conversations...' } }}
+                } @else {
+                  {{ 'XP.Sidebar.LoadEarlierConversations' | translate: { Default: 'Load earlier conversations' } }}
+                }
+              </button>
+            }
+          } @else if (assistantConversationState(xpert).loaded) {
+            <div class="cloud-sidebar-assistants__children-state">
+              {{ 'XP.Sidebar.NoRecentConversations' | translate: { Default: 'No recent conversations' } }}
+            </div>
+          }
+          <xp-sidebar-conversation-archive
+            [xpertId]="xpert.id"
+            [routeBase]="['/chat/x', xpert.slug || xpert.id, 'c']"
+          />
+        </section>
+      }
+    </div>
+    @if (canEditAssistant(xpert)) {
+      <button
+        type="button"
+        data-sidebar-panel-action
+        class="mt-1 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        (click)="openAssistantSettings($event, xpert)"
+      >
+        <i
+          class="ri-equalizer-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+        ></i
+        >{{ 'XP.XpertSettings.Title' | translate }}
+      </button>
+    }
+  }
+</ng-template>

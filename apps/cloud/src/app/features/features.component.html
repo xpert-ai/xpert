@@ -62,12 +62,12 @@
   (zFinish)="onEntryOnboardingFinish()"
 />
 
-<z-layout class="flex-1 h-full" zDirection="horizontal">
+<z-layout class="flex-1 h-full bg-sidebar" zDirection="horizontal">
   <z-sidebar
     [class]="
       sidebarResizing()
-        ? 'xp-features__sidenav transition-none flex flex-col p-0!'
-        : 'xp-features__sidenav flex flex-col p-0!'
+        ? 'xp-features__sidenav transition-none flex flex-col border-r-0 p-0!'
+        : 'xp-features__sidenav flex flex-col border-r-0 p-0!'
     "
     data-platform-sidebar
     [attr.data-workbench-hidden]="workbenchImmersive()"
@@ -89,9 +89,12 @@
       <xp-cloud-sidebar
         [collapsed]="renderedSidebarCollapsed()"
         [isMobile]="isMobile()"
+        [hoverPanelEnabled]="!platformSidebarHidden()"
         [menus]="menus()"
         [user]="user$()"
         (collapsedChange)="onCollapsedChange($event)"
+        (pinnedPanelWidthChange)="sidebarPanelWidth.set($event)"
+        (panelResizingChange)="sidebarPanelResizing.set($event)"
         (brandClick)="onBrandClick()"
         (entryGuideClick)="openEntryOnboardingGuide()"
       />
@@ -104,7 +107,7 @@
         type="button"
         role="separator"
         aria-orientation="vertical"
-        class="group absolute inset-y-0 -left-[1px] flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
+        class="group absolute inset-y-4 -left-[1px] flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
         [attr.aria-label]="'XP.Sidebar.Resize' | translate: { Default: 'Resize sidebar' }"
         [attr.aria-valuemin]="sidebarMinWidth"
         [attr.aria-valuemax]="sidebarMaxWidth"
@@ -118,49 +121,20 @@
           [class]="
             sidebarResizing()
               ? 'pointer-events-none h-full w-px bg-primary'
-              : 'pointer-events-none h-full w-px bg-divider-subtle transition-colors group-hover:bg-primary group-focus-visible:bg-primary'
+              : 'pointer-events-none h-full w-px bg-transparent transition-colors group-hover:bg-primary group-focus-visible:bg-primary'
           "
         ></span>
       </button>
     </div>
   }
 
-  <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
-    <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">
-      <div class="flex justify-start items-center gap-2">
-        @if (navigation$ | async; as navigation) {
-          <div class="flex items-center text-sm overflow-hidden">
-            @if (appService.inProject()) {
-              <xp-header-project class="h-full rounded-none"/>
-            }
-
-            @if (appService.inWorkspace()) {
-              <xp-workspace-selector class="rounded-xl hover:bg-hover-bg" />
-            }
-            <span class="font-bold flex items-center cursor-pointer
-            text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"
-              (click)="navigate(navigation.catalog)">
-              <z-icon zSize="sm" class="mx-1" [zType]="navigation.icon"></z-icon>
-              @if (!isMobile()) {
-                <span>{{ navigation.catalogName }}</span>
-              }
-            </span>
-            @if(navigation.id && !isMobile()) {
-              <span class="mx-1 font-bold">|</span>
-              <span class="text-ellipsis overflow-hidden">{{ navigation.label }}</span>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="flex flex-1">
-      </div>
-
-      @if (isAuthenticated$ | async; as user) {
-        <xp-header-user [user]="user" />
-      }
-    </header> -->
-
+  <z-content
+    class="relative max-h-full min-w-0 flex-1 overflow-auto bg-background transition-[padding-left] duration-200 ease-out motion-reduce:transition-none"
+    [style.transition-duration]="sidebarPanelResizing() ? '0s' : null"
+    [class]="platformSidebarHidden() ? '' : 'rounded-l-[16px] shadow-page'"
+    [style.padding-left.px]="platformSidebarHidden() || isMobile() ? 0 : sidebarPanelWidth()"
+    cdkDropListGroup
+  >
     <div
       class="min-h-full h-full flex-1 relative flex flex-col"
       [@.disabled]="disableContentRouteAnimations()"

@@ -82,3 +82,17 @@ XPERT_PUBLICATION_TEST_DATABASE_URL="$DISPOSABLE_POSTGRES_URL" \
 ```
 
 Use a disposable local PostgreSQL database. The transaction tests create and remove an isolated schema; they never require a production platform database.
+
+## Update from the application entry
+
+Open the installed application in Explore, select its installation scope, and choose **Update application** (更新应用). This action uses the same release engine as `assistant:suite:init`: it prepares all managed Assistant drafts and template skill dependencies, refreshes embedded child descriptors, and publishes children before their callers. Standalone Assistants are updated too. Existing IDs, conversations, model choices, environments and local tool/knowledge bindings remain attached to the original instances; retired roles keep their historical records.
+
+The App selects targets from its persisted installation references, never display names. The current user needs application management permission and authoring access to every target. Unpublished drafts must be resolved first. Missing original roles, changed template provenance and cross-workspace targets stop the release before mutation. This update action does not replace the separate initial setup/repair flow for missing infrastructure or newly introduced roles.
+
+Progress is stored in the installation's `updateRelease` JSON column, with resource stages and hashes but no tokens, credentials or graph content. The normal deployment `schema-sync` adds this nullable column. API replicas serialize updates with a PostgreSQL advisory lock on a dedicated lock connection; status queries use the ordinary connection pool. Initialization/repair cannot replace an unfinished release, and health checks cannot overwrite its checkpoints.
+
+Leaving the page does not cancel server execution. Reopen the same App/scope to see its progress. Choose **Resume update** after a failure or interrupted API process; the request retains the original operation ID and verifies the source and live state. Successful children are not republished. A committed publication with a lost response resumes activation without creating another version. Concurrent manual edits, changed templates, or an uncertain synchronization outcome stop safely for inspection rather than overwriting newer content. Do not delete a receipt to force a conflicting update.
+
+The HTTP boundary is `POST /plugin-applications/update` with `pluginName`, `appName`, optional `installationScope`, a UUID `operationId`, and optional `resume`. `GET` on the same route reads progress using the three application selectors. Tenant, organization, owner, workspace and Assistant IDs are derived on the server; callers cannot inject them. Request authentication is rechecked on every call.
+
+A completed suite publication and a healthy App are separate facts. The host checks the installation's other managed resources after publishing; missing knowledge bases or toolsets may still leave the App degraded. Business workflow acceptance remains a separate execution check.

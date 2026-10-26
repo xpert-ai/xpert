@@ -289,7 +289,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             {
                 name: 'sandbox_edit_file',
                 description:
-                    'Edit a file by replacing exact text. Returns edit metadata and errors when matches are missing or ambiguous.',
+                    'Edit a file by replacing exact text. Returns oldLines/newLines for argument sizes, changed, and diff.removed/diff.added for actual file line changes. Large arguments with a small diff indicate a broad replacement. Identical replacements succeed with changed=false and a zero diff. If diffUnavailable is present, statistics could not be measured; it does not mean zero changes. Missing or ambiguous matches return errors.',
                 schema: editToolSchema,
                 verboseParsingErrors: true,
                 metadata: workspaceFileMutationMetadata
@@ -411,7 +411,7 @@ CRITICAL FORMAT REQUIREMENTS:
             {
                 name: 'sandbox_multi_edit_file',
                 description:
-                    'Perform multiple sequential edits on a single file in one operation. All edits are applied sequentially, with each edit operating on the result of the previous edit. This is not atomic: earlier successful edits remain saved if a later edit fails. Read the current file after failure and apply only the remaining changes. Use unique exact text from a fresh read, and prefer a small focused batch.',
+                    'Perform multiple sequential edits on a single file in one operation. Each result reports oldLines/newLines, changed, and diff.removed/diff.added for that step, not the net diff of the batch. All edits are applied sequentially, with each edit operating on the result of the previous edit. This is not atomic: earlier successful edits remain saved if a later edit fails. Read the current file after failure and apply only the remaining changes. Use unique exact text from a fresh read, and prefer a small focused batch.',
                 schema: multiEditToolSchema,
                 verboseParsingErrors: true,
                 metadata: workspaceFileMutationMetadata

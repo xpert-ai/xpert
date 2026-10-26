@@ -5,6 +5,7 @@ import { CollaborationDocumentProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { RedisModule } from '@xpert-ai/server-core'
 import { CollaborationGateway } from './collaboration.gateway'
 import { CollaborationMaterializationProcessor } from './collaboration-materialization.processor'
+import { CollaborationMaintenance } from './collaboration-maintenance.service'
 import { CollaborationService } from './collaboration.service'
 import { CollaborationDocument, CollaborationUpdate } from './entities'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
@@ -21,7 +22,8 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         CollaborationDocumentProviderRegistry,
         CollaborationService,
         CollaborationGateway,
-        CollaborationMaterializationProcessor
+        CollaborationMaterializationProcessor,
+        CollaborationMaintenance
     ],
     exports: [CollaborationDocumentProviderRegistry, CollaborationService]
 })

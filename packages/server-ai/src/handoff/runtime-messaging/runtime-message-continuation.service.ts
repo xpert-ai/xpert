@@ -20,6 +20,7 @@ import { ChatCommonCommand } from '../../chat/commands/chat-common.command'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { isRuntimeMessageBlocked, runtimeMessageError } from './runtime-message.errors'
 import { DeliverGroupTaskResultCommand } from '../../chat-group/group-project/group-task.commands'
+import { TaskControlStore } from '@xpert-ai/server-core'
 
 export function runtimeReplyBlocked(thread: ChatConversationThread, invocationCreatedAt: string): string | null {
     if (
@@ -30,7 +31,7 @@ export function runtimeReplyBlocked(thread: ChatConversationThread, invocationCr
     if (
         ['paused', 'pausing', 'interrupted'].includes(thread.status) ||
         thread.operation ||
-        thread.runControl?.state === 'paused'
+        ['paused', 'pausing', 'terminating'].includes(thread.runControl?.state)
     )
         return 'awaiting_user'
     return null
@@ -43,7 +44,8 @@ export class RuntimeMessageContinuationService {
     constructor(
         private readonly dataSource: DataSource,
         private readonly access: RuntimeMessageAccessService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly tasks: TaskControlStore
     ) {}
 
     @Interval(3000)
@@ -153,7 +155,19 @@ export class RuntimeMessageContinuationService {
                 throw runtimeMessageError('Invalid')
             if (inbox.phase === 'started') return inbox
             const thread = await lockRuntimeThread(manager, reply.conversation, reply.dispatch.replyTo.threadId)
-            const blocked = runtimeReplyBlocked(thread, reply.parentCreatedAt)
+            const parent = await this.tasks.execution(reply.invocation.scope.parentExecutionId, manager)
+            const intent = parent ? await this.tasks.desired(parent.id, manager) : 'running'
+            const stale =
+                parent &&
+                thread.runControl &&
+                parent.currentExecutionId !== thread.runControl.executionId &&
+                previous?.consumer.executionId !== thread.runControl.executionId
+            const blocked =
+                intent === 'terminated' || stale
+                    ? 'user_stopped'
+                    : intent === 'paused'
+                      ? 'awaiting_user'
+                      : runtimeReplyBlocked(thread, reply.parentCreatedAt)
             if (blocked) {
                 await repo.update(id, { state: 'blocked', lastError: blocked })
                 return null

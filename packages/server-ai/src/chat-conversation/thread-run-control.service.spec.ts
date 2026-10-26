@@ -1,8 +1,9 @@
+import { ExecutionControlStore } from '../execution-control/execution-control.store'
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 import { ThreadDTO } from '../ai/dto/thread.dto'
 import { ChatConversation } from './conversation.entity'
 import { RUN_LEASE_KEY } from './thread-run-lease'
-import { ExecutionCancelService } from '../shared/execution/execution-cancel.service'
+import { ExecutionCancelService } from '../execution-control/execution-cancel.service'
 import { readThreadDisplayPause } from './thread-display-pause'
 import { ConflictException } from '@nestjs/common'
 import { instanceToPlain } from 'class-transformer'
@@ -12,6 +13,7 @@ import { ChatConversationThread } from './conversation-thread.entity'
 import { ThreadRunControlService, threadGraphRevision } from './thread-run-control.service'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { TXpertGraph, XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
+import { threadControlSchema } from '../execution-control/control-admission'
 
 describe('ThreadRunControlService', () => {
     function setup() {
@@ -33,6 +35,11 @@ describe('ThreadRunControlService', () => {
         }
         const threadRepository = { findOne: jest.fn(async () => thread) }
         const manager = {
+            query: jest.fn(async () =>
+                threadControlSchema.flatMap((item) =>
+                    item.columns.map((column) => ({ table_name: item.table, column_name: column }))
+                )
+            ),
             getRepository: jest.fn((entity: unknown) =>
                 entity === ChatConversationThread ? threadRepository : checkpointRepository
             ),
@@ -43,6 +50,14 @@ describe('ThreadRunControlService', () => {
         const service = new ThreadRunControlService(
             { findOne: jest.fn(async () => thread) } as unknown as Repository<ChatConversationThread>,
             { transaction: async (work: (m: EntityManager) => Promise<unknown>) => work(manager) } as DataSource,
+            {
+                tasks: { execution: jest.fn().mockResolvedValue(null), bind: jest.fn(), restoreAttempt: jest.fn() },
+                has: jest.fn(),
+                root: jest.fn().mockResolvedValue({ desired: 'running' }),
+                intent: jest.fn(),
+                end: jest.fn().mockResolvedValue(true),
+                drainedExecution: jest.fn().mockResolvedValue(true)
+            } as unknown as ExecutionControlStore,
             cancellations as unknown as ExecutionCancelService
         )
         return { thread, service, manager, cancellations, checkpointRepository, threadRepository }
@@ -239,13 +254,16 @@ describe('ThreadRunControlService', () => {
         expect(await service.cancel('thread', ['old-run'])).toBe(false)
         expect(thread.runControl.executionId).toBe('run')
         expect(await service.cancel('thread', ['run'])).toBe(true)
-        expect(thread.runControl).toBeNull()
+        expect(thread.runControl.state).toBe('terminating')
+        await expect(service.start('thread', 'next')).rejects.toThrow()
+        await service.finish('thread', 'run', 'interrupted')
         expect(thread.runtimeContinuationBlockedAt).toBeInstanceOf(Date)
         thread.status = 'busy'
         await service.start('thread', 'next')
         await service.requestPause('thread', 'next')
         await expect(service.start('thread', 'new')).rejects.toBeInstanceOf(ConflictException)
         await service.cancel('thread', ['next'])
+        await service.finish('thread', 'next', 'interrupted')
         await service.start('thread', 'new')
         expect(thread.runControl.executionId).toBe('new')
         expect(thread.runControl.state).toBe('running')
@@ -293,13 +311,13 @@ describe('ThreadRunControlService', () => {
         }
     )
 
-    it('leaves old unleased runs and child execution identities alone, but fences an expired owner', async () => {
+    it('keeps unleased roots compatible but fences foreign execution identities and expired owners', async () => {
         const { thread, service } = setup()
         expect(await service.recoverExpiredRun('thread')).toBe(false)
         await expect(service.start('thread', 'replacement')).rejects.toBeInstanceOf(ConflictException)
         await service.finish('thread', 'run', 'idle')
         await service.start('thread', 'replacement')
-        expect(await service.shouldPause('thread', 'child-execution')).toBe(false)
+        await expect(service.shouldPause('thread', 'child-execution')).rejects.toThrow('Execution ownership ended')
         thread.metadata = {
             ...thread.metadata,
             [RUN_LEASE_KEY]: {
@@ -396,6 +414,8 @@ describe('ThreadRunControlService', () => {
         expect(thread.status).toBe('busy')
         expect(thread.runControl.executionId).toBe('run')
         expect(await service.cancel('thread', ['run'])).toBe(true)
+        expect(thread.status).toBe('busy')
+        await service.finish('thread', 'run', 'interrupted')
         expect(thread.status).toBe('interrupted')
         expect(thread.runControl).toBeNull()
     })

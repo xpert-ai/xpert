@@ -1,3 +1,4 @@
+import { mcpToolTaskSupport } from './tools/mcp-tool-task-support'
 import type { IMcpConsumerServerCapabilities, McpJsonSchema, McpToolAnnotations } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Injectable, NotFoundException } from '@nestjs/common'
@@ -67,7 +68,7 @@ export class McpConsumerCapabilitiesService {
                     ? { outputSchema: jsonSchemaProperty(tool, 'outputSchema') }
                     : {}),
                 ...(toolAnnotations(tool.annotations) ? { annotations: toolAnnotations(tool.annotations) } : {}),
-                ...(taskSupport(tool) ? { taskSupport: taskSupport(tool) } : {}),
+                ...(mcpToolTaskSupport(tool) ? { taskSupport: mcpToolTaskSupport(tool) } : {}),
                 visibility: normalizeMcpConsumerToolVisibility(tool)
             })),
             resources: (resources.value ?? []).map((resource) => ({
@@ -108,13 +109,6 @@ async function capture<TValue>(operation: () => Promise<TValue>) {
     } catch (error) {
         return { value: undefined, error: error instanceof Error ? error.message : 'MCP capability discovery failed' }
     }
-}
-
-function taskSupport(tool: object) {
-    const execution = Reflect.get(tool, 'execution')
-    if (typeof execution !== 'object' || execution === null || Array.isArray(execution)) return undefined
-    const support = Reflect.get(execution, 'taskSupport')
-    return support === 'required' || support === 'optional' || support === 'forbidden' ? support : undefined
 }
 
 export function normalizeMcpConsumerToolVisibility(tool: object): Array<'model' | 'app'> {

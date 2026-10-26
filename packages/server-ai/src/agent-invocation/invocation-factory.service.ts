@@ -1,4 +1,5 @@
 import { AuthorizeProjectPipelineRuntimeCommand } from '../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
+import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { ClaimAgentRuntimeResultsCommand } from '../handoff/runtime-messaging/runtime-message.commands'
 import {
     GroupTaskTargetItem,
@@ -23,6 +24,7 @@ import {
     AgentInvocationApi,
     agentInvocationDispatchContextSchema,
     AgentExecutionRunnerCapability,
+    AgentRuntimeDeploymentCapability,
     AgentExecutionRunnerFactoryCapability,
     AgentRuntimeFactory,
     AgentRuntimeFactoryCapability,
@@ -55,6 +57,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         private readonly queries: QueryBus,
         private readonly runtime: AgentInvocationRuntime,
         @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry,
+        private readonly managed: ManagedRuntimeService,
         @Optional()
         @InjectRepository(AgentInvocationEntity)
         private readonly records?: Repository<AgentInvocationEntity>,
@@ -296,6 +299,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 enabled: true
             })
             if (!binding || !binding.workspaceIds.includes(scope.workspaceId)) throw invocationError('NotFound')
+            await this.managed.assertEnabled(scope, binding)
             if (scope.callerType === 'project_pipeline') {
                 this.assertPipelineTarget(binding.target, scope.organizationId)
             }
@@ -308,6 +312,13 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             if (factory) scoped.register(AgentExecutionRunnerCapability, factory.createScopedRunner(scope))
             return this.runtime.scoped({
                 scope,
+                // Group/Project schedulers own accepted work; phase 2 does not replace their control protocol.
+                controlPolicy: (target) =>
+                    assistantTaskGroupContext(target) ||
+                    scope.callerType === 'project_agent' ||
+                    scope.callerType === 'project_pipeline'
+                        ? 'detached'
+                        : 'attached',
                 capabilities: scoped,
                 authorize: async (target) => {
                     const group = assistantTaskGroupContext(target)
@@ -321,6 +332,14 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                         !sameInvocationData(allowed.configuration, target.configuration)
                     ) {
                         throw invocationError('CallConflict')
+                    }
+                    if (!group && target.configuration.deploymentRevision) {
+                        scoped.register(AgentRuntimeDeploymentCapability, {
+                            resolve: async () => {
+                                await resolve(target.bindingId)
+                                return this.managed.deployment(scope, target)
+                            }
+                        })
                     }
                     if (group) {
                         if (!this.commands) throw invocationError('Unsupported')
@@ -401,6 +420,25 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             }
         }
         return {
+            listManaged: async () => {
+                const scope = currentScope()
+                if (scope.projectId)
+                    await this.capabilities.require(ProjectAccessRuntimeCapability).assertEdit({
+                        actor: { tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.userId },
+                        projectId: scope.projectId
+                    })
+                return this.managed.list(scope)
+            },
+            resolveManaged: async (selection) => {
+                const scope = currentScope()
+                if (scope.projectId)
+                    await this.capabilities.require(ProjectAccessRuntimeCapability).assertEdit({
+                        actor: { tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.userId },
+                        projectId: scope.projectId
+                    })
+                const target = await this.managed.resolve(scope, selection)
+                return resolve(target.bindingId)
+            },
             resolve,
             getResourceCard: async (id) => {
                 if (!this.records || !this.cards) return null

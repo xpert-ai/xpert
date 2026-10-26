@@ -91,3 +91,8 @@ export * from '../../agent-invocation/activity/activity.entity'
 export * from '../../xpert-project/pipeline/persistence/pipeline.entity'
 
 export * from '../../shared/stream/display-snapshot/display-snapshot.entity'
+export * from '../../content-resource/catalog/content-entry.entity'
+
+export { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
+
+export * from '../../content-resource/catalog/content-operation.entity'

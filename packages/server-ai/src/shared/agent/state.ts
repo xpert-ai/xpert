@@ -73,7 +73,7 @@ export type TStateChannel = {
 export type TXpertAgentRuntimeOptions = {
     executionDefinition?: import('./execution-definition').AgentExecutionDefinition
     runtimeResources?: import('../../agent-plugin/runtime-resource.service').ResolvedRuntimeResources
-    shouldPause?: () => Promise<boolean>
+    shouldPause?: (nodeKey?: string) => Promise<boolean>
     toolPreferences?: IAssistantBindingToolPreferences | null
     planMode?: boolean
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended | null

@@ -1,3 +1,4 @@
+import { ControlRuntimeAdmissionService } from '../task-control/control-runtime-admission.service'
 import { Test, TestingModule } from '@nestjs/testing'
 import { REDIS_CLIENT } from '../core/redis/types'
 import { InstanceRegistryService } from '../managed-connection/instance-registry.service'
@@ -31,6 +32,7 @@ describe('admission provider lifecycle', () => {
 		module = await Test.createTestingModule({
 			providers: [
 				RuntimeLifecycleService,
+				{ provide: ControlRuntimeAdmissionService, useValue: { refresh: jest.fn(async () => undefined) } },
 				runtimePluginAdmissionProvider,
 				runtimeAdmissionMonitorProvider,
 				{ provide: REDIS_CLIENT, useValue: new FakeRedis() },

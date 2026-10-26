@@ -471,12 +471,14 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 		}
 	}
 
-	// 1) install into organization workspace (and update manifest)
-	installOrganizationPlugins(
-		organizationId,
-		pluginNames.filter((p) => p.source !== 'code').map((p) => p.name),
-		scopeOpts
-	)
+	// Registry failures must reach callers before loading or publishing runtime requirements.
+	for (const plugin of pluginNames.filter((plugin) => plugin.source !== 'code')) {
+		try {
+			await installOrganizationPlugins(organizationId, [plugin.name], scopeOpts)
+		} catch (error) {
+			plugin.stageError = getErrorMessage(error)
+		}
+	}
 
 	const errors: PluginLoadFailureRecord[] = []
 	const modules: DynamicModule[] = []
@@ -507,6 +509,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 
 	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {
+			if (source !== 'code' && stageError) throw new Error(stageError)
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, pluginPathName, scopeOpts)
@@ -589,7 +592,10 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			})
 		} catch (error) {
 			if (error instanceof PluginStartupTimeoutError) throw error
-			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
+			const message = appendStageWorkspacePluginError(
+				getErrorMessage(error),
+				source === 'code' ? stageError : undefined
+			)
 			const stack = error instanceof Error ? error.stack : undefined
 			const code = getPluginLoadFailureCode(error)
 			const failure: PluginLoadFailureRecord = {

@@ -1,3 +1,8 @@
+import { ActivatedRoute } from '@angular/router'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { injectActiveScope } from '@cloud/app/@core/state'
+import { findLearningEvent } from '../evolution-resource-lookup'
+import { AgentEvolutionApiService } from '../agent-evolution-api.service'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -15,9 +20,11 @@ import {
   type ZardSelectValue
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
+import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
 import { evolutionSummaryPresentation, learningEventPresentation, percent, shortId } from '../agent-evolution.types'
+
+type EventLookupState = { item: LearningEvent | null; loading: boolean; error: boolean }
 
 @Component({
   standalone: true,
@@ -52,9 +59,56 @@ export class AgentEvolutionLearningComponent {
   readonly selectedEventId = signal<string | null>(null)
   readonly candidateDraft = signal<Record<string, string | number | boolean | string[]>>({})
 
+  private readonly route = inject(ActivatedRoute, { optional: true })
+  private readonly requestedEventId = toSignal(
+    this.route?.queryParamMap.pipe(map((params) => params.get('eventId'))) ?? of(null)
+  )
+  private readonly scope = injectActiveScope()
+  private readonly api = inject(AgentEvolutionApiService)
+  private readonly lookupRevision = signal(0)
+  private readonly eventRequest = computed(() => ({
+    id: this.requestedEventId(),
+    scope: this.scope(),
+    revision: this.lookupRevision()
+  }))
+  readonly isSearchDestination = computed(
+    () => !!this.requestedEventId() && this.requestedEventId() === this.query().trim()
+  )
+  readonly eventLookup = toSignal(
+    toObservable(this.eventRequest).pipe(
+      switchMap(({ id }) =>
+        id
+          ? findLearningEvent(this.api, id).pipe(
+              map((item): EventLookupState => ({ item, loading: false, error: false })),
+              catchError(() => of<EventLookupState>({ item: null, loading: false, error: true })),
+              startWith<EventLookupState>({ item: null, loading: true, error: false })
+            )
+          : of<EventLookupState>({ item: null, loading: false, error: false })
+      )
+    ),
+    { initialValue: { item: null, loading: false, error: false } }
+  )
+  readonly searchedEvent = computed(() => this.eventLookup().item)
+
+  constructor() {
+    effect(() => {
+      const id = this.requestedEventId()
+      if (id) {
+        this.query.set(id)
+        this.selectedEventId.set(id)
+      }
+    })
+    effect(() => {
+      const event = this.searchedEvent()
+      if (event) this.queueTab.set(event.reviewStatus === 'ignored' ? 'ignored' : 'pending')
+    })
+  }
+
   readonly filteredEvents = computed(() => {
     const query = this.query().trim().toLocaleLowerCase()
-    return this.facade.contextEvents().filter((event) => {
+    const searched = this.searchedEvent()
+    const events = this.isSearchDestination() ? (searched ? [searched] : []) : this.facade.contextEvents()
+    return events.filter((event) => {
       if (this.queueTab() === 'ignored') {
         return event.reviewStatus === 'ignored'
       }
@@ -69,7 +123,7 @@ export class AgentEvolutionLearningComponent {
       if (!query) {
         return true
       }
-      return [event.predictionSummary, event.finalOutcomeSummary, event.targetId, event.subjectRef]
+      return [event.eventId, event.predictionSummary, event.finalOutcomeSummary, event.targetId, event.subjectRef]
         .join(' ')
         .toLocaleLowerCase()
         .includes(query)
@@ -128,12 +182,19 @@ export class AgentEvolutionLearningComponent {
     this.selectedEventId.set(event.eventId)
   }
 
+  refreshSearchDestination() {
+    this.lookupRevision.update((revision) => revision + 1)
+  }
+
   async ignoreSelected() {
     const event = this.selectedEvent()
     if (!event) {
       return
     }
-    if (await this.facade.reviewEvent(event.eventId, 'ignored')) this.selectedEventId.set(null)
+    if (await this.facade.reviewEvent(event.eventId, 'ignored')) {
+      this.selectedEventId.set(null)
+      this.refreshSearchDestination()
+    }
   }
 
   async toggleGolden() {
@@ -141,7 +202,9 @@ export class AgentEvolutionLearningComponent {
     if (!event) {
       return
     }
-    await this.facade.reviewEvent(event.eventId, event.reviewStatus === 'golden' ? 'pending' : 'golden')
+    if (await this.facade.reviewEvent(event.eventId, event.reviewStatus === 'golden' ? 'pending' : 'golden')) {
+      this.refreshSearchDestination()
+    }
   }
 
   async generateProposal() {

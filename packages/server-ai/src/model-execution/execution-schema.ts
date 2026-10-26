@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { AiModelTypeEnum, ModelFeature } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ModelFeature, modelExecutionParametersSchema } from '@xpert-ai/contracts'
 
 const id = z.string().uuid()
 const name = z.string().min(1).max(500)
@@ -51,6 +51,7 @@ export const executionModelSchema = z
         model: name,
         modelType: z.literal(AiModelTypeEnum.LLM),
         capabilities: z.array(z.nativeEnum(ModelFeature)),
+        parameters: modelExecutionParametersSchema.optional(),
         contextWindow: z.number().int().positive().optional(),
         outputTokenLimit: z.number().int().positive().optional(),
         protocols: z

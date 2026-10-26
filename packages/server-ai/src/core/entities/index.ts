@@ -1,3 +1,10 @@
+import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
+import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
+import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
+import { ThreadControlProjection } from '../../chat-conversation/control-view/thread-control-projection.entity'
+import { McpRemoteOperation } from '../../mcp-consumer/execution/mcp-operation.entity'
+import { ExecutionControl } from '../../execution-control/execution-control.entity'
+import { contentDocumentEntities } from '../../content-resource/documents/entities'
 import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
 import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistence/pipeline.entity'
@@ -167,6 +174,12 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ContentResourceEntry,
+    ContentResourceOperation,
+    ContentEditorPreference,
+    ThreadControlProjection,
+    ExecutionControl,
+    ...contentDocumentEntities,
     AnalyticsDefinition,
     AnalyticsDefinitionVersion,
     ...ProjectPipelineEntities,
@@ -219,6 +232,7 @@ export const ALL_AI_ENTITIES = [
     KnowledgeDocumentPublicationAttempt,
     KnowledgeDocumentPublicationAttemptSource,
     ...MCP_PUBLICATION_ENTITIES,
+    McpRemoteOperation,
     KnowledgeIdentity,
     KnowledgeIdentityObservation,
     KnowledgeWikiJob,

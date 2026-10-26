@@ -357,6 +357,11 @@
       "ToggleTheme": "Toggle light / dark theme"
     },
     "Groups": {
+      "NoGroups": "No groups yet",
+      "NoArchivedGroups": "No archived groups",
+      "NoMatchingGroups": "No matching groups",
+      "LoadFailed": "Could not load groups. Please retry.",
+      "ActionFailed": "Could not complete the action. Please retry.",
       "Pin": "Pin",
       "Unpin": "Unpin",
       "Archive": "Archive",
@@ -3337,7 +3342,24 @@
           "knowledgebase": "Knowledge base"
         },
         "InstallationTarget": "Install for",
-        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default."
+        "PersonalDataScope": "Create your own app instance in this organization. Its workspace, configuration and new knowledge bases are private by default.",
+        "Update": {
+          "Action": "Update application",
+          "Resume": "Resume update",
+          "Description": "Update and publish all managed Assistants and template skills in place, preserving instance configuration. Progress is saved when you leave this page.",
+          "Progress": "Application update progress",
+          "Main": "Main Assistant",
+          "running": "Updating",
+          "failed": "Update interrupted",
+          "completed": "Update complete",
+          "pending": "Waiting",
+          "preparing": "Updating template and skills",
+          "prepared": "Draft ready",
+          "binding": "Refreshing dependencies",
+          "publishing": "Publishing",
+          "published": "Published",
+          "FailureHint": "Completed steps are saved. Resolve resource or permission issues before resuming. Changed templates or drafts require conflict review."
+        }
       },
       "AgentSquare": {
         "UseExpert": "Use Expert",
@@ -5014,6 +5036,45 @@
       }
     },
     "Sidebar": {
+      "Membership": {
+        "Label": "Plan & usage",
+        "Loading": "Loading usage…",
+        "Unavailable": "Usage temporarily unavailable",
+        "NoPlan": "No active plan",
+        "Unlimited": "Current cycle · Unlimited",
+        "CycleRemaining": "Current cycle · {{percent}}% left",
+        "Source": "Usage source:",
+        "CycleQuota": "Cycle allowance",
+        "PercentLeft": "{{percent}}% left",
+        "PlanStatus": "Plan status",
+        "PeriodEnd": "Period ends",
+        "Manage": "Manage usage"
+      },
+      "Search": {
+        "automations": "Automations",
+        "projects": "Projects",
+        "conversations": "Conversations",
+        "archivedConversations": "Archived conversations",
+        "plugins": "Installed plugins",
+        "marketplace": "Plugin marketplace",
+        "agentPlugins": "Agent plugins",
+        "models": "Providers and models",
+        "publications": "MCP services",
+        "runtimes": "MCP runtimes",
+        "targets": "Evolution targets",
+        "learning": "Learning events",
+        "candidates": "Candidates",
+        "evaluations": "Evaluations",
+        "deployments": "Deployments",
+        "approvals": "Access requests",
+        "Loading": "Searching…",
+        "Empty": "No matching results",
+        "Error": "Could not search. Please retry.",
+        "More": "Show more results",
+        "Partial": "Some sources could not be loaded. Results may be incomplete."
+      },
+      "PinPanel": "Pin panel",
+      "UnpinPanel": "Unpin panel",
       "UntitledConversation": "Untitled conversation",
       "ConversationMore": "More conversation actions",
       "PinConversation": "Pin",
@@ -5061,7 +5122,10 @@
       "AssistantResults": "Assistant results",
       "LoadingAssistantResults": "Loading results...",
       "Results": "Results",
-      "NoAssistantResults": "No results yet"
+      "NoAssistantResults": "No results yet",
+      "Resources": "Resources",
+      "ChooseProject": "Choose a project",
+      "ChooseWorkspace": "Choose a workspace"
     },
     "Workflow": {
       "Trigger": "Trigger",
@@ -5789,6 +5853,8 @@
       "UploadAFile": "Upload a file",
       "Recent": "Recent",
       "UploadAttachmentsTooltip": "Upload attachments (text and image recognition only)",
+      "DeleteProjectWarning": "Deleting this project also deletes its conversations, tasks and related records. This action cannot be undone.",
+      "DeleteInApplication": "This project is managed by an application. Delete it from the application to keep business data consistent.",
       "DeleteProjectAndAll": "Delete the project and all its materials",
       "Collaborators": "Collaborators",
       "Edit": "Edit",

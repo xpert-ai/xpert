@@ -1,4 +1,5 @@
 import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
+import { chatStreamPersistence } from './chat-stream-persistence'
 import { assertConversationMutationAccess } from '../../conversation-mutation-access'
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
@@ -862,6 +863,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             )
             executionId = execution.id
 
+            // Direct debugger/web-app sends do not pass through RunCreateStreamHandler.
+            // Admit their root execution before the graph writes recovery checkpoints.
+            // Protocol runs already carry a claimed execution; preserve their lease/context.
+            if (!options?.execution?.id) {
+                await this.threadRunControl?.start(activeThreadId, executionId, options?.context)
+            }
+
             if (request.action !== 'retry') {
                 if (persistedPendingFollowUpGroup?.matched?.id) {
                     // Pending follow-ups were already merged into graph state and
@@ -1583,7 +1591,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
         const persistedStream =
             this.redisSseStreamService?.wrapChatStream(stream, {
-                target: options?.streamPersistence,
+                target: chatStreamPersistence(
+                    options?.streamPersistence,
+                    conversation,
+                    activeThreadId,
+                    executionId,
+                    options?.streamPersistence
+                        ? this.threadRunControl?.displaySnapshotOwner(activeThreadId, executionId)
+                        : undefined
+                ),
                 threadId: activeThreadId,
                 runId: executionId
             }) ?? stream

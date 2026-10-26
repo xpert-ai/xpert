@@ -1,3 +1,4 @@
+import { getConfig } from '@xpert-ai/server-config'
 import { createHash } from 'node:crypto'
 import { constants as fsConstants } from 'node:fs'
 import { open } from 'node:fs/promises'
@@ -418,7 +419,7 @@ export function wait(milliseconds: number): Promise<void> {
 }
 
 export function capacityPollInterval(): number {
-    return Math.max(250, positiveInteger(process.env.SANDBOX_JOB_CAPACITY_POLL_MS, 1_000))
+    return getConfig().sandboxJobOptions?.capacityPollMs ?? 1000
 }
 
 export function artifactDigest(reference: string, configured?: string): string | undefined {

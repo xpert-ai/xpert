@@ -3,8 +3,8 @@ import { DesktopShellOperationService } from '../../../desktop-shell/desktop-she
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '../cancel-conversation.command'
 import { ChatConversationService } from '../../conversation.service'
-import { ExecutionCancelService } from '../../../shared/'
-import { IChatMessage, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
+import { IChatMessage } from '@xpert-ai/contracts'
 import { XpertAgentExecutionService } from '../../../xpert-agent-execution/agent-execution.service'
 import { Logger, Optional } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
@@ -86,6 +86,11 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         if (!executionIds.length) {
             return { canceledExecutionIds: [] }
         }
+        const canceledCurrentRun =
+            runtimeThread && this.threadRunControl
+                ? await this.threadRunControl.cancel(runtimeThread.threadId, executionIds)
+                : true
+
         const messagesToUpdate = aiMessages.filter((message) => executionIds.includes(message.executionId))
 
         messagesToUpdate.forEach((message) => {
@@ -93,12 +98,11 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             message.error = 'Canceled by user'
         })
 
-        for (const id of executionIds) {
-            await this.executionService.update(id, {
-                status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-                error: 'Canceled by user'
-            })
-        }
+        await this.executionService.interruptRunning(
+            executionIds,
+            runtimeThread?.threadId ?? threadId ?? conversation?.threadId,
+            'Canceled by user'
+        )
 
         if (executionIds.length) {
             await this.desktopShellOperations?.cancelRuns(executionIds)
@@ -119,17 +123,13 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             }
         }
 
-        const canceledCurrentRun =
-            runtimeThread && this.threadRunControl
-                ? await this.threadRunControl.cancel(runtimeThread.threadId, executionIds)
-                : true
         await this.commandBus.execute(
             new CancelTaskWaitsCommand(
                 executionIds,
                 canceledCurrentRun ? (runtimeThread?.threadId ?? threadId ?? conversation?.threadId) : undefined
             )
         )
-        if (conversation && canceledCurrentRun) {
+        if (conversation && canceledCurrentRun && !this.threadRunControl) {
             if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
                 conversation.status = 'interrupted'
                 conversation.error = 'Canceled by user'
@@ -159,15 +159,12 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
                 )
         }
 
-        // Stream finalization can race cancellation and attempt to persist a
-        // terminal success/error after the first update. Reassert interruption
-        // after aborting and saving the conversation so cancellation wins.
-        for (const id of executionIds) {
-            await this.executionService.update(id, {
-                status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-                error: 'Canceled by user'
-            })
-        }
+        // Preserve completed business results; durable control owns scheduling and stop confirmation.
+        await this.executionService.interruptRunning(
+            executionIds,
+            runtimeThread?.threadId ?? threadId ?? conversation?.threadId,
+            'Canceled by user'
+        )
 
         return { canceledExecutionIds: executionIds }
     }

@@ -1,3 +1,10 @@
+import { mcpToolTaskSupport } from './mcp-tool-task-support'
+import {
+    MCP_EXECUTION_CONTROL_EXTENSION_ID,
+    type McpOperationIdentity,
+    getToolCallIdFromConfig
+} from '@xpert-ai/contracts'
+import type { McpConsumerExecutor } from '../execution/mcp-consumer-executor'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import type { ToolSchemaBase } from '@langchain/core/tools'
 import type { RunnableConfig } from '@langchain/core/runnables'
@@ -44,7 +51,8 @@ export class McpConsumerTools {
         arguments_: Record<string, unknown>,
         serverName: string,
         signal?: AbortSignal,
-        elicitationHandler?: McpConsumerElicitationHandler
+        elicitationHandler?: McpConsumerElicitationHandler,
+        operationKey?: string
     ) => Promise<unknown>
 
     constructor(
@@ -53,7 +61,8 @@ export class McpConsumerTools {
             inputRequests: Record<string, unknown>,
             serverName?: string,
             handler?: McpConsumerElicitationHandler
-        ) => Promise<object>
+        ) => Promise<object>,
+        private readonly execute?: McpConsumerExecutor
     ) {}
 
     setTaskRunner(
@@ -62,7 +71,8 @@ export class McpConsumerTools {
             arguments_: Record<string, unknown>,
             serverName: string,
             signal?: AbortSignal,
-            elicitationHandler?: McpConsumerElicitationHandler
+            elicitationHandler?: McpConsumerElicitationHandler,
+            operationKey?: string
         ) => Promise<unknown>
     ) {
         this.taskRunner = runner
@@ -138,7 +148,31 @@ export class McpConsumerTools {
         arguments_: Record<string, unknown> = {},
         serverName?: string,
         signal?: AbortSignal,
-        elicitationHandler?: McpConsumerElicitationHandler
+        elicitationHandler?: McpConsumerElicitationHandler,
+        operationKey?: string
+    ): Promise<McpConsumerCallToolResult> {
+        if (this.execute)
+            return mcpConsumerCallToolResultSchema.parse(
+                await this.execute({
+                    mode: 'call',
+                    toolName: name,
+                    arguments: arguments_,
+                    serverName: this.connection.resolveServerName(serverName),
+                    signal,
+                    input: elicitationHandler,
+                    operationKey
+                })
+            )
+        return this.callDirect(name, arguments_, serverName, signal, elicitationHandler)
+    }
+
+    async callDirect(
+        name: string,
+        arguments_: Record<string, unknown> = {},
+        serverName?: string,
+        signal?: AbortSignal,
+        elicitationHandler?: McpConsumerElicitationHandler,
+        operationKey?: string
     ): Promise<McpConsumerCallToolResult> {
         if (this.connection.usesModernHttp(serverName)) {
             const parameters = await this.parameterHeaders(name, arguments_, serverName, signal)
@@ -181,8 +215,19 @@ export class McpConsumerTools {
         name: string,
         arguments_: Record<string, unknown> = {},
         serverName?: string,
-        signal?: AbortSignal
+        signal?: AbortSignal,
+        identity?: McpOperationIdentity
     ): Promise<McpConsumerTaskStart> {
+        return mcpTaskStartResultSchema.parse(await this.beginTask(name, arguments_, serverName, signal, identity))
+    }
+
+    async beginTask(
+        name: string,
+        arguments_: Record<string, unknown> = {},
+        serverName?: string,
+        signal?: AbortSignal,
+        identity?: McpOperationIdentity
+    ) {
         const parameters = this.connection.usesModernHttp(serverName)
             ? await this.parameterHeaders(name, arguments_, serverName, signal)
             : undefined
@@ -193,10 +238,10 @@ export class McpConsumerTools {
                 params: {
                     name,
                     arguments: arguments_,
-                    _meta: taskCapabilityMeta()
+                    _meta: taskCapabilityMeta(identity)
                 }
             },
-            mcpTaskStartResultSchema,
+            z.union([mcpTaskStartResultSchema, mcpConsumerCallToolResultSchema]),
             {
                 signal,
                 routing: { method: 'tools/call', name, ...(parameters ? { parameters } : {}) }
@@ -210,9 +255,13 @@ export class McpConsumerTools {
         const legacyServerNames = selectedServerNames.filter(
             (serverName) => !this.connection.usesModernHttp(serverName)
         )
-        const tools = legacyServerNames.length ? await this.connection.getLangChainTools(legacyServerNames) : []
+        const tools: DynamicStructuredTool[] = this.execute
+            ? []
+            : legacyServerNames.length
+              ? await this.connection.getLangChainTools(legacyServerNames)
+              : []
 
-        for (const serverName of modernServerNames) {
+        for (const serverName of this.execute ? selectedServerNames : modernServerNames) {
             for (const tool of await this.list(serverName)) {
                 tools.push(this.createModernLangChainTool(serverName, tool))
             }
@@ -248,10 +297,18 @@ export class McpConsumerTools {
                                   arguments_,
                                   serverName,
                                   config?.signal,
-                                  elicitationHandler
+                                  elicitationHandler,
+                                  config ? getToolCallIdFromConfig(config) : undefined
                               )
                           )
-                        : await this.call(tool.name, arguments_, serverName, config?.signal, elicitationHandler)
+                        : await this.call(
+                              tool.name,
+                              arguments_,
+                              serverName,
+                              config?.signal,
+                              elicitationHandler,
+                              config ? getToolCallIdFromConfig(config) : undefined
+                          )
                 return toLangChainToolResult(serverName, tool.name, result)
             }
         })
@@ -281,11 +338,13 @@ const inputRequiredResultSchema = z
 
 const callToolResponseSchema = z.union([inputRequiredResultSchema, mcpConsumerCallToolResultSchema])
 
-export function taskCapabilityMeta() {
+export function taskCapabilityMeta(identity?: McpOperationIdentity) {
     return {
+        ...(identity ? { [MCP_EXECUTION_CONTROL_EXTENSION_ID]: identity } : {}),
         [MCP_CLIENT_CAPABILITIES_META_KEY]: {
             extensions: {
-                [MCP_TASK_EXTENSION_ID]: {}
+                [MCP_TASK_EXTENSION_ID]: {},
+                ...(identity ? { [MCP_EXECUTION_CONTROL_EXTENSION_ID]: { version: 1 } } : {})
             }
         }
     }
@@ -293,11 +352,7 @@ export function taskCapabilityMeta() {
 
 function modernToolMetadata(tool: McpConsumerTool): McpToolLike {
     const metaValue = Reflect.get(tool, '_meta')
-    const executionValue = Reflect.get(tool, 'execution')
-    const taskSupport =
-        typeof executionValue === 'object' && executionValue !== null && !Array.isArray(executionValue)
-            ? Reflect.get(executionValue, 'taskSupport')
-            : undefined
+    const taskSupport = mcpToolTaskSupport(tool)
     return {
         name: tool.name,
         inputSchema: Object.fromEntries(Object.entries(tool.inputSchema)),

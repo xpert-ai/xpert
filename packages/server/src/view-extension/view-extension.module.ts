@@ -1,3 +1,4 @@
+import { CqrsModule } from '@nestjs/cqrs'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { VIEW_EXTENSION_CACHE_SERVICE_TOKEN, ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
@@ -12,28 +13,29 @@ import { ViewExtensionService } from './view-extension.service'
 
 @Global()
 @Module({
-  imports: [
-    RouterModule.register([{ path: '/view-hosts', module: ViewExtensionModule }]),
-    DiscoveryModule,
-    IntegrationModule
-  ],
-  controllers: [ViewExtensionController],
-  providers: [
-    ViewExtensionProviderRegistry,
-    ViewHostDefinitionRegistry,
-    ViewExtensionPermissionService,
-    ViewExtensionCacheService,
-    { provide: VIEW_EXTENSION_CACHE_SERVICE_TOKEN, useExisting: ViewExtensionCacheService },
-    ViewExtensionService,
-    IntegrationViewHostDefinition,
-    IntegrationViewHostCacheSubscriber
-  ],
-  exports: [
-    ViewHostDefinitionRegistry,
-    ViewExtensionService,
-    ViewExtensionCacheService,
-    VIEW_EXTENSION_CACHE_SERVICE_TOKEN,
-    ViewExtensionPermissionService
-  ]
+	imports: [
+		CqrsModule,
+		RouterModule.register([{ path: '/view-hosts', module: ViewExtensionModule }]),
+		DiscoveryModule,
+		IntegrationModule
+	],
+	controllers: [ViewExtensionController],
+	providers: [
+		ViewExtensionProviderRegistry,
+		ViewHostDefinitionRegistry,
+		ViewExtensionPermissionService,
+		ViewExtensionCacheService,
+		{ provide: VIEW_EXTENSION_CACHE_SERVICE_TOKEN, useExisting: ViewExtensionCacheService },
+		ViewExtensionService,
+		IntegrationViewHostDefinition,
+		IntegrationViewHostCacheSubscriber
+	],
+	exports: [
+		ViewHostDefinitionRegistry,
+		ViewExtensionService,
+		ViewExtensionCacheService,
+		VIEW_EXTENSION_CACHE_SERVICE_TOKEN,
+		ViewExtensionPermissionService
+	]
 })
 export class ViewExtensionModule {}

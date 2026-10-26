@@ -110,6 +110,7 @@ class ComputePolicyTest(unittest.TestCase):
         service = ComputeService.__new__(ComputeService)
         service.definition = DEFINITION
         service.jobs = {}
+        service.control = mock.Mock()
         service.lock = threading.RLock()
         service.health = mock.Mock(return_value={"available": True})
         return service

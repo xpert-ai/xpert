@@ -3,6 +3,7 @@ import { DiscoveryService, Reflector } from '@nestjs/core'
 import type { I18nObject, LanguagesEnum, ModelFeature, TXpertTeamDraft, TXpertTemplate } from '@xpert-ai/contracts'
 import { BaseStrategyRegistry } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
+export { applyAssistantMiddleware, hasAssistantMiddleware } from './middleware'
 
 export interface AssistantCapabilityContext {
   template: TXpertTemplate

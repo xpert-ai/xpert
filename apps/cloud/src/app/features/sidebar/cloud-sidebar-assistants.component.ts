@@ -1,7 +1,20 @@
+import { SidebarSearchResultsComponent } from './search/sidebar-search-results.component'
+import { CloudSidebarGroupsComponent } from './cloud-sidebar-groups.component'
+import { CloudSidebarPanelTriggerDirective } from './cloud-sidebar-panel-trigger.directive'
+import {
+  AssistantMenuItem,
+  AssistantMenuState,
+  AssistantConversationState,
+  EMPTY_ASSISTANT_MENU_STATE,
+  EMPTY_ASSISTANT_CONVERSATION_STATE,
+  shouldShowAssistantMenuItem,
+  toAssistantMenuItem
+} from './cloud-sidebar-assistant-content'
 import { AssistantProfileDirective } from '@cloud/app/@shared/xpert/assistant-profile/assistant-profile.directive'
 import { CommonModule } from '@angular/common'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import {
+  DestroyRef,
   ChangeDetectionStrategy,
   Component,
   NgZone,
@@ -92,47 +105,14 @@ const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
 const ASSISTANT_CONVERSATION_PAGE_SIZE = 10
 
-type AssistantMenuItem = {
-  viewKey: string
-  title: string
-  icon: IconDefinition | null
-  order: number
-}
-
-type AssistantMenuState = {
-  loading: boolean
-  items: AssistantMenuItem[]
-  error: boolean
-}
-
-const EMPTY_ASSISTANT_MENU_STATE: AssistantMenuState = {
-  loading: false,
-  items: [],
-  error: false
-}
-
-type AssistantConversationState = {
-  loading: boolean
-  loaded: boolean
-  items: IChatConversation[]
-  total: number
-  error: boolean
-}
-
-const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
-  loading: false,
-  loaded: false,
-  items: [],
-  total: 0,
-  error: false
-}
-
 @Component({
   standalone: true,
   selector: 'xp-cloud-sidebar-assistants',
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
-  imports: [
+  imports: [SidebarSearchResultsComponent,
+    CloudSidebarGroupsComponent,
+    CloudSidebarPanelTriggerDirective,
     AssistantProfileDirective,
     CommonModule,
     DragDropModule,
@@ -166,6 +146,7 @@ export class CloudSidebarAssistantsComponent {
 
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
+  readonly #destroyRef = inject(DestroyRef)
   readonly #ngZone = inject(NgZone)
   readonly #router = inject(Router)
   readonly #scopeService = inject(ScopeService)
@@ -485,6 +466,12 @@ export class CloudSidebarAssistantsComponent {
   readonly shouldRender = computed(() => this.request().enabled)
 
   constructor() {
+    effect(() => {
+      this.request()
+      this.assistantMenus.set({})
+      this.assistantConversations.set({})
+      this.expandedAssistantId.set(null)
+    })
     this.#conversationService.sidebarRefresh$.pipe(takeUntilDestroyed()).subscribe(({ xpertId }) => {
       const xpert = this.listXperts().find((item) => item.id === xpertId)
       if (!xpert || !this.assistantConversations()[xpertId]?.loaded) return
@@ -545,6 +532,31 @@ export class CloudSidebarAssistantsComponent {
     void this.#router.navigate(unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c'])
   }
 
+  availableAssistant(xpert: IXpert) {
+    return this.listXperts().some((item) => item.id === xpert.id)
+  }
+
+  activateAssistantPanel(xpert: IXpert) {
+    this.loadAssistantMenu(xpert)
+    this.loadAssistantConversations(xpert)
+  }
+
+  filteredAssistantViews(xpert: IXpert, query: string) {
+    return this.assistantMenuState(xpert).items.filter(
+      (item) => !query.trim() || item.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+    )
+  }
+
+  directoryAssistants(query: string) {
+    return filterAssistantXperts(this.filteredXperts(), query, ALL_ASSISTANT_CATEGORY)
+  }
+
+  startAssistantConversation(event: Event, xpert: IXpert) {
+    event.stopPropagation()
+    const routeId = getAssistantRouteId(xpert)
+    if (routeId) void this.#router.navigate(['/chat/x', routeId, 'c'], { queryParams: { view: null } })
+  }
+
   toggleAssistantExpanded(event: Event, xpert: IXpert) {
     event.stopPropagation()
     const assistantId = xpert.id?.trim()
@@ -580,8 +592,10 @@ export class CloudSidebarAssistantsComponent {
       : EMPTY_ASSISTANT_CONVERSATION_STATE
   }
 
-  assistantConversationGroups(xpert: IXpert) {
-    const items = this.assistantConversationState(xpert).items
+  assistantConversationGroups(xpert: IXpert, query = '') {
+    const items = this.assistantConversationState(xpert).items.filter(
+      (item) => !query.trim() || item.title?.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+    )
     const pinned = items.filter((item) => item.sidebar?.pinned)
     return [
       ...(pinned.length ? [{ name: 'Pinned', values: pinned }] : []),
@@ -637,7 +651,8 @@ export class CloudSidebarAssistantsComponent {
     const commands = unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c']
     void this.#router.navigate(commands, {
       queryParams: {
-        view: item.viewKey
+        view: item.viewKey,
+        viewLayout: 'maximized'
       }
     })
   }
@@ -799,6 +814,7 @@ export class CloudSidebarAssistantsComponent {
       error: false
     })
 
+    const request = this.request()
     this.#viewExtensionApi
       .getSlotViews('agent', assistantId, AGENT_WORKBENCH_SLOT)
       .pipe(
@@ -808,9 +824,11 @@ export class CloudSidebarAssistantsComponent {
             .map((manifest) => toAssistantMenuItem(manifest))
             .sort((left, right) => left.order - right.order)
         ),
+        takeUntilDestroyed(this.#destroyRef),
         catchError(() => of(null as AssistantMenuItem[] | null))
       )
       .subscribe((items) => {
+        if (this.request() !== request) return
         this.updateAssistantMenu(assistantId, {
           loading: false,
           items: items ?? [],
@@ -847,10 +865,15 @@ export class CloudSidebarAssistantsComponent {
       error: false
     })
 
+    const request = this.request()
     this.#conversationService
       .getSidebarConversations(assistantId, ASSISTANT_CONVERSATION_PAGE_SIZE, append ? current.items.length : 0)
-      .pipe(catchError(() => of(null as { items: IChatConversation[]; total: number } | null)))
+      .pipe(
+        takeUntilDestroyed(this.#destroyRef),
+        catchError(() => of(null as { items: IChatConversation[]; total: number } | null))
+      )
       .subscribe((result) => {
+        if (this.request() !== request) return
         if (!result) {
           this.updateAssistantConversations(assistantId, {
             ...current,
@@ -955,45 +978,4 @@ export class CloudSidebarAssistantsComponent {
   private hasXpertEditPermission() {
     return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
   }
-}
-
-function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {
-  return manifest.visible !== false && manifest.workbench?.menu?.enabled !== false
-}
-
-function toAssistantMenuItem(manifest: XpertExtensionViewManifest): AssistantMenuItem {
-  const menu = manifest.workbench?.menu
-
-  return {
-    viewKey: manifest.key,
-    title: resolveAssistantMenuText(menu?.label ?? manifest.title, manifest.key),
-    icon: menu?.icon ?? manifest.icon ?? null,
-    order: menu?.order ?? manifest.order ?? Number.MAX_SAFE_INTEGER
-  }
-}
-
-function resolveAssistantMenuText(value: unknown, fallback: string) {
-  if (typeof value === 'string') {
-    return value.trim() || fallback
-  }
-
-  if (!value || typeof value !== 'object') {
-    return fallback
-  }
-
-  const languageKeys = ['zh_Hans', 'zh-Hans', 'en_US', 'en-US', 'en']
-  for (const key of languageKeys) {
-    const candidate = Reflect.get(value, key)
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim()
-    }
-  }
-
-  for (const candidate of Object.values(value)) {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim()
-    }
-  }
-
-  return fallback
 }

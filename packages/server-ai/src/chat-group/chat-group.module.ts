@@ -1,3 +1,4 @@
+import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { ResolveGroupRuntimeAccessHandler } from './group-runtime-access.handler'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -37,6 +38,7 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
 /** Owns group policy, delivery and runtime handlers; AIModule hosts only the authenticated HTTP adapters. */
 @Module({
     imports: [
+        ExecutionControlModule,
         CqrsModule,
         AgentPluginModule,
         XpertProjectModule,

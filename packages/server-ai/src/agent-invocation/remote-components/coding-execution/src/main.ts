@@ -2,6 +2,7 @@ import { ExecutionI18n } from './i18n/core'
 import { z } from 'zod/v3'
 import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
+import { downloadRemoteFile } from '../../../../view-extension/remote-file-download'
 import { response, shouldPoll } from './model'
 import { ExecutionView } from './view'
 
@@ -61,20 +62,13 @@ const view = new ExecutionView(
     async (file) => {
         const version = epoch
         const grant = z
-            .object({ url: z.string() })
+            .object({ url: z.string(), fileName: z.string().optional() })
             .parse(await request('requestFileAccess', { fileKey: file.id, targetId: selectionId, purpose: 'download' }))
         if (epoch !== version) return
-        const url = new URL(grant.url, location.href)
-        if (!['http:', 'https:'].includes(url.protocol)) throw Error(i18n.t('errors.invalidDownload'))
-        const link = document.createElement('a')
-        link.href = url.href
-        // Preserve the authorized Web/desktop download bridge and cookie navigation.
-        link.target = '_blank'
-        link.rel = 'noopener noreferrer'
-        link.download = file.name ?? ''
-        document.body.append(link)
-        link.click()
-        link.remove()
+        downloadRemoteFile(
+            { url: grant.url, fileName: grant.fileName ?? file.name ?? '' },
+            i18n.t('errors.invalidDownload')
+        )
     }
 )
 document.getElementById('root')!.append(view.element)

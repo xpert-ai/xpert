@@ -1,3 +1,4 @@
+import type { McpOperationIdentity } from '@xpert-ai/contracts'
 import { McpConsumerConnection } from '../connection/mcp-consumer-connection'
 import { taskCapabilityMeta } from '../tools/mcp-consumer-tools'
 import {
@@ -37,12 +38,19 @@ export class McpConsumerTasks {
             name: string,
             arguments_: Record<string, unknown>,
             serverName?: string,
-            signal?: AbortSignal
+            signal?: AbortSignal,
+            identity?: McpOperationIdentity
         ) => Promise<McpConsumerTaskStart>
     ) {}
 
-    start(name: string, arguments_: Record<string, unknown> = {}, serverName?: string, signal?: AbortSignal) {
-        return this.startTaskCall(name, arguments_, serverName, signal)
+    start(
+        name: string,
+        arguments_: Record<string, unknown> = {},
+        serverName?: string,
+        signal?: AbortSignal,
+        identity?: McpOperationIdentity
+    ) {
+        return this.startTaskCall(name, arguments_, serverName, signal, identity)
     }
 
     get(taskId: string, serverName?: string, signal?: AbortSignal): Promise<McpConsumerTask> {
@@ -107,9 +115,7 @@ export class McpConsumerTasks {
             }
             throw taskWaitAbortedError(options.signal)
         } catch (error) {
-            if (options.signal?.aborted) {
-                await this.cancel(started.taskId, options.serverName).catch(() => undefined)
-            }
+            // Waiting can end on pause, disconnect or deadline. Only durable ownership controls cancellation.
             throw error
         }
     }

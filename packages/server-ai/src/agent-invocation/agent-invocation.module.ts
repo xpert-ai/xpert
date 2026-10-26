@@ -1,3 +1,6 @@
+import { RuntimeDeploymentsService } from './managed/runtime-deployments.service'
+import { TaskControlCoordinator } from './task-control-coordinator.service'
+import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../handoff/runtime-messaging/runtime-message.entity'
 import { RuntimeMessageAccessService } from '../handoff/runtime-messaging/runtime-message-access.service'
 import {
@@ -13,7 +16,7 @@ import { RequestRuntimeResultCheckHandler } from '../handoff/runtime-messaging/r
 import { CancelTaskWaitsHandler, CheckTaskWaitClaimHandler } from './task-wait-control'
 import { InvocationResultsProvider } from './invocation-results.provider'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
-import { User, UserOrganization } from '@xpert-ai/server-core'
+import { User, UserOrganization, TaskControlModule, TaskControlStore } from '@xpert-ai/server-core'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { AgentInvocationWaitStore } from './invocation-wait.store'
 import { InvocationContinuationDispatcher } from './invocation-continuation-dispatcher.service'
@@ -46,6 +49,7 @@ import { InvocationCardProvider } from './execution-view/invocation-card.provide
 
 @Module({
     imports: [
+        TaskControlModule,
         ArtifactsModule,
         DiscoveryModule,
         CqrsModule,
@@ -65,6 +69,9 @@ import { InvocationCardProvider } from './execution-view/invocation-card.provide
     ],
     controllers: [RuntimeDeliveryController, AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        ManagedRuntimeService,
+        RuntimeDeploymentsService,
+        TaskControlCoordinator,
         InvocationActivityService,
         ExecutionReaderService,
         CodingExecutionProvider,
@@ -91,12 +98,13 @@ import { InvocationCardProvider } from './execution-view/invocation-card.provide
         { provide: AgentInvocationStore, useClass: TypeOrmAgentInvocationStore },
         {
             provide: AgentInvocationRuntime,
-            inject: [AgentInvocationStore, AgentRuntimeRegistry, InvocationActivityService],
+            inject: [AgentInvocationStore, AgentRuntimeRegistry, InvocationActivityService, TaskControlStore],
             useFactory: (
                 store: AgentInvocationStore,
                 registry: AgentRuntimeRegistry,
-                activity: InvocationActivityService
-            ) => new AgentInvocationRuntime(store, registry, (invocation) => activity.recorder(invocation))
+                activity: InvocationActivityService,
+                tasks: TaskControlStore
+            ) => new AgentInvocationRuntime(store, registry, (invocation) => activity.recorder(invocation), tasks)
         }
     ],
     exports: [RuntimeMessageAccessService, AgentInvocationRuntime, AgentRuntimeRegistry, AgentInvocationFactoryService]

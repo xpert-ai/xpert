@@ -2,6 +2,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
+const { AGENT_PROCESS_SUPERVISOR } = require('@xpert-ai/desktop-protocol/process-supervisor')
 const { spawn } = require('node:child_process')
 const { createHash } = require('node:crypto')
 const { StringDecoder } = require('node:string_decoder')
@@ -99,6 +100,7 @@ class ShellEngine {
   state(record) {
     this.emit(record, {
       type: 'state',
+      ...(record.completion ? { completion: record.completion } : {}),
       state: record.state,
       seq: record.seq,
       exitCode: record.exitCode,
@@ -158,37 +160,66 @@ class ShellEngine {
       truncated: false,
       exitCode: null
     }
-    if (this.current) {
+    if (this.current || [...this.records.values()].some((value) => value.state === 'unknown' && !value.completion)) {
       record.state = 'rejected'
       record.errorCode = 'DEVICE_BUSY'
     }
     this.save(record)
     this.records.set(record.id, record)
-    if (isFinal(record.state)) return this.state(record)
+    if (isFinal(record.state)) {
+      record.completion = { version: 1, generation: record.id, coverage: 'descendants', state: 'not_started' }
+      this.save(record)
+      return this.state(record)
+    }
     let child
     try {
-      child = spawn(this.settings.shell, ['-c', command.command], {
-        cwd: command.cwd,
-        detached: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          HOME: os.homedir(),
-          USER: os.userInfo().username,
-          LOGNAME: os.userInfo().username,
-          PATH: this.settings.path,
-          LANG: 'en_US.UTF-8',
-          TMPDIR: os.tmpdir(),
-          SHELL: this.settings.shell
+      child = spawn(
+        'python3',
+        ['-u', '-c', AGENT_PROCESS_SUPERVISOR, String(process.pid), this.settings.shell, '-c', command.command],
+        {
+          cwd: command.cwd,
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
+          env: {
+            HOME: os.homedir(),
+            USER: os.userInfo().username,
+            LOGNAME: os.userInfo().username,
+            PATH: this.settings.path,
+            LANG: 'en_US.UTF-8',
+            TMPDIR: os.tmpdir(),
+            SHELL: this.settings.shell
+          }
         }
-      })
+      )
     } catch {
       record.state = 'failed'
       record.errorCode = 'SPAWN_FAILED'
+      record.completion = { version: 1, generation: record.id, coverage: 'descendants', state: 'not_started' }
       record.seq++
       this.save(record)
       return this.state(record)
     }
-    const active = { child, record, reason: null, killTimer: null, timeout: null }
+    const active = {
+      child,
+      record,
+      reason: null,
+      killTimer: null,
+      timeout: null,
+      exited: false,
+      receipt: '',
+      ready: false,
+      stopRequested: false
+    }
+    child.stdio[3].on('data', (data) => {
+      if (active.receipt.length < 4096) active.receipt += data.toString('utf8')
+      if (!active.ready && active.receipt.startsWith('{"ready":true}\n')) {
+        active.ready = true
+        if (active.stopRequested) this.signal(active, 'SIGTERM')
+      }
+    })
+    child.once('exit', () => {
+      active.exited = true
+    })
     this.current = active
     record.state = 'running'
     record.pid = child.pid
@@ -210,11 +241,22 @@ class ShellEngine {
     child.on('close', (code, signal) => {
       clearTimeout(active.timeout)
       clearTimeout(active.killTimer)
-      // Also terminate descendants that outlived their parent shell.
-      this.signal(active, 'SIGKILL')
-      record.exitCode = code
+      let receipt
+      try {
+        receipt = JSON.parse(active.receipt.split('\n').at(-1))
+      } catch {}
+      const confirmed =
+        code === 0 &&
+        receipt?.version === 1 &&
+        ['exited', 'not_started'].includes(receipt.state) &&
+        receipt.coverage === 'descendants' &&
+        (receipt.exitCode === null || Number.isInteger(receipt.exitCode))
+      record.exitCode = confirmed ? receipt.exitCode : code
+      if (confirmed)
+        record.completion = { version: 1, generation: record.id, coverage: 'descendants', state: receipt.state }
+      if (confirmed && receipt.state === 'not_started') record.errorCode = 'SPAWN_FAILED'
       record.signal = signal || undefined
-      record.state = active.reason || (code === 0 ? 'succeeded' : 'failed')
+      record.state = confirmed ? active.reason || (receipt.exitCode === 0 ? 'succeeded' : 'failed') : 'unknown'
       record.seq++
       try {
         this.save(record)
@@ -260,9 +302,14 @@ class ShellEngine {
     }
   }
   signal(active, signal) {
-    if (!active.child.pid) return
+    if (!active.child.pid || active.exited) return
+    if (signal === 'SIGTERM' && !active.ready) {
+      active.stopRequested = true
+      return
+    }
     try {
-      process.kill(-active.child.pid, signal)
+      if (signal === 'SIGTERM') active.child.kill(signal)
+      else process.kill(-active.child.pid, signal)
     } catch (error) {
       if (error.code !== 'ESRCH') active.record.errorCode = 'CANCEL_FAILED'
     }
@@ -286,7 +333,7 @@ class ShellEngine {
       }
       this.state(active.record)
       this.signal(active, 'SIGTERM')
-      active.killTimer = setTimeout(() => this.signal(active, 'SIGKILL'), 2000)
+      active.killTimer = setTimeout(() => this.signal(active, 'SIGKILL'), 5000)
     } else if (this.records.has(id)) this.replay(this.records.get(id))
     else {
       // A cancel arriving before exec is a durable tombstone.
@@ -295,6 +342,7 @@ class ShellEngine {
         argsHash: null,
         deadline: this.clock() + LIMITS.maxTimeout * 1000,
         state: reason,
+        completion: { version: 1, generation: id, coverage: 'descendants', state: 'not_started' },
         seq: 0,
         chunks: [],
         bytes: 0,

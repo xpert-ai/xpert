@@ -49,6 +49,7 @@ export * from './xpert-tool.service'
 export * from './xpert-toolset.service'
 export * from './xpert-workspace.service'
 export * from './workspace-history.service'
+export * from './plugin-restart-storage'
 export * from './xpert-connector.service'
 export * from './xpert-agent.service'
 export * from './xpert-agent-execution.service'
@@ -102,3 +103,5 @@ export * from './chatkit-lifecycle.service'
 export * from './artifact-presentation.service'
 
 export * from './analytics-definitions.service'
+
+export * from './sidebar-search.service'

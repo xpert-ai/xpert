@@ -1,3 +1,4 @@
+import { ManagedRuntimeService } from '../../../../agent-invocation/managed/managed-runtime.service'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { DataSource } from 'typeorm'
@@ -53,6 +54,7 @@ export function pipelineRuntimeBridgeFixture(
         } as unknown as QueryBus,
         runtime,
         new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, access),
+        { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
         db.getRepository(AgentInvocationEntity),
         commands as unknown as CommandBus
     )
@@ -62,7 +64,13 @@ export function pipelineRuntimeBridgeFixture(
     registry.register(
         'neutral-runtime',
         {
-            capabilities: { background: true, cancellation: true, interactions: false, recovery: 'session' },
+            capabilities: {
+                completionEvidence: 1,
+                background: true,
+                cancellation: true,
+                interactions: false,
+                recovery: 'session'
+            },
             start,
             inspect,
             cancel
@@ -88,7 +96,21 @@ export function pipelineRuntimeBridgeFixture(
             handle: { sessionId: context.invocationId, runId: context.invocationId }
         }))
         inspect.mockReset().mockResolvedValue({ status: 'succeeded', result: { text: 'Neutral Runtime result' } })
-        cancel.mockReset().mockResolvedValue({ status: 'cancelled' })
+        cancel.mockReset().mockImplementation(async (handle, context) => ({
+            status: 'cancelled',
+            controlEvidence: {
+                version: 1,
+                source: 'provider',
+                subject: { kind: 'invocation', id: context.invocationId },
+                scope: 'operation',
+                state: 'settled',
+                outcome: 'cancelled',
+                sessionId: handle.sessionId,
+                runId: handle.runId,
+                receiptKey: context.invocationId,
+                observedAt: new Date().toISOString()
+            }
+        }))
         prepare.mockReset().mockResolvedValue({ prompt: 'Assess the pinned neutral input' })
         collect.mockReset().mockResolvedValue({})
     }

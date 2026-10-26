@@ -1,3 +1,4 @@
+import { sandboxEvidence, sandboxTargetsEqual, type SandboxRuntimeTarget } from '@xpert-ai/contracts'
 // A dedicated production Jobs provider; interactive Sandbox selection and network policy do not apply.
 import {
     type ISandboxRuntimeProvider,
@@ -29,6 +30,7 @@ export type NsjailJobProfile = {
 export abstract class NsjailJobRuntimeProvider implements ISandboxRuntimeProvider {
     readonly version = '1.0.0'
     readonly capabilities = {
+        executionControl: 1 as const,
         isolation: 'hardened' as const,
         ephemeral: true,
         resourceLimits: true,
@@ -62,6 +64,27 @@ export abstract class NsjailJobRuntimeProvider implements ISandboxRuntimeProvide
         }
     }
 
+    async prepareControl(options: SandboxRuntimeDestroyOptions & { generation: string }) {
+        const profile = this.profile(options.runtimeProfile)
+        return this.client(profile).prepareControl({
+            version: 1,
+            kind: 'engine',
+            provider: this.type,
+            runtimeProfile: profile.name,
+            generation: options.generation,
+            runtimeRef: createHash('sha256')
+                .update(JSON.stringify([options.tenantId, options.workFor.id, options.generation]))
+                .digest('hex')
+        })
+    }
+
+    async control(target: SandboxRuntimeTarget, action: 'inspect' | 'stop') {
+        if (target.provider !== this.type || target.kind !== 'engine') return sandboxEvidence(target, 'unknown')
+        const evidence = await this.client(this.profile(target.runtimeProfile)).control(target, action)
+        if (!sandboxTargetsEqual(evidence.target, target)) throw this.invalidPolicy()
+        return evidence
+    }
+
     async create(options: SandboxRuntimeCreateOptions): Promise<SandboxRuntimeInstance> {
         this.assertDefinition(options.definition, options.binding)
         const definition = options.definition
@@ -76,9 +99,14 @@ export abstract class NsjailJobRuntimeProvider implements ISandboxRuntimeProvide
         )
             throw this.invalidPolicy()
         const profile = this.profile(definition.name)
-        const id = this.runtimeId(profile, options.tenantId, options.workFor.id)
+        const id = options.controlTarget?.runtimeRef ?? this.runtimeId(profile, options.tenantId, options.workFor.id)
         const client = this.client(profile)
-        await client.create(id, definition)
+        if (
+            options.controlTarget &&
+            (options.controlTarget.provider !== this.type || options.controlTarget.runtimeProfile !== definition.name)
+        )
+            throw this.invalidPolicy()
+        await client.create(id, definition, options.controlTarget)
         const trusted = [
             ...definition.command,
             '--request',
@@ -115,6 +143,15 @@ export abstract class NsjailJobRuntimeProvider implements ISandboxRuntimeProvide
     }
 
     async destroy(options: SandboxRuntimeDestroyOptions): Promise<void> {
+        if (options.controlTarget) {
+            const target = options.controlTarget
+            if (target.provider !== this.type || target.runtimeProfile !== options.runtimeProfile)
+                throw this.invalidPolicy()
+            const evidence = await this.client(this.profile(target.runtimeProfile)).control(target, 'cleanup')
+            if (!sandboxTargetsEqual(evidence.target, target) || !['exited', 'not_started'].includes(evidence.state))
+                throw this.unavailable()
+            return
+        }
         const profile = this.profile(options.runtimeProfile)
         const binding = this.binding(profile)
         const id = this.runtimeId(profile, options.tenantId, options.workFor.id)

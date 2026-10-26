@@ -162,7 +162,7 @@ export async function createDraftFixture(url: string) {
         volumes,
         new DefaultRuntimeCapabilityRegistry()
     )
-    const service = new ArtifactDraftsService(database, artifacts, files)
+    const service = new ArtifactDraftsService(database, artifacts, files, { assert: jest.fn() } as never)
     const api = service.createScopedApi(owner)
 
     return {

@@ -15,6 +15,7 @@ URL = os.environ.get("XPERT_NSJAIL_POC_URL", "http://127.0.0.1:8090").rstrip("/"
 TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "")
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 PREFIX = "/v1/compute"
+CGROUP_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_TEST_CGROUP_ROOT", "/sys/fs/cgroup"))
 
 
 def request(route, data=None, method=None, token=TOKEN):
@@ -42,7 +43,7 @@ class ComputeIntegrationTest(unittest.TestCase):
         for identity in self.jobs:
             rpc(PREFIX + "/jobs/" + identity, method="DELETE")
             self.assertFalse((pathlib.Path("/run/xpert-compute") / identity).exists())
-            self.assertEqual(list(pathlib.Path("/sys/fs/cgroup").glob("xpert-compute-*-" + identity)), [])
+            self.assertEqual(list(CGROUP_ROOT.glob("xpert-compute-*-" + identity)), [])
 
     def create(self, script=None):
         identity = hashlib.sha256(uuid.uuid4().bytes).hexdigest()
@@ -135,7 +136,7 @@ writeFileSync('/workspace/output/ok','yes');
 '''.replace("OTHER", other)
         identity = self.create(script)
         owner = json.loads((pathlib.Path("/run/xpert-compute") / identity / "owner.json").read_text())
-        cgroup = pathlib.Path("/sys/fs/cgroup") / owner["cgroup"]
+        cgroup = CGROUP_ROOT / owner["cgroup"]
         self.assertEqual((cgroup / "memory.max").read_text().strip(), "268435456")
         self.assertEqual((cgroup / "memory.swap.max").read_text().strip(), "0")
         self.assertEqual((cgroup / "pids.max").read_text().strip(), "64")
@@ -203,7 +204,7 @@ assert.ok(count<=64); console.log('bounded output');
         finally:
             response.close()
         owner = json.loads((pathlib.Path("/run/xpert-compute") / identity / "owner.json").read_text())
-        events = pathlib.Path("/sys/fs/cgroup") / owner["cgroup"] / 'cgroup.events'
+        events = CGROUP_ROOT / owner["cgroup"] / 'cgroup.events'
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and 'populated 1' in events.read_text():
             time.sleep(.02)

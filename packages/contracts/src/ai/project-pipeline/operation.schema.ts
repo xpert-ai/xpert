@@ -2,6 +2,7 @@ import { z } from 'zod/v3'
 import { projectPipelineJsonSchema, projectPipelineKeySchema } from './primitives.schema'
 import { projectPipelineEvidenceRefSchema, projectPipelineSubjectVersionSchema } from './runtime.schema'
 import { agentInvocationStatusSchema } from '../agent-runtime.model'
+import { executionControlEvidenceSchema } from '../execution-control-evidence.schema'
 
 export const projectPipelineOperationInputSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('evidence'), value: projectPipelineEvidenceRefSchema }).strict(),
@@ -51,6 +52,7 @@ export const projectPipelineRuntimeExecutionSchema = z
   })
   .strict()
 const receipt = {
+  control: executionControlEvidenceSchema.optional(),
   receiptKey: z.string().min(1).max(500),
   execution: z
     .discriminatedUnion('kind', [projectPipelineAssistantExecutionSchema, projectPipelineRuntimeExecutionSchema])
@@ -70,7 +72,12 @@ export const projectPipelineOperationReceiptSchema = z.discriminatedUnion('statu
   z.object({ ...receipt, status: z.literal('failed'), code: projectPipelineKeySchema }).strict(),
   z.object({ ...receipt, status: z.literal('cancelled') }).strict(),
   z
-    .object({ receiptKey: receipt.receiptKey.optional(), execution: receipt.execution, status: z.literal('unknown') })
+    .object({
+      control: receipt.control,
+      receiptKey: receipt.receiptKey.optional(),
+      execution: receipt.execution,
+      status: z.literal('unknown')
+    })
     .strict()
 ])
 export const projectPipelineCompletionReceiptSchema = z.discriminatedUnion('status', [

@@ -1,3 +1,4 @@
+import { ApplicationUpdateComponent } from './app-update.component'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, untracked } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -42,6 +43,7 @@ import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app
   standalone: true,
   selector: 'xp-application-detail',
   imports: [
+    ApplicationUpdateComponent,
     CommonModule,
     FormsModule,
     RouterLink,

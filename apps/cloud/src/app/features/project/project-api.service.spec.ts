@@ -15,6 +15,22 @@ describe('XpertProjectApiService', () => {
 
   afterEach(() => httpMock.verify())
 
+  it('refreshes project consumers only after successful deletion', () => {
+    const changed = jest.fn()
+    const subscription = service.projectsChanged$.subscribe(changed)
+    service.deleteProject('project-1').subscribe()
+    const request = httpMock.expectOne('/api/xpert-project/project-1')
+    expect(request.request.method).toBe('DELETE')
+    expect(changed).not.toHaveBeenCalled()
+    request.flush({ affected: 1 })
+    expect(changed).toHaveBeenCalledTimes(1)
+
+    service.deleteProject('project-2').subscribe({ error: () => undefined })
+    httpMock.expectOne('/api/xpert-project/project-2').flush({}, { status: 403, statusText: 'Forbidden' })
+    expect(changed).toHaveBeenCalledTimes(1)
+    subscription.unsubscribe()
+  })
+
   it.each([
     ['updated', { updatedAt: 'DESC', id: 'ASC' }],
     ['created', { createdAt: 'DESC', id: 'ASC' }],

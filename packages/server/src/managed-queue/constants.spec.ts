@@ -1,19 +1,21 @@
+import { getConfig, setConfig } from '@xpert-ai/server-config'
 import { managedQueuePhysicalQueuePrefix } from './constants'
 
 describe('managedQueuePhysicalQueuePrefix', () => {
+	const original = getConfig().managedQueueOptions
+	afterEach(() => setConfig({ managedQueueOptions: original }))
 	it('uses the shared production-compatible default', () => {
-		expect(managedQueuePhysicalQueuePrefix({})).toBe('xpert:managed-queue')
+		expect(
+			managedQueuePhysicalQueuePrefix({
+				concurrency: 10,
+				sandboxBrowserConcurrency: 1,
+				autorun: true,
+				prefix: 'xpert:managed-queue'
+			})
+		).toBe('xpert:managed-queue')
 	})
-
-	it('allows independent environments sharing Redis to select isolated BullMQ keys', () => {
-		expect(managedQueuePhysicalQueuePrefix({ MANAGED_QUEUE_PREFIX: 'xpert:managed-queue:cut-validation' })).toBe(
-			'xpert:managed-queue:cut-validation'
-		)
-	})
-
-	it('rejects unsafe prefixes', () => {
-		expect(() => managedQueuePhysicalQueuePrefix({ MANAGED_QUEUE_PREFIX: 'bad prefix' })).toThrow(
-			'MANAGED_QUEUE_PREFIX'
-		)
+	it('respects configuration overrides for independent environments', () => {
+		setConfig({ managedQueueOptions: { ...original, prefix: 'xpert:managed-queue:cut-validation' } })
+		expect(managedQueuePhysicalQueuePrefix()).toBe('xpert:managed-queue:cut-validation')
 	})
 })

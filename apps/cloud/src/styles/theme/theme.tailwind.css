@@ -1,4 +1,5 @@
 @theme inline {
+  --shadow-page: 0 0 0 0.5px var(--color-elevation-page-outline), 0 4px 16px var(--color-elevation-page-shadow);
   --color-text-primary: var(--sys-text-primary);
   --color-text-secondary: var(--sys-text-secondary);
   --color-text-tertiary: var(--color-text-tertiary);

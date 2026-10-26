@@ -1,5 +1,6 @@
 import 'reflect-metadata'
 import { randomUUID, createHash } from 'node:crypto'
+import type { TaskControlStore } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import type { ShellReport } from '@xpert-ai/contracts'
 import { LIMITS } from '@xpert-ai/desktop-protocol'
@@ -68,9 +69,20 @@ function fixture(command = 'pwd') {
         requireGrant: jest.fn(async () => ({ device, grant }))
     }
     const redis = { publish: jest.fn(async () => 0) }
+    const tasks = {
+        execution: jest.fn().mockResolvedValue(null),
+        register: jest.fn().mockResolvedValue({ id: 'control' }),
+        claim: jest.fn().mockResolvedValue('claim'),
+        due: jest.fn().mockResolvedValue([]),
+        desired: jest.fn().mockResolvedValue('running'),
+        receipt: jest.fn(),
+        delivery: jest.fn().mockResolvedValue('delivery'),
+        delivered: jest.fn()
+    }
     const service = new DesktopShellOperationService(
         auth as unknown as DesktopShellAuthService,
-        redis as unknown as RedisClientType
+        redis as unknown as RedisClientType,
+        tasks as unknown as TaskControlStore
     )
     const report = (operationId: string, update: object) =>
         ({
@@ -83,7 +95,7 @@ function fixture(command = 'pwd') {
             data: 'hello',
             ...update
         }) as ShellReport
-    return { scope, device, service, operations, auth, report, grant, grants }
+    return { scope, device, service, operations, auth, report, grant, grants, tasks }
 }
 
 describe('Desktop Shell operation delivery', () => {
@@ -163,5 +175,48 @@ describe('Desktop Shell operation delivery', () => {
         const rest = await f.service.result(current, first.nextCursor)
         expect(Buffer.byteLength(rest.stdout)).toBe(16384)
         expect(rest.nextCursor).toBe(10)
+    })
+})
+
+describe('Desktop durable execution controls', () => {
+    it('registers and claims the owned operation in the same transaction before dispatch', async () => {
+        const f = fixture()
+        f.tasks.execution.mockResolvedValue({ id: 'parent', currentExecutionId: f.scope.runId })
+        const op = await f.service.execute({ action: 'exec', command: 'pwd' }, f.scope)
+        expect(f.tasks.register).toHaveBeenCalledWith(
+            expect.objectContaining({
+                kind: 'desktop-shell',
+                resourceId: op.id,
+                drainOnPause: true,
+                parent: { version: 2, targetId: 'parent' }
+            }),
+            expect.anything()
+        )
+        expect(f.tasks.claim).toHaveBeenCalledWith('control', expect.anything())
+    })
+    it('never publishes an operation when admission is paused or terminated', async () => {
+        const f = fixture()
+        f.tasks.execution.mockResolvedValue({ id: 'parent', currentExecutionId: f.scope.runId })
+        f.tasks.claim.mockRejectedValue(new Error('admission denied'))
+        await expect(f.service.execute({ action: 'exec', command: 'pwd' }, f.scope)).rejects.toThrow('admission denied')
+        expect(f.operations.save).not.toHaveBeenCalled()
+    })
+    it('compensates termination using the original ID and requires matching descendant evidence', async () => {
+        const f = fixture(),
+            op = await f.service.execute({ action: 'exec', command: 'pwd' }, f.scope)
+        f.tasks.due.mockResolvedValue([{ id: 'control', resourceId: op.id, ...f.scope }])
+        const cancel = jest.spyOn(f.service, 'cancel').mockResolvedValue(undefined)
+        f.tasks.desired.mockResolvedValue('paused')
+        await f.service.reconcileControl()
+        expect(cancel).not.toHaveBeenCalled()
+        f.tasks.desired.mockResolvedValue('terminated')
+        await f.service.reconcileControl()
+        expect(cancel).toHaveBeenCalledWith(op.id, op)
+        op.completion = { version: 1, generation: randomUUID(), coverage: 'descendants', state: 'exited' }
+        await f.service.reconcileControl()
+        expect(f.tasks.receipt).not.toHaveBeenCalled()
+        op.completion.generation = op.id
+        await f.service.reconcileControl()
+        expect(f.tasks.receipt).toHaveBeenCalledWith('control', 'completed')
     })
 })

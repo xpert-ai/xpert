@@ -5,12 +5,15 @@
  * - Cache state is published only after copying and dependency installation succeed.
  */
 import { getConfig } from '@xpert-ai/server-config'
-import { execFile as execFileCallback, execSync } from 'node:child_process'
+import { execFile as execFileCallback } from 'node:child_process'
 import { createHash, type Hash } from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { promisify } from 'node:util'
 import chalk from 'chalk'
+import { withPluginStoreLock } from './installation/plugin-store-lock'
+import { installRegistryArtifact } from './installation/registry-artifact'
+import { updatePluginManifest } from './installation/plugin-manifest'
 import { normalizePluginName } from './types'
 import { getPluginScopeLogLabel, resolvePluginScope, safePluginScopePathSegment } from './plugin-scope'
 
@@ -512,12 +515,6 @@ function resolveWorkspaceBuildOutput(workspacePath: string) {
 	return null
 }
 
-function isPluginInstalled(pluginDir: string, pluginName: string) {
-	const normalizedName = normalizePluginName(pluginName)
-	const pkgJsonPath = path.join(pluginDir, 'node_modules', normalizedName, 'package.json')
-	return fs.existsSync(pkgJsonPath)
-}
-
 function extractPluginVersion(pluginName: string) {
 	const atIndex = pluginName.lastIndexOf('@')
 	if (atIndex > 0) {
@@ -533,7 +530,7 @@ function getPluginDirName(pluginName: string) {
 }
 
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
-	const rootDir = opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT
+	const rootDir = opts?.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins')
 	const scope = resolvePluginScope({
 		tenantId: opts?.tenantId,
 		organizationId,
@@ -585,36 +582,15 @@ export function readOrganizationManifest(organizationId: string, opts?: Organiza
 	}
 }
 
-function normalizeManifestPlugins(plugins: string[]) {
-	// Last spec wins so a current versioned install replaces a stale unversioned (or
-	// older-version) entry for the same package without changing unrelated ordering.
-	const byPackageName = new Map<string, string>()
-	for (const plugin of plugins) {
-		const packageName = normalizePluginName(plugin)
-		byPackageName.delete(packageName)
-		byPackageName.set(packageName, plugin)
-	}
-	return Array.from(byPackageName.values())
-}
-
-function replaceManifestPlugin(manifest: Set<string>, plugin: string) {
-	const packageName = normalizePluginName(plugin)
-	for (const existing of manifest) {
-		if (normalizePluginName(existing) === packageName) {
-			manifest.delete(existing)
-		}
-	}
-	manifest.add(plugin)
-}
-
-export function writeOrganizationManifest(
+export async function writeOrganizationManifest(
 	organizationId: string,
 	plugins: string[],
-	opts?: OrganizationPluginStoreOptions
+	opts: OrganizationPluginStoreOptions = {}
 ) {
-	const manifestPath = getOrganizationManifestPath(organizationId, opts)
-	ensureDir(path.dirname(manifestPath))
-	fs.writeFileSync(manifestPath, JSON.stringify(normalizeManifestPlugins(plugins), null, 2))
+	await withOrganizationPluginStoreLock(opts, async (lease) => {
+		await fs.promises.mkdir(getOrganizationPluginRoot(organizationId, opts), { recursive: true })
+		await updatePluginManifest(getOrganizationManifestPath(organizationId, opts), () => plugins, lease)
+	})
 }
 
 export async function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): Promise<string> {
@@ -832,68 +808,52 @@ export async function stagePackageDirectoryPlugin(opts: StagePackageDirectoryPlu
  * @param opts
  * @returns
  */
-export function installOrganizationPlugins(
+export async function installOrganizationPlugins(
 	organizationId: string,
 	plugins: string[],
 	opts: InstallOrganizationPluginsOptions = {}
-) {
-	if (!plugins?.length) {
-		return
-	}
-	const root = getOrganizationPluginRoot(organizationId, opts)
-	ensureDir(root)
-
-	const scopeLabel = getPluginScopeLogLabel({
-		tenantId: opts.tenantId,
-		organizationId,
-		defaultTenantId: opts.defaultTenantId,
-		scopeKey: opts.scopeKey
-	})
-	process.stdout.write(`Installing plugins for scope ${scopeLabel}: `)
-	for (const plugin of plugins) {
-		process.stdout.write(chalk.bgBlue(plugin) + ' ')
-	}
-	process.stdout.write('\n')
-
-	const manifest = new Set(readOrganizationManifest(organizationId, opts))
-
-	for (const plugin of plugins) {
-		const pluginDir = getOrganizationPluginPath(organizationId, plugin, opts)
-		if (isPluginInstalled(pluginDir, plugin)) {
-			console.log(chalk.yellow(`Plugin ${plugin} already installed at ${pluginDir}, skipping install.`))
-			replaceManifestPlugin(manifest, plugin)
-			continue
-		}
-		ensureDir(pluginDir)
-
-		const args = [
-			'npm',
-			'install',
-			'--no-save',
-			opts.legacyPeerDeps === false ? '' : '--legacy-peer-deps',
-			'--prefix',
-			pluginDir,
-			plugin
-		].filter(Boolean)
-		if (opts.registry) {
-			args.push('--registry', opts.registry)
-		}
-
-		try {
-			execSync(args.join(' '), {
-				stdio: 'inherit',
-				env: {
-					...process.env,
-					npm_config_package_lock: 'false',
-					npm_config_lockfile: 'false'
-				}
+): Promise<void> {
+	if (!plugins?.length) return
+	await withOrganizationPluginStoreLock(opts, async (lease) => {
+		const root = getOrganizationPluginRoot(organizationId, opts)
+		await fs.promises.mkdir(root, { recursive: true })
+		for (const plugin of plugins) {
+			await installRegistryArtifact({
+				pluginDir: getOrganizationPluginPath(organizationId, plugin, opts),
+				plugin,
+				registry: opts.registry,
+				legacyPeerDeps: opts.legacyPeerDeps,
+				lease
 			})
-			console.log(chalk.green(`Installed plugin ${plugin} for scope ${scopeLabel} at ${pluginDir}`))
-			replaceManifestPlugin(manifest, plugin)
-		} catch (error) {
-			console.error(`Failed to install plugin ${plugin} for scope ${scopeLabel}:`, error)
+			await updatePluginManifest(
+				getOrganizationManifestPath(organizationId, opts),
+				(current) => [...current, plugin],
+				lease
+			)
 		}
-	}
+	})
+}
 
-	writeOrganizationManifest(organizationId, Array.from(manifest), opts)
+/** A shared-volume lock is also available before Nest/Redis bootstrap. */
+export function withOrganizationPluginStoreLock<T>(
+	opts: OrganizationPluginStoreOptions,
+	action: Parameters<typeof withPluginStoreLock<T>>[1]
+) {
+	return withPluginStoreLock(opts.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins'), action)
+}
+
+export async function removeOrganizationManifestPlugins(
+	organizationId: string,
+	names: Set<string>,
+	opts: OrganizationPluginStoreOptions
+) {
+	await withOrganizationPluginStoreLock(opts, async (lease) => {
+		const manifestPath = getOrganizationManifestPath(organizationId, opts)
+		if (!fs.existsSync(manifestPath)) return
+		await updatePluginManifest(
+			manifestPath,
+			(current) => current.filter((name) => !names.has(normalizePluginName(name))),
+			lease
+		)
+	})
 }

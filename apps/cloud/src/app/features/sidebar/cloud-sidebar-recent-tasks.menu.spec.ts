@@ -1,9 +1,10 @@
+import { SidebarSearchService } from '../../@core/services/sidebar-search.service'
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
-import { AssistantBindingService, ChatConversationService, IChatConversation } from '../../@core'
+import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../@core'
 import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.component'
 
 describe('Collapsed recent tasks', () => {
@@ -29,6 +30,35 @@ describe('Collapsed recent tasks', () => {
       imports: [CloudSidebarRecentTasksComponent, TranslateModule.forRoot()],
       providers: [
         provideRouter([]),
+        {
+          provide: Store,
+          useValue: {
+            user$: of({ id: 'user' }),
+            selectOrganizationId: () => of('org'),
+            selectActiveScope: () => of({ level: 'organization' })
+          }
+        },
+        {
+          provide: SidebarSearchService,
+          useValue: {
+            search: jest.fn((source, query) =>
+              of({
+                items:
+                  source === 'conversations' && query === 'task'
+                    ? [
+                        {
+                          id: 'old',
+                          title: 'Older matching task',
+                          icon: 'ri-chat-3-line',
+                          route: ['/chat/clawxpert/c/older']
+                        }
+                      ]
+                    : [],
+                total: query === 'task' && source === 'conversations' ? 1 : 0
+              })
+            )
+          }
+        },
         { provide: ChatConversationService, useValue: api },
         {
           provide: AssistantBindingService,
@@ -110,6 +140,28 @@ describe('Collapsed recent tasks', () => {
     fixture.componentRef.setInput('collapsed', true)
     fixture.detectChanges()
     expect(fixture.componentInstance.menuOpen()).toBe(false)
+  })
+
+  it('shows recent tasks by default and searches full scoped tasks when a query is entered', async () => {
+    fixture.componentRef.setInput('panelMode', true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('h3')?.textContent).toContain('XP.Sidebar.RecentTasks')
+    expect(fixture.nativeElement.querySelector('a')?.getAttribute('href')).toBe('/chat/clawxpert/c/thread-1')
+    expect(overlay.querySelector('[role="dialog"]')).toBeNull()
+    fixture.componentRef.setInput('query', 'no matching title')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('a')).toBeNull()
+    fixture.componentRef.setInput('query', 'task')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(TestBed.inject(SidebarSearchService).search).toHaveBeenCalledWith('conversations', 'task', 0, {
+      assistantId: 'claw-xpert',
+      conversationRoute: ['/chat/clawxpert/c']
+    })
+    expect(fixture.nativeElement.querySelector('a')?.textContent).toContain('Older matching task')
   })
 
   it('shows an empty state when no recent conversations exist', async () => {

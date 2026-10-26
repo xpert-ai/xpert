@@ -17,6 +17,17 @@ function configure(id: string, overrides: Partial<CliModelConfigurationInput> = 
 }
 
 describe('bundled execution CLI profiles', () => {
+    it('passes the selected Codex model reasoning effort without using another model settings', () => {
+        const config = configure('codex', {
+            models: [
+                { id: 'other', protocols: ['openai_responses'], parameters: { reasoning_effort: 'low' } },
+                { id: 'allowed', protocols: ['openai_responses'], parameters: { reasoning_effort: 'xhigh' } }
+            ]
+        })
+        expect(config.args).toContain('model_reasoning_effort="xhigh"')
+        expect(config.args).not.toContain('model_reasoning_effort="low"')
+    })
+
     it('exports distinct pinned tools with registered configuration adapters', () => {
         expect(builtinCliTools.map(({ id }) => id).sort()).toEqual(
             ['aider', 'claude', 'codebuddy', 'codex', 'kimi', 'opencode', 'qwen'].sort()
@@ -272,6 +283,6 @@ describe('background CLI extensions', () => {
     })
 
     it.each(['codex', 'opencode', 'qwen'])('tracks the %s revision for catalog-based configuration', (id) => {
-        expect(builtinCliModelProfiles.get(id)?.revision).toBe(id === 'codex' ? '6' : '5')
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe(id === 'codex' ? '8' : '5')
     })
 })

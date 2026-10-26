@@ -1,6 +1,7 @@
 import type { IMcpTask, JSONValue, McpApiKeySubjectType, McpTaskStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
+import type { McpTaskControlRecord } from '../control/mcp-task-control.record'
 import { McpPublication } from './mcp-publication.entity'
 
 @Entity('mcp_task')
@@ -78,4 +79,10 @@ export class McpTask extends TenantOrganizationBaseEntity implements IMcpTask {
 
     @Column({ type: 'timestamptz' })
     expiresAt: Date
+
+    @Column({ type: 'jsonb', nullable: true })
+    control: McpTaskControlRecord | null
+
+    @Column({ type: 'timestamptz', nullable: true })
+    nextControlAt: Date | null
 }

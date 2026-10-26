@@ -1,17 +1,19 @@
 import { IUser, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
+import type { XpertChatStreamPersistenceOptions } from '../../xpert/commands/chat.command'
 
 export class ChatCommand implements ICommand {
-	static readonly type = '[Chat] Message'
+    static readonly type = '[Chat] Message'
 
-	constructor(
-		public readonly request: TChatRequest,
-		public readonly options: TChatOptions & {
-			xpertId?: string
-			isDraft?: boolean
-			tenantId: string
-			organizationId: string
-			user: IUser
-		}
-	) {}
+    constructor(
+        public readonly request: TChatRequest,
+        public readonly options: TChatOptions & {
+            xpertId?: string
+            isDraft?: boolean
+            tenantId: string
+            organizationId: string
+            user: IUser
+            streamPersistence?: XpertChatStreamPersistenceOptions
+        }
+    ) {}
 }

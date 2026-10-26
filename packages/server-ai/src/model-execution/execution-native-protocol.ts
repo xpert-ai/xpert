@@ -37,6 +37,22 @@ const anthropicUsage = anthropicInput.extend({ output_tokens: count })
 const object = (value: NativeModelJson | undefined): value is NativeModelBody =>
     !!value && typeof value === 'object' && !Array.isArray(value)
 
+const clientTool = (tool: NativeModelJson) => object(tool) && ['function', 'custom'].includes(String(tool.type))
+function responsesTool(tool: NativeModelJson) {
+    if (clientTool(tool)) return true
+    // Codex 0.159.2 groups client-executed tools in namespaces. A namespace
+    // cannot smuggle hosted operations or recursively nested namespaces through.
+    return (
+        object(tool) &&
+        tool.type === 'namespace' &&
+        typeof tool.name === 'string' &&
+        tool.name.trim().length > 0 &&
+        Array.isArray(tool.tools) &&
+        tool.tools.length > 0 &&
+        tool.tools.every(clientTool)
+    )
+}
+
 function assertInlineInput(value: NativeModelJson, depth = 0) {
     if (depth > 64) throw executionError('Invalid')
     if (Array.isArray(value)) return value.forEach((item) => assertInlineInput(item, depth + 1))
@@ -82,7 +98,7 @@ export function parseNativeRequest(body: unknown, protocol: NativeModelProtocol)
                 (tool) =>
                     !object(tool) ||
                     (protocol === 'openai_responses'
-                        ? !['function', 'custom'].includes(String(tool.type))
+                        ? !responsesTool(tool)
                         : tool.type !== undefined && tool.type !== 'custom')
             )
         )

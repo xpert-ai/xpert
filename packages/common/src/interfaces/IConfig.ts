@@ -42,15 +42,25 @@ export interface IAuthOptions {
 }
 
 export interface IPluginConfig {
+  managedQueueOptions?: {
+    concurrency: number
+    sandboxBrowserConcurrency: number
+    autorun: boolean
+    prefix: string
+  }
   apiConfigOptions: IApiServerOptions
 
   dbConnectionOptions: TypeOrmModuleOptions
 
   plugins?: Array<DynamicModule | Type<any>>
 
+  pluginInstallationOptions?: { timeoutMs: number; lockWaitMs: number }
+
   logger?: ILogger
 
   authOptions?: IAuthOptions
+
+  sandboxJobOptions?: { globalLimit: number; tenantLimit: number; userLimit: number; capacityPollMs: number }
 
   assetOptions?: IAssetOptions
 }

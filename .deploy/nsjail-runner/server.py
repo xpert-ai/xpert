@@ -36,6 +36,20 @@ class RunnerHandler(runner.RunnerHandler):
                 self._write_json(service.health())
                 return
             payload = self._read_json() if method == "POST" else None
+            if parts == ["v1", "compute", "control-environment"] and method == "GET":
+                if service.error or not service.control:
+                    raise runner.RunnerError("Execution control unavailable", 503)
+                self._write_json({"environmentId": service.control.environment})
+                return
+            if len(parts) == 4 and parts[:3] == ["v1", "compute", "controls"] and method == "POST":
+                action = parts[3]
+                if action == "prepare":
+                    self._write_json(service.prepare_control(payload))
+                elif action in ("inspect", "stop", "cleanup"):
+                    self._write_json(service.control_execution(payload, action))
+                else:
+                    raise runner.RunnerError("Route not found", 404)
+                return
             if parts == ["v1", "compute", "jobs"] and method == "POST":
                 job = service.create(payload)
                 self._write_json({"runtimeId": job.identity}, 201)

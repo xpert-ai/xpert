@@ -31,7 +31,7 @@ flowchart LR
     J --> A["SandboxActionRegistry"]
     J --> R["SandboxRuntimeDefinitionRegistry"]
     J --> B["Binding Selector"]
-    J --> L["Redis capacity leases"]
+    J --> L["PostgreSQL capacity ledger"]
     B --> D["Runtime Provider SPI"]
     D --> PR["OSS Local dev / Pro Docker / other Providers"]
     PR --> S["Ephemeral Job Sandbox<br/>Browser Runtime + Action Bundle"]
@@ -124,17 +124,25 @@ The main Core classes preserve those boundaries:
 | `SandboxRuntimeBindingSelector`      | Filters required capabilities and immutable artifacts, checks health, and chooses deterministically by priority.                           |
 | `SandboxRuntimeHealthService`        | Probes API-local Providers, caches short-lived readiness, and publishes expiring Redis evidence for observability.                         |
 | `SandboxJobRuntimeCapabilityService` | Owns idempotency, capacity, materialization, execution, output validation, runtime evidence, cancellation, and cleanup in the API process. |
-| `SandboxJobCapacityService`          | Acquires expiring global/tenant/user leases before Runtime creation and releases them idempotently.                                        |
+| `SandboxJobCapacityService`          | Atomically reserves global/tenant/user capacity before Runtime creation; releases only after actual work and attached descendants settle.  |
 
 ## Job, data, and security model
 
 Every execution uses `workFor: { type: 'job', id }`. `SandboxJob` records Runtime Profile/suite, Action/version, tenant and caller scope, business resource, attempt, Provider, Binding, immutable artifact digest, `runtimeRef`, portable outputs, timestamps, cleanup state, and standardized error evidence. `containerRef` remains read-only compatibility for one release.
 
-Uniqueness on `(tenantId, idempotencyKey)` returns prior successful outputs, reattaches to active work, and lets a later Managed Queue attempt create a new container for failed/lost work. Capacity leases default to 20 global, 4 per tenant, and 2 per user; quota saturation remains `waiting` without creating a container or spending a business retry.
+Uniqueness on `(tenantId, idempotencyKey)` returns prior outputs or observes the original execution. Failed, lost or terminated calls never reopen implicitly. An explicit business retry uses a new key and `retryOf: { jobId, generation }`, and requires the original generation to have actually settled. The PostgreSQL capacity ledger defaults to 20 global, 4 per tenant, and 2 per user; quota saturation remains `waiting` without creating a container or spending a business retry.
+
+## Durable execution control
+
+Before create, the host persists the execution generation, original provider version, environment and runtime target. `cancel()` accepts durable intent and may return `cancelling`; `settling` means a business result exists but actual work is not yet confirmed. Only runtime exit, actual host/callback completion and attached descendant settlement allow a terminal status, `finishedAt` and capacity release. A timeout, 404, missing local handle or expired lease is not exit evidence.
+
+Compensation only inspects or stops the original target. It never recreates the runtime or replays Action input. Real callback promises and writes remain tracked after protocol cancellation. Pause lets already admitted work and required children drain, stores the result, and pauses the outer graph at its safe boundary. Explicit detached/shared policies isolate task lifecycles.
+
+Apply `packages/server-ai/src/sandbox/sandbox-job/migration.sql` and the prerequisite TaskControl migration before enabling this version. Upgrade Host, SDK and Provider/Runner together; old and new workers must not mutate the same Jobs. Legacy active/lost/cleanup-pending records retain unknown state and capacity until verified. Local macOS execution lacks the Linux descendant exit proof; use a verified Linux, Docker or NsJail environment when strong settlement is required.
 
 Inputs are Workspace Files portable references with declared size and SHA-256. The platform rejects cross-tenant references and unsafe paths, materializes the request, ordinary inputs, and Action under the Job-only `/workspace`, runs only the Profile's fixed Runner Host, validates outputs, persists them to declared Workspace destinations, and returns portable references. The 350 MiB aggregate input limit applies to `materialized` inputs; `read-only-seekable` files bypass full-file buffering and use the limits enforced by their owning Action and Runtime resources. The aggregate output limit remains 350 MiB.
 
-Containers enforce non-root execution, read-only root, no-new-privileges, dropped Linux capabilities, job-only writable paths, no public network by default, bounded CPU/memory/shared memory/temp storage, a 300-second action timeout, and 360-second hard deadline. Completion, failure, cancellation, and orphan cleanup reclaim containers and Job volumes.
+Containers enforce non-root execution, read-only root, no-new-privileges, dropped Linux capabilities, job-only writable paths, no public network by default, bounded CPU/memory/shared memory/temp storage, a 300-second action timeout, and 360-second hard deadline. Runtime exit, actual host completion and attached descendant settlement must precede capacity release. Container and volume cleanup is compensated separately.
 
 ## Presentation Studio integration
 
@@ -144,9 +152,9 @@ The export handler loads the immutable deck snapshot and persisted asset referen
 
 ## Health, OSS/Pro boundary, and deployment
 
-Deterministic Action/Profile/version/input/output errors are not retryable. Capacity-service, provider startup, browser launch, timeout, and OOM errors are retryable. Plugins persist user-facing business state and only rethrow runtime errors marked retryable.
+Deterministic Action/Profile/version/input/output errors are not retryable. Capacity-service, provider startup, browser launch, timeout, and OOM errors are retryable. Plugins persist user-facing business state. Retryability describes the fault; it does not authorize replay of the same idempotent call. Queue redelivery reads the original state. A new business attempt explicitly references the settled original generation.
 
-Each API probes all Runtime Definitions immediately and every 15 seconds, caches readiness for 45 seconds, and publishes Redis evidence for observability. `getActionHealth()` uses the API-local probe, while actual execution selects and validates a Binding again. An API with no compatible Binding reports `RUNTIME_UNBOUND`; a registered Provider that cannot enumerate Bindings reports `PROVIDER_UNAVAILABLE`.
+Each API probes all Runtime Definitions immediately and every 15 seconds, caches readiness for 45 seconds, and publishes Redis evidence for observability. `getActionHealth()` uses the API-local probe, while actual execution selects and validates a Binding again. Both require `executionControl: 1` and complete prepare/control methods; legacy providers are ineligible for new controlled Jobs. An API with no compatible Binding reports `RUNTIME_UNBOUND`; a registered Provider that cannot enumerate Bindings reports `PROVIDER_UNAVAILABLE`.
 
 In a source checkout, development/test starts the local browser consumer automatically at concurrency one. Install its pinned browser once with `corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser`; if the artifact, version, or Runner manifest is missing, capability health returns that command as a warning instead of silently disabling exports. This path does not use `CHROME_PATH` and does not make the API image depend on the Runtime Suite package.
 

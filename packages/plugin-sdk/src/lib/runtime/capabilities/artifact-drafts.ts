@@ -23,7 +23,10 @@ export type PublishArtifactDraftInput = {
 }
 export interface ArtifactDraftsApi {
   list(artifactIds: string[]): Promise<ArtifactDraftRecord[]>
-  get(artifactId: string): Promise<ArtifactDraftRecord | null>
+  /** Catalog/recycle-bin reads only; ordinary editors must leave includeArchived unset. */
+  get(artifactId: string, options?: { includeArchived?: boolean }): Promise<ArtifactDraftRecord | null>
+  /** Manager-only CAS lifecycle; recycling revokes all links, restoring never reactivates them. */
+  setRecycled(input: { artifactId: string; expectedRevision: number; recycled: boolean }): Promise<ArtifactDraftRecord>
   save(input: SaveArtifactDraftInput): Promise<ArtifactDraftRecord>
   /** Trusted application action only; never expose this operation as an Agent tool. */
   publish(input: PublishArtifactDraftInput): Promise<ArtifactVersionRecord>

@@ -101,6 +101,23 @@ export class FakeRedis {
 			return 1
 		}
 		if (script.includes('xpert-publish-plugin-generation')) {
+			const expected = options.arguments[3]
+			if (expected !== undefined && expected !== '') {
+				if (((await this.get(options.keys[0])) ?? '0') !== expected) return -1
+				const desired = await this.hGetAll(options.keys[1])
+				const proposed: { requirements: IRuntimePluginRequirement[] } = JSON.parse(options.arguments[0])
+				for (const requirement of proposed.requirements) {
+					const value = desired[JSON.stringify([requirement.scopeKey, requirement.pluginName])]
+					if (!value) return -1
+					const current: IRuntimePluginRequirement = JSON.parse(value)
+					if (
+						current.state !== requirement.state ||
+						current.version !== requirement.version ||
+						current.runtimeRevision !== requirement.runtimeRevision
+					)
+						return -1
+				}
+			}
 			const generationKey = options.keys[0]
 			const generation = Number.parseInt(this.values.get(generationKey) ?? '0', 10) + 1
 			this.values.set(generationKey, `${generation}`)
@@ -239,7 +256,9 @@ export async function createNode(
 	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
 	const lifecycle = new RuntimeLifecycleService()
 	const admission = await runtimePluginAdmissionProvider.useFactory(registry, lifecycle)
-	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission)
+	const admissionMonitor = await runtimeAdmissionMonitorProvider.useFactory(redis, registry, admission, {
+		refresh: async () => undefined
+	})
 	const coordinator = new RuntimeRestartCoordinatorService(
 		redis,
 		signaler,

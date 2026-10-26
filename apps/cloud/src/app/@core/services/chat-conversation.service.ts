@@ -53,11 +53,11 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     )
   }
 
-  getSidebarConversations(xpertId: string, take = 10, skip = 0, archived = false) {
+  getSidebarConversations(xpertId: string, take = 10, skip = 0, archived = false, search = '') {
     return this.selectOrganizationId().pipe(
       switchMap(() =>
         this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + '/my/sidebar', {
-          params: createOptionalQueryParams({ xpertId, take, skip, archived })
+          params: createOptionalQueryParams({ xpertId, take, skip, archived, search: search.trim() || undefined })
         })
       )
     )

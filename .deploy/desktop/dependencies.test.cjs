@@ -46,13 +46,15 @@ test('isolated builds include the shared template client without copying unrelat
   for (const dir of ['dist', 'node_modules', '.local']) write(`libs/template-installation/${dir}/stale.js`)
   write('libs/unrelated/index.ts')
   write('packages/server-ai/src/index.ts')
+  write('packages/plugin-sdk/src/lib/agent/runtime/process-supervisor.ts')
 
   prepare(destination, true, source)
 
   assert.equal(fs.readFileSync(path.join(destination, client), 'utf8'), contents)
   assert.deepEqual(fs.readdirSync(path.join(destination, 'libs')), ['template-installation'])
   assert.deepEqual(fs.readdirSync(path.join(destination, 'libs/template-installation')), ['client.ts'])
-  assert.equal(fs.existsSync(path.join(destination, 'packages/server-ai')), false)
+  for (const dir of ['packages/server-ai', 'packages/plugin-sdk'])
+    assert.equal(fs.existsSync(path.join(destination, dir)), false)
 })
 test('installed Desktop dependencies cannot include the old native PTY dependency', (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-installed-test-'))

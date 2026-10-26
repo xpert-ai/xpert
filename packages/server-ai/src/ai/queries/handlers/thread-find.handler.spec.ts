@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../../../chat-conversation/control-view/read-thread-control-view.query'
 // Keep persistence and request-context boundaries isolated; exercise the real handler, DTO and scope policy.
 jest.mock('../../../chat-conversation', () => ({
     ChatConversationThreadService: class {},
@@ -62,6 +63,7 @@ describe('FindThreadHandler', () => {
         threads.requireByThreadId = jest.fn().mockResolvedValue(thread)
         const queryBus = Object.create(QueryBus.prototype) as QueryBus
         queryBus.execute = jest.fn(async (query: object) => {
+            if (query instanceof ReadThreadControlViewQuery) return { thread, controlView: undefined }
             if (query instanceof CopilotCheckpointGetTupleQuery) {
                 throw new Error('The large checkpoint must not be read')
             }
@@ -184,10 +186,11 @@ describe('FindThreadHandler', () => {
             })
 
             it.each([false, true])('respects assistant family access = %s', async (sameFamily) => {
-                const { handler, conversation, queryBus } = threadFixture()
+                const { handler, conversation, queryBus, thread } = threadFixture()
                 conversation.xpertId = 'assistant-previous'
                 queryBus.execute = jest.fn(async (query: object) => {
                     if (query instanceof AssertChatConversationAccessQuery) return undefined
+                    if (query instanceof ReadThreadControlViewQuery) return { thread, controlView: undefined }
                     if (query instanceof IsPublishedXpertInFamilyQuery) return sameFamily
                     throw new Error('Unexpected query')
                 })

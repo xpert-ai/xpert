@@ -1,4 +1,7 @@
+export * from './task-control.model'
+export * from './execution-control-admission.schema'
 export * from './types'
+export * from './ai/sandbox-execution-control.schema'
 export * from './ai/project-task-graph.model'
 export * from './ai/project-task-type.model'
 export * from './ai/project-task-schedule'
@@ -134,3 +137,11 @@ export * from './artifact-presentation.model'
 export * from './analytics-definition.model'
 
 export * from './data-retention.model'
+export * from './content-resource.model'
+
+export * from './ai/mcp-execution-control.schema'
+
+export * from './ai/thread-control-view.schema'
+export * from './ai/thread-control-projection.model'
+export * from './ai/mcp-operation.model'
+export * from './ai/mcp-task.schema'

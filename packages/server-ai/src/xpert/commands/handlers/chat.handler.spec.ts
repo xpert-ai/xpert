@@ -256,6 +256,42 @@ describe('XpertChatHandler', () => {
         return lastValueFrom(stream.pipe(toArray()))
     }
 
+    it('admits a direct root run before starting a graph that persists recovery checkpoints', async () => {
+        mockSuccessfulSendCommands()
+        const runControl = { start: jest.fn(), finish: jest.fn().mockResolvedValue('idle') }
+        handler = new XpertChatHandler(
+            xpertService as never,
+            assistantBindingService as never,
+            commandBus as never,
+            queryBus as never,
+            goalService as never,
+            publishedXpertAccessService as never,
+            redisSseStreamService as never,
+            projectService as never,
+            undefined,
+            undefined,
+            undefined,
+            runControl as never
+        )
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: { input: { input: 'Update the shared document' } }
+                },
+                { xpertId: 'xpert-1', from: 'debugger' }
+            )
+        )
+        expect(runControl.start).toHaveBeenCalledWith('thread-1', 'execution-1', undefined)
+        await lastValueFrom(stream.pipe(toArray()))
+        const graphCall = commandBus.execute.mock.calls.findIndex(
+            ([command]) => command instanceof XpertAgentChatCommand
+        )
+        expect(runControl.start.mock.invocationCallOrder[0]).toBeLessThan(
+            commandBus.execute.mock.invocationCallOrder[graphCall]
+        )
+    })
+
     it('does not require an Assistant primary model for a knowledge pipeline run', async () => {
         const assistantModelSelectionService = {
             resolveSelection: jest.fn().mockRejectedValue(new Error('Assistant primary model is not configured'))
@@ -555,9 +591,9 @@ describe('XpertChatHandler', () => {
         expect(redisSseStreamService.wrapChatStream).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({
-                target: {
+                target: expect.objectContaining({
                     transport: 'redis-stream'
-                },
+                }),
                 threadId: 'thread-1',
                 runId: 'execution-1'
             })

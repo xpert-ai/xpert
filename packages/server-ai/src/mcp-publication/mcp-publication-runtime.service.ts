@@ -1,3 +1,8 @@
+import { installTaskToolDispatch, PublicationToolCall } from './mcp-task-tool-dispatch'
+import { withMcpPublicationAuthority } from '../mcp-consumer/execution/mcp-operation-authority'
+import { handleMcpTaskProtocol } from './control/mcp-task-protocol.handler'
+import { MCP_EXECUTION_CONTROL_EXTENSION_ID } from '@xpert-ai/contracts'
+import { operationFromContext } from './control/mcp-control.protocol'
 import { parseMcpRuntimeConfiguration } from './mcp-runtime-configuration'
 import { McpLegacySessions } from './mcp-legacy-sessions'
 import { legacyPublicationContext, startLegacyInvocationAudit } from './mcp-legacy-publication-context'
@@ -325,7 +330,12 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
             requestState: { verify: elicitationCodec.verify }
         })
         if (capabilities.some(protocol.isTaskToolCapability)) {
-            server.server.registerCapabilities({ extensions: { [MCP_TASK_EXTENSION_ID]: {} } })
+            server.server.registerCapabilities({
+                extensions: {
+                    [MCP_TASK_EXTENSION_ID]: {},
+                    [MCP_EXECUTION_CONTROL_EXTENSION_ID]: { version: 1, serverId: publication.id }
+                }
+            })
         }
         const apps = new Map(
             capabilities.flatMap((capability) =>
@@ -334,22 +344,25 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                     : []
             )
         )
+        const toolCalls: PublicationToolCall[] = []
         for (const capability of capabilities) {
             const descriptor = capability.descriptorSnapshot
             switch (descriptor.capabilityType) {
                 case 'tool':
-                    registerTool(
-                        registration,
-                        server,
-                        publication,
-                        principal,
-                        capability,
-                        descriptor,
-                        apps,
-                        capabilities,
-                        elicitationCodec,
-                        requestId,
-                        traceId
+                    toolCalls.push(
+                        registerTool(
+                            registration,
+                            server,
+                            publication,
+                            principal,
+                            capability,
+                            descriptor,
+                            apps,
+                            capabilities,
+                            elicitationCodec,
+                            requestId,
+                            traceId
+                        )
                     )
                     break
                 case 'resource':
@@ -374,6 +387,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                     break
             }
         }
+        installTaskToolDispatch(server, toolCalls)
         if (capabilities.some(protocol.supportsCompletion)) {
             server.server.registerCapabilities({ completions: {} })
             server.server.setRequestHandler('completion/complete', async (request) => {
@@ -520,6 +534,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                         arguments: args,
                         requestId,
                         rpcRequestId: context.mcpReq.id,
+                        operation: operationFromContext(context),
                         executionId: elicitation.executionId,
                         traceId,
                         appResourceUri: appMeta?.ui.resourceUri,
@@ -530,32 +545,34 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                     return task
                 }
             }
-            const result = await this.toolRuntime.executeTool({
-                source: 'mcp',
-                mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
-                principal: {
-                    type: principal.subjectType,
-                    id: principal.subjectId,
-                    userId: principal.userId,
-                    clientId: principal.clientId
-                },
-                tenantId: publication.tenantId,
-                organizationId: principal.organizationId ?? publication.organizationId ?? null,
-                toolsetId: capability.toolsetId,
-                toolName: capability.capabilityKey,
-                serverName: descriptor.source.serverName,
-                remoteName: descriptor.source.remoteName,
-                remoteTaskMode: descriptor.taskMode,
-                arguments: args,
-                executionId: elicitation.executionId,
-                requestId,
-                traceId,
-                signal: capability.policy?.timeoutMs ? AbortSignal.timeout(capability.policy.timeoutMs) : undefined,
-                host: {
-                    input: elicitation.input,
-                    events: this.subscriptions.eventsApi(publication.id, capabilities)
-                }
-            })
+            const result = await withMcpPublicationAuthority(principal, () =>
+                this.toolRuntime.executeTool({
+                    source: 'mcp',
+                    mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
+                    principal: {
+                        type: principal.subjectType,
+                        id: principal.subjectId,
+                        userId: principal.userId,
+                        clientId: principal.clientId
+                    },
+                    tenantId: publication.tenantId,
+                    organizationId: principal.organizationId ?? publication.organizationId ?? null,
+                    toolsetId: capability.toolsetId,
+                    toolName: capability.capabilityKey,
+                    serverName: descriptor.source.serverName,
+                    remoteName: descriptor.source.remoteName,
+                    remoteTaskMode: descriptor.taskMode,
+                    arguments: args,
+                    executionId: elicitation.executionId,
+                    requestId,
+                    traceId,
+                    signal: capability.policy?.timeoutMs ? AbortSignal.timeout(capability.policy.timeoutMs) : undefined,
+                    host: {
+                        input: elicitation.input,
+                        events: this.subscriptions.eventsApi(publication.id, capabilities)
+                    }
+                })
+            )
             await this.audit.succeeded(audit, startedAt)
             return protocol.toMcpCallToolResult(result, appMeta)
         } catch (error) {
@@ -568,53 +585,14 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
         }
     }
 
-    private async handleTaskProtocolRequest(
+    private handleTaskProtocolRequest(
         publication: McpPublication,
         principal: McpPrincipal,
         request: Request,
         response: Response,
         body: unknown
     ) {
-        const method = protocol.taskProtocolMethod(body)
-        if (!method) return false
-        const id = protocol.jsonRpcId(body)
-        try {
-            protocol.assertModernTaskExtensionRequest(request, body)
-            const params = protocol.taskProtocolParams(body)
-            if (!params) throw protocol.invalidTaskProtocolRequest()
-            protocol.assertTaskRoutingHeaders(request, method, params.taskId)
-            const result =
-                method === 'tasks/get'
-                    ? await this.tasks.get(publication, principal, params.taskId)
-                    : method === 'tasks/update'
-                      ? await this.tasks.update(publication, principal, params.taskId, params.inputResponses)
-                      : await this.tasks.cancel(publication, principal, params.taskId)
-            response.status(200).json({
-                jsonrpc: '2.0',
-                id,
-                result: protocol.withMcpServerInfo(result, publication)
-            })
-        } catch (error) {
-            const protocolError =
-                error instanceof McpTaskProtocolError
-                    ? error
-                    : new McpTaskProtocolError(
-                          -32603,
-                          t('server-ai:Error.McpTaskRequestFailed', {
-                              defaultValue: 'The MCP task request failed.'
-                          })
-                      )
-            response.status(200).json({
-                jsonrpc: '2.0',
-                id,
-                error: {
-                    code: protocolError.code,
-                    message: protocolError.message,
-                    ...(protocolError.data === undefined ? {} : { data: protocolError.data })
-                }
-            })
-        }
-        return true
+        return handleMcpTaskProtocol(this.tasks, this.publications, publication, principal, request, response, body)
     }
 
     private async handleTaskSubscriptionRequest(

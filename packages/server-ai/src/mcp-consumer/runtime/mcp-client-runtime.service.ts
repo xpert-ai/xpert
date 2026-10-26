@@ -48,7 +48,8 @@ export class McpClientRuntimeService implements McpClientRuntimeApi {
                 session.scope.signal,
                 async () => {
                     throw new Error('MCP_CLIENT_INTERACTION_REQUIRED')
-                }
+                },
+                request.operationKey
             )
             boundedJson(response, 2_500_000)
             if (response.isError) throw new Error('MCP_CLIENT_TOOL_ERROR')

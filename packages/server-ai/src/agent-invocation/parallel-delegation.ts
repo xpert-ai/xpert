@@ -9,7 +9,7 @@ import { t } from 'i18next'
 import z from 'zod'
 import type { ToolCallHandler, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import { AgentStateAnnotation } from '../shared/agent/state'
-import { ExecutionCancelledError } from '../shared/execution/execution-cancelled.error'
+import { ExecutionCancelledError } from '../execution-control/execution-cancelled.error'
 import { AgentInvocationAuthorizationError, AgentInvocationError } from './invocation-errors'
 import { invocationError } from './invocation-runtime'
 

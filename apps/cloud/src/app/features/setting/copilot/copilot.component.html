@@ -1,46 +1,10 @@
 <div class="xp-page-header">
   <div class="xp-page-title">{{ 'XP.Copilot.AICopilot' | translate: { Default: 'AI Copilot' } }}</div>
-
-  <nav
-    z-tab-nav-bar
-    class="xp-tab-nav-bar"
-    zSize="default"
-    color="accent"
-    alignTabs="start"
-    stretchTabs="false"
-    disableRipple
-    [tabPanel]="tabPanel"
-  >
-    <span
-      z-tab-link
-      [routerLink]="['./basic']"
-      routerLinkActive
-      #rla1="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla1.isActive"
-    >
-      <z-icon class="mr-1" zType="generating_tokens"></z-icon>
-      {{ 'XP.KEY_WORDS.Basic' | translate: { Default: 'Basic' } }}
-    </span>
-    @if (monitoringEnabled()) {
-      <span z-tab-link [routerLink]="['./overview']" routerLinkActive #rla2="routerLinkActive" [active]="rla2.isActive">
-        <z-icon class="mr-1" zType="monitoring"></z-icon>
-        {{ 'XP.Copilot.Overview' | translate: { Default: 'Overview' } }}
-      </span>
-      @if (canMonitorUsage()) {
-        <span z-tab-link [routerLink]="['./usage']" routerLinkActive #rla4="routerLinkActive" [active]="rla4.isActive">
-          <z-icon class="mr-1" zType="data_usage"></z-icon>
-          {{ 'XP.Copilot.UsageCenter' | translate: { Default: 'Usage Center' } }}
-        </span>
-      }
-    }
-  </nav>
 </div>
 
-<z-tab-nav-panel
-  #tabPanel
+<div
   class="xp-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
 >
   <router-outlet #o="outlet"></router-outlet>
-</z-tab-nav-panel>
+</div>

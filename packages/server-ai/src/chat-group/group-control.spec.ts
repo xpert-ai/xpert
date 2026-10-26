@@ -1,3 +1,5 @@
+import { ExecutionControlEvidence, unknownExecutionControl } from '@xpert-ai/contracts'
+import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '@xpert-ai/plugin-sdk'
@@ -84,9 +86,15 @@ async function fixture() {
     const control = { requestPause: jest.fn().mockResolvedValue(undefined) }
     const commands = { execute: jest.fn().mockResolvedValue(undefined) }
     const outbox = { flush: jest.fn().mockResolvedValue(undefined) }
+    const evidence = {
+        read: jest.fn<Promise<ExecutionControlEvidence>, [string, unknown]>(async (id) =>
+            unknownExecutionControl({ kind: 'execution', id })
+        )
+    }
     const module = await Test.createTestingModule({
         providers: [
             GroupControlService,
+            { provide: ExecutionControlEvidenceService, useValue: evidence },
             {
                 provide: DataSource,
                 useValue: {
@@ -108,6 +116,7 @@ async function fixture() {
         ]
     }).compile()
     return {
+        evidence,
         service: module.get(GroupControlService),
         group,
         actor,
@@ -133,6 +142,39 @@ async function fixture() {
 }
 
 describe('group runtime controls', () => {
+    it('reports accepted control separately from the original member execution completion', async () => {
+        const f = await fixture()
+        const proof: ExecutionControlEvidence = {
+            version: 1,
+            source: 'platform',
+            subject: { kind: 'execution', id: f.runId },
+            scope: 'owned_subtree',
+            state: 'terminating',
+            desired: 'terminated',
+            taskId: f.runId,
+            rootId: f.runId,
+            revision: 2,
+            executionId: f.runId,
+            threadId: f.member.runtimeThreadId,
+            observedAt: new Date().toISOString()
+        }
+        f.evidence.read.mockResolvedValue(proof)
+        expect(await f.service.act(f.group.id, f.member.id, { action: 'cancel', runId: f.runId })).toMatchObject({
+            accepted: true,
+            controlEvidence: { state: 'terminating' }
+        })
+        expect(f.evidence.read).toHaveBeenCalledWith(f.runId, expect.any(Object))
+        f.evidence.read.mockResolvedValue({ ...proof, state: 'settled' })
+        expect(await f.service.act(f.group.id, f.member.id, { action: 'cancel', runId: f.runId })).toMatchObject({
+            accepted: true,
+            controlEvidence: { state: 'settled' }
+        })
+        expect(f.receipts.update).toHaveBeenCalledWith(
+            expect.objectContaining({ groupId: f.group.id, participantId: f.member.id }),
+            expect.any(Object)
+        )
+    })
+
     it('delegates pause to the existing control service after member and Assistant authorization', async () => {
         const { service, group, member, runId, members, access, control, groups, commands, outbox } = await fixture()
         await service.act(group.id, member.id, { action: 'pause', runId })

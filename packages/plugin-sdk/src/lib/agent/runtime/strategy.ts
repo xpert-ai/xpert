@@ -16,6 +16,13 @@ import type {
 
 /** Trusted per-operation host context, independent of graph and provider transport details. */
 export interface AgentRuntimeContext {
+  /** Original host-assigned attempt; include it in version 2 completion evidence. */
+  settlement?: {
+    status: 'succeeded' | 'failed' | 'cancelled'
+    result?: AgentRuntimeObservation['result']
+    error?: string
+  }
+  executionTarget?: import('@xpert-ai/contracts').ExecutionRuntimeTarget
   /** Durable host invocation ID used to correlate provider receipts. */
   invocationId: string
   scope: Readonly<AgentInvocationScope>
@@ -43,6 +50,16 @@ export interface AgentRuntimeStart {
  * keep per-invocation state isolated. The host owns authorization and persistence.
  */
 export interface IAgentRuntimeStrategy {
+  /** Built-in transport presets. Declared by installed code; the host still enforces caller access. */
+  readonly managedProfiles?: readonly import('./managed').ManagedAgentRuntimeProfile[]
+  /** Read-only resolution from this strategy's dependencies/connections; never launch or grant access here.
+   * Return undefined when unavailable. The host supplies an already authorized, immutable caller scope.
+   * Keep settings stable for a given deployment; changing them invalidates existing bindings.
+   */
+  resolveManagedDeployment?(
+    reference: string,
+    scope: Readonly<AgentInvocationScope>
+  ): Promise<import('./managed').AgentRuntimeDeploymentSpec | undefined>
   /** Support flags must agree with the optional methods implemented below. */
   readonly capabilities: AgentRuntimeCapabilities
   /** Launch or recover approved work; checkpoint the handle as soon as it is known. */

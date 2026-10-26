@@ -1,3 +1,4 @@
+import { supportsWorkbenchView } from './fixed-views'
 import { initiallyOpenViews } from './fixed-views'
 import { parseWorkbenchViewOpenEvent } from '@xpert-ai/contracts'
 
@@ -24,5 +25,31 @@ describe('on-demand Workbench Views', () => {
     expect(parseWorkbenchViewOpenEvent({ ...event, projectId: null })).toBeNull()
     expect(parseWorkbenchViewOpenEvent({ ...event, type: 'tool.end' })).toBeNull()
     expect(parseWorkbenchViewOpenEvent({ ...event, parameters: { value: {} } })).toBeNull()
+  })
+})
+
+describe('Workbench renderer command ownership', () => {
+  it('leaves embedded required commands to ChatKit while retaining legacy filtering', () => {
+    const legacySupports = jest.fn(() => false)
+    const manifest = {
+      key: 'spaces',
+      title: 'Spaces',
+      hostType: 'agent' as const,
+      slot: 'agent.workbench',
+      source: { provider: 'spaces' },
+      dataSource: { mode: 'platform' as const },
+      clientCommands: [{ key: 'workbench.content.resolve', required: true }],
+      view: {
+        type: 'remote_component' as const,
+        runtime: 'react' as const,
+        protocolVersion: 1 as const,
+        component: { isolation: 'iframe' as const, entry: 'spaces' },
+        dataSource: { mode: 'platform' as const }
+      }
+    }
+    expect(supportsWorkbenchView(manifest, legacySupports)).toBe(true)
+    expect(legacySupports).not.toHaveBeenCalled()
+    expect(supportsWorkbenchView({ ...manifest, view: { type: 'table' } }, legacySupports)).toBe(false)
+    expect(legacySupports).toHaveBeenCalledTimes(1)
   })
 })

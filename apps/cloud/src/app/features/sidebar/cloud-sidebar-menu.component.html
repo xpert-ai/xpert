@@ -1,22 +1,54 @@
 <div class="cloud-sidebar-menu" [class.is-collapsed]="collapsed()">
   @for (group of groups(); track group.key) {
     <section class="cloud-sidebar-menu__group" [attr.data-group]="group.key">
-      @if (!collapsed()) {
-        <div class="cloud-sidebar-menu__group-label">
-          {{ group.titleKey | translate: { Default: group.titleDefault } }}
-        </div>
-      }
-
-      <ul class="cloud-sidebar-menu__list">
-        @for (entry of group.entries; track trackMenuEntry($index, entry)) {
-          <li
-            [class]="
-              entry.item
-                ? 'cloud-sidebar-menu__entry'
-                : 'cloud-sidebar-menu__entry cloud-sidebar-menu__assistants-entry'
-            "
-          >
-            @if (entry.item; as item) {
+      @if (group.key === 'work') {
+        <button
+          type="button"
+          class="cloud-sidebar-menu__item"
+          [class.is-active]="bosiActive()"
+          aria-label="Bosi"
+          data-sidebar-panel-title="Bosi"
+          [xpSidebarPanelTrigger]="bosiPanel"
+          xpSidebarPanelKey="bosi"
+          (panelSelected)="openBosi($event)"
+        >
+          <span class="cloud-sidebar-menu__icon"><z-icon zType="ri-home-5-line" /></span>
+          @if (!collapsed()) {
+            <span class="cloud-sidebar-menu__title">Bosi</span>
+          }
+        </button>
+        <ng-template #bosiPanel let-query>
+          @for (item of group.items; track trackMenuItem($index, item)) {
+            @if (visibleChildren(item).length) {
+              <h3 class="mb-1 mt-4 px-3 text-sm font-medium text-muted-foreground">
+                {{ 'XP.Sidebar.Resources' | translate }}
+              </h3>
+              @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
+                @if (matchesQuery(child, query)) {
+                  <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: child }" />
+                }
+              }
+            } @else if (matchesQuery(item, query)) {
+              <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: item }" />
+            }
+          }
+          <xp-cloud-sidebar-recent-tasks [panelMode]="true" [query]="query" />
+        </ng-template>
+        <xp-cloud-sidebar-assistants
+          class="cloud-sidebar-menu__assistant-list"
+          [collapsed]="collapsed()"
+          [enabled]="group.items.length > 0"
+          [embedded]="true"
+        />
+      } @else {
+        @if (!collapsed()) {
+          <div class="cloud-sidebar-menu__group-label">
+            {{ group.titleKey | translate: { Default: group.titleDefault } }}
+          </div>
+        }
+        <ul class="cloud-sidebar-menu__list">
+          @for (item of group.items; track trackMenuItem($index, item)) {
+            <li class="cloud-sidebar-menu__entry">
               @if (item.data.sidebarSection === 'projects') {
                 <xp-cloud-sidebar-projects
                   [collapsed]="collapsed()"
@@ -29,132 +61,66 @@
                   [active]="isActive(item)"
                   (clicked)="clicked.emit()"
                 />
-              } @else if (collapsed() && visibleChildren(item).length) {
+              } @else if (isExternalLink(item)) {
                 <button
                   type="button"
                   class="cloud-sidebar-menu__item"
-                  [class.is-active]="isActive(item)"
-                  [attr.aria-label]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
-                  [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
-                  z-menu
-                  zTrigger="hover"
-                  zPlacement="rightTop"
-                  [zMenuTriggerFor]="submenu"
+                  [attr.aria-label]="menuTitleKey(item) | translate: { Default: item.title }"
+                  [title]="menuTitleKey(item) | translate: { Default: item.title }"
+                  (click)="openExternalLink(item)"
                 >
-                  <span class="cloud-sidebar-menu__icon">
-                    @if (item.icon) {
-                      <z-icon [zType]="item.icon" />
-                    }
-                  </span>
+                  <span class="cloud-sidebar-menu__icon"><z-icon [zType]="item.icon" /></span>
+                  @if (!collapsed()) {
+                    <span class="cloud-sidebar-menu__title">{{
+                      menuTitleKey(item) | translate: { Default: item.title }
+                    }}</span>
+                    <i class="ri-external-link-line cloud-sidebar-menu__external"></i>
+                  }
                 </button>
-
-                <ng-template #submenu>
-                  <div z-menu-content class="cloud-sidebar-menu__flyout">
-                    <div class="cloud-sidebar-menu__flyout-title">
-                      {{ menuTitleKey(item) | translate: { Default: menuTitleDefault(item) } }}
-                    </div>
-                    @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
-                      <button
-                        type="button"
-                        z-menu-item
-                        class="cloud-sidebar-menu__flyout-item"
-                        [class.is-active]="isMenuItemActive(child, child.pathMatch !== 'prefix')"
-                        [routerLink]="routerLinkFor(child)"
-                        (click)="onChildClick($event, child)"
-                      >
-                        @if (child.icon) {
-                          <z-icon class="cloud-sidebar-menu__flyout-icon" [zType]="child.icon" />
-                        }
-                        <span>{{ menuTitleKey(child) | translate: { Default: menuTitleDefault(child) } }}</span>
-                      </button>
-                    }
-                  </div>
-                </ng-template>
               } @else {
                 <button
                   type="button"
                   class="cloud-sidebar-menu__item"
                   [class.is-active]="isActive(item)"
-                  [class.has-children]="visibleChildren(item).length"
-                  [attr.aria-expanded]="visibleChildren(item).length ? isExpanded(item) : null"
-                  [routerLink]="routerLinkFor(item)"
-                  [zTooltip]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
-                  [attr.data-onboarding-target]="item.data?.onboardingTarget || null"
-                  zPosition="right"
-                  [zDisabled]="!collapsed()"
-                  (click)="onMenuClick($event, item)"
+                  [attr.aria-label]="menuTitleKey(item) | translate: { Default: item.title }"
+                  [attr.data-sidebar-panel-title]="menuTitleKey(item) | translate: { Default: item.title }"
+                  [attr.data-onboarding-target]="item.data.onboardingTarget || null"
+                  [xpSidebarPanelTrigger]="modulePanel"
+                  [xpSidebarPanelKey]="item.data.panel || item.link"
+                  (panelSelected)="openPrimaryMenu($event, item)"
                 >
-                  <span class="cloud-sidebar-menu__icon">
-                    @if (item.icon) {
-                      <z-icon [zType]="item.icon" />
-                    }
-                  </span>
-
+                  <span class="cloud-sidebar-menu__icon"><z-icon [zType]="item.icon" /></span>
                   @if (!collapsed()) {
-                    <span class="cloud-sidebar-menu__content">
-                      <span class="cloud-sidebar-menu__title">
-                        {{ menuTitleKey(item) | translate: { Default: menuTitleDefault(item) } }}
-                      </span>
-                      @if (menuSubtitle(item)) {
-                        <span class="cloud-sidebar-menu__subtitle">
-                          {{ menuSubtitleKey(item) | translate: { Default: menuSubtitle(item) } }}
-                        </span>
-                      }
-                    </span>
-
-                    @if (menuBadge(item); as badge) {
-                      <span class="cloud-sidebar-menu__badge">{{ badge }}</span>
-                    }
-
-                    @if (visibleChildren(item).length) {
-                      <i
-                        class="ri-arrow-right-s-line cloud-sidebar-menu__chevron"
-                        [class.is-open]="isExpanded(item)"
-                      ></i>
-                    } @else if (isExternalLink(item)) {
-                      <i class="ri-external-link-line cloud-sidebar-menu__external"></i>
-                    }
+                    <span class="cloud-sidebar-menu__title">{{
+                      menuTitleKey(item) | translate: { Default: item.title }
+                    }}</span>
                   }
                 </button>
+                <ng-template #modulePanel let-query>
+                  <xp-sidebar-module-panel [menu]="item" [query]="query" />
+                </ng-template>
               }
-
-              @if (!collapsed() && visibleChildren(item).length && isExpanded(item)) {
-                <ul class="cloud-sidebar-menu__submenu">
-                  @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
-                    <li>
-                      <button
-                        type="button"
-                        class="cloud-sidebar-menu__subitem"
-                        [class.is-active]="isMenuItemActive(child, child.pathMatch !== 'prefix')"
-                        [routerLink]="routerLinkFor(child)"
-                        [attr.data-onboarding-target]="child.data?.onboardingTarget || null"
-                        (click)="onChildClick($event, child)"
-                      >
-                        @if (child.icon) {
-                          <z-icon class="cloud-sidebar-menu__subitem-icon" [zType]="child.icon" />
-                        }
-                        <span class="cloud-sidebar-menu__subitem-title">
-                          {{ menuTitleKey(child) | translate: { Default: menuTitleDefault(child) } }}
-                        </span>
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
-            } @else if (group.key === 'work') {
-              <div class="cloud-sidebar-menu__assistant-stack">
-                <xp-cloud-sidebar-recent-tasks [collapsed]="collapsed()" />
-                <xp-cloud-sidebar-assistants
-                  class="cloud-sidebar-menu__assistant-list"
-                  [collapsed]="collapsed()"
-                  [enabled]="group.items.length > 0"
-                  [embedded]="true"
-                />
-              </div>
-            }
-          </li>
-        }
-      </ul>
+            </li>
+          }
+        </ul>
+      }
     </section>
   }
 </div>
+
+<ng-template #bosiItem let-item>
+  <button
+    type="button"
+    class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    [class]="isActive(item) ? 'bg-components-list-option-active-bg font-medium text-text-primary!' : ''"
+    [routerLink]="routerLinkFor(item)"
+    [attr.data-onboarding-target]="item.data.onboardingTarget || null"
+    data-sidebar-panel-action
+    (click)="onMenuClick($event, item)"
+  >
+    @if (item.icon) {
+      <z-icon class="size-[18px] text-[18px]" [zType]="item.icon" />
+    }
+    <span class="truncate">{{ menuTitleKey(item) | translate: { Default: item.title } }}</span>
+  </button>
+</ng-template>

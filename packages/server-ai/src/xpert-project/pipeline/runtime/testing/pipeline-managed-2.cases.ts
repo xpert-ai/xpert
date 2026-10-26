@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { projectPipelineConfigurationSchema, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ProjectAccessRuntimeService } from '../../../services/project-access-runtime.service'
+import type { XpertProjectAccessService } from '../../../services/project-access.service'
 import { XpertProjectTaskExecution } from '../../../entities/project-task-execution.entity'
 import { XpertProject } from '../../../entities/project.entity'
 import {
@@ -19,7 +20,10 @@ import { managedPipelineFixture } from './pipeline-managed.fixture'
 
 export function registerManagedCases2(fixture: ReturnType<typeof managedPipelineFixture>) {
     it('runs interactive user work without an allowlist and rechecks live Project access in the worker', async () => {
-        const access = new ProjectAccessRuntimeService(fixture.db.getRepository(XpertProject))
+        const assistantAccess = {
+            assertCanReadXpert: jest.fn().mockRejectedValue(new Error('Unexpected Assistant access lookup'))
+        } as unknown as XpertProjectAccessService
+        const access = new ProjectAccessRuntimeService(fixture.db.getRepository(XpertProject), assistantAccess)
         fixture.access.assertEdit.mockImplementation((input) => access.assertEdit(input))
         fixture.access.assertManage.mockImplementation((input) => access.assertManage(input))
         await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, {

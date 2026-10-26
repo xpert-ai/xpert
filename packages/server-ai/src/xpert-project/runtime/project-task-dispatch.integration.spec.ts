@@ -1,3 +1,4 @@
+import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
 import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
@@ -148,9 +149,17 @@ integration('explicit task delegation / PostgreSQL', () => {
     let input: ProjectTaskDispatchInput
     const start = jest.fn<Promise<AgentRuntimeObservation>, Parameters<IAgentRuntimeStrategy['start']>>()
     const strategy: IAgentRuntimeStrategy = {
-        capabilities: { recovery: 'session', interactions: false, cancellation: true, background: true },
+        capabilities: {
+            completionEvidence: 1,
+            recovery: 'session',
+            interactions: false,
+            cancellation: true,
+            background: true
+        },
         start,
-        inspect: jest.fn(async () => ({ status: 'running' as const })),
+        inspect: jest
+            .fn<ReturnType<IAgentRuntimeStrategy['inspect']>, Parameters<IAgentRuntimeStrategy['inspect']>>()
+            .mockResolvedValue({ status: 'running' }),
         cancel: jest.fn(async () => ({ status: 'cancelled' as const }))
     }
     const context = Object.assign(
@@ -193,9 +202,11 @@ integration('explicit task delegation / PostgreSQL', () => {
             "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(),
             status varchar, "runControl" jsonb, error varchar, operation jsonb, metadata jsonb DEFAULT '{}', "encryptedRunContext" varchar);
             CREATE TABLE chat_conversation (id uuid PRIMARY KEY, purpose varchar, "threadId" varchar, "projectId" uuid, "tenantId" uuid, "organizationId" uuid,
-            "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, operation jsonb);
+            "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, error varchar, operation jsonb);
             CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar,
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
+        await database.query(readFileSync(join(__dirname, '../../execution-control/migration.sql'), 'utf8'))
+        await database.query(readFileSync(join(__dirname, '../../../../server/src/task-control/migration.sql'), 'utf8'))
         await database.query(migration)
         const reliable = readFileSync(
             join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),
@@ -314,6 +325,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             query,
             new AgentInvocationRuntime(store, registry),
             capabilities,
+            { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
             database.getRepository(AgentInvocationEntity)
         )
         cards = new ProjectTaskCardProvider(
@@ -492,7 +504,25 @@ integration('explicit task delegation / PostgreSQL', () => {
     it('persists cancellation confirmation separately and permits an explicit new attempt afterward', async () => {
         const first = await service.dispatch(scope.projectId, input, caller)
         const cancelled = await factory.createCapturedApi(scope).cancel(first.invocationId)
-        expect(cancelled.status).toBe('cancelled')
+        expect(cancelled.status).toBe('cancelling')
+        await expect(service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)).rejects.toThrow()
+        expect(start).toHaveBeenCalledTimes(1)
+        jest.mocked(strategy.inspect).mockImplementationOnce(async (handle, context) => ({
+            status: 'cancelled',
+            controlEvidence: {
+                version: 1,
+                source: 'provider',
+                subject: { kind: 'invocation', id: context.invocationId },
+                scope: 'operation',
+                state: 'settled',
+                outcome: 'cancelled',
+                sessionId: handle.sessionId,
+                runId: handle.runId,
+                receiptKey: 'actual-exit',
+                observedAt: new Date().toISOString()
+            }
+        }))
+        expect((await factory.createCapturedApi(scope).inspect(first.invocationId)).status).toBe('cancelled')
         const second = await service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)
         expect(second.invocationId).not.toBe(first.invocationId)
         expect(start).toHaveBeenCalledTimes(2)

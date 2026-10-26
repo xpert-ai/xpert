@@ -1,3 +1,4 @@
+import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 // Exercise HTTP -> CQRS -> handler -> DTO; isolate persistence and credential verification.
 jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
@@ -137,6 +138,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
         const queryBus = module.get(QueryBus)
         const execute = queryBus.execute.bind(queryBus)
         jest.spyOn(queryBus, 'execute').mockImplementation(async (query: object) => {
+            if (query instanceof ReadThreadControlViewQuery) return { thread, controlView: undefined }
             if (query instanceof CopilotCheckpointGetTupleQuery) return checkpointRead(query)
             if (query instanceof AssertChatConversationAccessQuery) {
                 if (!exists) throw new NotFoundException()

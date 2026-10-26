@@ -8,9 +8,15 @@ import {
 import { firstValueFrom } from 'rxjs'
 import type { ViewExtensionApiService } from '../../../@core/services/view-extension-api.service'
 import { canRenderViewInChatkit, findResolvedViewByKey } from './conversation-detail/workspace/fixed-views'
-import type { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
+import type { ClawXpertWorkbenchViewUrlState, WorkbenchViewLayout } from './clawxpert-workbench-view-url-state.service'
 
-/** Prefer ChatKit for supported Views, retaining the outer renderer for legacy schemas. */
+// ChatKit 0.19's published types predate optional layout notifications.
+// Keep the newer source contract compatible at the embedding boundary.
+type LayoutAwareNavigation = ChatKitWorkbenchNavigation & {
+  view: (NonNullable<ChatKitWorkbenchNavigation['view']> & { layout?: WorkbenchViewLayout }) | null
+}
+
+/** ChatKit owns rendering; the host authorizes and persists View navigation. */
 export function createChatkitWorkbenchNavigation(options: {
   assistantId: () => string | null
   projectId: () => string | null
@@ -18,17 +24,27 @@ export function createChatkitWorkbenchNavigation(options: {
   defaultViewKey: () => string | null
   isChatkitView: (key: string | null) => boolean
   views: Pick<ViewExtensionApiService, 'getSlotViews'>
-  url: Pick<ClawXpertWorkbenchViewUrlState, 'viewKey' | 'viewQuery' | 'projectId' | 'viewClosed' | 'setViewState'>
+  url: Pick<
+    ClawXpertWorkbenchViewUrlState,
+    'viewKey' | 'viewQuery' | 'viewLayout' | 'projectId' | 'viewClosed' | 'setViewState'
+  >
   selectProject: (projectId: string, view?: WorkbenchExtensionViewOpenRequest) => Promise<boolean> | void
 }) {
   let revision = 0
-  const state = computed<ChatKitWorkbenchNavigation>(() => {
+  const state = computed<LayoutAwareNavigation>(() => {
     const viewKey = options.url.viewKey() ?? (options.url.viewClosed() ? null : options.defaultViewKey())
     return {
       // Legacy deep links carry a separately scoped Project; never apply that
       // query to the current session before its destination has been authorized.
       projectId: options.url.projectId() ?? options.projectId(),
-      view: viewKey && options.isChatkitView(viewKey) ? { viewKey, ...options.url.viewQuery() } : null
+      view:
+        viewKey && options.isChatkitView(viewKey)
+          ? {
+              viewKey,
+              ...options.url.viewQuery(),
+              ...(options.url.viewLayout() ? { layout: options.url.viewLayout()! } : {})
+            }
+          : null
     }
   })
 
@@ -85,16 +101,14 @@ export function createChatkitWorkbenchNavigation(options: {
     return options.url.setViewState(manifest.key, viewQuery(view))
   }
 
-  const onNavigationChange = async (navigation: ChatKitWorkbenchNavigation) => {
+  const onNavigationChange = async (navigation: LayoutAwareNavigation) => {
     if (navigation.projectId !== options.projectId() || options.url.projectId()) return
     if (navigation.view && !options.isChatkitView(navigation.view.viewKey)) return
-    // Closing the embedded panel must not erase another plugin's outer View URL.
-    if (!navigation.view && options.url.viewKey() && !options.isChatkitView(options.url.viewKey())) return
     revision++
     await options.url.setViewState(
       navigation.view?.viewKey ?? null,
       navigation.view ? viewQuery(navigation.view) : null,
-      { closed: !navigation.view }
+      { closed: !navigation.view, ...(navigation.view?.layout ? { layout: navigation.view.layout } : {}) }
     )
   }
   return { state, openProject, openView, onNavigationChange }

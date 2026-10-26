@@ -286,6 +286,10 @@ export class XpertProjectApiService {
       .pipe(tap(() => this.#projectsChanged.next()))
   }
 
+  deleteProject(id: string) {
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}`).pipe(tap(() => this.#projectsChanged.next()))
+  }
+
   plans(id: string) {
     return this.#http.get<IXpertProjectPlan[]>(`${API_XPERT_PROJECT}/${id}/plans`)
   }

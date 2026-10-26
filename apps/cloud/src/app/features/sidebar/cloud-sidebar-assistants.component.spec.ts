@@ -30,7 +30,7 @@ import {
 } from './cloud-sidebar-assistants.utils'
 
 jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
-  const { Directive, Input } = jest.requireActual('@angular/core')
+  const { Directive, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
 
   @Directive({
     standalone: true,
@@ -42,6 +42,7 @@ jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', (
     @Input('xpAssistantProfile') instanceId?: string
     @Input() summary?: unknown
     @Input() zPlacement?: string
+    @Output() profileVisibleChange = new EventEmitter<boolean>()
     open = jest.fn()
   }
 

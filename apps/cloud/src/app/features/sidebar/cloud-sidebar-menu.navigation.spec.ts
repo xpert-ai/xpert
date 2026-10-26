@@ -1,6 +1,8 @@
+import { TranslateModule } from '@ngx-translate/core'
 import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { TestBed } from '@angular/core/testing'
-import { NavigationEnd, Router } from '@angular/router'
+import { DefaultUrlSerializer, NavigationEnd, Router } from '@angular/router'
+import { SettingsNavigationService } from '../setting/settings-navigation.service'
 import { Store } from '@cloud/app/@core/state'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
@@ -12,6 +14,11 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     events: new Subject(),
     url: '/chat/clawxpert/c/thread-1',
     isActive: jest.fn(() => false),
+    createUrlTree: jest.fn(([path]: string[], options: { queryParams: object }) => {
+      const tree = new DefaultUrlSerializer().parse(path)
+      tree.queryParams = options.queryParams
+      return tree
+    }),
     navigateByUrl: jest.fn(() => Promise.resolve(true))
   }
   const settings = { openBoundAssistant: jest.fn() }
@@ -26,8 +33,9 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     router.url = '/chat/clawxpert/c/thread-1'
 
     TestBed.configureTestingModule({
-      imports: [CloudSidebarMenuComponent],
+      imports: [CloudSidebarMenuComponent, TranslateModule.forRoot()],
       providers: [
+        { provide: SettingsNavigationService, useValue: { groups: () => [{ items: [{ path: 'account/profile' }] }] } },
         { provide: XpertSettingsService, useValue: settings },
         { provide: Router, useValue: router },
         { provide: Store, useValue: store }
@@ -38,6 +46,25 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
         template: ''
       }
     })
+  })
+
+  it.each([
+    ['evolution', '/agent-evolution/overview'],
+    ['plugins', '/plugins?category=plugins'],
+    ['mcp', '/operations?section=services'],
+    ['models', '/copilot/basic'],
+    ['approvals', '/xpert-access-requests'],
+    ['settings', '/settings/account/profile']
+  ] as const)('opens the default authorized page for the %s primary menu', async (panel, expected) => {
+    const component = TestBed.createComponent(CloudSidebarMenuComponent).componentInstance
+    const item: CloudMenuItem = { title: panel, link: '/unused', data: { panel } }
+    component.openPrimaryMenu(new MouseEvent('click'), item)
+    await Promise.resolve()
+    const target = router.navigateByUrl.mock.calls.at(-1)?.[0]
+    expect(typeof target === 'string' ? target : new DefaultUrlSerializer().serialize(target!)).toBe(expected)
+    router.navigateByUrl.mockClear()
+    component.openPrimaryMenu(new MouseEvent('click'), { ...item, hidden: true })
+    expect(router.navigateByUrl).not.toHaveBeenCalled()
   })
 
   it.each([

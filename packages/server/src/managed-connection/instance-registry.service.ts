@@ -1,4 +1,10 @@
 import type { IRuntimeInstanceRegistration, IRuntimeInstanceRetirementResult } from '@xpert-ai/contracts'
+import {
+	executionControlCapabilitiesSchema,
+	type ExecutionControlCapabilities,
+	type ControlledHandlerCapability
+} from '@xpert-ai/contracts'
+import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { hostname } from 'os'
 import { runShutdownStep } from '../runtime-control/shutdown-step'
@@ -80,6 +86,7 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 	private ready = false
 	private readyUntil = 0
 	private leaseExpiresAt = 0
+	private executionControl?: ExecutionControlCapabilities
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -143,12 +150,74 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 		return result
 	}
 
+	async reportExecutionControl(capabilities: ExecutionControlCapabilities) {
+		this.executionControl = executionControlCapabilitiesSchema.parse(capabilities)
+		await this.heartbeatInFlight
+		await this.refreshHeartbeat()
+	}
+
+	/** Read the live boot, never an expired membership or a previous process's report. */
+	async findControlledQueueWorkers(
+		handler: ControlledHandlerCapability,
+		pool: 'default' | 'sandbox-browser',
+		queuePrefix: string,
+		necessaryContinuation = false
+	) {
+		const result: RuntimeInstance[] = []
+		const liveSchema = z.object({
+			instanceId: z.string(),
+			bootId: z.string(),
+			ready: z.boolean(),
+			readyUntil: z.number(),
+			executionControl: executionControlCapabilitiesSchema
+		})
+		for (const member of await this.readMembers()) {
+			const value = await this.redisClient.get?.(this.key(member.instanceId))
+			if (!value) continue
+			let parsed: ReturnType<typeof liveSchema.safeParse>
+			try {
+				parsed = liveSchema.safeParse(JSON.parse(value))
+			} catch {
+				continue
+			}
+			if (!parsed.success) continue
+			const live = parsed.data,
+				control = live.executionControl
+			if (
+				live.instanceId !== member.instanceId ||
+				live.bootId !== member.bootId ||
+				(!necessaryContinuation && (!live.ready || live.readyUntil <= Date.now())) ||
+				control.validUntil <= Date.now() ||
+				control.queuePrefix !== queuePrefix ||
+				control.protocols.taskControl !== 2 ||
+				control.protocols.managedQueue !== 3 ||
+				!control.queuePools.includes(pool)
+			)
+				continue
+			const candidates = control.handlers.filter(
+				(item) =>
+					item.pluginName === handler.pluginName &&
+					item.queueName === handler.queueName &&
+					item.jobName === handler.jobName
+			)
+			const selected =
+				candidates.find((item) => item.scopeKey === handler.scopeKey) ??
+				candidates.find((item) => item.scopeKey === null)
+			if (selected?.controlContract === handler.controlContract) result.push(member)
+		}
+		return result
+	}
+
 	getLeaseRemainingMs(): number {
 		return Math.max(0, this.leaseExpiresAt - Date.now())
 	}
 
 	isLeaseValid(): boolean {
 		return Date.now() < this.leaseExpiresAt
+	}
+
+	canAdmitControlledWork(necessaryContinuation = false): boolean {
+		return this.isLeaseValid() && (necessaryContinuation || (this.ready && Date.now() < this.readyUntil))
 	}
 
 	async setReady(ready: boolean, validUntil = Date.now() + INSTANCE_HEARTBEAT_TTL_SECONDS * 1_000): Promise<void> {
@@ -247,7 +316,8 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 			pid: process.pid,
 			lastSeenAt: new Date().toISOString(),
 			ready: this.ready && Date.now() < this.readyUntil,
-			readyUntil: this.readyUntil
+			readyUntil: this.readyUntil,
+			...(this.executionControl ? { executionControl: this.executionControl } : {})
 		})
 		const startedAt = Date.now()
 		await this.redisClient.eval(WRITE_INSTANCE_SCRIPT, {

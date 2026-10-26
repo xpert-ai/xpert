@@ -35,7 +35,7 @@ describe('SetupPluginsService', () => {
 	const instances = { getDefaultTenantId: jest.fn() }
 	const runtime = {
 		restartCapability: jest.fn(),
-		requestRestart: jest.fn(),
+		activateStagedPlugins: jest.fn(),
 		restartStatus: jest.fn(),
 		pluginConvergenceStatus: jest.fn()
 	}
@@ -73,7 +73,7 @@ describe('SetupPluginsService', () => {
 			})
 		)
 		runtime.restartCapability.mockReturnValue({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
-		runtime.requestRestart.mockResolvedValue({ restartId: 'restart-1' })
+		runtime.activateStagedPlugins.mockResolvedValue({ restartId: 'restart-1' })
 		plugins.installPlugin.mockImplementation(
 			async ({ pluginName }: { pluginName: string }): Promise<IPluginInstallResult> => ({
 				success: true,
@@ -98,7 +98,7 @@ describe('SetupPluginsService', () => {
 		const events: string[] = []
 		plugins.installPlugin.mockImplementation(async ({ pluginName }: { pluginName: string }) => {
 			events.push(pluginName)
-			expect(runtime.requestRestart).not.toHaveBeenCalled()
+			expect(runtime.activateStagedPlugins).not.toHaveBeenCalled()
 			if (pluginName === choices[1]) throw new Error('Download unavailable')
 			return { runtimeRequirements: [{ pluginName, scopeKey: 'system', state: 'loaded' }] }
 		})
@@ -113,8 +113,8 @@ describe('SetupPluginsService', () => {
 				{ deferActivation: true, requiredLevel: item.level }
 			)
 		}
-		expect(runtime.requestRestart).toHaveBeenCalledTimes(1)
-		expect(runtime.requestRestart.mock.calls[0][0].runtimeRequirements).toHaveLength(2)
+		expect(runtime.activateStagedPlugins).toHaveBeenCalledTimes(1)
+		expect(runtime.activateStagedPlugins.mock.calls[0][0]).toHaveLength(2)
 		expect(progress.restartId).toBe('restart-1')
 	})
 
@@ -123,7 +123,7 @@ describe('SetupPluginsService', () => {
 		await service.start(choices)
 		await finished
 		expect(plugins.installPlugin).not.toHaveBeenCalled()
-		expect(runtime.requestRestart).not.toHaveBeenCalled()
+		expect(runtime.activateStagedPlugins).not.toHaveBeenCalled()
 		expect(progress.phase).toBe('completed')
 	})
 
@@ -132,7 +132,7 @@ describe('SetupPluginsService', () => {
 		await finished
 		expect(progress.phase).toBe('completed')
 		expect(commands.execute).not.toHaveBeenCalled()
-		expect(runtime.requestRestart).not.toHaveBeenCalled()
+		expect(runtime.activateStagedPlugins).not.toHaveBeenCalled()
 	})
 
 	it('uses the existing cluster restart capability without a local supervisor or PM2', async () => {
@@ -145,7 +145,7 @@ describe('SetupPluginsService', () => {
 			expect((await service.start(choices)).automaticRestart).toBe(true)
 			await finished
 			expect(progress.phase).toBe('restarting')
-			expect(runtime.requestRestart).toHaveBeenCalledTimes(1)
+			expect(runtime.activateStagedPlugins).toHaveBeenCalledTimes(1)
 			expect(runtime.restartCapability).toHaveBeenCalled()
 		} finally {
 			process.env = environment
@@ -153,7 +153,7 @@ describe('SetupPluginsService', () => {
 	})
 
 	it('keeps setup incomplete until the plugin generation has converged across all replicas', async () => {
-		runtime.requestRestart.mockResolvedValue({ restartId: 'restart-1', pluginGeneration: 7 })
+		runtime.activateStagedPlugins.mockResolvedValue({ restartId: 'restart-1', pluginGeneration: 7 })
 		await service.start(choices)
 		await finished
 		expect(progress.generation).toBe(7)
@@ -236,7 +236,7 @@ describe('SetupPluginsService', () => {
 	it('imports default resources before the single native restart', async () => {
 		commands.execute.mockImplementation(async () => {
 			expect(plugins.installPlugin).toHaveBeenCalledTimes(choices.length)
-			expect(runtime.requestRestart).not.toHaveBeenCalled()
+			expect(runtime.activateStagedPlugins).not.toHaveBeenCalled()
 			return { commit: 'abc', items: [{ id: 'documents', status: 'imported' }] }
 		})
 		await service.start(choices, true)
@@ -244,14 +244,14 @@ describe('SetupPluginsService', () => {
 		expect(commands.execute).toHaveBeenCalledTimes(1)
 		expect(progress.defaultAgentPlugins.status).toBe('completed')
 		expect(progress.defaultAgentPlugins.result.commit).toBe('abc')
-		expect(runtime.requestRestart).toHaveBeenCalledTimes(1)
+		expect(runtime.activateStagedPlugins).toHaveBeenCalledTimes(1)
 	})
 	it('continues activation when default imports fail and saves a retryable error', async () => {
 		commands.execute.mockRejectedValue(new Error('Repository unavailable'))
 		await service.start(choices, true)
 		await finished
 		expect(progress.defaultAgentPlugins).toEqual({ status: 'failed', error: 'Repository unavailable' })
-		expect(runtime.requestRestart).toHaveBeenCalledTimes(1)
+		expect(runtime.activateStagedPlugins).toHaveBeenCalledTimes(1)
 	})
 	it.each(['pending', 'importing'] as const)('resumes %s resource imports from saved intent', async (status) => {
 		progress.phase = 'installing'
