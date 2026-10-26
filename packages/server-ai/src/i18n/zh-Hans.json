@@ -1216,6 +1216,7 @@
         "ContentMutationConflict": "操作标识已用于不同内容。",
         "ContentVersionConflict": "文档或文件已变化，请重新加载并核对当前版本。",
         "ContentEditorUnavailable": "文档编辑器插件不可用。",
+        "ContentProjectionFailed": "文档投影暂时无法同步。",
         "ContentOperationInvalid": "文档操作参数无效。",
         "ContentEditorWriteRequired": "此文件由协作编辑器管理，请通过文档提案或编辑器保存。"
     },

@@ -197,6 +197,7 @@ import {
 import {
   DEFAULT_FIXED_VIEW_ICON,
   canRenderViewInChatkit,
+  supportsWorkbenchView,
   type ClawXpertFixedViewMenuItem,
   initiallyOpenViews,
   findFixedViewTab,
@@ -640,7 +641,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     routeKey: () => this.#hostChatRouteKey(),
     language: () => this.#translate.currentLang,
     views: this.#viewExtensionApi,
-    supportsView: (manifest) => this.#clientCommands.supportsView(manifest),
+    supportsView: (manifest) => supportsWorkbenchView(manifest, (view) => this.#clientCommands.supportsView(view)),
     tabs: this.workspaceTabs,
     activate: (id, mode) => {
       this.activateWorkspaceTab(id, mode)
@@ -2019,7 +2020,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       const items = manifests
-        .filter((manifest) => manifest.visible !== false && this.#clientCommands.supportsView(manifest))
+        .filter(
+          (manifest) =>
+            manifest.visible !== false &&
+            supportsWorkbenchView(manifest, (view) => this.#clientCommands.supportsView(view))
+        )
         .map((manifest) => this.toFixedViewMenuItem(manifest))
         .sort((a, b) => a.order - b.order)
 

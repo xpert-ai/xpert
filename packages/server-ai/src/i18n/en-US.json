@@ -1216,6 +1216,7 @@
         "ContentMutationConflict": "The operation identifier was already used for different content.",
         "ContentVersionConflict": "The document or file changed. Reload and review the current version.",
         "ContentEditorUnavailable": "The document editor plugin is unavailable.",
+        "ContentProjectionFailed": "The document projection could not be synchronized.",
         "ContentOperationInvalid": "Invalid document operation.",
         "ContentEditorWriteRequired": "This file is managed by a collaborative editor. Use a document proposal or the editor to save."
     },

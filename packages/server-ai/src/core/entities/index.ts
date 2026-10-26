@@ -1,3 +1,6 @@
+import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
+import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
+import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
 import { AnalyticsDefinition, AnalyticsDefinitionVersion } from '../../analytics/analytics-definition.entity'
 import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
 import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistence/pipeline.entity'
@@ -167,6 +170,9 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ContentResourceEntry,
+    ContentResourceOperation,
+    ContentEditorPreference,
     AnalyticsDefinition,
     AnalyticsDefinitionVersion,
     ...ProjectPipelineEntities,

@@ -101,6 +101,8 @@ describe('platform collaboration SDK', () => {
 
     client.connect()
     expect(transport.emitted.map(({ event }) => event)).toEqual(['sync-request', 'presence'])
+    transport.dispatch('sync', { updateBase64: bytesToBase64(new Uint8Array([0])) })
+    document.applied.length = 0
 
     document.update(new Uint8Array([1]))
     document.update(new Uint8Array([2]))
@@ -118,6 +120,54 @@ describe('platform collaboration SDK', () => {
 
     client.disconnect()
     expect(transport.connected).toBe(false)
+  })
+
+  it('resends unacknowledged and offline edits only after an authorized reconnect sync', () => {
+    jest.useFakeTimers()
+    const transport = new TestTransport(),
+      document = new TestDocument()
+    const client = createCollaborationClient({ session: testSession(), transport, document })
+    const sync = () => transport.dispatch('sync', { updateBase64: bytesToBase64(new Uint8Array([0])) })
+    client.connect()
+    sync()
+    document.update(new Uint8Array([1]))
+    jest.advanceTimersByTime(40)
+    transport.connected = false
+    transport.dispatch('disconnect', {})
+    document.update(new Uint8Array([2]))
+    jest.advanceTimersByTime(40)
+    transport.connect()
+    expect(transport.emitted.filter((x) => x.event === 'update')).toHaveLength(1)
+    sync()
+    expect(transport.emitted.filter((x) => x.event === 'update').at(-1)?.payload.updateBase64).toBe(
+      bytesToBase64(new Uint8Array([1, 2]))
+    )
+    document.update(new Uint8Array([3]))
+    jest.advanceTimersByTime(40)
+    expect(transport.emitted.filter((x) => x.event === 'update')).toHaveLength(2)
+    transport.dispatch('update-ack', {
+      documentId: 'document',
+      stateVectorBase64: 'AA==',
+      sequenceNumber: 2,
+      materializationStatus: 'ready'
+    })
+    expect(transport.emitted.filter((x) => x.event === 'update').at(-1)?.payload.updateBase64).toBe(
+      bytesToBase64(new Uint8Array([3]))
+    )
+    client.disconnect()
+  })
+
+  it('does not enqueue edits for a read-only collaboration session', () => {
+    jest.useFakeTimers()
+    const transport = new TestTransport(),
+      document = new TestDocument()
+    const client = createCollaborationClient({ session: { ...testSession(), access: 'read' }, transport, document })
+    client.connect()
+    transport.dispatch('sync', { updateBase64: 'AA==' })
+    document.update(new Uint8Array([1]))
+    jest.advanceTimersByTime(40)
+    expect(transport.emitted.filter((x) => x.event === 'update')).toHaveLength(0)
+    client.disconnect()
   })
 
   it('keeps actor identity separate from browser client identity', () => {

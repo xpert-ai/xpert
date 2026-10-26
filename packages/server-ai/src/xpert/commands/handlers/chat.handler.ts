@@ -862,6 +862,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             )
             executionId = execution.id
 
+            // Direct debugger/web-app sends do not pass through RunCreateStreamHandler.
+            // Admit their root execution before the graph writes recovery checkpoints.
+            // Protocol runs already carry a claimed execution; preserve their lease/context.
+            if (!options?.execution?.id) {
+                await this.threadRunControl?.start(activeThreadId, executionId, options?.context)
+            }
+
             if (request.action !== 'retry') {
                 if (persistedPendingFollowUpGroup?.matched?.id) {
                     // Pending follow-ups were already merged into graph state and

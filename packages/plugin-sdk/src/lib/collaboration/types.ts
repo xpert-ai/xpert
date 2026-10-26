@@ -181,6 +181,11 @@ export interface CollaborationApi {
   archiveDocument(
     input: GetCollaborationDocumentInput & { expectedSequence?: number }
   ): Promise<CollaborationDocumentRecord>
+  /** Reopen an archived document after the provider's current manage authorization.
+   * State and sequence are retained; this cannot resurrect a deleted document. */
+  restoreDocument(
+    input: GetCollaborationDocumentInput & { expectedSequence?: number }
+  ): Promise<CollaborationDocumentRecord>
   /** Soft-delete the platform document and notify its provider. */
   deleteDocument(input: GetCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
 }
