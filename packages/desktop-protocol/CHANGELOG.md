@@ -1,5 +1,25 @@
 # @xpert-ai/desktop-protocol
 
+## 0.4.0
+
+### Minor Changes
+
+- 4820bf3: Add pinned runtime host/generation targets, descendant completion evidence, original-host control compensation, and a shared process supervisor. Legacy receipts remain unconfirmed; unsupported supervision cannot release controlled work.
+
+### Patch Changes
+
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- Updated dependencies [4995ec0]
+- Updated dependencies [1c7c7dc]
+- Updated dependencies [15e3ad0]
+- Updated dependencies [b21c640]
+- Updated dependencies [4820bf3]
+- Updated dependencies [4a22aea]
+- Updated dependencies [47c4d17]
+- Updated dependencies [f9b312a]
+- Updated dependencies [a724133]
+  - @xpert-ai/contracts@3.28.0
+
 ## 0.3.11
 
 ### Patch Changes

@@ -1,5 +1,72 @@
 # @xpert-ai/xpert-ui
 
+## 3.28.0
+
+### Minor Changes
+
+- f9b312a: Release the Project content catalog, compatible resource editor discovery, and durable resource lifecycle recovery in the API and Web applications. Deploy the matching contracts, plugin SDK, ChatKit, and resource plugins together, and apply the content operations schema migration before starting the maintenance worker.
+
+### Patch Changes
+
+- 59d850d: Consolidate daily navigation into Bosi and move assistant views, conversations, project/workspace navigation, and module sections into the shared sidebar panel. Preserve the Data & Ontology entry and the settings page layout. Keep pinned panels stable on hover and switch only on explicit selection, retain per-panel search and scroll, and clear scoped content when the user or organization changes. Preserve existing actions and permission checks, with accessible mobile, keyboard, and pointer navigation.
+
+  Align menu typography, row spacing and icon sizes across primary entries and panel content. Keep an open panel aligned with the sidebar when it expands, collapses or resizes.
+
+  Prevent the retained, hidden panel overlay from blocking sidebar clicks after repeated navigation and sidebar expansion.
+
+  Retain the existing workspace, project and plugin tabs alongside panel navigation, synchronized through the current route. Show assistant profile cards from the panel header avatar instead of a separate menu item, and remove the sidebar footer divider.
+
+  Unify navigation color hierarchy: secondary text and monochrome icons become primary on hover, keyboard focus or selection; titles and primary actions remain prominent, while section labels and metadata stay muted. Respect theme colors and reduced-motion preferences.
+
+  Center collapsed rail icons, the logo and account avatar across the full sidebar width. Hide the compact rail's scrollbar without disabling scrolling so long assistant lists cannot shift the icons. Round assistant panel avatars and unify menu icon columns, row spacing and secondary action spacing.
+
+  Show organization group conversations inline in the assistant directory, with collapse, shared search, creation and personal pin/archive controls. Add rounded avatars and name fallbacks to directory rows; discard group results and pending navigation when the account or organization changes.
+
+  Align conversation row icons and labels with the shared panel's action rows using the same icon column and spacing.
+
+  Make Assistant profile cards compact with content-driven height, a smaller header and avatar, tighter detail spacing, and larger corners. Show the full description once while retaining profile tabs and extension views.
+
+  Match collapsed project and workspace button widths to the icon rail. Navigate primary-menu clicks to their default authorized page while keeping hover as a preview. Open Assistant Remote Views in the ChatKit Workbench maximized, with layout state retained through URL history and manual restore.
+
+- 6d7a820: Keep routed Workbench layout notifications compatible with the published ChatKit types while retaining support for maximized and split layouts from newer ChatKit builds.
+- 869040b: Remove the legacy ClawXpert workbench section and split-layout controls so the embedded ChatKit fills the conversation page. Preserve authorized navigation and resource preview fallbacks.
+- f8fc2cb: Give the main content beside the platform sidebar rounded left corners and a subtle theme-aware shadow, consistently across expanded and collapsed sidebar states.
+- acc951f: Add a shared hover panel beside the collapsed desktop sidebar. Keep the panel mounted and positioned while switching main menus, with delayed dismissal, keyboard access, and existing click navigation preserved. Add a header with the current menu title, an expandable and clearable search field, and a pin toggle that reserves page space while keeping the icon rail. Animate panel entrance and pin transitions, respecting reduced motion. Pinned panels fill the page height and share the page's outer rounded surface without the floating card shadow or gaps. Hovering other main menus preserves the pinned menu and search until the panel is unpinned. Allow pointer and keyboard width resizing only while pinned, remember the preferred width locally for both modes, and constrain it to the viewport. Panel content and search results will be connected separately.
+- 4995ec0: Publish the shared Computer Codex isolation-policy contract, launch-conflict and environment-unavailable errors, and matching metric events. Update bundled cloud-coding guidance and Codex profile revision 7 to inherit the host policy and distinguish model availability from command readiness.
+
+  The managed Computer launcher, command preflight and seccomp changes are implemented and released by Xpert Pro; this shared-package update alone does not add those runtime capabilities to an OSS installation.
+
+- 9585d4e: Resolve custom native model capabilities and credentials from the authorized provider model record. Pass the selected model's reasoning effort to Codex, accept namespaces containing only client-executed Responses tools, preserve budget callbacks across separate LangChain module copies, and report sanitized native transport diagnostics.
+- 1c7c7dc: Preserve validated, non-secret Assistant model parameters through delegated execution grants and model construction. Apply supported request overrides before provider defaults, normalize output-token aliases, and retain host-owned retry and authorization controls. Map native protocol settings explicitly and reject incompatible parameters instead of silently dropping them.
+- 15e3ad0: Preserve durable MCP control delivery and checkpoint tool identity across replicas and input continuation. Keep task receipts separate from business output, complete official recovery migrations, and verify the full Assistant/Pipeline-to-Sandbox chain with independent processes and storage.
+
+  Require actual AssistantTask settlement evidence before Pipeline cancellation completes, and register the control entities in the official schema catalog.
+
+- f8f005b: Fix page-wide flicker and missing content when scrolling the Explore expert catalog by replacing repeated hover-action backdrop filters with theme-aware card backgrounds. Apply the same treatment to template actions while preserving opacity transitions and the header and featured preview glass effects.
+- 7535029: Support automatic Agent runtime bindings across Computer, SDK, process and external service transports. Preserve existing execution protocols and interactive approvals while removing user profile/binding forms. Derive authorization from the current actor and Assistant, and resolve launch settings from installed strategies through a scoped capability, without a host runtime inventory. Old configuration is not migrated or reused.
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4820bf3: Add pinned runtime host/generation targets, descendant completion evidence, original-host control compensation, and a shared process supervisor. Legacy receipts remain unconfirmed; unsupported supervision cannot release controlled work.
+- 8b07951: Add owner-only project deletion with confirmation to project configuration, refresh recent projects after deletion, and guide entity-managed projects to their application lifecycle.
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+  Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
+- 22025b3: Fix downloads in the task results and coding execution views when the host returns
+  authorized file bytes as a data URL. Download those bytes as an iframe-owned
+  attachment, retain HTTP grant support and reject unsafe or malformed URLs.
+- 8741bfe: Report old/new argument line counts and actual file additions/deletions after sandbox edits. Compute line differences in the existing sandbox process without Git or temporary files, with bounded comparison work for broad rewrites. Unchanged replacements succeed with a zero diff. Sequential batches retain per-edit feedback and partial progress; unavailable statistics never prevent editing.
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- 59d850d: Search each sidebar panel's own authorized business data, with independent queries, grouped results, pagination, loading/error states, and cancellation when the query, account, or organization changes. Cover Bosi automations and conversations, Assistant views and archived conversations, accessible projects/workspaces, plugins, configured model catalogs, MCP services/runtimes, evolution records, approvals and settings navigation. Open results at their matching business destination while preserving the existing Settings layout.
+
+  Add validated, scoped conversation-title search before pagination; preserve owner, tenant, organization, Assistant, private-conversation and archive restrictions, and escape SQL wildcard characters.
+
+  Apply literal, paginated search to evolution target names, learning summaries, candidate versions, evaluations and deployments; retain existing strategy, mechanism and organization restrictions.
+
+- 7cb662b: Show the current membership and remaining allowance above the sidebar account menu, with a compact usage ring, hover summary and accessible details popover linking to personal billing. Keep cycle allowance separate from personal points, handle unlimited, inactive and missing plans, and clear scoped data when the account, organization or permission changes.
+- a724133: Expose a versioned public thread control view backed by durable execution evidence. Keep accepted cancellation pending until owned work settles, gate recovery/input actions, and whitelist public run-control fields.
+- 2004c43: Update ChatKit UI to 0.19.1 and web-shared to 0.18.1, including the UI's required Xpert SDK 0.18.0 dependency. Keep workspace, API, Web and Desktop dependency locks aligned.
+- 89e7398: Update ChatKit UI to 0.19.2 and types to 0.19.1 with Xpert SDK 0.19.0, including stable run controls during reconnects, Workbench view layouts and content navigation, and notification dismissal fixes. Keep workspace, API, Web and Desktop dependency locks aligned.
+
 ## 3.27.0
 
 ### Patch Changes

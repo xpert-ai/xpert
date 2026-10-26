@@ -1,5 +1,29 @@
 # @xpert-ai/cli-model-profiles
 
+## 0.2.2
+
+### Patch Changes
+
+- 4995ec0: Publish the shared Computer Codex isolation-policy contract, launch-conflict and environment-unavailable errors, and matching metric events. Update bundled cloud-coding guidance and Codex profile revision 7 to inherit the host policy and distinguish model availability from command readiness.
+
+  The managed Computer launcher, command preflight and seccomp changes are implemented and released by Xpert Pro; this shared-package update alone does not add those runtime capabilities to an OSS installation.
+
+- 9585d4e: Resolve custom native model capabilities and credentials from the authorized provider model record. Pass the selected model's reasoning effort to Codex, accept namespaces containing only client-executed Responses tools, preserve budget callbacks across separate LangChain module copies, and report sanitized native transport diagnostics.
+- Updated dependencies [4995ec0]
+- Updated dependencies [9585d4e]
+- Updated dependencies [1c7c7dc]
+- Updated dependencies [15e3ad0]
+- Updated dependencies [7535029]
+- Updated dependencies [b21c640]
+- Updated dependencies [4820bf3]
+- Updated dependencies [4a22aea]
+- Updated dependencies [8741bfe]
+- Updated dependencies [47c4d17]
+- Updated dependencies [f9b312a]
+- Updated dependencies [a724133]
+  - @xpert-ai/contracts@3.28.0
+  - @xpert-ai/plugin-sdk@3.28.0
+
 ## 0.2.1
 
 ### Patch Changes

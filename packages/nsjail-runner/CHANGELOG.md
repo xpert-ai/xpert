@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.0
+
+### Minor Changes
+
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+
 ## 0.3.1
 
 ### Patch Changes
