@@ -1,5 +1,46 @@
 # @xpert-ai/server-core
 
+## 3.28.0
+
+### Patch Changes
+
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+    Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- a520041: Run registry plugin installation asynchronously with bounded execution and process-group cleanup. Serialize shared-store mutations across API replicas, validate legacy installations, publish complete artifacts and manifests atomically, and propagate staging failures before runtime activation. Keep admission deadlines and restart capacity checks intact; verify slow installations overlapping rolling restarts through readiness-aware ingress.
+- f9b312a: Add a Project-scoped content catalog with explicit model and edit-protocol compatibility, editor preferences, safe source fallback and revision-bound search projections. Resolve stable catalog identities to authorized plugin selections, permit on-demand Project editor discovery independently of Assistant tools, and authorize Project-owned Artifact drafts through current member rights.
+
+    Provide a reusable Assistant capability composition helper. Preserve unacknowledged and offline collaboration updates across reconnects, invalidate pre-archive CAS revisions on restore, and admit direct chat runs before persisting recovery checkpoints. Requires coordinated host, SDK, ChatKit and resource-plugin deployment.
+
+    Keep failed collaboration projections retryable: reject failed queue attempts, recover stale durable checkpoints after restart, and replay only the latest active document state without requiring an open browser.
+
+    Return explicit access/unavailability errors for stale client actions after a resource provider is uninstalled, while preserving authorized read-only source backups.
+
+    Reuse the shared I18nObject contract for content type and implementation labels instead of introducing a separate mandatory bilingual shape.
+
+    Persist credential-free, immutable create/copy intents and recover them after restart. Reconcile source projections and notify knowledge observers using current Project membership and Assistant access. Add revision-checked Artifact draft recycling that revokes shares atomically; restoring a draft never republishes previous links. Apply `20261026_content_operations.sql` before enabling the maintenance worker.
+
+- Updated dependencies [4995ec0]
+- Updated dependencies [9585d4e]
+- Updated dependencies [1c7c7dc]
+- Updated dependencies [15e3ad0]
+- Updated dependencies [7535029]
+- Updated dependencies [b21c640]
+- Updated dependencies [4820bf3]
+- Updated dependencies [4a22aea]
+- Updated dependencies [8741bfe]
+- Updated dependencies [47c4d17]
+- Updated dependencies [a520041]
+- Updated dependencies [f9b312a]
+- Updated dependencies [a724133]
+    - @xpert-ai/contracts@3.28.0
+    - @xpert-ai/plugin-sdk@3.28.0
+    - @xpert-ai/server-config@3.28.0
+    - @xpert-ai/server-common@3.28.0
+
 ## 3.27.0
 
 ### Patch Changes

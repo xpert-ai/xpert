@@ -1,5 +1,16 @@
 # @xpert-ai/desktop
 
+## 0.3.13
+
+### Patch Changes
+
+- 5a717bb: Run supervisor parity checks before Desktop workspace isolation, restrict process-group tests to POSIX platforms, and update electron-builder to detect pnpm workspaces without relying on POSIX pwd output.
+- 2004c43: Update ChatKit UI to 0.19.1 and web-shared to 0.18.1, including the UI's required Xpert SDK 0.18.0 dependency. Keep workspace, API, Web and Desktop dependency locks aligned.
+- 89e7398: Update ChatKit UI to 0.19.2 and types to 0.19.1 with Xpert SDK 0.19.0, including stable run controls during reconnects, Workbench view layouts and content navigation, and notification dismissal fixes. Keep workspace, API, Web and Desktop dependency locks aligned.
+- Updated dependencies [4820bf3]
+- Updated dependencies [47c4d17]
+  - @xpert-ai/desktop-protocol@0.4.0
+
 ## 0.3.12
 
 ### Patch Changes

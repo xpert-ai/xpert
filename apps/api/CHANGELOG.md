@@ -1,5 +1,58 @@
 # @xpert-ai/xpert-api
 
+## 3.28.0
+
+### Minor Changes
+
+- 7535029: Support automatic Agent runtime bindings across Computer, SDK, process and external service transports. Preserve existing execution protocols and interactive approvals while removing user profile/binding forms. Derive authorization from the current actor and Assistant, and resolve launch settings from installed strategies through a scoped capability, without a host runtime inventory. Old configuration is not migrated or reused.
+- f9b312a: Release the Project content catalog, compatible resource editor discovery, and durable resource lifecycle recovery in the API and Web applications. Deploy the matching contracts, plugin SDK, ChatKit, and resource plugins together, and apply the content operations schema migration before starting the maintenance worker.
+
+### Patch Changes
+
+- 7535029: Include the JavaScript-only desktop protocol workspace package at the production runtime root so externalized API imports resolve after a production-only installation.
+- 4995ec0: Publish the shared Computer Codex isolation-policy contract, launch-conflict and environment-unavailable errors, and matching metric events. Update bundled cloud-coding guidance and Codex profile revision 7 to inherit the host policy and distinguish model availability from command readiness.
+
+  The managed Computer launcher, command preflight and seccomp changes are implemented and released by Xpert Pro; this shared-package update alone does not add those runtime capabilities to an OSS installation.
+
+- 9585d4e: Persist compatibility chat output in Redis and scoped display snapshots so ChatKit can rejoin an active run. Establish the execution lease before graph execution and bind replay identifiers to the admitted conversation and run.
+- 9585d4e: Resolve custom native model capabilities and credentials from the authorized provider model record. Pass the selected model's reasoning effort to Codex, accept namespaces containing only client-executed Responses tools, preserve budget callbacks across separate LangChain module copies, and report sanitized native transport diagnostics.
+- 1c7c7dc: Preserve validated, non-secret Assistant model parameters through delegated execution grants and model construction. Apply supported request overrides before provider defaults, normalize output-token aliases, and retain host-owned retry and authorization controls. Map native protocol settings explicitly and reject incompatible parameters instead of silently dropping them.
+- 6bf0f31: Add authenticated single-request View image previews with bounded WebP thumbnails, current resource and Assistant authorization on every read, versioned byte caching, and group runtime scope validation. Keep the existing grant routes for other file uses.
+- 22025b3: Exclude unrelated deleted document records when moving a replacement at the same
+  path. Preserve explicit document restores and folder restores using the document
+  identities and epochs captured by the accepted deletion operation.
+- 15e3ad0: Preserve durable MCP control delivery and checkpoint tool identity across replicas and input continuation. Keep task receipts separate from business output, complete official recovery migrations, and verify the full Assistant/Pipeline-to-Sandbox chain with independent processes and storage.
+
+  Require actual AssistantTask settlement evidence before Pipeline cancellation completes, and register the control entities in the official schema catalog.
+
+- d7dee1d: Allow explicitly reviewed legacy database column variants during baseline adoption without rewriting historical migration checksums. Preserve stronger Pipeline nullability and timestamp semantics while continuing to reject missing constraints and inconsistent execution evidence.
+- 76656ca: Reduce thread capability read overhead by loading only the published graph and execution settings needed for recovery validation, without expanding workflow collection relations. Preserve runtime access checks, graph revision compatibility, and complete retry checkpoint validation.
+- b3bcdfe: Run database apply and verify commands after building and before every local API
+  startup or source restart, including development and debug entrypoints. Stop on
+  failed upgrades, retain explicit baseline adoption, and terminate child processes
+  when restarting.
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4820bf3: Add pinned runtime host/generation targets, descendant completion evidence, original-host control compensation, and a shared process supervisor. Legacy receipts remain unconfirmed; unsupported supervision cannot release controlled work.
+- 5d46f25: Preserve the authenticated ChatKit audience while dispatching an authorized external Assistant from a background task. Revalidate live access, scope delegation through stream subscription, and report the actual executor and startup error for task reconciliation.
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+  Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
+- 22025b3: Fix downloads in the task results and coding execution views when the host returns
+  authorized file bytes as a data URL. Download those bytes as an iframe-owned
+  attachment, retain HTTP grant support and reject unsafe or malformed URLs.
+- c08868e: Avoid repeated ancestor and execution scans during data-retention previews. Resolve protected checkpoint IDs once and reuse candidate eligibility for totals and the selected batch, preserving cleanup protections, scope matching, and execution-time rechecks.
+- 8741bfe: Report old/new argument line counts and actual file additions/deletions after sandbox edits. Compute line differences in the existing sandbox process without Git or temporary files, with bounded comparison work for broad rewrites. Unchanged replacements succeed with a zero diff. Sequential batches retain per-edit feedback and partial progress; unavailable statistics never prevent editing.
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- a520041: Run registry plugin installation asynchronously with bounded execution and process-group cleanup. Serialize shared-store mutations across API replicas, validate legacy installations, publish complete artifacts and manifests atomically, and propagate staging failures before runtime activation. Keep admission deadlines and restart capacity checks intact; verify slow installations overlapping rolling restarts through readiness-aware ingress.
+- 59d850d: Search each sidebar panel's own authorized business data, with independent queries, grouped results, pagination, loading/error states, and cancellation when the query, account, or organization changes. Cover Bosi automations and conversations, Assistant views and archived conversations, accessible projects/workspaces, plugins, configured model catalogs, MCP services/runtimes, evolution records, approvals and settings navigation. Open results at their matching business destination while preserving the existing Settings layout.
+
+  Add validated, scoped conversation-title search before pagination; preserve owner, tenant, organization, Assistant, private-conversation and archive restrictions, and escape SQL wildcard characters.
+
+  Apply literal, paginated search to evolution target names, learning summaries, candidate versions, evaluations and deployments; retain existing strategy, mechanism and organization restrictions.
+
+- a724133: Expose a versioned public thread control view backed by durable execution evidence. Keep accepted cancellation pending until owned work settles, gate recovery/input actions, and whitelist public run-control fields.
+
 ## 3.27.0
 
 ### Patch Changes

@@ -1,5 +1,41 @@
 # @xpert-ai/contracts
 
+## 3.28.0
+
+### Minor Changes
+
+- 4995ec0: Publish the shared Computer Codex isolation-policy contract, launch-conflict and environment-unavailable errors, and matching metric events. Update bundled cloud-coding guidance and Codex profile revision 7 to inherit the host policy and distinguish model availability from command readiness.
+
+  The managed Computer launcher, command preflight and seccomp changes are implemented and released by Xpert Pro; this shared-package update alone does not add those runtime capabilities to an OSS installation.
+
+- 1c7c7dc: Preserve validated, non-secret Assistant model parameters through delegated execution grants and model construction. Apply supported request overrides before provider defaults, normalize output-token aliases, and retain host-owned retry and authorization controls. Map native protocol settings explicitly and reject incompatible parameters instead of silently dropping them.
+- 15e3ad0: Preserve durable MCP control delivery and checkpoint tool identity across replicas and input continuation. Keep task receipts separate from business output, complete official recovery migrations, and verify the full Assistant/Pipeline-to-Sandbox chain with independent processes and storage.
+
+  Require actual AssistantTask settlement evidence before Pipeline cancellation completes, and register the control entities in the official schema catalog.
+
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4820bf3: Add pinned runtime host/generation targets, descendant completion evidence, original-host control compensation, and a shared process supervisor. Legacy receipts remain unconfirmed; unsupported supervision cannot release controlled work.
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- f9b312a: Add a Project-scoped content catalog with explicit model and edit-protocol compatibility, editor preferences, safe source fallback and revision-bound search projections. Resolve stable catalog identities to authorized plugin selections, permit on-demand Project editor discovery independently of Assistant tools, and authorize Project-owned Artifact drafts through current member rights.
+
+  Provide a reusable Assistant capability composition helper. Preserve unacknowledged and offline collaboration updates across reconnects, invalidate pre-archive CAS revisions on restore, and admit direct chat runs before persisting recovery checkpoints. Requires coordinated host, SDK, ChatKit and resource-plugin deployment.
+
+  Keep failed collaboration projections retryable: reject failed queue attempts, recover stale durable checkpoints after restart, and replay only the latest active document state without requiring an open browser.
+
+  Return explicit access/unavailability errors for stale client actions after a resource provider is uninstalled, while preserving authorized read-only source backups.
+
+  Reuse the shared I18nObject contract for content type and implementation labels instead of introducing a separate mandatory bilingual shape.
+
+  Persist credential-free, immutable create/copy intents and recover them after restart. Reconcile source projections and notify knowledge observers using current Project membership and Assistant access. Add revision-checked Artifact draft recycling that revokes shares atomically; restoring a draft never republishes previous links. Apply `20261026_content_operations.sql` before enabling the maintenance worker.
+
+- a724133: Expose a versioned public thread control view backed by durable execution evidence. Keep accepted cancellation pending until owned work settles, gate recovery/input actions, and whitelist public run-control fields.
+
+### Patch Changes
+
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+  Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
 ## 3.27.0
 
 ### Minor Changes
