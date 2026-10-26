@@ -37,6 +37,18 @@ Desktop preserves runtime error codes and retry timing through IPC. Safe reads a
 
 Operation `completed` and completed replica counts describe runtime requirements and replacement readiness, including already-current targets. They do not acknowledge ingress readmission. Ready/completed audit events carry `completionScope: "runtime"`; withdrawal events report the configured `withdrawalMs`. The current `rolling-self-signal` executor requires a process supervisor. Future deployment orchestration must replace that execution policy while keeping admission monitoring active.
 
+## Plugin installation and capacity (#1228)
+
+Registry installs now use asynchronous child processes and one shared-store lock, including during bootstrap. The lock is rooted in the existing plugin volume, so replicas using that volume serialize npm builds and manifest changes. A separate watchdog bounds npm even if its API parent is killed. Lock recovery waits beyond that watchdog deadline; a displaced owner cannot renew or release a replacement owner's lock, or publish after losing its lease.
+
+Each build uses a private staging directory. The installer validates the package name, requested version and resolvable entry, writes its completion marker, then renames the directory into place. Readers see a complete artifact. Legacy directories need entry and offline `npm ls` validation before reuse; merely finding `package.json` is insufficient. Failed builds retain the previous version and manifest. Recovered installations remove abandoned private stages in the affected package parent directory. Manifest changes use the same lock and an atomic replacement; malformed manifests are preserved and reported as errors.
+
+`PLUGIN_INSTALL_TIMEOUT_MS` defaults to 120000 per npm command and `PLUGIN_INSTALL_LOCK_WAIT_MS` to 180000. Both accept integer milliseconds from 1000 to 600000 and are normalized at the server configuration boundary. All replicas sharing a plugin volume must use the same timeout settings. Locking requires a shared filesystem with atomic directory creation/rename, stable inode identity and coherent modification times. A root shared by the API replicas limits installations to one npm process group at a time; separate local volumes coordinate independently.
+
+Deploy the updated installer to **all** replicas before resuming plugin changes: older API processes do not participate in this lock protocol. Keep the 5-second admission deadline, lease validation, one-candidate rolling restart policy and bounded client recovery enabled. Installation runs outside the serving event loop, but operators must still provision CPU, memory and disk headroom for its child process.
+
+The ingress migration is a separate deployment requirement. Check effective `docker compose config` and `nginx -T` output for each API, ChatKit, public/share and WebSocket route; each business upstream must reach `api-ingress:3000`. A healthy API image alone does not establish withdrawal or readmission. Verify traffic during an overlapping plugin installation and rollout before declaring production recovery.
+
 ## Validation
 
 From the repository root, with workspace dependencies installed:
@@ -50,4 +62,6 @@ node --test docker/runtime-ingress/rollout.test.cjs
 
 The Docker test requires `node:22-bookworm`, `nginx:1.30.6`, and `haproxy:3.2.26-alpine` (or `XPERT_INGRESS_IMAGE`) locally. It creates an isolated network and cleans up its containers. It runs the actual lifecycle/middleware/withdrawal source in three Node fixtures, behind real Nginx and HAProxy. Each fixture restarts its Node process within the same container. It checks two rolling passes, GET/session/chat requests without duplicate writes, established SSE, cancellation, replacement readiness, all-unready recovery, and recovery-route authentication.
 
-This fixture is not a full platform deployment: plugin convergence and lease behavior are covered by the server tests, while the proxy test covers transport behavior. Before production rollout, repeat the acceptance with the actual deployed API/plugin versions, PM2, proxy paths and long-running business operations.
+The proxy fixture also bundles the actual registry installer and admission monitor. Two API replicas request the same simulated 7-second npm installation on a shared volume while a third process restarts. It asserts one install, responsive admission, successful ordinary/ChatKit/chat traffic, and no POST replay. The fake npm performs no network installation. Separate server tests cover process-group cancellation, orphan watchdogs, lock takeover, partial artifacts and concurrent manifest updates.
+
+This fixture is not a full platform deployment: plugin convergence and Redis lease behavior are covered by the server tests, while the proxy test covers transport behavior with a simulated valid lease. Before production rollout, repeat the acceptance with the actual deployed API/plugin versions, PM2, proxy paths and long-running business operations.
