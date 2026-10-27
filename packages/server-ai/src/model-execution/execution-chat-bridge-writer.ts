@@ -7,6 +7,7 @@ import type { OpenAIResponseToolCall } from '../model-gateway/openai-adapter'
 import { executionError } from './execution-errors'
 import { z } from 'zod/v3'
 import type { ChatBridgeToolName } from './execution-chat-bridge-request'
+import { startExecutionSseKeepalive } from './execution-sse-keepalive'
 
 /** The writer has no provider access or billing callbacks. One bounded output is formatted once. */
 export class ChatBridgeWriter implements GatewayChatWriter {
@@ -14,6 +15,7 @@ export class ChatBridgeWriter implements GatewayChatWriter {
     private sequence = 0
     private size = 0
     private textStarted = false
+    private stopKeepalive?: () => void
     private tools = new Map<number, OpenAIResponseToolCall>()
     constructor(
         private readonly response: Response,
@@ -27,8 +29,10 @@ export class ChatBridgeWriter implements GatewayChatWriter {
         this.base = base
         this.response.status(200).setHeader('content-type', 'text/event-stream; charset=utf-8')
         this.response.setHeader('cache-control', 'no-cache, no-transform')
+        if (this.protocol === 'openai_responses') this.response.setHeader('x-accel-buffering', 'no')
         this.response.flushHeaders()
         if (this.protocol === 'openai_responses') {
+            this.stopKeepalive = startExecutionSseKeepalive(this.response, this.signal)
             await this.event('response.created', { response: this.responsesEnvelope([], 'in_progress', null) })
             await this.event('response.in_progress', { response: this.responsesEnvelope([], 'in_progress', null) })
         } else
@@ -85,6 +89,13 @@ export class ChatBridgeWriter implements GatewayChatWriter {
         }
     }
     async complete(input: Parameters<GatewayChatWriter['complete']>[0]) {
+        try {
+            await this.finish(input)
+        } finally {
+            this.stopKeepalive?.()
+        }
+    }
+    private async finish(input: Parameters<GatewayChatWriter['complete']>[0]) {
         this.base = input.base
         if (Buffer.byteLength(input.text) + Buffer.byteLength(JSON.stringify(input.tools ?? [])) > 16 * 1024 * 1024)
             throw executionError('Unavailable')
@@ -97,9 +108,13 @@ export class ChatBridgeWriter implements GatewayChatWriter {
         if (!this.response.writableEnded && !this.response.destroyed) this.response.end()
     }
     async fail() {
-        if (this.response.destroyed || this.response.writableEnded) return
-        await this.event('error', { error: { type: 'api_error', message: executionError('Unavailable').message } })
-        this.response.end()
+        try {
+            if (this.response.destroyed || this.response.writableEnded) return
+            await this.event('error', { error: { type: 'api_error', message: executionError('Unavailable').message } })
+            this.response.end()
+        } finally {
+            this.stopKeepalive?.()
+        }
     }
     private get textId() {
         return `msg_${this.base.id}`
@@ -253,6 +268,9 @@ export class ChatBridgeWriter implements GatewayChatWriter {
             ...(this.protocol === 'openai_responses' ? { sequence_number: this.sequence++ } : {}),
             ...fields
         }
+        // A heartbeat may have filled the response buffer while the provider was silent.
+        if (this.protocol === 'openai_responses' && this.response.writableNeedDrain)
+            await once(this.response, 'drain', { signal: this.signal })
         if (!this.response.write(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`))
             await once(this.response, 'drain', { signal: this.signal })
     }

@@ -38,9 +38,108 @@ function fixture(protocol: 'openai_responses' | 'anthropic_messages', stream = t
         bridge?.toolNames
     )
     const base = { id: 'test', model: 'assistant-default', created: 1 }
-    return { writer, response, abort, base, events: () => data.map((line) => JSON.parse(line.split('\ndata: ')[1])) }
+    return {
+        writer,
+        response,
+        abort,
+        base,
+        data,
+        events: () =>
+            data.filter((line) => line.includes('\ndata: ')).map((line) => JSON.parse(line.split('\ndata: ')[1]))
+    }
 }
 describe('explicit Chat protocol translation', () => {
+    it.each(['failure', 'invalid completion', 'abort'])('stops the new keepalive on %s', async (outcome) => {
+        jest.useFakeTimers()
+        const f = fixture('openai_responses')
+        try {
+            await f.writer.start(f.base)
+            if (outcome === 'failure') await f.writer.fail()
+            else if (outcome === 'abort') f.abort.abort()
+            else
+                await expect(
+                    f.writer.complete({
+                        base: f.base,
+                        text: '',
+                        reason: 'stop',
+                        usage: {
+                            ...actual,
+                            source: ModelGatewayUsageSourceEnum.Estimated
+                        }
+                    })
+                ).rejects.toThrow()
+            expect(jest.getTimerCount()).toBe(0)
+        } finally {
+            f.abort.abort()
+            jest.useRealTimers()
+        }
+    })
+    it('keeps buffered tool-only output alive and preserves final tool events', async () => {
+        jest.useFakeTimers()
+        const f = fixture('openai_responses')
+        try {
+            await f.writer.start(f.base)
+            await f.writer.delta('', [
+                { index: 0, id: 'a', type: 'function', function: { name: 're', arguments: '{' } }
+            ])
+            jest.advanceTimersByTime(125_000)
+            expect(f.data.filter((line) => line === ': keep-alive\n\n')).toHaveLength(4)
+            expect(f.events().map((event) => event.type)).toEqual(['response.created', 'response.in_progress'])
+            await f.writer.delta('', [{ index: 0, type: 'function', function: { name: 'ad', arguments: '}' } }])
+            await f.writer.complete({ base: f.base, text: '', reason: 'tool_calls', usage: actual })
+            expect(f.events().filter((event) => event.type === 'response.output_item.done')).toHaveLength(1)
+            expect(f.events().at(-1).response.output).toMatchObject([{ call_id: 'a', name: 'read', arguments: '{}' }])
+            expect(jest.getTimerCount()).toBe(0)
+        } finally {
+            f.abort.abort()
+            jest.useRealTimers()
+        }
+    })
+    it('waits for heartbeat backpressure before writing protocol events', async () => {
+        const f = fixture('openai_responses')
+        try {
+            await f.writer.start(f.base)
+            Object.assign(f.response, { writableNeedDrain: true })
+            const pending = f.writer.delta('result', [])
+            expect(f.events().map((event) => event.type)).toEqual(['response.created', 'response.in_progress'])
+            Object.assign(f.response, { writableNeedDrain: false })
+            f.response.emit('drain')
+            await pending
+            expect(f.events().at(-1)).toMatchObject({ type: 'response.output_text.delta', delta: 'result' })
+        } finally {
+            f.abort.abort()
+        }
+    })
+    it('leaves Messages streaming unchanged', async () => {
+        jest.useFakeTimers()
+        const f = fixture('anthropic_messages')
+        try {
+            await f.writer.start(f.base)
+            jest.advanceTimersByTime(125_000)
+            expect(f.data.some((line) => line.startsWith(':'))).toBe(false)
+            expect(f.response.setHeader).not.toHaveBeenCalledWith('x-accel-buffering', 'no')
+            expect(jest.getTimerCount()).toBe(0)
+        } finally {
+            f.abort.abort()
+            jest.useRealTimers()
+        }
+    })
+    it('keeps a silent Responses bridge alive without creating protocol progress', async () => {
+        jest.useFakeTimers()
+        const f = fixture('openai_responses')
+        try {
+            await f.writer.start(f.base)
+            jest.advanceTimersByTime(125_000)
+            expect(f.data.filter((line) => line === ': keep-alive\n\n')).toHaveLength(4)
+            expect(f.events().map((event) => event.type)).toEqual(['response.created', 'response.in_progress'])
+            expect(f.response.setHeader).toHaveBeenCalledWith('x-accel-buffering', 'no')
+            await f.writer.complete({ base: f.base, text: '', reason: 'stop', usage: actual })
+            expect(jest.getTimerCount()).toBe(0)
+        } finally {
+            f.abort.abort()
+            jest.useRealTimers()
+        }
+    })
     it('round trips multiple Responses function calls and outputs without changing call IDs', () => {
         const { parsed } = parseChatBridgeRequest(
             {
