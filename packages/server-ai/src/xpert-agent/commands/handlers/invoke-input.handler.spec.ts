@@ -2,10 +2,76 @@ import { createInvokeHarness, createGraph, createCompiledGraph, consumeStream } 
 import { ChatMessageEventTypeEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
+import { Command } from '@langchain/langgraph'
 describe('Invocation input and pause boundary', () => {
     afterEach(() => {
         jest.restoreAllMocks()
         jest.clearAllMocks()
+    })
+
+    it.each(['persisted-message', undefined])(
+        'assigns trusted input identity on a new send (%s)',
+        async (inputMessageId) => {
+            const { handler, commandBus } = createInvokeHarness()
+            const graph = createGraph()
+            commandBus.execute.mockImplementation(async (command) =>
+                command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+            )
+            const stream = await handler.execute(
+                new XpertAgentInvokeCommand(
+                    { human: { input: 'hi' }, inputIdentity: { id: 'untrusted' } } as never,
+                    'agent-1',
+                    { id: 'xpert-1', features: {} } as never,
+                    {
+                        execution: { id: 'execution-1' },
+                        thread_id: 'thread-1',
+                        subscriber: { next: jest.fn() },
+                        store: null,
+                        inputMessageId
+                    } as never
+                )
+            )
+            await consumeStream(stream)
+            expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+                human: { input: 'hi' },
+                inputIdentity: { id: inputMessageId ?? 'execution-1' }
+            })
+        }
+    )
+
+    it.each(['resume', 'retry', 'pause-resume'])('does not admit fresh human input on %s', async (mode) => {
+        const { handler, commandBus } = createInvokeHarness()
+        const graph = createGraph()
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+        )
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'must not be sent' }, inputIdentity: { id: 'untrusted' } } as never,
+                'agent-1',
+                { id: 'xpert-1', features: {} } as never,
+                {
+                    execution: { id: 'execution-1' },
+                    thread_id: 'thread-1',
+                    subscriber: { next: jest.fn() },
+                    store: null,
+                    ...(mode === 'resume' ? { resume: { decision: { type: 'confirm', payload: 'approved' } } } : {}),
+                    ...(mode === 'retry' ? { checkpointId: 'input-checkpoint' } : {}),
+                    ...(mode === 'pause-resume'
+                        ? { resumeCheckpoint: { threadId: 'thread-1', checkpointNs: '', checkpointId: 'saved' } }
+                        : {})
+                } as never
+            )
+        )
+        await consumeStream(stream)
+        const submitted = graph.streamEvents.mock.calls[0][0]
+        if (mode === 'pause-resume') expect(submitted).toBeNull()
+        else {
+            expect(submitted).toBeInstanceOf(Command)
+            expect(submitted.update).not.toHaveProperty('human')
+            expect(submitted.update).not.toHaveProperty('inputIdentity')
+            if (mode === 'resume') expect(submitted.resume).toBe('approved')
+        }
     })
     it.each([false, true])('retains an input checkpoint even with no next nodes (pause=%s)', async (paused) => {
         const { commandBus, queryBus, createHandler } = createInvokeHarness()

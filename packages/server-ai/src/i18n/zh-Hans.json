@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ToolResultUnavailableForNewInput": "上一轮在此工具结果记录前已中断，执行结果未知。请遵循新的用户输入；除非新输入要求，否则不要重复此操作。",
         "InvalidSidebarSearch": "搜索词必须是单个字符串，且不超过 200 个字符。",
         "PluginInstallationLockLost": "插件安装锁已失效，请重试。",
         "PluginInstallationCancelled": "存储锁已失效，插件安装已取消。",

@@ -41,6 +41,8 @@ export type TMessageChannel = {
   messages: BaseMessage[]
   summary?: string
   error?: string | null
+  /** Checkpointed input identity; committed with the corresponding messages. */
+  inputReceipt?: { id: string; status: 'pending' | 'consumed' }
 }
 
 export interface IBackendProtocol {

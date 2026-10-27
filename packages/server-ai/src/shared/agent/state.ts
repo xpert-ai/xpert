@@ -82,6 +82,11 @@ export type TXpertAgentRuntimeOptions = {
 }
 
 export const AgentStateAnnotation = Annotation.Root({
+    // Set only by fresh invocation admission; Resume/Retry retain the saved identity.
+    inputIdentity: Annotation<{ id: string } | null>({
+        reducer: (_previous, next) => next,
+        default: () => null
+    }),
     messages: Annotation<BaseMessage[]>({
         reducer: messagesStateReducer,
         default: () => []
