@@ -20,6 +20,8 @@ import {
     TPendingFollowUpStateItem
 } from '../../../shared'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
+import { hasPendingAgentInput } from '../../agent-input'
+import { getChannelState } from '../../agent'
 import { mergePendingFollowUpHumans } from './create-node-pending-steer-follow-ups.shared'
 
 @CommandHandler(CreateNodeConsumePendingSteerFollowUpsCommand)
@@ -44,6 +46,17 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                         [STATE_VARIABLE_PENDING_FOLLOW_UPS]: []
                     }
                 }
+
+                // Finish the newly submitted input before a steer replaces human.input.
+                const retryInputCheckpointId = config?.configurable?.xpertRetryInputCheckpointId
+                const isRootAgent = !config?.configurable?.rootAgentKey || config.configurable.rootAgentKey === agentKey
+                if (
+                    hasPendingAgentInput(
+                        getChannelState(state, agentChannel),
+                        isRootAgent && typeof retryInputCheckpointId === 'string' ? retryInputCheckpointId : undefined
+                    )
+                )
+                    return {}
 
                 const pendingFollowUps = (state[STATE_VARIABLE_PENDING_FOLLOW_UPS] ?? []) as TPendingFollowUpStateItem[]
                 if (!pendingFollowUps.length) {

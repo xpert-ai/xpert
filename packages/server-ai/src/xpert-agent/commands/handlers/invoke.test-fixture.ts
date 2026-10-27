@@ -76,6 +76,10 @@ jest.mock('../../../chat-message/chat-message.entity', () => ({
     ChatMessage: class ChatMessage {}
 }))
 
+jest.mock('../../../shared/volume', () => ({
+    VolumeClient: jest.requireMock('../../../shared').VolumeClient
+}))
+
 jest.mock('../../../knowledgebase', () => ({
     KnowledgebaseTaskService: class KnowledgebaseTaskService {},
     KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
@@ -119,7 +123,8 @@ export function createInvokeHarness() {
     }
     const chatMessageRepository = {
         find: jest.fn().mockResolvedValue([]),
-        save: jest.fn().mockResolvedValue(undefined)
+        save: jest.fn().mockResolvedValue(undefined),
+        update: jest.fn().mockResolvedValue(undefined)
     }
 
     const createHandler = (control?: ThreadRunControlService) =>
