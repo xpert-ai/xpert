@@ -1,5 +1,5 @@
 ---
-'@xpert-ai/plugin-sdk': major
+'@xpert-ai/plugin-sdk': patch
 '@xpert-ai/server-core': patch
 '@xpert-ai/xpert-api': patch
 '@xpert-ai/xpert-ui': patch

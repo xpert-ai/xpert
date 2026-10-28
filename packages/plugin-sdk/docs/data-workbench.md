@@ -31,7 +31,7 @@ corresponding database plugin implementation and the plugin repository's
 in the companion plugin change; HANA implements the same contract independently.
 
 Strategies without an explicit workbench declaration are not exposed by this
-runtime. Coordinate the host/SDK major upgrade with the migrated plugins; do not
+runtime. Coordinate the host/SDK patch release with the migrated plugins; do not
 upgrade a host that still relies on the removed SDK implementation exports.
 After the SDK is published, update the plugin SDK dependency floors and lockfile
 and validate a clean install against that actual version before release.
