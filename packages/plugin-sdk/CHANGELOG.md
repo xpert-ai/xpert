@@ -1,5 +1,32 @@
 # @xpert-ai/plugin-sdk
 
+## 3.29.0
+
+### Minor Changes
+
+- 78cd9c0: Expose project Artifact references through Content Catalog and the Artifact Library capability. Add authenticated read-only viewing, pinned version selection, reusable sharing and explicit copy policy without creating shares during collection or viewing.
+
+  Expose provider-owned localized Artifact type names in Spaces lists, cards and share management so shared conversations remain recognizable independently of the reference relationship.
+
+- 78cd9c0: Add ArtifactTypeProvider contributions with loader-owned namespace, explicit installation binding, content validation, sharing restrictions, and snapshot or authenticated presentation modes. Persist typeBinding on Artifact and deny unbound or unavailable types without fallback. Reuse the existing Artifact runtime API and Presentation Provider protocol.
+
+  Implement conversation snapshots as a built-in Artifact plugin, retaining the ChatKit read-only message UI and source authorization. Add an isolated anonymous snapshot viewer without a query channel; keep authenticated queries scoped to the current viewer and matching plugin installation. Remove the previous host-only source-policy contract. Existing experimental untyped records are not automatically converted.
+
+- 4b07221: Add the built-in administrator execution-observability plugin with an expandable Assistant/conversation timeline and five read-only analysis tools. Reuse scoped existing execution and usage records, preserve unknown lifecycle phases and costs, and ship shared shadcn/Tailwind remote assets without new tables.
+
+### Patch Changes
+
+- 3b03ad7: Delegate scoped database workbench discovery and location handling to registered plugins. Preserve actor authorization, source revision checks and independent connection cleanup without a built-in engine allowlist.
+
+  Breaking SDK change: remove the legacy SQL adapter, dialect validation and quoting exports. Database plugins now own these implementations; SQL consumers migrate to the plugin-repository sql-workbench helpers. Strategies explicitly declare workbench support and runners accept the requested DatabaseLocation. Upgrade the MySQL/Doris, PostgreSQL, HANA and DB Studio plugins together with this SDK; old plugins without the registration opt-in are unavailable to the scoped workbench until upgraded.
+
+- Updated dependencies [78cd9c0]
+- Updated dependencies [78cd9c0]
+- Updated dependencies [4b07221]
+- Updated dependencies [b459105]
+- Updated dependencies [78cd9c0]
+  - @xpert-ai/contracts@3.29.0
+
 ## 3.28.0
 
 ### Minor Changes
