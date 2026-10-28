@@ -1,6 +1,7 @@
 import { BaseMessage, isAIMessage, isToolMessage, ToolMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { Send } from '@langchain/langgraph'
+import { createAgentToolInput } from './agent-tool-input'
 
 /** Unknown model tool names must reach a tool error node, never arbitrary graph nodes. */
 export function routeAgentToolCall(
@@ -9,7 +10,10 @@ export function routeAgentToolCall(
     toolNames: ReadonlySet<string>,
     unknownToolNode: string
 ): Send {
-    return new Send(toolNames.has(toolCall.name) ? toolCall.name : unknownToolNode, { ...state, toolCall })
+    return new Send(
+        toolNames.has(toolCall.name) ? toolCall.name : unknownToolNode,
+        createAgentToolInput(toolCall, state)
+    )
 }
 
 /**

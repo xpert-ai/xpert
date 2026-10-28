@@ -90,7 +90,7 @@ describe('unknown tool routing', () => {
             const call = { name, id: 'call-invalid', args: { taskId: 'task' } }
             const send = routeAgentToolCall(call, state, tools, 'unknown_tool')
             expect(send.node).toBe('unknown_tool')
-            expect(send.args).toEqual({ ...state, toolCall: call })
+            expect(send.args).toMatchObject({ toolCall: call })
         }
         expect(routeAgentToolCall({ name: 'bid_retry_role_task', args: {} }, state, tools, 'unknown_tool').node).toBe(
             'bid_retry_role_task'

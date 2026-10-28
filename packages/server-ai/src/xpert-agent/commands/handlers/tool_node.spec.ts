@@ -1,8 +1,29 @@
 import { AIMessage, ToolMessage } from '@langchain/core/messages'
+import { tool } from '@langchain/core/tools'
 import { channelName } from '@xpert-ai/contracts'
+import { z } from 'zod/v3'
 import { ToolNode } from './tool_node'
+import { routeAgentToolCall } from './agent-navigation'
 
 describe('ToolNode', () => {
+    it.each([undefined, () => null, () => ({})])(
+        'fails before middleware when referenced state is unavailable',
+        async (read) => {
+            const wrapToolCall = jest.fn(async () => new ToolMessage({ content: 'updated', tool_call_id: 'call-1' }))
+            const projectTool = tool(async () => 'updated', { name: 'project_update', schema: z.object({}) })
+            const node = new ToolNode([projectTool], { toolName: 'Project', wrapToolCall })
+            const send = routeAgentToolCall(
+                { name: 'project_update', id: 'call-1', args: {} },
+                { projectId: 'project-1' },
+                new Set(['project_update']),
+                'unknown_tool'
+            )
+
+            await expect(node.invoke(send.args, { configurable: { __pregel_read: read } })).rejects.toThrow()
+            expect(wrapToolCall).not.toHaveBeenCalled()
+        }
+    )
+
     it('runs a targeted tool call even when a synthetic HITL tool message trails the assistant message', async () => {
         const invoke = jest.fn().mockResolvedValue('removed')
         const node = new ToolNode(
