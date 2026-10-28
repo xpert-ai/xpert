@@ -1,7 +1,7 @@
 import { ConflictException, GoneException, Injectable, NotFoundException } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { t } from 'i18next'
-import { environment } from '@xpert-ai/server-config'
+import { getConfig } from '@xpert-ai/server-config'
 import {
     RuntimeCapabilityProvider,
     ArtifactLibraryRuntimeCapability,
@@ -97,7 +97,7 @@ export class ArtifactLibraryService implements ArtifactLibraryApi {
             )
                 throw error
         }
-        const url = new URL(`/artifacts/library/${reference.id}`, environment.clientBaseUrl || environment.baseUrl)
+        const url = new URL(`/artifacts/library/${reference.id}`, getConfig().clientBaseUrl)
         return {
             id: reference.id,
             artifactId: artifact.id,

@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { getConfig, setConfig } from '@xpert-ai/server-config'
 import { ArtifactLibraryAccess } from './artifact-library-access'
 import { ArtifactLibraryService } from './artifact-library.service'
 import { ArtifactContentProvider } from './artifact-content.provider'
@@ -86,6 +87,23 @@ async function fixture() {
 }
 
 describe('Artifact library authorization and lifecycle', () => {
+    it('uses the effective frontend URL and honors later bootstrap configuration overrides', async () => {
+        const originalUrl = getConfig().clientBaseUrl
+        const f = await fixture()
+        try {
+            setConfig({ clientBaseUrl: 'https://cloud.example/' })
+            expect((await f.library.open({ ...scope, referenceId: 'reference' })).url).toBe(
+                'https://cloud.example/artifacts/library/reference'
+            )
+            setConfig({ clientBaseUrl: 'https://other-cloud.example/' })
+            expect((await f.library.open({ ...scope, referenceId: 'reference' })).url).toBe(
+                'https://other-cloud.example/artifacts/library/reference'
+            )
+        } finally {
+            setConfig({ clientBaseUrl: originalUrl })
+            await f.module.close()
+        }
+    })
     it('preserves the registered type in catalog and management metadata independently of the reference title', async () => {
         const f = await fixture()
         const snapshot = await f.provider.catalog.describe({ ...scope, sourceResourceId: 'reference' })
