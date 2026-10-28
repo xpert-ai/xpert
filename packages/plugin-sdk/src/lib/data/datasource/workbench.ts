@@ -1,12 +1,12 @@
-/** Shared wire contract. Credentials and driver objects never cross this boundary. */
-export type DatabaseEngine = 'doris' | 'mysql' | 'postgres' | 'hana'
+/** Stable plugin engine identifier. Credentials and driver objects never cross this wire contract. */
+export type DatabaseEngine = string
 export type DatabaseValue = string | number | boolean | null
 export type DatabaseObjectKind = 'table' | 'view'
 export interface DatabaseLocation {
-  /** HANA tenant database is fixed by the saved connection; it cannot be switched at runtime. */
+  /** Plugins validate whether a requested database can differ from the saved connection. */
   database?: string
   schema?: string
-  /** Doris external catalog; legacy QueryOptions.catalog continues to mean database. */
+  /** Optional engine catalog interpreted and validated by the database plugin. */
   engineCatalog?: string
 }
 export interface DatabaseObjectRef extends DatabaseLocation {

@@ -1,9 +1,9 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { PermissionsEnum } from '@xpert-ai/contracts'
 import {
 	DataSourceRuntimeCapability,
+	DataSourceStrategyRegistry,
 	RuntimeCapabilityProvider,
 	type DataSourceActor as DataSourceRuntimeActor,
 	type DataSourceRuntimeApi,
@@ -17,7 +17,6 @@ import { t } from 'i18next'
 import { RequestContext } from '../core/context'
 import { DataSource } from './data-source.entity'
 import { DataSourceService } from './data-source.service'
-import { DataSourceStrategyQuery } from './queries'
 
 /** Only safe summaries and scoped, independent runners cross the plugin boundary. */
 @Injectable()
@@ -26,7 +25,7 @@ export class DataSourceRuntimeService implements DataSourceRuntimeApi {
 	constructor(
 		@InjectRepository(DataSource) private readonly repository: Repository<DataSource>,
 		private readonly sources: DataSourceService,
-		private readonly queryBus: QueryBus
+		private readonly strategies: DataSourceStrategyRegistry
 	) {}
 
 	private authorize(actor: DataSourceRuntimeActor, write = false) {
@@ -50,11 +49,10 @@ export class DataSourceRuntimeService implements DataSourceRuntimeApi {
 			relations: ['type'],
 			take: 1000
 		})
+		const strategies = new Map(this.strategies.list().map((strategy) => [strategy.type, strategy]))
 		return sources.flatMap((source) => {
-			const engine = source.type.type === 'pg' ? 'postgres' : source.type.type
-			return engine === 'mysql' || engine === 'doris' || engine === 'postgres' || engine === 'hana'
-				? [{ id: source.id, name: source.name, engine }]
-				: []
+			const strategy = strategies.get(source.type.type)
+			return strategy?.workbench ? [{ id: source.id, name: source.name, engine: strategy.workbench.engine }] : []
 		})
 	}
 
@@ -65,35 +63,30 @@ export class DataSourceRuntimeService implements DataSourceRuntimeApi {
 	}): Promise<DatabaseWorkbenchAdapter> {
 		this.authorize(input.actor)
 		const source = await this.sources.prepareDataSource(input.dataSourceId)
-		const engine = source.type.type === 'pg' ? 'postgres' : source.type.type
-		if (!['mysql', 'doris', 'postgres', 'hana'].includes(engine))
-			throw new ForbiddenException('Workbench adapter unavailable')
-		if (input.location?.engineCatalog && (engine === 'hana' || input.location.engineCatalog !== 'internal'))
-			throw new ForbiddenException('External catalog unavailable')
-		const options = { ...source.options }
-		if (engine === 'hana') {
-			// HANA's tenant is a connection boundary; catalog is its selected SQL schema.
-			if (input.location?.database && input.location.database !== options.database) {
-				throw new ForbiddenException(
-					t('server-ai:Error.HanaDatabaseSwitchDenied', {
-						defaultValue:
-							'The HANA tenant database cannot be changed. Select a saved data source for that tenant.'
-					})
-				)
-			}
-			if (input.location?.schema) options.catalog = input.location.schema
-		} else if (engine === 'postgres') {
-			if (input.location?.database) options.database = input.location.database
-			if (input.location?.schema) options.catalog = input.location.schema
-		} else if (input.location?.database) options.catalog = input.location.database
-		const runner: DBQueryRunner = await this.queryBus.execute(
-			new DataSourceStrategyQuery(source.type.type, options)
-		)
-		if (!runner.getWorkbenchAdapter) {
+		const strategy = this.strategies.get(source.type.type)
+		if (!strategy?.workbench) throw new ForbiddenException('Database plugin upgrade required')
+		// Independent runner; saved credentials and trusted identity are never supplied by tool input.
+		const runner: DBQueryRunner = await strategy.create({ ...source.options })
+		let adapter: DatabaseWorkbenchAdapter
+		try {
+			if (!runner.getWorkbenchAdapter) throw new ForbiddenException('Database plugin upgrade required')
+			adapter = runner.getWorkbenchAdapter(input.location ? { ...input.location } : undefined)
+		} catch (error) {
 			await runner.teardown()
-			throw new ForbiddenException('Database plugin upgrade required')
+			throw error
 		}
-		const adapter = runner.getWorkbenchAdapter()
+		if (adapter.engine !== strategy.workbench.engine) {
+			try {
+				await adapter.close()
+			} finally {
+				await runner.teardown()
+			}
+			throw new ForbiddenException(
+				t('server-ai:Error.DatabaseAdapterRegistrationMismatch', {
+					defaultValue: 'Database adapter does not match its registration'
+				})
+			)
+		}
 		let closed = false
 		const close = async () => {
 			if (!closed) {
