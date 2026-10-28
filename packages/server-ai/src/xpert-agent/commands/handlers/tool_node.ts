@@ -16,6 +16,7 @@ import {
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { setContextVariable } from '@langchain/core/context'
 import type { AgentBuiltInState, ToolCallHandler, ToolCallRequest, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
+import { resolveAgentToolInput } from './agent-tool-input'
 
 export type ToolNodeOptions = {
     name?: string
@@ -255,6 +256,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
         // const config = ensureLangGraphConfig(options);
         const mergedConfig = mergeConfigs(this.config, options)
 
+        input = resolveAgentToolInput(input, mergedConfig)
         setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input)
 
         if (this.trace) {
