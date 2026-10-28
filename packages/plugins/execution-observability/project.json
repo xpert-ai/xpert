@@ -16,7 +16,7 @@
     },
     "build": {
       "executor": "@nx/rollup:rollup",
-      "dependsOn": ["generate-remote-components"],
+      "dependsOn": ["^build", "generate-remote-components"],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/plugins/execution-observability",
