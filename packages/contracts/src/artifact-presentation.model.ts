@@ -20,10 +20,22 @@ export interface ArtifactPresentation {
   entry: { html: string }
   data: object
   operations: string[]
+  expiresAt?: string | null
 }
 
 export interface ArtifactPresentationQuery {
   target: ArtifactPresentationTarget
   operation: string
   input: object
+}
+
+/** Authenticated Project reference viewing does not create or consume a public share. */
+export type ArtifactLibraryContent =
+  | { kind: 'conversation'; snapshot: import('./ai/conversation-share.model').ConversationShareSnapshot }
+  | { kind: 'presentation'; presentation: ArtifactPresentation }
+  | { kind: 'file'; fileName: string; mimeType: string; canDownload: boolean }
+export interface ArtifactLibraryView {
+  title: string
+  revision: number
+  content: ArtifactLibraryContent
 }

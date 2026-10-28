@@ -772,7 +772,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                     agentKey: 'agent-1',
                     executionId: 'execution-1'
                 },
-                recursionLimit: 5
+                recursionLimit: 6 // Includes the checkpointed input-admission node.
             }
         )
     }
@@ -1667,7 +1667,7 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
                     agentKey: 'agent-1',
                     executionId: 'execution-1'
                 },
-                recursionLimit: 5
+                recursionLimit: 6 // Includes the checkpointed input-admission node.
             }
         )
     }

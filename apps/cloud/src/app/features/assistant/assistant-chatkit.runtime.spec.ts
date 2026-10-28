@@ -22,9 +22,23 @@ import {
   hasAssistantBindingSource,
   hasCompleteAssistantBinding,
   injectHostedAssistantChatkitControl,
+  sanitizeAssistantFrameUrl,
   resolveAssistantMcpAppsOptions,
   CHATKIT_ATTACHMENT_MAX_BYTES
 } from './assistant-chatkit.runtime'
+
+describe('configured ChatKit frame entry', () => {
+  it.each([
+    ['/chatkit', '/chatkit/index.html'],
+    [' /chatkit/?foo=1#thread ', '/chatkit/index.html?foo=1#thread'],
+    ['https://frame.example.com/chatkit', 'https://frame.example.com/chatkit'],
+    ['DOCKER_CHATKIT_FRAME_URL', null],
+    ['', null],
+    [undefined, null]
+  ])('resolves %s without a local directory redirect', (value, expected) => {
+    expect(sanitizeAssistantFrameUrl(value)).toBe(expected)
+  })
+})
 
 jest.mock('../../app.service', () => ({
   AppService: class AppService {}

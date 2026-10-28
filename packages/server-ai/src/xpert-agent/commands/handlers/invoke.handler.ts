@@ -464,6 +464,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     [STATE_VARIABLE_HUMAN]: {
                         ...state[STATE_VARIABLE_HUMAN]
                     },
+                    inputIdentity: { id: options.inputMessageId ?? execution.id },
                     memories
                 }
             }

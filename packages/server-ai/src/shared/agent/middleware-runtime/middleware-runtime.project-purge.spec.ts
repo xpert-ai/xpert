@@ -16,7 +16,8 @@ it('inherits project provisioning registered after the Agent facade is construct
         {},
         { createScopedApi: () => ({}) },
         { createScopedApi: () => ({}) },
-        platform
+        platform,
+        { createScopedApi: () => ({}) }
     ]) as AgentMiddlewareRuntimeService
     platform.register(ConnectorRuntimeFactoryCapability, {
         createScopedApi: () => ({ getConnector: jest.fn() }),

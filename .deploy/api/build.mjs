@@ -33,7 +33,7 @@ export async function build(root = resolve(dirname(fileURLToPath(import.meta.url
       '-t',
       'build',
       '-p',
-      'api,cli-model-profiles,vlm-default,draft,github-integration',
+      'api,cli-model-profiles,vlm-default,draft,github-integration,execution-observability',
       '--parallel=2',
       '--outputStyle=static'
     ],

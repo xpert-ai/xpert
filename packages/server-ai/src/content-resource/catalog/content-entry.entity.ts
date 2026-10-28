@@ -15,7 +15,7 @@ export class ContentResourceEntry extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar', length: 200, nullable: true }) modelId?: string
     @Column({ type: 'varchar', length: 100, nullable: true }) schemaVersion?: string
     @Column({ type: 'varchar', length: 500, nullable: true }) title?: string
-    @Column({ type: 'varchar', length: 200, nullable: true }) sourceRevision?: string
+    @Column({ type: 'varchar', length: 256, nullable: true }) sourceRevision?: string
     @Column({ type: 'jsonb', nullable: true }) sourceLocation?: import('@xpert-ai/contracts').ContentSourceLocation
     @Column({ type: 'timestamptz', nullable: true }) sourceUpdatedAt?: Date
     @Column({ type: 'boolean', default: false }) deleted: boolean

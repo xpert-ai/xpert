@@ -42,6 +42,8 @@ export interface IAuthOptions {
 }
 
 export interface IPluginConfig {
+  /** Cloud URL, inherited from the existing CLIENT_BASE_URL setting. */
+  clientBaseUrl?: string
   managedQueueOptions?: {
     concurrency: number
     sandboxBrowserConcurrency: number

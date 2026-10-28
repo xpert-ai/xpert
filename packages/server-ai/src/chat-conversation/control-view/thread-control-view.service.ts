@@ -1,4 +1,5 @@
-// Invariants: lock the thread before its task root, and publish from that same snapshot.
+// Invariants: read and publish one repeatable snapshot without locking live execution rows.
+// Only the projection is written; conflicting snapshots retry before publishing its clock.
 // Intent revisions do not order child receipts. This projection has its own durable clock.
 // Permission grants are never cached; public capabilities are hints, not command admission.
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
@@ -56,7 +57,7 @@ export class ThreadControlViewService {
             if (!(error instanceof ForbiddenException)) throw error
             canContribute = false
         }
-        // CQRS policy reads may borrow another pool connection. Finish them before taking row locks.
+        // CQRS policy reads may borrow another pool connection. Finish them before opening the transaction.
         // They are hints; each command reauthorizes, and retry below must still match this exact run/thread.
         initial.conversation = conversation
         const workflow = await this.workflow(initial)
@@ -73,8 +74,7 @@ export class ThreadControlViewService {
                             tenantId: conversation.tenantId,
                             organizationId: conversation.organizationId ?? IsNull(),
                             conversationId: conversation.id
-                        },
-                        lock: { mode: 'pessimistic_write' }
+                        }
                     })
                     if (!thread) throw new NotFoundException()
                     thread.conversation = conversation
@@ -97,8 +97,7 @@ export class ThreadControlViewService {
                         )
                             throw new ForbiddenException()
                         await manager.findOneOrFail(ExecutionTaskControl, {
-                            where: { id: task.rootId },
-                            lock: { mode: 'pessimistic_write' }
+                            where: { id: task.rootId }
                         })
                     }
                     const evidence = runId
@@ -194,6 +193,7 @@ export class ThreadControlViewService {
                             revision: projection ? (BigInt(projection.revision) + BigInt(1)).toString() : '1',
                             fingerprint
                         })
+                        // REPEATABLE READ rejects a stale writer if another reader has advanced this row.
                         await manager.save(projection)
                     }
                     const controlView: ThreadControlView = {

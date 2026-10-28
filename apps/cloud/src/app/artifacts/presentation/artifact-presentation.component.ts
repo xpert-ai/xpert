@@ -1,5 +1,7 @@
 import { DOCUMENT } from '@angular/common'
-import { Component, DestroyRef, ElementRef, effect, inject, input, signal, viewChild } from '@angular/core'
+import { HttpErrorResponse } from '@angular/common/http'
+import { RouterLink } from '@angular/router'
+import { Component, DestroyRef, ElementRef, NgZone, effect, inject, input, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -13,10 +15,16 @@ import { isolatePresentationHtml, presentationMessage } from './presentation-bri
 @Component({
   standalone: true,
   selector: 'xp-artifact-presentation',
-  imports: [TranslateModule],
+  imports: [TranslateModule, RouterLink],
   host: { class: 'block h-full w-full min-h-0' },
   template: `
-    @if (error()) {
+    @if (signIn()) {
+      <section class="flex h-full items-center justify-center p-6">
+        <a routerLink="/auth/login" [queryParams]="{ returnUrl: '/artifacts/snapshot/' + slug() }" class="underline">
+          {{ 'ConversationShare.Login' | translate: { Default: 'Sign in' } }}
+        </a>
+      </section>
+    } @else if (error()) {
       <section class="flex h-full flex-col items-center justify-center gap-4 p-6 text-center" role="alert">
         <h1 class="text-lg font-semibold">
           {{ 'ArtifactShareAuth.Unavailable' | translate: { Default: 'This shared artifact is unavailable' } }}
@@ -52,12 +60,16 @@ import { isolatePresentationHtml, presentationMessage } from './presentation-bri
   `
 })
 export class ArtifactPresentationComponent {
+  readonly library = input(false)
+  readonly snapshot = input(false)
+  readonly signIn = signal(false)
   readonly slug = input.required<string>()
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame')
   readonly entry = signal<SafeHtml | null>(null)
   readonly error = signal(false)
   readonly title = signal('')
   private readonly api = inject(ArtifactPresentationService)
+  private readonly zone = inject(NgZone)
   private readonly sanitizer = inject(DomSanitizer)
   private readonly document = inject(DOCUMENT)
   private readonly translate = inject(TranslateService)
@@ -72,6 +84,8 @@ export class ArtifactPresentationComponent {
   private instanceId = ''
   private activeSlug = ''
   private inFlight = 0
+  private expiryTimer?: ReturnType<typeof setTimeout>
+  private refreshTimer?: ReturnType<typeof setTimeout>
 
   constructor() {
     effect(() => {
@@ -86,6 +100,8 @@ export class ArtifactPresentationComponent {
     }
     this.document.defaultView?.addEventListener('message', listener)
     inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.expiryTimer)
+      clearTimeout(this.refreshTimer)
       ++this.sequence
       this.cancelled.next()
       this.cancelled.complete()
@@ -112,23 +128,76 @@ export class ArtifactPresentationComponent {
   }
 
   private async load(slug: string) {
+    clearTimeout(this.expiryTimer)
+    clearTimeout(this.refreshTimer)
     this.cancelled.next()
     const sequence = ++this.sequence
     this.presentation = null
     this.entry.set(null)
     this.error.set(false)
+    this.signIn.set(false)
     this.ready.set(false)
     this.activeSlug = slug
     this.instanceId = `artifact-${sequence}-${crypto.randomUUID()}`
     try {
-      const presentation = await firstValueFrom(this.api.read(slug).pipe(takeUntil(this.cancelled)))
+      const request = this.library()
+        ? this.api.readLibraryPresentation(slug)
+        : this.snapshot()
+          ? this.api.readSnapshot(slug)
+          : this.api.read(slug)
+      const presentation = await firstValueFrom(request.pipe(takeUntil(this.cancelled)))
       if (sequence !== this.sequence) return
       this.presentation = presentation
       this.title.set(presentation.title)
       this.entry.set(this.sanitizer.bypassSecurityTrustHtml(isolatePresentationHtml(presentation.entry.html)))
-    } catch {
-      if (sequence === this.sequence) this.error.set(true)
+      if (this.snapshot() || this.library()) this.scheduleSnapshotCheck(presentation, sequence)
+    } catch (error) {
+      if (sequence === this.sequence) {
+        if (this.snapshot() && error instanceof HttpErrorResponse && error.status === 401) this.signIn.set(true)
+        else this.error.set(true)
+      }
     }
+  }
+
+  private scheduleSnapshotCheck(presentation: ArtifactPresentation, sequence: number) {
+    this.zone.runOutsideAngular(() => this.startSnapshotTimers(presentation, sequence))
+  }
+
+  private startSnapshotTimers(presentation: ArtifactPresentation, sequence: number) {
+    clearTimeout(this.expiryTimer)
+    if (presentation.expiresAt)
+      this.expiryTimer = setTimeout(
+        () => {
+          if (sequence === this.sequence) {
+            this.presentation = null
+            this.entry.set(null)
+            this.error.set(true)
+          }
+        },
+        Math.min(Math.max(0, Date.parse(presentation.expiresAt) - Date.now()), 2147483647)
+      )
+    this.refreshTimer = setTimeout(async () => {
+      try {
+        const current = await firstValueFrom(
+          (this.library()
+            ? this.api.readLibraryPresentation(this.activeSlug)
+            : this.api.readSnapshot(this.activeSlug)
+          ).pipe(takeUntil(this.cancelled))
+        )
+        if (sequence !== this.sequence) return
+        if (current.target.versionId !== presentation.target.versionId) {
+          this.reload()
+          return
+        }
+        this.scheduleSnapshotCheck(current, sequence)
+      } catch {
+        if (sequence === this.sequence) {
+          this.presentation = null
+          this.entry.set(null)
+          this.error.set(true)
+        }
+      }
+    }, 60_000)
   }
 
   private async receive(event: MessageEvent<unknown>) {
@@ -161,20 +230,18 @@ export class ArtifactPresentationComponent {
       send({ type: 'data', requestId: message.requestId, data: presentation.data })
       return
     }
-    if (!presentation.operations.includes(message.actionKey) || this.inFlight >= 16) {
+    if (this.snapshot() || !presentation.operations.includes(message.actionKey) || this.inFlight >= 16) {
       send({ type: 'error', requestId: message.requestId, message: 'ARTIFACT_READ_OPERATION_DENIED' })
       return
     }
     ++this.inFlight
     try {
       const data = await firstValueFrom(
-        this.api
-          .query(this.activeSlug, {
-            target: presentation.target,
-            operation: message.actionKey,
-            input: message.input
-          })
-          .pipe(takeUntil(this.cancelled))
+        (this.library() ? this.api.queryLibrary.bind(this.api) : this.api.query.bind(this.api))(this.activeSlug, {
+          target: presentation.target,
+          operation: message.actionKey,
+          input: message.input
+        }).pipe(takeUntil(this.cancelled))
       )
       send({ type: 'actionResult', requestId: message.requestId, result: { success: true, data } })
     } catch {

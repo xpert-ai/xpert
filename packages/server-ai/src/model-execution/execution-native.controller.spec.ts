@@ -1,10 +1,19 @@
 import { EventEmitter } from 'node:events'
 import { Logger } from '@nestjs/common'
 import type { Request, Response } from 'express'
-import { AiModelTypeEnum, ModelGatewayUsageSourceEnum, type ModelExecutionParameters } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    ModelFeature,
+    ModelGatewayUsageSourceEnum,
+    type ModelExecutionModel,
+    type ModelExecutionParameters
+} from '@xpert-ai/contracts'
+import { builtinCliModelProfiles } from '@xpert-ai/cli-model-profiles'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionNativeController } from './execution-native.controller'
 import { captureRequestContext } from '../shared/request-context'
+import { parseExecutionPolicy } from './execution-policy'
+import { executionToolModels } from './execution-tool-model'
 
 it('logs only safe transport diagnostics while keeping the client error sanitized', async () => {
     const f = fixture()
@@ -31,7 +40,7 @@ it('logs only safe transport diagnostics while keeping the client error sanitize
 })
 
 function fixture(streaming = true, parameters?: ModelExecutionParameters) {
-    const model = {
+    const model: ModelExecutionModel = {
         id: 'selected',
         copilotId: 'copilot',
         providerScopeId: 'provider-org-model',
@@ -139,6 +148,64 @@ function fixture(streaming = true, parameters?: ModelExecutionParameters) {
     }
 }
 describe('native gateway execution lifecycle', () => {
+    it('keeps declared Responses native under the default policy from Codex xhigh through provider dispatch', async () => {
+        const f = fixture(false, { reasoning_effort: 'xhigh', max_tokens: 10631 })
+        const policy = parseExecutionPolicy(undefined)
+        const models = executionToolModels(
+            [
+                {
+                    ...f.model,
+                    protocols: ['openai_chat', 'openai_responses'],
+                    capabilities: [ModelFeature.STREAM_TOOL_CALL, ModelFeature.MULTI_TOOL_CALL]
+                }
+            ],
+            { id: 'codex', version: '0.159.2' },
+            policy
+        )
+        expect(models).toHaveLength(1)
+        expect(models[0].protocols).toEqual(['openai_chat', 'openai_responses'])
+        f.identity.models = models
+        f.policies.require.mockResolvedValue({
+            enabled: true,
+            nativeProtocols: policy.nativeProtocols ?? [],
+            chatBridgeProtocols: policy.chatBridgeProtocols ?? []
+        })
+        const profile = builtinCliModelProfiles.get('codex')
+        if (!profile) throw new Error('Missing Codex profile')
+        const config = profile.configure({
+            directory: '/tmp/native-responses-policy-test',
+            gatewayBaseUrl: policy.gatewayBaseUrl,
+            defaultModelId: f.model.id,
+            models,
+            managed: true
+        })
+        expect(config.args).toContain('model_reasoning_effort="xhigh"')
+        expect(config.args).not.toContain('model_reasoning_effort="none"')
+        expect(config.args).not.toContain('model_reasoning_summary="none"')
+        const effortArgument = config.args.find((arg) => arg.startsWith('model_reasoning_effort='))
+        if (!effortArgument) throw new Error('Missing reasoning effort')
+        const effort: unknown = JSON.parse(effortArgument.slice('model_reasoning_effort='.length))
+        const input = [{ type: 'reasoning', encrypted_content: 'opaque-native-context' }]
+        await f.controller.responses(f.request as Request, f.response as unknown as Response, {
+            model: 'assistant-default',
+            input,
+            stream: false,
+            reasoning: { effort }
+        })
+        expect(f.generate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                model: 'actual-model',
+                input,
+                reasoning: { effort: 'xhigh' },
+                max_output_tokens: 10631
+            }),
+            {},
+            expect.any(AbortSignal)
+        )
+        expect(f.chatExecution.execute).not.toHaveBeenCalled()
+        expect(f.response.write.mock.calls[0][0]).toContain('opaque')
+    })
+
     it('inherits native tuning and reserves its configured output without changing explicit fields', async () => {
         const f = fixture(false, { temperature: 0.6, top_p: 0.37, max_tokens: 12345, reasoning_effort: 'high' })
         await f.controller.responses(f.request as Request, f.response as unknown as Response, {
@@ -201,7 +268,7 @@ describe('native gateway execution lifecycle', () => {
             expect(f.response.end).toHaveBeenCalledTimes(1)
         }
     )
-    it('leaves native inference closed when the separate rollout flag is absent', async () => {
+    it('leaves native inference closed when explicitly disabled by policy', async () => {
         const f = fixture()
         f.policies.require.mockResolvedValue({ enabled: true, nativeProtocols: [], chatBridgeProtocols: [] })
         await f.invoke()

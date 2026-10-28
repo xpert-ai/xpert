@@ -14,7 +14,7 @@ import {
   TFileDirectory,
   toHttpParams
 } from '@cloud/app/@core/state'
-import { Subject, switchMap, tap } from 'rxjs'
+import { Subject, switchMap, take, tap, timeout } from 'rxjs'
 import { TFile } from '../types'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
@@ -168,6 +168,8 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getUnreadByXperts(xpertIds: string[], organizationId?: string) {
     return this.selectOrganizationId().pipe(
+      // Poll callers need a finite request; the organization store itself never completes.
+      take(1),
       switchMap(() =>
         this.httpClient.post<IChatConversationUnreadXpertSummary[]>(
           this.apiBaseUrl + '/unread/xperts',
@@ -178,7 +180,8 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
             params: appendOrganizationIdQueryParam(null, organizationId)
           }
         )
-      )
+      ),
+      timeout(15_000)
     )
   }
 

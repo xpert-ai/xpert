@@ -1,3 +1,13 @@
+import { ArtifactShareQueries } from './artifact-share-queries'
+import { ArtifactReference } from './library/artifact-reference.entity'
+import { ArtifactLibraryAccess } from './library/artifact-library-access'
+import { ArtifactLibraryService } from './library/artifact-library.service'
+import { ArtifactContentProvider } from './library/artifact-content.provider'
+import { ArtifactLibraryViewService } from './library/artifact-library-view.service'
+import { ArtifactLibraryController } from './library/artifact-library.controller'
+import { ArtifactSnapshotsService } from './presentation/artifact-snapshots.service'
+import { ArtifactSnapshotsController } from './presentation/artifact-snapshots.controller'
+import { ArtifactTypesModule } from './types/artifact-types.module'
 import { ArtifactDraft } from './drafts/artifact-draft.entity'
 import { ArtifactDraftsService } from './drafts/artifact-drafts.service'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
@@ -24,30 +34,46 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
 
 @Module({
     imports: [
+        ArtifactTypesModule,
         DiscoveryModule,
         RuntimeCapabilityModule,
         ContentResourceModule,
         XpertProjectAccessModule,
         WorkspaceFilesRuntimeModule,
-        TypeOrmModule.forFeature([Artifact, ArtifactDraft, ArtifactVersion, ArtifactLink, ArtifactAccessLog]),
+        TypeOrmModule.forFeature([
+            Artifact,
+            ArtifactDraft,
+            ArtifactVersion,
+            ArtifactLink,
+            ArtifactAccessLog,
+            ArtifactReference
+        ]),
         UserModule,
         UserOrganizationModule,
         XpertWorkspaceModule,
         VolumeModule
     ],
     controllers: [
+        ArtifactLibraryController,
         ArtifactsPublicController,
         ArtifactsShareSessionController,
         ArtifactsManagementController,
-        ArtifactPresentationController
+        ArtifactPresentationController,
+        ArtifactSnapshotsController
     ],
     providers: [
+        ArtifactLibraryAccess,
+        ArtifactLibraryService,
+        ArtifactContentProvider,
+        ArtifactLibraryViewService,
         ArtifactsService,
+        ArtifactShareQueries,
         ArtifactContentAccess,
         ArtifactDraftsService,
         ArtifactPresentationRegistry,
-        ArtifactPresentationService
+        ArtifactPresentationService,
+        ArtifactSnapshotsService
     ],
-    exports: [ArtifactsService]
+    exports: [ArtifactsService, ArtifactShareQueries, ArtifactSnapshotsService]
 })
 export class ArtifactsModule {}

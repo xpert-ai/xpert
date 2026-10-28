@@ -1,9 +1,10 @@
+import { configuredArtifactPolicies } from '../../testing/source-policies'
 import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { DataSource, EntitySchema } from 'typeorm'
-import { DefaultRuntimeCapabilityRegistry, type ArtifactVersionInput } from '@xpert-ai/plugin-sdk'
+import { type ArtifactVersionInput } from '@xpert-ai/plugin-sdk'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../../shared/runtime/workspace-files-runtime-capability.service'
 import { VolumeHandle, type VolumeClient } from '../../../shared/volume'
 import { ArtifactsService, type ArtifactsRuntimeScope } from '../../artifacts.service'
@@ -63,6 +64,7 @@ export async function createDraftFixture(url: string) {
                     ...baseColumns,
                     ...scopeColumns,
                     pluginName: { type: 'varchar' },
+                    typeBinding: { type: 'json', nullable: true },
                     resourceType: { type: 'varchar' },
                     resourceId: { type: 'varchar' },
                     kind: { type: 'varchar' },
@@ -155,13 +157,14 @@ export async function createDraftFixture(url: string) {
         undefined,
         undefined,
         undefined,
-        database
+        database,
+        undefined,
+        configuredArtifactPolicies()
     )
-    const files = new WorkspaceFilesRuntimeCapabilityService(
-        { execute: jest.fn() },
-        volumes,
-        new DefaultRuntimeCapabilityRegistry()
-    )
+    const files = new WorkspaceFilesRuntimeCapabilityService({ execute: jest.fn() }, volumes, {
+        listReadable: jest.fn().mockResolvedValue([]),
+        assertEdit: jest.fn().mockResolvedValue(undefined)
+    })
     const service = new ArtifactDraftsService(database, artifacts, files, { assert: jest.fn() } as never)
     const api = service.createScopedApi(owner)
 

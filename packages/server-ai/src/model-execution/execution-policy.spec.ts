@@ -18,6 +18,7 @@ export const testPolicy = {
         leaseSeconds: 60,
         maxDurationSeconds: 600
     },
+    nativeProtocols: [],
     chatBridgeProtocols: [],
     cliPermissions: { defaultMode: 'allow', overrides: {} },
     tools: [{ id: 'aider', executable: '/home/user/.local/bin/aider', version: '0.86.1' }]
@@ -31,6 +32,7 @@ describe('execution policy and admission', () => {
                 enabled: true,
                 tools: builtinCliTools,
                 limits: defaultExecutionLimits,
+                nativeProtocols: ['openai_responses'],
                 chatBridgeProtocols: ['openai_responses', 'anthropic_messages']
             })
         }
@@ -38,6 +40,13 @@ describe('execution policy and admission', () => {
     it('retains explicit limits, tools and protocol restrictions while ignoring the old switch', () => {
         expect(parseExecutionPolicy(JSON.stringify(testPolicy))).toEqual(testPolicy)
         expect(parseExecutionPolicy({ ...testPolicy, enabled: false })).toEqual(testPolicy)
+    })
+    it.each([
+        { nativeProtocols: [] },
+        { nativeProtocols: ['openai_responses'] },
+        { nativeProtocols: ['anthropic_messages'] }
+    ])('retains explicitly configured native protocols: %j', ({ nativeProtocols }) => {
+        expect(parseExecutionPolicy({ nativeProtocols }).nativeProtocols).toEqual(nativeProtocols)
     })
     it('discards a legacy input cap without constraining the policy budget', () => {
         const legacy = {
@@ -52,9 +61,11 @@ describe('execution policy and admission', () => {
         first.tools[0].version = '0.0.0'
         first.limits.tokenBudget = 1
         first.cliPermissions.overrides.qwen = 'restricted'
+        first.nativeProtocols?.push('anthropic_messages')
         expect(parseExecutionPolicy(undefined).tools).toEqual(builtinCliTools)
         expect(parseExecutionPolicy(undefined).limits).toEqual(defaultExecutionLimits)
         expect(parseExecutionPolicy(undefined).cliPermissions).toEqual({ defaultMode: 'allow', overrides: {} })
+        expect(parseExecutionPolicy(undefined).nativeProtocols).toEqual(['openai_responses'])
     })
     it('accepts tool-specific approval overrides and rejects malformed policy', () => {
         const cliPermissions = { defaultMode: 'allow', overrides: { qwen: 'restricted' } }

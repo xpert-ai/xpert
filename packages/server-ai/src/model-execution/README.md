@@ -16,3 +16,27 @@ Constructor parameters are merged before creating the provider client; `.bind()`
 Native Responses maps the snapshot output to `max_output_tokens` and reasoning effort to `reasoning.effort`. Native Messages maps output to `max_tokens` and its explicit thinking mode/budget to `thinking`. Explicit native request settings take precedence. Parameters without a supported protocol mapping fail before provider dispatch; provider-specific `enable_thinking` is not treated as an OpenAI native reasoning setting. The Chat bridge still carries text and client tools only, even when the upstream provider uses thinking internally.
 
 Regression coverage in `execution-parameters.integration.spec.ts` follows real selection, grant issuance/revalidation, persisted schema validation, the Responses-to-Chat controller, model runtime and OpenAI-compatible request serialization. Provider transport is intercepted locally; these tests neither call an external model nor establish that repetitive model behavior is resolved.
+
+## Native protocol selection
+
+Missing or legacy tenant policies that omit `nativeProtocols` allow `openai_responses` by default. A model must still declare native Responses support through its provider metadata and satisfy the CLI's capability and configured-version checks. Negotiation then pins native Responses instead of adding the Responses-to-Chat bridge, and Codex retains the selected model's configured reasoning effort, including `xhigh`.
+
+Explicit `nativeProtocols` lists, including `[]`, override this default. Native Anthropic Messages remains opt-in. Chat-only models still use the existing bridge when its policy, version and tool-capability requirements pass. Native provider failures do not fall back to Chat, and provider binding, authorization and execution budgets remain enforced.
+
+After upgrading the host, start a new execution to issue a grant with the new protocol selection. Existing grants retain their pinned protocols. Regression tests cover default policy parsing, negotiation, Codex configuration and native controller dispatch using a local provider fixture; they do not establish production or real-model acceptance.
+
+## Responses-to-Chat keepalive
+
+The Responses-to-Chat bridge sends SSE comments (`: keep-alive`) every 30 seconds and sets `X-Accel-Buffering: no` so provider thinking or buffered tool arguments do not leave the proxy connection silent. These comments do not create protocol events, usage or provider activity, and do not extend the existing idle/deadline limits. A full response buffer skips heartbeats; completion, failure, abort and disconnect remove the heartbeat timer and its listeners.
+
+This change preserves tool buffering, final output, error events and settlement semantics. Native Responses, Chat Completions and Messages retain their existing behavior.
+
+The opt-in regression uses a local HTTP proxy with a 120-second read-idle limit and a provider fixture that waits 125 seconds. An independently obtained official Codex CLI 0.159.2 binary also verifies that the pinned parser accepts the comments and completes the response:
+
+```sh
+XPERT_LONG_STREAM_TEST=1 XPERT_CODEX_TEST_BINARY=/absolute/path/to/codex-0.159.2 \
+  corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand \
+  --runTestsByPath packages/server-ai/src/model-execution/execution-stream.integration.spec.ts
+```
+
+This local fixture does not verify deployed Nginx settings or a real business task.

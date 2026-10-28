@@ -110,7 +110,8 @@ const ASSISTANT_CONVERSATION_PAGE_SIZE = 10
   selector: 'xp-cloud-sidebar-assistants',
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
-  imports: [SidebarSearchResultsComponent,
+  imports: [
+    SidebarSearchResultsComponent,
     CloudSidebarGroupsComponent,
     CloudSidebarPanelTriggerDirective,
     AssistantProfileDirective,
@@ -226,36 +227,45 @@ export class CloudSidebarAssistantsComponent {
     { initialValue: readViewKey(this.#router) }
   )
   readonly isCurrentCardMode = computed(() => this.mode() === 'current-card')
-  readonly request = computed(() => {
-    const mode = this.mode()
-    const activeScope = this.activeScope()
-    const organizationId = this.organizationId()
-    const isTenantScope = activeScope.level === RequestScopeLevel.TENANT
-    const isOrganizationScope = activeScope.level === RequestScopeLevel.ORGANIZATION
-    const hasRenderableScope =
-      mode === 'current-card'
-        ? isOrganizationScope && !!organizationId
-        : isTenantScope || (isOrganizationScope && !!organizationId)
-    const featureKeys =
-      mode === 'current-card'
-        ? (this.#clawXpertDefinition?.featureKeys ?? [
-            AiFeatureEnum.FEATURE_XPERT,
-            AiFeatureEnum.FEATURE_XPERT_CLAWXPERT
-          ])
-        : [AiFeatureEnum.FEATURE_XPERT]
-    const enabled =
-      this.enabled() &&
-      hasRenderableScope &&
-      this.featureContextHydrated() &&
-      featureKeys.every((featureKey) => this.#store.hasFeatureEnabled(featureKey))
+  readonly request = computed(
+    () => {
+      const mode = this.mode()
+      const activeScope = this.activeScope()
+      const organizationId = this.organizationId()
+      const isTenantScope = activeScope.level === RequestScopeLevel.TENANT
+      const isOrganizationScope = activeScope.level === RequestScopeLevel.ORGANIZATION
+      const hasRenderableScope =
+        mode === 'current-card'
+          ? isOrganizationScope && !!organizationId
+          : isTenantScope || (isOrganizationScope && !!organizationId)
+      const featureKeys =
+        mode === 'current-card'
+          ? (this.#clawXpertDefinition?.featureKeys ?? [
+              AiFeatureEnum.FEATURE_XPERT,
+              AiFeatureEnum.FEATURE_XPERT_CLAWXPERT
+            ])
+          : [AiFeatureEnum.FEATURE_XPERT]
+      const enabled =
+        this.enabled() &&
+        hasRenderableScope &&
+        this.featureContextHydrated() &&
+        featureKeys.every((featureKey) => this.#store.hasFeatureEnabled(featureKey))
 
-    return {
-      organizationId,
-      scopeLevel: activeScope.level,
-      mode,
-      enabled
+      return {
+        organizationId,
+        scopeLevel: activeScope.level,
+        mode,
+        enabled
+      }
+    },
+    {
+      equal: (previous, current) =>
+        previous.organizationId === current.organizationId &&
+        previous.scopeLevel === current.scopeLevel &&
+        previous.mode === current.mode &&
+        previous.enabled === current.enabled
     }
-  })
+  )
   readonly #assistantOrder = signal<string[]>([])
   readonly #assistantOrderStorageKey = computed(() => {
     const request = this.request()
@@ -309,8 +319,7 @@ export class CloudSidebarAssistantsComponent {
                     items: normalizeAssistantXperts(items)
                   }) satisfies CloudSidebarAssistantState
               ),
-              catchError(() => of(EMPTY_ASSISTANT_STATE)),
-              startWith(EMPTY_ASSISTANT_STATE)
+              catchError(() => of(EMPTY_ASSISTANT_STATE))
             )
           }),
           startWith(EMPTY_ASSISTANT_STATE)

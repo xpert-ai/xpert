@@ -20,15 +20,14 @@ import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializa
 import {
     AIMessage,
     BaseMessage,
-    HumanMessage,
     isAIMessage,
     isBaseMessage,
     isBaseMessageChunk,
-    isToolMessage,
     RemoveMessage,
     ToolMessage
 } from '@langchain/core/messages'
-import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
+import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
+import { createStageAgentInputNode, prepareAgentInput } from '../../agent-input'
 import { RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
@@ -111,6 +110,7 @@ import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-co
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
+import { installAgentToolSnapshots } from './agent-tool-snapshots'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -122,7 +122,6 @@ import { toEnvState } from '../../../environment'
 import {
     _BaseToolset,
     AgentStateAnnotation,
-    createHumanMessage,
     stateToParameters,
     createSummarizeAgent,
     translate,
@@ -155,7 +154,7 @@ import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import {
     buildAgentDecisionPathMap,
     getPendingToolCallsAfterTrailingToolMessages,
-    routeAgentToolCall
+    routeAgentToolCalls
 } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createThreadReferenceMiddleware } from '../../../xpert-middleware/thread-reference.runtime'
@@ -1323,7 +1322,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const enableMessageHistory = !agent.options?.disableMessageHistory
         const historyVariable = agent.options?.historyVariable
         const errorHandling = agent.options?.errorHandling
-        const isCheckpointResume = Boolean(options.resumeCheckpoint)
         const hasAfterModelHooks = afterModelExecutionOrder.length > 0
         const createScopedAbortSignal = () => {
             const controller = new AbortController()
@@ -1346,7 +1344,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }
         }
 
-        const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
+        const stateModifier = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
             const { memories } = state
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
@@ -1366,57 +1364,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
             this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
-            const humanMessages: HumanMessage[] = []
-            const messageHistory = getChannelState(state, agentChannel)?.messages ?? []
-
-            // Determine whether it is Agent reflection (last message is not HumanMessage)
-            const lastMessage = messageHistory[messageHistory.length - 1]
-            // Check if last message is already a HumanMessage to avoid duplicate injection
-            const lastMessageIsHuman = isBaseMessage(lastMessage) && lastMessage.getType() === 'human'
-            // Only create humanMessages if:
-            // 1. Last message is NOT already a HumanMessage (avoid duplicates)
-            // 2. AND either isStart OR last message is not a ToolMessage (normal flow)
-            if (
-                !lastMessageIsHuman &&
-                !isCheckpointResume &&
-                (isStart ||
-                    !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name)))
-            ) {
-                // Is new human input: use message templates or input message
-                const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
-                if (humanTemplates?.length) {
-                    for await (const temp of humanTemplates) {
-                        humanMessages.push(
-                            await HumanMessagePromptTemplate.fromTemplate(temp.text, {
-                                templateFormat: 'mustache'
-                            }).format(parameters)
-                        )
-                    }
-                }
-                if (
-                    (!humanMessages.length || (resourceSkillContext && state.human?.resourceSkills !== undefined)) &&
-                    state.human
-                ) {
-                    // Add attachments
-                    humanMessages.push(
-                        await createHumanMessage(
-                            this.commandBus,
-                            this.queryBus,
-                            state,
-                            agent.options?.attachment ?? agent.options?.vision,
-                            {
-                                xpert: promptWorkflowXpert,
-                                resourceSkillContext
-                            }
-                        )
-                    )
-                }
-            }
+            const channelState = getChannelState(state, agentChannel)
+            const messageHistory = channelState?.messages ?? []
+            const retryInputCheckpointId = config?.configurable?.xpertRetryInputCheckpointId
+            const input = await prepareAgentInput(
+                state,
+                channelState,
+                agent,
+                environment,
+                this.commandBus,
+                this.queryBus,
+                { xpert: promptWorkflowXpert, resourceSkillContext },
+                !leaderKey && typeof retryInputCheckpointId === 'string' ? retryInputCheckpointId : undefined
+            )
 
             return {
                 systemMessage,
                 messageHistory: historyVariable ? (get(state, historyVariable) as BaseMessage[]) : messageHistory,
-                humanMessages
+                ...input
             }
         }
 
@@ -1434,10 +1399,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 ))
             // Keep registration separate from the mutable per-request selection.
             const registeredTools = [...withTools]
-            const { systemMessage, messageHistory, humanMessages } = await stateModifier(
-                state,
-                (<string>config.metadata.langgraph_triggers[0])?.startsWith(START)
-            )
+            const { systemMessage, messageHistory, humanMessages, interruptedTools, inputReceipt } =
+                await stateModifier(state, config)
+            const inputMessages = [...interruptedTools, ...humanMessages]
             const channelState = getChannelState(state, agentChannel)
             const isInternalGoalVerification = readGoalPhaseFromChannelState(channelState) === 'verify'
             // Disable history and new human request then remove history
@@ -1445,8 +1409,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 !enableMessageHistory && humanMessages.length
                     ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string }))
                     : []
+            const channelInputMessages = [...deleteMessages, ...(deleteMessages.length ? humanMessages : inputMessages)]
             const baseMessages = [
                 ...(enableMessageHistory || !humanMessages.length ? messageHistory : []),
+                ...(enableMessageHistory || !humanMessages.length ? interruptedTools : []),
                 ...humanMessages
             ]
             const baseRequest: ModelRequest<AgentBuiltInState> = {
@@ -1516,11 +1482,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
                 const nState: Record<string, any> = {
                     [GRAPH_JUMP_TO_STATE_KEY]: null,
-                    messages: [...humanMessages],
+                    messages: [...inputMessages],
                     [channelName(agentKey)]: {
                         system: systemMessageContent,
                         error: null,
-                        messages: [...deleteMessages, ...humanMessages]
+                        inputReceipt,
+                        messages: channelInputMessages
                     }
                 }
                 if (isBaseMessage(message) || isBaseMessageChunk(message)) {
@@ -1545,19 +1512,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             } catch (err) {
                 if (errorHandling?.type === 'failBranch') {
                     return {
-                        messages: [
-                            ...deleteMessages,
-                            ...humanMessages,
-                            new AIMessage(`Error: ${getErrorMessage(err)}`)
-                        ],
+                        messages: [...inputMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)],
                         [channelName(agentKey)]: {
                             system: systemMessage.content,
                             error: getErrorMessage(err),
-                            messages: [
-                                ...deleteMessages,
-                                ...humanMessages,
-                                new AIMessage(`Error: ${getErrorMessage(err)}`)
-                            ]
+                            inputReceipt,
+                            messages: [...channelInputMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]
                         }
                     }
                 }
@@ -1572,7 +1532,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ? stagePendingFollowUpsNodeKey
             : (beforeModelHooks[0]?.key ?? agentKey)
         const modelLoopEntryNode = beforeModelHooks[0]?.key ?? agentKey
-        const agentStartNode = beforeAgentHooks[0]?.key ?? agentLoopEntryNode
+        const stageAgentInputNodeKey = `${agentKey}_stage_input`
+        const agentStartNode = hiddenAgent ? agentLoopEntryNode : stageAgentInputNodeKey
         const agentDecisionNode = afterModelExecutionOrder[afterModelExecutionOrder.length - 1]?.key ?? agentKey
         const afterAgentEntryNode = afterAgentExecutionOrder[0]?.key
         const agentFinalExitNode =
@@ -1593,6 +1554,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const subgraphBuilder = new StateGraph<any, any, any, string>(SubgraphStateAnnotation)
 
         if (!hiddenAgent) {
+            subgraphBuilder.addNode(
+                stageAgentInputNodeKey,
+                createStageAgentInputNode(agentChannel, options.inputMessageId, !leaderKey)
+            )
+            subgraphBuilder.addEdge(stageAgentInputNodeKey, beforeAgentHooks[0]?.key ?? agentLoopEntryNode)
             beforeAgentHooks.forEach(({ key, hook }) =>
                 subgraphBuilder.addNode(
                     key,
@@ -1925,6 +1891,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             await closeToolsets()
             throw error
         }
+        installAgentToolSnapshots(compiledGraph)
         installGraphCloseHook(compiledGraph)
 
         return {
@@ -2064,12 +2031,18 @@ function createAgentNavigator(
         const lastMessage = messages[messages.length - 1]
         const pendingToolCalls = getPendingToolCallsAfterTrailingToolMessages(messages)
         if (pendingToolCalls.length) {
-            return pendingToolCalls.map((toolCall) => {
+            pendingToolCalls.forEach((toolCall) => {
                 if (!toolCall.name) {
                     throw new InternalServerErrorException(`tool_call's name is empty in '${agentChannel}'.`)
                 }
-                return routeAgentToolCall(toolCall, state, toolRouting.toolNames, toolRouting.unknownToolNode)
             })
+            return routeAgentToolCalls(
+                pendingToolCalls,
+                state,
+                toolRouting.toolNames,
+                toolRouting.unknownToolNode,
+                config
+            )
         }
 
         if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {

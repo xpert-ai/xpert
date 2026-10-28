@@ -1,3 +1,4 @@
+import type { XpertProjectTypeRef } from '../ai/xpert-project-type.model'
 import type { PluginApplicationScope } from '../plugin-application'
 import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
@@ -192,6 +193,8 @@ export interface XpertViewActivation {
 }
 
 export interface XpertWorkbenchViewOptions {
+  /** Project type required by this View. UI recovery hint only; providers still enforce access. */
+  projectType?: XpertProjectTypeRef
   /**
    * @deprecated Use the manifest's `visible` field for visibility and `openMode`
    * for initial tab behavior. Retained for compatibility; false hides the view.

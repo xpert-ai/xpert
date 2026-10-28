@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import type { I18nObject } from './i18n.model'
 
 /**
  * Access policies supported by platform-managed Artifact links.
@@ -25,6 +26,12 @@ export type ArtifactLinkStatus = 'active' | 'revoked' | 'expired'
 
 /** Artifact rendering/download family used by viewers and security policy. */
 export type ArtifactKind = 'html' | 'markdown' | 'pdf' | 'pptx' | 'image' | 'file' | 'site' | 'presentation'
+
+export type ArtifactTypeReference = { pluginName: string; resourceType: string }
+/** Display metadata from the registered type; never inferred from the Artifact's filename or title. */
+export type ArtifactTypeDescriptor = ArtifactTypeReference & { title?: I18nObject }
+/** Host-selected installation scope is persisted so a missing type cannot silently fall back. */
+export type ArtifactTypeBinding = ArtifactTypeReference & { scopeKey: string }
 
 /** Whether an Artifact link follows the latest version or pins one immutable version. */
 export type ArtifactLinkVersionMode = 'latest' | 'version'
@@ -72,6 +79,7 @@ export interface IArtifactWorkspaceFileReference {
  * this record owns source identity, scope, title, and current-version pointer.
  */
 export interface IArtifact extends IBasePerTenantAndOrganizationEntityModel {
+  typeBinding?: ArtifactTypeBinding | null
   /** Optional resource authorization provider; authorizes the existing resourceId in addition to link access. */
   authorizationProviderKey?: string | null
   pluginName: string
