@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "DatabaseAdapterRegistrationMismatch": "Database adapter does not match its registration",
         "ToolResultUnavailableForNewInput": "The previous turn was interrupted before this tool result was recorded. Its outcome is unknown. Follow the new user input; do not repeat this operation unless that input requires it.",
         "InvalidSidebarSearch": "Search must be a single string of at most 200 characters.",
         "PluginInstallationLockLost": "The plugin installation lock was lost. Retry the operation.",

@@ -1,9 +1,12 @@
-import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from "./types"
+import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from './types'
 
 export interface IDataSourceStrategy<TOptions extends AdapterBaseOptions = AdapterBaseOptions> {
   readonly type: string
   readonly name: string
   readonly description?: string
+
+  /** Explicit opt-in to scoped Workbench execution. Engine IDs are owned by plugins. */
+  readonly workbench?: { readonly engine: string }
 
   /**
    * Create a query runner for the given data source options.
