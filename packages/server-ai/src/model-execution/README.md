@@ -17,6 +17,14 @@ Native Responses maps the snapshot output to `max_output_tokens` and reasoning e
 
 Regression coverage in `execution-parameters.integration.spec.ts` follows real selection, grant issuance/revalidation, persisted schema validation, the Responses-to-Chat controller, model runtime and OpenAI-compatible request serialization. Provider transport is intercepted locally; these tests neither call an external model nor establish that repetitive model behavior is resolved.
 
+## Native protocol selection
+
+Missing or legacy tenant policies that omit `nativeProtocols` allow `openai_responses` by default. A model must still declare native Responses support through its provider metadata and satisfy the CLI's capability and configured-version checks. Negotiation then pins native Responses instead of adding the Responses-to-Chat bridge, and Codex retains the selected model's configured reasoning effort, including `xhigh`.
+
+Explicit `nativeProtocols` lists, including `[]`, override this default. Native Anthropic Messages remains opt-in. Chat-only models still use the existing bridge when its policy, version and tool-capability requirements pass. Native provider failures do not fall back to Chat, and provider binding, authorization and execution budgets remain enforced.
+
+After upgrading the host, start a new execution to issue a grant with the new protocol selection. Existing grants retain their pinned protocols. Regression tests cover default policy parsing, negotiation, Codex configuration and native controller dispatch using a local provider fixture; they do not establish production or real-model acceptance.
+
 ## Responses-to-Chat keepalive
 
 The Responses-to-Chat bridge sends SSE comments (`: keep-alive`) every 30 seconds and sets `X-Accel-Buffering: no` so provider thinking or buffered tool arguments do not leave the proxy connection silent. These comments do not create protocol events, usage or provider activity, and do not extend the existing idle/deadline limits. A full response buffer skips heartbeats; completion, failure, abort and disconnect remove the heartbeat timer and its listeners.

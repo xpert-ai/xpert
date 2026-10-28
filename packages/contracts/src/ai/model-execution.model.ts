@@ -104,7 +104,7 @@ export type ModelExecutionPolicy = {
   /** @deprecated Compatibility field, always true; no longer a tenant opt-in switch. */
   enabled: true
   gatewayBaseUrl: string
-  /** Separately gated until each native protocol has passed real-model acceptance. */
+  /** Defaults to native Responses; explicit lists (including []) override it. Native Messages remains opt-in. */
   nativeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
   /** Explicit, limited Chat Completions translations; never advertised as native support. */
   chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>

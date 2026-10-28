@@ -7,6 +7,7 @@ const codex = { id: 'codex', version: '0.159.2' }
 const claude = { id: 'claude', version: '2.1.63' }
 const testPolicy = {
     enabled: true,
+    nativeProtocols: [],
     chatBridgeProtocols: [],
     gatewayBaseUrl: 'https://gateway.test/api/model-execution/openai/v1',
     limits: {
@@ -47,7 +48,7 @@ describe('tool capability admission', () => {
         }
     )
 
-    it('requires explicit native protocol enablement in addition to the provider catalog', () => {
+    it('honors explicit native protocol restrictions in addition to the provider catalog', () => {
         expect(executionToolModels([model], codex, policy)).toEqual([])
         expect(executionToolModels([model], codex, { ...policy, nativeProtocols: ['openai_responses'] })).toHaveLength(
             1

@@ -4,6 +4,18 @@ import { parseExecutionPolicy } from './execution-policy'
 import { AiModelTypeEnum, ModelFeature, ModelExecutionModel } from '@xpert-ai/contracts'
 
 describe('zero-configuration CLI access', () => {
+    const codex = { id: 'codex', version: '0.159.2' }
+    const responsesModel: ModelExecutionModel = {
+        id: 'model',
+        copilotId: 'copilot',
+        providerScopeId: 'provider',
+        providerOrganizationId: null,
+        provider: 'provider',
+        model: 'model',
+        modelType: AiModelTypeEnum.LLM,
+        capabilities: [ModelFeature.STREAM_TOOL_CALL, ModelFeature.MULTI_TOOL_CALL],
+        protocols: ['openai_chat', 'openai_responses']
+    }
     const original = process.env.API_BASE_URL
     afterEach(() => {
         if (original === undefined) delete process.env.API_BASE_URL
@@ -55,5 +67,47 @@ describe('zero-configuration CLI access', () => {
             expect(executionToolModels([model], { ...tool, version: '0.0.0' }, policy)).toEqual([])
         }
         expect(executionToolModels([{ ...model, capabilities: [] }], policy.tools[0], policy)).toEqual([])
+    })
+    it('selects native Responses only when the model declares support', () => {
+        const policy = parseExecutionPolicy(undefined)
+        expect(executionToolModels([responsesModel], codex, policy)[0].protocols).toEqual([
+            'openai_chat',
+            'openai_responses'
+        ])
+        expect(
+            executionToolModels([{ ...responsesModel, protocols: ['openai_chat'] }], codex, policy)[0].protocols
+        ).toEqual(['openai_chat', 'openai_responses_chat'])
+        expect(
+            executionToolModels([{ ...responsesModel, protocols: ['openai_chat'], capabilities: [] }], codex, policy)
+        ).toEqual([])
+        expect(executionToolModels([responsesModel], { ...codex, version: '0.0.0' }, policy)).toEqual([])
+    })
+    it.each([{ nativeProtocols: [] }, { nativeProtocols: ['anthropic_messages'] }])(
+        'preserves explicit Responses restrictions: %j',
+        (settings) => {
+            expect(executionToolModels([responsesModel], codex, parseExecutionPolicy(settings))[0].protocols).toEqual([
+                'openai_chat',
+                'openai_responses_chat'
+            ])
+            expect(
+                executionToolModels(
+                    [responsesModel],
+                    codex,
+                    parseExecutionPolicy({ ...settings, chatBridgeProtocols: [] })
+                )
+            ).toEqual([])
+        }
+    )
+    it('keeps native Messages opt-in while retaining its qualified Chat bridge', () => {
+        const models: ModelExecutionModel[] = [{ ...responsesModel, protocols: ['openai_chat', 'anthropic_messages'] }]
+        const claude = { id: 'claude', version: '2.1.63' }
+        expect(executionToolModels(models, claude, parseExecutionPolicy(undefined))[0].protocols).toEqual([
+            'openai_chat',
+            'anthropic_messages_chat'
+        ])
+        expect(
+            executionToolModels(models, claude, parseExecutionPolicy({ nativeProtocols: ['anthropic_messages'] }))[0]
+                .protocols
+        ).toEqual(['openai_chat', 'anthropic_messages'])
     })
 })

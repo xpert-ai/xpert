@@ -13,7 +13,7 @@ export const executionPolicySchema = z
         nativeProtocols: z
             .array(z.enum(['openai_responses', 'anthropic_messages']))
             .max(2)
-            .optional(),
+            .default(['openai_responses']),
         chatBridgeProtocols: z
             .array(z.enum(['openai_responses', 'anthropic_messages']))
             .max(2)
