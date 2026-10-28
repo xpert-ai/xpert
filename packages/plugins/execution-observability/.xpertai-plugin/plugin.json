@@ -1,0 +1,10 @@
+{
+  "name": "@xpert-ai/plugin-execution-observability",
+  "version": "0.1.0",
+  "artifactNamespace": "execution_observability",
+  "assets": {
+    "composerIcon": "./assets/branding/icon-v1.svg",
+    "logo": "./assets/branding/icon-v1.svg",
+    "screenshots": ["./assets/branding/cover-v1.png"]
+  }
+}

@@ -474,7 +474,7 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
     return null
   }
 
-  return normalized
+  return normalizeAssistantFrameUrl(normalized)
 }
 
 export function resolveAssistantMcpAppsOptions(

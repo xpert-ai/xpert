@@ -1,0 +1,60 @@
+{
+  "name": "execution-observability",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/execution-observability/src",
+  "projectType": "library",
+  "targets": {
+    "generate-remote-components": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node packages/plugins/execution-observability/remote-components/timeline/build.mjs" }
+    },
+    "check-remote-components": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/plugins/execution-observability/remote-components/timeline/build.mjs --check"
+      }
+    },
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "dependsOn": ["generate-remote-components"],
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/execution-observability",
+        "main": "packages/plugins/execution-observability/src/index.ts",
+        "tsConfig": "packages/plugins/execution-observability/tsconfig.lib.json",
+        "project": "packages/plugins/execution-observability/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"],
+        "assets": [
+          { "glob": "README.md", "input": "packages/plugins/execution-observability", "output": "." },
+          {
+            "glob": "app.*",
+            "input": "packages/plugins/execution-observability/remote-components/timeline",
+            "output": "remote-components/timeline"
+          },
+          { "glob": "**/*", "input": "packages/plugins/execution-observability/docs", "output": "docs" },
+          { "glob": "**/*", "input": "packages/plugins/execution-observability/assets", "output": "assets" },
+          {
+            "glob": "plugin.json",
+            "input": "packages/plugins/execution-observability/.xpertai-plugin",
+            "output": ".xpertai-plugin"
+          }
+        ],
+        "external": [
+          "@nestjs/common",
+          "@nestjs/core",
+          "@xpert-ai/contracts",
+          "@xpert-ai/plugin-sdk",
+          "@langchain/core/tools",
+          "zod/v3",
+          "react",
+          "react-dom"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "options": { "jestConfig": "packages/plugins/execution-observability/jest.config.ts" }
+    }
+  }
+}

@@ -152,3 +152,4 @@ export * from './run-display-snapshot.model'
 
 export * from './execution-control.model'
 export * from './execution-control-evidence.schema'
+export * from './execution-observability.model'

@@ -63,8 +63,13 @@
           },
           {
             "glob": "index.html",
-            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app",
+            "input": ".cache/chatkit-entry",
             "output": "./chatkit"
+          },
+          {
+            "glob": "remixicon.*",
+            "input": "node_modules/remixicon/fonts",
+            "output": "./assets/chatkit-icons"
           },
           {
             "glob": "**/*",
@@ -144,6 +149,7 @@
       },
       "defaultConfiguration": "production",
       "dependsOn": [
+        "prepare-chatkit-entry",
         "prepare-chatkit-pets",
         {
           "projects": ["contracts"],
@@ -151,6 +157,13 @@
           "params": "ignore"
         }
       ]
+    },
+    "prepare-chatkit-entry": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "node .deploy/webapp/prepare-chatkit-entry.cjs"
+      }
     },
     "prepare-chatkit-pets": {
       "executor": "nx:run-commands",
@@ -160,7 +173,7 @@
       }
     },
     "serve": {
-      "dependsOn": ["prepare-chatkit-pets"],
+      "dependsOn": ["prepare-chatkit-entry", "prepare-chatkit-pets"],
       "executor": "@angular/build:dev-server",
       "options": {
         "proxyConfig": "apps/cloud/proxy.conf.cjs",

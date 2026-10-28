@@ -1,4 +1,10 @@
 {
+    "ExecutionObservability": {
+        "AccessDenied": "需要有效的组织管理员会话。",
+        "InvalidQuery": "请选择不超过 31 天的有效历史时间段。",
+        "NarrowRange": "匹配记录超过 20,000 条，请缩小时间段或筛选助手、工作区。",
+        "NotFound": "未找到执行记录。"
+    },
     "AssistantDependency": {
         "UpdateAvailable": "助理有可用更新",
         "VersionOnly": "插件版本变化",

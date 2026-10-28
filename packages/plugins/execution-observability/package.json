@@ -1,0 +1,47 @@
+{
+  "name": "@xpert-ai/plugin-execution-observability",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "description": "Built-in, administrator-scoped Assistant execution timeline and read-only analysis tools.",
+  "main": "./index.cjs.js",
+  "module": "./index.esm.js",
+  "types": "./index.d.ts",
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "remote-components/timeline/app.js",
+    "remote-components/timeline/app.css",
+    "README.md",
+    "docs",
+    "assets",
+    ".xpertai-plugin"
+  ],
+  "xpert": {
+    "plugin": {
+      "level": "system",
+      "artifactNamespace": "execution_observability"
+    }
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=11",
+    "@nestjs/core": ">=11",
+    "@xpert-ai/contracts": "workspace:^",
+    "@xpert-ai/plugin-sdk": "workspace:^",
+    "@langchain/core": "0.3.72",
+    "zod": "^3.25.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@xpert-ai/shadcn-ui": "workspace:*",
+    "echarts": "5.5.0",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7"
+  },
+  "scripts": {
+    "build": "corepack pnpm -w exec nx build execution-observability && node scripts/verify-dist.mjs",
+    "test": "corepack pnpm -w exec nx test execution-observability --runInBand",
+    "verify:dist": "node scripts/verify-dist.mjs"
+  }
+}

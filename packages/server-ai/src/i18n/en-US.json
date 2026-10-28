@@ -1,4 +1,10 @@
 {
+    "ExecutionObservability": {
+        "AccessDenied": "An active organization administrator session is required.",
+        "InvalidQuery": "Choose a valid past range of at most 31 days.",
+        "NarrowRange": "More than 20,000 records match. Narrow the time range or filter an Assistant/workspace.",
+        "NotFound": "Execution not found."
+    },
     "AssistantDependency": {
         "UpdateAvailable": "Assistant update available",
         "VersionOnly": "plugin version changed",

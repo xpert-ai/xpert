@@ -476,6 +476,46 @@ importers:
         specifier: 3.25.67
         version: 3.25.67
 
+  packages/plugins/execution-observability:
+    dependencies:
+      '@langchain/core':
+        specifier: 0.3.72
+        version: 0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
+      '@nestjs/common':
+        specifier: '>=11'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: '>=11'
+        version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@xpert-ai/contracts':
+        specifier: workspace:^
+        version: link:../../contracts/dist
+      '@xpert-ai/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../plugin-sdk/dist
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+      zod:
+        specifier: 3.25.67
+        version: 3.25.67
+    devDependencies:
+      '@types/react':
+        specifier: 18.3.31
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: 18.3.7
+        version: 18.3.7(@types/react@18.3.31)
+      '@xpert-ai/shadcn-ui':
+        specifier: workspace:*
+        version: link:../../shadcn-ui
+      echarts:
+        specifier: 5.5.0
+        version: 5.5.0
+
   packages/plugins/github-integration:
     dependencies:
       '@nestjs/common':
@@ -8877,6 +8917,9 @@ packages:
   ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
 
+  echarts@5.5.0:
+    resolution: {integrity: sha512-rNYnNCzqDAPCr4m/fqyUFv7fD9qIsd50S6GDFgO1DxZhncCsNsG7IfUlAlvZe5oSEQxtsjnHiUuppzccry93Xw==}
+
   editorconfig@1.0.4:
     resolution: {integrity: sha512-L9Qe08KWTlqYMVvMcTIvMAdl1cDUubzRNYL+WfA4bLDMHe4nemKkpmYzkznE1FwLKu0EEmy6obgQKzMJrg4x9Q==}
     engines: {node: '>=14'}
@@ -14389,6 +14432,9 @@ packages:
   tslib@2.2.0:
     resolution: {integrity: sha512-gS9GVHRU+RGn5KQM2rllAlR3dU6m7AcpJKdtH8gFvQiC4Otgk98XnmMU+nZenHt/+VhnBPWwgrJsyrdcw6i23w==}
 
+  tslib@2.3.0:
+    resolution: {integrity: sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==}
+
   tslib@2.3.1:
     resolution: {integrity: sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==}
 
@@ -15240,6 +15286,9 @@ packages:
 
   zod@4.2.0:
     resolution: {integrity: sha512-Bd5fw9wlIhtqCCxotZgdTOMwGm1a0u75wARVEY9HMs1X17trvA/lMi4+MGK5EUfYkXVTbX8UDiDKW4OgzHVUZw==}
+
+  zrender@5.5.0:
+    resolution: {integrity: sha512-O3MilSi/9mwoovx77m6ROZM7sXShR/O/JIanvzTwjN3FORfLSr81PsUGd7jlaYOeds9d8tw82oP44+3YucVo+w==}
 
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
@@ -24393,6 +24442,11 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  echarts@5.5.0:
+    dependencies:
+      tslib: 2.3.0
+      zrender: 5.5.0
+
   editorconfig@1.0.4:
     dependencies:
       '@one-ini/wasm': 0.1.1
@@ -25910,7 +25964,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
+      retry-axios: 2.6.0(axios@1.18.1)
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -30286,7 +30340,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
+  retry-axios@2.6.0(axios@1.18.1):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 
@@ -31507,6 +31561,8 @@ snapshots:
   tslib@2.2.0:
     optional: true
 
+  tslib@2.3.0: {}
+
   tslib@2.3.1:
     optional: true
 
@@ -32384,6 +32440,10 @@ snapshots:
   zod@3.25.67: {}
 
   zod@4.2.0: {}
+
+  zrender@5.5.0:
+    dependencies:
+      tslib: 2.3.0
 
   zustand@4.5.7(@types/react@19.3.0)(immer@10.2.0)(react@18.3.1):
     dependencies:
