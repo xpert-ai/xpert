@@ -33,14 +33,51 @@ describe('unified provider model list', () => {
     modelDiscovery: { mode: 'configured', syncedAt: '2026-10-13T00:00:00Z', availableModelIds: ['shared'] }
   }
 
-  it('includes built-ins and API models together even after account synchronization', () => {
+  it('shows only configured models after account synchronization', () => {
     const rows = providerModelRows({ ...catalog, builtin: [{ ...builtin, model: 'builtin-only' }, builtin] })
+    expect(rows.map(({ name, source }) => ({ name, source }))).toEqual([{ name: 'shared', source: 'discovered' }])
+    expect(rows[0].configuredModel?.id).toBe('imported')
+    expect(rows[0].tags.map((tag) => tag.defaultText)).toContain('32K')
+  })
+
+  it('keeps built-ins until an import has been saved', () => {
+    const rows = providerModelRows({
+      ...catalog,
+      modelDiscovery: undefined,
+      builtin: [{ ...builtin, model: 'builtin-only' }, builtin]
+    })
     expect(rows.map(({ name, source }) => ({ name, source }))).toEqual([
       { name: 'builtin-only', source: 'builtin' },
       { name: 'shared', source: 'discovered' }
     ])
-    expect(rows[1].configuredModel?.id).toBe('imported')
-    expect(rows[1].tags.map((tag) => tag.defaultText)).toContain('32K')
+  })
+
+  it('does not restore built-ins when the configured catalog is empty', () => {
+    expect(providerModelRows({ ...catalog, custom: [] })).toEqual([])
+  })
+
+  it('keeps unavailable imported records visible for management', () => {
+    const rows = providerModelRows({
+      ...catalog,
+      modelDiscovery: { ...catalog.modelDiscovery!, availableModelIds: [] }
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].configuredModel).toBe(imported)
+  })
+
+  it('keeps manually added speech models after account synchronization', () => {
+    const speech: ICopilotProviderModel = {
+      id: 'speech',
+      modelName: 'manual-speech',
+      modelType: AiModelTypeEnum.SPEECH2TEXT,
+      modelProperties: { configuration_source: 'manual', asr_protocol: 'sync' }
+    }
+    const rows = providerModelRows({ ...catalog, custom: [imported, speech] })
+    expect(rows.map(({ name, source }) => ({ name, source }))).toEqual([
+      { name: 'shared', source: 'discovered' },
+      { name: 'manual-speech', source: 'manual' }
+    ])
+    expect(rows[1].configuredModel).toBe(speech)
   })
 
   it.each([
@@ -57,6 +94,7 @@ describe('unified provider model list', () => {
   it('does not merge different model types and preserves catalog metadata', () => {
     const rows = providerModelRows({
       ...catalog,
+      modelDiscovery: undefined,
       builtin: [{ ...builtin, model_type: AiModelTypeEnum.TEXT_EMBEDDING, deprecated: true }]
     })
     expect(rows).toHaveLength(2)

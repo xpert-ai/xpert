@@ -2,7 +2,8 @@ import {
   configuredModelSource,
   ICopilotProviderModel,
   ProviderModelCatalog,
-  ProviderModelSource
+  ProviderModelSource,
+  usesConfiguredModelCatalog
 } from '@xpert-ai/contracts'
 import { customProviderModelDisplayTags, ModelTag, providerModelDisplayTags } from '../model-tags'
 
@@ -15,10 +16,11 @@ export interface ProviderModelRow {
   configuredModel?: ICopilotProviderModel
 }
 
-/** Keep catalog order while replacing each model with its highest-priority configuration. */
+/** Imported catalogs expose saved models; built-ins remain reference metadata for configuration. */
 export function providerModelRows(catalog?: ProviderModelCatalog | null): ProviderModelRow[] {
   const rows = new Map<string, ProviderModelRow>()
-  for (const model of catalog?.builtin ?? []) {
+  const configuredOnly = usesConfiguredModelCatalog({ options: { modelDiscovery: catalog?.modelDiscovery } })
+  for (const model of configuredOnly ? [] : (catalog?.builtin ?? [])) {
     const key = `${model.model_type}:${model.model}`
     rows.set(key, {
       key,
