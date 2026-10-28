@@ -3,23 +3,18 @@ import { tool } from '@langchain/core/tools'
 import { channelName } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { ToolNode } from './tool_node'
-import { routeAgentToolCall } from './agent-navigation'
+import { createAgentToolInput } from './agent-tool-input'
 
 describe('ToolNode', () => {
-    it.each([undefined, () => null, () => ({})])(
+    it.each([undefined, () => null, () => [], () => [{ id: 'other', state: {} }]])(
         'fails before middleware when referenced state is unavailable',
         async (read) => {
             const wrapToolCall = jest.fn(async () => new ToolMessage({ content: 'updated', tool_call_id: 'call-1' }))
             const projectTool = tool(async () => 'updated', { name: 'project_update', schema: z.object({}) })
             const node = new ToolNode([projectTool], { toolName: 'Project', wrapToolCall })
-            const send = routeAgentToolCall(
-                { name: 'project_update', id: 'call-1', args: {} },
-                { projectId: 'project-1' },
-                new Set(['project_update']),
-                'unknown_tool'
-            )
+            const input = createAgentToolInput({ name: 'project_update', id: 'call-1', args: {} }, 'snapshot-1')
 
-            await expect(node.invoke(send.args, { configurable: { __pregel_read: read } })).rejects.toThrow()
+            await expect(node.invoke(input, { configurable: { __pregel_read: read } })).rejects.toThrow()
             expect(wrapToolCall).not.toHaveBeenCalled()
         }
     )

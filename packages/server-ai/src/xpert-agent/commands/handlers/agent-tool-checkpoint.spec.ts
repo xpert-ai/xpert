@@ -6,10 +6,163 @@ import { Annotation, Command, END, interrupt, Send, START, StateGraph } from '@l
 import { MemorySaver } from '@langchain/langgraph-checkpoint'
 import { channelName, CONTEXT_VARIABLE_CURRENTSTATE } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
-import { routeAgentToolCall } from './agent-navigation'
+import { routeAgentToolCalls } from './agent-navigation'
+import { AGENT_TOOL_SNAPSHOTS, installAgentToolSnapshots } from './agent-tool-snapshots'
 import { ToolNode } from './tool_node'
 
 describe('agent tool checkpoints', () => {
+    it('isolates simultaneous dispatch batches and replaces snapshots on the next turn', async () => {
+        const State = Annotation.Root({
+            messages: Annotation<BaseMessage[]>({ reducer: (old, next) => [...old, ...next], default: () => [] }),
+            value: Annotation<number>({ reducer: (old, next) => old + next, default: () => 0 })
+        })
+        const observed: number[] = []
+        const projectTool = tool(
+            async (_, config) => {
+                observed.push(config.configurable.runtimeState.value)
+                return 'done'
+            },
+            { name: 'project_update', schema: z.object({}) }
+        )
+        const saver = new MemorySaver()
+        const createGraph = (pause: boolean) => {
+            const graph = new StateGraph(State)
+                .addNode('model_a', () => ({ value: 1 }))
+                .addNode('model_b', () => ({ value: 2 }))
+                .addNode(projectTool.name, new ToolNode([projectTool], { toolName: 'Project' }))
+                .addEdge(START, 'model_a')
+                .addEdge(START, 'model_b')
+                .addEdge(projectTool.name, END)
+            for (const producer of ['model_a', 'model_b'] as const) {
+                graph.addConditionalEdges(
+                    producer,
+                    (state, config) =>
+                        routeAgentToolCalls(
+                            [{ name: projectTool.name, id: producer, args: {} }],
+                            state,
+                            new Set([projectTool.name]),
+                            projectTool.name,
+                            config
+                        ),
+                    [projectTool.name]
+                )
+            }
+            return installAgentToolSnapshots(
+                graph.compile({
+                    checkpointer: saver,
+                    interruptBefore: pause ? [projectTool.name] : []
+                })
+            )
+        }
+        const config = { configurable: { thread_id: 'simultaneous-batches' } }
+        await createGraph(true).invoke({ value: 10 }, config)
+        expect((await saver.getTuple(config)).checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toHaveLength(2)
+        await createGraph(false).invoke(null, config)
+        expect(observed.sort((a, b) => a - b)).toEqual([11, 12])
+        expect((await saver.getTuple(config)).checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toEqual([])
+        observed.length = 0
+        await createGraph(true).invoke({ value: 10 }, config)
+        expect((await saver.getTuple(config)).checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toHaveLength(2)
+        await createGraph(false).invoke(null, config)
+        expect(observed.sort((a, b) => a - b)).toEqual([24, 25])
+        expect((await saver.getTuple(config)).checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toEqual([])
+    })
+
+    it.each([false, true])('keeps the dispatch snapshot when an upstream sibling writes (pause=%s)', async (pause) => {
+        const State = Annotation.Root({
+            messages: Annotation<BaseMessage[]>({ reducer: (old, next) => [...old, ...next], default: () => [] }),
+            value: Annotation<number>({ reducer: (old, next) => old + next, default: () => 0 })
+        })
+        const observed: number[] = []
+        const projectTool = tool(
+            async (_, config) => {
+                observed.push(config.configurable.runtimeState.value)
+                return 'done'
+            },
+            { name: 'project_update', schema: z.object({}) }
+        )
+        const saver = new MemorySaver()
+        const createGraph = (pause: boolean) =>
+            installAgentToolSnapshots(
+                new StateGraph(State)
+                    .addNode('model', () => ({ value: 1 }))
+                    .addNode('sibling', () => ({ value: 2 }))
+                    .addNode(projectTool.name, new ToolNode([projectTool], { toolName: 'Project' }))
+                    .addEdge(START, 'model')
+                    .addEdge(START, 'sibling')
+                    .addConditionalEdges(
+                        'model',
+                        (state, config) => {
+                            expect(state.value).toBe(11)
+                            return routeAgentToolCalls(
+                                [{ name: projectTool.name, id: 'call-1', args: {} }],
+                                state,
+                                new Set([projectTool.name]),
+                                projectTool.name,
+                                config
+                            )
+                        },
+                        [projectTool.name]
+                    )
+                    .addEdge(projectTool.name, END)
+                    .addEdge('sibling', END)
+                    .compile({ checkpointer: saver, interruptBefore: pause ? [projectTool.name] : [] })
+            )
+        const config = { configurable: { thread_id: `upstream-${pause}` } }
+        await createGraph(pause).invoke({ value: 10 }, config)
+        if (pause) await createGraph(false).invoke(null, config)
+        expect(observed).toEqual([11])
+    })
+
+    it('keeps the original tool context after resume with Command.update', async () => {
+        const State = Annotation.Root({
+            messages: Annotation<BaseMessage[]>({ reducer: (old, next) => [...old, ...next], default: () => [] }),
+            projectId: Annotation<string>()
+        })
+        const observed: string[] = []
+        const projectTool = tool(
+            async (_, config) => {
+                observed.push(config.configurable.runtimeState.projectId)
+                interrupt('approve')
+                return 'done'
+            },
+            { name: 'project_update', schema: z.object({}) }
+        )
+        const saver = new MemorySaver()
+        const createGraph = () =>
+            installAgentToolSnapshots(
+                new StateGraph(State)
+                    .addNode('model', () => ({}))
+                    .addNode(projectTool.name, new ToolNode([projectTool], { toolName: 'Project' }))
+                    .addEdge(START, 'model')
+                    .addConditionalEdges(
+                        'model',
+                        (state, config) =>
+                            routeAgentToolCalls(
+                                [{ name: projectTool.name, id: 'call-1', args: {} }],
+                                state,
+                                new Set([projectTool.name]),
+                                projectTool.name,
+                                config
+                            ),
+                        [projectTool.name]
+                    )
+                    .addEdge(projectTool.name, END)
+                    .compile({ checkpointer: saver })
+            )
+        const config = { configurable: { thread_id: 'resume-update' } }
+        await createGraph().invoke({ projectId: 'original' }, config)
+        const result = await createGraph().invoke(
+            new Command({
+                resume: 'approved',
+                update: { projectId: 'updated-on-resume' }
+            }),
+            config
+        )
+        expect(result.projectId).toBe('updated-on-resume')
+        expect(observed).toEqual(['original', 'original'])
+    })
+
     it.each([false, true])('restores compact parallel checkpoints with full tool context (trace=%s)', async (trace) => {
         const caller = 'test-agent'
         const channel = channelName(caller)
@@ -42,25 +195,30 @@ describe('agent tool checkpoints', () => {
                 }
             })
             node.trace = trace
-            return new StateGraph(State)
-                .addNode('model', () => ({}))
-                .addNode(projectTool.name, node)
-                .addEdge(START, 'model')
-                .addConditionalEdges(
-                    'model',
-                    (state) =>
-                        Array.from({ length: 6 }, (_, index) =>
-                            routeAgentToolCall(
-                                { name: projectTool.name, id: `call-${index}`, args: { index } },
+            return installAgentToolSnapshots(
+                new StateGraph(State)
+                    .addNode('model', () => ({}))
+                    .addNode(projectTool.name, node)
+                    .addEdge(START, 'model')
+                    .addConditionalEdges(
+                        'model',
+                        (state, config) =>
+                            routeAgentToolCalls(
+                                Array.from({ length: 6 }, (_, index) => ({
+                                    name: projectTool.name,
+                                    id: `call-${index}`,
+                                    args: { index }
+                                })),
                                 state,
                                 new Set([projectTool.name]),
-                                projectTool.name
-                            )
-                        ),
-                    [projectTool.name]
-                )
-                .addEdge(projectTool.name, END)
-                .compile({ checkpointer: saver, interruptBefore: pause ? [projectTool.name] : [] })
+                                projectTool.name,
+                                config
+                            ),
+                        [projectTool.name]
+                    )
+                    .addEdge(projectTool.name, END)
+                    .compile({ checkpointer: saver, interruptBefore: pause ? [projectTool.name] : [] })
+            )
         }
         const config = { configurable: { thread_id: 'parallel-checkpoint', tenantId: 'tenant-1' } }
         const history = new HumanMessage(`history-marker:${'x'.repeat(64 * 1024)}`)
@@ -74,8 +232,11 @@ describe('agent tool checkpoints', () => {
         const pendingTasks = JSON.stringify(checkpoint.checkpoint.channel_values.__pregel_tasks)
         expect(Buffer.byteLength(pendingTasks)).toBeLessThan(8 * 1024)
         expect(pendingTasks.includes('history-marker:')).toBe(false)
+        expect(checkpoint.checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toHaveLength(1)
 
         const result = await createGraph(false).invoke(null, config)
+        expect((await saver.getTuple(config)).checkpoint.channel_values[AGENT_TOOL_SNAPSHOTS]).toEqual([])
+        expect(result).not.toHaveProperty(AGENT_TOOL_SNAPSHOTS)
         expect(execute).toHaveBeenCalledTimes(6)
         expect(observedStates).toHaveLength(6)
         expect(runtimeStates).toHaveLength(6)
@@ -119,34 +280,39 @@ describe('agent tool checkpoints', () => {
         )
         const saver = new MemorySaver()
         const createGraph = () =>
-            new StateGraph(State)
-                .addNode('model', () => ({}))
-                .addNode(
-                    projectTool.name,
-                    new ToolNode([projectTool], {
-                        toolName: 'Project',
-                        wrapToolCall: async (request, handler) => {
-                            observedStates.push(request.state)
-                            return handler(request)
-                        }
-                    })
-                )
-                .addEdge(START, 'model')
-                .addConditionalEdges(
-                    'model',
-                    (state) =>
-                        [0, 1].map((index) =>
-                            routeAgentToolCall(
-                                { name: projectTool.name, id: `call-${index}`, args: { index } },
+            installAgentToolSnapshots(
+                new StateGraph(State)
+                    .addNode('model', () => ({}))
+                    .addNode(
+                        projectTool.name,
+                        new ToolNode([projectTool], {
+                            toolName: 'Project',
+                            wrapToolCall: async (request, handler) => {
+                                observedStates.push(request.state)
+                                return handler(request)
+                            }
+                        })
+                    )
+                    .addEdge(START, 'model')
+                    .addConditionalEdges(
+                        'model',
+                        (state, config) =>
+                            routeAgentToolCalls(
+                                [0, 1].map((index) => ({
+                                    name: projectTool.name,
+                                    id: `call-${index}`,
+                                    args: { index }
+                                })),
                                 state,
                                 new Set([projectTool.name]),
-                                projectTool.name
-                            )
-                        ),
-                    [projectTool.name]
-                )
-                .addEdge(projectTool.name, END)
-                .compile({ checkpointer: saver })
+                                projectTool.name,
+                                config
+                            ),
+                        [projectTool.name]
+                    )
+                    .addEdge(projectTool.name, END)
+                    .compile({ checkpointer: saver })
+            )
         const config = { configurable: { thread_id: 'interrupted-parallel' } }
         await createGraph().invoke({ messages: [new HumanMessage('update')], projectId: 'project-1' }, config)
         expect(executed).toEqual([0])
@@ -174,28 +340,33 @@ describe('agent tool checkpoints', () => {
             name: 'project_update',
             schema: z.object({})
         })
-        const child = new StateGraph(State)
-            .addNode('model', (state) => ({ projectId: `child-${state.projectId}` }))
-            .addNode(projectTool.name, new ToolNode([projectTool], { toolName: 'Project' }))
-            .addEdge(START, 'model')
-            .addConditionalEdges(
-                'model',
-                (state) =>
-                    routeAgentToolCall(
-                        { name: projectTool.name, id: 'call-1', args: {} },
-                        state,
-                        new Set([projectTool.name]),
-                        projectTool.name
-                    ),
-                [projectTool.name]
-            )
-            .addEdge(projectTool.name, END)
-            .compile()
-        const parent = new StateGraph(State)
-            .addNode('agent', child)
-            .addEdge(START, 'agent')
-            .addEdge('agent', END)
-            .compile({ checkpointer: new MemorySaver() })
+        const child = installAgentToolSnapshots(
+            new StateGraph(State)
+                .addNode('model', (state) => ({ projectId: `child-${state.projectId}` }))
+                .addNode(projectTool.name, new ToolNode([projectTool], { toolName: 'Project' }))
+                .addEdge(START, 'model')
+                .addConditionalEdges(
+                    'model',
+                    (state, config) =>
+                        routeAgentToolCalls(
+                            [{ name: projectTool.name, id: 'call-1', args: {} }],
+                            state,
+                            new Set([projectTool.name]),
+                            projectTool.name,
+                            config
+                        ),
+                    [projectTool.name]
+                )
+                .addEdge(projectTool.name, END)
+                .compile()
+        )
+        const parent = installAgentToolSnapshots(
+            new StateGraph(State)
+                .addNode('agent', child)
+                .addEdge(START, 'agent')
+                .addEdge('agent', END)
+                .compile({ checkpointer: new MemorySaver() })
+        )
 
         const results = await Promise.all(
             ['project-a', 'project-b'].map((projectId) =>
@@ -214,30 +385,32 @@ describe('agent tool checkpoints', () => {
         const projectTool = tool(async () => 'updated', { name: 'project_update', schema: z.object({}) })
         const saver = new MemorySaver()
         const createGraph = (pause: boolean) =>
-            new StateGraph(State)
-                .addNode('model', () => ({}))
-                .addNode(
-                    projectTool.name,
-                    new ToolNode([projectTool], {
-                        toolName: 'Project',
-                        wrapToolCall: async (request, handler) => {
-                            observed(request.state)
-                            return handler(request)
-                        }
-                    })
-                )
-                .addEdge(START, 'model')
-                .addConditionalEdges(
-                    'model',
-                    (state) =>
-                        new Send(projectTool.name, {
-                            ...state,
-                            toolCall: { name: projectTool.name, id: 'legacy-call', args: {} }
-                        }),
-                    [projectTool.name]
-                )
-                .addEdge(projectTool.name, END)
-                .compile({ checkpointer: saver, interruptBefore: pause ? [projectTool.name] : [] })
+            installAgentToolSnapshots(
+                new StateGraph(State)
+                    .addNode('model', () => ({}))
+                    .addNode(
+                        projectTool.name,
+                        new ToolNode([projectTool], {
+                            toolName: 'Project',
+                            wrapToolCall: async (request, handler) => {
+                                observed(request.state)
+                                return handler(request)
+                            }
+                        })
+                    )
+                    .addEdge(START, 'model')
+                    .addConditionalEdges(
+                        'model',
+                        (state) =>
+                            new Send(projectTool.name, {
+                                ...state,
+                                toolCall: { name: projectTool.name, id: 'legacy-call', args: {} }
+                            }),
+                        [projectTool.name]
+                    )
+                    .addEdge(projectTool.name, END)
+                    .compile({ checkpointer: saver, interruptBefore: pause ? [projectTool.name] : [] })
+            )
         const config = { configurable: { thread_id: 'legacy-checkpoint' } }
         await createGraph(true).invoke({ messages: [new HumanMessage('legacy-history')] }, config)
         const result = await createGraph(false).invoke(null, config)

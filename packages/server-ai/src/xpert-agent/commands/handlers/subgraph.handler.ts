@@ -111,6 +111,7 @@ import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-co
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
+import { installAgentToolSnapshots } from './agent-tool-snapshots'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -155,7 +156,7 @@ import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import {
     buildAgentDecisionPathMap,
     getPendingToolCallsAfterTrailingToolMessages,
-    routeAgentToolCall
+    routeAgentToolCalls
 } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createThreadReferenceMiddleware } from '../../../xpert-middleware/thread-reference.runtime'
@@ -1925,6 +1926,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             await closeToolsets()
             throw error
         }
+        installAgentToolSnapshots(compiledGraph)
         installGraphCloseHook(compiledGraph)
 
         return {
@@ -2064,12 +2066,18 @@ function createAgentNavigator(
         const lastMessage = messages[messages.length - 1]
         const pendingToolCalls = getPendingToolCallsAfterTrailingToolMessages(messages)
         if (pendingToolCalls.length) {
-            return pendingToolCalls.map((toolCall) => {
+            pendingToolCalls.forEach((toolCall) => {
                 if (!toolCall.name) {
                     throw new InternalServerErrorException(`tool_call's name is empty in '${agentChannel}'.`)
                 }
-                return routeAgentToolCall(toolCall, state, toolRouting.toolNames, toolRouting.unknownToolNode)
             })
+            return routeAgentToolCalls(
+                pendingToolCalls,
+                state,
+                toolRouting.toolNames,
+                toolRouting.unknownToolNode,
+                config
+            )
         }
 
         if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
