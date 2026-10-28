@@ -1,3 +1,6 @@
+import { ArtifactPersistence } from './artifact-persistence'
+import { ArtifactTypesService } from './types/artifact-types.service'
+import { configuredArtifactPolicies } from './testing/source-policies'
 import { ContentIdentityService } from '../content-resource/content-identity.service'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
@@ -62,7 +65,7 @@ function fixture() {
             ? (projectIds ?? []).map((projectId) => ({ projectId, role, canManage: role === 'owner', archived: false }))
             : []
     })
-    const contentAccess = new ArtifactContentAccess(resources, projects)
+    const contentAccess = new ArtifactContentAccess(resources, projects, configuredArtifactPolicies())
     const service = new ArtifactsService(
         artifacts as never,
         versions as never,
@@ -75,7 +78,8 @@ function fixture() {
         undefined,
         undefined,
         undefined,
-        contentAccess
+        contentAccess,
+        configuredArtifactPolicies()
     )
     const api = (userId = 'owner') => service.createScopedApi({ ...actor, userId })
     return {
@@ -233,8 +237,8 @@ describe('Artifact ownership and resource authorization', () => {
             allowDownload: true
         })
         const readBytes = jest
-            .spyOn(f.service as never, 'readWorkspaceArtifact' as never)
-            .mockResolvedValue({ buffer: Buffer.from('shared page'), name: 'page.md' } as never)
+            .spyOn(ArtifactPersistence.prototype, 'readWorkspaceArtifact')
+            .mockResolvedValue({ buffer: Buffer.from('shared page'), name: 'page.md' })
         const input = { slug: 'shared-page', download: true, principal: { ...actor, userId: 'reader' } }
         await expect(f.service.resolveForPublicAccess(input)).resolves.toMatchObject({
             buffer: Buffer.from('shared page')
@@ -259,12 +263,13 @@ describe('Artifact ownership and resource authorization', () => {
         f.uninstall()
         await expect(f.service.resolveForPublicAccess(input)).rejects.toBeInstanceOf(ForbiddenException)
         expect(readBytes).toHaveBeenCalledTimes(1)
+        readBytes.mockRestore()
     })
 
     it('rejects a foreign tenant before calling the resource provider', async () => {
         const f = fixture()
         const artifact = await f.api().createArtifact({ source, authorizationProviderKey: 'pages' })
-        const access = new ArtifactContentAccess(f.resources, f.projects)
+        const access = new ArtifactContentAccess(f.resources, f.projects, configuredArtifactPolicies())
         const authorize = jest.spyOn(f.resources, 'authorize')
         await expect(
             access.assert({ ...artifact, tenantId: actor.tenantId }, { ...actor, tenantId: 'foreign' }, 'read')
@@ -284,12 +289,28 @@ describe('Artifact ownership and resource authorization', () => {
         const module = await Test.createTestingModule({
             providers: [
                 ArtifactContentAccess,
+                { provide: ArtifactTypesService, useValue: configuredArtifactPolicies() },
                 { provide: ContentResourceService, useValue: f.resources },
                 { provide: ProjectAccessRuntimeService, useValue: f.projects }
             ]
         }).compile()
         await expect(
-            module.get(ArtifactContentAccess).assert({ ...source, projectId: 'project', userId: null }, actor, 'write')
+            module.get(ArtifactContentAccess).assert(
+                {
+                    ...source,
+                    tenantId: actor.tenantId,
+                    organizationId: actor.organizationId,
+                    typeBinding: {
+                        pluginName: '@xpert-ai/platform',
+                        resourceType: 'file',
+                        scopeKey: 'builtin:global'
+                    },
+                    projectId: 'project',
+                    userId: null
+                },
+                actor,
+                'write'
+            )
         ).resolves.toBeUndefined()
         await module.close()
     })

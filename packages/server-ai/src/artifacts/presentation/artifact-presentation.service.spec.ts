@@ -6,6 +6,9 @@ import { captureRequestContext, runWithCapturedRequestContext } from '../../shar
 import { Artifact, ArtifactLink, ArtifactVersion } from '../entities'
 import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import { ArtifactPresentationService } from './artifact-presentation.service'
+import { ArtifactTypesService } from '../types/artifact-types.service'
+import { configuredArtifactPolicies } from '../testing/source-policies'
+import { artifactTypeKey } from '@xpert-ai/plugin-sdk'
 
 describe('Authenticated Artifact presentations', () => {
     async function fixture() {
@@ -60,6 +63,17 @@ describe('Authenticated Artifact presentations', () => {
             read: providerRead,
             query
         }
+        const types = configuredArtifactPolicies()
+        types.registry.register(
+            artifactTypeKey(artifact),
+            {
+                definition: { kinds: ['file'], presentation: { mode: 'authenticated' } },
+                authorize: async () => {},
+                validateContent: () => {}
+            },
+            { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
+        )
+        artifact.typeBinding = types.bind(artifact, artifact, 'file')
         const registrations = jest.fn(
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
                 {
@@ -76,7 +90,8 @@ describe('Authenticated Artifact presentations', () => {
                     provide: ArtifactsService,
                     useValue: { resolveForAuthenticatedAccess: read, resolveDescriptorForAuthenticatedAccess: describe }
                 },
-                { provide: ArtifactPresentationRegistry, useValue: { listRegistrations: registrations } }
+                { provide: ArtifactPresentationRegistry, useValue: { listAllRegistrations: registrations } },
+                { provide: ArtifactTypesService, useValue: types }
             ]
         }).compile()
         const service = module.get(ArtifactPresentationService)

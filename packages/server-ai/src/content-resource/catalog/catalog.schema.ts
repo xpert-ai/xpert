@@ -29,6 +29,24 @@ export const contentProjectionSchema = z
 export const contentSnapshotSchema = z
     .object({
         offlineAccess: z.literal('project').optional(),
+        presentation: z
+            .object({
+                kind: z.literal('artifact'),
+                referenceId: z.string().uuid(),
+                type: z
+                    .object({
+                        pluginName: key,
+                        resourceType: key,
+                        title: z
+                            .object({ en_US: key, zh_Hans: key.optional(), zh_Hant: key.optional() })
+                            .strict()
+                            .optional()
+                    })
+                    .strict()
+                    .optional()
+            })
+            .strict()
+            .optional(),
         projectId: z.string().uuid(),
         title: z.string().min(1).max(200),
         typeId: key,

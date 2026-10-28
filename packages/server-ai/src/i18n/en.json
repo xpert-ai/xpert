@@ -65,6 +65,13 @@
     },
     "Error": {
         "DatabaseAdapterRegistrationMismatch": "Database adapter does not match its registration",
+        "ArtifactTypeUnavailable": "This artifact type is unavailable.",
+        "ArtifactTypeImmutable": "Artifact type and installation cannot be changed.",
+        "ConversationShareInvalid": "Invalid share request, empty conversation, or sharing size limit exceeded.",
+        "ConversationShareUnavailable": "This shared conversation is unavailable.",
+        "ConversationShareForbidden": "Only the owner of a private conversation in an active organization can share it. Public sharing requires explicit confirmation.",
+        "ConversationShareChanged": "The conversation changed. Review a fresh preview before sharing.",
+        "ConversationShareSignIn": "Sign in as a member of the originating organization to view this conversation.",
         "ToolResultUnavailableForNewInput": "The previous turn was interrupted before this tool result was recorded. Its outcome is unknown. Follow the new user input; do not repeat this operation unless that input requires it.",
         "InvalidSidebarSearch": "Search must be a single string of at most 200 characters.",
         "PluginInstallationLockLost": "The plugin installation lock was lost. Retry the operation.",
@@ -1270,7 +1277,8 @@
         "ApplicationUpdateStale": "The application scope or original instances have changed. Refresh and inspect the installation.",
         "ApplicationUpdatePending": "Resume the unfinished application update before starting another.",
         "ApplicationUpdateFailed": "The update stopped. Completed steps are saved. Resume after resolving the resource or permission issue; concurrent edits or changed templates require review.",
-        "ApplicationUpdateDraftPending": "The suite contains unpublished drafts. Publish or resolve them before updating the application."
+        "ApplicationUpdateDraftPending": "The suite contains unpublished drafts. Publish or resolve them before updating the application.",
+        "ArtifactCopyDenied": "This artifact type cannot be copied into another project."
     },
     "Mcp": {
         "Test": {

@@ -1,4 +1,5 @@
 import type { I18nObject } from './i18n.model'
+import type { ArtifactTypeDescriptor } from './artifact.model'
 
 export type ContentAction = 'rename' | 'move' | 'trash' | 'restore' | 'duplicate'
 export type ContentSourceLocation =
@@ -29,6 +30,8 @@ export interface ContentTypeImplementation {
   defaultEditorKey: string
 }
 export interface ContentResourceSnapshot extends ContentModelIdentity {
+  /** Read-only published content; opening still requires current Project and source authorization. */
+  presentation?: { kind: 'artifact'; referenceId: string; type?: ArtifactTypeDescriptor }
   /** Opt in only when all Project readers may read the source even without this provider.
    * Resources with additional native ACLs must omit this field and fail closed offline. */
   offlineAccess?: 'project'

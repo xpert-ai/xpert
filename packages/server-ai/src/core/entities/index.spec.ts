@@ -1,3 +1,4 @@
+import { shareMessageQuery } from '../../ai/conversation-sharing/share-projection'
 import { coreEntities } from '@xpert-ai/server-core'
 import { DataSource } from 'typeorm'
 import { XpertProjectInvitation, XpertProjectMembership } from './internal'
@@ -139,6 +140,26 @@ describe('ALL_AI_ENTITIES', () => {
                 ['conversationId', 'groupPublicationId']
             ])
         )
+    })
+
+    it('keeps the snapshot branch head and conversation scope separate in real TypeORM SQL', async () => {
+        const dataSource = new MetadataDataSource({
+            type: 'postgres',
+            database: 'xpert',
+            entities: [...coreEntities, ...ALL_AI_ENTITIES]
+        })
+        await dataSource.buildMetadata()
+        const [sql, parameters] = shareMessageQuery(
+            dataSource.getTreeRepository(ChatMessage),
+            'conversation-id',
+            'head-message-id'
+        ).getQueryAndParameters()
+        expect(parameters).toContain('head-message-id')
+        expect(parameters).toContain('conversation-id')
+        expect(sql).not.toContain('"reasoning"')
+        expect(sql).not.toContain('"events"')
+        expect(sql).not.toContain('"inputCheckpoint"')
+        expect(sql).toContain('"deletedAt" IS NULL')
     })
 
     it('registers all Wiki entities for the standalone schema-sync command', () => {

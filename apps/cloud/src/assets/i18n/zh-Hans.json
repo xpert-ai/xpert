@@ -1,4 +1,58 @@
 {
+  "ConversationShare": {
+    "CopyLink": "复制链接",
+    "Copied": "链接已复制",
+    "CopyFailed": "复制失败，请重试",
+    "ReadOnly": "分享的会话 · 只读",
+    "SnapshotNotice": "这是文字快照，不包含后续消息和附件。",
+    "User": "用户",
+    "Assistant": "助手",
+    "SignIn": "登录后查看会话",
+    "MembersOnly": "仅来源组织的有效成员可以查看此链接。",
+    "Login": "登录",
+    "Unavailable": "分享的会话不可用",
+    "UnavailableHint": "链接可能已过期、被撤销，或你没有访问权限。",
+    "Loading": "正在加载分享的会话…",
+    "RendererUnavailable": "暂时无法展示此分享会话，请稍后重试。",
+    "ManagementTitle": "已分享链接",
+    "ManagementHint": "集中管理你创建的会话分享和访问权限。",
+    "Manage": "管理分享",
+    "ManagementDescription": "这里显示你创建的全部会话分享。公开链接可匿名查看；组织链接仅限来源组织的有效成员。撤销分享不会删除原会话，也无法收回他人已保存的副本。",
+    "ManagementLoadFailed": "无法加载分享列表，请重试。",
+    "ManagementRevokeFailed": "撤销失败，请重试。",
+    "ManagementRevoked": "分享已撤销，原会话已保留。",
+    "ConfirmAllTitle": "撤销我的全部分享？",
+    "ConfirmOneTitle": "撤销此分享？",
+    "ConfirmAllHint": "将撤销列表加载时已存在的全部分享，包括其他分页和搜索条件之外的链接。原会话会保留，此后新建的分享不受影响。",
+    "ConfirmOneHint": "其他人将无法再通过此链接访问分享内容，原会话会保留。",
+    "Search": "搜索已分享会话",
+    "SearchAction": "搜索",
+    "Name": "名称",
+    "Type": "类型",
+    "Access": "访问范围",
+    "DateShared": "分享日期",
+    "DateExpires": "到期日期",
+    "Revoke": "撤销分享",
+    "Untitled": "未命名会话",
+    "Chat": "会话",
+    "Status": {
+      "expired": "已到期",
+      "unavailable": "已失效"
+    },
+    "Audience": {
+      "organization": "组织成员",
+      "public": "匿名公开"
+    },
+    "NoMatches": "没有匹配的分享",
+    "NoShares": "你还没有分享过会话",
+    "Total": "共 {{count}} 条分享",
+    "Previous": "上一页",
+    "Next": "下一页",
+    "Back": "返回列表",
+    "ConfirmRevoke": "确认撤销",
+    "Refresh": "刷新",
+    "RevokeAll": "撤销我的全部分享"
+  },
   "BrowserCapture": {
     "Title": "选择录音来源",
     "Help": "录音前，请告知所有参会者。选择后，浏览器将请求相应权限。",
@@ -13008,5 +13062,10 @@
   "ArtifactPresentation": {
     "UnavailableHint": "正式版本或访问权限可能已变化，请重新打开以检查。",
     "Reopen": "重新打开分享页"
+  },
+  "ArtifactLibrary": {
+    "Unavailable": "此成果引用不可用，或你已失去项目或来源权限。",
+    "ReadOnly": "成果引用 · 只读",
+    "Download": "下载文件"
   }
 }

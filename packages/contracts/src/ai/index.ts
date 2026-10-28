@@ -1,3 +1,5 @@
+export * from './conversation-share.model'
+
 export const STATE_VARIABLE_HUMAN = 'human'
 export * from './prompt-workflow-capabilities.model'
 

@@ -12,6 +12,7 @@ import path from 'path'
 import { dbConnectionConfig } from './database'
 import { readManagedQueueConfig } from './managed-queue-config'
 import { readPluginInstallationConfig } from './plugin-installation-config'
+import { readClientBaseUrl } from './client-base-url-config'
 
 process.cwd()
 
@@ -51,6 +52,7 @@ console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublic
  * The default configurations.
  */
 export const defaultConfiguration: IPluginConfig = {
+  clientBaseUrl: readClientBaseUrl(process.env),
   managedQueueOptions: readManagedQueueConfig(process.env),
   pluginInstallationOptions: readPluginInstallationConfig(process.env),
   apiConfigOptions: {

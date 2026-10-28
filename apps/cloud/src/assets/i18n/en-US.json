@@ -1,4 +1,58 @@
 {
+  "ConversationShare": {
+    "CopyLink": "Copy link",
+    "Copied": "Link copied",
+    "CopyFailed": "Could not copy the link. Please try again.",
+    "ReadOnly": "Shared conversation · Read only",
+    "SnapshotNotice": "This is a text snapshot. Later messages and attachments are not included.",
+    "User": "User",
+    "Assistant": "Assistant",
+    "SignIn": "Sign in to view this conversation",
+    "MembersOnly": "Only active members of the originating organization can view this link.",
+    "Login": "Sign in",
+    "Unavailable": "This shared conversation is unavailable",
+    "UnavailableHint": "The link may have expired, been revoked, or you may not have access.",
+    "Loading": "Loading shared conversation…",
+    "RendererUnavailable": "Unable to display this shared conversation. Please try again later.",
+    "ManagementTitle": "Shared links",
+    "ManagementHint": "Manage the conversations you have shared and who can view them.",
+    "Manage": "Manage shares",
+    "ManagementDescription": "These are all the conversation shares you created. Public links allow anonymous access; organization links require active membership in their source organization. Revoking a link keeps the original conversation and cannot recall copies others have saved.",
+    "ManagementLoadFailed": "Could not load shared links. Please try again.",
+    "ManagementRevokeFailed": "Could not revoke the share. Please try again.",
+    "ManagementRevoked": "Share revoked. The original conversation was kept.",
+    "ConfirmAllTitle": "Revoke all my shared links?",
+    "ConfirmOneTitle": "Revoke this shared link?",
+    "ConfirmAllHint": "This revokes all shares that existed when the list loaded, including other pages and shares outside your search. Original conversations and shares created afterward are kept.",
+    "ConfirmOneHint": "Others will no longer be able to use this link. The original conversation is kept.",
+    "Search": "Search shared conversations",
+    "SearchAction": "Search",
+    "Name": "Name",
+    "Type": "Type",
+    "Access": "Access",
+    "DateShared": "Date shared",
+    "DateExpires": "Expires",
+    "Revoke": "Revoke share",
+    "Untitled": "Untitled conversation",
+    "Chat": "Chat",
+    "Status": {
+      "expired": "Expired",
+      "unavailable": "Unavailable"
+    },
+    "Audience": {
+      "organization": "Organization members",
+      "public": "Public"
+    },
+    "NoMatches": "No matching shares",
+    "NoShares": "You have not shared any conversations yet",
+    "Total": "{{count}} shared links",
+    "Previous": "Previous",
+    "Next": "Next",
+    "Back": "Back to list",
+    "ConfirmRevoke": "Confirm revocation",
+    "Refresh": "Refresh",
+    "RevokeAll": "Revoke all my shared links"
+  },
   "BrowserCapture": {
     "Title": "Choose audio sources",
     "Help": "Let everyone know before recording. Your browser will ask for the required permissions.",
@@ -6498,5 +6552,10 @@
   "ArtifactPresentation": {
     "UnavailableHint": "The published version or your access may have changed. Reopen to check again.",
     "Reopen": "Reopen shared page"
+  },
+  "ArtifactLibrary": {
+    "Unavailable": "This reference is unavailable, or Project or source access has changed.",
+    "ReadOnly": "Artifact reference · Read only",
+    "Download": "Download file"
   }
 }

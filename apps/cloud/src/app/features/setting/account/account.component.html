@@ -32,6 +32,7 @@
   }
   <router-outlet #o="outlet" class="hidden"></router-outlet>
   @if (o.isActivated && o.activatedRoute.snapshot.routeConfig?.path === 'profile') {
+    <xp-shared-links-settings />
     @if (canUseReferral() && referralCode()) {
       <section
         class="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5"

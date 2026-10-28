@@ -1,3 +1,4 @@
+import { configuredArtifactPolicies } from '../../artifacts/testing/source-policies'
 import 'reflect-metadata'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
@@ -21,6 +22,7 @@ function fixture() {
     const queries = { execute: jest.fn() }
     const artifact = Object.assign(new Artifact(), {
         id: 'artifact-1',
+        typeBinding: { pluginName: '@xpert-ai/platform', resourceType: 'file', scopeKey: 'builtin:global' },
         tenantId: 'tenant-1',
         organizationId: 'org-1',
         userId: 'user-1',
@@ -32,7 +34,13 @@ function fixture() {
         {} as never,
         {} as never,
         {} as never,
-        {} as never
+        {} as never,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        configuredArtifactPolicies()
     )
     const document = Object.assign(new CollaborationDocument(), {
         id: 'document-1',

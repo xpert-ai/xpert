@@ -105,3 +105,5 @@ export * from './artifact-presentation.service'
 export * from './analytics-definitions.service'
 
 export * from './sidebar-search.service'
+
+export * from './conversation-sharing.service'

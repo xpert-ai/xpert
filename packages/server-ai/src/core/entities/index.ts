@@ -1,3 +1,4 @@
+import { ArtifactReference } from '../../artifacts/library/artifact-reference.entity'
 import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
 import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
 import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
@@ -324,6 +325,7 @@ export const ALL_AI_ENTITIES = [
     AssistantBinding,
     AssistantBindingUserPreference,
     AssistantUserPreference,
+    ArtifactReference,
     Artifact,
     ArtifactVersion,
     ArtifactDraft,

@@ -65,6 +65,13 @@
     },
     "Error": {
         "DatabaseAdapterRegistrationMismatch": "数据库适配器与插件声明不匹配",
+        "ArtifactTypeUnavailable": "此产物类型当前不可用。",
+        "ArtifactTypeImmutable": "不能更改产物类型及其绑定的插件安装。",
+        "ConversationShareInvalid": "分享请求无效、会话为空或超出分享大小限制。",
+        "ConversationShareUnavailable": "分享的会话不可用。",
+        "ConversationShareForbidden": "仅有效组织中的私有会话所有者可以分享。公开分享需要明确确认。",
+        "ConversationShareChanged": "会话已变化，请重新预览后分享。",
+        "ConversationShareSignIn": "请以来源组织的成员身份登录后查看此会话。",
         "ToolResultUnavailableForNewInput": "上一轮在此工具结果记录前已中断，执行结果未知。请遵循新的用户输入；除非新输入要求，否则不要重复此操作。",
         "InvalidSidebarSearch": "搜索词必须是单个字符串，且不超过 200 个字符。",
         "PluginInstallationLockLost": "插件安装锁已失效，请重试。",
@@ -1270,7 +1277,8 @@
         "ApplicationUpdateStale": "应用范围或原实例已变化，请刷新并检查安装记录。",
         "ApplicationUpdatePending": "请先续跑未完成的应用更新。",
         "ApplicationUpdateFailed": "更新已停止，已完成步骤已保存。解决资源或权限问题后可续跑；若存在并发编辑或模板变化，需要先检查冲突。",
-        "ApplicationUpdateDraftPending": "套件包含未发布的草稿，请先发布或处理草稿，再更新应用。"
+        "ApplicationUpdateDraftPending": "套件包含未发布的草稿，请先发布或处理草稿，再更新应用。",
+        "ArtifactCopyDenied": "此成果类型不允许复制到其他项目。"
     },
     "Mcp": {
         "Test": {
