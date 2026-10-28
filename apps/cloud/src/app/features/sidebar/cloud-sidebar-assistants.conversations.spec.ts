@@ -767,6 +767,55 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
   })
 
+  it('does not reload bindings or cancel unread requests for an equivalent scope recomputation', async () => {
+    const pendingUnread = new Subject<never[]>()
+    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    const currentRequest = fixture.componentInstance.request()
+    const calls = conversationService.getUnreadByXperts.mock.calls.length
+
+    scopeService.activeScope.set({ ...scopeService.activeScope() })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.componentInstance.request()).toBe(currentRequest)
+    expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledTimes(1)
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(calls)
+    expect(pendingUnread.observed).toBe(true)
+    fixture.destroy()
+  })
+
+  it('keeps the list and in-flight unread request while refreshing the same assistant IDs', async () => {
+    const pendingUnread = new Subject<never[]>()
+    const refreshedItems = new Subject<Array<{ id: string; latest: boolean }>>()
+    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    const currentItems = fixture.componentInstance.xperts()
+    const calls = conversationService.getUnreadByXperts.mock.calls.length
+
+    assistantBindingService.getAvailableXperts.mockReturnValue(refreshedItems)
+    xpertRefresh$.next()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.xperts()).toBe(currentItems)
+    expect(pendingUnread.observed).toBe(true)
+
+    refreshedItems.next(currentItems)
+    refreshedItems.complete()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(calls)
+    expect(pendingUnread.observed).toBe(true)
+    fixture.destroy()
+  })
+
   it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     fixture.componentRef.setInput('xpSidebarHoverPanel', true)

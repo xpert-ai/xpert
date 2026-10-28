@@ -603,7 +603,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     const staleBinding = new Subject<{ assistantId: string }>()
     assistantBindingService.get.mockReturnValueOnce(staleBinding)
     assistantBindingChanges$.next({ code: 'clawxpert', scope: 'user' })
-    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(true)
 
     const nextBinding = new Subject<{ assistantId: string } | null>()
     assistantBindingService.get.mockReturnValueOnce(nextBinding)
