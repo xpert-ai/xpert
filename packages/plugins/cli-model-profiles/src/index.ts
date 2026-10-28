@@ -41,7 +41,11 @@ function configureBuiltinCli(
     XDG_DATA_HOME: `${directory}/data`,
     XDG_CACHE_HOME: `${directory}/cache`
   }
-  if (grant.toolId === 'codex')
+  if (grant.toolId === 'codex') {
+    const codexChatBridge =
+      selected?.protocols.includes('openai_responses_chat') && !selected.protocols.includes('openai_responses')
+    // The Chat backend inherits the grant's effort; the bridge cannot translate native reasoning items.
+    const reasoningEffort = codexChatBridge ? 'none' : selected?.parameters?.reasoning_effort
     return {
       args: [
         ...(grant.permissionMode
@@ -52,13 +56,11 @@ function configureBuiltinCli(
               grant.permissionMode === 'allow' ? 'danger-full-access' : 'workspace-write'
             ]
           : []),
-        ...(bridge
+        ...(codexChatBridge
           ? ['-c', 'model_reasoning_summary="none"', '-c', 'features.multi_agent=false', '-c', 'features.goals=false']
           : []),
         ...(contextWindow ? ['-c', `model_context_window=${contextWindow}`] : []),
-        ...(selected?.parameters?.reasoning_effort
-          ? ['-c', `model_reasoning_effort=${JSON.stringify(selected.parameters.reasoning_effort)}`]
-          : []),
+        ...(reasoningEffort ? ['-c', `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`] : []),
         '--model',
         'assistant-default',
         '-c',
@@ -83,6 +85,7 @@ function configureBuiltinCli(
       environment: { ...environment, CODEX_HOME: directory },
       files: [{ name: 'config.toml', content: '[model_providers.xpert]\nname = "Xpert"\n' }]
     }
+  }
   if (grant.toolId === 'claude') {
     if (!base.endsWith('/openai/v1')) throw new Error('Invalid CLI profile configuration')
     return {
@@ -384,7 +387,7 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
-    revision: '8',
+    revision: '9',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',

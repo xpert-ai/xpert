@@ -1,5 +1,8 @@
 import { builtinCliModelProfiles, builtinCliTools } from '@xpert-ai/cli-model-profiles'
+import type { ModelExecutionParameters } from '@xpert-ai/contracts'
 import { CLI_MODEL_TOKEN_REFERENCE, type CliModelConfigurationInput } from '@xpert-ai/plugin-sdk'
+import { parseChatBridgeRequest } from './execution-chat-bridge-request'
+import { executionChatParameters } from './execution-model-parameters'
 
 const input: CliModelConfigurationInput = {
     directory: '/tmp/execution-first',
@@ -17,6 +20,59 @@ function configure(id: string, overrides: Partial<CliModelConfigurationInput> = 
 }
 
 describe('bundled execution CLI profiles', () => {
+    it.each<ModelExecutionParameters['reasoning_effort']>(['xhigh', 'medium', 'none', undefined])(
+        'keeps configured effort %s on the backend while producing a valid Codex Chat bridge request',
+        (effort) => {
+            const parameters: ModelExecutionParameters = { max_tokens: 10631, reasoning_effort: effort }
+            const config = configure('codex', {
+                models: [{ id: 'allowed', protocols: ['openai_chat', 'openai_responses_chat'], parameters }]
+            })
+            const readSetting = (name: string): unknown => {
+                const setting = config.args.find((arg) => arg.startsWith(`${name}=`))
+                return setting ? JSON.parse(setting.slice(name.length + 1)) : undefined
+            }
+            // Codex serializes these configuration values into its Responses request.
+            const request = {
+                model: 'assistant-default',
+                input: 'Reply OK without tools.',
+                stream: true,
+                store: false,
+                reasoning: {
+                    effort: readSetting('model_reasoning_effort'),
+                    summary: readSetting('model_reasoning_summary')
+                }
+            }
+            const { parsed } = parseChatBridgeRequest(request, 'openai_responses')
+            expect(request.reasoning).toEqual({ effort: 'none', summary: 'none' })
+            expect(executionChatParameters(parameters, parsed.options)).toEqual({
+                max_tokens: 10631,
+                reasoning_effort: effort
+            })
+            expect(parameters.reasoning_effort).toBe(effort)
+            expect(config.args.filter((arg) => arg.startsWith('model_reasoning_effort='))).toHaveLength(1)
+        }
+    )
+
+    it.each<{ protocols: CliModelConfigurationInput['models'][number]['protocols'] }>([
+        { protocols: ['openai_responses'] },
+        { protocols: ['openai_responses', 'openai_responses_chat'] }
+    ])('preserves native Codex reasoning when the selected model supports $protocols', ({ protocols }) => {
+        const config = configure('codex', {
+            models: [
+                { id: 'other', protocols: ['openai_responses_chat'], parameters: { reasoning_effort: 'low' } },
+                { id: 'allowed', protocols, parameters: { reasoning_effort: 'xhigh' } }
+            ]
+        })
+        expect(config.args).toContain('model_reasoning_effort="xhigh"')
+        expect(config.args).not.toContain('model_reasoning_effort="none"')
+        expect(config.args).not.toContain('model_reasoning_summary="none"')
+    })
+
+    it('leaves native Codex reasoning defaults unset when no effort was configured', () => {
+        const config = configure('codex', { models: [{ id: 'allowed', protocols: ['openai_responses'] }] })
+        expect(config.args.some((arg) => arg.startsWith('model_reasoning_effort='))).toBe(false)
+    })
+
     it('passes the selected Codex model reasoning effort without using another model settings', () => {
         const config = configure('codex', {
             models: [
@@ -283,6 +339,6 @@ describe('background CLI extensions', () => {
     })
 
     it.each(['codex', 'opencode', 'qwen'])('tracks the %s revision for catalog-based configuration', (id) => {
-        expect(builtinCliModelProfiles.get(id)?.revision).toBe(id === 'codex' ? '8' : '5')
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe(id === 'codex' ? '9' : '5')
     })
 })

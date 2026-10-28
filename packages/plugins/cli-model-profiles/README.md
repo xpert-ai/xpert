@@ -15,6 +15,11 @@ credentials. The default ModelExecution policy enables version-qualified Chat tr
 override the allowed protocols. These translations are not native protocol support. Existing desktop CLI and managed
 execution paths use the same bundled configuration functions.
 
+Codex uses the selected default model's protocol to configure reasoning. Native Responses forwards the selected
+`reasoning_effort` to Codex. A Chat-bridged launch explicitly sets Codex's native effort and summary to `none`,
+while the backend retains the grant's configured `reasoning_effort` for the Chat model call. This prevents unsupported
+native reasoning requests without lowering the model's saved effort. Other models in the grant do not select this mode.
+
 `src/toolchain.json` contains the bundled tool IDs, exact versions, executable paths and installation metadata.
 The exported `builtinCliTools` list supplies the default ModelExecution policy without tenant activation; it does not
 install tools. Hosts can use the same manifest when building execution images. Optional policy overrides retain custom
