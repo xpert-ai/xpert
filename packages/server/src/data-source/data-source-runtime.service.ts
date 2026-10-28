@@ -13,6 +13,7 @@ import {
 	type DatabaseWorkbenchAdapter
 } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
+import { t } from 'i18next'
 import { RequestContext } from '../core/context'
 import { DataSource } from './data-source.entity'
 import { DataSourceService } from './data-source.service'
@@ -51,7 +52,7 @@ export class DataSourceRuntimeService implements DataSourceRuntimeApi {
 		})
 		return sources.flatMap((source) => {
 			const engine = source.type.type === 'pg' ? 'postgres' : source.type.type
-			return engine === 'mysql' || engine === 'doris' || engine === 'postgres'
+			return engine === 'mysql' || engine === 'doris' || engine === 'postgres' || engine === 'hana'
 				? [{ id: source.id, name: source.name, engine }]
 				: []
 		})
@@ -65,12 +66,23 @@ export class DataSourceRuntimeService implements DataSourceRuntimeApi {
 		this.authorize(input.actor)
 		const source = await this.sources.prepareDataSource(input.dataSourceId)
 		const engine = source.type.type === 'pg' ? 'postgres' : source.type.type
-		if (!['mysql', 'doris', 'postgres'].includes(engine))
+		if (!['mysql', 'doris', 'postgres', 'hana'].includes(engine))
 			throw new ForbiddenException('Workbench adapter unavailable')
-		if (input.location?.engineCatalog && input.location.engineCatalog !== 'internal')
+		if (input.location?.engineCatalog && (engine === 'hana' || input.location.engineCatalog !== 'internal'))
 			throw new ForbiddenException('External catalog unavailable')
 		const options = { ...source.options }
-		if (engine === 'postgres') {
+		if (engine === 'hana') {
+			// HANA's tenant is a connection boundary; catalog is its selected SQL schema.
+			if (input.location?.database && input.location.database !== options.database) {
+				throw new ForbiddenException(
+					t('server-ai:Error.HanaDatabaseSwitchDenied', {
+						defaultValue:
+							'The HANA tenant database cannot be changed. Select a saved data source for that tenant.'
+					})
+				)
+			}
+			if (input.location?.schema) options.catalog = input.location.schema
+		} else if (engine === 'postgres') {
 			if (input.location?.database) options.database = input.location.database
 			if (input.location?.schema) options.catalog = input.location.schema
 		} else if (input.location?.database) options.catalog = input.location.database

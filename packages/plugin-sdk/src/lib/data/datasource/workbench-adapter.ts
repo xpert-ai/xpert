@@ -9,7 +9,6 @@
 import type {
   DatabaseCapabilities,
   DatabaseColumn,
-  DatabaseEngine,
   DatabaseImportInput,
   DatabaseImportReceipt,
   DatabaseKey,
@@ -50,7 +49,7 @@ export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
   private busy = false
   private closed = false
   constructor(
-    readonly engine: DatabaseEngine,
+    readonly engine: 'doris' | 'mysql' | 'postgres',
     private readonly transport: WorkbenchTransport,
     private readonly initial: DatabaseLocation = {}
   ) {}

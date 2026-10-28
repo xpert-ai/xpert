@@ -1,8 +1,9 @@
 /** Shared wire contract. Credentials and driver objects never cross this boundary. */
-export type DatabaseEngine = 'doris' | 'mysql' | 'postgres'
+export type DatabaseEngine = 'doris' | 'mysql' | 'postgres' | 'hana'
 export type DatabaseValue = string | number | boolean | null
 export type DatabaseObjectKind = 'table' | 'view'
 export interface DatabaseLocation {
+  /** HANA tenant database is fixed by the saved connection; it cannot be switched at runtime. */
   database?: string
   schema?: string
   /** Doris external catalog; legacy QueryOptions.catalog continues to mean database. */
