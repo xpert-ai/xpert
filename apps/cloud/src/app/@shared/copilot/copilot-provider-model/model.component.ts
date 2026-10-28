@@ -99,10 +99,7 @@ export class CopilotProviderModelComponent {
   readonly model = this.#model.value
 
   readonly model_credential_schema = computed(() => this.copilotProvider().provider?.model_credential_schema)
-  readonly supported_model_types = computed(() => {
-    const types = this.copilotProvider().provider?.supported_model_types
-    return this.configuration() ? types?.filter(isDiscoverableModelType) : types
-  })
+  readonly supported_model_types = computed(() => this.copilotProvider().provider?.supported_model_types)
   readonly credential_form_schemas = computed(() => {
     return this.model_credential_schema()?.credential_form_schemas
   })
@@ -127,7 +124,12 @@ export class CopilotProviderModelComponent {
   readonly configuration = signal<ModelConfiguration | null>(null)
 
   private savedProperties() {
-    return { ...this.credentials(), ...(this.configuration() ? { model_configuration: this.configuration() } : {}) }
+    const properties = { ...this.credentials() }
+    // The loaded credentials may still contain the previous model type's configuration.
+    delete properties.model_configuration
+    const configuration = this.configuration()
+    if (configuration?.modelType === this.modelTypes()[0]) properties.model_configuration = configuration
+    return properties
   }
 
   get invalid() {
@@ -164,7 +166,12 @@ export class CopilotProviderModelComponent {
     effect(() => {
       const type = this.modelTypes()[0]
       const configuration = this.configuration()
-      if (configuration && isDiscoverableModelType(type) && configuration.modelType !== type) {
+      if (!isDiscoverableModelType(type)) {
+        this.configuration.set(null)
+      } else if (
+        (configuration && configuration.modelType !== type) ||
+        (!configuration && readModelConfiguration(this.model()?.modelProperties))
+      ) {
         this.configuration.set(defaultModelConfiguration(type))
       }
     })
