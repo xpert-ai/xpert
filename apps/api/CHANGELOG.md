@@ -1,5 +1,34 @@
 # @xpert-ai/xpert-api
 
+## 3.29.0
+
+### Minor Changes
+
+- 78cd9c0: Add revocable, expiring conversation text snapshots with organization membership checks, opt-in public links, a full-width Cloud viewer using ChatKit's read-only message list, preview validation, and bearer-token log protection. Project and group conversations cannot be exported. The shared renderer receives only authorized text and theme data, without live conversation credentials.
+
+  Add a personal shared-links settings dialog with search, pagination, owner-only snapshot previews, and confirmed single/bulk revocation. Management excludes delegated Assistant credentials and preserves conversations and shares created after the reviewed cutoff.
+
+  Persist conversation exports through existing Artifact containers, immutable ArtifactVersions and revocable ArtifactLinks. Reopening and copying reuse the stored URL. Enforce conversation source availability and export restrictions on shared Artifact content entrypoints, including raw URLs. No separate ConversationShare entity or token-recovery migration is introduced.
+
+  Keep conversation rules in conversation-sharing as a built-in Artifact type plugin with Artifact-owned share queries. The conversation feature module registers its type and host view directly, without a separate built-in plugin aggregation module. Register through the SDK type protocol, persist the installation binding, and reject unavailable types without fallback. The former host-only source-policy interface is removed.
+
+  Use the existing CLIENT_BASE_URL for share and management URLs, exposed through the shared clientBaseUrl bootstrap setting. Conversation sharing requires no feature-specific deployment configuration. Public sharing is available by default but still requires explicit owner confirmation; the default audience remains organization-only with a seven-day expiry.
+
+### Patch Changes
+
+- 4ee32d7: Allow all validated opaque content revisions to be persisted and isolate collaboration state encoding helpers.
+- a58eb21: Build the execution observability plugin after its workspace dependencies so clean API image builds can resolve the contracts and plugin SDK declarations.
+- 13812af: Include the execution observability plugin manifest in the API Docker dependency stages so workspace dependencies match the committed build and production locks.
+- c4c344f: Build Artifact Library URLs from the effective frontend configuration so bootstrap overrides point users to the configured host.
+- 4b07221: Add the built-in administrator execution-observability plugin with an expandable Assistant/conversation timeline and five read-only analysis tools. Reuse scoped existing execution and usage records, preserve unknown lifecycle phases and costs, and ship shared shadcn/Tailwind remote assets without new tables.
+- b459105: Preserve new messages sent after interrupted tool runs by checkpointing input identities and committing their consumption with model history. Keep new Send, checkpoint Resume/Retry, and tool/model loops distinct; preserve completed tool results and record unknown outcomes for missing results without rerunning old tools. Add graph-level regression coverage for interruption, repeated input text, recovery, middleware, and delegated input scope.
+- 2e717f0: Allow provider-declared native Responses by default for delegated model execution so Codex retains configured reasoning effort instead of entering the limited Chat bridge. Preserve explicit tenant protocol restrictions and require a new execution for the updated protocol selection.
+- 3b03ad7: Delegate scoped database workbench discovery and location handling to registered plugins. Preserve actor authorization, source revision checks and independent connection cleanup without a built-in engine allowlist.
+
+  Breaking SDK change: remove the legacy SQL adapter, dialect validation and quoting exports. Database plugins now own these implementations; SQL consumers migrate to the plugin-repository sql-workbench helpers. Strategies explicitly declare workbench support and runners accept the requested DatabaseLocation. Upgrade the MySQL/Doris, PostgreSQL, HANA and DB Studio plugins together with this SDK; old plugins without the registration opt-in are unavailable to the scoped workbench until upgraded.
+
+- 2aae0fa: Expand the catalog revision column in place before entity synchronization, preserving existing provider revisions during upgrades.
+
 ## 3.28.0
 
 ### Minor Changes
