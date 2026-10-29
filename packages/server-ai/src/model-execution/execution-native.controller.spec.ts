@@ -11,6 +11,7 @@ import {
 import { builtinCliModelProfiles } from '@xpert-ai/cli-model-profiles'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionNativeController } from './execution-native.controller'
+import { NativeUpstreamError } from './execution-native-upstream-error'
 import { captureRequestContext } from '../shared/request-context'
 import { parseExecutionPolicy } from './execution-policy'
 import { executionToolModels } from './execution-tool-model'
@@ -206,6 +207,83 @@ describe('native gateway execution lifecycle', () => {
         expect(f.response.write.mock.calls[0][0]).toContain('opaque')
     })
 
+    it.each([429, 500, 502, 503, 504])(
+        'retains upstream HTTP %s with safe diagnostics and one metering finish',
+        async (status) => {
+            const f = fixture()
+            f.generate.mockResolvedValue(
+                new globalThis.Response('<html>private provider credentials</html>', {
+                    status,
+                    headers: {
+                        'content-type': 'text/html',
+                        'retry-after': '60',
+                        'x-request-id': 'provider-request-1',
+                        'cf-ray': 'a51f0599dc5bbe3d-AMS',
+                        authorization: 'Bearer private',
+                        'set-cookie': 'private=value'
+                    }
+                })
+            )
+            await f.invoke()
+            expect(f.response.status).toHaveBeenCalledWith(status)
+            expect(f.response.json).toHaveBeenCalledWith({
+                type: 'error',
+                error: {
+                    type: status === 429 ? 'rate_limit_error' : 'api_error',
+                    message: 'The upstream model service failed to complete the request.'
+                }
+            })
+            expect(f.response.setHeader.mock.calls).toEqual([
+                ['retry-after', '60'],
+                ['x-upstream-request-id', 'provider-request-1'],
+                ['x-upstream-cf-ray', 'a51f0599dc5bbe3d-AMS']
+            ])
+            expect(f.generate).toHaveBeenCalledTimes(1)
+            expect(f.response.write).not.toHaveBeenCalled()
+            expect(f.metering.finish).toHaveBeenCalledTimes(1)
+            expect(f.metering.finish).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    error: expect.any(NativeUpstreamError),
+                    usage: expect.objectContaining({ source: ModelGatewayUsageSourceEnum.None, totalTokens: 0 })
+                })
+            )
+            expect(JSON.stringify(f.response.json.mock.calls)).not.toContain('private')
+        }
+    )
+
+    it('does not confuse upstream credential rejection with execution authorization', async () => {
+        const f = fixture(false)
+        f.generate.mockResolvedValue(new globalThis.Response('private', { status: 401 }))
+        await f.invoke()
+        expect(f.response.status).toHaveBeenCalledWith(502)
+        expect(f.response.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                error: expect.objectContaining({ type: 'api_error' })
+            })
+        )
+    })
+
+    it('sanitizes transport exceptions without retrying the provider', async () => {
+        const f = fixture()
+        f.generate.mockRejectedValue(new Error('private credential and URL'))
+        await f.invoke()
+        expect(f.response.status).toHaveBeenCalledWith(502)
+        expect(f.generate).toHaveBeenCalledTimes(1)
+        expect(JSON.stringify(f.response.json.mock.calls)).not.toContain('private')
+        expect(f.metering.finish).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([new globalThis.Response(null, { status: 204 }), new globalThis.Response('<html>not SSE</html>')])(
+        'classifies an invalid successful upstream response as a gateway failure',
+        async (upstream) => {
+            const f = fixture()
+            f.generate.mockResolvedValue(upstream)
+            await f.invoke()
+            expect(f.response.status).toHaveBeenCalledWith(502)
+            expect(f.response.write).not.toHaveBeenCalled()
+        }
+    )
+
     it('inherits native tuning and reserves its configured output without changing explicit fields', async () => {
         const f = fixture(false, { temperature: 0.6, top_p: 0.37, max_tokens: 12345, reasoning_effort: 'high' })
         await f.controller.responses(f.request as Request, f.response as unknown as Response, {
@@ -274,6 +352,12 @@ describe('native gateway execution lifecycle', () => {
         await f.invoke()
         expect(f.generate).not.toHaveBeenCalled()
         expect(f.admission.begin).not.toHaveBeenCalled()
+        expect(f.response.status).toHaveBeenCalledWith(403)
+        expect(f.response.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                error: expect.objectContaining({ type: 'invalid_request_error' })
+            })
+        )
     })
     it('rechecks model authorization after admission and never dispatches a revoked model', async () => {
         const f = fixture()
@@ -302,6 +386,23 @@ describe('native gateway execution lifecycle', () => {
             })
         )
     })
+    it('closes a failed stream after headers were sent instead of writing a second response', async () => {
+        const f = fixture()
+        f.response.write.mockImplementation(() => {
+            f.response.headersSent = true
+            return true
+        })
+        f.generate.mockResolvedValue(
+            new globalThis.Response('data: {"type":"response.output_text.delta","delta":"partial"}\n\n', {
+                headers: { 'content-type': 'text/event-stream' }
+            })
+        )
+        await f.invoke()
+        expect(f.response.destroy).toHaveBeenCalledTimes(1)
+        expect(f.response.json).not.toHaveBeenCalled()
+        expect(f.generate).toHaveBeenCalledTimes(1)
+        expect(f.metering.finish).toHaveBeenCalledTimes(1)
+    })
     it('retains actual usage but filters raw provider errors returned with HTTP 200', async () => {
         const f = fixture(false)
         f.generate.mockImplementation(
@@ -324,6 +425,7 @@ describe('native gateway execution lifecycle', () => {
             })
         )
         expect(JSON.stringify(f.response.json.mock.calls)).not.toContain('private provider diagnostic')
+        expect(f.response.status).toHaveBeenCalledWith(502)
     })
     it('dispatches a large request even if a legacy grant carries a small input cap', async () => {
         const f = fixture(false)

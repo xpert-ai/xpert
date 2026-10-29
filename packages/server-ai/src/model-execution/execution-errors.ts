@@ -1,6 +1,7 @@
 import { applicationMetrics } from '../metrics/application-metrics'
 import {
     BadRequestException,
+    BadGatewayException,
     ForbiddenException,
     HttpException,
     HttpStatus,
@@ -16,6 +17,7 @@ const messages = {
     SandboxUnavailable:
         'Codex command execution is blocked by the configured isolation environment. Ask the administrator to verify the container security profile and namespace support. The policy was not changed; do not retry with broader permissions.',
     Unavailable: 'Model execution is disabled or unavailable in this context.',
+    Upstream: 'The upstream model service failed to complete the request.',
     BridgeUnsupported:
         'This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.',
     Invalid: 'The model execution configuration is invalid.',
@@ -33,6 +35,7 @@ export function executionErrorMessage(code: keyof typeof messages) {
 export function executionError(code: keyof typeof messages) {
     applicationMetrics.recordModelExecution(code)
     const message = executionErrorMessage(code)
+    if (code === 'Upstream') return new BadGatewayException(message)
     if (code === 'SandboxUnavailable') return new ServiceUnavailableException(message)
     return code === 'Budget' || code === 'RateLimit'
         ? new HttpException(message, HttpStatus.TOO_MANY_REQUESTS)

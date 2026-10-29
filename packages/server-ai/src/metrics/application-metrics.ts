@@ -330,6 +330,7 @@ export class ApplicationMetricsRegistry {
             | 'ConversationRequired'
             | 'RateLimit'
             | 'Unavailable'
+            | 'Upstream'
             | 'Invalid'
             | 'Denied'
             | 'Budget'

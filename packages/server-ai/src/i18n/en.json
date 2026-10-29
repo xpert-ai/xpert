@@ -236,6 +236,7 @@
         "AssistantAppearanceInvalid": "Invalid assistant name or avatar settings.",
         "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
         "ModelExecutionUnavailable": "Model execution is disabled or unavailable in this context.",
+        "ModelExecutionUpstream": "The upstream model service failed to complete the request.",
         "ModelExecutionBridgeUnsupported": "This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.",
         "ModelExecutionParametersUnsupported": "The configured model parameters are invalid or unsupported by this model or execution protocol.",
         "ModelExecutionInvalid": "The model execution configuration is invalid.",
