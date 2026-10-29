@@ -47,21 +47,8 @@ export function ExecutionIndicators({
                     {[...attempts]
                         .sort((a, b) => a.attempt - b.attempt)
                         .map((attempt) => {
-                            const {
-                                state,
-                                succeeded,
-                                failed,
-                                businessResult,
-                                label: statusLabel
-                            } = executionSummary(attempt, t)
+                            const { state, color, businessResult, label: statusLabel } = executionSummary(attempt, t)
                             const canOpen = !!(attempt.invocationId || attempt.agentExecutionId)
-                            const color = failed
-                                ? 'bg-destructive'
-                                : succeeded
-                                  ? 'bg-[var(--success)]'
-                                  : state === 'running'
-                                    ? 'bg-primary'
-                                    : 'bg-muted-foreground'
                             const { start, end } = attemptTimes(attempt)
                             const label = `${taskTitles?.get(attempt.taskId) ?? title} · ${t.attempt} ${attempt.attempt} ${t.execution} · ${statusLabel}${businessResult ? ` · ${t.outcome}: ${businessResult}` : ''}`
                             return (
