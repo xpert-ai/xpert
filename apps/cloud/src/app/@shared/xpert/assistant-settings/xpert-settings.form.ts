@@ -118,14 +118,12 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
       : null
   })
   const runtime = new FormGroup({
-    maxConcurrency: number(team.agentConfig?.maxConcurrency ?? null, 1, 100),
     recursionLimit: number(
       team.agentConfig?.recursionLimit ?? DEFAULT_XPERT_AGENT_RECURSION_LIMIT,
       RECURSION_LIMIT_RANGE.min,
       RECURSION_LIMIT_RANGE.max
     )
   })
-  runtime.controls.maxConcurrency.addValidators(integerValidator)
   runtime.controls.recursionLimit.addValidators([Validators.required, integerValidator])
   memory.controls.reply.controls.scoreThreshold.addValidators(Validators.required)
   memory.controls.longTerm.controls.afterSeconds.addValidators([Validators.required, integerValidator])

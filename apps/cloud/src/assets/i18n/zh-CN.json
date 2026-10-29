@@ -456,7 +456,6 @@
       "SpeechToTextTip": "使用所选识别模型将语音输入转换为文本。",
       "SpeechError": "请为已开启的语音功能选择对应模型。",
       "ExecutionLimits": "执行限制",
-      "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
       "RecursionTip": "单次执行的最大递归步数，可设置为 {{min}}–{{max}} 之间的整数。",
       "RecursionRangeError": "请输入 {{min}}–{{max}} 之间的整数。",
@@ -4915,7 +4914,6 @@
       "LongTermMemoryTypeEnum": {
         "UserProfile": "用户档案"
       },
-      "MaxConcurrency": "最大并发请求",
       "Name": "名称",
       "NoSandboxProvider": "暂无可用的沙盒提供商",
       "NoWorkbenchViews": "此数字专家当前没有可用的扩展视图。",

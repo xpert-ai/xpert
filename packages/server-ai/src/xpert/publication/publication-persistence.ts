@@ -2,7 +2,7 @@
 // A row lock and snapshot check reject concurrent edits; authorization precedes this boundary.
 // External activation runs after commit and can be resumed without publishing another version.
 import { assistantSharingLock } from '../sharing/sharing-lock'
-import { normalizeXpertAgentConfig, TagCategoryEnum } from '@xpert-ai/contracts'
+import { TagCategoryEnum } from '@xpert-ai/contracts'
 import { ConflictException, Injectable, ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource, DeepPartial, EntityManager, IsNull } from 'typeorm'
@@ -11,6 +11,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { assertValidTagAssociations } from '../../shared/tag-associations'
 import { XpertAgent } from '../../xpert-agent/xpert-agent.entity'
 import { Xpert } from '../xpert.entity'
+import { normalizeXpertExecutionConfig } from '../xpert-execution-config'
 
 @Injectable()
 export class XpertPublicationPersistence {
@@ -93,23 +94,25 @@ export class PublicationStore {
     async saveTeam(entity: Xpert): Promise<Xpert> {
         const repository = this.manager.getRepository(Xpert)
         await assertValidTagAssociations(repository, this.access, entity, TagCategoryEnum.XPERT)
-        return repository.save({
-            ...entity,
-            userGroups: this.source.userGroups,
-            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
-        })
+        return repository.save(
+            normalizeXpertExecutionConfig({
+                ...entity,
+                userGroups: this.source.userGroups
+            })
+        )
     }
 
     async createBackup(entity: DeepPartial<Xpert>): Promise<Xpert> {
         const repository = this.manager.getRepository(Xpert)
         await assertValidTagAssociations(repository, this.access, entity, TagCategoryEnum.XPERT, this.source.id)
         return repository.save(
-            repository.create({
-                ...entity,
-                userGroups: this.source.userGroups,
-                agentConfig: normalizeXpertAgentConfig(entity.agentConfig),
-                updatedById: RequestContext.currentUserId()
-            })
+            repository.create(
+                normalizeXpertExecutionConfig({
+                    ...entity,
+                    userGroups: this.source.userGroups,
+                    updatedById: RequestContext.currentUserId()
+                })
+            )
         )
     }
 

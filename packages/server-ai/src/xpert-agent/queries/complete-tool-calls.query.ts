@@ -1,7 +1,7 @@
 import { PregelTaskDescription } from '@langchain/langgraph/dist/pregel/types'
 import { Query } from '@nestjs/cqrs'
-import { AgentStateAnnotation } from '../../shared'
 import { TSensitiveOperation } from '@xpert-ai/contracts'
+import type { Checkpoint } from '@langchain/langgraph-checkpoint'
 
 /**
  * Derived detailed information for the tool calls of interrupted AI message by Xpert's agents and tools.
@@ -15,9 +15,10 @@ export class CompleteToolCallsQuery extends Query<TSensitiveOperation> {
     constructor(
         public readonly xpertId: string,
         public readonly tasks: PregelTaskDescription[],
-        public readonly values: typeof AgentStateAnnotation.State,
+        public readonly values: object,
         public readonly isDraft?: boolean,
-        public readonly projectId?: string
+        public readonly projectId?: string,
+        public readonly checkpoint?: Pick<Checkpoint, 'channel_values'>
     ) {
         super()
     }
