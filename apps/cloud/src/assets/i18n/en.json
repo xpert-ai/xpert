@@ -3707,6 +3707,26 @@
       "zh-Hant": "繁体中文"
     },
     "Chat": {
+      "UnsupportedContent": "Unsupported message type: {{type}}",
+      "SyncingState": "Synchronizing state…",
+      "RefreshState": "Refresh state",
+      "FileActivity": {
+        "Changes": "File changes",
+        "Delivered": "Files delivered",
+        "DeliveryFailed": "File delivery failed",
+        "Invalid": "Invalid file activity receipt",
+        "Coverage": {
+          "bounded": "Changes recorded within this operation’s scope",
+          "partial": "Only some changes were recorded",
+          "unavailable": "Change details are unavailable"
+        },
+        "Operation": {
+          "added": "Added",
+          "modified": "Modified",
+          "deleted": "Deleted",
+          "unknown": "Changed"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "Search assistants",
         "AssistantsLoadFailed": "Unable to load assistants",

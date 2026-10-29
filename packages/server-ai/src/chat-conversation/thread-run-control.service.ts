@@ -260,9 +260,22 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         return (await this.threads.findOne({ where: { threadId }, select: { runControl: true } }))?.runControl ?? null
     }
 
-    async start(threadId: string, executionId: string, context?: Record<string, unknown>): Promise<void> {
+    async start(
+        threadId: string,
+        executionId: string,
+        context?: Record<string, unknown>,
+        inputResumeOnly = false
+    ): Promise<void> {
         await this.locked(threadId, async (thread, manager) => {
             await requireControlSchema(manager, threadControlSchema)
+            if (
+                inputResumeOnly &&
+                (thread.status !== 'interrupted' || (thread.runControl && thread.runControl.state !== 'input_wait'))
+            )
+                throw threadControlConflict(
+                    'ThreadHasActiveOperation',
+                    'Thread already has a running or paused operation.'
+                )
             if (thread.runControl && thread.runControl.executionId !== executionId)
                 throw threadControlConflict(
                     'ThreadHasActiveOperation',

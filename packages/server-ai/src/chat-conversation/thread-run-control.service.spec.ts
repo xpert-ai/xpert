@@ -63,6 +63,20 @@ describe('ThreadRunControlService', () => {
         return { thread, service, manager, cancellations, checkpointRepository, threadRepository }
     }
 
+    it('admits one approval and rejects duplicate or stale decisions before changing the active run', async () => {
+        const { thread, service, manager } = setup()
+        thread.status = 'interrupted'
+        thread.runControl.state = 'input_wait'
+        thread.operation = { tasks: [] }
+        await service.start('thread', 'run', {}, true)
+        expect(thread.status).toBe('busy')
+        expect(thread.runControl.executionId).toBe('run')
+        expect(thread.operation).toBeNull()
+        const writes = jest.mocked(manager.save).mock.calls.length
+        await expect(service.start('thread', 'run', {}, true)).rejects.toBeInstanceOf(ConflictException)
+        expect(jest.mocked(manager.save).mock.calls).toHaveLength(writes)
+    })
+
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
 
     it.each(['position', 'size', 'hash'] as const)(

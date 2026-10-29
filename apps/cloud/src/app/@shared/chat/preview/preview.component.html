@@ -326,7 +326,12 @@
       }
     }
 
-    @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation() && showOperationPanel()) {
+    @if (
+      errorRecovery.state() === 'idle' &&
+      conversationStatus() === eExecutionStatusEnum.INTERRUPTED &&
+      operation() &&
+      showOperationPanel()
+    ) {
       <!-- Operation panel appears only when inputs are required -->
       <xp-xpert-agent-operation
         class="w-full mb-8 bg-components-card-bg"
@@ -338,18 +343,26 @@
       />
     }
 
-    @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
+    @if (error()) {
       <div
         class="w-full flex items-start gap-2 p-4 rounded-3xl text-text-warning bg-background-default-subtle border border-solid border-text-warning"
       >
         <div>
           <i class="ri-information-2-line text-xl"></i>
         </div>
-        <div class="flex-1 py-1 break-all">{{ error() }}</div>
+        <div role="alert" class="flex-1 py-1 break-all">{{ error() }}</div>
 
-        <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
-          {{ 'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
-        </button>
+        @if (errorRecovery.state() === 'syncing') {
+          <span role="status">{{ 'XP.Chat.SyncingState' | translate }}</span>
+        } @else if (errorRecovery.state() === 'failed') {
+          <button type="button" class="btn btn-small text-text-primary" (click)="errorRecovery.synchronize(error())">
+            {{ 'XP.Chat.RefreshState' | translate }}
+          </button>
+        } @else if (conversationStatus() === eExecutionStatusEnum.ERROR && !operation()) {
+          <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
+            {{ 'XP.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
+          </button>
+        }
       </div>
     }
 
