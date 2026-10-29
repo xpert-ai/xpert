@@ -307,6 +307,16 @@ describe('Assistant selection → grant → Chat bridge → provider serializati
         })
     })
 
+    it('omits cleared optional fields after grant persistence, runtime resolution and request serialization', async () => {
+        const f = await fixture({ temperature: null, top_p: null, max_completion_tokens: null, enable_thinking: false })
+        await f.run()
+        const request = JSON.parse(JSON.stringify(f.transport.mock.calls[0][0]))
+        expect(request).not.toHaveProperty('temperature')
+        expect(request).not.toHaveProperty('top_p')
+        expect(request).not.toHaveProperty('max_tokens')
+        expect(request.enable_thinking).toBe(false)
+    })
+
     it('preserves configured false and zero', async () => {
         const f = await fixture({ enable_thinking: false, temperature: 0, thinking_budget: 0 })
         await f.run()

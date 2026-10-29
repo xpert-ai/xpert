@@ -268,10 +268,14 @@ export function normalizeModelParameterValue(value: unknown, rule: ParameterRule
 export function resolveModelParameterOptions(
   modelOptions: Record<string, unknown> | undefined,
   rules: ParameterRule[],
-  config: { preserveUnknown?: boolean } = {}
+  config: { preserveUnknown?: boolean; preserveUnset?: boolean } = {}
 ): Record<string, unknown> | undefined {
   const preserveUnknown = config.preserveUnknown ?? true
-  const resolvedOptions: Record<string, unknown> = preserveUnknown ? { ...(modelOptions ?? {}) } : {}
+  const resolvedOptions: Record<string, unknown> = preserveUnknown
+    ? Object.fromEntries(
+        Object.entries(modelOptions ?? {}).filter(([, value]) => config.preserveUnset || value != null)
+      )
+    : {}
 
   for (const rule of rules) {
     if (!rule.name) {
@@ -279,6 +283,15 @@ export function resolveModelParameterOptions(
     }
 
     const hasSavedValue = Object.prototype.hasOwnProperty.call(modelOptions ?? {}, rule.name)
+    // JSON preserves null across save/reopen; undefined would lose the user's opt-out of defaults.
+    if (hasSavedValue && modelOptions[rule.name] === null && !rule.required) {
+      if (config.preserveUnset) {
+        resolvedOptions[rule.name] = null
+      } else {
+        delete resolvedOptions[rule.name]
+      }
+      continue
+    }
     let resolvedValue = hasSavedValue ? normalizeModelParameterValue(modelOptions?.[rule.name], rule) : undefined
     if (resolvedValue === undefined && rule.default !== undefined) {
       resolvedValue = normalizeModelParameterValue(rule.default, rule)

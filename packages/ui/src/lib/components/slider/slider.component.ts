@@ -458,7 +458,8 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
       return
     }
 
-    this.emitChangeEnd()
+    this.onTouched()
+    this.emitPendingChangeEnd()
   }
 
   handleKeydown(index: number, event: KeyboardEvent): void {

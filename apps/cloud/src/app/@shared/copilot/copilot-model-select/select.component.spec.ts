@@ -143,9 +143,9 @@ describe('CopilotModelSelectComponent', () => {
       glmModel.model
     ])
     component.setModel(copilot, deepseekModel)
-    expect(component['cva'].value$()).toBeFalsy()
+    expect(component.value$()).toBeFalsy()
     component.setModel(copilot, glmModel)
-    expect(component['cva'].value$()?.model).toBe(glmModel.model)
+    expect(component.value$()?.model).toBe(glmModel.model)
     fixture.componentRef.setInput('allowedModels', [])
     fixture.detectChanges()
     expect(component.featureFilteredCopilots()).toEqual([])
@@ -180,7 +180,7 @@ describe('CopilotModelSelectComponent', () => {
       fixture.detectChanges()
       component.setModel(copilot, deepseekModel)
       component.delete()
-      expect(component['cva'].value$()?.model).toBe(glmModel.model)
+      expect(component.value$()?.model).toBe(glmModel.model)
       tick(600)
     })
   )
@@ -204,7 +204,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000
     })
 
@@ -223,7 +223,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
       temperature: 1,
       max_tokens: 8192
@@ -289,7 +289,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()).toEqual({
+    expect(component.value$()).toEqual({
       copilotId: copilot.id,
       model: glmModel.model,
       modelType: AiModelTypeEnum.LLM,
@@ -302,7 +302,7 @@ describe('CopilotModelSelectComponent', () => {
     })
   }))
 
-  it('preserves reusable options instead of resetting to defaults when switching models', fakeAsync(() => {
+  it('uses destination defaults instead of carrying generation options across models', fakeAsync(() => {
     tick(600)
     fixture.detectChanges()
 
@@ -344,10 +344,10 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
-      temperature: 0.3,
-      max_tokens: 256,
+      temperature: 1,
+      max_tokens: 8192,
       top_p: 0.9
     })
   }))
@@ -382,7 +382,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
       temperature: 0.3,
       enable_thinking: true
@@ -413,7 +413,7 @@ describe('CopilotModelSelectComponent', () => {
     component.updateParameter('max_tokens', 655361234)
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options?.max_tokens).toBe(655361234)
+    expect(component.value$()?.options?.max_tokens).toBe(655361234)
   }))
 
   it('does not clamp parameter updates with stale rules while new model rules are loading', fakeAsync(() => {
@@ -445,7 +445,7 @@ describe('CopilotModelSelectComponent', () => {
     component.updateParameter('max_tokens', 32000)
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options?.max_tokens).toBe(32000)
+    expect(component.value$()?.options?.max_tokens).toBe(32000)
 
     glmRules$.next([
       {
@@ -459,7 +459,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options?.max_tokens).toBe(32000)
+    expect(component.value$()?.options?.max_tokens).toBe(32000)
   }))
 
   it('preserves persisted output token options beyond the configured slider range', fakeAsync(() => {
@@ -489,7 +489,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 200000,
       max_tokens: 655361234
     })
@@ -521,7 +521,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    const value = component['cva'].value$()
+    const value = component.value$()
     expect(value).toMatchObject({
       copilotId: copilot.id,
       model: glmModel.model,
@@ -556,7 +556,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toBeUndefined()
+    expect(component.value$()?.options).toBeUndefined()
     expect(onChange).not.toHaveBeenCalled()
   }))
 
@@ -605,7 +605,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 32000
     })
   }))
@@ -639,7 +639,7 @@ describe('CopilotModelSelectComponent', () => {
     tick()
     fixture.detectChanges()
 
-    expect(component['cva'].value$()?.options).toEqual({
+    expect(component.value$()?.options).toEqual({
       [ModelPropertyKey.CONTEXT_SIZE]: 64000,
       temperature: 0.2,
       max_tokens: 256
