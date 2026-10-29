@@ -2,6 +2,7 @@ import { DynamicModule, Type } from '@nestjs/common'
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'
 // import { PluginDefinition } from 'apollo-server-core';
 import { ILogger } from './ILogger'
+import type { AppPlatformConfiguration } from '@xpert-ai/contracts'
 
 export interface IGraphqlOptions {
   path: string
@@ -42,6 +43,7 @@ export interface IAuthOptions {
 }
 
 export interface IPluginConfig {
+  appPlatform?: AppPlatformConfiguration | null
   managedQueueOptions?: {
     concurrency: number
     sandboxBrowserConcurrency: number

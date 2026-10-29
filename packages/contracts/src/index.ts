@@ -1,4 +1,5 @@
 export * from './task-control.model'
+export * from './app-platform'
 export * from './execution-control-admission.schema'
 export * from './types'
 export * from './ai/sandbox-execution-control.schema'
