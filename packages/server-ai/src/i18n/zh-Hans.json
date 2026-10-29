@@ -64,6 +64,8 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "PluginMarketplaceDetailUnavailable": "未找到此软件包或无法访问。它可能是非公开包，或在当前配置的注册源中不可用。请检查包名，或联系管理员确认软件包是否可用及访问权限。",
+        "PluginMarketplaceLookupFailed": "无法加载插件市场来源。请重试，或联系管理员检查来源是否可用及访问权限。",
         "AgentTasksUnfinished": "智能体执行提前结束：仍有未完成任务，且没有审批或暂停请求。",
         "ToolApprovalCallUnresolved": "无法唯一确定任务 {{taskId}}（{{toolName}}）对应的原始工具调用。",
         "DatabaseAdapterRegistrationMismatch": "数据库适配器与插件声明不匹配",
