@@ -47,6 +47,7 @@ async function fixture() {
         revision: 1,
         status: 'todo' as const,
         title: 'Reconcile expenses',
+        assigneeXpertId: randomUUID(),
         requirements: ['Totals match the receipts'],
         steps: [],
         predecessorIds: []
@@ -130,7 +131,7 @@ async function fixture() {
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
-    const context = { resolve: jest.fn(async () => scope) }
+    const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const module = await Test.createTestingModule({
         providers: [
             ProjectTaskDispatchService,
@@ -162,6 +163,61 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it.each(['codex-computer', 'opencode'])(
+        'requires explicit ownership before %s delegation and permits assignment then retry',
+        async (provider) => {
+            const f = await fixture()
+            f.target.provider = provider
+            f.task.assigneeXpertId = null
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toMatchObject({
+                status: 409
+            })
+            expect(f.rows).toHaveLength(0)
+            expect(f.start).not.toHaveBeenCalled()
+            expect(f.task.assigneeXpertId).toBeNull()
+            // The caller is authorized but is never silently made responsible.
+            f.task.assigneeXpertId = randomUUID()
+            f.task.revision = 2
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+            const input = { ...f.input, expectedRevision: 2 }
+            await f.service.dispatch(f.scope.projectId, input, f.caller)
+            await f.service.dispatch(f.scope.projectId, input, f.caller)
+            expect(f.rows).toHaveLength(1)
+            expect(f.rows[0].xpertId).toBe(f.task.assigneeXpertId)
+            expect(f.rows[0].xpertId).not.toBe(f.scope.callerXpertId)
+            expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, f.task.assigneeXpertId)
+        }
+    )
+    it('does not infer ownership for the Project general agent or legacy unassigned attempts', async () => {
+        const f = await fixture()
+        f.scope.callerType = 'project_agent'
+        delete f.scope.callerXpertId
+        f.task.assigneeXpertId = null
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toMatchObject({ status: 409 })
+        expect(f.start).not.toHaveBeenCalled()
+        const legacy = await fixture()
+        await legacy.service.dispatch(legacy.scope.projectId, legacy.input, legacy.caller)
+        legacy.rows[0].xpertId = null
+        legacy.start.mockClear()
+        await expect(
+            legacy.service.dispatch(legacy.scope.projectId, legacy.input, legacy.caller)
+        ).rejects.toMatchObject({ status: 409 })
+        expect(legacy.start).not.toHaveBeenCalled()
+        expect(legacy.rows[0].xpertId).toBeNull()
+    })
+    it('rejects a revoked or out-of-project assignee before launch and on replay', async () => {
+        const f = await fixture()
+        f.context.assertResponsibleAssistant.mockRejectedValueOnce(new Error('Not a project member'))
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow('Not a project member')
+        expect(f.rows).toHaveLength(0)
+        expect(f.start).not.toHaveBeenCalled()
+        await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        f.start.mockClear()
+        f.context.assertResponsibleAssistant.mockRejectedValueOnce(new Error('Membership revoked'))
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow('Membership revoked')
+        expect(f.rows).toHaveLength(1)
+        expect(f.start).not.toHaveBeenCalled()
+    })
     it('requires exactly one target and the assigned group Assistant, preserving the task execution ledger', async () => {
         const f = await fixture()
         const target = { type: 'group_member' as const, participantId: f.target.bindingId }

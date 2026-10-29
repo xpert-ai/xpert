@@ -92,6 +92,8 @@ export class ProjectTaskDispatchService {
                     !sameInvocationData(intent.request.target, target)
                 )
                     throw projectTaskRuntimeError('Conflict')
+                if (!existing.xpertId) throw projectTaskRuntimeError('AssigneeRequired')
+                await this.context.assertResponsibleAssistant(scope, existing.xpertId)
                 return existing
             }
             const task = await manager.getRepository(XpertProjectTask).findOne({
@@ -100,6 +102,10 @@ export class ProjectTaskDispatchService {
             })
             if (!task) throw projectTaskRuntimeError('NotFound')
             assertOrdinaryTask(task)
+            // Planning may be unassigned; delegation requires an explicit, authorized responsible Assistant.
+            // Caller identity and runtime/provider names never supply ownership, including for historical tasks.
+            if (!task.assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
+            await this.context.assertResponsibleAssistant(scope, task.assigneeXpertId)
             if (input.target && task.assigneeXpertId !== target.reference) throw projectTaskRuntimeError('Scope')
             if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
             if (task.kind !== 'task' || !['todo', 'in_progress', 'blocked', 'review'].includes(task.status))

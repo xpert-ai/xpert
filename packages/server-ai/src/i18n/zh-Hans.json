@@ -196,6 +196,7 @@
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
         "ProjectTaskRuntimeEvidence": "证据或验收结论不可用、已过期，或此执行器不支持仅证据验收",
+        "ProjectTaskRuntimeAssigneeRequired": "请先为此任务分配一位项目成员助手，再使用最新任务版本重试委派。执行器（如 Codex）不代表负责助手。",
         "ProjectTaskRuntimeDecisionRequired": "受托任务必须通过确认结果操作完成，并提供具体实现版本和检查依据",
         "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",
         "RuntimeMessageInvalid": "运行时消息引用无效。",
