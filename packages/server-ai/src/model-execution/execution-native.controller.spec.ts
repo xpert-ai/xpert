@@ -207,9 +207,19 @@ describe('native gateway execution lifecycle', () => {
         expect(f.response.write.mock.calls[0][0]).toContain('opaque')
     })
 
-    it.each([429, 500, 502, 503, 504])(
-        'retains upstream HTTP %s with safe diagnostics and one metering finish',
-        async (status) => {
+    it.each([
+        [400, 'invalid_request_error'],
+        [404, 'invalid_request_error'],
+        [413, 'invalid_request_error'],
+        [422, 'invalid_request_error'],
+        [429, 'rate_limit_error'],
+        [500, 'api_error'],
+        [502, 'api_error'],
+        [503, 'api_error'],
+        [504, 'api_error']
+    ] as const)(
+        'retains upstream HTTP %s with safe diagnostics, correct error classification and one metering finish',
+        async (status, errorType) => {
             const f = fixture()
             f.generate.mockResolvedValue(
                 new globalThis.Response('<html>private provider credentials</html>', {
@@ -229,7 +239,7 @@ describe('native gateway execution lifecycle', () => {
             expect(f.response.json).toHaveBeenCalledWith({
                 type: 'error',
                 error: {
-                    type: status === 429 ? 'rate_limit_error' : 'api_error',
+                    type: errorType,
                     message: 'The upstream model service failed to complete the request.'
                 }
             })
@@ -251,17 +261,20 @@ describe('native gateway execution lifecycle', () => {
         }
     )
 
-    it('does not confuse upstream credential rejection with execution authorization', async () => {
-        const f = fixture(false)
-        f.generate.mockResolvedValue(new globalThis.Response('private', { status: 401 }))
-        await f.invoke()
-        expect(f.response.status).toHaveBeenCalledWith(502)
-        expect(f.response.json).toHaveBeenCalledWith(
-            expect.objectContaining({
-                error: expect.objectContaining({ type: 'api_error' })
-            })
-        )
-    })
+    it.each([401, 403, 407])(
+        'does not confuse upstream credential rejection %s with execution authorization',
+        async (status) => {
+            const f = fixture(false)
+            f.generate.mockResolvedValue(new globalThis.Response('private', { status }))
+            await f.invoke()
+            expect(f.response.status).toHaveBeenCalledWith(502)
+            expect(f.response.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    error: expect.objectContaining({ type: 'api_error' })
+                })
+            )
+        }
+    )
 
     it('sanitizes transport exceptions without retrying the provider', async () => {
         const f = fixture()

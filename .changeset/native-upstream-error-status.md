@@ -4,5 +4,6 @@
 ---
 
 Preserve upstream model service failures as gateway errors instead of execution
-permission denials. Retain upstream 5xx and rate-limit status with sanitized
-retry and request identifiers, while keeping authorization and metering behavior.
+permission denials. Retain upstream request errors, 5xx and rate-limit status with
+sanitized retry and request identifiers. Keep provider/proxy credential failures
+separate from execution authorization, without changing metering behavior.

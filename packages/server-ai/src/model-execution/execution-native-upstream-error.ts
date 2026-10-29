@@ -8,8 +8,8 @@ export class NativeUpstreamError extends HttpException {
     readonly headers: Record<string, string> = {}
 
     constructor(upstream: globalThis.Response) {
-        // Provider authentication/configuration errors belong to our upstream boundary.
-        const status = upstream.status >= 500 || upstream.status === 429 ? upstream.status : 502
+        // Provider/proxy credentials belong to the gateway; other 4xx remain request errors.
+        const status = upstream.status >= 400 && ![401, 403, 407].includes(upstream.status) ? upstream.status : 502
         super(executionErrorMessage('Upstream'), status)
         applicationMetrics.recordModelExecution('Upstream')
         const retryAfter = upstream.headers.get('retry-after')
