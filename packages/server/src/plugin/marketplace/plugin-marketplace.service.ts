@@ -50,6 +50,12 @@ import {
 import { PluginMarketplaceMetadata } from './plugin-marketplace-metadata'
 import { PluginMarketplacePackages } from './plugin-marketplace-packages'
 import { PluginMarketplaceRegistry } from './plugin-marketplace-registry'
+import { marketplaceDetailUnavailable } from './plugin-marketplace-errors'
+
+interface MarketplaceLookupResult<T> {
+	plugin: T | null
+	sourceUnavailable: boolean
+}
 
 @Injectable()
 export class PluginMarketplaceService implements OnModuleDestroy {
@@ -185,14 +191,14 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 	}
 
 	async getMarketplacePlugin(name: string, query: PluginMarketplaceListQuery = {}) {
-		const plugin = await this.findMarketplacePlugin(name, query)
+		const { plugin } = await this.findMarketplacePlugin(name, query)
 		if (!plugin) throw new NotFoundException(`Plugin "${name}" was not found in the marketplace`)
 		return plugin
 	}
 
 	async getMarketplacePluginIcon(name: string, query: PluginMarketplaceListQuery = {}) {
 		const { loadedMetaByName: loadedMeta } = this.buildLoadedContext()
-		const plugin = await this.findMarketplaceRecord(name, query, loadedMeta)
+		const { plugin } = await this.findMarketplaceRecord(name, query, loadedMeta)
 		if (!plugin) throw new NotFoundException(`Plugin "${name}" was not found in the marketplace`)
 		return this.metadata.mergeInstalledPluginMeta(plugin, loadedMeta)
 	}
@@ -211,11 +217,11 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 			throw new BadRequestException('name is required')
 		}
 
-		const marketplacePlugin = await this.findMarketplacePlugin(name, query)
-		const plugin = marketplacePlugin ?? this.toMarketplaceItemFromLoadedPlugin(name, query)
+		const lookup = await this.findMarketplacePlugin(name, query)
+		const plugin = lookup.plugin ?? this.toMarketplaceItemFromLoadedPlugin(name, query)
 
 		if (!plugin) {
-			throw new NotFoundException(`Plugin "${name}" was not found`)
+			throw marketplaceDetailUnavailable(lookup.sourceUnavailable)
 		}
 
 		const readme = await this.packages.resolveMarketplaceReadme(plugin, query)
@@ -235,7 +241,7 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 
 	async getMarketplacePluginContent(name: string, query: PluginMarketplaceListQuery = {}) {
 		const context = await this.buildInstalledContext()
-		const plugin = await this.findMarketplaceRecord(name, query, context.loadedMetaByName)
+		const { plugin } = await this.findMarketplaceRecord(name, query, context.loadedMetaByName)
 		if (!plugin) throw new NotFoundException(`Plugin "${name}" was not found in the marketplace`)
 		const enriched = await this.packages.hydratePluginWithNpmBundleManifest(plugin)
 		return this.metadata.toMarketplaceItem(
@@ -245,23 +251,31 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 		)
 	}
 
-	private async findMarketplacePlugin(name: string, query: PluginMarketplaceListQuery = {}) {
+	private async findMarketplacePlugin(
+		name: string,
+		query: PluginMarketplaceListQuery = {}
+	): Promise<MarketplaceLookupResult<PluginMarketplaceItem>> {
 		const context = await this.buildInstalledContext()
-		const plugin = await this.findMarketplaceRecord(name, query, context.loadedMetaByName)
-		if (!plugin) return null
-		return this.metadata.toMarketplaceItem(
-			this.metadata.mergeInstalledPluginMeta(plugin, context.loadedMetaByName),
-			query.targetApp,
-			context
-		)
+		const lookup = await this.findMarketplaceRecord(name, query, context.loadedMetaByName)
+		return {
+			...lookup,
+			plugin: lookup.plugin
+				? this.metadata.toMarketplaceItem(
+						this.metadata.mergeInstalledPluginMeta(lookup.plugin, context.loadedMetaByName),
+						query.targetApp,
+						context
+					)
+				: null
+		}
 	}
 
 	private async findMarketplaceRecord(
 		name: string,
 		query: PluginMarketplaceListQuery,
 		loadedMeta: Map<string, PluginMeta>
-	) {
+	): Promise<MarketplaceLookupResult<MarketplaceRegistryPlugin>> {
 		const normalizedName = normalizePluginName(name)
+		let sourceUnavailable = false
 		const find = (catalog: NormalizedMarketplaceCatalog) =>
 			catalog.plugins.find((plugin) => {
 				if (!this.marketplaceItemMatchesName(plugin, normalizedName)) return false
@@ -273,21 +287,22 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 			})
 		if (this.registry.includesPlatformRegistry(query.sourceId)) {
 			const plugin = find(await this.registry.loadPlatformRegistryCatalog(query.targetApp))
-			if (plugin) return plugin
+			if (plugin) return { plugin, sourceUnavailable }
 		}
 		const sources = await this.getSourceRecords(query.sourceId)
 		for (const source of sources) {
 			if (source.enabled === false) continue
 			try {
 				const plugin = find(await this.loadCatalog(source))
-				if (plugin) return plugin
+				if (plugin) return { plugin, sourceUnavailable }
 			} catch (error) {
+				sourceUnavailable = true
 				this.metadata.logger.warn(
 					`Failed to load marketplace source "${source.name}": ${this.metadata.toErrorMessage(error)}`
 				)
 			}
 		}
-		return null
+		return { plugin: null, sourceUnavailable }
 	}
 
 	private marketplaceItemMatchesName(

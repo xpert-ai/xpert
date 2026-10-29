@@ -603,6 +603,11 @@ export interface PluginMarketplaceDetailItem extends PluginMarketplaceItem {
   availableReadmeLocales?: string[]
 }
 
+export enum PluginMarketplaceDetailErrorCode {
+  Unavailable = 'PLUGIN_MARKETPLACE_DETAIL_UNAVAILABLE',
+  LookupFailed = 'PLUGIN_MARKETPLACE_LOOKUP_FAILED'
+}
+
 export interface PluginMarketplaceResponse {
   updatedAt: string | null
   total: number
