@@ -1,3 +1,4 @@
+import { ApplicationInitializationLocks } from './application-initialization-locks'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationAccessService } from './application-access.service'
 import { PrepareTemplateExecutionHandler } from './template-installation/prepare-template-execution.command'
@@ -86,6 +87,7 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        ApplicationInitializationLocks,
         ApplicationUpdateService,
         ApplicationAccessService,
         PrepareTemplateExecutionHandler,

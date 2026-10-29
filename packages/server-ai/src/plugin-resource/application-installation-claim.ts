@@ -3,7 +3,7 @@ import { PLUGIN_APPLICATION_INSTALLATION_STATUS } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { ConflictException } from '@nestjs/common'
-import { In, LessThan, Raw, Repository } from 'typeorm'
+import { In, Raw, Repository } from 'typeorm'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
 import { ResolvedApplication } from './application-setup/plugin-application-setup.service'
 import { applicationInstallationIdentity } from './application-scope'
@@ -11,7 +11,8 @@ import { applicationInstallationIdentity } from './application-scope'
 export async function claimApplicationInstallation(
     repository: Repository<PluginApplicationInstallation>,
     resolved: ResolvedApplication,
-    operationId: string
+    operationId: string,
+    initializationLockHeld = false
 ): Promise<{ installation: PluginApplicationInstallation; claimed: boolean }> {
     const identity = applicationInstallationIdentity(resolved.application)
     let installation = await repository.findOne({ where: identity })
@@ -52,7 +53,7 @@ export async function claimApplicationInstallation(
             {
                 ...identity,
                 id: installation.id,
-                updateRelease: Raw((alias) => `(${alias} IS NULL OR ${alias}->>'status' = 'completed')`),
+                updateRelease: Raw(() => `("updateRelease" IS NULL OR "updateRelease"->>'status' = 'completed')`),
                 status: In([
                     PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING,
                     PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED,
@@ -72,15 +73,13 @@ export async function claimApplicationInstallation(
         claimed = result.affected === 1
     } else if (
         installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING &&
-        installation.updatedAt &&
-        new Date(installation.updatedAt).getTime() < Date.now() - 5 * 60_000
+        initializationLockHeld
     ) {
         const result = await repository.update(
             {
                 ...identity,
                 id: installation.id,
-                status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING,
-                updatedAt: LessThan(new Date(Date.now() - 5 * 60_000))
+                status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING
             },
             { operationId, errorCode: null, errorMessage: null }
         )

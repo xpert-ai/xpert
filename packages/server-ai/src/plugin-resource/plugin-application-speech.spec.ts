@@ -140,6 +140,7 @@ function fixture(existing = false) {
         ] as never
     )
     Object.assign(service, {
+        initializationLocks: { run: async (_key: string, action: () => Promise<unknown>) => action() },
         applicationAccess: {
             assertMembership: jest.fn().mockResolvedValue(undefined),
             assertCanInitialize: jest.fn().mockResolvedValue(undefined)

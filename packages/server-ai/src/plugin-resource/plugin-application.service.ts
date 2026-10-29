@@ -1,3 +1,4 @@
+import { ApplicationInitializationLocks } from './application-initialization-locks'
 import { ApplicationDetailQuery } from './application-scope.schema'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationUpdateInput } from './application-update/application-update.schema'
@@ -102,6 +103,8 @@ type ResolvedModel = {
  */
 @Injectable()
 export class PluginApplicationService {
+    @Inject(ApplicationInitializationLocks)
+    private readonly initializationLocks: ApplicationInitializationLocks
     @Inject(ApplicationUpdateService)
     private readonly applicationUpdates: ApplicationUpdateService
 
@@ -153,6 +156,13 @@ export class PluginApplicationService {
     }
 
     async updateApplication(input: ApplicationUpdateInput) {
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(resolved.application)
+        const identity = JSON.stringify(applicationInstallationIdentity(resolved.application))
+        return this.initializationLocks.run(identity, () => this.updateApplicationLocked(input))
+    }
+
+    private async updateApplicationLocked(input: ApplicationUpdateInput) {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         await this.applicationAccess.assertCanInitialize(resolved.application)
         const installation = await this.findCurrentInstallation(resolved.application)
@@ -236,6 +246,13 @@ export class PluginApplicationService {
      */
     async initialize(input: PluginApplicationInitializeInput): Promise<PluginApplicationStatusSummary> {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
+        await this.applicationAccess.assertCanInitialize(resolved.application)
+        const identity = JSON.stringify(applicationInstallationIdentity(resolved.application))
+        return this.initializationLocks.run(identity, () => this.initializeLocked(input))
+    }
+
+    private async initializeLocked(input: PluginApplicationInitializeInput): Promise<PluginApplicationStatusSummary> {
+        const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         const application = resolved.application
         const operationId = input.operationId?.trim()
         if (!operationId) {
@@ -305,7 +322,7 @@ export class PluginApplicationService {
             await this.assistantSuites.validate(application)
         }
         const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing)
-        const claim = await claimApplicationInstallation(this.installationRepo, resolved, operationId)
+        const claim = await claimApplicationInstallation(this.installationRepo, resolved, operationId, true)
         const installation = claim.installation
 
         if (installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) {
