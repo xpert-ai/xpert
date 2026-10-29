@@ -1,3 +1,4 @@
+import { PreviewFileActivityComponent } from './file-activity.component'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { ListHeightStaggerAnimation } from '@xpert-ai/headless-ui'
@@ -19,7 +20,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     Copy2Component,
     NgxJsonViewerModule,
     ChatContextCompressionChunkComponent,
-    ChatToolCallChunkComponent
+    ChatToolCallChunkComponent,
+    PreviewFileActivityComponent
   ],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',

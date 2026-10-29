@@ -5243,6 +5243,26 @@
       "User": "使用者"
     },
     "Chat": {
+      "UnsupportedContent": "暫不支持的消息類型：{{type}}",
+      "SyncingState": "正在同步状態…",
+      "RefreshState": "重新同步状態",
+      "FileActivity": {
+        "Changes": "文件變更",
+        "Delivered": "文件已交付",
+        "DeliveryFailed": "文件交付失敗",
+        "Invalid": "文件活动记錄無效",
+        "Coverage": {
+          "bounded": "已记錄本次操作范圍內的變更",
+          "partial": "僅记錄了部分變更",
+          "unavailable": "無法獲取變更詳情"
+        },
+        "Operation": {
+          "added": "新增",
+          "modified": "修改",
+          "deleted": "刪除",
+          "unknown": "變更"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "搜尋助手",
         "AssistantsLoadFailed": "暫時無法載入助手清單",
