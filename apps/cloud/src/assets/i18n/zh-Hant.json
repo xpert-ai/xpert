@@ -379,7 +379,6 @@
       "SpeechToTextTip": "使用所选识别模型将语音输入转换为文本。",
       "SpeechError": "请为已开启的语音功能选择对应模型。",
       "ExecutionLimits": "执行限制",
-      "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
       "RecursionTip": "單次執行的最大遞迴步數，可設定為 {{min}}–{{max}} 之間的整數。",
       "RecursionRangeError": "請輸入 {{min}}–{{max}} 之間的整數。",
@@ -5250,6 +5249,26 @@
       "User": "使用者"
     },
     "Chat": {
+      "UnsupportedContent": "暫不支持的消息類型：{{type}}",
+      "SyncingState": "正在同步状態…",
+      "RefreshState": "重新同步状態",
+      "FileActivity": {
+        "Changes": "文件變更",
+        "Delivered": "文件已交付",
+        "DeliveryFailed": "文件交付失敗",
+        "Invalid": "文件活动记錄無效",
+        "Coverage": {
+          "bounded": "已记錄本次操作范圍內的變更",
+          "partial": "僅记錄了部分變更",
+          "unavailable": "無法獲取變更詳情"
+        },
+        "Operation": {
+          "added": "新增",
+          "modified": "修改",
+          "deleted": "刪除",
+          "unknown": "變更"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "搜尋助手",
         "AssistantsLoadFailed": "暫時無法載入助手清單",
@@ -7803,10 +7822,8 @@
       "ParameterSettings": "參數設置",
       "NodeType": "節點類型",
       "Node": "節點",
-      "MaxConcurrencyTip": "控製最大並行調用數",
       "RecursionLimitTip": "限製智能體可以遞歸的次數",
       "RecursionLimit": "遞歸次數限製",
-      "MaxConcurrency": "最大並發請求",
       "AgentSettings": "智能體設置",
       "WorkbenchInitialLayout": "首次聊天佈局",
       "WorkbenchInitialLayoutTip": "選擇用戶首次打開此數字專家時使用的佈局。用戶已保存的個人佈局優先級更高。",

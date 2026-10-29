@@ -28,7 +28,6 @@ team:
         workflow: {}
     agentConfig:
         recursionLimit: 100
-        maxConcurrency: 8
     memory: null
     summarize: null
     version: '2'

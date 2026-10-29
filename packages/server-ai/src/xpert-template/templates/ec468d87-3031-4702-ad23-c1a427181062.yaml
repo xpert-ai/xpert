@@ -106,7 +106,6 @@ team:
               description: null
               operation: append
         recursionLimit: 120
-        maxConcurrency: 20
     memory: null
     summarize: null
     features:

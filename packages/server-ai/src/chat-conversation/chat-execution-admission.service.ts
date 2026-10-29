@@ -2,14 +2,15 @@
 // A runtime reply may queue, but cannot clear a pause, approve an interaction or reverse a user stop.
 import { Injectable } from '@nestjs/common'
 import { getErrorMessage, RequestContext } from '@xpert-ai/plugin-sdk'
-import { TChatRequest, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { DataSource, EntityManager } from 'typeorm'
+import { TChatRequest, TChatCheckpointReference, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { DataSource, EntityManager, IsNull } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { Observable } from 'rxjs'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { ThreadRunControlService, threadControlConflict } from './thread-run-control.service'
+import { resolveResumeTarget, resumeTargetDenied } from './resolve-resume-target'
 
 export async function lockRuntimeThread(manager: EntityManager, conversation: ChatConversation, threadId: string) {
     const repo = manager.getRepository(ChatConversationThread)
@@ -51,6 +52,7 @@ export class ChatExecutionAdmissionService {
     async run<T>(
         request: TChatRequest,
         options: {
+            resumeCheckpoint?: TChatCheckpointReference
             automatic?: boolean
             threadId?: string
             execution?: { id: string }
@@ -58,24 +60,40 @@ export class ChatExecutionAdmissionService {
             agentKey?: string
             context?: Record<string, unknown>
         },
-        execute: (executionId?: string) => Promise<Observable<T>>
+        execute: (executionId?: string, request?: TChatRequest) => Promise<Observable<T>>
     ): Promise<Observable<T>> {
         if (!request.conversationId || request.action === 'follow_up' || !RequestContext.currentUserId())
             return execute(options.execution?.id)
         const conversation = await this.dataSource.getRepository(ChatConversation).findOneBy({
             id: request.conversationId,
             tenantId: RequestContext.currentTenantId(),
-            organizationId: RequestContext.getOrganizationId(),
+            organizationId: RequestContext.getOrganizationId() ?? IsNull(),
             createdById: RequestContext.currentUserId()
         })
         // The handler retains authorization for other established actor types (e.g. end users).
-        if (!conversation) return execute(options.execution?.id)
-        const threadId = options.threadId ?? conversation.threadId
-        const executionId =
-            options.execution?.id ??
-            (request.action === 'resume' ? request.target.executionId : undefined) ??
-            randomUUID()
+        if (!conversation) {
+            if (request.action === 'resume') throw resumeTargetDenied()
+            return execute(options.execution?.id)
+        }
+        if (request.action === 'resume' && options.xpertId && conversation.xpertId !== options.xpertId)
+            throw resumeTargetDenied()
+        const threadId = options.threadId?.trim() || conversation.threadId
+        let executionId = request.action === 'resume' ? undefined : (options.execution?.id ?? randomUUID())
+        let admittedRequest = request
         const claimed = await this.dataSource.transaction(async (manager) => {
+            if (request.action === 'resume') {
+                const target = await resolveResumeTarget(
+                    manager,
+                    conversation,
+                    threadId,
+                    request,
+                    options.resumeCheckpoint ? undefined : options.execution?.id
+                )
+                executionId = options.resumeCheckpoint
+                    ? (options.execution?.id ?? target.executionId)
+                    : target.executionId
+                admittedRequest = { ...request, target }
+            }
             const thread = await lockRuntimeThread(manager, conversation, threadId)
             if (
                 options.automatic &&
@@ -92,6 +110,7 @@ export class ChatExecutionAdmissionService {
                     'ThreadHasActiveOperation',
                     'Thread already has a running or paused operation.'
                 )
+            if (request.action === 'resume') return false
             if (!thread.runControl) {
                 await manager
                     .getRepository(XpertAgentExecution)
@@ -117,11 +136,14 @@ export class ChatExecutionAdmissionService {
             }
             return false
         })
+        // Reject duplicate decisions before entering the cleanup path for an admitted run.
+        if (request.action === 'resume' && !options.execution?.id)
+            await this.control.start(threadId, executionId, options.context, true)
         try {
             // Preassigned execution IDs bypass the handler's direct-run start.
             // Establish the lease before graph execution and display capture.
             if (claimed) await this.control.start(threadId, executionId, options.context)
-            const stream = await execute(executionId)
+            const stream = await execute(executionId, admittedRequest)
             return new Observable<T>((subscriber) => {
                 const subscription = stream.subscribe({
                     next: (value) => subscriber.next(value),

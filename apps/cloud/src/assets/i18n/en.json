@@ -650,7 +650,6 @@
       "SpeechToTextTip": "Convert voice input into text using the selected recognition model.",
       "SpeechError": "Select a model for each enabled speech feature.",
       "ExecutionLimits": "Execution limits",
-      "ConcurrencyTip": "Maximum parallel calls, from 1 to 100. Leave empty to use the runtime default.",
       "Automatic": "Automatic",
       "RecursionTip": "Maximum recursive steps per execution. Enter an integer from {{min}} to {{max}}.",
       "RecursionRangeError": "Enter an integer from {{min}} to {{max}}.",
@@ -3714,6 +3713,26 @@
       "zh-Hant": "繁体中文"
     },
     "Chat": {
+      "UnsupportedContent": "Unsupported message type: {{type}}",
+      "SyncingState": "Synchronizing state…",
+      "RefreshState": "Refresh state",
+      "FileActivity": {
+        "Changes": "File changes",
+        "Delivered": "Files delivered",
+        "DeliveryFailed": "File delivery failed",
+        "Invalid": "Invalid file activity receipt",
+        "Coverage": {
+          "bounded": "Changes recorded within this operation’s scope",
+          "partial": "Only some changes were recorded",
+          "unavailable": "Change details are unavailable"
+        },
+        "Operation": {
+          "added": "Added",
+          "modified": "Modified",
+          "deleted": "Deleted",
+          "unknown": "Changed"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "Search assistants",
         "AssistantsLoadFailed": "Unable to load assistants",
@@ -6329,7 +6348,6 @@
       "LongTermMemoryTypeEnum": {
         "UserProfile": "User profile"
       },
-      "MaxConcurrency": "Maximum concurrent requests",
       "Name": "Name",
       "NoSandboxProvider": "No sandbox providers available",
       "NoWorkbenchViews": "No extension views are currently available for this digital expert.",

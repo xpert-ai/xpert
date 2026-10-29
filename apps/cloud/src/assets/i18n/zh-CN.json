@@ -456,7 +456,6 @@
       "SpeechToTextTip": "使用所选识别模型将语音输入转换为文本。",
       "SpeechError": "请为已开启的语音功能选择对应模型。",
       "ExecutionLimits": "执行限制",
-      "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
       "RecursionTip": "单次执行的最大递归步数，可设置为 {{min}}–{{max}} 之间的整数。",
       "RecursionRangeError": "请输入 {{min}}–{{max}} 之间的整数。",
@@ -1356,6 +1355,26 @@
       "UrlOnlySSECompatibility": "未声明类型的 URL 配置会按 SSE 导入，以兼容旧配置。"
     },
     "Chat": {
+      "UnsupportedContent": "暂不支持的消息类型：{{type}}",
+      "SyncingState": "正在同步状态…",
+      "RefreshState": "重新同步状态",
+      "FileActivity": {
+        "Changes": "文件变更",
+        "Delivered": "文件已交付",
+        "DeliveryFailed": "文件交付失败",
+        "Invalid": "文件活动记录无效",
+        "Coverage": {
+          "bounded": "已记录本次操作范围内的变更",
+          "partial": "仅记录了部分变更",
+          "unavailable": "无法获取变更详情"
+        },
+        "Operation": {
+          "added": "新增",
+          "modified": "修改",
+          "deleted": "删除",
+          "unknown": "变更"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "搜索助手",
         "AssistantsLoadFailed": "暂时无法加载助手列表",
@@ -4922,7 +4941,6 @@
       "LongTermMemoryTypeEnum": {
         "UserProfile": "用户档案"
       },
-      "MaxConcurrency": "最大并发请求",
       "Name": "名称",
       "NoSandboxProvider": "暂无可用的沙盒提供商",
       "NoWorkbenchViews": "此数字专家当前没有可用的扩展视图。",

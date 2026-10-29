@@ -66,6 +66,8 @@
     "Error": {
         "PluginMarketplaceDetailUnavailable": "未找到此软件包或无法访问。它可能是非公开包，或在当前配置的注册源中不可用。请检查包名，或联系管理员确认软件包是否可用及访问权限。",
         "PluginMarketplaceLookupFailed": "无法加载插件市场来源。请重试，或联系管理员检查来源是否可用及访问权限。",
+        "AgentTasksUnfinished": "智能体执行提前结束：仍有未完成任务，且没有审批或暂停请求。",
+        "ToolApprovalCallUnresolved": "无法唯一确定任务 {{taskId}}（{{toolName}}）对应的原始工具调用。",
         "DatabaseAdapterRegistrationMismatch": "数据库适配器与插件声明不匹配",
         "ArtifactTypeUnavailable": "此产物类型当前不可用。",
         "ArtifactTypeImmutable": "不能更改产物类型及其绑定的插件安装。",

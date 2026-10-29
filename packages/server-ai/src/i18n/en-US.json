@@ -66,6 +66,8 @@
     "Error": {
         "PluginMarketplaceDetailUnavailable": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
         "PluginMarketplaceLookupFailed": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
+        "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",
+        "ToolApprovalCallUnresolved": "Cannot uniquely resolve the original tool call for task {{taskId}} ({{toolName}}).",
         "DatabaseAdapterRegistrationMismatch": "Database adapter does not match its registration",
         "ArtifactTypeUnavailable": "This artifact type is unavailable.",
         "ArtifactTypeImmutable": "Artifact type and installation cannot be changed.",
