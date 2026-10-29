@@ -29,8 +29,23 @@
   </div>
   <footer xpDialogFooter>
     <p class="min-w-0 flex-1 text-muted-foreground">
-      XpertAI {{ Version }} {{ 'XP.MENU.IsLatest' | translate: { Default: 'is the latest version available.' } }}
+      {{ 'XP.WebUpdate.' + webUpdate.statusKey() | translate }}
     </p>
+    <button
+      z-button
+      type="button"
+      [disabled]="webUpdate.updating() || webUpdate.state().status === 'checking'"
+      (click)="webUpdate.available() && webUpdate.state().status !== 'failed' ? webUpdate.update() : webUpdate.check()"
+    >
+      {{
+        (webUpdate.state().status === 'failed'
+          ? 'XP.WebUpdate.Retry'
+          : webUpdate.available()
+            ? 'XP.WebUpdate.UpdateNow'
+            : 'XP.WebUpdate.Check'
+        ) | translate
+      }}
+    </button>
     <a
       z-button
       zType="outline"

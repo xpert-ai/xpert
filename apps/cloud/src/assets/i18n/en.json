@@ -109,6 +109,20 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "WebUpdate": {
+      "Notice": "The system has been updated. Save your work before refreshing.",
+      "UpdateNow": "Update now",
+      "ConfirmSaved": "Save your current work before updating. Refresh the page now?",
+      "LeaveFailed": "Could not confirm that your work is saved. Please finish saving and try again.",
+      "UpdateIncomplete": "Update incomplete. Please try again.",
+      "NotChecked": "Updates have not been checked.",
+      "Checking": "Checking for updates…",
+      "Latest": "You are using the latest version.",
+      "Available": "A new version is available.",
+      "CheckFailed": "Could not check for updates. Please try again.",
+      "Check": "Check for updates",
+      "Retry": "Retry"
+    },
     "SettingsValue": {
       "FormatJson": "Format JSON",
       "InvalidJson": "Invalid JSON. Fix the syntax errors before saving.",
