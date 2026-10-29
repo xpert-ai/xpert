@@ -38,6 +38,10 @@ const VIEWER_AI_PERMISSIONS = [
 
 export const DEFAULT_ROLE_PERMISSIONS = [
     {
+        role: RolesEnum.APP_USER,
+        defaultEnabledPermissions: [AIPermissionsEnum.CHAT_VIEW, ...PROJECT_VIEW_PERMISSIONS, ...PROJECT_EDIT_PERMISSIONS, ...MEMBERSHIP_USE_PERMISSIONS]
+    },
+    {
         role: RolesEnum.SUPER_ADMIN,
         defaultEnabledPermissions: [
             ...FULL_AI_PERMISSIONS,

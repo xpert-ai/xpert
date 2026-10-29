@@ -1,3 +1,4 @@
+import { appUserProfile, validateAppUserPassword } from './app-user-profile'
 import {
 	Controller,
 	Get,
@@ -262,7 +263,7 @@ export class UserController extends CrudController<User> {
 	async updateMe(@Body() entity: IUserUpdateInput): Promise<any> {
 		const me = RequestContext.currentUser()
 		return await this.userService.updateProfile(me.id, {
-			...entity,
+			...(me.role?.name === RolesEnum.APP_USER ? appUserProfile(entity) : entity),
 			id: me.id
 		} as User)
 	}
@@ -404,6 +405,7 @@ export class UserController extends CrudController<User> {
 	@Permissions(PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Post(':id/password')
 	async resetPassword(@Param('id', UUIDValidationPipe) userId: string, @Body() userPassword: UserPasswordDTO) {
+		validateAppUserPassword(userPassword)
 		return await this.userService.resetPassword(userId, userPassword.hash, userPassword.password)
 	}
 

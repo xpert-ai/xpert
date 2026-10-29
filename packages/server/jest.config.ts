@@ -71,7 +71,8 @@ export default {
 	moduleFileExtensions: ['ts', 'js', 'html'],
 	coverageDirectory: '../../coverage/packages/server',
 	moduleNameMapper: {
-		'^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts'
+		'^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts',
+		'^@xpert-ai/plugin-sdk$': '<rootDir>/../plugin-sdk/src/index.ts'
 	},
 	transformIgnorePatterns: [transformPattern]
 }

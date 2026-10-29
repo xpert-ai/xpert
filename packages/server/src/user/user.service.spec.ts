@@ -662,6 +662,13 @@ describe('UserService', () => {
 			} as any)
 		).rejects.toBeInstanceOf(BadRequestException)
 	})
+	it('requires user-management permission for activation changes, including self updates', async () => {
+		RequestContext.hasAnyPermission.mockReturnValue(false)
+		await expect(service.updateProfile('requester-1', { isActive: true } as never)).rejects.toMatchObject({ status: 403 })
+	})
+	it('rejects non-boolean activation input before persisting a profile', async () => {
+		await expect(service.updateProfile('user-1', { isActive: 'false' } as never)).rejects.toMatchObject({ status: 400 })
+	})
 
 	it('rejects password resets for technical users', async () => {
 		service.findOne = jest.fn().mockResolvedValue({

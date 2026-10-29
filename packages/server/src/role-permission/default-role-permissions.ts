@@ -106,6 +106,10 @@ const VIEWER_PLATFORM_PERMISSIONS = [
 
 export const DEFAULT_ROLE_PERMISSIONS = [
 	{
+		role: RolesEnum.APP_USER,
+		defaultEnabledPermissions: [PermissionsEnum.PROFILE_EDIT]
+	},
+	{
 		role: RolesEnum.SUPER_ADMIN,
 		defaultEnabledPermissions: [...SUPER_ADMIN_PLATFORM_PERMISSIONS]
 	},

@@ -54,6 +54,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 
 	it.each([
 		['missing', null],
+		['disabled', { type: UserType.USER, isActive: false, role: { name: RolesEnum.SUPER_ADMIN } }],
 		['communication', { type: UserType.COMMUNICATION, role: { name: RolesEnum.SUPER_ADMIN } }],
 		['untyped', { role: { name: RolesEnum.SUPER_ADMIN } }]
 	])('rejects a %s user even with a claimed privileged role', async (_label, user) => {

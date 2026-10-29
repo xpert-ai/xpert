@@ -17,6 +17,7 @@ export enum RolesEnum {
   ADMIN = 'ADMIN',
   AI_BUILDER = 'AI_BUILDER',
   VIEWER = 'VIEWER',
+  APP_USER = 'APP_USER',
   // Trial account
   TRIAL = 'TRIAL'
 }
@@ -26,7 +27,8 @@ export const DEFAULT_SYSTEM_ROLES: RolesEnum[] = [
   RolesEnum.ADMIN,
   RolesEnum.TRIAL,
   RolesEnum.AI_BUILDER,
-  RolesEnum.VIEWER
+  RolesEnum.VIEWER,
+  RolesEnum.APP_USER
 ]
 
 export interface IRoleMigrateInput extends IBasePerTenantEntityModel {

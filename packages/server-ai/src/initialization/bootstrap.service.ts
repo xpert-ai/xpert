@@ -112,6 +112,8 @@ export class ServerAIBootstrapService {
 
     async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
         const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
+        // App Platform owns provisioning for application accounts; do not create authoring resources.
+        if (owner.role?.name === RolesEnum.APP_USER) return { repositoryIds: [] }
         const organization = await this.organizationService.findOne(event.organizationId)
         const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
 
@@ -164,6 +166,7 @@ export class ServerAIBootstrapService {
             return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         }
         const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+        if (user.role?.name === RolesEnum.APP_USER) return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         let workspaceId: string | null = null
         let environmentId: string | null = null
         let createdNewUserDefaultWorkspace = false

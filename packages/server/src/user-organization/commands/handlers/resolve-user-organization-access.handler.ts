@@ -25,7 +25,7 @@ export class ResolveUserOrganizationAccessHandler implements ICommandHandler<Res
 			where: { id: userId, tenantId },
 			relations: ['role']
 		})
-		if (!user || user.type !== UserType.USER) return null
+		if (!user || user.isActive === false || user.type !== UserType.USER) return null
 
 		if (user.role?.name === RolesEnum.SUPER_ADMIN) {
 			const organization = await this.organizations.findOne({

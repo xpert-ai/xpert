@@ -1,5 +1,7 @@
 export {}
 
+jest.mock('./registration-organization', () => ({ ensureRegistrationOrganization: jest.fn() }))
+
 jest.mock('@xpert-ai/server-auth', () => ({
 	SocialAuthService: class SocialAuthService {
 		async getPasswordHash(password: string) {
@@ -9,6 +11,7 @@ jest.mock('@xpert-ai/server-auth', () => ({
 }))
 
 jest.mock('@xpert-ai/server-config', () => ({
+	getConfig: () => ({}),
 	environment: {
 		clientBaseUrl: 'http://localhost',
 		JWT_SECRET: 'test-secret'
@@ -93,18 +96,28 @@ describe('AuthService', () => {
 	let service: InstanceType<typeof AuthService>
 
 	const userService = {
+		getIfExists: jest.fn(),
+		getIfExistsThirdParty: jest.fn(),
 		findOne: jest.fn(),
 		findOneOrFailByOptions: jest.fn(),
 		findOneByOptions: jest.fn(),
 		create: jest.fn(),
 		update: jest.fn()
 	}
+	it.each([undefined, 'sso-user'])('rechecks account activation on authentication for %s', async (thirdPartyId) => {
+		const lookup = thirdPartyId ? userService.getIfExistsThirdParty : userService.getIfExists
+		lookup.mockResolvedValueOnce({ id: 'user', isActive: true })
+		await expect(service.getAuthenticatedUser('user', thirdPartyId)).resolves.toMatchObject({ isActive: true })
+		lookup.mockResolvedValueOnce({ id: 'user', isActive: false })
+		await expect(service.getAuthenticatedUser('user', thirdPartyId)).rejects.toMatchObject({ status: 401 })
+	})
 	const roleService = {}
 	const organizationService = {
 		findOneByOptions: jest.fn()
 	}
 	const emailService = {
-		welcomeUser: jest.fn()
+		welcomeUser: jest.fn(),
+		sendVerifyEmailMail: jest.fn()
 	}
 	const userOrganizationService = {
 		addUserToOrganization: jest.fn(),
@@ -219,7 +232,7 @@ describe('AuthService', () => {
 		tenantRepository.findOne.mockResolvedValue({
 			id: 'tenant-1'
 		})
-		userRepository.findOne.mockResolvedValueOnce(null).mockResolvedValue({
+		userRepository.findOne.mockReset().mockResolvedValueOnce(null).mockResolvedValue({
 			id: 'user-1',
 			email: 'new.user@example.com',
 			tenantId: 'tenant-1',
@@ -742,6 +755,18 @@ describe('AuthService', () => {
 		expect(referralService.bindRegistration).not.toHaveBeenCalled()
 		expect(emailService.welcomeUser).not.toHaveBeenCalled()
 		expect(bindingRepository.save).toHaveBeenCalledTimes(1)
+	})
+
+	it('reuses the pending verification row when registration is retried', async () => {
+		userRepository.findOne.mockReset().mockResolvedValue({
+			id: 'user-1', tenantId: 'tenant-1', emailVerified: false,
+			roleId: 'role-app', emailVerification: { id: 'verification-1' }, role: { name: RolesEnum.APP_USER }
+		})
+		await service.signup({ user: { id: 'user-1', tenantId: 'tenant-1', email: 'pending@example.test', roleId: 'role-app' }, password: 'Secret123!' }, 'en')
+		expect(userRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+			id: 'user-1', emailVerification: expect.objectContaining({ id: 'verification-1', token: expect.any(String) })
+		}))
+		expect(emailService.sendVerifyEmailMail).toHaveBeenCalledTimes(1)
 	})
 
 	it('rejects a short or mismatched password before opening a signup transaction', async () => {
