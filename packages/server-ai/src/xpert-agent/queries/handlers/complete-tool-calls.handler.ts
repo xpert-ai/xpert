@@ -1,5 +1,4 @@
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { isAIMessageChunk, isBaseMessageChunk } from '@langchain/core/messages'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
     agentUniqueName,
@@ -13,10 +12,11 @@ import {
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { _BaseToolset, BuiltinToolset, closeToolsets, findChannelByTool, identifyAgent } from '../../../shared'
+import { _BaseToolset, BuiltinToolset, closeToolsets, identifyAgent } from '../../../shared'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { CompleteToolCallsQuery } from '../complete-tool-calls.query'
+import { findToolCallOrigin } from './tool-call-origin'
 
 @QueryHandler(CompleteToolCallsQuery)
 export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCallsQuery> {
@@ -28,26 +28,16 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
     ) {}
 
     public async execute(command: CompleteToolCallsQuery): Promise<TSensitiveOperation> {
-        const { xpertId, tasks, values, isDraft, projectId } = command
+        const { xpertId, tasks, values, isDraft, projectId, checkpoint } = command
 
         const _tasks = await Promise.all(
             tasks.map(async (task) => {
-                const [channelName, channel] = findChannelByTool(values, task.name)
-                if (!channel) {
+                if (!xpertId) return task
+                const origin = findToolCallOrigin(values, task, checkpoint)
+                if (!origin) {
                     return task
                 }
-                const lastMessage = channel?.messages?.[channel.messages.length - 1]
-                let aiMessage = null
-                if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {
-                    aiMessage = lastMessage
-                } else {
-                    throw new Error(`Message with ID ${task.id} is not an AI message.`)
-                }
-                const toolCall = aiMessage.tool_calls?.find((call) => call.name === task.name)
-
-                if (!xpertId) {
-                    return task
-                }
+                const { channelName, toolCall } = origin
 
                 const agentKey = channelName.replace('_channel', '')
                 const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(

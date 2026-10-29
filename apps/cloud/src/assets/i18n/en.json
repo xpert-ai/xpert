@@ -650,7 +650,6 @@
       "SpeechToTextTip": "Convert voice input into text using the selected recognition model.",
       "SpeechError": "Select a model for each enabled speech feature.",
       "ExecutionLimits": "Execution limits",
-      "ConcurrencyTip": "Maximum parallel calls, from 1 to 100. Leave empty to use the runtime default.",
       "Automatic": "Automatic",
       "RecursionTip": "Maximum recursive steps per execution. Enter an integer from {{min}} to {{max}}.",
       "RecursionRangeError": "Enter an integer from {{min}} to {{max}}.",
@@ -6342,7 +6341,6 @@
       "LongTermMemoryTypeEnum": {
         "UserProfile": "User profile"
       },
-      "MaxConcurrency": "Maximum concurrent requests",
       "Name": "Name",
       "NoSandboxProvider": "No sandbox providers available",
       "NoWorkbenchViews": "No extension views are currently available for this digital expert.",

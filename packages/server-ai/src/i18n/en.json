@@ -64,6 +64,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",
+        "ToolApprovalCallUnresolved": "Cannot uniquely resolve the original tool call for task {{taskId}} ({{toolName}}).",
         "DatabaseAdapterRegistrationMismatch": "Database adapter does not match its registration",
         "ArtifactTypeUnavailable": "This artifact type is unavailable.",
         "ArtifactTypeImmutable": "Artifact type and installation cannot be changed.",

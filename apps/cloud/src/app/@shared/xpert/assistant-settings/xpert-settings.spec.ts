@@ -120,9 +120,30 @@ describe('unified Assistant settings draft merge', () => {
     after.runtime.recursionLimit = 500
     expect(applyXpertSettingsChanges(draft, before, after, 'runtime').team.agentConfig).toEqual({ recursionLimit: 500 })
   })
+
+  it('removes legacy concurrency when saving runtime settings', () => {
+    const draft = draftFixture()
+    const agentConfig = { recursionLimit: 30, maxConcurrency: 1, interruptBefore: ['write'] }
+    draft.team.agentConfig = agentConfig
+    const before = createXpertSettingsForm(draft.team).getRawValue(),
+      after = structuredClone(before)
+    after.runtime.recursionLimit = 50
+    expect(applyXpertSettingsChanges(draft, before, after, 'runtime').team.agentConfig).toEqual({
+      recursionLimit: 50,
+      interruptBefore: ['write']
+    })
+    expect(agentConfig.maxConcurrency).toBe(1)
+  })
 })
 
 describe('settings validation', () => {
+  it('does not expose concurrency even when a legacy assistant contains it', () => {
+    const agentConfig = { recursionLimit: 30, maxConcurrency: 1 }
+    const form = createXpertSettingsForm({ agentConfig })
+    expect(form.controls.runtime.get('maxConcurrency')).toBeNull()
+    expect(form.getRawValue().runtime).toEqual({ recursionLimit: 30 })
+  })
+
   it('keeps existing small recursion limits and validates inclusive integer bounds', () => {
     const control = createXpertSettingsForm({ agentConfig: { recursionLimit: 30 } }).controls.runtime.controls
       .recursionLimit
@@ -158,8 +179,6 @@ describe('settings validation', () => {
     const form = createXpertSettingsForm({})
     form.controls.files.controls.maxNum.setValue(2.5)
     expect(form.controls.files.invalid).toBe(true)
-    form.controls.runtime.controls.maxConcurrency.setValue(101)
-    expect(form.controls.runtime.invalid).toBe(true)
     form.controls.memory.controls.reply.controls.scoreThreshold.setValue(0.7)
     expect(form.controls.memory.invalid).toBe(true)
     form.controls.speech.controls.ttsEnabled.setValue(true)
