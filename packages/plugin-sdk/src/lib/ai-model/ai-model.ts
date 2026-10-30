@@ -82,7 +82,22 @@ export abstract class AIModel implements IAIModel {
     credentials: Record<string, any>,
     context: ModelUsagePricingContext
   ): ModelUsagePricingSnapshot {
-    return resolveModelUsagePricingSnapshot(this.getModelSchema(model, credentials)?.pricing, context)
+    const pricing = this.getModelSchema(model, credentials)?.pricing
+    if (this.modelType === AiModelTypeEnum.TEXT_EMBEDDING && pricing && !isModelUsagePricingConfig(pricing)) {
+      // Only flat input prices can be converted without the invocation's actual token count.
+      // Invalid or conditional prices must remain unpriced, never silently become free.
+      const input = Number(pricing.input), unit = Number(pricing.unit)
+      if (pricing.tiered_pricing?.length || pricing.rules?.length ||
+          !Number.isFinite(input) || input < 0 || !Number.isFinite(unit) || unit <= 0 || !pricing.currency?.trim()) {
+        return resolveModelUsagePricingSnapshot(undefined, context)
+      }
+      return resolveModelUsagePricingSnapshot({ type: 'usage', rules: [{
+        id: `${model}:embedding-input`, version: 'catalog', effective_from: '1970-01-01T00:00:00.000Z',
+        unit: 'token', token_type: 'prompt', unit_size: 1, unit_price: input * unit,
+        currency: pricing.currency, charge_type: input === 0 ? 'free' : 'paid'
+      }] }, context)
+    }
+    return resolveModelUsagePricingSnapshot(pricing, context)
   }
 
   protected getModelPath() {
