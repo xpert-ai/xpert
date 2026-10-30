@@ -49,9 +49,11 @@ import { ContextEvidence } from './context-evidence/context-evidence.entity'
 import { ContextEvidenceService } from './context-evidence/context-evidence.service'
 import { ContextEvidenceStorage } from './context-evidence/context-evidence.schema'
 import { DatabaseContextEvidenceStorage } from './context-evidence/context-evidence.storage'
+import { ConversationEnvironmentFilesModule } from './workspace-files/conversation-environment-files.module'
 
 @Module({
     imports: [
+        ConversationEnvironmentFilesModule,
         TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([

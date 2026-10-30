@@ -4,137 +4,179 @@ import * as path from 'path'
 import { HandoffMessage } from '@xpert-ai/plugin-sdk'
 import { HandoffRouteResolver } from './handoff-route-resolver.service'
 import { HandoffRoutingConfigService } from './handoff-routing-config.service'
+import { XPERT_HANDOFF_QUEUE, XPERT_HANDOFF_QUEUE_INTEGRATION } from '../constants'
 
 describe('HandoffRoutingConfigService idle timeout policy', () => {
-	const previousConfigPath = process.env.HANDOFF_ROUTING_CONFIG_PATH
-	let tempRoot: string | undefined
+    const previousConfigPath = process.env.HANDOFF_ROUTING_CONFIG_PATH
+    let tempRoot: string | undefined
 
-	afterEach(() => {
-		if (previousConfigPath === undefined) {
-			delete process.env.HANDOFF_ROUTING_CONFIG_PATH
-		} else {
-			process.env.HANDOFF_ROUTING_CONFIG_PATH = previousConfigPath
-		}
-		if (tempRoot) {
-			fs.rmSync(tempRoot, { recursive: true, force: true })
-			tempRoot = undefined
-		}
-	})
+    afterEach(() => {
+        if (previousConfigPath === undefined) {
+            delete process.env.HANDOFF_ROUTING_CONFIG_PATH
+        } else {
+            process.env.HANDOFF_ROUTING_CONFIG_PATH = previousConfigPath
+        }
+        if (tempRoot) {
+            fs.rmSync(tempRoot, { recursive: true, force: true })
+            tempRoot = undefined
+        }
+    })
 
-	const createService = () => {
-		tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'handoff-routing-'))
-		fs.writeFileSync(
-			path.join(tempRoot, 'routing.yaml'),
-			[
-				'version: 1',
-				'defaultQueue: handoff',
-				'defaultLane: main',
-				'typePolicies:',
-				'  agent.chat_dispatch.v1:',
-				'    queue: realtime',
-				'    lane: high',
-				'    idleTimeoutMs: 120000',
-				'    timeoutMs: 600000',
-				'routes:',
-				'  - match:',
-				'      typePrefix: agent.',
-				'    target:',
-				'      queue: batch',
-				'      lane: normal',
-				'      idleTimeoutMs: 45000',
-				'      timeoutMs: 90000',
-				'  - match:',
-				'      typePrefix: channel.wechat.',
-				'    target:',
-				'      queue: integration',
-				'      lane: normal',
-				'      idleTimeoutMs: 30000',
-				''
-			].join('\n')
-		)
-		process.env.HANDOFF_ROUTING_CONFIG_PATH = 'routing.yaml'
-		const service = new HandoffRoutingConfigService({
-			assetOptions: { serverRoot: tempRoot }
-		} as any)
-		service.onModuleInit()
-		return service
-	}
+    const createService = (extraRoutes: string[] = []) => {
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'handoff-routing-'))
+        fs.writeFileSync(
+            path.join(tempRoot, 'routing.yaml'),
+            [
+                'version: 1',
+                'defaultQueue: handoff',
+                'defaultLane: main',
+                'typePolicies:',
+                '  agent.chat_dispatch.v1:',
+                '    queue: realtime',
+                '    lane: high',
+                '    idleTimeoutMs: 120000',
+                '    timeoutMs: 600000',
+                'routes:',
+                '  - match:',
+                '      typePrefix: agent.',
+                '    target:',
+                '      queue: batch',
+                '      lane: normal',
+                '      idleTimeoutMs: 45000',
+                '      timeoutMs: 90000',
+                '  - match:',
+                '      typePrefix: channel.wechat.',
+                '    target:',
+                '      queue: integration',
+                '      lane: normal',
+                '      idleTimeoutMs: 30000',
+                ...extraRoutes,
+                ''
+            ].join('\n')
+        )
+        process.env.HANDOFF_ROUTING_CONFIG_PATH = 'routing.yaml'
+        const service = new HandoffRoutingConfigService({
+            assetOptions: { serverRoot: tempRoot }
+        } as any)
+        service.onModuleInit()
+        return service
+    }
 
-	const createMessage = (overrides?: Partial<HandoffMessage>): HandoffMessage => ({
-		id: 'message-id',
-		type: 'agent.chat_dispatch.v1',
-		version: 1,
-		tenantId: 'tenant-id',
-		sessionKey: 'session-id',
-		businessKey: 'business-id',
-		attempt: 1,
-		maxAttempts: 1,
-		enqueuedAt: Date.now(),
-		traceId: 'trace-id',
-		payload: {},
-		...overrides
-	})
+    const createMessage = (overrides?: Partial<HandoffMessage>): HandoffMessage => ({
+        id: 'message-id',
+        type: 'agent.chat_dispatch.v1',
+        version: 1,
+        tenantId: 'tenant-id',
+        sessionKey: 'session-id',
+        businessKey: 'business-id',
+        attempt: 1,
+        maxAttempts: 1,
+        enqueuedAt: Date.now(),
+        traceId: 'trace-id',
+        payload: {},
+        ...overrides
+    })
 
-	it('parses idle timeout from type policies and route targets', () => {
-		const service = createService()
-		const snapshot = service.getSnapshot()
+    it.each(['chat', 'xpert', 'lark', 'analytics', 'api', 'telegram', 'example-channel'])(
+        'matches the %s producer without a platform source catalog',
+        (source) => {
+            const service = createService([
+                '  - match:',
+                `      source: ${JSON.stringify(source)}`,
+                '      tenantId: tenant-id',
+                '      organizationId: org-id',
+                '    target:',
+                '      queue: integration'
+            ])
+            const resolver = new HandoffRouteResolver(service)
+            const message = createMessage({
+                type: 'channel.example.input.v1',
+                headers: { source, organizationId: 'org-id' }
+            })
 
-		expect(snapshot.typePolicies['agent.chat_dispatch.v1']).toMatchObject({
-			timeoutMs: 600000,
-			idleTimeoutMs: 120000
-		})
-		expect(snapshot.routes[0].target).toMatchObject({
-			timeoutMs: 90000,
-			idleTimeoutMs: 45000
-		})
-		expect(snapshot.routes[1].target).toMatchObject({
-			idleTimeoutMs: 30000
-		})
-	})
+            expect(service.getSnapshot().routes[2].match.source).toBe(source)
+            expect(resolver.resolve(message).queue).toBe(XPERT_HANDOFF_QUEUE_INTEGRATION)
+            expect(
+                resolver.resolve({ ...message, headers: { ...message.headers, source: 'different-source' } }).queue
+            ).toBe(XPERT_HANDOFF_QUEUE)
+            expect(resolver.resolve({ ...message, tenantId: 'different-tenant' }).queue).toBe(XPERT_HANDOFF_QUEUE)
+            expect(
+                resolver.resolve({ ...message, headers: { ...message.headers, organizationId: 'different-org' } }).queue
+            ).toBe(XPERT_HANDOFF_QUEUE)
+        }
+    )
 
-	it('resolves header timeout policy ahead of type policy', () => {
-		const resolver = new HandoffRouteResolver(createService())
+    it.each(['""', '123', 'false', '[]'])('rejects invalid source configuration %s', (source) => {
+        const service = createService([
+            '  - match:',
+            `      source: ${source}`,
+            '    target:',
+            '      queue: integration'
+        ])
 
-		const resolution = resolver.resolve(
-			createMessage({
-				headers: {
-					policyTimeoutMs: '1000',
-					policyIdleTimeoutMs: '2000'
-				}
-			})
-		)
+        expect(service.getSnapshot().routes).toEqual([])
+    })
 
-		expect(resolution.policy).toEqual({
-			lane: 'main',
-			timeoutMs: 1000,
-			idleTimeoutMs: 2000
-		})
-	})
+    it('parses idle timeout from type policies and route targets', () => {
+        const service = createService()
+        const snapshot = service.getSnapshot()
 
-	it('resolves type policy ahead of matching route target', () => {
-		const resolver = new HandoffRouteResolver(createService())
+        expect(snapshot.typePolicies['agent.chat_dispatch.v1']).toMatchObject({
+            timeoutMs: 600000,
+            idleTimeoutMs: 120000
+        })
+        expect(snapshot.routes[0].target).toMatchObject({
+            timeoutMs: 90000,
+            idleTimeoutMs: 45000
+        })
+        expect(snapshot.routes[1].target).toMatchObject({
+            idleTimeoutMs: 30000
+        })
+    })
 
-		const resolution = resolver.resolve(createMessage())
+    it('resolves header timeout policy ahead of type policy', () => {
+        const resolver = new HandoffRouteResolver(createService())
 
-		expect(resolution.policy).toEqual({
-			lane: 'main',
-			timeoutMs: 600000,
-			idleTimeoutMs: 120000
-		})
-	})
+        const resolution = resolver.resolve(
+            createMessage({
+                headers: {
+                    policyTimeoutMs: '1000',
+                    policyIdleTimeoutMs: '2000'
+                }
+            })
+        )
 
-	it('resolves route target idle timeout when type policy is absent', () => {
-		const resolver = new HandoffRouteResolver(createService())
+        expect(resolution.policy).toEqual({
+            lane: 'main',
+            timeoutMs: 1000,
+            idleTimeoutMs: 2000
+        })
+    })
 
-		const resolution = resolver.resolve(
-			createMessage({
-				type: 'channel.wechat.chat_callback.v1'
-			})
-		)
+    it('resolves type policy ahead of matching route target', () => {
+        const resolver = new HandoffRouteResolver(createService())
 
-		expect(resolution.policy).toEqual({
-			lane: 'main',
-			idleTimeoutMs: 30000
-		})
-	})
+        const resolution = resolver.resolve(createMessage())
+
+        expect(resolution.policy).toEqual({
+            lane: 'main',
+            timeoutMs: 600000,
+            idleTimeoutMs: 120000
+        })
+    })
+
+    it('resolves route target idle timeout when type policy is absent', () => {
+        const resolver = new HandoffRouteResolver(createService())
+
+        const resolution = resolver.resolve(
+            createMessage({
+                type: 'channel.wechat.chat_callback.v1'
+            })
+        )
+
+        expect(resolution.policy).toEqual({
+            lane: 'main',
+            idleTimeoutMs: 30000
+        })
+    })
 })

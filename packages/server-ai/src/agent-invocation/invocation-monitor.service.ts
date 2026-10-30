@@ -1,5 +1,6 @@
 // Invariants: inspect and continuation have separate durable queues and leases.
 // A wake-up may resume only its exact checkpoint; it never approves human input or relaunches work.
+import { ResolveAssistantExecutionIdentityCommand } from '../model-execution/resolve-assistant-execution-identity.command'
 import { TaskObservationCommittedEvent } from '../runtime-task/task-observation.event'
 import { parsePersistedInvocationWait, parseInvocationWaitScope } from './invocation-task-wait.schema'
 import { z } from 'zod/v3'
@@ -258,10 +259,22 @@ export class AgentInvocationMonitorService implements OnModuleDestroy {
                 }
             })
         ])
-        if (!user || user.type !== UserType.USER || !membership) throw new Error('Invocation actor unavailable')
+        const identity =
+            user?.type === UserType.COMMUNICATION
+                ? await this.commands.execute(
+                      new ResolveAssistantExecutionIdentityCommand(scope, scope.conversationId, scope.callerXpertId)
+                  )
+                : null
+        if (
+            identity &&
+            ((scope.callerType && scope.callerType !== 'xpert') || identity.assistant.workspaceId !== scope.workspaceId)
+        )
+            throw new Error('Invocation actor unavailable')
+        if (!identity && (!user || user.type !== UserType.USER || !membership))
+            throw new Error('Invocation actor unavailable')
         return runWithCapturedRequestContext(
             captureRequestContext({
-                user,
+                user: identity?.user ?? user,
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId,
                 headers: { 'x-scope-level': 'organization' }

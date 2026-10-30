@@ -1,3 +1,5 @@
+import { ResolveAssistantExecutionIdentityHandler } from './resolve-assistant-execution-identity.handler'
+import { Xpert } from '../xpert/xpert.entity'
 import { ResolveManagedRuntimeActorHandler } from './resolve-managed-runtime-actor.handler'
 import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ShellCliExecution, ShellProcessExecution } from '../shell-execution/shell-execution.entity'
@@ -13,7 +15,7 @@ import { XpertModule } from '../xpert/xpert.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { TenantSetting } from '@xpert-ai/server-core'
+import { TenantSetting, User } from '@xpert-ai/server-core'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { Copilot } from '../copilot/copilot.entity'
 import { ModelAccessModule } from '../model-access/model-access.module'
@@ -39,6 +41,8 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
         ModelAccessModule,
         AgentMiddlewareRuntimeModule,
         TypeOrmModule.forFeature([
+            User,
+            Xpert,
             MembershipPointLedger,
             ShellCliExecution,
             ShellProcessExecution,
@@ -63,6 +67,7 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
         ModelExecutionAdminController
     ],
     providers: [
+        ResolveAssistantExecutionIdentityHandler,
         ResolveManagedRuntimeActorHandler,
         ShellExecutionSourceService,
         ModelExecutionReconciliationService,

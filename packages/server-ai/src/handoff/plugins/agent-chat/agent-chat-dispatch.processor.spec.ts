@@ -1,6 +1,7 @@
 import { Observable, of } from 'rxjs'
 import { BadRequestException } from '@nestjs/common'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
+import type { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import {
     AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING,
     AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
@@ -49,6 +50,46 @@ describe('AgentChatDispatchHandoffProcessor', () => {
             overrides?.moduleRef as any
         )
     }
+
+    it.each(['feishu', 'lark', 'wecom', 'dingtalk', 'wechat', 'telegram', 'example-channel'])(
+        'preserves the %s source through the public plugin dispatch contract',
+        async (from) => {
+            const commandBus = { execute: jest.fn().mockReturnValue(of()) }
+            const processor = createProcessor({
+                commandBus,
+                handoffQueueService: { enqueue: jest.fn().mockResolvedValue({ id: 'callback-job-id' }) }
+            })
+            const payload: AgentChatDispatchPayload = {
+                request: { action: 'send', message: { input: { input: 'hello' } } },
+                options: {
+                    xpertId: 'xpert-id',
+                    from,
+                    channelType: from,
+                    sourceIntegrationId: 'integration-id',
+                    fromEndUserId: 'external-user'
+                },
+                callback: { messageType: 'channel.example.chat_stream_event.v1' }
+            }
+            const message: HandoffMessage<AgentChatDispatchPayload> = {
+                ...createMessage(payload),
+                headers: { source: from },
+                payload
+            }
+
+            expect(await processor.process(message, createContext())).toEqual({ status: 'ok' })
+            expect(commandBus.execute).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    options: expect.objectContaining({
+                        from,
+                        channelType: from,
+                        sourceIntegrationId: 'integration-id',
+                        fromEndUserId: 'external-user',
+                        handoffMessageId: 'message-id'
+                    })
+                })
+            )
+        }
+    )
 
     it('returns dead when required payload fields are missing', async () => {
         const commandBus = { execute: jest.fn() }

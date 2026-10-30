@@ -46,7 +46,12 @@ export class ModelExecutionChatService {
         const lifetime = executionRequestLifetime(grant, abort)
         try {
             await runWithCapturedRequestContext(identity.snapshot, async () => {
-                const resolution = await this.assistants.authorize(identity.actor, grant.context.xpertId, model)
+                const resolution = await this.assistants.authorize(
+                    identity.actor,
+                    grant.context.xpertId,
+                    model,
+                    grant.context.billableUserId
+                )
                 let call: ModelGatewayCall
                 await executeGatewayChat({
                     response,
@@ -73,7 +78,12 @@ export class ModelExecutionChatService {
                             )
                             if (!fresh || !fresh.protocols.includes(protocol)) throw executionError('Model')
                             assertRequestCapabilities(parsed, fresh.capabilities)
-                            await this.assistants.authorize(identity.actor, grant.context.xpertId, fresh)
+                            await this.assistants.authorize(
+                                identity.actor,
+                                grant.context.xpertId,
+                                fresh,
+                                grant.context.billableUserId
+                            )
                             abort.signal.throwIfAborted()
                             await this.admission.dispatch(call, grant)
                         },
