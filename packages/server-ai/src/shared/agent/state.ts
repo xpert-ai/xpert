@@ -302,7 +302,11 @@ export function stateVariable(variable: TStateVariable) {
     }
 }
 
+// Host-only identity propagation: JSON request options cannot supply this symbol.
+export const CONVERSATION_OWNER_XPERT_ID = Symbol('conversationOwnerXpertId')
+
 export type TAgentSubgraphParams = TXpertAgentRuntimeOptions & {
+    [CONVERSATION_OWNER_XPERT_ID]?: string
     /**
      * Collect mute nodes tag
      */

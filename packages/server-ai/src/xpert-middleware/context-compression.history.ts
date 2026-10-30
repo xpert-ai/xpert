@@ -23,6 +23,8 @@ import {
     ContextSummaryError
 } from './context-compression.shared'
 import { estimateTokenCountSync } from './context-compression.budget'
+import { projectSummaryBatch, validateRecoverySnapshot } from './context-summary-policy'
+import type { EvidenceArchive } from '../chat-conversation/context-evidence/context-evidence.schema'
 
 // Copy constructor fields only: spreading a message also copies lc_kwargs,
 // retaining old content and nesting the previous constructor arguments.
@@ -453,7 +455,8 @@ Messages to summarize:
 ${messagesText}
 </messages>
 
-Return only the <state_snapshot>, preserving effective user constraints and exact verification values.`
+Return only the <state_snapshot>, preserving effective user constraints and exact verification values.
+If source records have record numbers and excerpt markers, include the relevant record numbers with file changes, failures and pending work. Excerpts may omit essential details: do not invent their contents or claim missing verification succeeded. The continuation agent can retrieve the archived originals.`
 }
 
 export function getFinishReason(message: BaseMessage | undefined): string | undefined {
@@ -655,31 +658,55 @@ export class ContextCompressionHistory {
         return changed ? this.invalidateHistoryUsage(history) : messages
     }
 
+    async generateRecoverableSnapshot(
+        messages: BaseMessage[],
+        model: BaseLanguageModel,
+        budget: { tokenLimit: number; outputTokens: number; inputTokenRatio: number; summaryInputTokens: number }
+    ): Promise<string> {
+        let snapshot = ''
+        let start = 0
+        while (start < messages.length) {
+            const batch = projectSummaryBatch(
+                messages,
+                start,
+                budget.summaryInputTokens,
+                budget.inputTokenRatio,
+                snapshot
+            )
+            snapshot = await this.generateStateSnapshot([], model, { ...budget, historyText: batch.text })
+            validateRecoverySnapshot(snapshot)
+            start = batch.end
+        }
+        return snapshot
+    }
+
     async generateStateSnapshot(
         messagesToCompress: BaseMessage[],
         model: BaseLanguageModel,
-        budget: { tokenLimit: number; outputTokens: number; inputTokenRatio?: number }
+        budget: { tokenLimit: number; outputTokens: number; inputTokenRatio?: number; historyText?: string }
     ): Promise<string> {
         try {
-            const messagesText = messagesToCompress
-                .map((msg, idx) => {
-                    let role = 'System'
-                    if (isHumanMessage(msg)) {
-                        role = 'User'
-                    } else if (isAIMessage(msg)) {
-                        role = 'Assistant'
-                    } else if (isToolMessage(msg)) {
-                        const toolMsg = msg as ToolMessage
-                        role = `Tool(${toolMsg.name || 'unknown'}, call_id=${toolMsg.tool_call_id})`
-                    }
-                    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-                    const calls =
-                        isAIMessage(msg) && msg.tool_calls?.length
-                            ? `\nTool calls: ${JSON.stringify(msg.tool_calls)}`
-                            : ''
-                    return `[${idx + 1}] ${role}: ${content}${calls}`
-                })
-                .join('\n\n')
+            const messagesText =
+                budget.historyText ??
+                messagesToCompress
+                    .map((msg, idx) => {
+                        let role = 'System'
+                        if (isHumanMessage(msg)) {
+                            role = 'User'
+                        } else if (isAIMessage(msg)) {
+                            role = 'Assistant'
+                        } else if (isToolMessage(msg)) {
+                            const toolMsg = msg as ToolMessage
+                            role = `Tool(${toolMsg.name || 'unknown'}, call_id=${toolMsg.tool_call_id})`
+                        }
+                        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+                        const calls =
+                            isAIMessage(msg) && msg.tool_calls?.length
+                                ? `\nTool calls: ${JSON.stringify(msg.tool_calls)}`
+                                : ''
+                        return `[${idx + 1}] ${role}: ${content}${calls}`
+                    })
+                    .join('\n\n')
 
             const prompt = getCompressionPrompt(messagesText)
 
@@ -737,7 +764,8 @@ export class ContextCompressionHistory {
         preservedMessages: BaseMessage[],
         compressionId: string,
         originalMessageCount: number,
-        originalTokenCount: number
+        originalTokenCount: number,
+        archives?: EvidenceArchive[]
     ): BaseMessage[] {
         return [
             new HumanMessage({
@@ -746,7 +774,8 @@ export class ContextCompressionHistory {
                     compressed: true,
                     compressionId,
                     originalMessageCount,
-                    originalTokenCount
+                    originalTokenCount,
+                    ...(archives?.length ? { contextEvidenceArchives: archives } : {})
                 }
             }),
             new AIMessage({

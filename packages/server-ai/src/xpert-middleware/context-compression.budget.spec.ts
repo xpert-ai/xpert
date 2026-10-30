@@ -1,10 +1,11 @@
+import { LegacyContextCompressionMiddleware as ContextCompressionMiddleware } from './context-compression.test-fixture'
 import { AIMessage, BaseMessage, HumanMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { AgentMiddleware, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod/v3'
 import { load } from '@langchain/core/load'
 import { estimatePromptWindowUsage } from './context-compression.budget'
-import { ContextCompressionMiddleware, ContextCompressionMiddlewareOptions } from './context-compression.middleware'
+import { ContextCompressionMiddlewareOptions } from './context-compression.middleware'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     __esModule: true,

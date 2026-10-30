@@ -3,6 +3,7 @@ import { ContentResourceOperation } from '../../content-resource/catalog/content
 import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
 import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
 import { ThreadControlProjection } from '../../chat-conversation/control-view/thread-control-projection.entity'
+import { ContextEvidence } from '../../chat-conversation/context-evidence/context-evidence.entity'
 import { McpRemoteOperation } from '../../mcp-consumer/execution/mcp-operation.entity'
 import { ExecutionControl } from '../../execution-control/execution-control.entity'
 import { contentDocumentEntities } from '../../content-resource/documents/entities'
@@ -175,6 +176,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ContextEvidence,
     ContentResourceEntry,
     ContentResourceOperation,
     ContentEditorPreference,

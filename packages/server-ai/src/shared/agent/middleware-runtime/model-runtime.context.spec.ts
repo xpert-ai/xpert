@@ -5,7 +5,7 @@ import { ChatOAICompatReasoningModel, getModelContextSize } from '@xpert-ai/plug
 import { AIModelGetProviderQuery } from '../../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider/queries/get-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries/get-one.query'
-import { ContextCompressionMiddleware } from '../../../xpert-middleware/context-compression.middleware'
+import { LegacyContextCompressionMiddleware as ContextCompressionMiddleware } from '../../../xpert-middleware/context-compression.test-fixture'
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 
 describe('middleware model context window', () => {

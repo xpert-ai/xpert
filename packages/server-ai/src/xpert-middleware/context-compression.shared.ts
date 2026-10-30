@@ -128,6 +128,15 @@ export type CompressionNoGainRetryState = z.infer<typeof CompressionNoGainRetryS
 export type ManualCompressionResult = z.infer<typeof ManualCompressionResultSchema>
 
 export interface ContextCompressionMiddlewareOptions {
+    /** False retains the legacy result-pruning path for an explicit rollback. */
+    recoverableHistory?: boolean
+    /** Optional cost trigger, independent of the model's capacity threshold. */
+    maxPromptTokens?: number
+    /** Desired prompt size after compression; defaults to 80% of the effective trigger. */
+    targetPromptTokens?: number
+    recentHistoryTokens?: number
+    summaryInputTokens?: number
+    summaryOutputTokens?: number
     /**
      * Compression threshold (fraction of model token limit)
      */
@@ -164,6 +173,11 @@ export interface ContextCompressionMiddlewareOptions {
 }
 
 export interface ResolvedContextCompressionOptions {
+    maxPromptTokens?: number
+    targetPromptTokens?: number
+    recentHistoryTokens?: number
+    summaryInputTokens?: number
+    summaryOutputTokens?: number
     threshold: number
     preserveFraction: number
     toolOutputBudget: number
@@ -172,6 +186,23 @@ export interface ResolvedContextCompressionOptions {
     pruneMinimumTokens: number
     protectedUserTurns: number
 }
+
+export const RecoveryCompressionOptionsSchema = z
+    .object({
+        recoverableHistory: z.boolean().default(true),
+        maxPromptTokens: z.number().int().positive().optional(),
+        targetPromptTokens: z.number().int().positive().optional(),
+        recentHistoryTokens: z.number().int().positive().optional(),
+        summaryInputTokens: z.number().int().min(1024).default(64000),
+        summaryOutputTokens: z.number().int().min(256).default(4096)
+    })
+    .refine(
+        (value) =>
+            !value.maxPromptTokens || !value.targetPromptTokens || value.targetPromptTokens < value.maxPromptTokens,
+        {
+            message: 'targetPromptTokens must be below maxPromptTokens'
+        }
+    )
 
 export interface CompressionExecutionOptions {
     force: boolean

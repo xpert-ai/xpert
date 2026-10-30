@@ -12,6 +12,7 @@ import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.enti
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
+import { ContextEvidence } from './context-evidence/context-evidence.entity'
 import { SideChatForkService } from './side-chat-fork.service'
 import { threadGraphRevision } from './thread-run-control.service'
 import type { TXpertGraph } from '@xpert-ai/contracts'
@@ -120,6 +121,9 @@ function fixture() {
             if (entity === ChatConversationThread) return threadRepository
             if (entity === ChatMessage) return messageRepository
             if (entity === CopilotCheckpoint) return checkpointRepository
+            // These fixtures have no archive references. Resolving the adapter is allowed;
+            // an actual archive query would fail against this empty repository double.
+            if (entity === ContextEvidence) return {}
             throw new Error('A sealed fork must not read live Goals, writes or run state')
         },
         getTreeRepository: () => ({ findAncestors: async () => messages })

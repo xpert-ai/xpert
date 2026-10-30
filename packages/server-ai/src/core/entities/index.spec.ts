@@ -11,6 +11,7 @@ import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model
 import { AgentPluginPackage, AgentResourceBinding } from '../../agent-plugin/agent-plugin.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
+import { ContextEvidence } from '../../chat-conversation/context-evidence/context-evidence.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { SandboxJobEntity } from '../../sandbox/sandbox-job/sandbox-job.entity'
 import { SandboxManagedServiceEntity } from '../../sandbox/sandbox-managed-service.entity'
@@ -34,7 +35,8 @@ describe('ALL_AI_ENTITIES', () => {
         ['agent plugins', [AgentPluginPackage, AgentResourceBinding]],
         ['group chat', GROUP_ENTITIES],
         ['sandbox runtime', [SandboxJobEntity, SandboxManagedServiceEntity]],
-        ['agent evolution', AGENT_EVOLUTION_ENTITIES]
+        ['agent evolution', AGENT_EVOLUTION_ENTITIES],
+        ['recoverable context', [ContextEvidence]]
     ])('registers %s entities for standalone schema-sync', (_name, entities) => {
         for (const entity of entities) expect(ALL_AI_ENTITIES).toContain(entity)
     })
@@ -82,6 +84,12 @@ describe('ALL_AI_ENTITIES', () => {
         })
 
         await dataSource.buildMetadata()
+        const evidence = dataSource.getMetadata(ContextEvidence)
+        expect(evidence.tableName).toBe('chat_context_evidence')
+        expect(evidence.findColumnWithPropertyName('payload')).toMatchObject({ type: 'text', isSelect: false })
+        expect(
+            evidence.foreignKeys.find((key) => key.referencedEntityMetadata.target === ChatConversation)?.onDelete
+        ).toBe('CASCADE')
         expect(new Set(ALL_AI_ENTITIES).size).toBe(ALL_AI_ENTITIES.length)
         expect(dataSource.entityMetadatas.map((metadata) => metadata.tableName)).toEqual(
             expect.arrayContaining([

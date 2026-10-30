@@ -45,12 +45,17 @@ import { ThreadCursorStore } from './thread-cursor.store'
 import { ConversationInitializerRegistry } from './conversation-initializer.registry'
 import { SideChatForkService } from './side-chat-fork.service'
 import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
+import { ContextEvidence } from './context-evidence/context-evidence.entity'
+import { ContextEvidenceService } from './context-evidence/context-evidence.service'
+import { ContextEvidenceStorage } from './context-evidence/context-evidence.schema'
+import { DatabaseContextEvidenceStorage } from './context-evidence/context-evidence.storage'
 
 @Module({
     imports: [
         TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([
+            ContextEvidence,
             ThreadControlProjection,
             ChatConversation,
             AssistantUserPreference,
@@ -81,6 +86,8 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ContextEvidenceService,
+        { provide: ContextEvidenceStorage, useClass: DatabaseContextEvidenceStorage },
         ThreadControlViewService,
         ReadThreadControlViewHandler,
         ChatExecutionAdmissionService,
@@ -104,6 +111,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         ...QueryHandlers
     ],
     exports: [
+        ContextEvidenceService,
         ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadReferenceService,

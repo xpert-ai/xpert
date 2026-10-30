@@ -16,6 +16,10 @@ import { EntityManager, IsNull } from 'typeorm'
 import { z } from 'zod'
 import { CopilotCheckpoint } from '../../copilot-checkpoint/copilot-checkpoint.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
+import { ContextEvidence } from '../context-evidence/context-evidence.entity'
+import { DatabaseContextEvidenceStorage } from '../context-evidence/context-evidence.storage'
+import { createBranchEvidenceCopier } from '../context-evidence/context-evidence.branch'
+import { ChatConversationThread } from '../conversation-thread.entity'
 
 const checkpointSchema = z
     .object({
@@ -120,6 +124,8 @@ export async function copyBranchCheckpoints(params: {
     serializer: SerializerProtocol
     messages: ChatMessage[]
     targetThreadId: string
+    sourceConversationId: string
+    targetConversationId: string
     tenantId: string
     organizationId?: string | null
     userId: string
@@ -128,6 +134,28 @@ export async function copyBranchCheckpoints(params: {
 }): Promise<number> {
     const { manager, serializer, targetThreadId, messageIds } = params
     const repository = manager.getRepository(CopilotCheckpoint)
+    const copyEvidence = createBranchEvidenceCopier({
+        storage: new DatabaseContextEvidenceStorage(manager.getRepository(ContextEvidence)),
+        readThread: (threadId) =>
+            params.allowedThreadIds.has(threadId)
+                ? manager.getRepository(ChatConversationThread).findOne({
+                      where: {
+                          threadId,
+                          conversationId: params.sourceConversationId,
+                          tenantId: params.tenantId,
+                          organizationId: params.organizationId ?? IsNull()
+                      }
+                  })
+                : Promise.resolve(null),
+        source: {
+            tenantId: params.tenantId,
+            organizationId: params.organizationId ?? null,
+            userId: params.userId,
+            conversationId: params.sourceConversationId
+        },
+        targetConversationId: params.targetConversationId,
+        targetThreadId
+    })
     const frontier: TChatCheckpointReference[] = []
     for (const message of params.messages) {
         if (message.inputCheckpoint?.checkpoint) frontier.push(message.inputCheckpoint.checkpoint)
@@ -168,6 +196,11 @@ export async function copyBranchCheckpoints(params: {
         for (const [checkpointNs, checkpointId] of Object.entries(metadata.parents))
             frontier.push({ threadId: ref.threadId, checkpointNs, checkpointId })
 
+        try {
+            await copyEvidence(checkpoint, ref.threadId)
+        } catch {
+            throw branchConflict('checkpoint_unavailable')
+        }
         const [type, serialized] = await serializer.dumpsTyped(rebindCheckpoint(checkpoint, targetThreadId, messageIds))
         const [, serializedMetadata] = await serializer.dumpsTyped(metadata)
         // Several source threads may resolve to one target key; differing payloads cannot be merged safely.

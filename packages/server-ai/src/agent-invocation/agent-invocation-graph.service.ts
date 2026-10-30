@@ -11,6 +11,7 @@ import { collaboratorToolDeclaration } from '../xpert-agent/collaborators/collab
 import { nativeInvocationTool } from './graph-tool'
 import type { IXpertSubAgent } from '../shared/agent/types'
 import { XpertCollaborator } from '../shared/agent/xpert'
+import { CONVERSATION_OWNER_XPERT_ID } from '../shared/agent/state'
 import { GetXpertWorkflowQuery } from '../xpert/queries/get-xpert-workflow.query'
 import type { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { AgentInvocationRuntime } from './invocation-runtime'
@@ -73,6 +74,7 @@ export class AgentInvocationGraphService {
                         isDraft: false,
                         subscriber: options.subscriber,
                         conversationId: options.conversationId,
+                        [CONVERSATION_OWNER_XPERT_ID]: options[CONVERSATION_OWNER_XPERT_ID] ?? context.xpertId,
                         projectId: options.projectId,
                         workspaceRoot: options.workspaceRoot,
                         workspacePath: options.workspacePath

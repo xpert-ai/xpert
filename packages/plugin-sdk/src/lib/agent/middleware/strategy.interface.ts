@@ -1,4 +1,10 @@
-import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
+import {
+  AssistantOperationPolicy,
+  IWFNMiddleware,
+  TAgentMiddlewareMeta,
+  TXpertFeatures,
+  XpertWorkspaceDataScope
+} from '@xpert-ai/contracts'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { RunnableToolLike } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
@@ -19,8 +25,12 @@ export interface IAgentMiddlewareContext {
   callerType?: AgentInvocationScope['callerType']
   threadId?: string
   xpertId?: string
+  /** Host-bound owner of the conversation; may differ from the executing collaborator's xpertId. */
+  conversationXpertId?: string
   workspaceDataScope?: XpertWorkspaceDataScope | null
   xpertFeatures?: TXpertFeatures | null
+  /** Published execution policy; an exposed tool can still require approval or be denied. */
+  operationPolicy?: AssistantOperationPolicy
   agentKey?: string
   knowledgebaseIds?: string[]
   store?: BaseStore

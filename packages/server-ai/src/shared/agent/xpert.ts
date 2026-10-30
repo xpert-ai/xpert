@@ -22,7 +22,7 @@ import { Subscriber } from 'rxjs'
 import { TAgentSubgraphResult } from '../../xpert-agent'
 import { XpertAgentSubgraphCommand } from '../../xpert-agent/commands/subgraph.command'
 import { wrapAgentExecution } from './execution'
-import { AgentStateAnnotation, TAgentSubgraphParams } from './state'
+import { AgentStateAnnotation, CONVERSATION_OWNER_XPERT_ID, TAgentSubgraphParams } from './state'
 import { IXpertSubAgent } from './types'
 import { GetXpertWorkflowQuery } from '../../xpert/queries'
 import { executionOutcome } from './execution-outcome'
@@ -62,7 +62,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         config: TAgentSubgraphParams & {
             options: Pick<
                 XpertAgentSubgraphCommand['options'],
-                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath' | typeof CONVERSATION_OWNER_XPERT_ID
             > & {
                 leaderKey: string
                 isDraft: boolean
@@ -105,6 +105,7 @@ export class XpertCollaborator implements IXpertSubAgent {
             partners,
             environment: config.environment,
             conversationId: options.conversationId,
+            [CONVERSATION_OWNER_XPERT_ID]: options[CONVERSATION_OWNER_XPERT_ID],
             projectId: options.projectId,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath

@@ -12,6 +12,8 @@ import { copyBranchCheckpoints } from './branch-checkpoints'
 jest.mock('@xpert-ai/server-core', () => ({
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {}
 }))
+jest.mock('../conversation.entity', () => ({ ChatConversation: class {} }))
+jest.mock('../../xpert-agent-execution/agent-execution.entity', () => ({ XpertAgentExecution: class {} }))
 
 /** Real graph/serializer, with an in-memory implementation of the persistence boundary. */
 function store() {
@@ -165,6 +167,8 @@ describe('conversation branch checkpoints', () => {
             serializer: db.saver.serde,
             messages,
             targetThreadId: 'target',
+            sourceConversationId: 'source-conversation',
+            targetConversationId: 'target-conversation',
             tenantId: 'tenant',
             organizationId: 'org',
             userId: 'user',
@@ -205,6 +209,8 @@ describe('conversation branch checkpoints', () => {
                 }
             ] as ChatMessage[],
             targetThreadId: 'second-target',
+            sourceConversationId: 'target-conversation',
+            targetConversationId: 'second-conversation',
             tenantId: 'tenant',
             organizationId: 'org',
             userId: 'user',
@@ -236,6 +242,8 @@ describe('conversation branch checkpoints', () => {
                 { inputCheckpoint: { version: 1, graphRevision: 'rev', checkpoint: reference } }
             ] as ChatMessage[],
             targetThreadId: 'target',
+            sourceConversationId: 'source-conversation',
+            targetConversationId: 'target-conversation',
             tenantId: 'tenant',
             organizationId: 'org',
             userId: 'user',

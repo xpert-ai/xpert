@@ -5,6 +5,7 @@ import { interopSafeParse, type InferInteropZodInput } from '@langchain/core/uti
 import { HumanMessage, isHumanMessage } from '@langchain/core/messages'
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import { Injectable } from '@nestjs/common'
+import { CONTEXT_EVIDENCE_TOOL } from '../chat-conversation/context-evidence/context-evidence.schema'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
@@ -22,6 +23,18 @@ import {
 } from '@xpert-ai/contracts'
 
 const DEFAULT_SYSTEM_PROMPT = "Your goal is to select the most relevant tools for answering the user's query."
+
+/** Selection must not remove the only way to recover context; never re-enable a disabled tool. */
+function requiredToolNames(request: ModelRequest, configured: string[] = []): string[] {
+    const recoveryEnabled = request.tools?.some(
+        (candidate) =>
+            typeof candidate === 'object' &&
+            candidate !== null &&
+            'name' in candidate &&
+            candidate.name === CONTEXT_EVIDENCE_TOOL
+    )
+    return [...new Set([...configured, ...(recoveryEnabled ? [CONTEXT_EVIDENCE_TOOL] : [])])]
+}
 
 /**
  * Prepared inputs for tool selection.
@@ -330,7 +343,7 @@ async function prepareSelectionRequest<
 ): Promise<SelectionRequest | undefined> {
     const model = options.model
     const maxTools = runtime.context?.maxTools ?? options.maxTools
-    const alwaysInclude = runtime.context?.alwaysInclude ?? options.alwaysInclude ?? []
+    const alwaysInclude = requiredToolNames(request, runtime.context?.alwaysInclude ?? options.alwaysInclude)
     const systemPrompt = runtime.context?.systemPrompt ?? options.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
 
     /**
@@ -431,7 +444,7 @@ function processSelectionResponse<TState extends Record<string, unknown> = Recor
     options: LLMToolSelectorConfig
 ): ModelRequest<TState, TContext> {
     const maxTools = options.maxTools
-    const alwaysInclude = options.alwaysInclude ?? []
+    const alwaysInclude = requiredToolNames(request, options.alwaysInclude)
 
     const selectedToolNames: string[] = []
     const invalidToolSelections: string[] = []
@@ -469,7 +482,9 @@ function processSelectionResponse<TState extends Record<string, unknown> = Recor
             typeof tool.name === 'string' &&
             alwaysInclude.includes(tool.name)
     )
-    selectedTools.push(...alwaysIncludedTools)
+    selectedTools.push(
+        ...alwaysIncludedTools.filter((tool) => !selectedTools.some((selected) => selected.name === tool.name))
+    )
 
     /**
      * Also preserve any provider-specific tool dicts from the original request

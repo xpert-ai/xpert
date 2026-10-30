@@ -131,7 +131,8 @@ export async function estimatePromptWindowUsage(
     tokenLimit: number,
     threshold: number,
     fixedInputTokens = 0,
-    stateContainer?: unknown
+    stateContainer?: unknown,
+    maxPromptTokens?: number
 ): Promise<PromptWindowEstimate> {
     const messageOnlyTokens = await estimateTokens(messages)
     const anchor = findLatestPromptTokenAnchor(messages)
@@ -174,7 +175,11 @@ export async function estimatePromptWindowUsage(
     const { reservedOutputTokens, source } = resolveReservedOutputTokens(model, tokenLimit, threshold)
     const availablePromptTokens = Math.max(0, tokenLimit - reservedOutputTokens)
     const thresholdPromptTokens = Math.max(0, Math.round(tokenLimit * Math.max(0, Math.min(1, threshold))))
-    const effectivePromptBudget = Math.min(availablePromptTokens, thresholdPromptTokens || availablePromptTokens)
+    const effectivePromptBudget = Math.min(
+        availablePromptTokens,
+        thresholdPromptTokens || availablePromptTokens,
+        maxPromptTokens ?? Number.POSITIVE_INFINITY
+    )
 
     return {
         calibrationRatio,
