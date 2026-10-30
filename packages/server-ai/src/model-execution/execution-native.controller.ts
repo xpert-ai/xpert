@@ -25,7 +25,8 @@ import {
     readNativeUsage
 } from './execution-native-protocol'
 import { runWithCapturedRequestContext } from '../shared/request-context'
-import { executionError } from './execution-errors'
+import { executionError, executionErrorMessage } from './execution-errors'
+import { NativeUpstreamError } from './execution-native-upstream-error'
 
 @Public()
 @Controller('model-execution')
@@ -133,22 +134,25 @@ export class ModelExecutionNativeController {
                     const upstream = await client.generate(parsed, headers, abort.signal)
                     upstreamStatus = upstream.status
                     lifetime.activity()
-                    if (!upstream.ok || !upstream.body) {
-                        await upstream.body?.cancel()
-                        throw executionError('Unavailable')
+                    if (!upstream.ok) {
+                        await upstream.body?.cancel().catch(() => undefined)
+                        throw new NativeUpstreamError(upstream)
                     }
+                    if (!upstream.body) throw executionError('Upstream')
                     const providerRequestId = upstream.headers.get('x-request-id') ?? upstream.headers.get('request-id')
                     if (parsed.stream) {
-                        if (!upstream.headers.get('content-type')?.includes('text/event-stream'))
-                            throw executionError('Unavailable')
+                        if (!upstream.headers.get('content-type')?.includes('text/event-stream')) {
+                            await upstream.body.cancel().catch(() => undefined)
+                            throw executionError('Upstream')
+                        }
                         response.status(200).setHeader('content-type', 'text/event-stream; charset=utf-8')
                         response.setHeader('cache-control', 'no-cache, no-transform')
                         for await (const frame of nativeFrames(upstream.body, lifetime.activity)) {
                             if (frame.value !== undefined) streamUsage.accept(frame.value)
-                            if (streamUsage.failed) throw executionError('Unavailable')
+                            if (streamUsage.failed) throw executionError('Upstream')
                             if (!response.write(frame.raw)) await once(response, 'drain', { signal: abort.signal })
                         }
-                        if (!streamUsage.ended) throw executionError('Unavailable')
+                        if (!streamUsage.ended) throw executionError('Upstream')
                         receipt = streamUsage.receipt
                     } else {
                         const reader = upstream.body.getReader()
@@ -160,7 +164,7 @@ export class ModelExecutionNativeController {
                                 if (done) break
                                 lifetime.activity()
                                 size += value.byteLength
-                                if (size > 16 * 1024 * 1024) throw executionError('Invalid')
+                                if (size > 16 * 1024 * 1024) throw executionError('Upstream')
                                 chunks.push(value)
                             }
                         } finally {
@@ -230,18 +234,21 @@ export class ModelExecutionNativeController {
             })
         } catch (error) {
             const status = error instanceof HttpException ? error.getStatus() : 502
-            if (!response.headersSent && !response.destroyed)
+            if (!response.headersSent && !response.destroyed) {
+                if (error instanceof NativeUpstreamError)
+                    for (const [name, value] of Object.entries(error.headers)) response.setHeader(name, value)
                 response.status(status).json({
                     type: 'error',
                     error: {
-                        type: status === 429 ? 'rate_limit_error' : 'invalid_request_error',
+                        type:
+                            status === 429 ? 'rate_limit_error' : status >= 500 ? 'api_error' : 'invalid_request_error',
                         message:
                             error instanceof HttpException && status < 500
                                 ? error.message
-                                : executionError('Unavailable').message
+                                : executionErrorMessage('Upstream')
                     }
                 })
-            else if (!response.destroyed && !response.writableEnded) response.destroy()
+            } else if (!response.destroyed && !response.writableEnded) response.destroy()
         } finally {
             stopWatching?.()
             lifetime?.dispose()
