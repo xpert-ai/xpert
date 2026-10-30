@@ -34,23 +34,35 @@ export function modelGatewayVSCodeExample(
     (feature) => capabilities.includes(feature)
   )
   return JSON.stringify(
-    {
-      id: model?.externalModelId ?? 'MODEL_ID',
-      name: model?.externalModelId ?? 'MODEL_ID',
-      url: baseUrl + '/chat/completions',
-      apiType: 'chat-completions',
-      toolCalling,
-      vision: capabilities.includes(ModelFeature.VISION),
-      // The gateway requires a separate capability for streaming tool calls.
-      streaming: !toolCalling || capabilities.includes(ModelFeature.STREAM_TOOL_CALL),
-      ...(thinking === 'default'
-        ? {}
-        : {
-            thinking: true,
-            supportsReasoningEffort: ['none', 'high'],
-            reasoningEffortFormat: 'chat-completions'
-          })
-    },
+    [
+      {
+        name: 'Xpert Model Gateway',
+        vendor: 'customendpoint',
+        apiKey: 'YOUR_API_KEY',
+        apiType: 'chat-completions',
+        models: [
+          {
+            id: model?.externalModelId ?? 'MODEL_ID',
+            name: model?.model ?? 'MODEL_ID',
+            url: baseUrl + '/chat/completions',
+            // Example budgets; the guide tells users to match their model's actual limits.
+            maxInputTokens: 256000,
+            maxOutputTokens: 16000,
+            toolCalling,
+            vision: capabilities.includes(ModelFeature.VISION),
+            // The gateway requires a separate capability for streaming tool calls.
+            streaming: !toolCalling || capabilities.includes(ModelFeature.STREAM_TOOL_CALL),
+            ...(thinking === 'default'
+              ? {}
+              : {
+                  thinking: true,
+                  supportsReasoningEffort: ['none', 'high'],
+                  reasoningEffortFormat: 'chat-completions'
+                })
+          }
+        ]
+      }
+    ],
     null,
     2
   )

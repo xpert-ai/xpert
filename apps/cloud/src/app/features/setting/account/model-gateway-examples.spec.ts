@@ -1,4 +1,4 @@
-import { modelGatewayCurlExample } from './model-gateway-examples'
+import { modelGatewayCurlExample, modelGatewayVSCodeExample } from './model-gateway-examples'
 
 describe('model gateway curl examples', () => {
   it('escapes every single quote in the URL and JSON body without changing shell metacharacters', () => {
@@ -27,5 +27,30 @@ describe('model gateway curl examples', () => {
   ]
 }'`
     )
+  })
+})
+
+describe('complete VS Code model gateway configuration', () => {
+  it('provides a complete JSON document with explicit placeholders when no model is selected', () => {
+    expect(JSON.parse(modelGatewayVSCodeExample('https://gateway.example/api/openai/v1', null))).toEqual([
+      {
+        name: 'Xpert Model Gateway',
+        vendor: 'customendpoint',
+        apiKey: 'YOUR_API_KEY',
+        apiType: 'chat-completions',
+        models: [
+          {
+            id: 'MODEL_ID',
+            name: 'MODEL_ID',
+            url: 'https://gateway.example/api/openai/v1/chat/completions',
+            maxInputTokens: 256000,
+            maxOutputTokens: 16000,
+            toolCalling: false,
+            vision: false,
+            streaming: true
+          }
+        ]
+      }
+    ])
   })
 })

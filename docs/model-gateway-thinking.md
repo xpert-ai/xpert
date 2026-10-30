@@ -32,22 +32,37 @@ This setting advertises an existing reachable endpoint. It does not create a pro
 
 ## VS Code native Custom Endpoint
 
-Account → External API → Guide includes a copyable VS Code model-entry fragment below the curl example. It follows the selected publication and gateway URL. Merge it into the existing model entry, keeping the API key reference and setting token limits to match the model. Tool calling and vision follow the publication's declared capabilities; tool-capable publications without streaming tool support use `streaming: false`. Selecting Enabled or Disabled in the example controls adds the boolean thinking menu configuration below; Default omits it. The actual on/off choice is made in VS Code's menu.
+Account → External API → Guide includes a complete, copyable `chatLanguageModels.json` document below curl. The provider group contains `name`, `vendor`, `apiKey`, `apiType`, and `models`. Replace `YOUR_API_KEY` with a gateway key. The complete template remains copyable when the catalog is empty; replace `MODEL_ID` with a publication you are authorized to call. If the file already contains other providers, append this provider object to its existing array and preserve their secret references. The URL and complete publication ID follow the selected model, while its display name uses the original model name. Input/output limits of 256000/16000 are example budgets, not discovered capabilities; adjust them to the model's actual limits.
 
-In `chatLanguageModels.json`, keep `vendor: "customendpoint"`, `apiType: "chat-completions"`, and the existing API key secret reference. Configure the model with its complete gateway publication ID and full Chat Completions URL. Add these fields to the model entry:
+Tool calling and vision follow the publication's declared capabilities; tool-capable publications without streaming tool support use `streaming: false`. Selecting Enabled or Disabled in the example controls adds the thinking menu fields; Default omits them. The actual on/off choice is made in VS Code's menu. For a publication that declares tool calling, vision and streaming tool calls, the complete configuration looks like this:
 
 ```json
-{
-  "id": "xirang/deepseek-v4.1-flash-1017",
-  "name": "Xirang DeepSeek V4.1 Flash",
-  "url": "https://YOUR_XPERT_HOST/api/openai/v1/chat/completions",
-  "thinking": true,
-  "supportsReasoningEffort": ["none", "high"],
-  "reasoningEffortFormat": "chat-completions"
-}
+[
+  {
+    "name": "Xpert Model Gateway",
+    "vendor": "customendpoint",
+    "apiKey": "YOUR_API_KEY",
+    "apiType": "chat-completions",
+    "models": [
+      {
+        "id": "xirang/deepseek-v4.1-flash-1017",
+        "name": "deepseek-v4.1-flash-1017",
+        "url": "https://YOUR_XPERT_HOST/api/openai/v1/chat/completions",
+        "maxInputTokens": 256000,
+        "maxOutputTokens": 16000,
+        "toolCalling": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": true,
+        "supportsReasoningEffort": ["none", "high"],
+        "reasoningEffortFormat": "chat-completions"
+      }
+    ]
+  }
+]
 ```
 
-This is a model-entry fragment: retain `toolCalling`, `vision`, and token limits matching the publication. The configuration-level `thinking: true` declares capability; it is not the API request's `thinking` object. Select `none` in the native Thinking Effort menu to disable Xirang thinking, or `high` to enable it. Only two choices are advertised because Xirang's declared control is boolean. Do not put arbitrary `thinking` fields inside `modelOptions`; the inspected VS Code 1.142 implementation forwards only its supported sampling options there.
+The configuration-level `thinking: true` declares capability; it is not the API request's `thinking` object. Select `none` in the native Thinking Effort menu to disable Xirang thinking, or `high` to enable it. Only two choices are advertised because Xirang's declared control is boolean. Do not put arbitrary `thinking` fields inside `modelOptions`; the inspected VS Code 1.142 implementation forwards only its supported sampling options there.
 
 See the [VS Code model configuration reference](https://code.visualstudio.com/docs/agent-customization/language-models#model-configuration-reference). This configuration requires a gateway deployment containing this change; local tests do not establish a live VS Code or customer-environment acceptance.
 

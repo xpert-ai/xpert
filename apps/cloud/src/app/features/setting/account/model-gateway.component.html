@@ -549,14 +549,7 @@
             <div class="border-t border-border pt-5">
               <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-medium">{{ 'XP.ModelGateway.VSCodeExample' | translate }}</h3>
-                <button
-                  z-button
-                  zType="outline"
-                  zSize="sm"
-                  type="button"
-                  [disabled]="!exampleModel()"
-                  (click)="copy(vsCodeExample())"
-                >
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(vsCodeExample())">
                   <z-icon zType="copy" />{{ 'XP.ModelGateway.CopyVSCodeExample' | translate }}
                 </button>
               </div>

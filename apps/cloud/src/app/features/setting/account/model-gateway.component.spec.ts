@@ -309,7 +309,7 @@ describe('external API settings interactions', () => {
       expect.stringContaining("curl 'http://10.0.0.15:8088/api/openai/v1/chat/completions'")
     )
     buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
-    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0]).url).toBe(
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0].url).toBe(
       'http://10.0.0.15:8088/api/openai/v1/chat/completions'
     )
     expect(view.host.textContent).not.toContain('http://localhost')
@@ -323,7 +323,9 @@ describe('external API settings interactions', () => {
     await view.component.load()
     view.fixture.detectChanges()
     expect(view.host.querySelector('code')!.textContent).toBe('http://localhost/api/openai/v1')
-    expect(JSON.parse(view.component.vsCodeExample()).url).toBe('http://localhost/api/openai/v1/chat/completions')
+    expect(JSON.parse(view.component.vsCodeExample())[0].models[0].url).toBe(
+      'http://localhost/api/openai/v1/chat/completions'
+    )
     view.service.getClientConfig.mockReturnValue(throwError(() => new Error('unavailable')))
     await view.component.load()
     view.fixture.detectChanges()
@@ -332,11 +334,12 @@ describe('external API settings interactions', () => {
     view.fixture.destroy()
   })
 
-  it('copies a VS Code model fragment below curl with the selected publication and optional thinking menu', async () => {
+  it('copies a complete VS Code configuration below curl with the selected publication and optional thinking menu', async () => {
     const plain = gatewayItem('plain', { allowed: true })
     const xirang = gatewayItem('xirang', {
       allowed: true,
       externalModelId: 'xirang/deepseek-v4.1-flash-1017',
+      model: 'deepseek-v4.1-flash-1017',
       capabilities: [ModelFeature.TOOL_CALL, ModelFeature.VISION]
     })
     const view = await setupGatewayView([plain, xirang])
@@ -346,22 +349,33 @@ describe('external API settings interactions', () => {
     const codeBlocks = () => [...view.host.querySelectorAll('pre code')].map((code) => code.textContent)
     expect(codeBlocks()).toHaveLength(2)
     expect(codeBlocks()[0]).toContain('curl ')
-    expect(JSON.parse(codeBlocks()[1])).toEqual({
-      id: 'xirang/deepseek-v4.1-flash-1017',
-      name: 'xirang/deepseek-v4.1-flash-1017',
-      url: 'http://localhost/api/openai/v1/chat/completions',
-      apiType: 'chat-completions',
-      toolCalling: true,
-      vision: true,
-      streaming: false
-    })
+    expect(JSON.parse(codeBlocks()[1])).toEqual([
+      {
+        name: 'Xpert Model Gateway',
+        vendor: 'customendpoint',
+        apiKey: 'YOUR_API_KEY',
+        apiType: 'chat-completions',
+        models: [
+          {
+            id: 'xirang/deepseek-v4.1-flash-1017',
+            name: 'deepseek-v4.1-flash-1017',
+            url: 'http://localhost/api/openai/v1/chat/completions',
+            maxInputTokens: 256000,
+            maxOutputTokens: 16000,
+            toolCalling: true,
+            vision: true,
+            streaming: false
+          }
+        ]
+      }
+    ])
     for (const mode of ['enabled', 'disabled']) {
       view.component.selectExampleThinking(mode)
       view.fixture.detectChanges()
       buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
       const copied = view.clipboard.copy.mock.calls.at(-1)![0]
       expect(copied).toBe(codeBlocks()[1])
-      expect(JSON.parse(copied)).toMatchObject({
+      expect(JSON.parse(copied)[0].models[0]).toMatchObject({
         id: 'xirang/deepseek-v4.1-flash-1017',
         thinking: true,
         supportsReasoningEffort: ['none', 'high'],
@@ -373,18 +387,22 @@ describe('external API settings interactions', () => {
     view.component.selectExampleThinking('default')
     view.fixture.detectChanges()
     buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
-    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])).toEqual({
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0]).toEqual({
       id: 'plain',
-      name: 'plain',
+      name: 'plain-model',
       url: 'http://localhost/api/openai/v1/chat/completions',
-      apiType: 'chat-completions',
+      maxInputTokens: 256000,
+      maxOutputTokens: 16000,
       toolCalling: false,
       vision: false,
       streaming: true
     })
     view.component.catalog.update((catalog) => ({ ...catalog!, items: [] }))
     view.fixture.detectChanges()
-    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').disabled).toBe(true)
+    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').disabled).toBe(false)
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0].id).toBe('MODEL_ID')
+    expect(view.host.textContent).toContain('XP.ModelGateway.NoCallableExample')
     view.fixture.destroy()
   })
 

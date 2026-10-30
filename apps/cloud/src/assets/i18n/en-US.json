@@ -5366,7 +5366,7 @@
       "NoCallableExample": "No callable model is available. Obtain model access before copying an example.",
       "VSCodeExample": "VS Code configuration",
       "CopyVSCodeExample": "Copy VS Code configuration",
-      "VSCodeSetup": "In VS Code, run Chat: Manage Language Models and add or edit a Custom Endpoint using Chat Completions. Merge the fragment below into the matching model entry in the models array of chatLanguageModels.json. Keep your API key reference and set maxInputTokens and maxOutputTokens to the model’s actual limits.",
+      "VSCodeSetup": "Copy the complete JSON below into chatLanguageModels.json, then replace YOUR_API_KEY with an external API key created on this page. The URL and full model ID follow the selection above. If MODEL_ID remains, replace it with a model ID you have permission to call. The 256000 input / 16000 output token limits are example values; adjust them to the model’s actual limits. If the file already contains providers, add this provider object to the existing array and preserve their API key references.",
       "VSCodeThinkingHint": "To add a thinking menu, select Enabled or Disabled above before copying. Use this only for models supporting a thinking on/off switch. In the VS Code model menu, choose none to disable thinking or high to enable it; the menu controls the actual mode.",
       "SearchModels": "Search models",
       "SearchModelsPlaceholder": "Model ID, provider, or model name",

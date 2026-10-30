@@ -7362,7 +7362,7 @@
       "NoCallableExample": "当前没有可调用的模型，请先获取模型访问权限。",
       "VSCodeExample": "VS Code 配置示例",
       "CopyVSCodeExample": "复制 VS Code 配置",
-      "VSCodeSetup": "在 VS Code 运行 Chat: Manage Language Models，添加或编辑使用 Chat Completions 的 Custom Endpoint。将下方片段合并到 chatLanguageModels.json 的 models 数组中对应的模型项。保留 API Key 引用，并按模型实际限制设置 maxInputTokens 和 maxOutputTokens。",
+      "VSCodeSetup": "复制下方完整 JSON 到 chatLanguageModels.json，将 YOUR_API_KEY 替换为本页创建的外部 API Key。地址和完整模型 ID 随上方选择自动填入。若仍显示 MODEL_ID，请替换为你有权调用的完整模型 ID。输入 256000 / 输出 16000 Token 是示例值，请按模型实际限制调整。若文件已有其他供应商，请将本示例的供应商对象追加到现有数组，并保留原有 API Key 引用。",
       "VSCodeThinkingHint": "需要思考菜单时，上方选择“开启”或“关闭”后再复制，仅适用于支持思考开关的模型。在 VS Code 模型菜单中选择 none 关闭、high 开启，实际模式由 VS Code 菜单决定。",
       "SearchModels": "搜索模型",
       "SearchModelsPlaceholder": "模型 ID、提供商或模型名称",
