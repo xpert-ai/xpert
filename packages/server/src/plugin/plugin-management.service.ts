@@ -4,6 +4,14 @@
  * - Register HTTP routes and strategies only after the module is loaded into Nest.
  * - Preserve tenant/organization scope and existing plugin lifecycle semantics during install and refresh.
  */
+import { randomUUID } from 'node:crypto'
+import { rm } from 'node:fs/promises'
+import type { PluginStoreLease } from './installation/plugin-store-lock'
+import {
+	publishCommittedPlugin,
+	replayPluginPublications,
+	PluginRuntimePublication
+} from './installation/plugin-publication'
 import { registerInstalledPluginStrategies } from './plugin-strategy-registration'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
@@ -32,7 +40,11 @@ import { requiresPluginRestart } from './plugin-runtime-policy'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
-import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
+import {
+	getOrganizationPluginPath,
+	getOrganizationPluginRoot,
+	withOrganizationPluginStoreLock
+} from './organization-plugin.store'
 import { canManageSystemPlugins, canManageTenantPlugins } from './plugin-update.utils'
 import {
 	assertInstalledPluginSdkCompatibility,
@@ -132,7 +144,7 @@ export class PluginManagementService {
 	}
 
 	private createCodeRuntimePluginName(pluginName: string) {
-		const runtimeId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+		const runtimeId = randomUUID()
 		return `${normalizePluginName(pluginName)}@runtime__${runtimeId}`
 	}
 
@@ -217,6 +229,19 @@ export class PluginManagementService {
 		body: PluginInstallInput,
 		options: { allowPackageDir?: boolean; deferActivation?: boolean; requiredLevel?: PluginLevel } = {}
 	): Promise<PluginInstallResult> {
+		return withOrganizationPluginStoreLock({}, async (lease) => {
+			if (!(await replayPluginPublications(this.pluginInstanceService, this.runtimeControl, lease))) {
+				throw new BadRequestException(t('server:Error.PluginPublicationPending'))
+			}
+			return this.installPluginUnderLease(body, options, lease)
+		})
+	}
+
+	private async installPluginUnderLease(
+		body: PluginInstallInput,
+		options: { allowPackageDir?: boolean; deferActivation?: boolean; requiredLevel?: PluginLevel },
+		lease: PluginStoreLease
+	): Promise<PluginInstallResult> {
 		if (!body?.pluginName) {
 			throw new BadRequestException(t('server:Error.PluginPackageNameRequired'))
 		}
@@ -264,7 +289,11 @@ export class PluginManagementService {
 		}
 		let allowSystemPlugins = canManageSystemPlugins(targetOrganizationId, defaultTenantId)
 		let shouldPersistFailureState = false
-		let shouldCleanupPlugin = false
+		let publicationAttempted = false
+		let replacing = false
+		let runtimeRefreshStarted = false
+		let candidatePath: string | undefined
+		const publicationId = randomUUID()
 		let persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 
 		try {
@@ -371,17 +400,20 @@ export class PluginManagementService {
 				allowSystemPlugins = false
 			}
 
+			replacing = Boolean(
+				await this.pluginInstanceService.findOneByPluginName(
+					packageName,
+					targetOrganizationId,
+					targetTenantId,
+					scope.scopeKey
+				)
+			)
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
-			const runtimePluginName =
-				source === 'code' ? this.createCodeRuntimePluginName(packageName) : packageNameWithVersion
-			if (source === 'code' && getCodeRuntimeName(sourceConfig) !== runtimePluginName) {
-				sourceConfig = {
-					...sourceConfig,
-					runtimeName: runtimePluginName
-				}
-			}
+			const runtimePluginName = this.createCodeRuntimePluginName(packageName)
+			sourceConfig = { ...sourceConfig, runtimeName: runtimePluginName, immutableRuntime: true }
 			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
+			candidatePath = getOrganizationPluginPath(targetOrganizationId, runtimePluginName, scopeStoreOptions)
 
 			const existingRuntime = this.loadedPlugins.find(
 				(item) =>
@@ -408,7 +440,7 @@ export class PluginManagementService {
 						plugins: [
 							{
 								name: source === 'code' ? packageName : packageNameWithVersion,
-								runtimeName: source === 'code' ? runtimePluginName : undefined,
+								runtimeName: runtimePluginName,
 								source,
 								level,
 								sourceConfig
@@ -478,6 +510,17 @@ export class PluginManagementService {
 					(existingRestartRequiredPlugin
 						? this.pluginInstanceService.getConfig(existingRestartRequiredPlugin)
 						: {})
+				const stagedVersion = stagedCompatibility.version ?? body.version
+				const stagedRuntimeRevision = source === 'code' ? `runtime:${runtimePluginName}` : undefined
+				const publication: PluginRuntimePublication = {
+					publicationId,
+					scopeKey: scope.scopeKey,
+					pluginName: normalizePluginName(packageName),
+					version: stagedVersion,
+					runtimeRevision: stagedRuntimeRevision
+				}
+				await lease.assertOwned()
+				publicationAttempted = true
 				await this.pluginInstanceService.upsert(
 					{
 						tenantId: targetTenantId,
@@ -488,6 +531,7 @@ export class PluginManagementService {
 						version: stagedCompatibility.version ?? body.version,
 						meta: stagedMeta,
 						pendingRestart: true,
+						runtimePublication: options.deferActivation ? null : publication,
 						source,
 						sourceConfig: persistedSourceConfig,
 						level,
@@ -495,19 +539,14 @@ export class PluginManagementService {
 						configurationStatus: existingRestartRequiredPlugin?.configurationStatus ?? null,
 						configurationError: existingRestartRequiredPlugin?.configurationError ?? null
 					},
-					{ syncLoadedConfig: false }
+					{ syncLoadedConfig: false, publicationLease: lease }
 				)
+				this.logger.log(`Plugin installation committed: ${publicationId} ${scope.scopeKey} ${packageName}`)
 				clearPluginLoadFailure(scope.scopeKey, packageName, packageName)
-				const stagedVersion = stagedCompatibility.version ?? body.version
-				const stagedRuntimeRevision = source === 'code' ? `runtime:${runtimePluginName}` : undefined
 				const convergence = options.deferActivation
 					? { scheduled: false, generation: 0 }
-					: await this.runtimeControl.recordPluginRuntimeChange({
-							pluginName: normalizePluginName(packageName),
-							version: stagedVersion,
-							runtimeRevision: stagedRuntimeRevision,
-							scopeKey: scope.scopeKey
-						})
+					: await publishCommittedPlugin(this.pluginInstanceService, this.runtimeControl, publication, lease)
+
 				this.logger.log(
 					`Staged ${level}-level plugin ${packageName}@${stagedVersion ?? 'latest'} in ${scope.scopeKey}; ${
 						convergence.scheduled
@@ -547,7 +586,7 @@ export class PluginManagementService {
 						plugins: [
 							{
 								name: source === 'code' ? packageName : packageNameWithVersion,
-								runtimeName: source === 'code' ? runtimePluginName : undefined,
+								runtimeName: runtimePluginName,
 								source,
 								level,
 								sourceConfig
@@ -598,16 +637,10 @@ export class PluginManagementService {
 				})
 			}
 
-			await this.uninstaller.uninstallByPackageNameWithGuard(
-				targetTenantId,
-				targetOrganizationId,
-				packageName,
-				allowSystemPlugins,
-				scope.scopeKey,
-				'refresh'
-			)
-			shouldCleanupPlugin = true
-			shouldPersistFailureState = true
+			await lease.assertOwned()
+			runtimeRefreshStarted = true
+			this.pluginInstanceService.detachRuntime(scope.scopeKey, [packageName])
+			shouldPersistFailureState = !replacing
 
 			const { modules, errors } = await registerPluginsAsync(
 				{
@@ -619,7 +652,7 @@ export class PluginManagementService {
 					plugins: [
 						{
 							name: source === 'code' ? packageName : packageNameWithVersion,
-							runtimeName: source === 'code' ? runtimePluginName : undefined,
+							runtimeName: runtimePluginName,
 							source,
 							level,
 							sourceConfig
@@ -649,7 +682,8 @@ export class PluginManagementService {
 			const plugin = await loadPlugin(packageName, {
 				basedir: pluginBaseDir,
 				source,
-				workspacePath
+				workspacePath,
+				codeLoadMode: source === 'code' ? 'staged-package' : undefined
 			})
 			const declaredSystemLevel = plugin.meta?.level === PLUGIN_LEVEL.SYSTEM
 			const resolvedLevel = declaredSystemLevel ? PLUGIN_LEVEL.SYSTEM : resolvePluginLevel(plugin.meta?.level)
@@ -758,31 +792,41 @@ export class PluginManagementService {
 				)
 			}
 
-			await this.pluginInstanceService.upsert({
-				tenantId: targetTenantId,
-				organizationId: targetOrganizationId,
+			const runtimeRevision = resolvePluginRuntimeRevision({ source, sourceConfig, baseDir: pluginBaseDir })
+			const publication: PluginRuntimePublication = {
+				publicationId,
 				scopeKey: scope.scopeKey,
 				pluginName,
-				packageName,
 				version: plugin.meta?.version,
-				meta: plugin.meta,
-				pendingRestart: false,
-				source,
-				sourceConfig: persistedSourceConfig,
-				level: resolvedLevel,
-				config: configInspection.config,
-				configurationStatus: configInspection.error
-					? PLUGIN_CONFIGURATION_STATUS.INVALID
-					: PLUGIN_CONFIGURATION_STATUS.VALID,
-				configurationError: configInspection.error ?? null
-			})
+				runtimeRevision
+			}
+			await lease.assertOwned()
+			publicationAttempted = true
+			await this.pluginInstanceService.upsert(
+				{
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
+					scopeKey: scope.scopeKey,
+					pluginName,
+					packageName,
+					version: plugin.meta?.version,
+					meta: plugin.meta,
+					pendingRestart: false,
+					runtimePublication: options.deferActivation ? null : publication,
+					source,
+					sourceConfig: persistedSourceConfig,
+					level: resolvedLevel,
+					config: configInspection.config,
+					configurationStatus: configInspection.error
+						? PLUGIN_CONFIGURATION_STATUS.INVALID
+						: PLUGIN_CONFIGURATION_STATUS.VALID,
+					configurationError: configInspection.error ?? null
+				},
+				{ publicationLease: lease }
+			)
+			this.logger.log(`Plugin installation committed: ${publicationId} ${scope.scopeKey} ${packageName}`)
 			clearPluginLoadFailure(scope.scopeKey, pluginName, packageName)
 			await this.runtimeState.report()
-			const runtimeRevision = resolvePluginRuntimeRevision({
-				source,
-				sourceConfig,
-				baseDir: pluginBaseDir
-			})
 			const runtimeRequirement = {
 				scopeKey: scope.scopeKey,
 				pluginName,
@@ -792,12 +836,7 @@ export class PluginManagementService {
 			}
 			const convergence = options.deferActivation
 				? { scheduled: false, generation: 0 }
-				: await this.runtimeControl.recordPluginRuntimeChange({
-						pluginName,
-						version: plugin.meta?.version,
-						runtimeRevision,
-						scopeKey: scope.scopeKey
-					})
+				: await publishCommittedPlugin(this.pluginInstanceService, this.runtimeControl, publication, lease)
 
 			return {
 				success: true,
@@ -811,28 +850,23 @@ export class PluginManagementService {
 					: { restartRequired: true })
 			}
 		} catch (error) {
-			let errorMessage = getErrorMessage(error)
+			const errorMessage = getErrorMessage(error)
 			this.logger.error(`Failed to install plugin ${body.pluginName}`, error)
 
-			if (shouldCleanupPlugin) {
+			// Only discard this operation's private candidate. Never remove a committed version.
+			if (!publicationAttempted && candidatePath) {
 				try {
-					await this.pluginInstanceService.removePlugins(targetOrganizationId, [packageName], {
-						tenantId: targetTenantId,
-						defaultTenantId,
-						scopeKey: scope.scopeKey
-					})
-				} catch (cleanupError) {
-					errorMessage += `;\n\nadditionally failed to clean up plugin after installation failure: ${getErrorMessage(cleanupError)}`
-					this.logger.error(
-						`Failed to clean up plugin ${body.pluginName} after installation failure`,
-						cleanupError
-					)
+					await lease.assertOwned()
+					await rm(candidatePath, { recursive: true, force: true })
+				} catch {
+					this.logger.warn(`Candidate cleanup deferred for publication ${publicationId}`)
 				}
 			}
 
-			if (shouldPersistFailureState) {
+			if (!publicationAttempted && shouldPersistFailureState) {
 				const failedPluginName = normalizePluginName(packageName)
 				try {
+					await lease.assertOwned()
 					await this.pluginInstanceService.upsert({
 						tenantId: targetTenantId,
 						organizationId: targetOrganizationId,
@@ -861,6 +895,21 @@ export class PluginManagementService {
 					packageName: failedPluginName,
 					error: errorMessage
 				})
+			}
+
+			if (replacing && runtimeRefreshStarted && !publicationAttempted) {
+				// Preserve the recoverable row, but never advertise a partially replaced live runtime as healthy.
+				upsertPluginLoadFailure({
+					tenantId: targetTenantId,
+					organizationId: targetOrganizationId,
+					scopeKey: scope.scopeKey,
+					pluginName: packageName,
+					packageName,
+					error: errorMessage
+				})
+				await this.runtimeState
+					.report()
+					.catch(() => this.logger.warn(`Runtime failure report pending: ${publicationId}`))
 			}
 
 			throw new BadRequestException(

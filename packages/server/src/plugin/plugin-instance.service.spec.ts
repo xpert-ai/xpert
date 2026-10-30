@@ -139,6 +139,20 @@ describe('PluginInstanceService', () => {
 		service = new PluginInstanceService(repo as any, loadedPlugins, strategyBus as any)
 	})
 
+	it('refresh detaches runtime without deleting the startup registration, manifest or any version directories', async () => {
+		await service.uninstall('tenant-1', 'org-1', ['@test/plugin'], { scopeKey: 'org-1', cause: 'refresh' })
+		expect(repo.delete).not.toHaveBeenCalled()
+		expect(rm).not.toHaveBeenCalled()
+		expect(removeOrganizationManifestPlugins).not.toHaveBeenCalled()
+		expect(strategyBus.remove).toHaveBeenCalledWith('org-1', '@test/plugin', 'refresh')
+	})
+
+	it('resolves a tenant-global refresh instead of detaching Default-tenant strategies', async () => {
+		await service.uninstall('tenant-1', '__global__', ['@test/plugin'], { cause: 'refresh' })
+		expect(strategyBus.remove).toHaveBeenCalledWith('tenant:tenant-1:global', '@test/plugin', 'refresh')
+		expect(repo.delete).not.toHaveBeenCalled()
+	})
+
 	it('deletes global plugin records using the explicit global scope', async () => {
 		const removePluginsSpy = jest.spyOn(service, 'removePlugins').mockResolvedValue(undefined)
 

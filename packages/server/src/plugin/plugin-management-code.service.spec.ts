@@ -127,7 +127,8 @@ describe('PluginManagementService', () => {
 						source: 'code',
 						sourceConfig: {
 							workspacePath: '/tmp/workspaces/plugin-code-demo',
-							runtimeName
+							runtimeName,
+							immutableRuntime: true
 						}
 					})
 				]
@@ -146,6 +147,7 @@ describe('PluginManagementService', () => {
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
 			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
 			source: 'code',
+			codeLoadMode: 'staged-package',
 			workspacePath: '/tmp/workspaces/plugin-code-demo'
 		})
 		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
@@ -162,11 +164,16 @@ describe('PluginManagementService', () => {
 				source: 'code',
 				sourceConfig: {
 					workspacePath: '/tmp/workspaces/plugin-code-demo',
-					runtimeName
+					runtimeName,
+					immutableRuntime: true
 				}
+			}),
+			expect.objectContaining({
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
 			})
 		)
 		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
+			publicationId: expect.any(String),
 			pluginName: '@xpert-ai/plugin-code-demo',
 			version: '1.0.0',
 			runtimeRevision: `runtime:${runtimeName}`,
@@ -241,6 +248,7 @@ describe('PluginManagementService', () => {
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-uploaded-demo', {
 			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
 			source: 'code',
+			codeLoadMode: 'staged-package',
 			workspacePath: undefined
 		})
 		const upsertInput = pluginInstanceService.upsert.mock.calls.at(-1)[0]

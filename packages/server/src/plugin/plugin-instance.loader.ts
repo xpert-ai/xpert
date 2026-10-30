@@ -34,6 +34,7 @@ export interface OrganizationPluginConfig {
 	scopeKey?: string
 	plugins: {
 		name: string
+		restore?: boolean
 		runtimeName?: string
 		version?: string
 		source?: string
@@ -189,7 +190,7 @@ export function buildOrganizationPluginConfigs(
 			configs: {}
 		}
 		const packageName = instance.packageName || instance.pluginName
-		const runtimeName = instance.source === 'code' ? getCodeRuntimeName(instance.sourceConfig ?? null) : undefined
+		const runtimeName = getCodeRuntimeName(instance.sourceConfig ?? null)
 		const name =
 			instance.source === 'code'
 				? packageName
@@ -198,6 +199,7 @@ export function buildOrganizationPluginConfigs(
 					: packageName
 		record.plugins.push({
 			name,
+			...(instance.sourceConfig?.immutableRuntime ? { restore: true } : {}),
 			...(runtimeName ? { runtimeName } : {}),
 			version: instance.version,
 			source: instance.source,
