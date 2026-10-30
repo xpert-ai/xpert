@@ -39,7 +39,6 @@ export interface AgentChatDispatchPayload extends Record<string, unknown> {
       isDerivedThread?: boolean
       xpertId?: string
       isDraft?: boolean
-      from?: string
       fromEndUserId?: string
       runtimePrincipal?: AgentChatRuntimePrincipal
       /** Host-resolved provenance and presentation; never grants routing or execution privileges. */

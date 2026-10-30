@@ -1,3 +1,4 @@
+import { withOrganizationPluginStoreLock } from '../organization-plugin.store'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { IPluginUninstallResult, IRuntimePluginRequirement, PLUGIN_LEVEL } from '@xpert-ai/contracts'
 import {
@@ -29,6 +30,17 @@ export class PluginUninstallService {
 	) {}
 
 	async uninstallByNamesWithGuard(
+		names: string[],
+		targetOrganizationId?: string,
+		targetScopeKey?: string
+	): Promise<Omit<IPluginUninstallResult, 'success'>> {
+		return withOrganizationPluginStoreLock({}, async (lease) => {
+			await lease.assertOwned()
+			return this.uninstallUnderLease(names, targetOrganizationId, targetScopeKey)
+		})
+	}
+
+	private async uninstallUnderLease(
 		names: string[],
 		targetOrganizationId?: string,
 		targetScopeKey?: string

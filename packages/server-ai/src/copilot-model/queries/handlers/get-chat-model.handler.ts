@@ -110,7 +110,10 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             ...copilotModel,
             options: resolveModelParameterOptions(copilotModel.options, parameterRules)
         }
-        copilotModel.options = resolvedCopilotModel.options
+        // Keep explicit unset markers on the reusable configuration, never on the provider request.
+        copilotModel.options = resolveModelParameterOptions(copilotModel.options, parameterRules, {
+            preserveUnset: true
+        })
         const resolveUsagePricingSnapshot = async (context: ModelUsagePricingContext) =>
             modelProvider
                 .getModelManager(copilotModel.modelType)

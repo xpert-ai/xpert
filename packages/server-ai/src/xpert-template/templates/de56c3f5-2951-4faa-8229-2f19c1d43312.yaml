@@ -110,7 +110,6 @@ team:
         disableOutputs:
             - Agent_CYJNRAoy1L
         recursionLimit: 50
-        maxConcurrency: 10
     memory: null
     summarize: null
     version: '1'

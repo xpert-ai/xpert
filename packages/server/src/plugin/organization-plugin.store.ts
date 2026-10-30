@@ -33,6 +33,9 @@ export interface OrganizationPluginStoreOptions {
 }
 
 export interface InstallOrganizationPluginsOptions extends OrganizationPluginStoreOptions {
+	runtimeName?: string
+	/** Immutable runtime directories are selected by the committed database row, never legacy discovery. */
+	publishManifest?: boolean
 	/** npm registry override when installing plugins */
 	registry?: string
 	/** Whether to pass --legacy-peer-deps, default true to match existing behaviour */
@@ -819,12 +822,13 @@ export async function installOrganizationPlugins(
 		await fs.promises.mkdir(root, { recursive: true })
 		for (const plugin of plugins) {
 			await installRegistryArtifact({
-				pluginDir: getOrganizationPluginPath(organizationId, plugin, opts),
+				pluginDir: getOrganizationPluginPath(organizationId, opts.runtimeName ?? plugin, opts),
 				plugin,
 				registry: opts.registry,
 				legacyPeerDeps: opts.legacyPeerDeps,
 				lease
 			})
+			if (opts.publishManifest === false) continue
 			await updatePluginManifest(
 				getOrganizationManifestPath(organizationId, opts),
 				(current) => [...current, plugin],

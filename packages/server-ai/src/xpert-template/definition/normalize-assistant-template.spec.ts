@@ -3,7 +3,7 @@ import { summarizeAssistantDefinition } from './assistant-capability-structure'
 import { stringify } from 'yaml'
 import { instanceToPlain } from 'class-transformer'
 import { XpertDraftDslDTO } from '../../xpert/dto'
-import { templateManifestSchema } from '@xpert-ai/contracts'
+import { normalizeXpertAgentConfig, templateManifestSchema, type TXpertAgentConfig } from '@xpert-ai/contracts'
 jest.mock('yaml', () => {
     const actual = jest.requireActual<typeof import('yaml')>('yaml')
     return { ...actual, stringify: jest.fn(actual.stringify) }
@@ -43,6 +43,25 @@ const metadata = {
 
 describe('portable Assistant definition', () => {
     afterEach(() => jest.clearAllMocks())
+    it.each([
+        { source: 'plugin', pluginName: '@test/legacy-plugin' },
+        { source: 'external', pluginName: undefined }
+    ])(
+        'accepts deprecated concurrency from $source templates and ignores it in execution settings',
+        ({ pluginName }) => {
+            const agentConfig: TXpertAgentConfig = { maxConcurrency: 1, recursionLimit: 40, timeout: 120000 }
+            const normalized = normalizeAssistantTemplate({
+                pluginName,
+                export_data: stringify({ ...graph, team: { ...graph.team, agentConfig } })
+            })
+            expect(normalizeXpertAgentConfig(normalized.definition.team.agentConfig)).toEqual({
+                recursionLimit: 40,
+                timeout: 120000
+            })
+            expect(agentConfig.maxConcurrency).toBe(1)
+        }
+    )
+
     it('normalizes the same definition and metadata without serializing until an export is requested', () => {
         const input = { export_data: JSON.stringify({ ...graph, template: metadata }) }
         const normalizeOnly = normalizeAssistantTemplateDefinition(input)

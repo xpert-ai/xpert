@@ -650,7 +650,6 @@
       "SpeechToTextTip": "Convert voice input into text using the selected recognition model.",
       "SpeechError": "Select a model for each enabled speech feature.",
       "ExecutionLimits": "Execution limits",
-      "ConcurrencyTip": "Maximum parallel calls, from 1 to 100. Leave empty to use the runtime default.",
       "Automatic": "Automatic",
       "RecursionTip": "Maximum recursive steps per execution. Enter an integer from {{min}} to {{max}}.",
       "RecursionRangeError": "Enter an integer from {{min}} to {{max}}.",
@@ -2079,6 +2078,13 @@
       "BackToMarketplace": "Back to marketplace",
       "LoadingPluginDetails": "Loading plugin details...",
       "LoadPluginDetailsFailed": "Failed to load plugin details",
+      "DetailUnavailableTitle": "Plugin details unavailable",
+      "DetailUnavailableExplanation": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
+      "DetailSourceUnavailable": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
+      "DetailSignInRequired": "Sign in again to view plugin details.",
+      "DetailAccessDenied": "You do not have permission to view these plugin details. Contact your administrator to confirm your access.",
+      "DetailLoadFailedExplanation": "Plugin details could not be loaded. Check your connection and try again. If the problem persists, contact your administrator.",
+      "RetryDetails": "Try again",
       "Refresh": "Refresh",
       "InstallPlugin": "Install Plugin",
       "SetupPlugin": "Setup",
@@ -3707,6 +3713,26 @@
       "zh-Hant": "繁体中文"
     },
     "Chat": {
+      "UnsupportedContent": "Unsupported message type: {{type}}",
+      "SyncingState": "Synchronizing state…",
+      "RefreshState": "Refresh state",
+      "FileActivity": {
+        "Changes": "File changes",
+        "Delivered": "Files delivered",
+        "DeliveryFailed": "File delivery failed",
+        "Invalid": "Invalid file activity receipt",
+        "Coverage": {
+          "bounded": "Changes recorded within this operation’s scope",
+          "partial": "Only some changes were recorded",
+          "unavailable": "Change details are unavailable"
+        },
+        "Operation": {
+          "added": "Added",
+          "modified": "Modified",
+          "deleted": "Deleted",
+          "unknown": "Changed"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "Search assistants",
         "AssistantsLoadFailed": "Unable to load assistants",
@@ -4239,6 +4265,7 @@
       }
     },
     "Copilot": {
+      "SavedModelUnavailable": "Saved model is unavailable. Select another model.",
       "CredentialValidation": {
         "Model": "Model or Endpoint ID",
         "ModelType": "Model type",
@@ -4961,6 +4988,17 @@
       "StartedAt": "Started at",
       "QuickStart": "Quick start",
       "CopyExample": "Copy example",
+      "ExampleModel": "Model for this example",
+      "ExampleThinking": "Thinking mode",
+      "ThinkingDefault": "Use model default",
+      "ThinkingEnabled": "Enabled",
+      "ThinkingDisabled": "Disabled",
+      "ExampleModelHint": "Use the full model ID of the selected publication, including any provider prefix. Thinking controls require model support.",
+      "NoCallableExample": "No callable model is available. Obtain model access before copying an example.",
+      "VSCodeExample": "VS Code configuration",
+      "CopyVSCodeExample": "Copy VS Code configuration",
+      "VSCodeSetup": "Copy the complete JSON below into chatLanguageModels.json, then replace YOUR_API_KEY with an external API key created on this page. The URL and full model ID follow the selection above. If MODEL_ID remains, replace it with a model ID you have permission to call. The 256000 input / 16000 output token limits are example values; adjust them to the model’s actual limits. If the file already contains providers, add this provider object to the existing array and preserve their API key references.",
+      "VSCodeThinkingHint": "To add a thinking menu, select Enabled or Disabled above before copying. Use this only for models supporting a thinking on/off switch. In the VS Code model menu, choose none to disable thinking or high to enable it; the menu controls the actual mode.",
       "SearchModels": "Search models",
       "SearchModelsPlaceholder": "Model ID, provider, or model name",
       "NoMatchingModels": "No models match your search.",
@@ -4989,6 +5027,9 @@
       "CreateDraft": "Create draft",
       "Configuration": "Configuration",
       "RequestLimits": "Request limits",
+      "ExternalApiBaseUrl": "External API Base URL",
+      "ExternalApiBaseUrlHint": "Use the full base URL, including /api/openai/v1. The user guide and curl/VS Code examples will use this address. Leave empty to use the current website address.",
+      "ExternalApiBaseUrlError": "Enter an HTTP(S) base URL without credentials, a query string or a fragment (maximum 2048 characters).",
       "RequestLimitsHint": "Limits apply to all API keys owned by the same user. Requests over the limit receive 429 and are not queued.",
       "RequestsPerMinute": "Requests per minute",
       "RequestsPerMinuteError": "Enter an integer from 1 to 10000",
@@ -6322,7 +6363,6 @@
       "LongTermMemoryTypeEnum": {
         "UserProfile": "User profile"
       },
-      "MaxConcurrency": "Maximum concurrent requests",
       "Name": "Name",
       "NoSandboxProvider": "No sandbox providers available",
       "NoWorkbenchViews": "No extension views are currently available for this digital expert.",

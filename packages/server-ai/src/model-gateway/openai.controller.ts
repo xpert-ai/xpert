@@ -111,7 +111,10 @@ export class ModelGatewayOpenAIController {
                         requestBody: body
                     })),
                 createModel: (callback) =>
-                    this.service.createChatModel(callable.publication, callable.resolution, callback),
+                    this.service.createChatModel(callable.publication, callable.resolution, callback, {
+                        enableThinking: parsed.options.enable_thinking,
+                        reasoningEffort: parsed.options.reasoning_effort
+                    }),
                 settle: ({ usage, responseBody, error }) =>
                     this.settleCall({ call, resolution: callable.resolution, usage, responseBody, error })
             }

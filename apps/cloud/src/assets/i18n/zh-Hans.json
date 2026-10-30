@@ -855,7 +855,6 @@
       "SpeechToTextTip": "使用所选识别模型将语音输入转换为文本。",
       "SpeechError": "请为已开启的语音功能选择对应模型。",
       "ExecutionLimits": "执行限制",
-      "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
       "RecursionTip": "单次执行的最大递归步数，可设置为 {{min}}–{{max}} 之间的整数。",
       "RecursionRangeError": "请输入 {{min}}–{{max}} 之间的整数。",
@@ -4615,6 +4614,13 @@
       "BackToMarketplace": "返回插件市场",
       "LoadingPluginDetails": "正在加载插件详情...",
       "LoadPluginDetailsFailed": "插件详情加载失败",
+      "DetailUnavailableTitle": "无法获取插件详情",
+      "DetailUnavailableExplanation": "未找到此软件包或无法访问。它可能是非公开包，或在当前配置的注册源中不可用。请检查包名，或联系管理员确认软件包是否可用及访问权限。",
+      "DetailSourceUnavailable": "无法加载插件市场来源。请重试，或联系管理员检查来源是否可用及访问权限。",
+      "DetailSignInRequired": "请重新登录以查看插件详情。",
+      "DetailAccessDenied": "你没有查看此插件详情的权限。请联系管理员确认访问权限。",
+      "DetailLoadFailedExplanation": "无法加载插件详情。请检查网络连接后重试；如果问题持续存在，请联系管理员。",
+      "RetryDetails": "重试",
       "Refresh": "刷新",
       "SetupPlugin": "初始化",
       "CheckingMcpState": "正在检查 MCP 状态...",
@@ -6476,6 +6482,7 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "SavedModelUnavailable": "已保存的模型不可用，请重新选择模型。",
       "CredentialValidation": {
         "Model": "测试模型或接入点 ID",
         "ModelType": "模型类型",
@@ -7347,6 +7354,17 @@
       "StartedAt": "开始时间",
       "QuickStart": "快速开始",
       "CopyExample": "复制示例",
+      "ExampleModel": "示例使用的模型",
+      "ExampleThinking": "思考模式",
+      "ThinkingDefault": "使用模型默认值",
+      "ThinkingEnabled": "开启",
+      "ThinkingDisabled": "关闭",
+      "ExampleModelHint": "请使用所选发布模型的完整 ID，包括已有的供应商前缀。思考开关需要模型支持。",
+      "NoCallableExample": "当前没有可调用的模型，请先获取模型访问权限。",
+      "VSCodeExample": "VS Code 配置示例",
+      "CopyVSCodeExample": "复制 VS Code 配置",
+      "VSCodeSetup": "复制下方完整 JSON 到 chatLanguageModels.json，将 YOUR_API_KEY 替换为本页创建的外部 API Key。地址和完整模型 ID 随上方选择自动填入。若仍显示 MODEL_ID，请替换为你有权调用的完整模型 ID。输入 256000 / 输出 16000 Token 是示例值，请按模型实际限制调整。若文件已有其他供应商，请将本示例的供应商对象追加到现有数组，并保留原有 API Key 引用。",
+      "VSCodeThinkingHint": "需要思考菜单时，上方选择“开启”或“关闭”后再复制，仅适用于支持思考开关的模型。在 VS Code 模型菜单中选择 none 关闭、high 开启，实际模式由 VS Code 菜单决定。",
       "SearchModels": "搜索模型",
       "SearchModelsPlaceholder": "模型 ID、提供商或模型名称",
       "NoMatchingModels": "没有符合搜索条件的模型。",
@@ -7375,6 +7393,9 @@
       "CreateDraft": "创建草稿",
       "Configuration": "配置",
       "RequestLimits": "请求限制",
+      "ExternalApiBaseUrl": "外部 API Base URL",
+      "ExternalApiBaseUrlHint": "填写包含 /api/openai/v1 的完整基础地址。用户指南、curl 和 VS Code 示例将使用此地址。留空时使用当前网站地址。",
+      "ExternalApiBaseUrlError": "请输入不含用户名、密码、查询参数和片段标识的 HTTP(S) Base URL（最多 2048 个字符）。",
       "RequestLimitsHint": "限制按同一用户拥有的全部 API Key 合并计算。超限请求直接返回 429，不进入排队。",
       "RequestsPerMinute": "每分钟请求数",
       "RequestsPerMinuteError": "请输入 1 到 10000 之间的整数",
@@ -7395,6 +7416,26 @@
       "User": "用户"
     },
     "Chat": {
+      "UnsupportedContent": "暂不支持的消息类型：{{type}}",
+      "SyncingState": "正在同步状态…",
+      "RefreshState": "重新同步状态",
+      "FileActivity": {
+        "Changes": "文件变更",
+        "Delivered": "文件已交付",
+        "DeliveryFailed": "文件交付失败",
+        "Invalid": "文件活动记录无效",
+        "Coverage": {
+          "bounded": "已记录本次操作范围内的变更",
+          "partial": "仅记录了部分变更",
+          "unavailable": "无法获取变更详情"
+        },
+        "Operation": {
+          "added": "新增",
+          "modified": "修改",
+          "deleted": "删除",
+          "unknown": "变更"
+        }
+      },
       "WorkbenchPresentation": {
         "SearchAssistants": "搜索助手",
         "AssistantsLoadFailed": "暂时无法加载助手列表",
@@ -10826,10 +10867,8 @@
       "ParameterSettings": "参数设置",
       "NodeType": "节点类型",
       "Node": "节点",
-      "MaxConcurrencyTip": "控制最大并行调用数",
       "RecursionLimitTip": "限制智能体可以递归的次数",
       "RecursionLimit": "递归次数限制",
-      "MaxConcurrency": "最大并发请求",
       "AgentSettings": "智能体设置",
       "WorkbenchInitialLayout": "首次聊天布局",
       "WorkbenchInitialLayoutTip": "选择用户首次打开此数字专家时使用的布局。用户已保存的个人布局优先级更高。",

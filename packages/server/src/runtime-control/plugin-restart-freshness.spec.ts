@@ -50,6 +50,24 @@ describe.each(redisUrl ? ['fake', 'redis'] : ['fake'])('Plugin restart freshness
 		await client?.quit()
 	})
 
+	it('replays a committed publication without creating another generation or losing other scopes', async () => {
+		const publicationId = 'publication-1264'
+		const intent = { generation: 0, source: 'plugin-change' as const, requirements: [current], publicationId }
+		const generation = await store.publish(intent)
+		const other = { ...current, scopeKey: 'other-org', version: '3' }
+		await store.publish({ ...change([other]), source: 'plugin-change' })
+		// Simulate losing the acknowledgement after Lua committed, then process replacement.
+		const replacement = new PluginRuntimeGenerationStore(redis)
+		expect(await replacement.publish(intent)).toBe(generation)
+		expect(await replacement.readDesired()).toMatchObject({
+			generation: generation + 1,
+			requirements: expect.arrayContaining([current, other])
+		})
+		await expect(replacement.publish({ ...intent, publicationId: 'next-publication' })).resolves.toBe(
+			generation + 2
+		)
+	})
+
 	it.each([
 		{ generation: 1, requirements: [old] },
 		{ generation: 1, requirements: [current] },

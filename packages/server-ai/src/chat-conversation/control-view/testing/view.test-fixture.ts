@@ -11,6 +11,7 @@ import { ChatConversationThread } from '../../conversation-thread.entity'
 import { ChatConversationThreadService } from '../../conversation-thread.service'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { CopilotCheckpoint } from '../../../copilot-checkpoint/copilot-checkpoint.entity'
+import { CopilotCheckpointWrites } from '../../../copilot-checkpoint/writes/writes.entity'
 import { ExecutionControl } from '../../../execution-control/execution-control.entity'
 import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { ExecutionControlEvidenceService } from '../../../execution-control/execution-control-evidence.service'
@@ -76,17 +77,8 @@ export async function viewFixture(url: string) {
                 error: nullable
             }
         }),
-        new EntitySchema<CopilotCheckpoint>({
-            name: 'CopilotCheckpoint',
-            target: CopilotCheckpoint,
-            tableName: 'copilot_checkpoint',
-            columns: {
-                ...scope,
-                thread_id: text,
-                checkpoint_ns: text,
-                checkpoint_id: text
-            }
-        })
+        CopilotCheckpoint,
+        CopilotCheckpointWrites
     ])
     const db = database.db
     const tenant = { tenantId: publication().tenantId, organizationId: publication().organizationId }
@@ -161,7 +153,9 @@ export async function viewFixture(url: string) {
             id: randomUUID(),
             thread_id: threadId,
             checkpoint_ns: '',
-            checkpoint_id: checkpoint.checkpointId
+            checkpoint_id: checkpoint.checkpointId,
+            checkpoint: Buffer.from('{}'),
+            metadata: Buffer.from('{}')
         })
         await control.stageCheckpoint(threadId, executionId, checkpoint)
         await control.finish(threadId, executionId, 'interrupted')

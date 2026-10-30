@@ -279,12 +279,15 @@ describe('PluginMarketplaceService README detail', () => {
 			{} as any
 		)
 		jest.spyOn(service as any, 'findMarketplacePlugin').mockResolvedValue({
-			name: '@xpert-ai/plugin-canvas',
-			packageName: '@xpert-ai/plugin-canvas',
-			displayName: 'Canvas',
-			description: 'Canvas plugin',
-			version: '0.1.0',
-			installed: true
+			sourceUnavailable: false,
+			plugin: {
+				name: '@xpert-ai/plugin-canvas',
+				packageName: '@xpert-ai/plugin-canvas',
+				displayName: 'Canvas',
+				description: 'Canvas plugin',
+				version: '0.1.0',
+				installed: true
+			}
 		})
 	})
 

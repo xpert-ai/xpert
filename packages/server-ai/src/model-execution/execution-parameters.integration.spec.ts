@@ -25,6 +25,7 @@ import { AssistantExecutionPolicyService } from './assistant-execution-policy.se
 import { ModelExecutionChatService } from './execution-chat.service'
 import { ModelExecutionGrantService } from './execution-grant.service'
 import { ModelExecutionNativeController } from './execution-native.controller'
+import { ModelExecutionOpenAIController } from './execution-openai.controller'
 import { ModelExecutionGrant } from './execution.entity'
 import { executionModelsSchema } from './execution-schema'
 
@@ -238,8 +239,18 @@ async function fixture(
             ...options
         })
     }
+    const chatController = new ModelExecutionOpenAIController(grants, chat)
+    const runChat = (options: object = {}) => {
+        const request = Object.assign(new EventEmitter(), { headers: { authorization: `Bearer ${secret}` } })
+        return chatController.chat(request as Request, response as unknown as Response, {
+            model: 'assistant-default',
+            messages: [{ role: 'user', content: 'offline diagnostic' }],
+            ...options
+        })
+    }
     return {
         run,
+        runChat,
         transport,
         clients,
         grant,
@@ -260,6 +271,47 @@ async function fixture(
 
 describe('Assistant selection → grant → Chat bridge → provider serialization', () => {
     afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        ['none', false],
+        ['high', true]
+    ] as const)(
+        'maps reasoning_effort=%s at provider serialization without mutating the grant',
+        async (reasoning_effort, enabled) => {
+            const f = await fixture({ enable_thinking: !enabled })
+            await f.runChat({ reasoning_effort })
+            expect(f.transport.mock.calls.at(-1)?.[0]).toMatchObject({ enable_thinking: enabled })
+            expect(f.transport.mock.calls.at(-1)?.[0]).not.toHaveProperty('reasoning_effort')
+            expect(f.grant.models.find((model) => model.id === f.grant.defaultModelId)?.parameters).toEqual({
+                enable_thinking: !enabled
+            })
+            await f.runChat()
+            expect(f.transport.mock.calls.at(-1)?.[0]).toMatchObject({ enable_thinking: !enabled })
+        }
+    )
+
+    it.each([
+        ['enabled', true],
+        ['disabled', false]
+    ] as const)(
+        'overrides captured thinking with %s through Chat Completions without changing the grant',
+        async (type, enabled) => {
+            const f = await fixture({ enable_thinking: !enabled })
+            await f.runChat({ thinking: { type } })
+            expect(f.transport).toHaveBeenLastCalledWith(
+                expect.objectContaining({ enable_thinking: enabled }),
+                expect.anything()
+            )
+            expect(
+                f.grant.models.find((model) => model.id === f.grant.defaultModelId)?.parameters.enable_thinking
+            ).toBe(!enabled)
+            await f.runChat()
+            expect(f.transport).toHaveBeenLastCalledWith(
+                expect.objectContaining({ enable_thinking: !enabled }),
+                expect.anything()
+            )
+        }
+    )
 
     it('inherits the selected alternative rather than the Assistant default, without credentials', async () => {
         const f = await fixture()
@@ -305,6 +357,16 @@ describe('Assistant selection → grant → Chat bridge → provider serializati
             enable_thinking: false,
             thinking_budget: 2048
         })
+    })
+
+    it('omits cleared optional fields after grant persistence, runtime resolution and request serialization', async () => {
+        const f = await fixture({ temperature: null, top_p: null, max_completion_tokens: null, enable_thinking: false })
+        await f.run()
+        const request = JSON.parse(JSON.stringify(f.transport.mock.calls[0][0]))
+        expect(request).not.toHaveProperty('temperature')
+        expect(request).not.toHaveProperty('top_p')
+        expect(request).not.toHaveProperty('max_tokens')
+        expect(request.enable_thinking).toBe(false)
     })
 
     it('preserves configured false and zero', async () => {

@@ -1,4 +1,4 @@
-import { firstValueFrom, of, throwError } from 'rxjs'
+import { BehaviorSubject, firstValueFrom, of, throwError } from 'rxjs'
 import { loadPreviewConversation } from './preview-conversation'
 
 describe('loadPreviewConversation', () => {
@@ -83,6 +83,23 @@ describe('loadPreviewConversation', () => {
     expect(getThread).toHaveBeenCalledWith('thread-b')
     expect(state.conversation?.messages?.map((message) => message.id)).toEqual(['human-1', 'ai-1'])
     expect(state.conversation?.messages?.[1]?.content).toBe('frozen')
+  })
+
+  it('finishes when organization-scoped readers emit without completing', async () => {
+    const state = await firstValueFrom(
+      loadPreviewConversation(
+        {
+          getOneById: jest.fn(() => new BehaviorSubject({ id: 'conversation-1', threadId: 'thread-1' })),
+          searchMessages: jest.fn(() => new BehaviorSubject({ items: [], total: 0 }))
+        },
+        'conversation-1',
+        'org-1',
+        {
+          getThread: jest.fn(() => new BehaviorSubject({ thread_id: 'thread-1' }))
+        }
+      )
+    )
+    expect(state.conversation?.id).toBe('conversation-1')
   })
 
   it('returns a visible error state when the conversation detail request fails', async () => {

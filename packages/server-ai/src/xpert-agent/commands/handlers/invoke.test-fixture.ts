@@ -102,6 +102,7 @@ export function createInvokeHarness() {
         execute: jest.fn()
     }
     const checkpointSaver = {
+        getTuple: jest.fn().mockResolvedValue(undefined),
         getCopilotCheckpoint: jest.fn().mockResolvedValue({
             checkpoint: null,
             pendingWrites: []

@@ -37,6 +37,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 			.replace(/^_+|_+$/g, '')
 			.toLowerCase()
 	),
+	setDefaultTenantId: jest.fn(),
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
@@ -107,6 +108,8 @@ jest.mock('./plugin-sdk-versioning', () => ({
 }))
 
 jest.mock('./organization-plugin.store', () => ({
+	removeOrganizationManifestPlugins: jest.fn(),
+	withOrganizationPluginStoreLock: jest.fn(),
 	getOrganizationPluginPath: jest.fn((organizationId: string, pluginName: string) => {
 		const sanitizedName = pluginName.replace(/[\/@]/g, '__')
 		return `/tmp/plugins/${organizationId}/${sanitizedName}`
@@ -139,6 +142,7 @@ jest.mock('./plugin-update.utils', () => ({
 }))
 
 jest.mock('./plugin-instance.entity', () => ({
+	PluginInstance: class PluginInstance {},
 	resolvePluginLevel: jest.fn((level?: string) =>
 		level === 'system' || level === 'tenant' ? level : 'organization'
 	),
@@ -171,6 +175,7 @@ const {
 const {
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot,
+	withOrganizationPluginStoreLock,
 	stagePackageDirectoryPlugin
 } = require('./organization-plugin.store')
 const { cleanupExtractedPluginArchive, extractPluginArchive, readPluginPackageJson } = require('./plugin-archive')
@@ -188,6 +193,9 @@ export function setupPluginManagementTests() {
 		findTenantLevelOwner: jest.fn(),
 		getDefaultTenantId: jest.fn(),
 		deactivate: jest.fn(),
+		detachRuntime: jest.fn(),
+		pendingRuntimePublications: jest.fn(),
+		acknowledgeRuntimePublication: jest.fn(),
 		uninstall: jest.fn(),
 		uninstallByPackageName: jest.fn(),
 		removePlugins: jest.fn(),
@@ -235,6 +243,10 @@ export function setupPluginManagementTests() {
 	beforeEach(() => {
 		jest.resetAllMocks()
 		loadedPlugins.length = 0
+		withOrganizationPluginStoreLock.mockImplementation(async (_options, action) =>
+			action({ assertOwned: async () => undefined })
+		)
+		pluginInstanceService.pendingRuntimePublications.mockResolvedValue([])
 		;(derivePluginArtifactNamespace as jest.Mock).mockImplementation((packageName: string) =>
 			packageName
 				.replace(/^@[^/]+\//, '')

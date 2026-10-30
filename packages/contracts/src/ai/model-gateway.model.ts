@@ -41,6 +41,8 @@ export enum ModelGatewayUsageChannelEnum {
 }
 
 export const MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING = 'modelGatewayRequestsPerMinute'
+export const MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING = 'modelGatewayExternalApiBaseUrl'
+export const MAX_MODEL_GATEWAY_EXTERNAL_API_BASE_URL_LENGTH = 2048
 export const DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE = 60
 export const MIN_MODEL_GATEWAY_REQUESTS_PER_MINUTE = 1
 export const MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE = 10000
@@ -93,7 +95,29 @@ export interface IModelGatewaySettings extends IBasePerTenantEntityModel {
   bodyRetentionDays: number
 }
 
-export interface IModelGatewayAdminSettings extends IModelGatewaySettings {
+export interface IModelGatewayClientConfig {
+  externalApiBaseUrl: string | null
+}
+
+/** Client-facing HTTP(S) base URL; an empty value restores the deployment default. */
+export function isModelGatewayExternalApiBaseUrl(value: string): boolean {
+  const candidate = value.trim()
+  if (!candidate) return true
+  if (
+    candidate.length > MAX_MODEL_GATEWAY_EXTERNAL_API_BASE_URL_LENGTH ||
+    !/^https?:\/\//i.test(candidate) ||
+    /[\s\\?#]/.test(candidate)
+  )
+    return false
+  try {
+    const url = new URL(candidate)
+    return !!url.hostname && !url.username && !url.password
+  } catch {
+    return false
+  }
+}
+
+export interface IModelGatewayAdminSettings extends IModelGatewaySettings, IModelGatewayClientConfig {
   requestsPerMinute: number
   maxConcurrentRequests: number
 }
@@ -184,6 +208,7 @@ export type TModelGatewayExternalRequestCreateInput = {
 }
 
 export type TModelGatewaySettingsUpdateInput = {
+  externalApiBaseUrl?: string | null
   storeBodies: boolean
   bodyRetentionDays?: number
   requestsPerMinute: number

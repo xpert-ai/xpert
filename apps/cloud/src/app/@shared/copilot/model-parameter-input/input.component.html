@@ -2,39 +2,44 @@
   @switch (parameter.type) {
     @case (eParameterType.FLOAT) {
       <z-slider
+        [disabledInput]="disabled()"
         class="w-[200px]"
         [min]="parameter.min"
         [max]="parameter.max"
-        [step]="0.1"
+        [step]="numericStep()"
         [showValueLabel]="true"
-        [value]="value$()"
+        [value]="numericValue()"
         (changeEnd)="updateValue($event)"
       ></z-slider>
 
       <input
         z-input
+        [disabled]="disabled()"
         class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
         [max]="parameter.max"
         [min]="parameter.min"
-        [step]="0.1"
+        [step]="numericStep()"
         type="number"
         [ngModel]="value$()"
         (ngModelChange)="updateNumericValue($event, eParameterType.FLOAT)"
-        [ngModelOptions]="{ standalone: true }"
+        [ngModelOptions]="{ standalone: true, updateOn: 'blur' }"
+        (keydown)="$event.key !== 'Escape' && $event.stopPropagation()"
       />
     }
     @case (eParameterType.INT) {
       <z-slider
+        [disabledInput]="disabled()"
         class="w-[200px]"
         [min]="parameter.min"
         [max]="sliderMaximum()"
         [showValueLabel]="true"
-        [value]="value$()"
+        [value]="numericValue()"
         (changeEnd)="updateValue($event)"
       ></z-slider>
 
       <input
         z-input
+        [disabled]="disabled()"
         class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
         [max]="sliderMaximum()"
         [min]="parameter.min"
@@ -42,19 +47,28 @@
         type="number"
         [ngModel]="value$()"
         (ngModelChange)="updateNumericValue($event, eParameterType.INT)"
-        [ngModelOptions]="{ standalone: true }"
+        [ngModelOptions]="{ standalone: true, updateOn: 'blur' }"
+        (keydown)="$event.key !== 'Escape' && $event.stopPropagation()"
       />
     }
 
     @case (eParameterType.BOOLEAN) {
-      <z-switch [(ngModel)]="value$" [ngModelOptions]="{ standalone: true }" zSize="sm" />
+      <z-switch
+        [disabled]="disabled()"
+        [ngModel]="value$()"
+        (ngModelChange)="updateValue($event)"
+        [ngModelOptions]="{ standalone: true }"
+        zSize="sm"
+      />
     }
 
     @default {
       @if (parameter.options) {
         <select
+          [disabled]="disabled()"
           class="xp-input w-36 h-full border-0 pl-3 pr-4 sm:text-sm sm:leading-6 focus-visible:outline-none focus-visible:bg-components-list-option-active-bg group-hover:bg-hover-bg cursor-pointer"
-          [(ngModel)]="value$"
+          [ngModel]="value$()"
+          (ngModelChange)="updateValue($event)"
           [ngModelOptions]="{ standalone: true }"
         >
           @for (option of parameter.options; track option) {
@@ -64,8 +78,10 @@
       } @else {
         <input
           z-input
+          [disabled]="disabled()"
           class="w-full ml-4 flex items-center h-8 text-[13px] text-gra-900"
-          [(ngModel)]="value$"
+          [ngModel]="value$()"
+          (ngModelChange)="updateValue($event)"
           [ngModelOptions]="{ standalone: true }"
         />
       }

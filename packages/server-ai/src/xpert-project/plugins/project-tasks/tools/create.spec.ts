@@ -62,17 +62,7 @@ describe('project_create_tasks', () => {
                 'task',
                 expect.objectContaining({ relationType: 'origin' })
             )
-            expect(dispatch).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.objectContaining({
-                    type: 'resource_card',
-                    data: expect.objectContaining({
-                        resource: { namespace: 'platform.project-tasks', type: 'task', id: 'task' },
-                        title: 'Reconcile expenses'
-                    })
-                }),
-                expect.objectContaining({ configurable: expect.objectContaining({ executionId: 'parent' }) })
-            )
+            expect(dispatch).not.toHaveBeenCalled()
             expect(service.createTask).toHaveBeenCalledTimes(1)
         }
     )

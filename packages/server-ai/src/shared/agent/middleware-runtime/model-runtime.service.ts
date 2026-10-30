@@ -47,13 +47,15 @@ import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createNativeModelBudgetGate } from '../native-model-budget'
 import { resolveAgentExecutionScope } from './execution-scope'
 import { resolveExecutionModelOptions } from '../../../model-execution/execution-model-parameters'
+import { resolveRequestReasoningOptions, type RequestReasoningControls } from './request-reasoning'
 
-export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
-    modelAccessOverride?: IModelAccessResolution
-    expectedExecutionModel?: ModelExecutionModel
-    skipTokenRecord?: boolean
-    purpose?: 'invoke' | 'observe'
-}
+export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions &
+    RequestReasoningControls & {
+        modelAccessOverride?: IModelAccessResolution
+        expectedExecutionModel?: ModelExecutionModel
+        skipTokenRecord?: boolean
+        purpose?: 'invoke' | 'observe'
+    }
 
 const MODEL_PROVIDER_ROLE_PRIORITY = [
     AiProviderRole.Primary,
@@ -167,21 +169,24 @@ export class AgentMiddlewareModelRuntimeService {
             )
         }
 
+        let modelOptions = copilotModel.options
         if (copilotModel.modelType === AiModelTypeEnum.LLM) {
             ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
             const rules =
                 modelProvider
                     .getModelManager(copilotModel.modelType)
                     ?.getParameterRules(modelName, customModels[0]?.modelProperties) ?? []
-            copilotModel.options = expected
-                ? resolveExecutionModelOptions(copilotModel.options, rules)
-                : resolveModelParameterOptions(copilotModel.options, rules)
+            modelOptions = resolveRequestReasoningOptions(copilotModel.options, rules, options)
+            modelOptions = expected
+                ? resolveExecutionModelOptions(modelOptions, rules)
+                : resolveModelParameterOptions(modelOptions, rules)
         }
 
         const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
                 ...copilotModel,
+                options: modelOptions,
                 copilot
             },
             {

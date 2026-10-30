@@ -21,7 +21,9 @@ import {
   ZardCardImports,
   ZardEmptyComponent,
   ZardIconComponent,
+  ZardFormImports,
   ZardSearchInputComponent,
+  ZardSelectImports,
   ZardTableImports,
   ZardTabsImports,
   ZardTooltipImports
@@ -46,6 +48,11 @@ import {
   ModelAccessWithdrawDialogResult
 } from './model-access-withdraw-dialog.component'
 import { getCurrentModelAccessStatus } from '../model-access/model-access-status'
+import {
+  modelGatewayCurlExample,
+  modelGatewayVSCodeExample,
+  ModelGatewayExampleThinking
+} from './model-gateway-examples'
 
 @Component({
   standalone: true,
@@ -63,6 +70,8 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     ZardEmptyComponent,
     ZardIconComponent,
     ZardSearchInputComponent,
+    ...ZardFormImports,
+    ...ZardSelectImports,
     ...ZardCardImports,
     ...ZardTableImports,
     ...ZardTabsImports,
@@ -114,13 +123,40 @@ export class XpAccountModelGatewayComponent implements OnInit {
       [item.externalModelId, item.provider, item.model].some((value) => value.toLowerCase().includes(search))
     )
   })
-  readonly apiBaseUrl = `${this.#document.defaultView?.location.origin ?? ''}${API_PREFIX}/openai/v1`
-  readonly curlExample = computed(() => {
-    const model = this.catalog()?.items.find((item) => item.grant)?.externalModelId ?? 'MODEL_ID'
-    return `curl ${this.apiBaseUrl}/chat/completions \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"Hello"}]}'`
-  })
+  readonly externalApiBaseUrl = signal<string | null>(null)
+  readonly apiBaseUrl = computed(
+    () => this.externalApiBaseUrl() || `${this.#document.defaultView?.location.origin ?? ''}${API_PREFIX}/openai/v1`
+  )
+  readonly exampleModelId = signal<string | null>(null)
+  readonly exampleThinking = signal<ModelGatewayExampleThinking>('default')
+  readonly exampleModels = computed(
+    () => this.catalog()?.items.filter((item) => item.allowed && !item.deprecated) ?? []
+  )
+  readonly exampleModel = computed(
+    () => this.exampleModels().find((item) => item.id === this.exampleModelId()) ?? this.exampleModels()[0] ?? null
+  )
+  readonly curlExample = computed(() =>
+    modelGatewayCurlExample(
+      this.apiBaseUrl(),
+      this.exampleModel()?.externalModelId ?? 'MODEL_ID',
+      this.exampleThinking()
+    )
+  )
+  readonly vsCodeExample = computed(() =>
+    modelGatewayVSCodeExample(this.apiBaseUrl(), this.exampleModel(), this.exampleThinking())
+  )
   readonly requestStatus = ModelAccessRequestStatusEnum
   readonly keyStatus = ModelGatewayApiKeyStatusEnum
+
+  selectExampleModel(value: string | number | Array<string | number>) {
+    if (typeof value === 'string' && this.exampleModels().some((item) => item.id === value)) {
+      this.exampleModelId.set(value)
+    }
+  }
+
+  selectExampleThinking(value: string | number | Array<string | number>) {
+    if (value === 'default' || value === 'enabled' || value === 'disabled') this.exampleThinking.set(value)
+  }
 
   ngOnInit() {
     this.#store
@@ -139,17 +175,19 @@ export class XpAccountModelGatewayComponent implements OnInit {
     this.loadFailed.set(false)
     this.revealedKeys.set(new Set())
     try {
-      const [catalog, requests, grants, keys, calls] = await Promise.all([
+      const [catalog, requests, grants, keys, calls, clientConfig] = await Promise.all([
         firstValueFrom(this.#service.getCatalog()),
         firstValueFrom(this.#service.getMyRequests()),
         firstValueFrom(this.#service.getMyGrants()),
         firstValueFrom(this.#service.getMyKeys()),
-        firstValueFrom(this.#service.getMyCalls(this.callPageSize, this.callPageIndex() * this.callPageSize))
+        firstValueFrom(this.#service.getMyCalls(this.callPageSize, this.callPageIndex() * this.callPageSize)),
+        firstValueFrom(this.#service.getClientConfig())
       ])
       if (loadSequence !== this.#loadSequence) {
         return
       }
       this.catalog.set(catalog)
+      this.externalApiBaseUrl.set(clientConfig.externalApiBaseUrl)
       this.requests.set(requests)
       this.grants.set(grants)
       this.requestPageIndex.update((value) => Math.min(value, this.requestPageCount() - 1))

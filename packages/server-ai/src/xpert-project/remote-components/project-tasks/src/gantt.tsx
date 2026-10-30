@@ -2,7 +2,8 @@ import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } fro
 import { cn } from '@xpert-ai/shadcn-ui'
 import type { ProjectTaskForecast } from '@xpert-ai/contracts'
 import { type ViewProps, groupLabel, useVirtualRows, TASK_ROW_HEIGHT, TASK_HEADER_HEIGHT } from './task-views'
-import { type Scale, timelineDomain, plannedEnd, attemptTimes, isRunning } from './model'
+import { type Attempt, type Scale, timelineDomain, plannedEnd, attemptTimes, isRunning } from './model'
+import { executionSummary } from './execution-summary'
 import { dateTime } from './i18n'
 import { Status, TaskName } from './ui'
 import { useDragScroll } from './drag-scroll'
@@ -223,28 +224,30 @@ export function Gantt(
                                 )
                             const { task } = row,
                                 forecast = forecastsById.get(task.id)
-                            const color =
-                                task.status === 'done'
-                                    ? 'bg-[var(--success)] text-white'
-                                    : task.status === 'blocked'
-                                      ? 'bg-destructive text-white'
-                                      : 'bg-primary text-primary-foreground'
                             const attempts = graph.executions.filter((item) => item.taskId === task.id)
-                            const actuals = attempts.flatMap((item) => {
+                            const actuals = attempts.flatMap<{
+                                key: string
+                                start: string
+                                end: string
+                                attempt: Attempt | null
+                            }>((item) => {
                                 const { start, end } = attemptTimes(item)
                                 return start
                                     ? [
                                           {
                                               key: item.id,
+                                              attempt: item,
                                               start,
                                               end: end ?? (isRunning(item) ? new Date(now).toISOString() : start)
                                           }
                                       ]
                                     : []
                             })
+                            // Legacy task timestamps carry no execution outcome; keep their bar neutral.
                             if (!actuals.length && task.actualStartAt)
                                 actuals.push({
                                     key: task.id,
+                                    attempt: null,
                                     start: task.actualStartAt,
                                     end: task.actualEndAt ?? task.actualStartAt
                                 })
@@ -252,8 +255,15 @@ export function Gantt(
                                 start: string,
                                 end: string | null | undefined,
                                 variant: 'planned' | 'actual' | 'forecast',
-                                key: string
+                                key: string,
+                                attempt?: Attempt | null
                             ) => {
+                                const summary = attempt ? executionSummary(attempt, t) : null
+                                const executionLabel =
+                                    summary && attempt
+                                        ? `${t.attempt} ${attempt.attempt} ${t.execution} · ${summary.label}${summary.businessResult ? ` · ${t.outcome}: ${summary.businessResult}` : ''}`
+                                        : t.unknownStatus
+                                const label = `${task.title} · ${t[variant]}${variant === 'actual' ? ` · ${executionLabel}` : ''}`
                                 const barWidth = Math.max(
                                     task.kind === 'milestone' ? 10 : 5,
                                     end ? x(end) - x(start) : 5
@@ -262,14 +272,18 @@ export function Gantt(
                                     <button
                                         key={key}
                                         onClick={() => select(task)}
-                                        title={`${task.title}\n${t[variant]}: ${dateTime(start, locale)} → ${dateTime(end, locale)}`}
-                                        aria-label={`${task.title} · ${t[variant]}`}
+                                        title={
+                                            variant === 'actual'
+                                                ? `${label}\n${dateTime(start, locale)} → ${dateTime(end, locale)}${attempt?.error ? `\n${attempt.error}` : ''}`
+                                                : `${task.title}\n${t[variant]}: ${dateTime(start, locale)} → ${dateTime(end, locale)}`
+                                        }
+                                        aria-label={label}
                                         className={cn(
                                             'absolute z-10 overflow-hidden rounded text-left text-xs whitespace-nowrap focus-visible:outline-ring',
                                             variant === 'planned'
                                                 ? 'top-[6px] h-[28px] border border-dashed border-muted-foreground/50 bg-muted/60'
                                                 : variant === 'actual'
-                                                  ? `top-[10px] h-[20px] ${color}`
+                                                  ? `top-[10px] h-[20px] text-primary-foreground ${summary?.color ?? 'bg-muted-foreground'}`
                                                   : 'bottom-1 h-1 border-t-2 border-dashed border-primary/50',
                                             task.kind === 'milestone' && 'rounded-none',
                                             variant === 'forecast' && forecast?.critical && 'border-destructive'
@@ -332,7 +346,9 @@ export function Gantt(
                                     <div className="relative" style={{ width }}>
                                         {task.plannedStartAt &&
                                             rangeButton(task.plannedStartAt, plannedEnd(task), 'planned', 'plan')}
-                                        {actuals.map((item) => rangeButton(item.start, item.end, 'actual', item.key))}
+                                        {actuals.map((item) =>
+                                            rangeButton(item.start, item.end, 'actual', item.key, item.attempt)
+                                        )}
                                         {forecast?.startAt &&
                                             rangeButton(forecast.startAt, forecast.endAt, 'forecast', 'forecast')}
                                         {!task.plannedStartAt && !actuals.length && !forecast?.startAt && (
