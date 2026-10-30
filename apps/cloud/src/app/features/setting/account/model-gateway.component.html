@@ -485,8 +485,8 @@
                 <span class="ml-1 text-xs font-normal text-muted-foreground">Base URL</span>
               </h3>
               <div class="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
-                <code class="min-w-0 flex-1 break-all px-1 text-xs leading-relaxed">{{ apiBaseUrl }}</code>
-                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(apiBaseUrl)">
+                <code class="min-w-0 flex-1 break-all px-1 text-xs leading-relaxed">{{ apiBaseUrl() }}</code>
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(apiBaseUrl())">
                   <z-icon zType="copy" />{{ 'XP.ACTIONS.Copy' | translate }}
                 </button>
               </div>

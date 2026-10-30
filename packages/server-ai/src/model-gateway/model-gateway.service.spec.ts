@@ -115,6 +115,9 @@ function createService(options?: {
         transaction: jest.fn(async (callback) => callback(manager))
     }
     const tenantSettingRepository = {
+        findOne: jest.fn(
+            async ({ where }) => options?.tenantSettings?.find((setting) => setting.name === where.name) ?? null
+        ),
         find: jest.fn().mockResolvedValue(options?.tenantSettings ?? []),
         create: jest.fn((setting) => setting),
         save: jest.fn(async (settings) => settings)

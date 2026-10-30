@@ -92,6 +92,7 @@ describe('XpAccountModelGatewayComponent', () => {
         {
           provide: ModelGatewayService,
           useValue: {
+            getClientConfig: jest.fn().mockReturnValue(of({ externalApiBaseUrl: null })),
             getCatalog: jest.fn().mockReturnValue(
               of({
                 items: [available, unavailable],
@@ -208,8 +209,13 @@ const pendingRequest: IModelAccessRequest = {
   createdAt: '2026-10-01T00:00:00Z'
 }
 
-async function setupGatewayView(items: IModelGatewayCatalogItem[] = [], keys: IModelGatewayApiKey[] = []) {
+async function setupGatewayView(
+  items: IModelGatewayCatalogItem[] = [],
+  keys: IModelGatewayApiKey[] = [],
+  externalApiBaseUrl: string | null = null
+) {
   const service = {
+    getClientConfig: jest.fn(() => of({ externalApiBaseUrl })),
     getCatalog: jest.fn(() =>
       of({ items, eligible: true, tenantFeatureEnabled: true, organizationFeatureEnabled: true })
     ),
@@ -284,6 +290,47 @@ function modelRow(host: Element, id: string) {
 
 describe('external API settings interactions', () => {
   afterEach(() => TestBed.resetTestingModule())
+
+  it('shows and copies the configured external URL in the guide and both examples instead of the page origin', async () => {
+    const view = await setupGatewayView(
+      [gatewayItem('xirang/model', { allowed: true })],
+      [],
+      'http://10.0.0.15:8088/api/openai/v1'
+    )
+    view.component.selectedTabIndex.set(4)
+    view.fixture.detectChanges()
+
+    const baseUrl = view.host.querySelector('code')!
+    expect(baseUrl.textContent).toBe('http://10.0.0.15:8088/api/openai/v1')
+    baseUrl.parentElement!.querySelector('button')!.click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith('http://10.0.0.15:8088/api/openai/v1')
+    buttonWithText(view.host, 'XP.ModelGateway.CopyExample').click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(
+      expect.stringContaining("curl 'http://10.0.0.15:8088/api/openai/v1/chat/completions'")
+    )
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0]).url).toBe(
+      'http://10.0.0.15:8088/api/openai/v1/chat/completions'
+    )
+    expect(view.host.textContent).not.toContain('http://localhost')
+    view.fixture.destroy()
+  })
+
+  it('restores the default URL after clearing and hides examples when client settings cannot be loaded', async () => {
+    const view = await setupGatewayView([gatewayItem('model', { allowed: true })], [], 'https://api.example.com/v1')
+    view.component.selectedTabIndex.set(4)
+    view.service.getClientConfig.mockReturnValue(of({ externalApiBaseUrl: null }))
+    await view.component.load()
+    view.fixture.detectChanges()
+    expect(view.host.querySelector('code')!.textContent).toBe('http://localhost/api/openai/v1')
+    expect(JSON.parse(view.component.vsCodeExample()).url).toBe('http://localhost/api/openai/v1/chat/completions')
+    view.service.getClientConfig.mockReturnValue(throwError(() => new Error('unavailable')))
+    await view.component.load()
+    view.fixture.detectChanges()
+    expect(view.host.textContent).toContain('XP.ModelGatewaySettings.LoadFailed')
+    expect(view.host.querySelector('code')).toBeNull()
+    view.fixture.destroy()
+  })
 
   it('copies a VS Code model fragment below curl with the selected publication and optional thinking menu', async () => {
     const plain = gatewayItem('plain', { allowed: true })

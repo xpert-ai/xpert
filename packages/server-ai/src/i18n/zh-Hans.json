@@ -807,6 +807,7 @@
         "ModelUsageQuantityInvalid": "模型用量 \"{{unit}}\" 必须是正数。",
         "ModelUsageGenerationQuantityInvalid": "生成次数必须是正整数。",
         "ModelGatewayKeyLifetimeUnsupported": "不支持该 API Key 有效期。",
+        "ModelGatewayExternalApiBaseUrlInvalid": "请输入不含用户名、密码、查询参数和片段标识的 HTTP(S) Base URL（最多 2048 个字符）。",
         "ModelGatewayBearerRequired": "必须提供 Bearer API Key。",
         "ModelGatewayTenantScopeRequired": "必须在租户范围操作。",
         "ModelGatewayAuthenticatedUserRequired": "需要已登录用户。",

@@ -20,6 +20,16 @@ The same endpoint accepts `reasoning_effort`: `none`, `minimal`, `low`, `medium`
 - If both `thinking` and `reasoning_effort` are supplied, they must agree: `disabled` with `none`, or `enabled` with a non-`none` level. Conflicts, malformed values (including `null`), and unsupported model controls return HTTP 400.
 - Rejections before model invocation record zero usage and do not enter billing. Failures after invocation retain the existing usage/settlement behavior.
 
+## External API address
+
+In tenant scope, an administrator with Model Gateway management permission can set **Model API Gateway → Settings → External API Base URL**. Enter the complete base URL, for example `http://gateway.internal:8088/api/openai/v1`, without `/chat/completions`.
+
+Once saved, Account → External API → Guide displays and copies that address instead of the website's origin. Both curl and VS Code examples append `/chat/completions` to the configured base. Refresh the guide after changing the setting. HTTP and HTTPS are supported; credentials, query strings and fragments are rejected. Leading/trailing whitespace and trailing slashes are removed.
+
+The value applies to the current tenant, including its organization members. An empty value restores the current website origin plus `/api/openai/v1`; older settings updates that omit the field preserve it. Authenticated users read only this client-facing value from `GET /api/model-gateway/client-config`; admin settings retain their existing permission and tenant-scope restrictions. A failed configuration load shows the guide's retry state instead of offering an unconfirmed URL.
+
+This setting advertises an existing reachable endpoint. It does not create a proxy, change browser management API requests, or configure a server listener. The administrator must deploy the intended endpoint separately.
+
 ## VS Code native Custom Endpoint
 
 Account → External API → Guide includes a copyable VS Code model-entry fragment below the curl example. It follows the selected publication and gateway URL. Merge it into the existing model entry, keeping the API key reference and setting token limits to match the model. Tool calling and vision follow the publication's declared capabilities; tool-capable publications without streaming tool support use `streaming: false`. Selecting Enabled or Disabled in the example controls adds the boolean thinking menu configuration below; Default omits it. The actual on/off choice is made in VS Code's menu.

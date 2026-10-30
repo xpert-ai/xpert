@@ -38,6 +38,11 @@ export class ModelGatewayController {
         return this.modelAccessService.getExternalCatalog()
     }
 
+    @Get('client-config')
+    getClientConfig() {
+        return this.service.getClientConfig()
+    }
+
     @Post('requests')
     @UseValidationPipe()
     createRequest(@Body() input: ModelGatewayExternalRequestCreateDto) {
@@ -95,7 +100,7 @@ export class ModelGatewayController {
     @Put('admin/settings')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_GATEWAY_MANAGE)
-    @UseValidationPipe()
+    @UseValidationPipe({ transform: true })
     updateSettings(@Body() input: ModelGatewaySettingsUpdateDto) {
         return this.service.updateSettings(input)
     }

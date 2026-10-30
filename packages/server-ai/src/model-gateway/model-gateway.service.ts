@@ -25,6 +25,8 @@ import {
     ILLMUsage,
     IModelAccessResolution,
     IModelGatewayAdminSettings,
+    IModelGatewayClientConfig,
+    MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING,
     IModelGatewayApiKeyCreated,
     ModelAccessUnavailableReasonEnum,
     ModelGatewayApiKeyLifetimeEnum,
@@ -127,18 +129,27 @@ export class ModelGatewayService {
     ) {}
     async getSettings(): Promise<IModelGatewayAdminSettings> {
         const tenantId = requireTenantScope()
-        const [settings, limits] = await Promise.all([
+        const [settings, limits, externalApiBaseUrl] = await Promise.all([
             this.getOrCreateSettings(tenantId),
-            new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(tenantId)
+            new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(tenantId),
+            this.getExternalApiBaseUrl(tenantId)
         ])
         return {
             ...settings,
-            ...limits
+            ...limits,
+            externalApiBaseUrl
         }
     }
     async updateSettings(input: TModelGatewaySettingsUpdateInput): Promise<IModelGatewayAdminSettings> {
         const tenantId = requireTenantScope()
         const settings = await this.getOrCreateSettings(tenantId)
+        if (input.externalApiBaseUrl !== undefined) {
+            const where = { tenantId, name: MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING }
+            const setting =
+                (await this.tenantSettingRepository.findOne({ where })) ?? this.tenantSettingRepository.create(where)
+            setting.value = input.externalApiBaseUrl ?? ''
+            await this.tenantSettingRepository.save(setting)
+        }
         settings.storeBodies = input.storeBodies
         settings.bodyRetentionDays = input.bodyRetentionDays ?? settings.bodyRetentionDays
         const [saved] = await Promise.all([
@@ -147,10 +158,23 @@ export class ModelGatewayService {
         ])
         return {
             ...saved,
+            externalApiBaseUrl: await this.getExternalApiBaseUrl(tenantId),
             requestsPerMinute: input.requestsPerMinute,
             maxConcurrentRequests: input.maxConcurrentRequests
         }
     }
+    async getClientConfig(): Promise<IModelGatewayClientConfig> {
+        requireUserId()
+        return { externalApiBaseUrl: await this.getExternalApiBaseUrl(currentScope().tenantId) }
+    }
+
+    private async getExternalApiBaseUrl(tenantId: string): Promise<string | null> {
+        const setting = await this.tenantSettingRepository.findOne({
+            where: { tenantId, name: MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING }
+        })
+        return setting?.value || null
+    }
+
     async listMyKeys() {
         const scope = currentScope()
         const userId = requireUserId()

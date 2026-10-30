@@ -807,6 +807,7 @@
         "ModelUsageQuantityInvalid": "Model usage quantity for \"{{unit}}\" must be positive.",
         "ModelUsageGenerationQuantityInvalid": "Generation quantity must be a positive integer.",
         "ModelGatewayKeyLifetimeUnsupported": "Unsupported API key lifetime.",
+        "ModelGatewayExternalApiBaseUrlInvalid": "Enter an HTTP(S) base URL without credentials, a query string or a fragment (maximum 2048 characters).",
         "ModelGatewayBearerRequired": "A Bearer API key is required.",
         "ModelGatewayTenantScopeRequired": "Tenant scope is required.",
         "ModelGatewayAuthenticatedUserRequired": "Authenticated user is required.",

@@ -275,6 +275,32 @@
         @case ('settings') {
           <form class="flex w-full max-w-3xl flex-col gap-6" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
             <section class="space-y-4 border-b border-border pb-6">
+              <z-form-field appearance="fill" class="w-full">
+                <label z-form-label for="settings-externalApiBaseUrl">
+                  {{ 'XP.ModelGateway.ExternalApiBaseUrl' | translate }}
+                </label>
+                <input
+                  z-input
+                  type="url"
+                  id="settings-externalApiBaseUrl"
+                  formControlName="externalApiBaseUrl"
+                  [maxlength]="maxExternalApiBaseUrlLength"
+                  placeholder="https://api.example.com/api/openai/v1"
+                  [zStatus]="externalApiBaseUrlCtrl.invalid && externalApiBaseUrlCtrl.touched ? 'error' : undefined"
+                  aria-describedby="settings-externalApiBaseUrl-hint"
+                />
+                @if (externalApiBaseUrlCtrl.invalid && externalApiBaseUrlCtrl.touched) {
+                  <z-form-message zType="error">{{
+                    'XP.ModelGateway.ExternalApiBaseUrlError' | translate
+                  }}</z-form-message>
+                }
+              </z-form-field>
+              <p id="settings-externalApiBaseUrl-hint" class="text-sm text-muted-foreground">
+                {{ 'XP.ModelGateway.ExternalApiBaseUrlHint' | translate }}
+              </p>
+            </section>
+
+            <section class="space-y-4 border-b border-border pb-6">
               <div>
                 <h2 class="font-semibold text-text-primary">
                   {{ 'XP.ModelGateway.RequestLimits' | translate: { Default: 'Request limits' } }}
