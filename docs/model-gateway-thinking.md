@@ -22,6 +22,8 @@ The same endpoint accepts `reasoning_effort`: `none`, `minimal`, `low`, `medium`
 
 ## VS Code native Custom Endpoint
 
+Account → External API → Guide includes a copyable VS Code model-entry fragment below the curl example. It follows the selected publication and gateway URL. Merge it into the existing model entry, keeping the API key reference and setting token limits to match the model. Tool calling and vision follow the publication's declared capabilities; tool-capable publications without streaming tool support use `streaming: false`. Selecting Enabled or Disabled in the example controls adds the boolean thinking menu configuration below; Default omits it. The actual on/off choice is made in VS Code's menu.
+
 In `chatLanguageModels.json`, keep `vendor: "customendpoint"`, `apiType: "chat-completions"`, and the existing API key secret reference. Configure the model with its complete gateway publication ID and full Chat Completions URL. Add these fields to the model entry:
 
 ```json

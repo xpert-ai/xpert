@@ -17,6 +17,7 @@ import {
   ModelGatewayApiKeyStatusEnum,
   ModelGatewayCallStatusEnum,
   ModelGatewayUsageSourceEnum,
+  ModelFeature,
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
 import { of, throwError } from 'rxjs'
@@ -283,6 +284,62 @@ function modelRow(host: Element, id: string) {
 
 describe('external API settings interactions', () => {
   afterEach(() => TestBed.resetTestingModule())
+
+  it('copies a VS Code model fragment below curl with the selected publication and optional thinking menu', async () => {
+    const plain = gatewayItem('plain', { allowed: true })
+    const xirang = gatewayItem('xirang', {
+      allowed: true,
+      externalModelId: 'xirang/deepseek-v4.1-flash-1017',
+      capabilities: [ModelFeature.TOOL_CALL, ModelFeature.VISION]
+    })
+    const view = await setupGatewayView([plain, xirang])
+    view.component.selectedTabIndex.set(4)
+    view.component.selectExampleModel(xirang.id)
+    view.fixture.detectChanges()
+    const codeBlocks = () => [...view.host.querySelectorAll('pre code')].map((code) => code.textContent)
+    expect(codeBlocks()).toHaveLength(2)
+    expect(codeBlocks()[0]).toContain('curl ')
+    expect(JSON.parse(codeBlocks()[1])).toEqual({
+      id: 'xirang/deepseek-v4.1-flash-1017',
+      name: 'xirang/deepseek-v4.1-flash-1017',
+      url: 'http://localhost/api/openai/v1/chat/completions',
+      apiType: 'chat-completions',
+      toolCalling: true,
+      vision: true,
+      streaming: false
+    })
+    for (const mode of ['enabled', 'disabled']) {
+      view.component.selectExampleThinking(mode)
+      view.fixture.detectChanges()
+      buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+      const copied = view.clipboard.copy.mock.calls.at(-1)![0]
+      expect(copied).toBe(codeBlocks()[1])
+      expect(JSON.parse(copied)).toMatchObject({
+        id: 'xirang/deepseek-v4.1-flash-1017',
+        thinking: true,
+        supportsReasoningEffort: ['none', 'high'],
+        reasoningEffortFormat: 'chat-completions'
+      })
+      expect(view.host.textContent).toContain('XP.ModelGateway.VSCodeThinkingHint')
+    }
+    view.component.selectExampleModel(plain.id)
+    view.component.selectExampleThinking('default')
+    view.fixture.detectChanges()
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])).toEqual({
+      id: 'plain',
+      name: 'plain',
+      url: 'http://localhost/api/openai/v1/chat/completions',
+      apiType: 'chat-completions',
+      toolCalling: false,
+      vision: false,
+      streaming: true
+    })
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [] }))
+    view.fixture.detectChanges()
+    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').disabled).toBe(true)
+    view.fixture.destroy()
+  })
 
   it('copies the selected publication ID and thinking mode, excluding unavailable models', async () => {
     const plain = gatewayItem('plain', { allowed: true, externalModelId: 'deepseek-v4.1-flash-1017' })

@@ -48,7 +48,11 @@ import {
   ModelAccessWithdrawDialogResult
 } from './model-access-withdraw-dialog.component'
 import { getCurrentModelAccessStatus } from '../model-access/model-access-status'
-import { modelGatewayCurlExample, ModelGatewayExampleThinking } from './model-gateway-examples'
+import {
+  modelGatewayCurlExample,
+  modelGatewayVSCodeExample,
+  ModelGatewayExampleThinking
+} from './model-gateway-examples'
 
 @Component({
   standalone: true,
@@ -130,6 +134,9 @@ export class XpAccountModelGatewayComponent implements OnInit {
   )
   readonly curlExample = computed(() =>
     modelGatewayCurlExample(this.apiBaseUrl, this.exampleModel()?.externalModelId ?? 'MODEL_ID', this.exampleThinking())
+  )
+  readonly vsCodeExample = computed(() =>
+    modelGatewayVSCodeExample(this.apiBaseUrl, this.exampleModel(), this.exampleThinking())
   )
   readonly requestStatus = ModelAccessRequestStatusEnum
   readonly keyStatus = ModelGatewayApiKeyStatusEnum
