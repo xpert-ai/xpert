@@ -6,6 +6,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { ModelExecutionModel, ModelGatewayCallStatusEnum, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
 import { DataSource, EntityManager } from 'typeorm'
 import { randomUUID } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod/v3'
 import { ModelGatewayCall } from '../model-gateway/model-gateway-call.entity'
 import { ModelExecutionGrant } from './execution.entity'
@@ -148,9 +149,16 @@ export class ModelExecutionAdmissionService {
     }
 
     private async lockGrant(manager: EntityManager, grant: ModelExecutionGrant) {
+        const payer = grant.context.billableUserId
+        if (!payer || grant.context.actorUserId !== grant.ownerId) throw executionError('Denied')
         await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-            `model-execution:${grant.tenantId}:${grant.ownerId}`
+            `model-execution:${grant.tenantId}:${payer}`
         ])
+        // A parent's older children may retain another payer; its shared budget must still serialize.
+        if (grant.context.source.type === 'shell_execution')
+            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                `model-execution-parent:${grant.tenantId}:${grant.organizationId}:${grant.ownerId}:${grant.context.source.parentExecutionId}`
+            ])
         const current = await manager.findOne(ModelExecutionGrant, {
             where: {
                 id: grant.id,
@@ -161,7 +169,16 @@ export class ModelExecutionAdmissionService {
             },
             lock: { mode: 'pessimistic_write' }
         })
-        if (!current || current.expiresAt.getTime() <= Date.now() || current.absoluteExpiresAt.getTime() <= Date.now())
+        if (
+            !current ||
+            current.context.tenantId !== grant.tenantId ||
+            current.context.runtimeOrganizationId !== grant.organizationId ||
+            current.context.actorUserId !== grant.ownerId ||
+            current.context.billableUserId !== payer ||
+            !isDeepStrictEqual(current.context.source, grant.context.source) ||
+            current.expiresAt.getTime() <= Date.now() ||
+            current.absoluteExpiresAt.getTime() <= Date.now()
+        )
             throw executionError('Denied')
         tightenExecutionLimits(grant.limits, current.limits)
     }
@@ -170,13 +187,16 @@ export class ModelExecutionAdmissionService {
         return totalsSchema.parse(
             await manager.query(
                 `
-            SELECT COALESCE(SUM("totalTokens") FILTER (WHERE $3::uuid IS NOT NULL OR "startedAt" >= now() - interval '24 hours'),0) AS used,
-                COALESCE(SUM("reservedTokens"),0) AS reserved,
-                COUNT(*) FILTER (WHERE status = 'started') AS concurrent,
-                COUNT(*) FILTER (WHERE "startedAt" >= now() - interval '1 minute') AS recent
-            FROM model_gateway_call WHERE "tenantId"=$1 AND "userId"=$2 AND source='execution_grant'
-                AND ($3::uuid IS NULL OR "grantId"=$3)`,
-                [grant.tenantId, grant.ownerId, grantId]
+            SELECT COALESCE(SUM(c."totalTokens") FILTER (WHERE $3::uuid IS NOT NULL OR c."startedAt" >= now() - interval '24 hours'),0) AS used,
+                COALESCE(SUM(c."reservedTokens"),0) AS reserved,
+                COUNT(*) FILTER (WHERE c.status = 'started') AS concurrent,
+                COUNT(*) FILTER (WHERE c."startedAt" >= now() - interval '1 minute') AS recent
+            FROM model_gateway_call c JOIN model_execution_grant g
+                ON g.id=c."grantId" AND g."tenantId"=c."tenantId"
+                AND g."organizationId"=c."organizationId" AND g."ownerId"=c."userId"
+            WHERE c."tenantId"=$1 AND g.context->>'billableUserId'=$2 AND c.source='execution_grant'
+                AND ($3::uuid IS NULL OR c."grantId"=$3)`,
+                [grant.tenantId, grant.context.billableUserId, grantId]
             )
         )[0]
     }

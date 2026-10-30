@@ -61,6 +61,10 @@ describe('execution credentials', () => {
             })
         )
         const assistants = {
+            authorize: jest.fn(async (_actor, _assistant, _model, payer?: string) => {
+                if (payer && payer !== actor.userId) throw new Error('payer changed')
+                return { billableUserId: actor.userId }
+            }),
             user: jest.fn().mockResolvedValue({ id: 'user', tenantId: 'tenant' }),
             resolve: jest.fn().mockResolvedValue({ assistant: { id: 'assistant', version: 'v1' }, models: [model] })
         }

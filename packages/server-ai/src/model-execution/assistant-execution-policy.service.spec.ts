@@ -33,7 +33,7 @@ describe('execution actor scope', () => {
         )
         await expect(service.user(actor)).resolves.toBe(user)
         expect(commandBus.execute).toHaveBeenCalledWith(new ResolveUserOrganizationAccessCommand(actor))
-        commandBus.execute.mockResolvedValueOnce(null)
+        commandBus.execute.mockResolvedValue(null)
         await expect(service.resolve(actor, 'conversation')).rejects.toThrow(executionError('Denied'))
         expect(conversations.findOne).not.toHaveBeenCalled()
     })
@@ -324,5 +324,40 @@ describe('execution model selection stays within its conversation', () => {
             })
         )
         expect(result.defaultModelId).toBe(getAssistantModelId(alternative))
+    })
+})
+
+describe('human execution audience compatibility', () => {
+    it('preserves the authenticated human audience while resolving the Assistant', async () => {
+        const { captureRequestContext, runWithCapturedRequestContext } = await import('../shared/request-context')
+        const { RequestContext } = await import('@xpert-ai/plugin-sdk')
+        const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'human' }
+        const principal = {
+            id: actor.userId,
+            tenantId: actor.tenantId,
+            type: UserType.USER,
+            principalType: 'client_secret' as const,
+            resourceScope: { kind: 'assistant' as const, xpertId: 'assistant' }
+        }
+        const published = {
+            getAccessiblePublishedXpert: jest.fn(async () => {
+                expect(RequestContext.currentApiPrincipal()?.resourceScope).toEqual(principal.resourceScope)
+                return { id: 'assistant', tenantId: actor.tenantId, organizationId: actor.organizationId }
+            })
+        }
+        const service = new AssistantExecutionPolicyService(
+            { findOne: async () => ({ xpert: { id: 'assistant' } }) } as never,
+            { execute: async () => ({ id: actor.userId, tenantId: actor.tenantId, type: UserType.USER }) } as never,
+            {} as never,
+            { findOneBy: async () => null } as never,
+            {} as never,
+            { canUseCatalogModels: async () => [], getCatalogModelLabels: async () => [] } as never,
+            published as never,
+            {} as never
+        )
+        await runWithCapturedRequestContext(captureRequestContext({ ...actor, user: principal }), () =>
+            service.resolve(actor, 'conversation', false)
+        )
+        expect(published.getAccessiblePublishedXpert).toHaveBeenCalledTimes(1)
     })
 })
