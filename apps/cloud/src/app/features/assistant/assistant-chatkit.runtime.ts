@@ -29,6 +29,7 @@ import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 import { injectAssistantChatkitTheme } from './assistant-chatkit-theme'
 import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
@@ -257,6 +258,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
 
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
+  const currentUser = toSignal(store.user$, { initialValue: store.user })
   const publicationRevision = toSignal(
     inject(XpertPublicationService).changes$.pipe(
       filter((change) => change.organizationId === organizationId() && change.assistantId === input.assistantId()),
@@ -314,6 +316,11 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const delegatedConversation = input.delegatedConversation?.() ?? null
     const group = input.group?.() ?? undefined
     const composer = input.composer?.() ?? null
+    const user = currentUser()
+    const canConfigureResources = user?.role?.rolePermissions?.some(item =>
+      item.enabled && item.permission === AIPermissionsEnum.XPERT_EDIT
+    ) ?? false
+    const managed = !canConfigureResources
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
     const displayMode = readReactiveChatKitOption(input.displayMode)
@@ -420,8 +427,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       startScreen,
       composer: {
         ...composer,
-        resources: { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
-        connectors: { enabled: true, ...composer?.connectors },
+        ...(managed ? { models: [] } : {}),
+        resources: !canConfigureResources ? { enabled: false } : { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
+        connectors: !canConfigureResources ? { enabled: false } : { enabled: true, ...composer?.connectors },
         attachments: {
           enabled: true,
           maxCount: 5,
@@ -431,7 +439,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         tools: composer?.tools ?? []
       },
       request: {
-        context: requestContext ?? {}
+        context: managed ? (projectId ? { projectId } : {}) : requestContext ?? {}
       },
       onReady: forward(input.onReady),
       onEffect: forward(input.onEffect),

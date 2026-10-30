@@ -178,20 +178,22 @@
             </button>
           }
 
-          <button
-            type="button"
-            class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            z-menu
-            #conversationMenuTrigger="zMenuTrigger"
-            [zMenuTriggerFor]="conversationMenu"
-            [attr.aria-label]="'XP.Groups.Menu' | translate"
-            [zTooltip]="'XP.Groups.Menu' | translate"
-          >
-            <i class="ri-group-line"></i>
-          </button>
-          <ng-template #conversationMenu
-            ><xp-workbench-assistant-menu (selected)="conversationMenuTrigger.close()"
-          /></ng-template>
+          @if (canCreateDigitalExpert()) {
+            <button
+              type="button"
+              class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              z-menu
+              #conversationMenuTrigger="zMenuTrigger"
+              [zMenuTriggerFor]="conversationMenu"
+              [attr.aria-label]="'XP.Groups.Menu' | translate"
+              [zTooltip]="'XP.Groups.Menu' | translate"
+            >
+              <i class="ri-group-line"></i>
+            </button>
+            <ng-template #conversationMenu
+              ><xp-workbench-assistant-menu (selected)="conversationMenuTrigger.close()"
+            /></ng-template>
+          }
 
           <button
             type="button"

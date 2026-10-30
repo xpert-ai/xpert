@@ -116,10 +116,8 @@ describe('XpAccountProfileComponent', () => {
     await component.save()
     fixture.detectChanges()
     expect(updateMe).toHaveBeenCalledWith({
-      email: initialUser.email,
       firstName: 'New name',
       lastName: initialUser.lastName,
-      tags: initialUser.tags,
       username: 'new-username',
       imageUrl: initialUser.imageUrl,
       preferredLanguage: LanguagesEnum.English,

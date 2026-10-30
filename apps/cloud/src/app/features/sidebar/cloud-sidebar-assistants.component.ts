@@ -283,7 +283,7 @@ export class CloudSidebarAssistantsComponent {
           )
         ).pipe(
           switchMap(() => {
-            const binding$ = isTenantListScope
+            const binding$ = isTenantListScope || !this.hasXpertEditPermission()
               ? of(null)
               : this.#assistantBindingService
                   .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
@@ -975,7 +975,9 @@ export class CloudSidebarAssistantsComponent {
     return title || null
   }
 
+  private readonly rolePermissions = toSignal(this.#store.userRolePermissions$)
   private hasXpertEditPermission() {
-    return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
+    this.rolePermissions()
+    return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
   }
 }

@@ -163,6 +163,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
+    userRolePermissions$: BehaviorSubject<unknown[]>
     hasPermission: jest.Mock
   }
   let scopeService: {
@@ -262,6 +263,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       hasFeatureEnabled: jest.fn((feature: string) =>
         [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT].includes(feature as AiFeatureEnum)
       ),
+      userRolePermissions$: new BehaviorSubject<unknown[]>([]),
       hasPermission: jest.fn((permission: string) => permission === 'XPERT_EDIT')
     }
     scopeService = {

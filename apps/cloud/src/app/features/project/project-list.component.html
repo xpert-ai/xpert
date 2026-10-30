@@ -22,21 +22,25 @@
             <z-segmented-item [value]="filter.value" [label]="filter.label | translate" />
           }
         </z-segmented>
-        <button z-button type="button" z-menu [zMenuTriggerFor]="createMenu" zPlacement="bottomRight">
-          <z-icon zType="plus" />{{ 'XP.XProject.NewProject' | translate }}
-        </button>
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon"
-          type="button"
-          z-menu
-          [zMenuTriggerFor]="moreMenu"
-          zPlacement="bottomRight"
-          [attr.aria-label]="'XP.XProject.ListView.MoreActions' | translate"
-        >
-          <z-icon zType="ellipsis" />
-        </button>
+        @if (canCreate() && types().length) {
+          <button z-button type="button" z-menu [zMenuTriggerFor]="createMenu" zPlacement="bottomRight">
+            <z-icon zType="plus" />{{ 'XP.XProject.NewProject' | translate }}
+          </button>
+        }
+        @if (canAuthor()) {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            type="button"
+            z-menu
+            [zMenuTriggerFor]="moreMenu"
+            zPlacement="bottomRight"
+            [attr.aria-label]="'XP.XProject.ListView.MoreActions' | translate"
+          >
+            <z-icon zType="ellipsis" />
+          </button>
+        }
       </div>
     </header>
 
@@ -118,9 +122,11 @@
             {{ 'XP.XProject.ListView.ResetFilters' | translate }}
           </button>
         } @else {
-          <button z-button zType="outline" type="button" z-menu [zMenuTriggerFor]="createMenu">
-            {{ 'XP.XProject.CreateProject' | translate }}
-          </button>
+          @if (canCreate() && types().length) {
+            <button z-button zType="outline" type="button" z-menu [zMenuTriggerFor]="createMenu">
+              {{ 'XP.XProject.CreateProject' | translate }}
+            </button>
+          }
         }
       </div>
     } @else {

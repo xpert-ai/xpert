@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { UsersService } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,7 +12,7 @@ import {
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
 import { isNil, omitBy } from 'lodash-es'
-import { catchError, firstValueFrom, map, of } from 'rxjs'
+import { catchError, firstValueFrom, map, of, switchMap } from 'rxjs'
 import { getErrorMessage, LANGUAGES, RoleService, Store, ToastrService } from '../../../@core'
 import { timezones } from '../../../@core/constants'
 import { CreatedByPipe } from '../../../@shared/pipes'
@@ -36,13 +36,18 @@ export class XpAccountProfileComponent {
   private readonly userService = inject(UsersService)
   private readonly toastr = inject(ToastrService)
   readonly user = toSignal(this.store.user$)
+  private readonly roleService = inject(RoleService)
   private readonly roles = toSignal(
-    inject(RoleService)
-      .getAll()
-      .pipe(
-        map(({ items }) => items),
-        catchError(() => of([]))
-      ),
+    toObservable(this.user).pipe(
+      switchMap((user) =>
+        user?.role?.name
+          ? of([])
+          : this.roleService.getAll().pipe(
+              map(({ items }) => items),
+              catchError(() => of([]))
+            )
+      )
+    ),
     { initialValue: [] }
   )
   readonly roleLabel = computed(
@@ -83,10 +88,8 @@ export class XpAccountProfileComponent {
 
     const { firstName, lastName, username, imageUrl, preferredLanguage, timeZone } = this.form.getRawValue()
     const request: IUserUpdateInput = {
-      email: this.user()?.email,
       firstName,
       lastName,
-      tags: this.user()?.tags,
       username,
       imageUrl,
       preferredLanguage: preferredLanguage as LanguagesEnum,

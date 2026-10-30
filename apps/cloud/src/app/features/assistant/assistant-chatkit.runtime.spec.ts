@@ -1,3 +1,4 @@
+import { AIPermissionsEnum, RolesEnum, IUser } from '@xpert-ai/contracts'
 import { DOCUMENT } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { signal } from '@angular/core'
@@ -180,6 +181,10 @@ describe('assistant chatkit runtime helpers', () => {
     const initialThread = signal<string | null>('thread-1')
     const projectId = signal<string | null>('project-1')
     const organizationId = new BehaviorSubject('org-1')
+    const user = new BehaviorSubject<Partial<IUser> | null>({ role: {
+      name: RolesEnum.AI_BUILDER,
+      rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true }]
+    } })
     const composer = signal({
       projects: { enabled: false },
       connectors: { enabled: true }
@@ -216,6 +221,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'token-1',
             token$: of('token-1'),
+            user$: user,
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => organizationId
@@ -438,6 +444,13 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock).toHaveBeenCalledTimes(1)
     expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
+    user.next({ role: { name: RolesEnum.APP_USER } })
+    flushAngularEffects()
+    expect(setOptions).toHaveBeenLastCalledWith(expect.objectContaining({
+      composer: expect.objectContaining({ models: [], resources: { enabled: false }, connectors: { enabled: false } }),
+      request: { context: { projectId: 'project-2' } }
+    }))
+
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {
@@ -467,6 +480,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'token-1',
             token$: of('token-1'),
+            user$: of(null),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
@@ -543,6 +557,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'token-1',
             token$: of('token-1'),
+            user$: of(null),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
@@ -612,6 +627,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'token-1',
             token$: of('token-1'),
+            user$: of(null),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
@@ -664,6 +680,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'platform-token-1',
             token$: of('platform-token-1'),
+            user$: of(null),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
@@ -720,6 +737,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'platform',
             token$: of('platform'),
+            user$: of({ role: { rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true }] } }),
             organizationId: 'org-1',
             hasPermission: () => false,
             selectOrganizationId: () => of('org-1')
@@ -814,6 +832,7 @@ describe('assistant chatkit runtime helpers', () => {
           useValue: {
             token: 'token-1',
             token$: of('token-1'),
+            user$: of(null),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')

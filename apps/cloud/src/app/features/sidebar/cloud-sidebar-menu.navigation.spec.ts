@@ -23,7 +23,9 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
   }
   const settings = { openBoundAssistant: jest.fn() }
   const store = {
-    selectedWorkspace$: new BehaviorSubject({ id: 'workspace-1' }),
+    userRolePermissions$: new BehaviorSubject([]),
+            hasPermission: () => true,
+            selectedWorkspace$: new BehaviorSubject({ id: 'workspace-1' }),
     workspaceId$: new BehaviorSubject('workspace-1')
   }
 

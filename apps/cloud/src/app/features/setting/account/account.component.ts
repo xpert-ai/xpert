@@ -3,7 +3,7 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ReferralService } from '@cloud/app/@core/state'
-import { AiFeatureEnum, AIPermissionsEnum, FeatureEnum, UserType } from '@xpert-ai/contracts'
+import { AiFeatureEnum, AIPermissionsEnum, FeatureEnum, PermissionsEnum, UserType } from '@xpert-ai/contracts'
 import {
   ZardAlertDialogService,
   ZardBadgeComponent,
@@ -46,6 +46,7 @@ export class XpAccountComponent {
   private readonly toastr = inject(ToastrService)
   private referralCodeRequested = false
 
+  private readonly rolePermissions = toSignal(this.store.userRolePermissions$)
   public readonly user = toSignal(this.store.user$)
   public readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
     initialValue: this.store.featureContextHydrated
@@ -56,6 +57,7 @@ export class XpAccountComponent {
     { initialValue: this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE) }
   )
   public readonly canUseModelGateway = computed(() => {
+    this.rolePermissions()
     this.user()
     this.featureContextHydrated()
     return (
@@ -65,9 +67,14 @@ export class XpAccountComponent {
     )
   })
   public readonly canUseReferral = computed(() => {
+    this.rolePermissions()
     this.user()
     this.featureContextHydrated()
-    return !this.isTechnicalUser() && this.store.hasFeatureEnabled(FeatureEnum.FEATURE_REFERRAL)
+    return (
+      !this.isTechnicalUser() &&
+      this.store.hasPermission(PermissionsEnum.REFERRAL_VIEW) &&
+      this.store.hasFeatureEnabled(FeatureEnum.FEATURE_REFERRAL)
+    )
   })
   public readonly referralCode = signal('')
   public readonly referralCodeCopied = signal(false)

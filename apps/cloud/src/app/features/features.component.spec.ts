@@ -16,6 +16,7 @@ jest.mock('../@core', () => ({
     Manage: 'Manage',
     Read: 'Read'
   },
+  PermissionsEnum: { ORG_EMPLOYEES_VIEW: 'ORG_EMPLOYEES_VIEW' },
   AIPermissionsEnum: {
     XPERT_EDIT: 'XPERT_EDIT'
   },

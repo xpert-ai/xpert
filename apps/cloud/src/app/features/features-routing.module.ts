@@ -75,6 +75,7 @@ export const routes: Routes = [
         loadChildren: () => import('./xpert/routes').then((m) => m.routes),
         canActivate: [
           authGuard,
+          NgxPermissionsGuard,
           () => {
             const appService = inject(AppService)
             appService.inWorkspace.set(true)
@@ -88,7 +89,8 @@ export const routes: Routes = [
         ],
         data: {
           title: 'Xpert Agent',
-          scopeContext: 'dual-scope'
+          scopeContext: 'dual-scope',
+          permissions: { only: [AIPermissionsEnum.XPERT_VIEW], redirectTo }
         }
       },
       {

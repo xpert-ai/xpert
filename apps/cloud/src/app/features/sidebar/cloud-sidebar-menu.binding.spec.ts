@@ -1,3 +1,4 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
@@ -22,7 +23,9 @@ jest.mock('./cloud-sidebar-assistants.component', () => {
 })
 
 describe('CloudSidebarMenuComponent binding visibility', () => {
+  const permissions = new BehaviorSubject<string[]>([])
   beforeEach(() => {
+    permissions.next([AIPermissionsEnum.CHAT_VIEW, AIPermissionsEnum.XPERT_EDIT])
     TestBed.configureTestingModule({
       imports: [CloudSidebarMenuComponent, TranslateModule.forRoot()],
       providers: [
@@ -32,6 +35,8 @@ describe('CloudSidebarMenuComponent binding visibility', () => {
         {
           provide: Store,
           useValue: {
+            userRolePermissions$: permissions,
+            hasPermission: (key: string) => permissions.value.includes(key),
             selectedWorkspace$: new BehaviorSubject({ id: 'workspace' }),
             workspaceId$: new BehaviorSubject('workspace')
           }
@@ -56,6 +61,24 @@ describe('CloudSidebarMenuComponent binding visibility', () => {
   })
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('keeps assigned assistants in the existing sidebar without authoring and removes them after chat permission is revoked', () => {
+    permissions.next([AIPermissionsEnum.CHAT_VIEW])
+    const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
+    fixture.componentRef.setInput('menus', [])
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.directive(CloudSidebarAssistantsComponent))).toBeTruthy()
+    expect(fixture.nativeElement.textContent).not.toContain('Experts, Skills and Connectors')
+    const assistants: { isClawXpertConfigured: WritableSignal<boolean> } = fixture.debugElement.query(
+      By.directive(CloudSidebarAssistantsComponent)
+    ).componentInstance
+    assistants.isClawXpertConfigured.set(true)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('More')
+    permissions.next([])
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.directive(CloudSidebarAssistantsComponent))).toBeNull()
+  })
 
   it('hides the entire More group until a valid binding is available and preserves the assistant state', () => {
     const fixture = TestBed.createComponent(CloudSidebarMenuComponent)

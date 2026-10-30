@@ -12,6 +12,7 @@ import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  AIPermissionsEnum,
   getErrorMessage,
   injectHelpWebsite,
   injectToastr,
@@ -98,6 +99,12 @@ export class HeaderUserComponent {
   readonly themeLabel = computed(
     () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.default))?.caption
   )
+
+  private readonly rolePermissions = toSignal(this.store.userRolePermissions$)
+  readonly canUseEntryGuide = computed(() => {
+    this.rolePermissions()
+    return this.store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
+  })
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
 
