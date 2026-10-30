@@ -1,5 +1,19 @@
 # @xpert-ai/server-core
 
+## 3.29.1
+
+### Patch Changes
+
+- 1f1c7b7: Explain unavailable plugin marketplace details without assuming that a package is nonexistent or private. Preserve structured lookup errors, localize access and availability guidance in English and Chinese, and offer retry for transient failures while keeping navigation back to the marketplace available.
+- Updated dependencies [ccc040b]
+- Updated dependencies [a870de9]
+- Updated dependencies [1f1c7b7]
+- Updated dependencies [5449238]
+    - @xpert-ai/contracts@3.29.1
+    - @xpert-ai/plugin-sdk@3.29.1
+    - @xpert-ai/server-common@3.29.1
+    - @xpert-ai/server-config@3.29.1
+
 ## 3.29.0
 
 ### Patch Changes

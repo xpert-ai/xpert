@@ -1,5 +1,15 @@
 # @xpert-ai/xpert-ui
 
+## 3.29.1
+
+### Patch Changes
+
+- ccc040b: Disable Assistant maxConcurrency customization and omit it from LangGraph execution. Retain the deprecated type field for plugin and external-template compatibility, accepting it without errors and silently ignoring it. Remove it from built-in templates and strip legacy values when saving drafts or publishing Assistants. Resolve approval tool calls by checkpoint identity across trailing tool results and repeated tool names, and distinguish unfinished work from approval stops.
+- a870de9: Allow channel plugins to supply stable chat source identifiers through the shared TChatFrom and RunSource contracts without adding each provider to the platform's literal list. Accept nonempty producer identifiers in handoff routing configuration while preserving exact source, tenant, and organization matching. Keep legacy source values and persisted conversation attribution unchanged, and let the agent chat dispatch contract inherit the shared source type. Existing channel plugins require no payload migration; new plugins need the updated contracts when compiling. Source attribution remains separate from execution identity and authorization.
+- 1b736d9: Do not expose unresolved saved model references as selectable provider models after rename or deletion. Preserve historical selections for explicit reselection, show an unavailable-model warning, and prevent saving an unavailable default model. Existing model-access revocation semantics are unchanged.
+- 1f1c7b7: Explain unavailable plugin marketplace details without assuming that a package is nonexistent or private. Preserve structured lookup errors, localize access and availability guidance in English and Chinese, and offer retry for transient failures while keeping navigation back to the marketplace available.
+- 5449238: Reset generation parameters when changing model identities while retaining client retries and same-model overrides. Preserve numeric input drafts and commit edits before saving. Persist explicitly cleared optional parameters without restoring defaults or sending them in provider requests, including ModelExecution snapshots and native protocols.
+
 ## 3.29.0
 
 ### Minor Changes
