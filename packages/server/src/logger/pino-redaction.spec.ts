@@ -1,7 +1,7 @@
 import pino from 'pino'
 import { HTTP_LOG_REDACTION } from './pino-redaction'
 
-function logRequest(req: object): string {
+function logRequest(req: object, res?: object): string {
 	let output = ''
 	const logger = pino(
 		{ redact: HTTP_LOG_REDACTION },
@@ -11,11 +11,18 @@ function logRequest(req: object): string {
 			}
 		}
 	)
-	logger.info({ req }, 'request completed')
+	logger.info({ req, res }, 'request completed')
 	return output
 }
 
 describe('HTTP credential log redaction', () => {
+	it('redacts response session cookies without changing the outgoing headers', () => {
+		const res = { headers: { 'set-cookie': ['session=fake-session; HttpOnly'], 'content-type': 'application/json' } }
+		const output = logRequest({ url: '/api/auth/login' }, res)
+		expect(output).not.toContain('fake-session')
+		expect(JSON.parse(output).res.headers['set-cookie']).toBe('[Redacted]')
+		expect(res.headers['set-cookie']).toEqual(['session=fake-session; HttpOnly'])
+	})
 	it('redacts lease tokens from URLs and parsed queries without changing the live request', () => {
 		const url = '/api/ai/mcp-apps/app-1/resource?messageId=message%2F1&token=fake-lease&view=map+list'
 		const req = { url, originalUrl: url, query: { messageId: 'message/1', token: 'fake-lease' } }

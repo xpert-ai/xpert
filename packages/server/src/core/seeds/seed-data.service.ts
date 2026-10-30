@@ -61,8 +61,7 @@ export class SeedDataService {
 		// private readonly moduleRef: ModuleRef,
 		protected readonly configService: ConfigService
 	) {
-		this.log(chalk.blueBright(`📧 Environments ${JSON.stringify(this.configService.environment)}`))
-		this.log(chalk.blueBright(`📧 Configs ${JSON.stringify(this.configService.config)}`))
+		this.log(chalk.blueBright('Initializing database seed data.'))
 	}
 
 	/**
