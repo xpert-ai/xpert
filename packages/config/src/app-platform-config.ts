@@ -25,9 +25,6 @@ export function readAppPlatformConfig(env: NodeJS.ProcessEnv): AppPlatformConfig
       if (!environment.configurations[app.configurationRef]) throw new Error('Missing application configuration')
     }
     if (!environment.plans[definition.entitlements.defaultPlanRef]) throw new Error('Missing entitlement plan')
-    for (const plan of Object.values(environment.plans))
-      for (const app of Object.keys(plan.appCreditLimits))
-        if (!definition.apps.some(item => item.key === app)) throw new Error('Unknown application quota')
     const digest = createHash('sha256').update(JSON.stringify({ definition, environment })).digest('hex')
     return { definition, environment, digest }
   } catch {

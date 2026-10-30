@@ -13,6 +13,7 @@ import { dbConnectionConfig } from './database'
 import { readManagedQueueConfig } from './managed-queue-config'
 import { readPluginInstallationConfig } from './plugin-installation-config'
 import { readAppPlatformConfig } from './app-platform-config'
+import { readBillingConfig } from './billing-config'
 
 process.cwd()
 
@@ -57,6 +58,7 @@ console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublic
  */
 export const defaultConfiguration: IPluginConfig = {
   appPlatform: readAppPlatformConfig(process.env),
+  billing: readBillingConfig(process.env),
   managedQueueOptions: readManagedQueueConfig(process.env),
   pluginInstallationOptions: readPluginInstallationConfig(process.env),
   apiConfigOptions: {

@@ -6,7 +6,7 @@ import { EntityManager, IsNull } from 'typeorm'
 import { t } from 'i18next'
 import { UserMembership } from './user-membership.entity'
 import { MembershipPeriod } from './membership-period.entity'
-import { lockModelCallBudget } from './model-call-budget-lock'
+import { acquireTenantDefaultMembershipLock } from './membership-locks'
 import { createMembershipPlanSnapshot } from './membership-plan-snapshot'
 import { userHasPermission } from '../shared/service-operation'
 
@@ -21,7 +21,7 @@ export class RefreshMembershipModelPolicyHandler implements ICommandHandler<Refr
         if (!manager.queryRunner?.isTransactionActive) throw new ConflictException(t('server-ai:Error.MembershipPolicyTransactionRequired'))
         const actor = await manager.getRepository(User).findOne({ where: { id: input.actorId, tenantId: input.tenantId }, relations: ['role', 'role.rolePermissions'] })
         if (!actor || !userHasPermission(actor, AIPermissionsEnum.MEMBERSHIP_EDIT)) throw new ForbiddenException()
-        await lockModelCallBudget(manager, input.tenantId, input.userId)
+        await acquireTenantDefaultMembershipLock(manager, input.tenantId, input.userId)
         const memberships = manager.getRepository(UserMembership)
         const membership = await memberships.findOne({ where: {
             tenantId: input.tenantId, userId: input.userId, organizationId: IsNull(), status: MembershipStatusEnum.Active
@@ -37,7 +37,7 @@ export class RefreshMembershipModelPolicyHandler implements ICommandHandler<Refr
         })) throw new ConflictException(t('server-ai:Error.MembershipPolicyPeriodUnavailable'))
         const allowedModels = membership.plan.allowedModels?.map((rule) => ({ ...rule }))
         const snapshot = membership.planSnapshot ?? createMembershipPlanSnapshot(membership.plan)
-        // Update only model permissions. Pricing, counters, renewal dates, history and holds are immutable here.
+        // Update only model permissions. Pricing, counters, renewal dates and history are immutable here.
         await memberships.update(membership.id, { planSnapshot: { ...snapshot, allowedModels } })
         if (period) await periods.update(period.id, { planSnapshot: { ...period.planSnapshot, allowedModels } })
     }

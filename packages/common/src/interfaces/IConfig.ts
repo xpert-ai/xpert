@@ -44,8 +44,16 @@ export interface IAuthOptions {
   jwtSecret: string
 }
 
+export interface IBillingConfiguration {
+  /** Membership points currently settle in CNY. Other settlement currencies require a points-policy migration. */
+  settlementCurrency: 'CNY'
+  /** Units of the settlement currency per one unit of each source currency. Decimal strings preserve configuration precision. */
+  exchangeRates: Record<string, string>
+}
+
 export interface IPluginConfig {
   appPlatform?: AppPlatformConfiguration | null
+  billing?: IBillingConfiguration
   managedQueueOptions?: {
     concurrency: number
     sandboxBrowserConcurrency: number

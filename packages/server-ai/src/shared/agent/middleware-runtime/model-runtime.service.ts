@@ -47,6 +47,7 @@ import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createNativeModelBudgetGate } from '../native-model-budget'
 import { resolveAgentExecutionScope } from './execution-scope'
 import { resolveExecutionModelOptions } from '../../../model-execution/execution-model-parameters'
+import { resolveServiceOperationUserId } from '../../service-operation'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -107,7 +108,7 @@ export class AgentMiddlewareModelRuntimeService {
         } = options ?? {}
         const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
         const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
-        const userId = scope.userId ?? RequestContext.currentUserId()
+        const userId = resolveServiceOperationUserId({ tenantId, organizationId, userId: scope.userId ?? RequestContext.currentUserId() })
         const xpertId = scope.xpertId ?? undefined
         const budgetGate = createNativeModelBudgetGate(this.commandBus, { tenantId, organizationId, userId }, () => {
             const current = resolveAgentExecutionScope(scope)

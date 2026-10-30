@@ -12,7 +12,7 @@ export const platformFailureCodes = [
   'application_project_limit', 'application_upload_limit', 'application_concurrency_limit',
   'application_storage_limit', 'application_storage_scope_invalid',
   'application_temporary_storage_limit',
-  'application_resource_migration_required', 'application_cost_unavailable', 'application_cost_replayed', 'application_credit_limit'
+  'application_resource_migration_required', 'application_credit_limit'
 ] as const
 export type PlatformFailureCode = (typeof platformFailureCodes)[number]
 const runtimeFailureCodes: readonly PlatformFailureCode[] = [
@@ -20,7 +20,7 @@ const runtimeFailureCodes: readonly PlatformFailureCode[] = [
   'application_concurrency_limit', 'application_project_limit', 'application_upload_limit',
   'application_storage_limit', 'application_storage_scope_invalid',
   'application_temporary_storage_limit',
-  'application_cost_unavailable', 'application_primary_model_unavailable',
+  'application_primary_model_unavailable',
   'application_model_binding_unavailable', 'application_tool_binding_unavailable'
 ]
 const persistedFailurePrefix = 'APP_PLATFORM_FAILURE:'

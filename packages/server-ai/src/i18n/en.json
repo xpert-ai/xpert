@@ -88,8 +88,6 @@
         "application_project_limit": "The project limit has been reached.",
         "application_upload_limit": "The file exceeds the allowed upload size.",
         "application_resource_migration_required": "Changing an existing application’s resource models, tools or shared bindings requires a separate resource migration before adopting this definition.",
-        "application_cost_unavailable": "Cannot determine the maximum cost of this model call. Please contact support.",
-        "application_cost_replayed": "This model request has already been admitted. Retry with a new execution.",
         "application_credit_limit": "Available credits are insufficient for this request. Existing results remain accessible.",
         "application_concurrency_limit": "The concurrent task limit has been reached. Try again when a running task finishes.",
         "application_storage_limit": "Storage limit reached. Remove files you no longer need and try again.",

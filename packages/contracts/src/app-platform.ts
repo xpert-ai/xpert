@@ -131,8 +131,7 @@ export const appPlatformEnvironmentSchema = z
           maxUploadBytes: z.number().int().positive(),
           maxStorageBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(2 * 1024 ** 3),
           maxTemporaryBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(256 * 1024 ** 2),
-          maxConcurrentRuns: z.number().int().min(1).max(100),
-          appCreditLimits: z.record(key, z.number().positive()).default({})
+          maxConcurrentRuns: z.number().int().min(1).max(100)
         })
         .strict()
     )

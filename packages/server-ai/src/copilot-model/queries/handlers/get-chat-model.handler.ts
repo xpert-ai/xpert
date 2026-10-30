@@ -31,6 +31,7 @@ import { ensureCopilotModelContextSize } from '../../utils/context-size'
 import { resolveModelVisionSupport, setModelVisionSupport } from '../../model-capabilities'
 import { randomUUID } from 'node:crypto'
 import { createNativeModelBudgetGate } from '../../../shared/agent/native-model-budget'
+import { resolveServiceOperationUserId } from '../../../shared/service-operation'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -48,7 +49,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
         let copilot = command.copilot
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
-        const userId = RequestContext.currentUserId()
+        const userId = resolveServiceOperationUserId({ tenantId, organizationId, userId: RequestContext.currentUserId() })
         const budgetGate = createNativeModelBudgetGate(
             this.commandBus,
             { tenantId, organizationId, userId },

@@ -33,6 +33,13 @@ export function currentServiceOperation(): ServiceOperationScope | null {
         : null
 }
 
+/** Attribute service-operation usage to its beneficiary only within the verified execution scope. */
+export function resolveServiceOperationUserId(actor: { tenantId: string; organizationId?: string; userId: string }): string {
+    const scope = currentServiceOperation()
+    return scope && actor.tenantId === scope.tenantId && actor.organizationId === scope.organizationId &&
+        actor.userId === scope.actorId ? scope.subjectId : actor.userId
+}
+
 export function serviceApplicationScopeAllows(application: { pluginName?: string; appName?: string; scope?: string }) {
     if (RequestContext.currentUser()?.type !== UserType.COMMUNICATION || RequestContext.currentApiPrincipal())
         return true

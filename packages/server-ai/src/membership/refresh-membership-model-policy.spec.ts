@@ -37,7 +37,7 @@ describe('explicit membership model policy refresh', () => {
         const snapshot = { ...frozen, allowedModels: newModels }
         expect(memberships.update).toHaveBeenCalledWith('membership', { planSnapshot: snapshot })
         expect(periods.update).toHaveBeenCalledWith('period', { planSnapshot: snapshot })
-        expect(manager.query).toHaveBeenCalledWith(expect.stringContaining('pg_advisory_xact_lock'), ['model-cost:tenant:beneficiary'])
+        expect(manager.query).toHaveBeenCalledWith(expect.stringContaining('pg_advisory_xact_lock'), ['tenant', 'tenant-default-membership:beneficiary'])
         expect(periods.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: {
             tenantId: 'tenant', membershipId: 'membership', status: MembershipPeriodStatusEnum.Active
         } }))

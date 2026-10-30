@@ -14,6 +14,10 @@ export function setConfig(providedConfig: Partial<IPluginConfig>): void {
 	if (Object.prototype.hasOwnProperty.call(providedConfig, 'appPlatform')) {
 		defaultConfig.appPlatform = providedConfig.appPlatform;
 	}
+	// Replace the rate table so removing a currency cannot leave a stale conversion active.
+	if (Object.prototype.hasOwnProperty.call(providedConfig, 'billing')) {
+		defaultConfig.billing = providedConfig.billing;
+	}
 }
 
 /**

@@ -3,6 +3,7 @@ import { AIPermissionsEnum, IUser, IXpertWorkspace, RolesEnum, UserType } from '
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     currentServiceOperation,
+    resolveServiceOperationUserId,
     runWithServiceOperation,
     serviceWorkspaceScopeAllows,
     ServiceOperationScope
@@ -52,6 +53,19 @@ describe('service operation scope limits ordinary permissions', () => {
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue(actor('custom-service'))
     })
     afterEach(() => jest.restoreAllMocks())
+    it('attributes usage to the beneficiary only for the same trusted actor and scope', async () => {
+        const identity = { tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.actorId }
+        expect(resolveServiceOperationUserId(identity)).toBe(scope.actorId)
+        await runWithServiceOperation(scope, async () => {
+            expect(resolveServiceOperationUserId(identity)).toBe(scope.subjectId)
+            for (const field of ['tenantId', 'organizationId', 'userId'] as const) {
+                const other = { ...identity, [field]: 'other' }
+                expect(resolveServiceOperationUserId(other)).toBe(other.userId)
+            }
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ ...actor('ordinary'), type: UserType.USER })
+            expect(resolveServiceOperationUserId(identity)).toBe(scope.actorId)
+        })
+    })
     it('grants no authoring permission just because a service operation exists', async () => {
         await runWithServiceOperation(scope, async () => {
             expect(currentServiceOperation()).toBe(scope)

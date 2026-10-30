@@ -58,4 +58,9 @@ describe('App Platform configuration loading', () => {
     writeFileSync(env.APP_PLATFORM_FILE, 'value: &value [one]\ncopy: *value\n')
     expect(() => readAppPlatformConfig(env)).toThrow('Invalid App Platform')
   })
+  it('rejects the removed per-App monetary quota instead of silently ignoring it', () => {
+    expect(() => readAppPlatformConfig(files({ ...deployment, plans: { trial: {
+      ...deployment.plans.trial, appCreditLimits: { app: 10 }
+    } } }))).toThrow('Invalid App Platform')
+  })
 })

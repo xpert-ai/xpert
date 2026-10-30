@@ -88,8 +88,6 @@
         "application_project_limit": "已达到项目数量上限。",
         "application_upload_limit": "文件超过当前允许的上传大小。",
         "application_resource_migration_required": "修改现有应用的资源模型、工具或共享绑定前，需要先完成单独的资源迁移。当前平台配置尚未切换。",
-        "application_cost_unavailable": "无法确定本次模型调用的费用上限，请联系支持人员。",
-        "application_cost_replayed": "此模型请求已预留额度，请使用新的执行重试。",
         "application_credit_limit": "可用额度不足，无法开始本次调用。已生成的成果仍可访问。",
         "application_concurrency_limit": "同时运行的任务已达上限，请等待当前任务完成后重试。",
         "application_storage_limit": "存储空间不足，请删除不再需要的文件后重试。",
