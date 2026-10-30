@@ -4265,6 +4265,7 @@
       }
     },
     "Copilot": {
+      "SavedModelUnavailable": "Saved model is unavailable. Select another model.",
       "CredentialValidation": {
         "Model": "Model or Endpoint ID",
         "ModelType": "Model type",

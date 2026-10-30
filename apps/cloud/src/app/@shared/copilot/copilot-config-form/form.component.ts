@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
@@ -33,6 +33,7 @@ export class CopilotConfigFormComponent {
 
   readonly copilot = input<ICopilot>()
   readonly saved = output<void>()
+  readonly modelSelector = viewChild(CopilotModelSelectComponent)
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
@@ -77,7 +78,11 @@ export class CopilotConfigFormComponent {
   }
 
   canSubmit() {
-    return !this.saving() && this.formGroup.valid && !this.formGroup.pristine
+    const selector = this.modelSelector()
+    const selectionReady =
+      !this.hasSelectedModel() ||
+      (!!selector && selector.modelCatalog.status() === 'success' && !selector.selectionUnavailable())
+    return !this.saving() && selectionReady && this.formGroup.valid && !this.formGroup.pristine
   }
 
   hasSelectedModel() {

@@ -280,7 +280,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   readonly #modelParameterRules = myRxResource({
     request: () => ({
-      providerId: this.showParameters() ? this.providerId() : undefined,
+      providerId: this.showParameters() && this.selectedAiModel() ? this.providerId() : undefined,
       modelType: this.modelType(),
       model: this.model()
     }),
@@ -319,7 +319,10 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   })
 
   readonly isInherit = computed(() => !this.__copilotModel())
-  readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
+  readonly selectionUnavailable = computed(
+    () => this.modelCatalog.status() === 'success' && !!this.model() && !this.selectedAiModel()
+  )
+  readonly statusChoose = computed(() => this.selectionUnavailable())
 
   onChange: ((value: ICopilotModel | null) => void) | null = null
   onTouched: (() => void) | null = null
