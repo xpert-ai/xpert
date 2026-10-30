@@ -92,7 +92,6 @@ export const executionUsageFactSchema = z
             fact.totalTokens === fact.promptTokens + fact.completionTokens &&
             (fact.cacheReadInputTokens ?? 0) + (fact.cacheWriteInputTokens ?? 0) <= fact.promptTokens &&
             (fact.reasoningTokens ?? 0) <= fact.completionTokens &&
-            fact.context.actorUserId === fact.context.billableUserId &&
             fact.context.entry ===
                 ({ cli_session: 'cli', agent_invocation: 'agent_runtime', shell_execution: 'shell' } as const)[
                     fact.context.source.type
