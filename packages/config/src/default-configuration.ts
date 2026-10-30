@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv'
-dotenv.config()
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' })
 import {
   DEFAULT_API_HOST,
   DEFAULT_API_PORT,
@@ -44,6 +44,10 @@ if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
   dataPath = path.join(serverRoot, 'tmp', 'data/')
 }
 
+// Writable paths can be isolated while packaged read-only assets retain their source location.
+dataPath = process.env.XPERT_DATA_PATH ? path.resolve(process.env.XPERT_DATA_PATH) : dataPath
+assetPublicPath = process.env.XPERT_PUBLIC_PATH ? path.resolve(process.env.XPERT_PUBLIC_PATH) : assetPublicPath
+
 console.log(chalk.blueBright('Default Config -> serverRoot: ' + serverRoot))
 console.log(chalk.blueBright('Default Config -> assetPath: ' + assetPath))
 console.log(chalk.blueBright('Default Config -> assetPublicPath: ' + assetPublicPath))
@@ -87,7 +91,8 @@ export const defaultConfiguration: IPluginConfig = {
     assetPublicPath: assetPublicPath,
     serverRoot,
     dataPath,
-    agentPluginPath: process.env.XPERT_AGENT_PLUGIN_PATH || undefined
+    agentPluginPath: process.env.XPERT_AGENT_PLUGIN_PATH || undefined,
+    pluginPath: process.env.XPERT_PLUGIN_PATH ? path.resolve(process.env.XPERT_PLUGIN_PATH) : undefined
   }
 }
 

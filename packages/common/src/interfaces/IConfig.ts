@@ -21,6 +21,8 @@ export interface IAssetOptions {
   dataPath: string
   /** Optional package root; defaults to dataPath/agent-plugins. */
   agentPluginPath?: string
+  /** Optional isolated runtime/staging root for installed plugins. */
+  pluginPath?: string
 }
 export interface IApiServerOptions {
   host?: string
