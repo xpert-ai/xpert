@@ -102,7 +102,9 @@ export class ModelExecutionChatService {
                                     usageCallback,
                                     skipTokenRecord: true,
                                     modelAccessOverride: resolution,
-                                    expectedExecutionModel: model
+                                    expectedExecutionModel: model,
+                                    enableThinking: parsed.options.enable_thinking,
+                                    reasoningEffort: parsed.options.reasoning_effort
                                 },
                                 {
                                     tenantId: grant.tenantId,

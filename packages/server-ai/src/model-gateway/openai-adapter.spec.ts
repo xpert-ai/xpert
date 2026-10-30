@@ -1,9 +1,114 @@
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { BadRequestException } from '@nestjs/common'
-import { ModelFeature, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
-import { assertRequestCapabilities, parseOpenAIChatRequest, responseUsage, toLangChainMessages } from './openai-adapter'
+import { ModelFeature, ModelGatewayUsageSourceEnum, modelExecutionParametersSchema } from '@xpert-ai/contracts'
+import { FakeStreamingChatModel } from '../shared/agent/fake-streaming-chat-model'
+import {
+    assertRequestCapabilities,
+    bindOpenAIRequest,
+    parseOpenAIChatRequest,
+    responseUsage,
+    toLangChainMessages
+} from './openai-adapter'
 
 describe('OpenAI model gateway adapter', () => {
+    it.each(modelExecutionParametersSchema.shape.reasoning_effort.unwrap().options)(
+        'preserves reasoning_effort=%s for provider capability resolution',
+        (reasoning_effort) => {
+            const parsed = parseOpenAIChatRequest({
+                model: 'chat',
+                messages: [{ role: 'user', content: 'Hello' }],
+                reasoning_effort
+            })
+            expect(parsed.options).toHaveProperty('reasoning_effort', reasoning_effort)
+            expect(parsed.options).not.toHaveProperty('enable_thinking')
+        }
+    )
+
+    it.each([null, true, 0, {}, [], '', 'off', 'HIGH', 'auto'])(
+        'rejects invalid reasoning_effort=%j',
+        (reasoning_effort) => {
+            expect(() =>
+                parseOpenAIChatRequest({
+                    model: 'chat',
+                    messages: [{ role: 'user', content: 'Hello' }],
+                    reasoning_effort
+                })
+            ).toThrow(BadRequestException)
+        }
+    )
+
+    it.each([
+        ['enabled', 'none'],
+        ['disabled', 'low'],
+        ['disabled', 'high']
+    ])('rejects contradictory thinking=%s and reasoning_effort=%s', (type, reasoning_effort) => {
+        expect(() =>
+            parseOpenAIChatRequest({
+                model: 'chat',
+                messages: [{ role: 'user', content: 'Hello' }],
+                thinking: { type },
+                reasoning_effort
+            })
+        ).toThrow(BadRequestException)
+    })
+
+    it.each([
+        ['disabled', 'none'],
+        ['enabled', 'high']
+    ])('accepts consistent thinking=%s and reasoning_effort=%s', (type, reasoning_effort) => {
+        expect(
+            parseOpenAIChatRequest({
+                model: 'chat',
+                messages: [{ role: 'user', content: 'Hello' }],
+                thinking: { type },
+                reasoning_effort
+            }).options
+        ).toMatchObject({ enable_thinking: type === 'enabled', reasoning_effort })
+    })
+
+    it.each([
+        ['enabled', true],
+        ['disabled', false]
+    ] as const)('normalizes thinking %s without losing an explicit false', (type, enabled) => {
+        const parsed = parseOpenAIChatRequest({
+            model: 'xirang/deepseek-v4.1-flash-1017',
+            messages: [{ role: 'user', content: 'Hello' }],
+            thinking: { type }
+        })
+        expect(parsed.options.enable_thinking).toBe(enabled)
+    })
+
+    it('does not invent a thinking override when omitted', () => {
+        const parsed = parseOpenAIChatRequest({ model: 'chat', messages: [{ role: 'user', content: 'Hello' }] })
+        expect(parsed.options).not.toHaveProperty('enable_thinking')
+        expect(parsed.options).not.toHaveProperty('reasoning_effort')
+    })
+
+    it('keeps constructor-only thinking out of invocation options while retaining standard tuning', () => {
+        const model = new FakeStreamingChatModel({ sleep: 0 })
+        const bind = jest.spyOn(model, 'bind')
+        bindOpenAIRequest(
+            model,
+            parseOpenAIChatRequest({
+                model: 'chat',
+                messages: [{ role: 'user', content: 'Hello' }],
+                thinking: { type: 'disabled' },
+                reasoning_effort: 'none',
+                temperature: 0
+            })
+        )
+        expect(bind).toHaveBeenCalledWith({ temperature: 0 })
+    })
+
+    it.each([null, true, 'disabled', [], {}, { type: 'adaptive' }, { type: 'enabled', budget_tokens: 1024 }])(
+        'rejects malformed or unsupported thinking settings: %j',
+        (thinking) => {
+            expect(() =>
+                parseOpenAIChatRequest({ model: 'chat', messages: [{ role: 'user', content: 'Hello' }], thinking })
+            ).toThrow(BadRequestException)
+        }
+    )
+
     it('parses the supported chat completion fields', () => {
         const parsed = parseOpenAIChatRequest({
             model: 'tenant-chat',
@@ -55,6 +160,7 @@ describe('OpenAI model gateway adapter', () => {
         const parsed = parseOpenAIChatRequest({
             model: 'tenant-chat',
             stream: true,
+            thinking: { type: 'disabled' },
             parallel_tool_calls: true,
             tools: [
                 {
