@@ -834,6 +834,8 @@
     },
     "Integration": {
       "Qr": {
+        "TenantManualHint": "Scan to create is available only for organization-level integrations. Use manual configuration below to create a tenant-level integration. To scan instead, switch to an organization; the new integration will belong to that organization.",
+        "SwitchOrganization": "Switch organization to scan",
         "OrganizationRequired": "Select an organization before creating an integration by scanning.",
         "NamePlaceholder": "Enter an integration name",
         "Title": "Create integration by scanning",

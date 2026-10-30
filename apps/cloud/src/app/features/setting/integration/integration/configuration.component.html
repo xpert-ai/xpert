@@ -81,6 +81,17 @@
           [placeholder]="'XP.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
         />
       </div>
+      @if (supportsQr() && !qrOrganizationId()) {
+        <div class="grid gap-2 rounded-md bg-muted/50 px-4 py-3">
+          <p role="status" class="text-sm leading-6 text-muted-foreground">
+            {{ 'XP.Integration.Qr.TenantManualHint' | translate }}
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium">{{ 'XP.Integration.Qr.SwitchOrganization' | translate }}</span>
+            <xp-organization-selector variant="breadcrumb" class="block min-w-0" />
+          </div>
+        </div>
+      }
       @if (canScan()) {
         <div
           class="mt-3 flex gap-2 rounded-lg bg-muted p-1"
@@ -120,11 +131,6 @@
           <p class="max-w-sm text-xs leading-5 text-muted-foreground">
             {{ 'XP.Integration.Qr.BindingHint' | translate }}
           </p>
-          @if (!qrOrganizationId()) {
-            <p role="status" class="text-sm text-muted-foreground">
-              {{ 'XP.Integration.Qr.OrganizationRequired' | translate }}
-            </p>
-          }
         </div>
       } @else if (integrationProvider(); as provider) {
         @if (provider.pro && !pro) {
