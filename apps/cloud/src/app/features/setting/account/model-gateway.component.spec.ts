@@ -17,6 +17,7 @@ import {
   ModelGatewayApiKeyStatusEnum,
   ModelGatewayCallStatusEnum,
   ModelGatewayUsageSourceEnum,
+  ModelFeature,
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
 import { of, throwError } from 'rxjs'
@@ -91,6 +92,7 @@ describe('XpAccountModelGatewayComponent', () => {
         {
           provide: ModelGatewayService,
           useValue: {
+            getClientConfig: jest.fn().mockReturnValue(of({ externalApiBaseUrl: null })),
             getCatalog: jest.fn().mockReturnValue(
               of({
                 items: [available, unavailable],
@@ -207,8 +209,13 @@ const pendingRequest: IModelAccessRequest = {
   createdAt: '2026-10-01T00:00:00Z'
 }
 
-async function setupGatewayView(items: IModelGatewayCatalogItem[] = [], keys: IModelGatewayApiKey[] = []) {
+async function setupGatewayView(
+  items: IModelGatewayCatalogItem[] = [],
+  keys: IModelGatewayApiKey[] = [],
+  externalApiBaseUrl: string | null = null
+) {
   const service = {
+    getClientConfig: jest.fn(() => of({ externalApiBaseUrl })),
     getCatalog: jest.fn(() =>
       of({ items, eligible: true, tenantFeatureEnabled: true, organizationFeatureEnabled: true })
     ),
@@ -283,6 +290,166 @@ function modelRow(host: Element, id: string) {
 
 describe('external API settings interactions', () => {
   afterEach(() => TestBed.resetTestingModule())
+
+  it('shows and copies the configured external URL in the guide and both examples instead of the page origin', async () => {
+    const view = await setupGatewayView(
+      [gatewayItem('xirang/model', { allowed: true })],
+      [],
+      'http://10.0.0.15:8088/api/openai/v1'
+    )
+    view.component.selectedTabIndex.set(4)
+    view.fixture.detectChanges()
+
+    const baseUrl = view.host.querySelector('code')!
+    expect(baseUrl.textContent).toBe('http://10.0.0.15:8088/api/openai/v1')
+    baseUrl.parentElement!.querySelector('button')!.click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith('http://10.0.0.15:8088/api/openai/v1')
+    buttonWithText(view.host, 'XP.ModelGateway.CopyExample').click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(
+      expect.stringContaining("curl 'http://10.0.0.15:8088/api/openai/v1/chat/completions'")
+    )
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0].url).toBe(
+      'http://10.0.0.15:8088/api/openai/v1/chat/completions'
+    )
+    expect(view.host.textContent).not.toContain('http://localhost')
+    view.fixture.destroy()
+  })
+
+  it('restores the default URL after clearing and hides examples when client settings cannot be loaded', async () => {
+    const view = await setupGatewayView([gatewayItem('model', { allowed: true })], [], 'https://api.example.com/v1')
+    view.component.selectedTabIndex.set(4)
+    view.service.getClientConfig.mockReturnValue(of({ externalApiBaseUrl: null }))
+    await view.component.load()
+    view.fixture.detectChanges()
+    expect(view.host.querySelector('code')!.textContent).toBe('http://localhost/api/openai/v1')
+    expect(JSON.parse(view.component.vsCodeExample())[0].models[0].url).toBe(
+      'http://localhost/api/openai/v1/chat/completions'
+    )
+    view.service.getClientConfig.mockReturnValue(throwError(() => new Error('unavailable')))
+    await view.component.load()
+    view.fixture.detectChanges()
+    expect(view.host.textContent).toContain('XP.ModelGatewaySettings.LoadFailed')
+    expect(view.host.querySelector('code')).toBeNull()
+    view.fixture.destroy()
+  })
+
+  it('copies a complete VS Code configuration below curl with the selected publication and optional thinking menu', async () => {
+    const plain = gatewayItem('plain', { allowed: true })
+    const xirang = gatewayItem('xirang', {
+      allowed: true,
+      externalModelId: 'xirang/deepseek-v4.1-flash-1017',
+      model: 'deepseek-v4.1-flash-1017',
+      capabilities: [ModelFeature.TOOL_CALL, ModelFeature.VISION]
+    })
+    const view = await setupGatewayView([plain, xirang])
+    view.component.selectedTabIndex.set(4)
+    view.component.selectExampleModel(xirang.id)
+    view.fixture.detectChanges()
+    const codeBlocks = () => [...view.host.querySelectorAll('pre code')].map((code) => code.textContent)
+    expect(codeBlocks()).toHaveLength(2)
+    expect(codeBlocks()[0]).toContain('curl ')
+    expect(JSON.parse(codeBlocks()[1])).toEqual([
+      {
+        name: 'Xpert Model Gateway',
+        vendor: 'customendpoint',
+        apiKey: 'YOUR_API_KEY',
+        apiType: 'chat-completions',
+        models: [
+          {
+            id: 'xirang/deepseek-v4.1-flash-1017',
+            name: 'deepseek-v4.1-flash-1017',
+            url: 'http://localhost/api/openai/v1/chat/completions',
+            maxInputTokens: 256000,
+            maxOutputTokens: 16000,
+            toolCalling: true,
+            vision: true,
+            streaming: false
+          }
+        ]
+      }
+    ])
+    for (const mode of ['enabled', 'disabled']) {
+      view.component.selectExampleThinking(mode)
+      view.fixture.detectChanges()
+      buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+      const copied = view.clipboard.copy.mock.calls.at(-1)![0]
+      expect(copied).toBe(codeBlocks()[1])
+      expect(JSON.parse(copied)[0].models[0]).toMatchObject({
+        id: 'xirang/deepseek-v4.1-flash-1017',
+        thinking: true,
+        supportsReasoningEffort: ['none', 'high'],
+        reasoningEffortFormat: 'chat-completions'
+      })
+      expect(view.host.textContent).toContain('XP.ModelGateway.VSCodeThinkingHint')
+    }
+    view.component.selectExampleModel(plain.id)
+    view.component.selectExampleThinking('default')
+    view.fixture.detectChanges()
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0]).toEqual({
+      id: 'plain',
+      name: 'plain-model',
+      url: 'http://localhost/api/openai/v1/chat/completions',
+      maxInputTokens: 256000,
+      maxOutputTokens: 16000,
+      toolCalling: false,
+      vision: false,
+      streaming: true
+    })
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [] }))
+    view.fixture.detectChanges()
+    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').disabled).toBe(false)
+    buttonWithText(view.host, 'XP.ModelGateway.CopyVSCodeExample').click()
+    expect(JSON.parse(view.clipboard.copy.mock.calls.at(-1)![0])[0].models[0].id).toBe('MODEL_ID')
+    expect(view.host.textContent).toContain('XP.ModelGateway.NoCallableExample')
+    view.fixture.destroy()
+  })
+
+  it('copies the selected publication ID and thinking mode, excluding unavailable models', async () => {
+    const plain = gatewayItem('plain', { allowed: true, externalModelId: 'deepseek-v4.1-flash-1017' })
+    const xirang = gatewayItem('xirang', { allowed: true, externalModelId: 'xirang/deepseek-v4.1-flash-1017' })
+    const view = await setupGatewayView([
+      gatewayItem('unavailable'),
+      gatewayItem('deprecated', { allowed: true, deprecated: true }),
+      plain,
+      xirang
+    ])
+    view.component.selectedTabIndex.set(4)
+    view.fixture.detectChanges()
+    expect(view.component.exampleModels()).toEqual([plain, xirang])
+    expect(view.component.curlExample()).toContain('"model": "deepseek-v4.1-flash-1017"')
+    expect(view.component.curlExample()).not.toContain('thinking')
+
+    view.component.selectExampleModel(xirang.id)
+    view.component.selectExampleThinking('disabled')
+    view.fixture.detectChanges()
+    const selectedLabels = () =>
+      [...view.host.querySelectorAll('z-select button[role="combobox"]')].map((button) => button.textContent.trim())
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingDisabled'])
+    buttonWithText(view.host, 'XP.ModelGateway.CopyExample').click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(
+      expect.stringContaining('"model": "xirang/deepseek-v4.1-flash-1017"')
+    )
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(expect.stringContaining('"type": "disabled"'))
+
+    view.component.selectExampleThinking('enabled')
+    view.fixture.detectChanges()
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingEnabled'])
+    expect(view.component.curlExample()).toContain('"type": "enabled"')
+    view.component.selectExampleThinking('default')
+    view.fixture.detectChanges()
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingDefault'])
+    expect(view.component.curlExample()).not.toContain('thinking')
+
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [plain] }))
+    expect(view.component.exampleModel()).toEqual(plain)
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [] }))
+    view.fixture.detectChanges()
+    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyExample').disabled).toBe(true)
+    expect(view.host.textContent).toContain('XP.ModelGateway.NoCallableExample')
+    view.fixture.destroy()
+  })
 
   it('masks existing secrets, copies the full value on the first click and only offers revocation for active keys', async () => {
     const activeKey: IModelGatewayApiKey = {

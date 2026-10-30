@@ -9,10 +9,17 @@ import {
     ToolMessage
 } from '@langchain/core/messages'
 import { Runnable } from '@langchain/core/runnables'
-import { ModelFeature, ModelGatewayUsageSourceEnum, type ILLMUsage, type TTokenUsage } from '@xpert-ai/contracts'
+import {
+    ModelFeature,
+    ModelGatewayUsageSourceEnum,
+    type ILLMUsage,
+    type TTokenUsage,
+    type ModelExecutionParameters
+} from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import type { ModelGatewayUsage } from './model-gateway.service'
 import { modelGatewayMessage } from './model-gateway.i18n'
+import { openAIReasoningEffortSchema, openAIThinkingSchema } from './openai-chat.schema'
 
 type OpenAIMessageRole = 'system' | 'developer' | 'user' | 'assistant' | 'tool'
 
@@ -34,6 +41,8 @@ export type OpenAIChatRequest = {
     toolChoice?: unknown
     parallelToolCalls?: boolean
     options: {
+        enable_thinking?: boolean
+        reasoning_effort?: NonNullable<ModelExecutionParameters['reasoning_effort']>
         temperature?: number
         top_p?: number
         max_tokens?: number
@@ -69,6 +78,8 @@ const SUPPORTED_KEYS = new Set([
     'tools',
     'tool_choice',
     'parallel_tool_calls',
+    'thinking',
+    'reasoning_effort',
     'temperature',
     'top_p',
     'max_tokens',
@@ -92,6 +103,30 @@ export function parseOpenAIChatRequest(value: unknown): OpenAIChatRequest {
         )
     }
     const model = requiredString(readProperty(value, 'model'), 'model')
+    const thinking = openAIThinkingSchema.optional().safeParse(readProperty(value, 'thinking'))
+    if (!thinking.success) {
+        throw badRequest(
+            'ModelGatewayOpenAIThinkingInvalid',
+            'thinking must be an object containing only type: "enabled" or "disabled".'
+        )
+    }
+    const reasoningEffort = openAIReasoningEffortSchema.safeParse(readProperty(value, 'reasoning_effort'))
+    if (!reasoningEffort.success) {
+        throw badRequest(
+            'ModelGatewayOpenAIReasoningEffortInvalid',
+            'reasoning_effort must be one of: none, minimal, low, medium, high, xhigh, max.'
+        )
+    }
+    if (
+        thinking.data &&
+        reasoningEffort.data !== undefined &&
+        (thinking.data.type === 'enabled') !== (reasoningEffort.data !== 'none')
+    ) {
+        throw badRequest(
+            'ModelGatewayOpenAIReasoningConflict',
+            'thinking and reasoning_effort must agree on whether thinking is enabled.'
+        )
+    }
     // CLI cache hints are advisory; never forward client-selected cache identities across executions.
     optionalString(readProperty(value, 'prompt_cache_key'), 'prompt_cache_key')
     const rawMessages = readProperty(value, 'messages')
@@ -128,6 +163,8 @@ export function parseOpenAIChatRequest(value: unknown): OpenAIChatRequest {
         toolChoice: readProperty(value, 'tool_choice'),
         parallelToolCalls: optionalBoolean(readProperty(value, 'parallel_tool_calls'), 'parallel_tool_calls'),
         options: {
+            ...(thinking.data ? { enable_thinking: thinking.data.type === 'enabled' } : {}),
+            ...(reasoningEffort.data !== undefined ? { reasoning_effort: reasoningEffort.data } : {}),
             temperature: optionalNumber(readProperty(value, 'temperature'), 'temperature'),
             top_p: optionalNumber(readProperty(value, 'top_p'), 'top_p'),
             max_tokens: maxTokens,
@@ -206,7 +243,9 @@ export function bindOpenAIRequest(model: BaseChatModel, request: OpenAIChatReque
         })
         runnable = bound as Runnable<BaseMessage[], AIMessage | AIMessageChunk>
     }
-    const options = compactObject(request.options)
+    // Reasoning controls are resolved against provider rules before the client is constructed.
+    const { enable_thinking: _thinking, reasoning_effort: _effort, ...invocationOptions } = request.options
+    const options = compactObject(invocationOptions)
     return Object.keys(options).length ? runnable.bind(options) : runnable
 }
 

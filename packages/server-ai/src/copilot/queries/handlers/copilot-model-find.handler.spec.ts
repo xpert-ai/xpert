@@ -8,7 +8,7 @@ describe('FindCopilotModelsHandler', () => {
         jest.restoreAllMocks()
     })
 
-    it('includes the currently selected copilot model when the provider catalog does not list it', async () => {
+    it('excludes a historical selection absent from the provider catalog', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
@@ -75,26 +75,12 @@ describe('FindCopilotModelsHandler', () => {
         const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
 
         expect(result).toHaveLength(1)
-        expect(result[0].providerWithModels.models).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    model: 'qwen3.6-plus',
-                    model_type: AiModelTypeEnum.LLM,
-                    fetch_from: FetchFrom.CUSTOMIZABLE_MODEL
-                })
-            ])
-        )
+        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['glm-5'])
         expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: null,
             userId: 'user-1',
-            models: expect.arrayContaining([
-                expect.objectContaining({
-                    copilotId: 'copilot-primary',
-                    copilotModelId: 'qwen3.6-plus',
-                    modelType: AiModelTypeEnum.LLM
-                })
-            ])
+            models: [{ copilotId: 'copilot-primary', copilotModelId: 'glm-5', modelType: AiModelTypeEnum.LLM }]
         })
     })
 
@@ -166,8 +152,7 @@ describe('FindCopilotModelsHandler', () => {
 
         expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual([
             'custom-configured',
-            'provider-capability-only',
-            'selected-configured'
+            'provider-capability-only'
         ])
         expect(getProviderModels).toHaveBeenCalledWith(AiModelTypeEnum.LLM)
         expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()

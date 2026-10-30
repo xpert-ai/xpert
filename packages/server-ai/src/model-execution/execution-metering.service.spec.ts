@@ -45,6 +45,8 @@ async function setup() {
         callId: 'logical-call',
         requestId: 'attempt',
         tenantId: 'tenant',
+        organizationId: 'runtime-org',
+        userId: 'payer',
         grantId: 'grant',
         source: 'execution_grant',
         startedAt: new Date(),
@@ -57,6 +59,9 @@ async function setup() {
     const grant = Object.assign(new ModelExecutionGrant(), {
         id: 'grant',
         tenantId: 'tenant',
+        organizationId: 'runtime-org',
+        ownerId: 'payer',
+        status: 'active',
         context: {
             tenantId: 'tenant',
             runtimeOrganizationId: 'runtime-org',
@@ -110,7 +115,7 @@ async function setup() {
             call,
             grant,
             model,
-            resolution,
+            resolution: { ...resolution },
             providerUsage: null,
             usage: { inputTokens: 40, outputTokens: 10, totalTokens: 50, source: ModelGatewayUsageSourceEnum.Provider }
         }
@@ -118,6 +123,63 @@ async function setup() {
 }
 
 describe('execution usage outbox', () => {
+    it('settles revoked Assistant execution usage under its frozen payer and original technical actor', async () => {
+        const test = await setup()
+        test.grant.ownerId = 'technical-assistant'
+        test.grant.context.actorUserId = 'technical-assistant'
+        test.call.userId = 'technical-assistant'
+        test.commands.execute.mockRejectedValueOnce(new Error('ledger temporarily unavailable'))
+        await test.service.finish(test.input)
+        test.grant.status = 'revoked'
+        await test.service.deliver(test.call.id)
+        expect(test.call.usageDeliveredAt).toBeInstanceOf(Date)
+        for (const [command] of test.commands.execute.mock.calls)
+            expect(command.input).toMatchObject({
+                userId: 'payer',
+                requestId: 'attempt',
+                execution: { actorUserId: 'technical-assistant', billableUserId: 'payer' }
+            })
+        expect(test.call.userId).toBe('technical-assistant')
+    })
+    it('rejects a settlement resolution for a different payer before persisting usage', async () => {
+        const test = await setup()
+        await expect(
+            test.service.finish({
+                ...test.input,
+                resolution: { ...test.input.resolution, billableUserId: 'other-payer' }
+            })
+        ).rejects.toThrow()
+        expect(test.call.usageFact).toBeNull()
+        expect(test.commands.execute).not.toHaveBeenCalled()
+    })
+    it.each(['userId', 'organizationId', 'tenantId', 'grantId'] as const)(
+        'rejects a provider callback whose persisted call has another %s',
+        async (field) => {
+            const test = await setup()
+            const callback = { ...test.call }
+            test.call[field] = 'other'
+            await expect(test.service.finish({ ...test.input, call: callback })).rejects.toThrow()
+            expect(test.call.usageFact).toBeNull()
+            expect(test.commands.execute).not.toHaveBeenCalled()
+        }
+    )
+    it.each(['payer', 'actor', 'grant', 'attempt', 'settlement'])(
+        'does not retry a durable fact with mismatched %s attribution',
+        async (field) => {
+            const test = await setup()
+            test.commands.execute.mockRejectedValueOnce(new Error('ledger temporarily unavailable'))
+            await test.service.finish(test.input)
+            test.commands.execute.mockClear()
+            if (field === 'payer') test.call.usageFact.context.billableUserId = 'other'
+            if (field === 'actor') test.call.usageFact.context.actorUserId = 'other'
+            if (field === 'grant') test.call.usageFact.context.grantId = 'other'
+            if (field === 'attempt') test.call.usageFact.context.attemptId = 'other'
+            if (field === 'settlement') test.call.settlementContext.billableUserId = 'other'
+            await expect(test.service.deliver(test.call.id)).rejects.toThrow()
+            expect(test.commands.execute).not.toHaveBeenCalled()
+            expect(test.call.usageDeliveredAt).toBeNull()
+        }
+    )
     it('keeps a quota error pending when no completed token delivery receipt exists', async () => {
         const test = await setup()
         test.commands.execute.mockRejectedValueOnce(new ExceedingLimitException('plan unavailable'))

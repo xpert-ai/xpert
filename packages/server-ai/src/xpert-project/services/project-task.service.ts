@@ -133,6 +133,14 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 if (!task) throw new NotFoundException('Project task not found')
                 assertOrdinaryTask(task)
                 assertOrdinaryTaskInput(entity)
+                if (entity.assigneeXpertId !== undefined) {
+                    const project = await manager.getRepository(XpertProject).findOne({
+                        where: { id: projectId, ...this.taskScope() },
+                        relations: ['xperts']
+                    })
+                    if (!project) throw new NotFoundException('Xpert project not found')
+                    task.assigneeXpertId = await this.resolveAssigneeXpertId(project, entity.assigneeXpertId)
+                }
                 await this.assertBusinessStatus(manager, task.id, entity.status)
                 for (const step of entity.steps ?? []) {
                     const taskStep =

@@ -485,8 +485,8 @@
                 <span class="ml-1 text-xs font-normal text-muted-foreground">Base URL</span>
               </h3>
               <div class="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
-                <code class="min-w-0 flex-1 break-all px-1 text-xs leading-relaxed">{{ apiBaseUrl }}</code>
-                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(apiBaseUrl)">
+                <code class="min-w-0 flex-1 break-all px-1 text-xs leading-relaxed">{{ apiBaseUrl() }}</code>
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(apiBaseUrl())">
                   <z-icon zType="copy" />{{ 'XP.ACTIONS.Copy' | translate }}
                 </button>
               </div>
@@ -494,13 +494,74 @@
             <div class="border-t border-border pt-5">
               <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-medium">{{ 'XP.ModelGateway.QuickStart' | translate }}</h3>
-                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(curlExample())">
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="!exampleModel()"
+                  (click)="copy(curlExample())"
+                >
                   <z-icon zType="copy" />{{ 'XP.ModelGateway.CopyExample' | translate }}
                 </button>
               </div>
+              <div class="mb-4 grid gap-4 md:grid-cols-2">
+                <z-form-field>
+                  <z-form-label>{{ 'XP.ModelGateway.ExampleModel' | translate }}</z-form-label>
+                  <z-select
+                    class="w-full"
+                    [zValue]="exampleModel()?.id ?? ''"
+                    [zDisabled]="!exampleModels().length"
+                    (zSelectionChange)="selectExampleModel($event)"
+                  >
+                    @for (item of exampleModels(); track item.id) {
+                      <z-select-item [zValue]="item.id">{{ item.externalModelId }}</z-select-item>
+                    }
+                  </z-select>
+                </z-form-field>
+                <z-form-field>
+                  <z-form-label>{{ 'XP.ModelGateway.ExampleThinking' | translate }}</z-form-label>
+                  <z-select
+                    class="w-full"
+                    [zValue]="exampleThinking()"
+                    (zSelectionChange)="selectExampleThinking($event)"
+                  >
+                    <z-select-item zValue="default">{{ 'XP.ModelGateway.ThinkingDefault' | translate }}</z-select-item>
+                    <z-select-item zValue="enabled">{{ 'XP.ModelGateway.ThinkingEnabled' | translate }}</z-select-item>
+                    <z-select-item zValue="disabled">{{
+                      'XP.ModelGateway.ThinkingDisabled' | translate
+                    }}</z-select-item>
+                  </z-select>
+                </z-form-field>
+              </div>
+              <p class="mb-3 text-xs leading-relaxed text-muted-foreground">
+                {{ 'XP.ModelGateway.ExampleModelHint' | translate }}
+              </p>
+              @if (!exampleModel()) {
+                <p class="mb-3 text-sm text-muted-foreground" role="status">
+                  {{ 'XP.ModelGateway.NoCallableExample' | translate }}
+                </p>
+              }
               <pre
                 class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground"
               ><code>{{ curlExample() }}</code></pre>
+            </div>
+            <div class="border-t border-border pt-5">
+              <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-sm font-medium">{{ 'XP.ModelGateway.VSCodeExample' | translate }}</h3>
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(vsCodeExample())">
+                  <z-icon zType="copy" />{{ 'XP.ModelGateway.CopyVSCodeExample' | translate }}
+                </button>
+              </div>
+              <p class="mb-3 text-xs leading-relaxed text-muted-foreground">
+                {{ 'XP.ModelGateway.VSCodeSetup' | translate }}
+              </p>
+              <p class="mb-3 text-xs leading-relaxed text-muted-foreground">
+                {{ 'XP.ModelGateway.VSCodeThinkingHint' | translate }}
+              </p>
+              <pre
+                class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground"
+              ><code>{{ vsCodeExample() }}</code></pre>
             </div>
           </z-card-content>
         </z-card>

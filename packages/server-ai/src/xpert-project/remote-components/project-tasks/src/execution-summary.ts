@@ -7,7 +7,14 @@ export function executionSummary(attempt: Attempt, t: Texts) {
     const failed = ['failed', 'error', 'timeout'].includes(state)
     const businessResult =
         attempt.outputSummary === 'rejected' ? t.rejected : attempt.status === 'failed' && succeeded ? t.failed : null
-    return { state, succeeded, failed, businessResult, label: runtimeLabel(state, t) }
+    const color = failed
+        ? 'bg-destructive'
+        : succeeded
+          ? 'bg-[var(--success)]'
+          : state === 'running'
+            ? 'bg-primary'
+            : 'bg-muted-foreground'
+    return { state, succeeded, failed, businessResult, color, label: runtimeLabel(state, t) }
 }
 export function executionDuration(attempt: Attempt, now: number): number | null {
     const { start, end } = attemptTimes(attempt)

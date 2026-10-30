@@ -1,5 +1,6 @@
 import {
     AiModelTypeEnum,
+    isModelGatewayExternalApiBaseUrl,
     MAX_MODEL_GATEWAY_BODY_RETENTION_DAYS,
     MAX_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
     MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
@@ -13,7 +14,19 @@ import {
     TModelGatewaySettingsUpdateInput
 } from '@xpert-ai/contracts'
 import { Transform } from 'class-transformer'
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator'
+import {
+    IsBoolean,
+    IsEnum,
+    IsInt,
+    IsOptional,
+    IsString,
+    Max,
+    MaxLength,
+    Min,
+    MinLength,
+    ValidateBy
+} from 'class-validator'
+import { modelGatewayMessage } from '../model-gateway.i18n'
 
 const trimValue = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value)
 
@@ -57,6 +70,25 @@ export class ModelGatewayExternalRequestCreateDto implements TModelGatewayExtern
 }
 
 export class ModelGatewaySettingsUpdateDto implements TModelGatewaySettingsUpdateInput {
+    @Transform(({ value }: { value: unknown }) => {
+        if (typeof value !== 'string') return value
+        const trimmed = value.trim()
+        return /^https?:\/\//i.test(trimmed) ? trimmed.replace(/\/+$/, '') : trimmed
+    })
+    @IsOptional()
+    @ValidateBy({
+        name: 'isModelGatewayExternalApiBaseUrl',
+        validator: {
+            validate: (value: unknown) => typeof value === 'string' && isModelGatewayExternalApiBaseUrl(value),
+            defaultMessage: () =>
+                modelGatewayMessage(
+                    'ModelGatewayExternalApiBaseUrlInvalid',
+                    'Enter an HTTP(S) base URL without credentials, a query string or a fragment (maximum 2048 characters).'
+                )
+        }
+    })
+    externalApiBaseUrl?: string | null
+
     @IsBoolean()
     storeBodies: boolean
 

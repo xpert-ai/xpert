@@ -25,11 +25,17 @@ describe('Registry installation across API processes', () => {
 		chmodSync(join(directory, 'npm'), 0o755)
 	})
 	afterEach(() => rmSync(directory, { recursive: true, force: true }))
-	function install(spec: string, env: NodeJS.ProcessEnv = {}, timeoutMs = 5000, lockWaitMs = 5000) {
+	function install(
+		spec: string,
+		env: NodeJS.ProcessEnv = {},
+		timeoutMs = 5000,
+		lockWaitMs = 5000,
+		publication: { runtimeName?: string; publishManifest?: boolean } = {}
+	) {
 		return new Promise<unknown>((resolve, reject) => {
 			const child = fork(
 				join(__dirname, 'registry-install.test-fixture.cjs'),
-				[JSON.stringify({ root, spec, timeoutMs, lockWaitMs })],
+				[JSON.stringify({ root, spec, timeoutMs, lockWaitMs, ...publication })],
 				{
 					env: {
 						...process.env,
@@ -116,6 +122,17 @@ describe('Registry installation across API processes', () => {
 		expect(manifest()).toEqual(['@test/plugin@2.0.0'])
 		expect(existsSync(target('@test/plugin@1.0.0'))).toBe(true)
 	})
+	it('stages a replacement in a private runtime directory without changing the previous manifest or artifact', async () => {
+		await expect(install('@test/plugin@1.0.0')).resolves.toMatchObject({ success: true })
+		const runtimeName = '@test/plugin@runtime__candidate'
+		await expect(
+			install('@test/plugin@2.0.0', {}, 5000, 5000, { runtimeName, publishManifest: false })
+		).resolves.toMatchObject({ success: true })
+		expect(manifest()).toEqual(['@test/plugin@1.0.0'])
+		expect(existsSync(join(target('@test/plugin@1.0.0'), 'node_modules/@test/plugin/index.js'))).toBe(true)
+		expect(existsSync(join(target(runtimeName), 'node_modules/@test/plugin/index.js'))).toBe(true)
+	})
+
 	it('kills a timed-out installation before cleaning its stage and releasing the lock', async () => {
 		await expect(install('@test/plugin@1.0.0', { PLUGIN_TEST_DELAY_MS: '1500' }, 700)).resolves.toMatchObject({
 			success: false

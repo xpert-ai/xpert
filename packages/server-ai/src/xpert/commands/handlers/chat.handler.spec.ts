@@ -41,7 +41,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
+import { CopilotCheckpointGetMetadataQuery } from '../../../copilot-checkpoint/queries'
 import {
     AttachFileToConversationCommand,
     CreateFileAssetCommand,
@@ -3464,7 +3464,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 switch (query.configurable.checkpoint_id) {
                     case 'checkpoint-loop-2':
                         return createCheckpointTuple('checkpoint-loop-2', 'loop', 'checkpoint-loop-1')
@@ -3601,7 +3601,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 return {
                     config: { configurable: query.configurable },
                     metadata: {
@@ -3642,7 +3642,7 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.options.checkpointId).toBe('checkpoint-history-1')
-        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CopilotCheckpointGetTupleQuery)).toBe(
+        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CopilotCheckpointGetMetadataQuery)).toBe(
             true
         )
     })
@@ -3755,7 +3755,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 switch (query.configurable.checkpoint_id) {
                     case 'checkpoint-loop-1':
                         return createCheckpointTuple('checkpoint-loop-1', 'loop', 'checkpoint-input-1')
@@ -3886,7 +3886,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 switch (query.configurable.checkpoint_id) {
                     case 'checkpoint-loop-1':
                         return createCheckpointTuple('checkpoint-loop-1', 'loop', 'checkpoint-input-1')
@@ -4012,7 +4012,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 switch (query.configurable.checkpoint_id) {
                     case 'checkpoint-loop-1':
                         return createCheckpointTuple('checkpoint-loop-1', 'loop', 'checkpoint-input-1')
@@ -4102,7 +4102,7 @@ describe('XpertChatHandler', () => {
                     }
                 }
             }
-            if (query instanceof CopilotCheckpointGetTupleQuery) {
+            if (query instanceof CopilotCheckpointGetMetadataQuery) {
                 switch (query.configurable.checkpoint_id) {
                     case 'checkpoint-loop-2':
                         return createCheckpointTuple('checkpoint-loop-2', 'loop', 'checkpoint-loop-1')

@@ -45,9 +45,11 @@ import { ThreadCursorStore } from './thread-cursor.store'
 import { ConversationInitializerRegistry } from './conversation-initializer.registry'
 import { SideChatForkService } from './side-chat-fork.service'
 import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
+import { ConversationEnvironmentFilesModule } from './workspace-files/conversation-environment-files.module'
 
 @Module({
     imports: [
+        ConversationEnvironmentFilesModule,
         TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([

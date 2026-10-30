@@ -1,3 +1,7 @@
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { markImmutableArtifact } from './installation/immutable-artifact'
 import 'reflect-metadata'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -79,6 +83,64 @@ describe('plugin helper registerPluginsAsync', () => {
 		jest.clearAllMocks()
 		loaded.length = 0
 		loadFailures.length = 0
+	})
+
+	it.each(['code', 'npm'] as const)(
+		'restores a committed %s artifact without rebuilding it or consulting a registry',
+		async (source) => {
+			const directory = mkdtempSync(join(tmpdir(), 'plugin-restore-'))
+			const name = '@test/immutable',
+				runtimeName = `${name}@runtime__committed`
+			const store = jest.requireMock<typeof import('./organization-plugin.store')>('./organization-plugin.store')
+			jest.mocked(store.getOrganizationPluginPath).mockReturnValueOnce(directory).mockReturnValueOnce(directory)
+			mkdirSync(join(directory, 'node_modules', name), { recursive: true })
+			writeFileSync(join(directory, 'node_modules', name, 'package.json'), JSON.stringify({ name, version: '1' }))
+			markImmutableArtifact(directory, name, runtimeName)
+			try {
+				const result = await registerPluginsAsync({
+					organizationId: 'org-1',
+					plugins: [
+						{
+							name,
+							runtimeName,
+							source,
+							restore: true,
+							sourceConfig: {
+								immutableRuntime: true,
+								runtimeName,
+								workspacePath: '/changed-or-missing-workspace'
+							}
+						}
+					]
+				})
+				expect(result.errors).toEqual([])
+				expect(installOrganizationPlugins).not.toHaveBeenCalled()
+				expect(stageWorkspacePlugin).not.toHaveBeenCalled()
+				expect(stagePackageDirectoryPlugin).not.toHaveBeenCalled()
+			} finally {
+				rmSync(directory, { recursive: true, force: true })
+			}
+		}
+	)
+
+	it('fails closed when a committed immutable artifact is missing instead of restaging different code', async () => {
+		const name = '@test/missing-immutable',
+			runtimeName = `${name}@runtime__missing`
+		const result = await registerPluginsAsync({
+			organizationId: 'org-1',
+			plugins: [
+				{
+					name,
+					runtimeName,
+					source: 'code',
+					restore: true,
+					sourceConfig: { immutableRuntime: true, runtimeName, workspacePath: '/new-code' }
+				}
+			]
+		})
+		expect(result.errors).toHaveLength(1)
+		expect(stageWorkspacePlugin).not.toHaveBeenCalled()
+		expect(loadPlugin).not.toHaveBeenCalled()
 	})
 
 	it('tags dynamic providers and controllers with plugin provenance before strategy discovery', async () => {

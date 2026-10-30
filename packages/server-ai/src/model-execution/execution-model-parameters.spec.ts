@@ -1,4 +1,4 @@
-import { ParameterType, type ParameterRule } from '@xpert-ai/contracts'
+import { ParameterType, type ParameterRule, type ModelExecutionParameters } from '@xpert-ai/contracts'
 import type { NativeModelBody } from '@xpert-ai/plugin-sdk'
 import { executionError } from './execution-errors'
 import {
@@ -45,6 +45,25 @@ describe('execution tuning boundaries', () => {
             reasoning_effort: null
         })
         expect(request).toEqual({})
+    })
+
+    it('overrides captured reasoning effort without mutating the snapshot', () => {
+        const saved: ModelExecutionParameters = Object.freeze({ reasoning_effort: 'high', max_tokens: 8192 })
+        expect(executionChatParameters(saved, { reasoning_effort: 'none' })).toEqual({
+            reasoning_effort: 'none',
+            max_tokens: 8192
+        })
+        expect(executionChatParameters(saved, {})).toEqual(saved)
+        expect(saved.reasoning_effort).toBe('high')
+    })
+    it('overrides thinking per request without mutating the execution snapshot', () => {
+        const saved = { enable_thinking: true, max_tokens: 8192 }
+        expect(executionChatParameters(saved, { enable_thinking: false })).toEqual({
+            enable_thinking: false,
+            max_tokens: 8192
+        })
+        expect(executionChatParameters(saved, {})).toEqual(saved)
+        expect(saved.enable_thinking).toBe(true)
     })
 
     it('does not increase a reserved output value to a provider minimum', () => {

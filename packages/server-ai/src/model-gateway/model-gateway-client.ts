@@ -4,12 +4,14 @@ import { BadRequestException } from '@nestjs/common'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
 import { modelGatewayMessage } from './model-gateway.i18n'
+import type { RequestReasoningControls } from '../shared/agent/middleware-runtime/request-reasoning'
 
 export async function createGatewayChatModel(
     runtimeService: AgentMiddlewareRuntimeService,
     publication: ModelGatewayPublication,
     resolution: IModelAccessResolution,
-    usageCallback: (usage: ILLMUsage) => void
+    usageCallback: (usage: ILLMUsage) => void,
+    reasoning: RequestReasoningControls = {}
 ) {
     const client = await runtimeService.createModelClient<BaseChatModel>(
         {
@@ -20,7 +22,8 @@ export async function createGatewayChatModel(
         {
             usageCallback,
             modelAccessOverride: resolution,
-            skipTokenRecord: true
+            skipTokenRecord: true,
+            ...reasoning
         },
         {
             tenantId: publication.tenantId,

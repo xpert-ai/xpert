@@ -1,3 +1,8 @@
+import {
+	hasImmutableArtifact,
+	markImmutableArtifact,
+	missingImmutableArtifact
+} from './installation/immutable-artifact'
 /**
  * Invariants:
  * - Startup restore and runtime install must converge on the same staged plugin path semantics.
@@ -339,6 +344,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	plugins?: {
 		name: string
 		runtimeName?: string
+		restore?: boolean
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
@@ -395,11 +401,13 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	const pluginNames: Array<{
 		name: string
 		runtimeName?: string
+		restore?: boolean
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
 		sourceConfig?: PluginSourceConfig | null
 		stageError?: string
+		reuseArtifact?: boolean
 	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
@@ -411,9 +419,30 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				}))
 			: []
 
+	for (const plugin of pluginNames) {
+		if (!plugin.sourceConfig?.immutableRuntime) continue
+		plugin.runtimeName ??= getCodeRuntimeName(plugin.sourceConfig)
+		if (!plugin.runtimeName) {
+			plugin.stageError = missingImmutableArtifact(plugin.name).message
+			continue
+		}
+		const directory = getOrganizationPluginPath(organizationId, plugin.runtimeName, scopeOpts)
+		plugin.reuseArtifact = hasImmutableArtifact(directory, normalizePluginName(plugin.name), plugin.runtimeName)
+		if (plugin.restore && !plugin.reuseArtifact) plugin.stageError = missingImmutableArtifact(plugin.name).message
+	}
+	const markPrepared = (plugin: (typeof pluginNames)[number]) => {
+		if (plugin.sourceConfig?.immutableRuntime && plugin.runtimeName && !plugin.stageError) {
+			markImmutableArtifact(
+				getOrganizationPluginPath(organizationId, plugin.runtimeName, scopeOpts),
+				normalizePluginName(plugin.name),
+				plugin.runtimeName
+			)
+		}
+	}
+
 	// Stage code plugins first to ensure their workspace paths are persisted and available for loading, and also to allow them to be included in the manifest for non-code plugin installs.
 	for (const plugin of pluginNames) {
-		if (plugin.source !== 'code') {
+		if (plugin.source !== 'code' || plugin.reuseArtifact || plugin.stageError) {
 			continue
 		}
 
@@ -431,6 +460,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					defaultTenantId: opts.defaultTenantId,
 					scopeKey
 				})
+				markPrepared(plugin)
 			} catch (error) {
 				plugin.stageError = getErrorMessage(error)
 				console.error(error)
@@ -461,6 +491,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				defaultTenantId: opts.defaultTenantId,
 				scopeKey
 			})
+			markPrepared(plugin)
 		} catch (error) {
 			plugin.stageError = getErrorMessage(error)
 			console.error(error)
@@ -474,7 +505,13 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	// Registry failures must reach callers before loading or publishing runtime requirements.
 	for (const plugin of pluginNames.filter((plugin) => plugin.source !== 'code')) {
 		try {
-			await installOrganizationPlugins(organizationId, [plugin.name], scopeOpts)
+			if (plugin.reuseArtifact || plugin.stageError) continue
+			await installOrganizationPlugins(organizationId, [plugin.name], {
+				...scopeOpts,
+				runtimeName: plugin.runtimeName,
+				publishManifest: !plugin.sourceConfig?.immutableRuntime
+			})
+			markPrepared(plugin)
 		} catch (error) {
 			plugin.stageError = getErrorMessage(error)
 		}
@@ -509,7 +546,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 
 	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
 		try {
-			if (source !== 'code' && stageError) throw new Error(stageError)
+			if ((source !== 'code' || sourceConfig?.immutableRuntime) && stageError) throw new Error(stageError)
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, pluginPathName, scopeOpts)
@@ -533,7 +570,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					workspacePath,
 					codeLoadMode:
 						source === 'code'
-							? configuredWorkspacePath || configuredPackageDir
+							? configuredWorkspacePath || configuredPackageDir || sourceConfig?.immutableRuntime
 								? 'staged-package'
 								: 'workspace-ts'
 							: undefined,

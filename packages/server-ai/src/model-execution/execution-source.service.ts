@@ -64,7 +64,6 @@ export class ModelExecutionSourceService {
             organizationId: context.runtimeOrganizationId,
             ownerId: context.actorUserId
         }
-        if (context.billableUserId !== context.actorUserId) throw executionError('Denied')
         if (context.source.type === 'shell_execution') {
             const guard = this.capabilities?.get(ShellModelExecutionSourceCapability)
             if (!guard) throw executionError('Denied')

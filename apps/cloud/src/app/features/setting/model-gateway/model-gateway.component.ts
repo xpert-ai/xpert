@@ -9,6 +9,8 @@ import {
   DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
   DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
   IModelGatewayAdminSettings,
+  isModelGatewayExternalApiBaseUrl,
+  MAX_MODEL_GATEWAY_EXTERNAL_API_BASE_URL_LENGTH,
   IModelGatewayApiKey,
   IModelGatewayCall,
   MAX_MODEL_GATEWAY_BODY_RETENTION_DAYS,
@@ -90,6 +92,7 @@ export class ModelGatewayAdminComponent implements OnInit {
   readonly keyPageCount = computed(() => Math.max(1, Math.ceil(this.keyTotal() / this.pageSize)))
 
   readonly keyStatus = ModelGatewayApiKeyStatusEnum
+  readonly maxExternalApiBaseUrlLength = MAX_MODEL_GATEWAY_EXTERNAL_API_BASE_URL_LENGTH
   readonly minRequestsPerMinute = MIN_MODEL_GATEWAY_REQUESTS_PER_MINUTE
   readonly maxRequestsPerMinute = MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE
   readonly requestsPerMinuteErrorDefault = `Enter an integer from ${MIN_MODEL_GATEWAY_REQUESTS_PER_MINUTE} to ${MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE}`
@@ -104,6 +107,7 @@ export class ModelGatewayAdminComponent implements OnInit {
     keysSearch: ''
   })
   readonly settingsForm = this.#formBuilder.nonNullable.group({
+    externalApiBaseUrl: this.#formBuilder.nonNullable.control('', [externalApiBaseUrlValidator]),
     storeBodies: false,
     bodyRetentionDays: this.#formBuilder.nonNullable.control(DEFAULT_MODEL_GATEWAY_BODY_RETENTION_DAYS, [
       Validators.required,
@@ -127,6 +131,10 @@ export class ModelGatewayAdminComponent implements OnInit {
 
   get requestsPerMinuteCtrl() {
     return this.settingsForm.controls.requestsPerMinute
+  }
+
+  get externalApiBaseUrlCtrl() {
+    return this.settingsForm.controls.externalApiBaseUrl
   }
 
   get bodyRetentionDaysCtrl() {
@@ -190,6 +198,7 @@ export class ModelGatewayAdminComponent implements OnInit {
       if (settings) {
         this.settingsForm.reset(
           {
+            externalApiBaseUrl: settings.externalApiBaseUrl ?? '',
             storeBodies: settings.storeBodies,
             bodyRetentionDays: parseBoundedInteger(
               settings.bodyRetentionDays,
@@ -235,6 +244,7 @@ export class ModelGatewayAdminComponent implements OnInit {
       this.settings.set(settings)
       this.settingsForm.reset(
         {
+          externalApiBaseUrl: settings.externalApiBaseUrl ?? '',
           storeBodies: settings.storeBodies,
           bodyRetentionDays: settings.bodyRetentionDays,
           requestsPerMinute: settings.requestsPerMinute,
@@ -366,4 +376,10 @@ function integerValidator(control: AbstractControl<unknown>): ValidationErrors |
     return null
   }
   return Number.isInteger(Number(value)) ? null : { integer: true }
+}
+
+function externalApiBaseUrlValidator(control: AbstractControl<unknown>): ValidationErrors | null {
+  return typeof control.value === 'string' && isModelGatewayExternalApiBaseUrl(control.value)
+    ? null
+    : { externalApiBaseUrl: true }
 }

@@ -68,6 +68,10 @@ describe('Shell CLI ownership and lifecycle', () => {
         )
         expect(f.parents.findOneBy).toHaveBeenCalledWith(expect.objectContaining({ id: 'parent', createdById: 'user' }))
     })
+    it('keeps source ownership on the actor when the model grant has a separate payer', async () => {
+        const f = setup()
+        await expect(f.service.assertCurrent({ ...context, billableUserId: 'payer' })).resolves.toBeUndefined()
+    })
     it.each(['preparing', 'prepared', 'unknown', 'stopped', 'exited'])(
         'denies inference for a %s child',
         async (status) => {
@@ -89,7 +93,7 @@ describe('Shell CLI ownership and lifecycle', () => {
         })
         await expect(f.service.assertCurrent(context)).rejects.toThrow()
     })
-    it.each(['generation', 'revision', 'parent', 'receipt', 'heartbeat', 'deadline', 'environment', 'payer'])(
+    it.each(['generation', 'revision', 'parent', 'receipt', 'heartbeat', 'deadline', 'environment'])(
         'rejects a changed %s',
         async (field) => {
             const f = setup()
@@ -105,9 +109,7 @@ describe('Shell CLI ownership and lifecycle', () => {
                     environmentId: 'environment',
                     instanceId: 'replacement'
                 }
-            await expect(
-                f.service.assertCurrent(field === 'payer' ? { ...context, billableUserId: 'another' } : context)
-            ).rejects.toThrow()
+            await expect(f.service.assertCurrent(context)).rejects.toThrow()
         }
     )
 })

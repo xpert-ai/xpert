@@ -12,6 +12,7 @@ import { stalePluginRestart } from './plugin-restart-conflict'
 export const PLUGIN_GENERATION_KEY = 'xpert:system:plugin-runtime:generation'
 const PLUGIN_GENERATION_PREFIX = 'xpert:system:plugin-runtime:generation:'
 const PLUGIN_GENERATION_TTL_SECONDS = 24 * 60 * 60
+const PUBLICATIONS_KEY = 'xpert:system:plugin-runtime:publications'
 const DESIRED_PLUGINS_KEY = 'xpert:system:plugin-runtime:desired'
 export const REPLICA_ATTEMPTS_KEY = 'xpert:system:plugin-runtime:attempts'
 const PUBLISH_PLUGIN_GENERATION_SCRIPT = `
@@ -26,6 +27,17 @@ if ARGV[4] ~= '' then
     local current = cjson.decode(value)
     if current['state'] ~= requirement['state'] or current['version'] ~= requirement['version'] or
        current['runtimeRevision'] ~= requirement['runtimeRevision'] then return -1 end
+  end
+end
+local publicationKey = nil
+if change['publicationId'] then
+  if #change['requirements'] ~= 1 then return redis.error_reply('Publication requires one installation') end
+  local requirement = change['requirements'][1]
+  publicationKey = cjson.encode({requirement['scopeKey'], requirement['pluginName']})
+  local receipt = redis.call('hget', KEYS[3], publicationKey)
+  if receipt then
+    local previous = cjson.decode(receipt)
+    if previous['id'] == change['publicationId'] then return previous['generation'] end
   end
 end
 local generation = redis.call('incr', KEYS[1])
@@ -45,6 +57,9 @@ for i = 1, #desired, 2 do
   end
 end
 redis.call('set', ARGV[2] .. generation .. ':requirements', cjson.encode(requirements), 'EX', tonumber(ARGV[3]))
+if publicationKey then
+  redis.call('hset', KEYS[3], publicationKey, cjson.encode({id = change['publicationId'], generation = generation}))
+end
 return generation
 `
 
@@ -87,7 +102,7 @@ export class PluginRuntimeGenerationStore {
 		}
 		const generation = Number(
 			await this.redis.eval(PUBLISH_PLUGIN_GENERATION_SCRIPT, {
-				keys: [PLUGIN_GENERATION_KEY, DESIRED_PLUGINS_KEY],
+				keys: [PLUGIN_GENERATION_KEY, DESIRED_PLUGINS_KEY, PUBLICATIONS_KEY],
 				arguments: [
 					JSON.stringify(change),
 					PLUGIN_GENERATION_PREFIX,
