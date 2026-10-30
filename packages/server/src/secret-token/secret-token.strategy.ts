@@ -11,7 +11,7 @@ import {
 } from '@xpert-ai/contracts'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
-import { DataSource } from 'typeorm'
+import { DataSource, EntityNotFoundError } from 'typeorm'
 import { ApiKeyService } from '../api-key/api-key.service'
 import {
 	applyRequestedOrganizationScopeHeaders,
@@ -20,6 +20,7 @@ import {
 } from '../api-key/api-key-principal'
 import { UserService } from '../user'
 import { SecretTokenService } from './secret-token.service'
+import { ClientSecretDiagnostics, clientSecretDiagnostics } from './client-secret-diagnostics'
 
 /**
  * The secretToken belongs to the user, but apiKey belongs to system.
@@ -40,11 +41,14 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 	}
 
 	authenticate(req: IncomingMessage, options: { session: boolean }) {
+		const diagnostics = clientSecretDiagnostics(req)
 		let token = req.headers['x-client-secret'] as string
 		if (!token) {
 			const authHeader = req.headers['authorization']
 			if (!authHeader || !authHeader.startsWith('Bearer ')) {
-				return this.fail(new UnauthorizedException('Authorization header not provided or invalid'))
+				const error = new UnauthorizedException('Authorization header not provided or invalid')
+				diagnostics.fail(error, 401)
+				return this.fail(error)
 			}
 
 			token = authHeader.split(' ')[1]
@@ -52,8 +56,9 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 
 		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
 
-		this.validateToken(token)
+		this.validateToken(token, diagnostics)
 			.then(async ({ apiKey, secretToken }) => {
+				diagnostics.stage = 'principal'
 				// Resolve the principal from the explicit binding type. createdById is
 				// shared provenance metadata and cannot tell API_KEY, USER_XPERT and
 				// PUBLIC_XPERT grants apart.
@@ -79,17 +84,22 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 					return
 				}
 				if (this.isEnterpriseXpertToken(secretToken)) {
-					const principal = await this.resolveEnterpriseXpertPrincipal(secretToken)
+					const principal = await this.resolveEnterpriseXpertPrincipal(secretToken, diagnostics)
 					applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
 					this.success(principal)
 					return
 				}
 
 				if (!secretToken?.createdById) {
-					return this.fail(new UnauthorizedException('Invalid token'))
+					const error = new UnauthorizedException('Invalid token')
+					diagnostics.fail(error, 401)
+					return this.fail(error)
 				}
 				if (!apiKey) {
-					return this.fail(new UnauthorizedException('Invalid token'))
+					diagnostics.stage = 'api_key'
+					const error = new UnauthorizedException('Invalid token')
+					diagnostics.fail(error, 401)
+					return this.fail(error)
 				}
 
 				const principal = await this.apiKeyService.resolvePrincipal(apiKey, {
@@ -103,6 +113,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				this.success(principal)
 			})
 			.catch((err) => {
+				diagnostics.fail(err, 401)
 				return this.error(new UnauthorizedException('Unauthorized', err.message))
 			})
 	}
@@ -221,7 +232,10 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		return principal
 	}
 
-	private async resolveEnterpriseXpertPrincipal(secretToken: ISecretToken): Promise<IApiPrincipal> {
+	private async resolveEnterpriseXpertPrincipal(
+		secretToken: ISecretToken,
+		diagnostics: ClientSecretDiagnostics
+	): Promise<IApiPrincipal> {
 		if (
 			!secretToken?.entityId ||
 			!secretToken.tenantId ||
@@ -232,7 +246,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		) {
 			throw new UnauthorizedException()
 		}
-		await this.assertEnterpriseXpertScope(secretToken)
+		await this.assertEnterpriseXpertScope(secretToken, diagnostics)
 
 		const actingUser = await this.userService.findOneByIdWithinTenant(
 			secretToken.createdById,
@@ -267,7 +281,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		return principal
 	}
 
-	private async assertEnterpriseXpertScope(secretToken: ISecretToken) {
+	private async assertEnterpriseXpertScope(secretToken: ISecretToken, diagnostics: ClientSecretDiagnostics) {
 		const platform = secretToken.enterpriseH5Scope!.platform
 		const integrationId = secretToken.enterpriseH5Scope!.integrationId.trim()
 		const xpert = await this.dataSource
@@ -289,14 +303,18 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			)
 			.getRawOne<{ id: string }>()
 		if (!xpert) {
+			diagnostics.reason = 'scope_denied'
 			throw new UnauthorizedException()
 		}
 	}
 
-	private async validateToken(token: string) {
+	private async validateToken(token: string, diagnostics: ClientSecretDiagnostics) {
 		const secretToken = await this.secretTokenService.findBySecret(token)
+		diagnostics.credentialId = secretToken?.id
+		diagnostics.stage = 'credential_validation'
 
 		if (!secretToken?.validUntil || secretToken.validUntil <= new Date() || secretToken.expired) {
+			diagnostics.reason = !secretToken ? 'not_found' : !secretToken.validUntil ? 'invalid' : 'expired'
 			throw new UnauthorizedException('Token expired')
 		}
 
@@ -310,15 +328,25 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			return { apiKey: null, secretToken }
 		}
 
-		const { record: apiKey } = await this.apiKeyService.findOneOrFailByIdString(secretToken.entityId, {
-			relations: ['createdBy', 'user']
-		})
+		diagnostics.stage = 'api_key'
+		const { record: apiKey, error: lookupError } = await this.apiKeyService.findOneOrFailByIdString(
+			secretToken.entityId,
+			{
+				relations: ['createdBy', 'user']
+			}
+		)
 		if (apiKey) {
-			if (apiKey.type === ApiKeyBindingType.USER) throw new UnauthorizedException()
+			if (apiKey.type === ApiKeyBindingType.USER) {
+				diagnostics.reason = 'scope_denied'
+				throw new UnauthorizedException()
+			}
 			if (apiKey.validUntil && apiKey.validUntil <= new Date()) {
+				diagnostics.reason = 'expired'
 				throw new UnauthorizedException('ApiKey expired')
 			}
 			await this.apiKeyService.recordUse(apiKey)
+		} else {
+			diagnostics.reason = lookupError instanceof EntityNotFoundError ? 'not_found' : 'internal_error'
 		}
 
 		return { apiKey, secretToken }

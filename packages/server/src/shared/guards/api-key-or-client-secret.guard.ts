@@ -1,12 +1,13 @@
 import { QueryBus } from '@nestjs/cqrs'
 import { AssertUserXpertGrantQuery } from '../../secret-token/assert-user-xpert-grant.query'
-import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
+import { ExecutionContext, ForbiddenException, HttpException, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard as PassportAuthGaurd } from '@nestjs/passport'
 import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { isObservable, lastValueFrom, Observable } from 'rxjs'
 import { ALLOWED_CLIENT_SECRET_BINDINGS_METADATA } from '../decorators/allowed-client-secret-bindings.decorator'
 import { CoreAuthGuard } from './core-auth.guard'
+import { clientSecretDiagnostics } from '../../secret-token/client-secret-diagnostics'
 
 const CLIENT_SECRET_PREFIX = 'cs-x-'
 
@@ -27,14 +28,25 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 		const useClientSecret = Boolean(clientSecret) || (bearerToken && bearerToken.startsWith(CLIENT_SECRET_PREFIX))
 
 		if (useClientSecret) {
-			const authenticated = await this.resolveCanActivate(this.authenticateClientSecret(context))
-			if (authenticated) {
-				this.assertClientSecretBindingAllowed(context)
-				if (request.user?.clientSecretBindingType === SecretTokenBindingType.USER_XPERT) {
-					await this.queries.execute(new AssertUserXpertGrantQuery())
+			const diagnostics = clientSecretDiagnostics(request)
+			try {
+				const authenticated = await this.resolveCanActivate(this.authenticateClientSecret(context))
+				if (authenticated) {
+					const principal = request.user as IApiPrincipal | undefined
+					diagnostics.credentialId ??= principal?.clientSecretId
+					diagnostics.stage = 'route_binding'
+					this.assertClientSecretBindingAllowed(context)
+					if (request.user?.clientSecretBindingType === SecretTokenBindingType.USER_XPERT) {
+						diagnostics.stage = 'grant'
+						await this.queries.execute(new AssertUserXpertGrantQuery())
+					}
 				}
+				return authenticated
+			} catch (error) {
+				diagnostics.fail(error, error instanceof HttpException ? error.getStatus() : 500)
+				diagnostics.expose(context.switchToHttp().getResponse())
+				throw error
 			}
-			return authenticated
 		}
 
 		return this.tryApiKeyOrFallbackAuth(context)
