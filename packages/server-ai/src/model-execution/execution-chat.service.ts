@@ -40,7 +40,7 @@ export class ModelExecutionChatService {
         const { grant } = identity
         const parameters = executionChatParameters(model.parameters, parsed.options)
         const requestedOutput = parameters.max_tokens
-        if (requestedOutput !== undefined && (!Number.isSafeInteger(requestedOutput) || requestedOutput <= 0))
+        if (requestedOutput != null && (!Number.isSafeInteger(requestedOutput) || requestedOutput <= 0))
             throw executionError('Invalid')
         const outputReservation = requestedOutput ?? model.outputTokenLimit ?? 0
         const lifetime = executionRequestLifetime(grant, abort)
@@ -59,7 +59,7 @@ export class ModelExecutionChatService {
                     parsed: {
                         ...parsed,
                         // Constructor parameters have already been merged; bind only invocation-owned options.
-                        options: { stop: parsed.options.stop, seed: parameters.seed }
+                        options: { stop: parsed.options.stop, seed: parameters.seed ?? undefined }
                     },
                     signal: abort.signal,
                     onActivity: lifetime.activity,

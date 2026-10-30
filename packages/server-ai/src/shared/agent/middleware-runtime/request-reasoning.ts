@@ -10,7 +10,7 @@ import { t } from 'i18next'
 
 export interface RequestReasoningControls {
     enableThinking?: boolean
-    reasoningEffort?: ModelExecutionParameters['reasoning_effort']
+    reasoningEffort?: NonNullable<ModelExecutionParameters['reasoning_effort']>
 }
 
 /** Native effort levels take precedence; boolean-only providers use none/off versus non-none/on. */

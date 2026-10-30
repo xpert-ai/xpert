@@ -15,43 +15,49 @@ describe('ModelParameterInputComponent', () => {
     component = fixture.componentInstance
   })
 
-  it('coerces float input values to numbers', () => {
+  it('coerces float input values to numbers', async () => {
     fixture.componentRef.setInput('parameter', {
       name: 'temperature',
       label: { en_US: 'Temperature' },
       type: ParameterType.FLOAT
     })
-    component['cva'].value$.set(0.2)
+    component.value$.set(0.2)
     fixture.detectChanges()
+    await fixture.whenStable()
 
     const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement
     input.value = '0.7'
     input.dispatchEvent(new Event('input'))
+    input.dispatchEvent(new Event('blur'))
     fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(component['cva'].value$()).toBe(0.7)
-    expect(typeof component['cva'].value$()).toBe('number')
+    expect(component.value$()).toBe(0.7)
+    expect(typeof component.value$()).toBe('number')
   })
 
-  it('coerces int input values to numbers', () => {
+  it('coerces int input values to numbers', async () => {
     fixture.componentRef.setInput('parameter', {
       name: 'max_tokens',
       label: { en_US: 'Max Tokens' },
       type: ParameterType.INT
     })
-    component['cva'].value$.set(64)
+    component.value$.set(64)
     fixture.detectChanges()
+    await fixture.whenStable()
 
     const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement
     input.value = '256'
     input.dispatchEvent(new Event('input'))
+    input.dispatchEvent(new Event('blur'))
     fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(component['cva'].value$()).toBe(256)
-    expect(typeof component['cva'].value$()).toBe('number')
+    expect(component.value$()).toBe(256)
+    expect(typeof component.value$()).toBe('number')
   })
 
-  it('expands the output token slider maximum to a larger input value', () => {
+  it('expands the output token slider maximum to a larger input value', async () => {
     fixture.componentRef.setInput('parameter', {
       name: 'max_tokens',
       label: { en_US: 'Max Tokens' },
@@ -59,15 +65,18 @@ describe('ModelParameterInputComponent', () => {
       min: 1,
       max: 2048
     })
-    component['cva'].value$.set(2048)
+    component.value$.set(2048)
     fixture.detectChanges()
+    await fixture.whenStable()
 
     const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement
     input.value = '4096'
     input.dispatchEvent(new Event('input'))
+    input.dispatchEvent(new Event('blur'))
     fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(component['cva'].value$()).toBe(4096)
+    expect(component.value$()).toBe(4096)
     expect(component.sliderMaximum()).toBe(4096)
     expect(input.max).toBe('4096')
   })

@@ -169,22 +169,24 @@ export class AgentMiddlewareModelRuntimeService {
             )
         }
 
+        let modelOptions = copilotModel.options
         if (copilotModel.modelType === AiModelTypeEnum.LLM) {
             ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
             const rules =
                 modelProvider
                     .getModelManager(copilotModel.modelType)
                     ?.getParameterRules(modelName, customModels[0]?.modelProperties) ?? []
-            copilotModel.options = resolveRequestReasoningOptions(copilotModel.options, rules, options)
-            copilotModel.options = expected
-                ? resolveExecutionModelOptions(copilotModel.options, rules)
-                : resolveModelParameterOptions(copilotModel.options, rules)
+            modelOptions = resolveRequestReasoningOptions(copilotModel.options, rules, options)
+            modelOptions = expected
+                ? resolveExecutionModelOptions(modelOptions, rules)
+                : resolveModelParameterOptions(modelOptions, rules)
         }
 
         const model = await modelProvider.getModelInstance(
             copilotModel.modelType,
             {
                 ...copilotModel,
+                options: modelOptions,
                 copilot
             },
             {

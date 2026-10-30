@@ -18,6 +18,35 @@ const rules: ParameterRule[] = [
 ]
 
 describe('execution tuning boundaries', () => {
+    it('carries explicit unset values through snapshots and omits them from provider options', () => {
+        const saved = snapshotExecutionParameters({
+            temperature: null,
+            top_p: null,
+            max_completion_tokens: null,
+            enable_thinking: false
+        })
+        expect(saved).toEqual({ temperature: null, top_p: null, max_tokens: null, enable_thinking: false })
+        const options = resolveExecutionModelOptions(executionChatParameters(saved, {}), rules)
+        expect(options).not.toHaveProperty('temperature')
+        expect(options).not.toHaveProperty('top_p')
+        expect(options).not.toHaveProperty('max_completion_tokens')
+        expect(options).toMatchObject({ enable_thinking: false, maxRetries: 0 })
+        expect(resolveExecutionModelOptions(executionChatParameters(saved, { temperature: 0 }), rules)).toMatchObject({
+            temperature: 0
+        })
+    })
+
+    it('omits unset parameters from native requests without rejecting unsupported unset fields', () => {
+        const request: NativeModelBody = {}
+        inheritNativeParameters(request, 'openai_responses', {
+            temperature: null,
+            max_tokens: null,
+            enable_thinking: null,
+            reasoning_effort: null
+        })
+        expect(request).toEqual({})
+    })
+
     it('overrides captured reasoning effort without mutating the snapshot', () => {
         const saved: ModelExecutionParameters = Object.freeze({ reasoning_effort: 'high', max_tokens: 8192 })
         expect(executionChatParameters(saved, { reasoning_effort: 'none' })).toEqual({

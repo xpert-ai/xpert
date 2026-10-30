@@ -17,6 +17,21 @@ class InputHostComponent {
 }
 
 describe('ZardInputDirective', () => {
+  it('does not write native number drafts back to the DOM on input', async () => {
+    const fixture = TestBed.createComponent(InputHostComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('input[type="number"]')
+    input.value = '0'
+    const writeValue = jest.spyOn(input, 'value', 'set')
+    input.dispatchEvent(new Event('input'))
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.numberControl.value).toBe(0)
+    expect(writeValue).not.toHaveBeenCalled()
+    writeValue.mockRestore()
+  })
+
   it('preserves text values and emits numbers for number inputs', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [InputHostComponent]

@@ -11,7 +11,7 @@ import {
 } from './openai-adapter'
 
 describe('OpenAI model gateway adapter', () => {
-    it.each(modelExecutionParametersSchema.shape.reasoning_effort.unwrap().options)(
+    it.each(modelExecutionParametersSchema.shape.reasoning_effort.unwrap().unwrap().options)(
         'preserves reasoning_effort=%s for provider capability resolution',
         (reasoning_effort) => {
             const parsed = parseOpenAIChatRequest({

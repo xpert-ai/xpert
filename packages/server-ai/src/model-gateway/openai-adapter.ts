@@ -42,7 +42,7 @@ export type OpenAIChatRequest = {
     parallelToolCalls?: boolean
     options: {
         enable_thinking?: boolean
-        reasoning_effort?: ModelExecutionParameters['reasoning_effort']
+        reasoning_effort?: NonNullable<ModelExecutionParameters['reasoning_effort']>
         temperature?: number
         top_p?: number
         max_tokens?: number

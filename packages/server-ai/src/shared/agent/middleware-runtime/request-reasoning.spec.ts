@@ -17,7 +17,7 @@ const effortRule: ParameterRule = {
 }
 
 describe('request reasoning controls against declared model parameters', () => {
-    it.each(modelExecutionParametersSchema.shape.reasoning_effort.unwrap().options)(
+    it.each(modelExecutionParametersSchema.shape.reasoning_effort.unwrap().unwrap().options)(
         'maps %s to a declared boolean without forwarding the alias or mutating saved options',
         (reasoningEffort) => {
             const enabled = reasoningEffort !== 'none'

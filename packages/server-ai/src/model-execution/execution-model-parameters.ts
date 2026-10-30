@@ -25,7 +25,9 @@ export function snapshotExecutionParameters(options: unknown): ModelExecutionPar
     const parsed = savedParameters.safeParse(options)
     if (!parsed.success) throw executionError('ParametersUnsupported')
     const { max_completion_tokens, max_output_tokens, max_tokens_to_sample, ...parameters } = parsed.data
-    const output = max_completion_tokens ?? max_output_tokens ?? max_tokens_to_sample ?? parameters.max_tokens
+    const output = [max_completion_tokens, max_output_tokens, max_tokens_to_sample, parameters.max_tokens].find(
+        (value) => value !== undefined
+    )
     if (output !== undefined) parameters.max_tokens = output
     const defined = Object.fromEntries(Object.entries(parameters).filter(([, value]) => value !== undefined))
     return Object.keys(defined).length ? modelExecutionParametersSchema.parse(defined) : undefined
@@ -57,7 +59,8 @@ export function resolveExecutionModelOptions(options: Record<string, unknown> | 
     const { max_tokens: output, ...tuning } = parameters
     for (const key of Object.keys(tuning)) {
         // Seed is a standard Chat invocation option, even on providers without a catalog rule for it.
-        if (key !== 'seed' && !rules.some((rule) => rule.name === key)) throw executionError('ParametersUnsupported')
+        if (tuning[key] != null && key !== 'seed' && !rules.some((rule) => rule.name === key))
+            throw executionError('ParametersUnsupported')
     }
     const input: Record<string, unknown> = { ...tuning }
     const outputRules = rules.filter(isOutputTokenParameter)
@@ -67,7 +70,7 @@ export function resolveExecutionModelOptions(options: Record<string, unknown> | 
     }
     const resolved = resolveModelParameterOptions(input, rules)
     // Admission reserved this exact output value; a provider minimum must not silently expand it.
-    if (output !== undefined && outputRules.some((rule) => resolved?.[rule.name] !== output))
+    if (output != null && outputRules.some((rule) => resolved?.[rule.name] !== output))
         throw executionError('ParametersUnsupported')
     return {
         ...resolved,
@@ -86,15 +89,15 @@ export function inheritNativeParameters(
     const supported = new Set(['temperature', 'top_p', 'max_tokens'])
     if (protocol === 'openai_responses') supported.add('reasoning_effort')
     else for (const key of ['top_k', 'thinking', 'budget_tokens']) supported.add(key)
-    if (Object.keys(parameters).some((key) => !supported.has(key))) throw executionError('ParametersUnsupported')
+    if (Object.entries(parameters).some(([key, value]) => value != null && !supported.has(key)))
+        throw executionError('ParametersUnsupported')
     for (const key of ['temperature', 'top_p'] as const) {
-        if (request[key] === undefined && parameters[key] !== undefined) request[key] = parameters[key]
+        if (request[key] === undefined && parameters[key] != null) request[key] = parameters[key]
     }
     const outputKey = protocol === 'openai_responses' ? 'max_output_tokens' : 'max_tokens'
-    if (request[outputKey] === undefined && parameters.max_tokens !== undefined)
-        request[outputKey] = parameters.max_tokens
+    if (request[outputKey] === undefined && parameters.max_tokens != null) request[outputKey] = parameters.max_tokens
     if (protocol === 'openai_responses') {
-        if (parameters.reasoning_effort !== undefined) {
+        if (parameters.reasoning_effort != null) {
             const reasoning = request.reasoning
             if (typeof reasoning === 'object' && reasoning && !Array.isArray(reasoning))
                 request.reasoning = { effort: parameters.reasoning_effort, ...reasoning }
@@ -102,16 +105,16 @@ export function inheritNativeParameters(
             else throw executionError('ParametersUnsupported')
         }
     } else {
-        if (request.top_k === undefined && parameters.top_k !== undefined) request.top_k = parameters.top_k
-        if (request.thinking === undefined && parameters.thinking !== undefined) {
+        if (request.top_k === undefined && parameters.top_k != null) request.top_k = parameters.top_k
+        if (request.thinking === undefined && parameters.thinking != null) {
             request.thinking = {
                 type: parameters.thinking,
-                ...(parameters.thinking === 'enabled' && parameters.budget_tokens !== undefined
+                ...(parameters.thinking === 'enabled' && parameters.budget_tokens != null
                     ? { budget_tokens: parameters.budget_tokens }
                     : {})
             }
         }
-        if (parameters.budget_tokens !== undefined && parameters.thinking === undefined)
+        if (parameters.budget_tokens != null && parameters.thinking == null)
             throw executionError('ParametersUnsupported')
     }
 }
