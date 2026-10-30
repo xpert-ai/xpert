@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { CrudController } from '../core/crud'
 import { RoleGuard } from '../shared/guards'
@@ -11,6 +13,7 @@ import { DataSourceTypeService } from './data-source-type.service'
 @ApiTags('DataSourceType')
 @ApiBearerAuth()
 @Controller()
+@Permissions(PermissionsEnum.DATA_SOURCE_VIEW)
 export class DataSourceTypeController extends CrudController<DataSourceType> {
 	constructor(
 		private readonly service: DataSourceTypeService,

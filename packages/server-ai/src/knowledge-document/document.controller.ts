@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { KnowledgeDocumentBulkCreateInput } from '@xpert-ai/contracts'
 import { KnowledgeDocumentImportService, parseDocumentImport } from './document-import.service'
 import {
@@ -187,6 +189,7 @@ function requireKnowledgebaseId(value: unknown): string {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeDocumentController extends CrudController<KnowledgeDocument> {
     readonly #logger = new Logger(KnowledgeDocumentController.name)
 

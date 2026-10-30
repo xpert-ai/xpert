@@ -104,6 +104,25 @@ describe('AuthService', () => {
 		create: jest.fn(),
 		update: jest.fn()
 	}
+	it('loads effective role grants during Basic authentication', async () => {
+		const bcrypt = require('bcryptjs')
+		const user = {
+			id: 'user',
+			tenantId: 'tenant',
+			isActive: true,
+			hash: await bcrypt.hash('fixture-password', 4),
+			roleId: 'role',
+			role: { id: 'role', rolePermissions: [] }
+		}
+		userService.findOneByOptions.mockResolvedValueOnce(user)
+		await expect(service.validateUser(' User@Example.com ', 'fixture-password')).resolves.toBe(user)
+		expect(userService.findOneByOptions).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { email: 'user@example.com', emailVerified: true },
+				relations: ['role', 'role.rolePermissions']
+			})
+		)
+	})
 	it.each([undefined, 'sso-user'])('rechecks account activation on authentication for %s', async (thirdPartyId) => {
 		const lookup = thirdPartyId ? userService.getIfExistsThirdParty : userService.getIfExists
 		lookup.mockResolvedValueOnce({ id: 'user', isActive: true })
@@ -232,17 +251,20 @@ describe('AuthService', () => {
 		tenantRepository.findOne.mockResolvedValue({
 			id: 'tenant-1'
 		})
-		userRepository.findOne.mockReset().mockResolvedValueOnce(null).mockResolvedValue({
-			id: 'user-1',
-			email: 'new.user@example.com',
-			tenantId: 'tenant-1',
-			tenant: {
-				id: 'tenant-1'
-			},
-			role: {
-				name: 'ADMIN'
-			}
-		})
+		userRepository.findOne
+			.mockReset()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValue({
+				id: 'user-1',
+				email: 'new.user@example.com',
+				tenantId: 'tenant-1',
+				tenant: {
+					id: 'tenant-1'
+				},
+				role: {
+					name: 'ADMIN'
+				}
+			})
 		organizationRepository.findOne.mockResolvedValue({ id: 'org-default' })
 		organizationRepository.save.mockImplementation(async (entity) => ({
 			...entity,
@@ -759,13 +781,26 @@ describe('AuthService', () => {
 
 	it('reuses the pending verification row when registration is retried', async () => {
 		userRepository.findOne.mockReset().mockResolvedValue({
-			id: 'user-1', tenantId: 'tenant-1', emailVerified: false,
-			roleId: 'role-app', emailVerification: { id: 'verification-1' }, role: { name: RolesEnum.APP_USER }
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			emailVerified: false,
+			roleId: 'role-app',
+			emailVerification: { id: 'verification-1' },
+			role: { name: RolesEnum.APP_USER }
 		})
-		await service.signup({ user: { id: 'user-1', tenantId: 'tenant-1', email: 'pending@example.test', roleId: 'role-app' }, password: 'Secret123!' }, 'en')
-		expect(userRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-			id: 'user-1', emailVerification: expect.objectContaining({ id: 'verification-1', token: expect.any(String) })
-		}))
+		await service.signup(
+			{
+				user: { id: 'user-1', tenantId: 'tenant-1', email: 'pending@example.test', roleId: 'role-app' },
+				password: 'Secret123!'
+			},
+			'en'
+		)
+		expect(userRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'user-1',
+				emailVerification: expect.objectContaining({ id: 'verification-1', token: expect.any(String) })
+			})
+		)
 		expect(emailService.sendVerifyEmailMail).toHaveBeenCalledTimes(1)
 	})
 

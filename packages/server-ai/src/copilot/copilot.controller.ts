@@ -64,6 +64,7 @@ import { PrimaryModelSmokeService } from './primary-model-smoke.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotController extends CrudController<Copilot> {
     @Inject(PrimaryModelSmokeService)
     private readonly primaryModelSmoke: PrimaryModelSmokeService

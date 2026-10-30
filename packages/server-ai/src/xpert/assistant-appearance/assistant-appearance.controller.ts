@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -6,6 +8,7 @@ import { AssistantAppearanceInput, assistantAppearanceInputSchema } from './assi
 
 const invalid = () => new BadRequestException(t('server-ai:Error.AssistantAppearanceInvalid'))
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantAppearanceController {
     constructor(private readonly appearance: AssistantAppearanceService) {}
     @Get(':id/appearance')

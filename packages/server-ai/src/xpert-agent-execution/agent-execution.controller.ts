@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
@@ -20,6 +22,7 @@ import {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_VIEW)
 export class XpertAgentExecutionController {
     readonly #logger = new Logger(XpertAgentExecutionController.name)
     constructor(

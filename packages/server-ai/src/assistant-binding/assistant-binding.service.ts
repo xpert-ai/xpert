@@ -9,7 +9,7 @@ import {
     IAssistantBindingUserPreferenceUpsertInput,
     IAssistantBindingUpsertInput,
     IResolvedAssistantBinding,
-    RolesEnum,
+    PermissionsEnum,
     XpertTypeEnum,
     normalizeAssistantBindingToolPreferences,
     isSystemManagedAssistant,
@@ -728,14 +728,14 @@ export class AssistantBindingService
 
     private ensureSystemReadAccess(scope: SystemScope) {
         if (scope === AssistantBindingScope.TENANT) {
-            if (!RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
-                throw new ForbiddenException('Tenant assistant bindings require super admin access.')
+            if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
+                throw new ForbiddenException('Tenant assistant bindings require platform management permission.')
             }
             return
         }
 
-        if (!RequestContext.hasRoles([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])) {
-            throw new ForbiddenException('Organization assistant bindings require admin access.')
+        if (!RequestContext.hasPermission(PermissionsEnum.ALL_ORG_EDIT)) {
+            throw new ForbiddenException('Organization assistant bindings require organization management permission.')
         }
     }
 

@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "EndpointPermissionDenied": "You do not have permission to perform this operation.",
+        "RequestScopeInvalid": "Invalid request scope.",
+        "RequestScopeMismatch": "Request scope does not match the authenticated identity.",
+        "OrganizationAccessDenied": "Organization access denied.",
         "ApplicationAuthoringDenied": "You do not have permission to access Assistant configuration.",
         "ApplicationEmailRequired": "Register with an email address and complete verification.",
         "ApplicationProfileInvalid": "Only name fields can be updated.",

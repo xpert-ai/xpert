@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Post } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -6,6 +8,7 @@ import { executionError } from './execution-errors'
 import { ModelExecutionGrant } from './execution.entity'
 
 @Controller('model-execution')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelExecutionSessionController {
     constructor(@InjectRepository(ModelExecutionGrant) private readonly grants: Repository<ModelExecutionGrant>) {}
 

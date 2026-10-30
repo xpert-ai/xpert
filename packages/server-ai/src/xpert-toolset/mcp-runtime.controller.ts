@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, ForbiddenException, Get, Param, Post, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { RolesEnum } from '@xpert-ai/contracts'
@@ -8,6 +10,7 @@ import { McpRuntimeAuditListQuery, McpRuntimeAuditService } from './mcp-runtime-
 @ApiTags('MCP Runtime')
 @ApiBearerAuth()
 @Controller('operations/mcp-runtimes')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpRuntimeController {
     constructor(private readonly runtimeAuditService: McpRuntimeAuditService) {}
 

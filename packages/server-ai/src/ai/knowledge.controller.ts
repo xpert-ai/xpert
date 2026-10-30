@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IApiKey } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
@@ -31,6 +33,7 @@ import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('knowledges')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgesController {
     readonly #logger = new Logger(KnowledgesController.name)
 

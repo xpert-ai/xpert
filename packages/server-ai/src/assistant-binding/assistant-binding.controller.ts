@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
   AssistantBindingScope,
   AssistantCode,
@@ -22,6 +24,7 @@ import { AssistantBindingService } from './assistant-binding.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantBindingController {
   constructor(private readonly service: AssistantBindingService) {}
 
@@ -38,6 +41,7 @@ export class AssistantBindingController {
   }
 
   @Get('xperts')
+  @Permissions(AIPermissionsEnum.CHAT_VIEW)
   async getAvailableXperts(
     @Query('scope') scope: AssistantBindingScope = AssistantBindingScope.ORGANIZATION,
     @Query('code') code: AssistantCode

@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -8,6 +9,7 @@ import { ProjectTaskGraphService } from './services/project-task-graph.service'
 
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 export class ProjectTaskGraphController {
     constructor(private readonly tasks: ProjectTaskGraphService) {}
 

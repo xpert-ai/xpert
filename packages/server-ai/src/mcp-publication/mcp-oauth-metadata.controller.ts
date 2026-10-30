@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Public } from '@xpert-ai/server-core'
 import { ConfigService } from '@xpert-ai/server-config'
 import { Controller, Get, Inject, Optional, Param } from '@nestjs/common'
@@ -10,6 +12,7 @@ import { assertMcpOAuthEnabled } from './mcp-oauth-feature'
 @ApiTags('MCP OAuth metadata')
 @Public()
 @Controller('.well-known/oauth-protected-resource')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpOAuthMetadataController {
     constructor(
         private readonly publications: McpPublicationService,

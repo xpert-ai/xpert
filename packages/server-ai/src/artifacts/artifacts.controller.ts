@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -32,6 +34,7 @@ import {
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'
 
 @Controller('artifacts/share')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ArtifactsPublicController {
     constructor(private readonly service: ArtifactsService) {}
 

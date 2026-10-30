@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { BadRequestException, Body, Controller, Get, Param, Put } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -13,6 +15,7 @@ import {
 } from '../../xpert-task/template-routines/template-routines.command'
 
 @Controller(':assistantId/template-setup')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantTemplateSetupController {
     constructor(private readonly commands: CommandBus) {}
     @Get('activity')

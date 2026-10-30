@@ -5,7 +5,6 @@ import {
     ICopilotProvider,
     ICopilotProviderModel,
     ProviderModelCatalog,
-    RolesEnum,
     ProviderCredentialValidationTarget,
     providerCredentialValidationTargetSchema
 } from '@xpert-ai/contracts'
@@ -61,6 +60,7 @@ const validationTargetPipe = new ZodValidationPipe(
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotProviderController extends CrudController<CopilotProvider> {
     @Inject(ConfigService)
     private readonly configService: ConfigService

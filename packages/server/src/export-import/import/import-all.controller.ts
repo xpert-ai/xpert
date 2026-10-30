@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../../shared/decorators/permissions'
 import { Controller, HttpStatus, Get, Post, UseInterceptors, Body } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { FileInterceptor } from '@nestjs/platform-express'
@@ -13,6 +15,7 @@ import { ImportHistoryService } from './../import-history'
 
 @ApiTags('Import')
 @Controller()
+@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 export class ImportAllController {
 	constructor(
 		// private readonly importAllService: ImportAllService,

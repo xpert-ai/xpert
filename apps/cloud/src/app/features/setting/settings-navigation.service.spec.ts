@@ -56,16 +56,28 @@ describe('shared settings navigation authorization', () => {
     navigation = TestBed.inject(SettingsNavigationService)
   })
 
+  it('shows only personal settings for application permissions and reacts to revocation', () => {
+    granted.add(PermissionsEnum.PROFILE_EDIT)
+    granted.add(AIPermissionsEnum.MEMBERSHIP_USE)
+    permissions.next({})
+    rolePermissions.next({})
+    expect(paths()).toEqual(['account/usage', 'account/billing', 'account/profile', 'account/password'])
+    granted.clear()
+    permissions.next({})
+    rolePermissions.next({})
+    expect(paths()).toEqual([])
+  })
+
   it('requires original permissions and feature flags for management entries', () => {
     expect(paths()).not.toContain('assistants')
-    roles.add(RolesEnum.ADMIN)
+    granted.add(PermissionsEnum.ALL_ORG_EDIT)
     permissions.next({})
     expect(paths()).not.toContain('assistants')
     features.add(AiFeatureEnum.FEATURE_XPERT)
     permissions.next({})
     rolePermissions.next({})
     expect(paths()).toContain('assistants')
-    roles.clear()
+    granted.delete(PermissionsEnum.ALL_ORG_EDIT)
     permissions.next({})
     expect(paths()).not.toContain('assistants')
   })
@@ -81,6 +93,10 @@ describe('shared settings navigation authorization', () => {
   })
 
   it('keeps personal gateway and API key capabilities distinct from account membership', () => {
+    granted.add(PermissionsEnum.PROFILE_EDIT)
+    granted.add(AIPermissionsEnum.XPERT_EDIT)
+    permissions.next({})
+    rolePermissions.next({})
     expect(paths()).toContain('account/api-keys')
     expect(paths()).not.toContain('account/api')
     granted.add(AIPermissionsEnum.MODEL_GATEWAY_USE)

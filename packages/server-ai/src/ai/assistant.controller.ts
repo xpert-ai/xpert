@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Assistant } from '@langchain/langgraph-sdk'
 import {
     ICopilotModel,
@@ -48,6 +50,7 @@ const ASSISTANT_RELATIONS = RUNTIME_CAPABILITY_XPERT_RELATIONS
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('assistants')
 export class AssistantsController {
     readonly #logger = new Logger(AssistantsController.name)
@@ -104,6 +107,7 @@ export class AssistantsController {
     }
 
     @Get(':id/models')
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     async getModels(@Param('id') id: string) {
         const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
@@ -113,6 +117,7 @@ export class AssistantsController {
     }
 
     @Put(':id/model-preference')
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     async setModelPreference(@Param('id') id: string, @Body() input: TAssistantModelPreferenceInput) {
         if (!input || !Object.prototype.hasOwnProperty.call(input, 'model_id')) {
             throw new BadRequestException(

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, Get, HttpException, HttpStatus, Param, Query, Res, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -9,6 +11,7 @@ import { AIModelGetIconQuery } from './queries'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class AIModelController {
 	constructor(
 		private readonly commandBus: CommandBus,

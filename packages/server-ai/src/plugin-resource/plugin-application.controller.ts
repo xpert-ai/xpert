@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { applicationUpdateSchema, ApplicationUpdateInput } from './application-update/application-update.schema'
 import {
     applicationDetailQuerySchema,
@@ -26,6 +28,7 @@ import {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('plugin-applications')
+@Permissions(AIPermissionsEnum.APPLICATION_INSTALL)
 export class PluginApplicationController {
     constructor(private readonly applications: PluginApplicationService) {}
 

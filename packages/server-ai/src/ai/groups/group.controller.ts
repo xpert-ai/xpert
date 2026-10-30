@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { GroupRuntimeViewService } from '../../chat-group/group-runtime-view.service'
@@ -29,6 +31,7 @@ import { groupInvalid } from '../../chat-group/group.errors'
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class GroupsController {
     constructor(
         private readonly members: GroupMembersService,

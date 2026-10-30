@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	Body,
 	Controller,
@@ -32,6 +34,7 @@ import { CreateCustomSmtpDTO, ValidateCustomSmtpDTO } from './dto';
 @UseGuards(TenantPermissionGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.CUSTOM_SMTP_VIEW)
 export class CustomSmtpController extends CrudController<CustomSmtp> {
 	constructor(
 		private readonly customSmtpService: CustomSmtpService,

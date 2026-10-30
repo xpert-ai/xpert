@@ -1,3 +1,4 @@
+import { evaluatePermissions } from '@xpert-ai/server-core'
 import { GatewayAdmissionPolicy } from './gateway-admission-policy'
 import { createGatewayChatModel } from './model-gateway-client'
 import {
@@ -307,9 +308,17 @@ export class ModelGatewayService {
             where: { tenantId: key.tenantId, id: key.userId },
             relations: ['role', 'role.rolePermissions']
         })
-        if (!user) {
+        if (!user || user.isActive === false) {
             throw new UnauthorizedException(
                 modelGatewayMessage('ModelGatewayApiKeyOwnerMissing', 'API key owner no longer exists.')
+            )
+        }
+        if (!evaluatePermissions(user, [AIPermissionsEnum.MODEL_GATEWAY_USE]).allowed) {
+            throw new ForbiddenException(
+                modelGatewayMessage(
+                    'ModelGatewayPermissionRequired',
+                    'Your role is not allowed to use the external model API.'
+                )
             )
         }
         key.lastUsedAt = new Date()

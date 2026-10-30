@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { IIntegration, IntegrationEnum, IntegrationFeatureEnum } from '@xpert-ai/contracts'
 import {
 	Body,
@@ -30,6 +32,7 @@ import { IntegrationService } from './integration.service'
 @ApiTags('Integration')
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.INTEGRATION_EDIT)
 export class IntegrationController extends CrudController<Integration> {
 	constructor(
 		private readonly service: IntegrationService,

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Param, Post, Put } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { AgentJson, AgentRuntimeRegistry } from '@xpert-ai/plugin-sdk'
@@ -23,6 +25,7 @@ const bindingSchema = z
     .strict()
 
 @Controller('agent-runtime-bindings')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AgentRuntimeBindingsController {
     constructor(
         @InjectRepository(AgentRuntimeBindingEntity) private readonly bindings: Repository<AgentRuntimeBindingEntity>,

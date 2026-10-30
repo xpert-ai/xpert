@@ -225,15 +225,11 @@ describe('Personal API key HTTP authentication and validation', () => {
 		})
 	})
 
-	it('enforces the existing permission guard with the human owner in both request contexts', async () => {
+	it('denies incomplete personal-key principals without recovering grants from another policy lookup', async () => {
 		const headers = { authorization: `Bearer ${token}` }
-		authorization.execute.mockResolvedValueOnce(false)
+		authorization.execute.mockResolvedValue(true)
 		expect((await fetch(origin + '/identity/protected', { headers })).status).toBe(403)
-		expect(authorization.execute).toHaveBeenCalledWith(
-			expect.objectContaining({ tenantId: owner.tenantId, roleId: owner.roleId })
-		)
-		authorization.execute.mockResolvedValueOnce(true)
-		expect((await fetch(origin + '/identity/protected', { headers })).status).toBe(200)
+		expect(authorization.execute).not.toHaveBeenCalled()
 	})
 
 	it('reuses freshly loaded personal-key permissions and observes revocation without an extra policy lookup', async () => {

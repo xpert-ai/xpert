@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IXpertTool } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -16,6 +18,7 @@ import { XpertToolService } from './xpert-tool.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertToolController extends CrudController<XpertTool> {
     readonly #logger = new Logger(XpertToolController.name)
     constructor(

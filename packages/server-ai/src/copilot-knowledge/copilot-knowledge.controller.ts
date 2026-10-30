@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IPagination, IXpert } from '@xpert-ai/contracts'
 import { Body, Controller, Get, HttpStatus, Logger, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -11,6 +13,7 @@ import { CopilotKnowledgeService } from './copilot-knowledge.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class CopilotKnowledgeController extends CrudController<CopilotKnowledge> {
 	readonly #logger = new Logger(CopilotKnowledgeController.name)
 	constructor(

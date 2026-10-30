@@ -12,6 +12,8 @@ import { JwtStrategy } from '../../auth/strategies/jwt.strategy'
 import { RequestContextMiddleware } from '../../core/context/request-context.middleware'
 import { Permissions } from '../decorators/permissions'
 import { PermissionGuard } from './permission.guard'
+import { EndpointPermissionInterceptor } from './endpoint-permission.interceptor'
+import { Reflector } from '@nestjs/core'
 
 const secret = 'permission-guard-http-test-secret'
 const view = 'DATA_SOURCE_VIEW'
@@ -61,6 +63,7 @@ describe('PermissionGuard with real JWT HTTP authentication', () => {
 			]
 		}).compile()
 		app = module.createNestApplication({ logger: false })
+		app.useGlobalInterceptors(new EndpointPermissionInterceptor(module.get(Reflector)))
 		const middleware = new RequestContextMiddleware()
 		app.use(middleware.use.bind(middleware))
 		await app.listen(0, '127.0.0.1')

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../../shared/decorators/permissions'
 import {
 	BadRequestException,
 	Body,
@@ -19,6 +21,7 @@ import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 @ApiTags('Plugin')
 @Controller('plugin/marketplace')
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class PluginMarketplaceController {
 	constructor(private readonly pluginMarketplaceService: PluginMarketplaceService) {}
 

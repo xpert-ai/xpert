@@ -464,6 +464,7 @@ export class AuthService extends SocialAuthService {
 		const normalizedIdentifier = email?.trim().toLowerCase()
 		const user = await this.userService.findOneByOptions({
 			where: { email: normalizedIdentifier, emailVerified: true },
+			relations: ['role', 'role.rolePermissions'],
 			order: {
 				createdAt: 'DESC'
 			}

@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
@@ -38,6 +40,7 @@ import { FileAssetAccessService, type FileAssetOperation } from './file-asset-ac
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller()
 export class FileUnderstandingController {
     constructor(

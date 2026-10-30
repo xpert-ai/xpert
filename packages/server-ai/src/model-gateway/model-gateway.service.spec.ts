@@ -125,8 +125,17 @@ function createService(options?: {
             id: 'user-1',
             tenantId: 'tenant-1',
             type: UserType.USER,
+            roleId: 'role',
             role: {
-                rolePermissions: [{ permission: AIPermissionsEnum.MODEL_GATEWAY_USE, enabled: true }]
+                id: 'role',
+                rolePermissions: [
+                    {
+                        tenantId: 'tenant-1',
+                        roleId: 'role',
+                        permission: AIPermissionsEnum.MODEL_GATEWAY_USE,
+                        enabled: true
+                    }
+                ]
             }
         })
     }
@@ -753,6 +762,25 @@ describe('ModelGatewayService', () => {
         expect(call.chargedPoints).toBe(2)
         expect(call.excessPoints).toBe(1)
         expect(call.settlementContext).toBeNull()
+    })
+
+    it('rechecks gateway permissions and account status for an existing key', async () => {
+        const key = {
+            id: 'key-1',
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            status: ModelGatewayApiKeyStatusEnum.Active
+        } as ModelGatewayApiKey
+        const fixture = createService({ apiKey: key })
+        const user = await fixture.userRepository.findOne()
+        for (const enabled of [true, false, true]) {
+            user.role.rolePermissions[0].enabled = enabled
+            const result = fixture.service.authenticate('Bearer existing-key')
+            if (enabled) await expect(result).resolves.toEqual(expect.objectContaining({ user }))
+            else await expect(result).rejects.toThrow()
+        }
+        fixture.userRepository.findOne.mockResolvedValue({ ...user, isActive: false })
+        await expect(fixture.service.authenticate('Bearer existing-key')).rejects.toThrow()
     })
 
     it('persists an expired key status during authentication', async () => {

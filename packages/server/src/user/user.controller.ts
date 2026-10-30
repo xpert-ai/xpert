@@ -1,4 +1,4 @@
-import { appUserProfile, validateAppUserPassword } from './app-user-profile'
+import { selfUserProfile, validateSelfUserPassword } from './self-user-profile'
 import {
 	Controller,
 	Get,
@@ -38,7 +38,8 @@ import {
 } from '@xpert-ai/contracts'
 import { CrudController, PaginationParams } from './../core/crud'
 import { RequestContext } from '../core/context'
-import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes'
+import { UUIDValidationPipe, ParseJsonPipe, AbstractValidationPipe } from './../shared/pipes'
+import { TenantOrganizationBaseDTO } from '../core/dto'
 import { ApiKeyOrClientSecretAuthGuard, PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
 import { Permissions, Public, Roles } from './../shared/decorators'
 import { User, UserPreferredLanguageDTO } from './user.entity'
@@ -263,9 +264,35 @@ export class UserController extends CrudController<User> {
 	async updateMe(@Body() entity: IUserUpdateInput): Promise<any> {
 		const me = RequestContext.currentUser()
 		return await this.userService.updateProfile(me.id, {
-			...(me.role?.name === RolesEnum.APP_USER ? appUserProfile(entity) : entity),
+			...selfUserProfile(entity),
 			id: me.id
 		} as User)
+	}
+
+	// Declare inherited user-management routes explicitly so self-service stays authentication-only.
+	@Get('my')
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
+	override async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<User>): Promise<IPagination<User>> {
+		return super.findMyAll(params)
+	}
+
+	@Delete(':id/soft')
+	@HttpCode(HttpStatus.ACCEPTED)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
+	@UsePipes(new AbstractValidationPipe({ whitelist: true }, { query: TenantOrganizationBaseDTO }))
+	override async softRemove(@Param('id', UUIDValidationPipe) id: User['id']): Promise<User> {
+		return super.softRemove(id)
+	}
+
+	@Put(':id/recover')
+	@HttpCode(HttpStatus.ACCEPTED)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
+	@UsePipes(new AbstractValidationPipe({ whitelist: true }, { query: TenantOrganizationBaseDTO }))
+	override async softRecover(@Param('id', UUIDValidationPipe) id: User['id']): Promise<User> {
+		return super.softRecover(id)
 	}
 
 	/**
@@ -405,7 +432,7 @@ export class UserController extends CrudController<User> {
 	@Permissions(PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Post(':id/password')
 	async resetPassword(@Param('id', UUIDValidationPipe) userId: string, @Body() userPassword: UserPasswordDTO) {
-		validateAppUserPassword(userPassword)
+		validateSelfUserPassword(userPassword)
 		return await this.userService.resetPassword(userId, userPassword.hash, userPassword.password)
 	}
 
@@ -435,6 +462,7 @@ export class UserController extends CrudController<User> {
 	@UseGuards(RoleGuard)
 	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
 	@Post('bulk')
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	async createBulk(@Body() users: IUserCreateInput[]) {
 		if (!RequestContext.isTenantScope()) {
 			throw new BadRequestException('Tenant scope is required for bulk user import')
@@ -446,6 +474,7 @@ export class UserController extends CrudController<User> {
 	@UseGuards(RoleGuard)
 	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
 	@Post('bulk/upload')
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@UseInterceptors(
 		FileInterceptor('file', {
 			storage: new FileStorage().storage({

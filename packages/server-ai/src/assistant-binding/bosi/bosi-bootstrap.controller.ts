@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { t } from 'i18next'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
@@ -14,6 +16,7 @@ import {
 const invalid = () => new BadRequestException(t('server-ai:Error.BosiInvalidInput'))
 
 @Controller('bosi')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class BosiBootstrapController {
     constructor(private readonly bosi: BosiBootstrapService) {}
 

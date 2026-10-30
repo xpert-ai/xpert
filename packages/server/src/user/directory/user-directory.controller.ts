@@ -10,6 +10,7 @@ import { userDirectoryQuerySchema, UserDirectoryQuery } from './user-directory.s
 import { UserDirectoryService } from './user-directory.service'
 
 @Controller('directory')
+@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 export class UserDirectoryController {
 	constructor(private readonly directory: UserDirectoryService) {}
 

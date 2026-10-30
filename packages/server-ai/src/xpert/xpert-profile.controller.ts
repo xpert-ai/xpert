@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TransformInterceptor } from '@xpert-ai/server-core'
@@ -9,6 +11,7 @@ import { XpertProfileIndicatorsService } from './xpert-profile-indicators.servic
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertProfileController {
     constructor(
         private readonly access: PublishedXpertAccessService,

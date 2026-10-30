@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Query } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ModelExecutionCallOptions, ModelExecutionCallView } from '@xpert-ai/contracts'
@@ -16,6 +18,7 @@ import {
 } from '../membership/membership-usage-points'
 
 @Controller('model-execution')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelExecutionQueryController {
     constructor(
         @InjectRepository(ModelGatewayCall) private readonly calls: Repository<ModelGatewayCall>,

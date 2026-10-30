@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	ICustomizableEmailTemplate,
 	ICustomizeEmailTemplateFindInput,
@@ -47,6 +49,7 @@ import { BaseQueryDTO } from '../core/dto';
 @ApiTags('EmailTemplate')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES)
 export class EmailTemplateController extends CrudController<EmailTemplate> {
 	constructor(
 		private readonly emailTemplateService: EmailTemplateService,

@@ -16,10 +16,7 @@ jest.mock('@xpert-ai/contracts', () => ({
         TENANT: 'tenant',
         ORGANIZATION: 'organization'
     },
-    RolesEnum: {
-        SUPER_ADMIN: 'SUPER_ADMIN',
-        ADMIN: 'ADMIN'
-    },
+    PermissionsEnum: { SUPER_ADMIN_EDIT: 'SUPER_ADMIN_EDIT', ALL_ORG_EDIT: 'ALL_ORG_EDIT' },
     ParameterType: {
         FLOAT: 'float',
         INT: 'int',
@@ -52,8 +49,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
         currentTenantId: jest.fn(),
         getOrganizationId: jest.fn(),
         currentUserId: jest.fn(),
-        hasRole: jest.fn(),
-        hasRoles: jest.fn(),
+        hasPermission: jest.fn(),
         requireOrganizationScope: jest.fn()
     }
 }))
@@ -66,7 +62,7 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
-import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, RolesEnum } from '@xpert-ai/contracts'
+import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, PermissionsEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantBindingService } from './assistant-binding.service'
 import { AssistantBinding } from './assistant-binding.entity'
@@ -149,8 +145,7 @@ describe('AssistantBindingService', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
-        ;(RequestContext.hasRole as jest.Mock).mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
-        ;(RequestContext.hasRoles as jest.Mock).mockReturnValue(true)
+        ;(RequestContext.hasPermission as jest.Mock).mockReturnValue(true)
         ;(RequestContext.requireOrganizationScope as jest.Mock).mockReturnValue('org-1')
     })
 
@@ -250,8 +245,10 @@ describe('AssistantBindingService', () => {
         expect(repository.find).toHaveBeenCalled()
     })
 
-    it('rejects tenant writes for non-super-admin users', async () => {
-        ;(RequestContext.hasRole as jest.Mock).mockReturnValue(false)
+    it('rejects tenant writes without platform management permission', async () => {
+        ;(RequestContext.hasPermission as jest.Mock).mockImplementation(
+            (permission) => permission !== PermissionsEnum.SUPER_ADMIN_EDIT
+        )
 
         await expect(
             service.upsertBinding({

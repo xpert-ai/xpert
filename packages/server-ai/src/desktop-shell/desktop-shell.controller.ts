@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { DesktopShellAuthService, currentShellScope } from './desktop-shell-auth.service'
@@ -7,6 +9,7 @@ import { shellError } from './desktop-shell.errors'
 @ApiTags('Desktop Shell')
 @ApiBearerAuth()
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class DesktopShellController {
     constructor(
         private readonly auth: DesktopShellAuthService,

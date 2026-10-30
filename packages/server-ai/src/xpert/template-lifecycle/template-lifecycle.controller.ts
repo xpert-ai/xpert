@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common'
 import { z } from 'zod'
@@ -17,6 +19,7 @@ import { TemplatePublicationService } from './template-publication.service'
 import { TemplateUpgradeService } from './template-upgrade.service'
 
 @Controller(':id/template-lifecycle')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class TemplateLifecycleController {
     constructor(
         private readonly publications: TemplatePublicationService,

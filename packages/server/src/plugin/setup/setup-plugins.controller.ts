@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../../shared/decorators/permissions'
 import { BadRequestException, Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
@@ -11,6 +13,7 @@ import { SetupPluginsService } from './setup-plugins.service'
 @Controller('system/setup/plugins')
 @UseGuards(TenantPermissionGuard, RoleGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class SetupPluginsController {
 	constructor(private readonly setup: SetupPluginsService) {}
 

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { Controller, Get, HttpStatus, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -11,6 +13,7 @@ import { EmployeeService } from './employee.service'
 @ApiTags('Employee')
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.ORG_EMPLOYEES_EDIT)
 export class EmployeeController extends CrudController<Employee> {
 	constructor(
 		private readonly employeeService: EmployeeService,

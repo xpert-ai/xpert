@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IShareSkillPackageInput, InstallGithubSkillPackagesInput } from '@xpert-ai/contracts'
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import {
@@ -37,6 +39,7 @@ type SkillPackageDownloadTarget = {
 @ApiTags('Skill Package')
 @UseInterceptors(TransformInterceptor)
 @Controller('skill-package')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SkillPackageController {
     constructor(private readonly service: SkillPackageService) {}
 

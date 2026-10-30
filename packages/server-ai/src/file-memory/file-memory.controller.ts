@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common'
 import { UUIDValidationPipe } from '@xpert-ai/server-core'
 import { XpertGuard } from '../xpert/guards/xpert.guard'
@@ -5,6 +7,7 @@ import { FileMemoryFacade } from './file-memory.facade'
 
 @UseGuards(XpertGuard)
 @Controller('xpert/:id/memory')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class FileMemoryController {
     constructor(private readonly facade: FileMemoryFacade) {}
 

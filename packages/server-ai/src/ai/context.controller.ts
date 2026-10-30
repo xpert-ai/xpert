@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
@@ -52,6 +54,7 @@ import {
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('contexts')
 export class ContextsController {
     readonly #logger = new Logger(ContextsController.name)

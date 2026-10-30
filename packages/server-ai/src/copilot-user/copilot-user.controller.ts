@@ -27,6 +27,7 @@ import { PublicCopilotUserDto } from './dto/public-copilot-user'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotUserController extends CrudController<CopilotUser> {
 	readonly #logger = new Logger(CopilotUserController.name)
 

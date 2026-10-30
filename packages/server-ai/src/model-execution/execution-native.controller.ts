@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { executionRequestLifetime } from './execution-request-lifetime'
 import { inheritNativeParameters } from './execution-model-parameters'
 import { z } from 'zod/v3'
@@ -29,6 +31,7 @@ import { executionError } from './execution-errors'
 
 @Public()
 @Controller('model-execution')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelExecutionNativeController {
     private readonly logger = new Logger(ModelExecutionNativeController.name)
     constructor(

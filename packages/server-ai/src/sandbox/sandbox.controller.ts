@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { assertPublicWorkspacePath } from '../shared/volume/workspace-managed-path'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import { environment } from '@xpert-ai/server-config'
@@ -69,6 +71,7 @@ import { SandboxManagedServiceService } from './sandbox-managed-service.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SandboxController {
     readonly #logger = new Logger(SandboxController.name)
     constructor(

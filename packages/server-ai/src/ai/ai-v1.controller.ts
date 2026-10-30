@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     IApiKey,
     IFileAssetDestination,
@@ -65,6 +67,7 @@ const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
 @Public()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('v1')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AIV1Controller {
     readonly #logger = new Logger(AIV1Controller.name)
 
@@ -223,6 +226,7 @@ export class AIV1Controller {
     }
 
     @Post('chatkit/sessions')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async createChatkitSession(
         @ApiKeyDecorator() apiKey: IApiKey,
         @Body(new ZodValidationPipe(chatkitSessionSchema, chatkitSessionInvalid)) body: ChatkitSessionInput

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     Body,
@@ -46,6 +48,7 @@ type HttpRequestLike = {
 
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class ConnectorController {
     constructor(
         private readonly service: ConnectorService,

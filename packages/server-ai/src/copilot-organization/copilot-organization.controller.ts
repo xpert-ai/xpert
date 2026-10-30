@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { ICopilotOrganization, IPagination, RolesEnum } from '@xpert-ai/contracts'
 import {
 	CrudController,
@@ -19,6 +21,7 @@ import { CopilotOrganizationService } from './copilot-organization.service'
 @UseGuards(RoleGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotOrganizationController extends CrudController<CopilotOrganization> {
 	readonly #logger = new Logger(CopilotOrganizationController.name)
 	constructor(

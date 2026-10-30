@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     Controller,
     DefaultValuePipe,
@@ -24,6 +26,7 @@ import { assertAssistantAudience } from './assistant-audience'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('assistants/:assistantId/connectors')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ConnectorRuntimeController {
     constructor(private readonly connectors: ConnectorService) {}
 

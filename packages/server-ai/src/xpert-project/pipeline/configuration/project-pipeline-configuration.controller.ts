@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, HttpCode, Param, Post, UseGuards } from '@nestjs/common'
 import {
     AIPermissionsEnum,
@@ -12,6 +13,7 @@ import { ProjectPipelineConfigurationService } from './project-pipeline-configur
 
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
 export class ProjectPipelineConfigurationController {
     constructor(private readonly configurations: ProjectPipelineConfigurationService) {}
 

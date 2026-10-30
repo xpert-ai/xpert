@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     Body,
@@ -28,6 +30,7 @@ import { sendWorkbenchFileDownload } from './workbench-file-download'
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(WorkbenchFilesAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('conversations/:conversationId')
 export class WorkbenchFilesController {
     constructor(private readonly conversations: ChatConversationService) {}

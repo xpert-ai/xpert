@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     LanguagesEnum,
     LanguagesMap,
@@ -38,6 +40,7 @@ const accessStatuses: TXpertMarketplaceAccessStatus[] = [
 ]
 
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertMarketplaceController {
     constructor(private readonly service: XpertMarketplaceService) {}
 

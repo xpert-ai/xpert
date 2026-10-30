@@ -64,6 +64,7 @@ import { KnowledgeParserSettingsService } from './parser-settings.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Inject(KnowledgeKeywordAnalyzerService)
     private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService

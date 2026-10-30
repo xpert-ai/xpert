@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     PLUGIN_COMPONENT_TYPE,
     PluginComponentType,
@@ -26,6 +28,7 @@ import { ListPluginResourceComponentStatesQuery } from './queries'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('plugin/:name/resources')
+@Permissions(AIPermissionsEnum.APPLICATION_INSTALL)
 export class PluginResourceController {
     constructor(
         private readonly installer: PluginResourceInstallerService,

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     Body,
@@ -27,6 +29,7 @@ import { t } from 'i18next'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class CopilotCheckpointController {
     constructor(
         private readonly service: CopilotCheckpointService,

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Header, Param, Post, Query } from '@nestjs/common'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -12,6 +14,7 @@ import {
 
 const invalid = () => new BadRequestException(t('server-ai:Error.ConnectorIntegrationInvalid'))
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class ConnectorIntegrationController {
     constructor(private readonly integrations: ConnectorIntegrationService) {}
 

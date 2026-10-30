@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AiFeatureEnum, AIPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { AiFeatureEnum, AIPermissionsEnum, PermissionsEnum } from '../../@core'
 import { featureGate } from '../feature-gate'
 import { redirectTo } from '../features-routing.module'
 import { XpAccountComponent } from './account/account.component'
@@ -217,7 +217,7 @@ export const routes: Routes = [
           title: 'settings/business-area',
           scopeContext: 'organization-only',
           permissions: {
-            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            only: [PermissionsEnum.BUSINESS_AREA_VIEW],
             redirectTo
           }
         }
@@ -336,7 +336,7 @@ export const routes: Routes = [
           title: 'settings/assistants',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            only: [PermissionsEnum.SUPER_ADMIN_EDIT, PermissionsEnum.ALL_ORG_EDIT],
             redirectTo
           }
         }

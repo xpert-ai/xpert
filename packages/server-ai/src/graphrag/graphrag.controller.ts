@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -17,6 +19,7 @@ import { KnowledgeGraphRetryDocumentCommand } from './commands'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller(':id/graph')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class GraphragController {
     constructor(
         private readonly service: GraphragService,

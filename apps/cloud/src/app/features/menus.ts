@@ -43,7 +43,8 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'account',
       label: 'Account',
       icon: 'account_circle',
-      scopeContext: 'dual-scope'
+      scopeContext: 'dual-scope',
+      data: { permissionKeys: [PermissionsEnum.PROFILE_EDIT] }
     },
     ...(environment.settingsExtensions?.menus ?? []),
     {
@@ -51,7 +52,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'Analytics',
       icon: 'layout-dashboard',
       scopeContext: 'organization-only',
-      data: { translationKey: 'XP.Analytics.Title' }
+      data: { translationKey: 'XP.Analytics.Title', permissionKeys: [AIPermissionsEnum.MODEL_USAGE_MONITOR] }
     },
     {
       path: 'data-sources',
@@ -73,7 +74,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       subtitleDefault: isTenantScope ? 'Tenant defaults' : 'Organization overrides',
       data: {
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+        permissionKeys: [isTenantScope ? PermissionsEnum.SUPER_ADMIN_EDIT : PermissionsEnum.ALL_ORG_EDIT]
       }
     },
     {
@@ -158,7 +159,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       icon: 'account_tree',
       scopeContext: 'organization-only',
       data: {
-        permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+        permissionKeys: [PermissionsEnum.BUSINESS_AREA_VIEW]
       }
     },
     {
@@ -236,7 +237,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
         translationKey: 'New task',
         action: 'newClawXpertConversation',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
       }
     },
     {
@@ -248,7 +249,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'Automations',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
-        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+        permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
       }
     },
     {
@@ -259,7 +260,8 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Data & Ontology',
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY]
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY],
+        permissionKeys: [PermissionsEnum.DATA_SOURCE_EDIT]
       }
     },
     {

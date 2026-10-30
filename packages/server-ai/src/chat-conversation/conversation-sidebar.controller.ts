@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { conversationSidebarSearchSchema, ConversationSidebarSearch } from './conversation-sidebar-search.schema'
 import {
@@ -19,6 +21,7 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller()
 export class ChatConversationSidebarController {
     constructor(private readonly sidebar: ChatConversationSidebarService) {}

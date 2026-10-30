@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     Body,
     Controller,
@@ -28,6 +30,7 @@ import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantThreadScopeGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('sandbox/threads/:threadId/services')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SandboxRuntimeController {
     constructor(
         private readonly services: SandboxManagedServiceService,
@@ -36,11 +39,13 @@ export class SandboxRuntimeController {
     ) {}
 
     @Get()
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     list(@Param('threadId') threadId: string, @Query('organizationId') organizationId?: string) {
         return this.run(organizationId, () => this.services.listByThreadId(threadId))
     }
 
     @Get(':serviceId')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     get(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,
@@ -89,6 +94,7 @@ export class SandboxRuntimeController {
     }
 
     @Post(':serviceId/preview-session')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async previewSession(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,

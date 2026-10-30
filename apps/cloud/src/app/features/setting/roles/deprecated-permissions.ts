@@ -1,13 +1,6 @@
-import { AIPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import { DEPRECATED_ROLE_PERMISSIONS, RolesEnum } from '@xpert-ai/contracts'
 
-export const DEPRECATED_ROLE_PERMISSIONS = [
-  PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-  PermissionsEnum.VIEW_ALL_EMAILS,
-  PermissionsEnum.ORG_DEMO_EDIT,
-  AIPermissionsEnum.COPILOT_VIEW,
-  PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
-  PermissionsEnum.ACCESS_DELETE_ACCOUNT
-] as const
+export { DEPRECATED_ROLE_PERMISSIONS } from '@xpert-ai/contracts'
 
 const DEPRECATED_ROLE_PERMISSION_SET = new Set<string>(DEPRECATED_ROLE_PERMISSIONS)
 

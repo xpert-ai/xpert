@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { RuntimeResourceCommandsService } from './commands/runtime-resource-commands.service'
 import { resourceCommandsInputSchema } from './commands/agent-plugin-commands.schema'
 import {
@@ -31,6 +33,7 @@ import { parseResourceInput } from './agent-plugin.controller'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class RuntimeResourceController {
     constructor(
         @Inject('XpertRuntimeResourceService') private readonly service: RuntimeResourceService,

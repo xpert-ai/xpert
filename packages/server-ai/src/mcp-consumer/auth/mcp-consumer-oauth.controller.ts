@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -22,6 +24,7 @@ import { renderMcpConsumerOAuthResultPage } from './mcp-consumer-oauth-result-pa
 
 @UseInterceptors(TransformInterceptor)
 @Controller('mcp-consumer/oauth')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpConsumerOAuthController {
     constructor(
         private readonly service: McpConsumerOAuthService,

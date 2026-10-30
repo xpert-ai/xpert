@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { TransformInterceptor, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -10,6 +12,7 @@ import { SuggestedQuestionsCommand } from './commands/'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ChatMessageController {
     constructor(
         private readonly service: ChatMessageService,

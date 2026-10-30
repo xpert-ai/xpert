@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { InspectTemplateReadinessCommand } from '../plugin-resource/template-installation/template-readiness.command'
 import { describeAssistantTemplate } from './definition/assistant-template-overview'
 import { z } from 'zod'
@@ -31,6 +33,7 @@ import {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertTemplateController {
     readonly #logger = new Logger(XpertTemplateController.name)
 

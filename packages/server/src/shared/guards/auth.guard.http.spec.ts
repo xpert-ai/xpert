@@ -7,6 +7,7 @@ import { PassportStrategy } from '@nestjs/passport'
 import { AUTH_STRATEGIES_METADATA, AuthStrategies } from '../decorators/auth-strategies.decorator'
 import { Public } from '../decorators/public.decorator'
 import { AuthGuard } from './auth.guard'
+import { EndpointPermissionInterceptor } from './endpoint-permission.interceptor'
 
 const attempts = jest.fn()
 class TestStrategy extends Strategy {
@@ -102,6 +103,7 @@ describe('global authentication strategy metadata', () => {
 		}).compile()
 		app = module.createNestApplication({ logger: false })
 		app.useGlobalGuards(new AuthGuard(module.get(Reflector)))
+		app.useGlobalInterceptors(new EndpointPermissionInterceptor(module.get(Reflector)))
 		await app.listen(0, '127.0.0.1')
 		origin = await app.getUrl()
 	})

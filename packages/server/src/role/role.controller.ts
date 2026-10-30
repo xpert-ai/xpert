@@ -24,6 +24,7 @@ import { DeleteResult, FindOptionsWhere } from 'typeorm'
 @ApiTags('Role')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 export class RoleController extends CrudController<Role> {
 	constructor(private readonly roleService: RoleService) {
 		super(roleService)

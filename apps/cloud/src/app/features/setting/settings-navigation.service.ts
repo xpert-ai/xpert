@@ -45,8 +45,11 @@ export class SettingsNavigationService {
     const regularUser = this.user()?.type !== UserType.COMMUNICATION
     return buildSettingsNavigation(this.menus(), {
       membership: this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE),
-      models: regularUser,
-      personalApiKeys: this.user()?.type === UserType.USER,
+      models:
+        regularUser &&
+        (this.store.hasPermission(AIPermissionsEnum.COPILOT_VIEW) ||
+          this.store.hasPermission(AIPermissionsEnum.COPILOT_EDIT)),
+      personalApiKeys: this.user()?.type === UserType.USER && this.store.hasPermission(AIPermissionsEnum.XPERT_EDIT),
       gateway:
         regularUser &&
         this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MODEL_GATEWAY) &&

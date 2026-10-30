@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { KnowledgeWikiBrowseService } from './knowledge-wiki-browse.service'
 import { RequestContext, UUIDValidationPipe } from '@xpert-ai/server-core'
@@ -15,6 +17,7 @@ import { KnowledgeWikiDocumentStatusQueryDTO } from './dto/knowledge-wiki-docume
 @ApiTags('KnowledgeWiki')
 @ApiBearerAuth()
 @Controller(':knowledgebaseId/wiki')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeWikiController {
     @Inject(KnowledgeWikiBrowseService) private readonly browse: KnowledgeWikiBrowseService
     constructor(private readonly service: KnowledgeWikiService) {}
