@@ -38,6 +38,7 @@ import {
   parsePromptCapabilityConfig
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
+import { PageLeaveService } from '../../../../@core/services/page-leave.service'
 import { getErrorMessage, injectPromptWorkflowAPI, injectToastr, injectXpertAPI } from '../../../../@core'
 import { TagSelectComponent } from '../../../../@shared/tag/tag-select/tag-select.component'
 import { TagDirectoryComponent } from '../../../../@shared/tag/directory/tag-directory.component'
@@ -168,6 +169,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
   #legacyTags: string[] = []
 
   constructor() {
+    inject(PageLeaveService).register(() => this.confirmLeave(), inject(DestroyRef))
     effect(() => {
       const workspaceId = this.workspaceId()
       untracked(() => {

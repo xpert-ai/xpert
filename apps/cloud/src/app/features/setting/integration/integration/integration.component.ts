@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
-import { RouterModule } from '@angular/router'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, viewChild } from '@angular/core'
+import { ActivatedRoute, RouterModule } from '@angular/router'
 import { IsDirty } from '@xpert-ai/headless-ui'
 import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
@@ -7,7 +7,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardBadgeComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { of } from 'rxjs'
+import { firstValueFrom, of } from 'rxjs'
+import { DirtyCheckGuard } from '../../../../@core/guards/dirty-check.guard'
+import { PageLeaveService } from '../../../../@core/services/page-leave.service'
 import { IntegrationService, ViewExtensionApiService } from '../../../../@core'
 import { IconComponent } from '../../../../@shared/avatar'
 import { IntegrationConfigurationComponent } from './configuration.component'
@@ -55,6 +57,15 @@ interface IntegrationShellTab {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class IntegrationComponent implements IsDirty {
+  constructor() {
+    const guard = inject(DirtyCheckGuard)
+    const route = inject(ActivatedRoute)
+    inject(PageLeaveService).register(
+      () => firstValueFrom(guard.canDeactivate(this, route.snapshot)),
+      inject(DestroyRef)
+    )
+  }
+
   readonly #integrationAPI = inject(IntegrationService)
   readonly #viewExtensionAPI = inject(ViewExtensionApiService)
   readonly configurationComponent = viewChild(IntegrationConfigurationComponent)

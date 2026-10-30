@@ -1,7 +1,7 @@
 // Verify the deployable Nginx image and both frontend entry points without an API
 // or published host port. A SPA fallback must never mask a missing JS/CSS bundle.
 const assert = require('node:assert/strict')
-const { execFileSync } = require('node:child_process')
+const { execFileSync, spawnSync } = require('node:child_process')
 const { randomUUID } = require('node:crypto')
 const { setTimeout } = require('node:timers/promises')
 
@@ -15,6 +15,11 @@ const docker = (...args) =>
     stdio: ['ignore', 'pipe', 'pipe']
   })
 const fetchPage = (pathname) => docker('exec', name, 'wget', '-qO-', `http://127.0.0.1${pathname}`)
+const headers = (pathname) =>
+  spawnSync('docker', ['exec', name, 'wget', '-S', '-O', '/dev/null', `http://127.0.0.1${pathname}`], {
+    encoding: 'utf8',
+    timeout: 30000
+  }).stderr
 
 async function main() {
   let started = false
@@ -45,6 +50,19 @@ async function main() {
       }
     }
     docker('exec', name, 'nginx', '-t')
+    const release = JSON.parse(fetchPage('/version.json'))
+    assert.equal(
+      JSON.parse(fetchPage('/chatkit/xpert-web-update.json')).schemaVersion,
+      1,
+      'ChatKit package must include standalone web-update support before release'
+    )
+    assert.ok(typeof release.buildId === 'string' && release.buildId.length > 0, 'Build identity missing')
+    assert.ok(typeof release.version === 'string', 'Display version missing')
+    assert.match(headers('/version.json'), /Cache-Control: no-store/i)
+    assert.match(headers('/ngsw-worker.js'), /Cache-Control: no-store/i)
+    for (const missing of ['/missing.js', '/missing.css', '/chatkit/assets/missing.js', '/ngsw.json']) {
+      assert.match(headers(missing), /404 Not Found/, missing)
+    }
     const checked = new Set()
     for (const [pathname, marker] of [
       ['/', '<xp-root'],
@@ -54,6 +72,11 @@ async function main() {
     ]) {
       const html = fetchPage(pathname).replace(/<!--[\s\S]*?-->/g, '')
       assert.ok(html.includes(marker), `${pathname}: application root missing`)
+      assert.ok(
+        html.includes(`name="xpert-web-build" content="${release.buildId}"`),
+        `${pathname}: build identity mismatch`
+      )
+      assert.match(headers(pathname), /Cache-Control: no-store/i, pathname)
       const assets = [...html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"[^>]*>/g)]
         .map((match) => new URL(match[1], `http://127.0.0.1${pathname}`))
         .filter((url) => url.host === '127.0.0.1' && /\.(css|js)$/.test(url.pathname))
@@ -63,6 +86,7 @@ async function main() {
         const body = fetchPage(url.pathname)
         assert.ok(body.trim(), `${url.pathname}: empty asset`)
         assert.doesNotMatch(body.slice(0, 100), /<!doctype html/i, `${url.pathname}: HTML fallback instead of asset`)
+        assert.match(headers(url.pathname), /Cache-Control: no-cache/i, url.pathname)
         checked.add(url.pathname)
       }
       console.log(`${pathname}: passed`)
