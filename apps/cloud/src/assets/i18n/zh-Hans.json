@@ -9970,6 +9970,8 @@
     },
     "Integration": {
       "Qr": {
+        "TenantManualHint": "扫码创建仅支持组织级集成。您可以在下方手动配置租户级集成；如需扫码，请切换到目标组织，新集成将归属于该组织。",
+        "SwitchOrganization": "切换组织后扫码",
         "OrganizationRequired": "请先选择组织，再扫码创建系统集成。",
         "NamePlaceholder": "请输入系统集成名称",
         "Title": "扫码新建系统集成",

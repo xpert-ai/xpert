@@ -7093,6 +7093,10 @@
       }
     },
     "Integration": {
+      "Qr": {
+        "TenantManualHint": "掃碼建立僅支援組織級整合。您可以在下方手動設定租戶級整合；如需掃碼，請切換到目標組織，新整合將歸屬於該組織。",
+        "SwitchOrganization": "切換組織後掃碼"
+      },
       "Integration": "集成",
       "Integrations": "集成",
       "AddIntegration": "添加集成",

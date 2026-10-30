@@ -31,6 +31,7 @@ import {
 } from '../../../../@core'
 import { IntegrationProviderSelectComponent } from '../integration-provider-select.component'
 import { IntegrationQrDialogComponent, IntegrationQrDialogData } from './integration-qr-dialog.component'
+import { OrganizationSelectorComponent } from '../../../../@theme/header/organization-selector/organization-selector.component'
 
 export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
   if (provider?.helpLinks?.length) {
@@ -55,6 +56,7 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
     ZardInputDirective,
     ZardButtonComponent,
     IntegrationProviderSelectComponent,
+    OrganizationSelectorComponent,
     XpSpinComponent,
     EmojiAvatarComponent,
     ParameterFormComponent,
@@ -74,13 +76,14 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
   private readonly store = inject(Store)
   readonly qrOrganizationId = toSignal(this.store.selectOrganizationId())
   private qrDialog: DialogRef<TIntegrationQrCompletion> | null = null
-  readonly setupMode = signal<'qr' | 'manual'>('qr')
-  readonly canScan = computed(
+  readonly setupMode = signal<'qr' | 'manual'>(this.qrOrganizationId() ? 'qr' : 'manual')
+  readonly supportsQr = computed(
     () =>
       !this.paramId() &&
       this.integrationProvider()?.setup?.qrAuthorization === true &&
       (!this.integrationProvider()?.pro || this.pro)
   )
+  readonly canScan = computed(() => this.supportsQr() && !!this.qrOrganizationId())
   readonly scanMode = computed(() => this.canScan() && this.setupMode() === 'qr')
 
   readonly providerQuery = injectQueryParams('provider')
@@ -143,7 +146,7 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
   constructor() {
     effect(() => {
       this.provider()
-      this.setupMode.set('qr')
+      this.setupMode.set(this.qrOrganizationId() ? 'qr' : 'manual')
     })
     effect(() => {
       if (this.providerQuery() && !this.paramId()) {
