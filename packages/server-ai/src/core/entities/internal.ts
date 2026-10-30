@@ -98,3 +98,6 @@ export { ContentEditorPreference } from '../../content-resource/catalog/editor-p
 export * from '../../content-resource/catalog/content-operation.entity'
 
 export * from '../../plugin-resource/app-platform/platform-toolset-binding.entity'
+
+export * from '../../plugin-resource/app-platform/app-platform-delivery.entity'
+export * from '../../plugin-resource/app-platform/platform-resource-binding.entity'
