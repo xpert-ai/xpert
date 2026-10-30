@@ -32,7 +32,7 @@ import { templateInputParameters } from '../../agent-plugin/templates/runtime-te
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { closeGraphRuntimeCleanups } from '../commands/handlers/toolset-runtime-cleanup'
 import { createTemplateExecutionDefinition } from '../../shared/agent/execution-definition'
-import { AgentStateAnnotation } from '../../shared/agent/state'
+import { AgentStateAnnotation, CONVERSATION_OWNER_XPERT_ID } from '../../shared/agent/state'
 import { CompileGraphCommand } from '../commands/compile-graph.command'
 import { wrapAgentExecution } from '../../shared/agent/execution'
 import { withExecutionContext } from '../../shared/agent/execution-context'
@@ -230,6 +230,8 @@ export class TemplateSubagentRuntimeService {
                                             shouldPause: options.shouldPause,
                                             planMode: options.planMode,
                                             conversationId: options.conversationId,
+                                            [CONVERSATION_OWNER_XPERT_ID]:
+                                                options[CONVERSATION_OWNER_XPERT_ID] ?? context.xpertId,
                                             projectId: context.projectId,
                                             language: options.language,
                                             timeZone: options.timeZone,

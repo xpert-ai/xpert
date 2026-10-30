@@ -30,7 +30,7 @@ import { ResolveTemplateConnectorsCommand } from '../../connector/template-conne
 import { XpertWorkAreaResolver, XpertRuntimeWorkArea } from '../../shared/volume/work-area'
 import { VolumeHandle } from '../../shared/volume/volume'
 import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
-import { AgentStateAnnotation } from '../../shared/agent/state'
+import { AgentStateAnnotation, CONVERSATION_OWNER_XPERT_ID } from '../../shared/agent/state'
 import { TemplateSubagentRuntimeService } from './template-subagent-runtime.service'
 import { createTemplateSubagentsMiddleware, templateSubagentToolName } from './template-subagents.middleware'
 import type { RuntimeTemplateDescriptor } from '../../agent-plugin/templates/runtime-template'
@@ -248,6 +248,24 @@ describe('template invocation lifecycle', () => {
         expect([...f.executions.values()][0].xpert.id).toBe('owner')
         expect([...f.executions.values()][0].metadata.templateSource.templateKey).toBe('reviewer')
     })
+
+    it.each([undefined, 'conversation-owner'])(
+        'keeps the conversation owner separate from the template executor (owner=%s)',
+        async (conversationOwner) => {
+            const f = fixture()
+            f.context.options.conversationId = 'conversation'
+            f.context.options[CONVERSATION_OWNER_XPERT_ID] = conversationOwner
+            f.compile.mockRejectedValueOnce(new Error('compile boundary'))
+
+            await expect(f.invoke()).rejects.toThrow('compile boundary')
+
+            const command = f.compile.mock.calls[0][0]
+            expect(command.options.conversationId).toBe('conversation')
+            expect(command.options[CONVERSATION_OWNER_XPERT_ID]).toBe(conversationOwner ?? f.context.xpertId)
+            expect(command.xpert.id).toBe(f.owner.id)
+            expect(f.calls).toEqual([])
+        }
+    )
 
     it('replays a completed call without re-executing and rechecks access', async () => {
         const f = fixture()
