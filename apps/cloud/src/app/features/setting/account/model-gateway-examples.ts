@@ -57,5 +57,5 @@ export function modelGatewayVSCodeExample(
 }
 
 function shellQuote(value: string) {
-  return "'" + value.replaceAll("'", "'\\''") + "'"
+  return "'" + value.replace(/'/g, "'\\''") + "'"
 }
