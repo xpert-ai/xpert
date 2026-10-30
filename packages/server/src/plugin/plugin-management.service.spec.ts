@@ -68,11 +68,13 @@ describe('PluginManagementService', () => {
 		)
 		expect(runtimeState.report).toHaveBeenCalled()
 
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-openrouter',
-			version: '0.1.0',
-			scopeKey: 'org-1'
-		})
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-openrouter',
+				version: '0.1.0',
+				scopeKey: 'org-1'
+			})
+		)
 	})
 
 	it('keeps the current plugin active when schema preflight fails', async () => {
@@ -159,6 +161,9 @@ describe('PluginManagementService', () => {
 				pluginName: '@xpert-ai/plugin-config-demo',
 				configurationStatus: 'invalid',
 				configurationError: expect.stringContaining('apiKey')
+			}),
+			expect.objectContaining({
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
 			})
 		)
 		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
@@ -421,20 +426,16 @@ describe('PluginManagementService', () => {
 			source: 'npm',
 			sourceConfig: null
 		})
-		expect(pluginInstanceService.uninstallByPackageName).toHaveBeenCalledWith(
-			'tenant-1',
-			'org-1',
-			'@xpert-ai/plugin-future-demo',
-			{
-				scopeKey: 'org-1',
-				cause: 'refresh'
-			}
-		)
+		expect(pluginInstanceService.detachRuntime).toHaveBeenCalledWith('org-1', ['@xpert-ai/plugin-future-demo'])
+
 		expect(registerPluginsAsync).toHaveBeenCalled()
 		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				pluginName: '@xpert-ai/plugin-future-demo',
 				version: '1.2.3'
+			}),
+			expect.objectContaining({
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
 			})
 		)
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()

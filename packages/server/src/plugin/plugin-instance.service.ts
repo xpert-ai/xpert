@@ -1,3 +1,4 @@
+import type { PluginStoreLease } from './installation/plugin-store-lock'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
@@ -42,7 +43,38 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		super(repo)
 	}
 
-	async upsert(input: PluginInstance, options: { syncLoadedConfig?: boolean } = {}) {
+	async upsert(
+		input: PluginInstance,
+		options: { syncLoadedConfig?: boolean; publicationLease?: Pick<PluginStoreLease, 'assertOwned'> } = {}
+	) {
+		if (!options.publicationLease) return this.upsertUsingRepository(input, options, this.repo)
+		const result = await this.repo.manager.transaction(async (manager) => {
+			await options.publicationLease.assertOwned()
+			const row = await this.upsertUsingRepository(
+				input,
+				{ ...options, syncLoadedConfig: false },
+				manager.getRepository(this.repo.target)
+			)
+			await options.publicationLease.assertOwned()
+			return row
+		})
+		if (options.syncLoadedConfig !== false) {
+			this.syncLoadedPluginConfig(
+				result.organizationId,
+				input.pluginName,
+				input.config ?? {},
+				result.tenantId,
+				result.scopeKey
+			)
+		}
+		return result
+	}
+
+	private async upsertUsingRepository(
+		input: PluginInstance,
+		options: { syncLoadedConfig?: boolean; publicationLease?: Pick<PluginStoreLease, 'assertOwned'> },
+		repo: Repository<PluginInstance>
+	) {
 		const requestTenantId = input.tenantId ?? this.getCurrentTenantId()
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({
@@ -61,8 +93,9 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			{ pluginName: input.pluginName },
 			scope.scopeKey
 		)
-		const existing = await this.repo.findOne({
-			where
+		const existing = await repo.findOne({
+			where,
+			...(options.publicationLease ? { lock: { mode: 'pessimistic_write' as const } } : {})
 		})
 		const normalizedSourceConfig = normalizePluginSourceConfig(input.source, input.sourceConfig)
 		const persistedSourceConfig = hasExplicitSourceConfig
@@ -79,20 +112,21 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			existing.level = input.level ?? existing.level
 			existing.meta = input.meta ?? existing.meta
 			existing.pendingRestart = input.pendingRestart ?? existing.pendingRestart
+			if (input.runtimePublication !== undefined) existing.runtimePublication = input.runtimePublication
 			existing.config = serializePluginConfig(decryptedConfig)
 			existing.configurationStatus = input.configurationStatus ?? null
 			existing.configurationError = input.configurationError ?? null
 			existing.tenantId = tenantId
 			existing.organizationId = this.getOrganizationValue(organizationId)
 			existing.scopeKey = scope.scopeKey
-			const entity = await this.repo.save(existing)
+			const entity = await repo.save(existing)
 			if (options.syncLoadedConfig !== false) {
 				this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
 			}
 			return entity
 		}
 
-		const entity = this.repo.create({
+		const entity = repo.create({
 			tenantId,
 			organizationId: this.getOrganizationValue(organizationId),
 			scopeKey: scope.scopeKey,
@@ -104,11 +138,12 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			level: input.level,
 			meta: input.meta,
 			pendingRestart: input.pendingRestart ?? false,
+			runtimePublication: input.runtimePublication ?? null,
 			config: serializePluginConfig(decryptedConfig),
 			configurationStatus: input.configurationStatus ?? null,
 			configurationError: input.configurationError ?? null
 		})
-		const created = await this.create(entity)
+		const created = options.publicationLease ? await repo.save(entity) : await this.create(entity)
 		if (options.syncLoadedConfig !== false) {
 			this.syncLoadedPluginConfig(organizationId, input.pluginName, decryptedConfig, tenantId, scope.scopeKey)
 		}
@@ -214,9 +249,13 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		options: { scopeKey?: string | null; cause?: 'refresh' | 'uninstall' } = {}
 	) {
 		const normalizedNames = names.map((name) => normalizePluginName(name))
-		await this.deactivate(tenantId, organizationId, normalizedNames, options)
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
+		if (options.cause === 'refresh') {
+			this.detachRuntime(scope.scopeKey, normalizedNames)
+			return
+		}
+		await this.deactivate(tenantId, organizationId, normalizedNames, options)
 		await this.removePlugins(organizationId, normalizedNames, {
 			tenantId,
 			scopeKey: scope.scopeKey,
@@ -235,6 +274,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		names: string[],
 		options: { scopeKey?: string | null; cause?: 'refresh' | 'uninstall' } = {}
 	) {
+		if (options.cause === 'refresh') return
 		const normalizedNames = names.map((name) => normalizePluginName(name))
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
@@ -322,6 +362,45 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			scopeKey: scope.scopeKey,
 			cause: options.cause
 		})
+	}
+
+	/** Refresh removes live strategies, never the committed startup row or its artifacts. */
+	detachRuntime(scopeKey: string, names: string[]) {
+		for (const name of names) {
+			this.strategyBus.remove(scopeKey, name, 'refresh')
+			for (let index = this.loadedPlugins.length - 1; index >= 0; index--) {
+				const plugin = this.loadedPlugins[index]
+				if (
+					(plugin.scopeKey ?? plugin.organizationId) === scopeKey &&
+					normalizePluginName(plugin.name) === name
+				) {
+					this.loadedPlugins.splice(index, 1)
+				}
+			}
+		}
+	}
+
+	async hasPendingRuntimePublications(): Promise<boolean> {
+		return this.repo.createQueryBuilder('plugin').where('plugin.runtimePublication IS NOT NULL').getExists()
+	}
+
+	async pendingRuntimePublications() {
+		return this.repo
+			.createQueryBuilder('plugin')
+			.select(['plugin.scopeKey', 'plugin.pluginName', 'plugin.runtimePublication'])
+			.where('plugin.runtimePublication IS NOT NULL')
+			.orderBy('plugin.updatedAt', 'ASC')
+			.getMany()
+	}
+
+	async acknowledgeRuntimePublication(scopeKey: string, pluginName: string, publicationId: string) {
+		await this.repo
+			.createQueryBuilder()
+			.update()
+			.set({ runtimePublication: null })
+			.where('"scopeKey" = :scopeKey AND "pluginName" = :pluginName', { scopeKey, pluginName })
+			.andWhere(`"runtimePublication" ->> 'publicationId' = :publicationId`, { publicationId })
+			.execute()
 	}
 
 	async removePlugins(

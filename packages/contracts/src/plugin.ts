@@ -365,6 +365,9 @@ export interface PluginCodeSourceConfig {
 }
 
 export interface PluginSourceConfig extends PluginCodeSourceConfig {
+  /** Host-owned immutable installation directory; never supplied as an authorization grant. */
+  runtimeName?: string
+  immutableRuntime?: boolean
   [key: string]: unknown
 }
 
