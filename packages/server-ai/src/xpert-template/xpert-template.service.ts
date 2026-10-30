@@ -1,3 +1,4 @@
+import { atomicTemplateWrite, withTemplateSyncLock } from './sync/template-sync-state'
 import { TemplatePublicationStore } from './lifecycle/template-publication.store'
 import { AgentPluginTemplatesCommand } from '../agent-plugin/templates/agent-plugin-template.command'
 import { t } from 'i18next'
@@ -771,54 +772,63 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     private async upsertExportedXpertTemplateCatalog(templateId: string, xpert: TExportXpertTemplateInput['xpert']) {
-        const templatesData = await this.readTemplatesFile()
-        const descriptor = createExportedXpertTemplateDescriptor(templateId, xpert)
-        const languages = Object.keys(templatesData.templates ?? {})
+        const root = await this.commands.execute(new EnsureTemplateDirectoryCommand())
+        await withTemplateSyncLock(root, async () => {
+            const templatesData = await this.readTemplatesFile()
+            const descriptor = createExportedXpertTemplateDescriptor(templateId, xpert)
+            const languages = Object.keys(templatesData.templates ?? {})
 
-        if (!languages.length) {
-            templatesData.templates = {
-                [fallbackLanguage]: {
-                    categories: [exportedXpertTemplateCategory],
-                    recommendedApps: []
+            if (!languages.length) {
+                templatesData.templates = {
+                    [fallbackLanguage]: {
+                        categories: [exportedXpertTemplateCategory],
+                        recommendedApps: []
+                    }
+                }
+                languages.push(fallbackLanguage)
+            }
+
+            for (const language of languages) {
+                const group = templatesData.templates[language] ?? { recommendedApps: [] }
+                templatesData.templates[language] = {
+                    ...group,
+                    categories: mergeTemplateCategory(group.categories, exportedXpertTemplateCategory),
+                    recommendedApps: [
+                        descriptor,
+                        ...(group.recommendedApps ?? []).filter((item) => item.id !== templateId)
+                    ]
                 }
             }
-            languages.push(fallbackLanguage)
-        }
 
-        for (const language of languages) {
-            const group = templatesData.templates[language] ?? { recommendedApps: [] }
-            templatesData.templates[language] = {
-                ...group,
-                categories: mergeTemplateCategory(group.categories, exportedXpertTemplateCategory),
-                recommendedApps: [descriptor, ...(group.recommendedApps ?? []).filter((item) => item.id !== templateId)]
-            }
-        }
-
-        templatesData.details = templatesData.details ?? {}
-        templatesData.details[templateId] = descriptor
-        await this.writeTemplatesFile(templatesData)
+            templatesData.details = templatesData.details ?? {}
+            templatesData.details[templateId] = descriptor
+            await this.writeTemplatesFile(templatesData)
+        })
     }
 
     private async removeExportedXpertTemplateCatalog(templateId: string) {
-        const templatesData = await this.readTemplatesFile()
+        const root = await this.commands.execute(new EnsureTemplateDirectoryCommand())
+        await withTemplateSyncLock(root, async () => {
+            const templatesData = await this.readTemplatesFile()
 
-        for (const language of Object.keys(templatesData.templates ?? {})) {
-            const group = templatesData.templates[language]
-            if (!group) {
-                continue
+            for (const language of Object.keys(templatesData.templates ?? {})) {
+                const group = templatesData.templates[language]
+                if (!group) {
+                    continue
+                }
+
+                templatesData.templates[language] = {
+                    ...group,
+                    recommendedApps: (group.recommendedApps ?? []).filter((item) => item.id !== templateId)
+                }
             }
 
-            templatesData.templates[language] = {
-                ...group,
-                recommendedApps: (group.recommendedApps ?? []).filter((item) => item.id !== templateId)
+            if (templatesData.details) {
+                delete templatesData.details[templateId]
             }
-        }
 
-        if (templatesData.details) {
-            delete templatesData.details[templateId]
-        }
-
-        await this.writeTemplatesFile(templatesData)
+            await this.writeTemplatesFile(templatesData)
+        })
     }
 
     private async resolveExternalRelativePath(relativePath: string) {
@@ -833,7 +843,11 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     private async writeTemplatesFile(value: TXpertTemplatesCatalog) {
         const templatesFilePath = await this.getExternalTemplatePath('templates.json')
         try {
-            await fs.promises.writeFile(templatesFilePath, JSON.stringify(value, null, 4), 'utf8')
+            await atomicTemplateWrite(
+                path.dirname(templatesFilePath),
+                templatesFilePath,
+                JSON.stringify(value, null, 4)
+            )
         } catch (error) {
             throw new Error(
                 `Failed to write xpert template file '${templatesFilePath}' (xpert template dir: '${getTemplateRoots(this.configService).externalRoot}'): ${getErrorMessage(error)}`

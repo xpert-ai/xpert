@@ -1290,7 +1290,10 @@
         "ApplicationUpdatePending": "Resume the unfinished application update before starting another.",
         "ApplicationUpdateFailed": "The update stopped. Completed steps are saved. Resume after resolving the resource or permission issue; concurrent edits or changed templates require review.",
         "ApplicationUpdateDraftPending": "The suite contains unpublished drafts. Publish or resolve them before updating the application.",
-        "ArtifactCopyDenied": "This artifact type cannot be copied into another project."
+        "ArtifactCopyDenied": "This artifact type cannot be copied into another project.",
+        "UnsafeTemplateSyncPath": "Cannot synchronize template path {{file}}: symbolic links and special files are not supported.",
+        "InvalidTemplateSyncManifest": "Template synchronization manifest {{file}} is invalid. Restore it from a backup before retrying; no template assets were changed.",
+        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation."
     },
     "Mcp": {
         "Test": {
@@ -1474,5 +1477,10 @@
     },
     "TemplateUpgradeReleaseNotes": "Template upgrade",
     "TemplateRollbackReleaseNotes": "Restore previous template content",
-    "TemplateCommunityPublisher": "Community publisher"
+    "TemplateCommunityPublisher": "Community publisher",
+    "TemplateSync": {
+        "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",
+        "Conflict": "Preserved local template {{file}}: modified content, removed entry, or no historical hash. Review and merge the current built-in version manually.",
+        "Asset": "Template asset {{file}}: {{status}}."
+    }
 }
