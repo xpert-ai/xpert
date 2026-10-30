@@ -2,7 +2,8 @@ import { AiModelTypeEnum, ModelFeature, PluginApplicationModelOption } from '@xp
 import { QueryBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { CopilotWithProviderDto } from '../copilot/dto'
-import { FindCopilotModelsQuery } from '../copilot/queries'
+import { FindCopilotModelsQuery, CopilotModelCatalogMode } from '../copilot/queries'
+import { currentServiceOperation } from '../shared/service-operation'
 import { modelSelectionMetadata } from '../copilot-model/model-selection-metadata'
 
 /** Returns only models visible through the current request's governed model query. */
@@ -12,7 +13,7 @@ export async function applicationModelOptions(
     requiredFeature?: ModelFeature
 ): Promise<PluginApplicationModelOption[]> {
     const copilots = await queries.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-        new FindCopilotModelsQuery(modelType)
+        new FindCopilotModelsQuery(modelType, CopilotModelCatalogMode.Available, currentServiceOperation()?.subjectId)
     )
     return copilots.flatMap((copilot) =>
         copilot.providerWithModels.models

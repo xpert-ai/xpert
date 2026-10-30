@@ -19,6 +19,7 @@ import { CopilotWithProviderDto, ProviderWithModelsDto } from '../../dto'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
 import { ModelAccessService } from '../../../model-access'
+import { currentServiceOperation } from '../../../shared/service-operation'
 
 /**
  * Builds the LLM/model catalog visible to the current tenant and organization.
@@ -172,7 +173,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         modelType: AiModelTypeEnum,
         accessUserId?: string | null
     ) {
-        const userId = accessUserId ?? RequestContext.currentUserId()
+        const userId = currentServiceOperation()?.subjectId ?? accessUserId ?? RequestContext.currentUserId()
         if (!userId) {
             return []
         }

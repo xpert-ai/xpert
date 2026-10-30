@@ -317,6 +317,7 @@ describe('PluginApplicationService', () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         const queryBus = {
             execute: jest.fn(async (query: FindCopilotModelsQuery | CopilotOneByRoleQuery) => {
                 if (query instanceof FindCopilotModelsQuery) {
@@ -447,6 +448,7 @@ describe('PluginApplicationService', () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
 
         const installation = Object.assign(new PluginApplicationInstallation(), {
             id: 'installation-1',
@@ -556,6 +558,7 @@ describe('PluginApplicationService', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('installer-1')
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
 
         const degraded = Object.assign(new PluginApplicationInstallation(), {
             id: 'installation-1',

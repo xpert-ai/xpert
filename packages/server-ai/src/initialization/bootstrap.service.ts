@@ -1,3 +1,4 @@
+import { userHasPermission } from '../shared/service-operation'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -7,6 +8,7 @@ import {
     IXpert,
     LanguagesEnum,
     RolesEnum,
+    AIPermissionsEnum,
     TCopilotModel,
     TXpertTeamDraft,
     IUser,
@@ -112,8 +114,8 @@ export class ServerAIBootstrapService {
 
     async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
         const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
-        // App Platform owns provisioning for application accounts; do not create authoring resources.
-        if (owner.role?.name === RolesEnum.APP_USER) return { repositoryIds: [] }
+        // Only accounts with authoring permission receive authoring resources.
+        if (!userHasPermission(owner, AIPermissionsEnum.XPERT_EDIT)) return { repositoryIds: [] }
         const organization = await this.organizationService.findOne(event.organizationId)
         const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
 
@@ -165,8 +167,8 @@ export class ServerAIBootstrapService {
         if (!(await this.isActiveOrganizationMember(event))) {
             return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         }
-        const user = await this.userService.findOne(event.userId, { relations: ['role'] })
-        if (user.role?.name === RolesEnum.APP_USER) return { workspaceId: null, createdNewUserDefaultWorkspace: false }
+        const user = await this.userService.findOne(event.userId, { relations: ['role', 'role.rolePermissions'] })
+        if (!userHasPermission(user, AIPermissionsEnum.XPERT_EDIT)) return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         let workspaceId: string | null = null
         let environmentId: string | null = null
         let createdNewUserDefaultWorkspace = false
@@ -235,7 +237,7 @@ export class ServerAIBootstrapService {
         workspaceId: string
     }) {
         if (!(await this.isActiveOrganizationMember(event))) return
-        const user = await this.userService.findOne(event.userId, { relations: ['role'] })
+        const user = await this.userService.findOne(event.userId, { relations: ['role', 'role.rolePermissions'] })
 
         await this.runInOrganizationContext(user, event.organizationId, async () => {
             const skillRefs = await this.xpertTemplateService.getBootstrapDefaultSkillRefs()
@@ -354,7 +356,7 @@ export class ServerAIBootstrapService {
     private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {
         if (preferredUserId) {
             try {
-                return await this.userService.findOne(preferredUserId, { relations: ['role'] })
+                return await this.userService.findOne(preferredUserId, { relations: ['role', 'role.rolePermissions'] })
             } catch (error) {
                 this.logger.warn(
                     `Failed to resolve preferred bootstrap user '${preferredUserId}' for organization '${organizationId}': ${getErrorMessage(
@@ -369,7 +371,7 @@ export class ServerAIBootstrapService {
             throw new Error(`No organization member found for bootstrap '${organizationId}'`)
         }
 
-        return this.userService.findOne(userId, { relations: ['role'] })
+        return this.userService.findOne(userId, { relations: ['role', 'role.rolePermissions'] })
     }
 
     private async resolveTenantBootstrapUser(tenantId: string) {
@@ -379,7 +381,7 @@ export class ServerAIBootstrapService {
             throw new Error(`No tenant bootstrap user found for tenant '${tenantId}'`)
         }
 
-        return this.userService.findOne(owner.id, { relations: ['role'] })
+        return this.userService.findOne(owner.id, { relations: ['role', 'role.rolePermissions'] })
     }
 
     private async resolveSyncBootstrapUser(event: {
@@ -389,7 +391,7 @@ export class ServerAIBootstrapService {
     }) {
         if (event.ownerUserId) {
             try {
-                return await this.userService.findOne(event.ownerUserId, { relations: ['role'] })
+                return await this.userService.findOne(event.ownerUserId, { relations: ['role', 'role.rolePermissions'] })
             } catch (error) {
                 const scopeLabel = event.organizationId
                     ? `organization '${event.organizationId}'`
