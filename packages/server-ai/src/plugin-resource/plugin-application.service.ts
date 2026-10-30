@@ -1,4 +1,6 @@
+import { applicationStatus } from './application-status'
 import { ApplicationInitializationLocks } from './application-initialization-locks'
+import { ApplicationInstallOptions } from './application-install-options'
 import { ApplicationDetailQuery } from './application-scope.schema'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationUpdateInput } from './application-update/application-update.schema'
@@ -69,8 +71,7 @@ import {
 } from './application-toolsets/plugin-application-toolsets.service'
 import { t } from 'i18next'
 import {
-    PluginApplicationSetupService,
-    canDiscardApplicationConfiguration
+    PluginApplicationSetupService
 } from './application-setup/plugin-application-setup.service'
 
 /** Trusted App definition paired with the exact plugin template/version to install. */
@@ -103,6 +104,9 @@ type ResolvedModel = {
  */
 @Injectable()
 export class PluginApplicationService {
+    getDefinition(pluginName: string, appName: string, scope: PluginApplicationScope) {
+        return this.resolveApplication(pluginName, appName, scope).application
+    }
     @Inject(ApplicationInitializationLocks)
     private readonly initializationLocks: ApplicationInitializationLocks
     @Inject(ApplicationUpdateService)
@@ -139,7 +143,8 @@ export class PluginApplicationService {
     async getDetail(
         pluginName: string,
         appName: string,
-        installationScope?: PluginApplicationScope
+        installationScope?: PluginApplicationScope,
+        options: ApplicationInstallOptions = {}
     ): Promise<PluginApplicationDetail> {
         await this.applicationAccess.assertMembership()
         const resolved = this.resolveApplication(pluginName, appName, installationScope)
@@ -151,18 +156,18 @@ export class PluginApplicationService {
             application: resolved.application,
             composition: applicationComposition(resolved.application),
             status: await this.getStatusForApplication(resolved.application),
-            preflight: await this.getPreflightForApplication(resolved.application)
+            preflight: await this.getPreflightForApplication(resolved.application, undefined, options)
         }
     }
 
-    async updateApplication(input: ApplicationUpdateInput) {
+    async updateApplication(input: ApplicationUpdateInput, options: ApplicationInstallOptions = {}) {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         await this.applicationAccess.assertCanInitialize(resolved.application)
         const identity = JSON.stringify(applicationInstallationIdentity(resolved.application))
-        return this.initializationLocks.run(identity, () => this.updateApplicationLocked(input))
+        return this.initializationLocks.run(identity, () => this.updateApplicationLocked(input, options))
     }
 
-    private async updateApplicationLocked(input: ApplicationUpdateInput) {
+    private async updateApplicationLocked(input: ApplicationUpdateInput, options: ApplicationInstallOptions) {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         await this.applicationAccess.assertCanInitialize(resolved.application)
         const installation = await this.findCurrentInstallation(resolved.application)
@@ -183,7 +188,8 @@ export class PluginApplicationService {
                     { id: health.id, tenantId: health.tenantId, organizationId: health.organizationId },
                     { status: health.status, errorCode: health.errorCode, errorMessage: health.errorMessage }
                 )
-            }
+            },
+            options
         )
     }
 
@@ -244,14 +250,14 @@ export class PluginApplicationService {
      * A healthy existing installation is returned before model validation so
      * an idempotent retry does not depend on models that may later be disabled.
      */
-    async initialize(input: PluginApplicationInitializeInput): Promise<PluginApplicationStatusSummary> {
+    async initialize(input: PluginApplicationInitializeInput, options: ApplicationInstallOptions = {}): Promise<PluginApplicationStatusSummary> {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         await this.applicationAccess.assertCanInitialize(resolved.application)
         const identity = JSON.stringify(applicationInstallationIdentity(resolved.application))
-        return this.initializationLocks.run(identity, () => this.initializeLocked(input))
+        return this.initializationLocks.run(identity, () => this.initializeLocked(input, options))
     }
 
-    private async initializeLocked(input: PluginApplicationInitializeInput): Promise<PluginApplicationStatusSummary> {
+    private async initializeLocked(input: PluginApplicationInitializeInput, options: ApplicationInstallOptions): Promise<PluginApplicationStatusSummary> {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         const application = resolved.application
         const operationId = input.operationId?.trim()
@@ -269,7 +275,7 @@ export class PluginApplicationService {
             }
         }
 
-        const preflight = await this.getPreflightForApplication(application, existing)
+        const preflight = await this.getPreflightForApplication(application, existing, options)
         if (!preflight.supported) {
             throw new BadRequestException(preflight.reason ?? 'scope_not_supported')
         }
@@ -321,7 +327,7 @@ export class PluginApplicationService {
             if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
             await this.assistantSuites.validate(application)
         }
-        const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing)
+        const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing, options)
         const claim = await claimApplicationInstallation(this.installationRepo, resolved, operationId, true)
         const installation = claim.installation
 
@@ -388,21 +394,28 @@ export class PluginApplicationService {
             }
             installation.workspaceId = workspaceId
             await this.installationRepo.save(installation)
-            await this.applicationToolsets.ensure(preparedToolsets, installation, toolsetChanges)
+            await this.applicationToolsets.ensure(preparedToolsets, installation, toolsetChanges, options)
 
             const knowledgebases: Knowledgebase[] = []
             const knowledgebaseIds = [...(installation.knowledgebaseIds ?? [])]
             for (const [index, knowledgebaseConfig] of (application.config.knowledgebases ?? []).entries()) {
-                let knowledgebase = knowledgebaseIds[index]
+                const sharedId = options.knowledgebaseBindings?.get(knowledgebaseConfig.key)
+                const resourceId = sharedId ?? knowledgebaseIds[index]
+                let knowledgebase = resourceId
                     ? await this.knowledgebaseRepo.findOne({
                           where: {
-                              id: knowledgebaseIds[index],
-                              workspaceId,
+                              id: resourceId,
+                              ...(!sharedId ? { workspaceId } : {}),
                               tenantId: installation.tenantId,
                               organizationId: installation.organizationId
                           }
                       })
                     : null
+                if (sharedId) {
+                    if (!knowledgebase || !application.config.resources?.knowledgebases?.imports?.includes(knowledgebaseConfig.key))
+                        throw new BadRequestException('application_resource_binding_unavailable')
+                    installation.resourceRefs = { ...installation.resourceRefs, [`shared:knowledgebase:${knowledgebaseConfig.key}`]: sharedId }
+                }
                 if (!knowledgebase) {
                     knowledgebase = await this.knowledgebaseService.create({
                         name: await this.uniqueKnowledgebaseName(
@@ -450,7 +463,7 @@ export class PluginApplicationService {
             let xpertSlug = existingXpert?.slug ?? null
             if (application.config.assistantSuite) {
                 suiteProvisioningStarted = true
-                const suite = await this.assistantSuites.ensure(application, installation, workspaceId)
+                const suite = await this.assistantSuites.ensure(application, installation, workspaceId, options)
                 xpertId = suite.id
                 xpertSlug = suite.slug ?? null
             } else if (!xpertId) {
@@ -463,6 +476,8 @@ export class PluginApplicationService {
                         {
                             name: assistantName,
                             title: this.localized(application.displayName, 'Application'),
+                            ...(options.primaryModel
+                                ? { copilotModel: options.primaryModel } : {}),
                             ...(speechToTextModel ? { speechToTextModel: speechToTextModel.config } : {})
                         },
                         true
@@ -602,7 +617,8 @@ export class PluginApplicationService {
     /** Computes role, scope, and organization-visible model prerequisites. */
     private async getPreflightForApplication(
         application: PluginTemplateApplicationSummary,
-        existingInstallation?: PluginApplicationInstallation | null
+        existingInstallation?: PluginApplicationInstallation | null,
+        options: ApplicationInstallOptions = {}
     ): Promise<PluginApplicationPreflight> {
         const modelRequirements = application.config.modelRequirements ?? {}
         const access = applicationInitializationAccess(application)
@@ -653,7 +669,8 @@ export class PluginApplicationService {
             reason = 'speech_to_text_model_required'
         const toolsetRequirements = await this.applicationToolsets.preflight(
             application,
-            existingInstallation === undefined ? await this.findCurrentInstallation(application) : existingInstallation
+            existingInstallation === undefined ? await this.findCurrentInstallation(application) : existingInstallation,
+            options
         )
         if (!reason && toolsetRequirements.some((item) => !item.providerAvailable)) reason = 'toolset_provider_required'
         else if (
@@ -761,7 +778,8 @@ export class PluginApplicationService {
                                   id,
                                   tenantId: installation.tenantId,
                                   organizationId: installation.organizationId,
-                                  workspaceId: installation.workspaceId
+                                  ...(Object.entries(installation.resourceRefs ?? {}).some(([key, value]) => key.startsWith('shared:knowledgebase:') && value === id)
+                                    ? {} : { workspaceId: installation.workspaceId })
                               }
                           })
                       )
@@ -820,37 +838,8 @@ export class PluginApplicationService {
         return installation
     }
 
-    private async toStatus(
-        installation: IPluginApplicationInstallation,
-        resolvedSlug?: string | null
-    ): Promise<PluginApplicationStatusSummary> {
-        const xpert =
-            resolvedSlug === undefined && installation.xpertId
-                ? await this.xpertRepo.findOne({
-                      where: {
-                          id: installation.xpertId,
-                          latest: true,
-                          tenantId: installation.tenantId,
-                          organizationId: installation.organizationId,
-                          workspaceId: installation.workspaceId
-                      }
-                  })
-                : null
-        return {
-            appId: `${installation.pluginName}:${installation.appName}`,
-            installationScope: installation.declaredScope,
-            status: installation.status,
-            initializationAccess: applicationInitializationAccess({ scope: installation.declaredScope }),
-            installationId: installation.id,
-            workspaceId: installation.workspaceId,
-            xpertId: installation.xpertId,
-            assistantSlug: resolvedSlug === undefined ? (xpert?.slug ?? null) : resolvedSlug,
-            errorCode: installation.errorCode,
-            errorMessage: installation.errorMessage,
-            canDiscardConfiguration:
-                applicationInitializationAccess({ scope: installation.declaredScope }) === 'allowed' &&
-                canDiscardApplicationConfiguration(installation)
-        }
+    private toStatus(installation: IPluginApplicationInstallation, resolvedSlug?: string | null) {
+        return applicationStatus(this.xpertRepo, installation, resolvedSlug)
     }
 
     private async modelOptions(

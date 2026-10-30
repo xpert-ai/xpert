@@ -1,6 +1,6 @@
 // The database lock serializes releases across API replicas. Receipts survive browser
 // disconnects and process restarts; resumption rechecks scope, source and live revisions.
-import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Not, Repository } from 'typeorm'
@@ -16,9 +16,11 @@ import { TemplateInstallationLocks } from '../template-installation/template-ins
 import { applicationSuiteAssistants, validateApplicationSuite } from '../plugin-application-suite'
 import { ApplicationUpdateInput, ApplicationRelease } from './application-update.schema'
 import { executeSuite, SuiteProfile, SuiteInstallation } from './engine/run.cjs'
+import { ApplicationInstallOptions } from '../application-install-options'
 
 @Injectable()
 export class ApplicationUpdateService {
+    private readonly logger = new Logger(ApplicationUpdateService.name)
     constructor(
         private readonly xperts: XpertService,
         private readonly templates: XpertTemplateService,
@@ -54,7 +56,8 @@ export class ApplicationUpdateService {
         installation: PluginApplicationInstallation,
         pluginVersion: string,
         input: ApplicationUpdateInput,
-        finalize?: () => Promise<void>
+        finalize?: () => Promise<void>,
+        options: ApplicationInstallOptions = {}
     ) {
         const database = await this.locks.databaseForExecution()
         return database.transaction(async (manager) => {
@@ -179,7 +182,14 @@ export class ApplicationUpdateService {
                         load: (id) => this.load(id, row),
                         find: unavailable,
                         install: unavailable,
-                        sync: (id) => this.commands.execute(new XpertSyncTemplateCommand(id, language)),
+                        sync: async (id) => {
+                            await this.commands.execute(new XpertSyncTemplateCommand(id, language))
+                            if (!options.primaryModel) return
+                            const updated = await this.load(id, row)
+                            if (!updated.draft) this.conflict('ApplicationUpdateUnavailable')
+                            await this.xperts.saveDraft(id, { ...updated.draft,
+                                team: { ...updated.draft.team, copilotModel: options.primaryModel } })
+                        },
                         draft: (id, draft) => this.xperts.saveDraft(id, draft),
                         publish: (id, input) =>
                             this.commands.execute(
@@ -203,11 +213,13 @@ export class ApplicationUpdateService {
                 release.status = 'completed'
                 await save()
                 return this.summary(release)
-            } catch {
+            } catch (error) {
                 release.status = 'failed'
                 release.errorCode = 'UPDATE_FAILED'
                 await save()
                 // Raw errors can contain instance data. The durable stage identifies the failing resource.
+                this.logger.warn({ phase: 'application_release', errorCode: release.errorCode,
+                    frames: error instanceof Error ? error.stack?.split('\n').filter((line) => /^\s+at /.test(line)).slice(0, 4) : [] })
                 throw new ConflictException(t('server-ai:Error.ApplicationUpdateFailed'))
             }
         })

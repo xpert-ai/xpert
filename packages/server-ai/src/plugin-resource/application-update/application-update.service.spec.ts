@@ -134,12 +134,23 @@ describe('App update uses the shared suite release engine', () => {
             }
             events.push(`publish:${team.id}`)
             if (failPublish && team.id === 'main') throw new Error('publication failed')
+            team.copilotModel = team.draft.team.copilotModel
             team.graph = { nodes: team.draft.nodes, connections: team.draft.connections }
             team.version = String(Number(team.version) + 1)
             team.draft = null
         })
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('applies an explicitly adopted platform model before recording and publishing the suite', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('operator')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
+        const model = { copilotId: 'platform', model: 'next-model' }
+        await service.update(application, installation, '2', input, undefined, { primaryModel: model })
+        expect([...teams.values()].every((team) => team.copilotModel.model === 'next-model')).toBe(true)
+        expect(installation.updateRelease.status).toBe('completed')
+    })
 
     it('prepares the whole suite, publishes children first and preserves instance models/environment', async () => {
         const result = await service.update(application, installation, '2', input)

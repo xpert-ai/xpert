@@ -44,6 +44,7 @@ import { McpCapabilityCatalog } from '../mcp-publication/entities/mcp-capability
 import { McpSubscriptionService } from '../mcp-publication/mcp-subscription.service'
 import { persistedToolsetWhere } from './toolset-scope'
 import { resolveToolRuntimeScope } from './workspace-scope'
+import { hydrateManagedToolsetCredentials } from './managed-toolset-credentials'
 
 export interface ToolRuntimeEnvironment {
     /** Validated Publication configuration supplied by the host, never tool arguments. */
@@ -163,6 +164,8 @@ export class ToolRuntimeService {
 
         const workspaceId = normalizeWorkspaceId(request.workspaceId)
         const toolsets = await this.resolveToolsets(request, workspaceId)
+        const snapshotIds = new Set(request.toolsetSnapshots?.map((snapshot) => snapshot.id) ?? [])
+        await hydrateManagedToolsetCredentials(this.toolsetRepository, toolsets.filter((toolset) => !snapshotIds.has(toolset.id)))
 
         const executionIdSource = request.getExecutionId ?? request.executionId
         const usageRecorder = executionIdSource

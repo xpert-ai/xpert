@@ -20,6 +20,9 @@ import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertToolsetService } from '../../xpert-toolset/xpert-toolset.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { PluginApplicationInstallation } from '../plugin-application-installation.entity'
+import { ApplicationInstallOptions } from '../application-install-options'
+import { currentServiceOperation } from '../../shared/service-operation'
+import { PlatformToolsetBinding } from '../app-platform/platform-toolset-binding.entity'
 import { applicationSuiteAssistants } from '../plugin-application-suite'
 import {
     applicationToolsetDependencies,
@@ -67,7 +70,8 @@ export class PluginApplicationToolsetsService {
 
     async preflight(
         application: PluginTemplateApplicationSummary,
-        installation?: PluginApplicationInstallation | null
+        installation?: PluginApplicationInstallation | null,
+        options: ApplicationInstallOptions = {}
     ): Promise<PluginApplicationToolsetRequirement[]> {
         const dependencies = await this.requirements(application)
         if (!dependencies.length) return []
@@ -78,7 +82,8 @@ export class PluginApplicationToolsetsService {
         const sources = await this.authorizedSources(
             dependencies.map((item) => item.provider),
             undefined,
-            managedIds
+            managedIds,
+            options
         )
         return dependencies.map((dependency) => {
             const provider = this.provider(dependency)
@@ -111,9 +116,10 @@ export class PluginApplicationToolsetsService {
     async prepare(
         application: PluginTemplateApplicationSummary,
         selections: PluginApplicationToolsetSelection[] = [],
-        installation?: PluginApplicationInstallation | null
+        installation?: PluginApplicationInstallation | null,
+        options: ApplicationInstallOptions = {}
     ): Promise<PreparedApplicationToolset[]> {
-        const requirements = await this.preflight(application, installation)
+        const requirements = await this.preflight(application, installation, options)
         const selected = new Map(selections.map((item) => [item.key, item.toolsetId]))
         if (
             selected.size !== selections.length ||
@@ -138,7 +144,8 @@ export class PluginApplicationToolsetsService {
     async ensure(
         prepared: PreparedApplicationToolset[],
         installation: PluginApplicationInstallation,
-        changes: ApplicationToolsetChanges
+        changes: ApplicationToolsetChanges,
+        options: ApplicationInstallOptions = {}
     ): Promise<void> {
         if (!prepared.length) return
         const workspaceId = installation.workspaceId
@@ -170,10 +177,11 @@ export class PluginApplicationToolsetsService {
                     })
                     changes.restored.push({ id: existing.id, deletedAt: existing.deletedAt })
                 }
+                await this.repairManagedBinding(existing, dependency, installation, options)
                 continue
             }
             // Point-read through the same authorization filter again; UI preflight is not an authorization grant.
-            const source = (await this.authorizedSources([dependency.provider], sourceId))[0]
+            const source = (await this.authorizedSources([dependency.provider], sourceId, [], options))[0]
             if (!source || !this.usable(source)) this.invalidSelection()
             // A local source can be adopted once; another named dependency needs its own copy.
             const alreadyManaged = Object.entries(installation.resourceRefs ?? {}).some(
@@ -197,6 +205,7 @@ export class PluginApplicationToolsetsService {
             const targetId = previousId ?? randomUUID()
             installation.resourceRefs = { ...installation.resourceRefs, [ref]: targetId }
             await this.installations.save(installation)
+            const managedSource = options.toolsetSourceIds?.includes(source.id) === true
             await this.toolsets.create({
                 id: targetId,
                 workspaceId,
@@ -207,7 +216,7 @@ export class PluginApplicationToolsetsService {
                 type: dependency.provider,
                 description: source.description,
                 avatar: source.avatar,
-                credentials: source.credentials,
+                credentials: managedSource ? null : source.credentials,
                 options: source.options,
                 tools: source.tools?.map((tool) => ({
                     tenantId: installation.tenantId,
@@ -224,6 +233,12 @@ export class PluginApplicationToolsetsService {
                 }))
             })
             changes.created.push(targetId)
+            if (managedSource) {
+                await this.repository.manager.getRepository(PlatformToolsetBinding).upsert({
+                    tenantId: installation.tenantId, organizationId: installation.organizationId,
+                    targetId, sourceId: source.id
+                }, ['targetId'])
+            }
         }
     }
 
@@ -316,6 +331,20 @@ export class PluginApplicationToolsetsService {
         return toolset.tools?.some((tool) => isToolEnabled(tool, toolset.options?.disableToolDefault))
     }
 
+    /** Recover a crash after creating the credential-free target but before saving its source link. */
+    private async repairManagedBinding(target: XpertToolset, dependency: ApplicationToolsetDependency, installation: PluginApplicationInstallation, options: ApplicationInstallOptions) {
+        if (!options.toolsetSourceIds?.length || target.credentials) return
+        const bindings = this.repository.manager.getRepository(PlatformToolsetBinding)
+        const existing = await bindings.findOneBy({ targetId: target.id })
+        if (existing) return
+        const candidates = (await this.authorizedSources([dependency.provider], undefined, [], options)).filter((source) =>
+            options.toolsetSourceIds?.includes(source.id) && this.usable(source)
+        )
+        if (candidates.length !== 1) this.invalidSelection()
+        await bindings.upsert({ tenantId: installation.tenantId, organizationId: installation.organizationId,
+            targetId: target.id, sourceId: candidates[0].id }, ['targetId'])
+    }
+
     private matches(toolset: XpertToolset, dependency: ApplicationToolsetDependency) {
         return (
             toolset.category === XpertToolsetCategoryEnum.BUILTIN &&
@@ -327,7 +356,8 @@ export class PluginApplicationToolsetsService {
     private async authorizedSources(
         providers: string[],
         id?: string,
-        restorableIds: string[] = []
+        restorableIds: string[] = [],
+        options: ApplicationInstallOptions = {}
     ): Promise<XpertToolset[]> {
         const tenantId = RequestContext.currentTenantId(),
             organizationId = RequestContext.getOrganizationId(),
@@ -359,6 +389,14 @@ export class PluginApplicationToolsetsService {
             relations: ['workspace', 'tools'],
             order: { updatedAt: 'DESC' }
         })
+        const maintainedSources = (currentServiceOperation() ? options.toolsetSourceIds : []) ?? []
+        const selectedSources = id ? maintainedSources.filter((candidate) => candidate === id) : maintainedSources
+        if (selectedSources.length) {
+            active.push(...await this.repository.find({ where: {
+                id: In([...selectedSources]), tenantId, organizationId: IsNull(), workspaceId: IsNull(),
+                category: XpertToolsetCategoryEnum.BUILTIN, type: In(providers)
+            }, relations: ['tools'] }))
+        }
         if (!restorableIds.length) return active
         // Deleted managed copies can be restored; deleted arbitrary source configurations are never selectable.
         const managed = await this.repository.find({

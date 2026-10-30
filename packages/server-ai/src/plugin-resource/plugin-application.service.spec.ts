@@ -750,13 +750,19 @@ describe('PluginApplicationService', () => {
             expect(claimed.status).toBe('failed')
             return
         }
+        // Configuration is explicit and must survive the locked lifecycle's second preflight.
+        const installOptions = { toolsetSourceIds: ['authorized-source'] }
+        jest.spyOn(service['applicationToolsets'], 'preflight').mockImplementation(async (_application, _installation, options) => {
+            if (!options?.toolsetSourceIds?.includes('authorized-source')) throw new Error('Trusted tool source missing')
+            return []
+        })
         await expect(
             service.initialize({
                 pluginName: '@acme/plugin-example-app',
                 appName: 'example-app',
                 operationId: 'repair-1',
                 installationScope: personal ? 'personal' : undefined
-            })
+            }, installOptions)
         ).resolves.toMatchObject({ status: 'ready', xpertId: 'xpert-1', assistantSlug: 'example-app' })
         if (personal) {
             expect(installationRepo.create).toHaveBeenCalledWith(

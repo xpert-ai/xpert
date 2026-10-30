@@ -9,6 +9,7 @@ import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { PluginTemplateInstallCommand } from './commands/install-template.command'
 import type { PluginResourceInstallResult } from './plugin-resource-installer.service'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
+import { ApplicationInstallOptions } from './application-install-options'
 import {
     applicationSuiteAssistants,
     applicationSuiteRoleOrder,
@@ -45,7 +46,8 @@ export class PluginApplicationSuiteService {
     async ensure(
         application: PluginTemplateApplicationSummary,
         installation: PluginApplicationInstallation,
-        workspaceId: string
+        workspaceId: string,
+        options: ApplicationInstallOptions = {}
     ) {
         const suite = application.config.assistantSuite
         if (!suite) throw new Error('application_suite_required')
@@ -108,7 +110,8 @@ export class PluginApplicationSuiteService {
                     `${application.pluginName}:${templateKey}`,
                     workspaceId,
                     this.language(),
-                    { name, title },
+                    { name, title, ...(options.primaryModel
+                        ? { copilotModel: options.primaryModel } : {}) },
                     false
                 )
             )
