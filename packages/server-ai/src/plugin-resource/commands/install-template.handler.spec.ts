@@ -58,7 +58,7 @@ jest.mock('../../xpert-workspace', () => ({
     XpertWorkspaceAccessService: class XpertWorkspaceAccessService {}
 }))
 
-jest.mock('../plugin-resource-installer.service', () => ({
+jest.mock('../installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class PluginResourceInstallerService {}
 }))
 

@@ -1,5 +1,5 @@
 import { Command } from '@nestjs/cqrs'
-import type { PluginResourceInstallResult } from '../plugin-resource-installer.service'
+import type { PluginResourceInstallResult } from '../installation/plugin-resource-installer.service'
 import {
     LanguagesEnum,
     TAvatar,

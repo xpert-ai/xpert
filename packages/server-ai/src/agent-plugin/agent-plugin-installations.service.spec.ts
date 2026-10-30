@@ -6,7 +6,7 @@ import { AgentPluginInstallationsService } from './agent-plugin-installations.se
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { importedPluginBinding } from './installed-plugin-catalog'
-import { PluginResourceInstallerService } from '../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../plugin-resource/installation/plugin-resource-installer.service'
 import { AgentPluginService } from './agent-plugin.service'
 import { RuntimeResourceService } from './runtime-resource.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -17,7 +17,7 @@ jest.mock('./agent-plugin.service', () => ({
     resourceScope: () => ({ tenantId: 'tenant', organizationId: 'org' })
 }))
 jest.mock('./agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../plugin-resource/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../plugin-resource/installation/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))
 jest.mock('../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 jest.mock('../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))

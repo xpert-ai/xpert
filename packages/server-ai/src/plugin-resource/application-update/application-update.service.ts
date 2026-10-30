@@ -13,10 +13,10 @@ import { XpertSyncTemplateCommand } from '../../xpert/commands/sync-template.com
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { PluginApplicationInstallation } from '../plugin-application-installation.entity'
 import { TemplateInstallationLocks } from '../template-installation/template-installation-locks'
-import { applicationSuiteAssistants, validateApplicationSuite } from '../plugin-application-suite'
+import { applicationSuiteAssistants, validateApplicationSuite } from '../application-suite/plugin-application-suite'
 import { ApplicationUpdateInput, ApplicationRelease } from './application-update.schema'
 import { executeSuite, SuiteProfile, SuiteInstallation } from './engine/run.cjs'
-import { ApplicationInstallOptions } from '../application-install-options'
+import { ApplicationInstallOptions } from '../application/application-install-options'
 
 @Injectable()
 export class ApplicationUpdateService {

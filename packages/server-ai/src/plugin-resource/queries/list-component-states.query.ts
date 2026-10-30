@@ -1,5 +1,5 @@
 import { IQuery } from '@nestjs/cqrs'
-import type { PluginResourceInstallTarget } from '../plugin-resource-components'
+import type { PluginResourceInstallTarget } from '../catalog/plugin-resource-components'
 
 export type PluginResourceComponentStateInput = {
     target?: PluginResourceInstallTarget

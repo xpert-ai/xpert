@@ -19,7 +19,7 @@ import { paginateTemplateCatalog } from '../../xpert-template/template-catalog'
 
 jest.mock('../agent-plugin.entity', () => ({ AgentPluginPackage: class {}, AgentResourceBinding: class {} }))
 jest.mock('../agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../../plugin-resource/plugin-resource-installer.service', () => ({
+jest.mock('../../plugin-resource/installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class {}
 }))
 jest.mock('../../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))

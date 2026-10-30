@@ -20,8 +20,8 @@ import {
 } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { PluginResourceInstallComponent, PluginResourceInstallerService } from './plugin-resource-installer.service'
-import { PluginMcpServerService } from './plugin-mcp-server.service'
+import { PluginResourceInstallComponent, PluginResourceInstallerService } from './installation/plugin-resource-installer.service'
+import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
 import { ListPluginResourceComponentStatesQuery } from './queries'
 
 @ApiTags('PluginResources')

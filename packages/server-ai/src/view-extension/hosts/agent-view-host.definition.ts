@@ -40,7 +40,7 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
-import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime.service'
+import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime/application-runtime.service'
 
 @Injectable()
 @ViewHostDefinition('agent')

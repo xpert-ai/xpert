@@ -88,7 +88,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
 import { XpertTriggerConnectionController } from './trigger-connection.controller'
 import { XpertTriggerConnectionService } from './trigger-connection.service'
-import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime.module'
+import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime/application-runtime.module'
 
 @Module({
     imports: [

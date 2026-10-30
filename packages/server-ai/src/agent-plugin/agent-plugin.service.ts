@@ -27,7 +27,7 @@ import { t } from 'i18next'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { parseAgentPlugin } from './agent-plugin-parser'
 import { extractPortableZip, portablePackageDigest, stagePortableGit } from './agent-plugin-source'
-import type { RuntimeComponent } from '../plugin-resource/plugin-resource-installer.service'
+import type { RuntimeComponent } from '../plugin-resource/installation/plugin-resource-installer.service'
 import Ajv from 'ajv'
 import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
@@ -429,7 +429,7 @@ export class AgentPluginService {
         const installations: AgentResourceBinding['installations'] = {}
         if (pkg && input.workspaceIds.length) {
             const installer = this.modules.get(
-                (await import('../plugin-resource/plugin-resource-installer.service')).PluginResourceInstallerService,
+                (await import('../plugin-resource/installation/plugin-resource-installer.service')).PluginResourceInstallerService,
                 { strict: false }
             )
             for (const workspaceId of input.workspaceIds) {

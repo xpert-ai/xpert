@@ -4,7 +4,7 @@ import {
     PluginResourceInstallComponent,
     PluginResourceInstallerService,
     RuntimeComponent
-} from '../plugin-resource-installer.service'
+} from '../installation/plugin-resource-installer.service'
 
 /**
  * Resolves the portable resource selectors stored on a template to the loaded

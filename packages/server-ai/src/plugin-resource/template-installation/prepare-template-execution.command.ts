@@ -1,7 +1,7 @@
 import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import type { IXpert, TemplateDependencyLock, TXpertTemplate, AssistantTemplateDefinition } from '@xpert-ai/contracts'
 import { TemplateReadinessService } from './template-readiness.service'
-import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
 import { AssistantTemplateToolsetBinder } from '../commands/assistant-template-toolset-binder.service'
 import type { RuntimeResourceSkillSource } from '../../agent-plugin/runtime-resource-context'
 import { containedPath } from '../../agent-plugin/agent-plugin-parser'

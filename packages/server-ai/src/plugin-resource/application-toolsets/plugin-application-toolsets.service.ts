@@ -20,10 +20,10 @@ import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertToolsetService } from '../../xpert-toolset/xpert-toolset.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { PluginApplicationInstallation } from '../plugin-application-installation.entity'
-import { ApplicationInstallOptions } from '../application-install-options'
+import { ApplicationInstallOptions } from '../application/application-install-options'
 import { currentServiceOperation } from '../../shared/service-operation'
 import { PlatformToolsetBinding } from '../app-platform/platform-toolset-binding.entity'
-import { applicationSuiteAssistants } from '../plugin-application-suite'
+import { applicationSuiteAssistants } from '../application-suite/plugin-application-suite'
 import {
     applicationToolsetDependencies,
     applicationToolsetRef,

@@ -48,7 +48,7 @@ jest.mock('../../xpert-workspace', () => ({
     XpertWorkspaceAccessService: class XpertWorkspaceAccessService {}
 }))
 
-jest.mock('../plugin-resource-installer.service', () => ({
+jest.mock('../installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class PluginResourceInstallerService {}
 }))
 
@@ -70,7 +70,7 @@ import { XpertTemplateService } from '../../xpert-template/xpert-template.servic
 import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
-import { PluginResourceInstallerService, PluginResourceInstallResult } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService, PluginResourceInstallResult } from '../installation/plugin-resource-installer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
 import { templateInstallationSourceHash } from '../template-installation/template-installation-source'

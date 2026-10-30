@@ -59,6 +59,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "MembershipPolicyTransactionRequired": "Membership policy must be updated in a transaction.",
+        "MembershipPolicyPlanMigrationRequired": "Changing the membership plan requires an explicit migration.",
+        "MembershipPolicyPeriodUnavailable": "The current membership period is unavailable.",
         "ApplicationRuntimeInputDenied": "Application users cannot override model, environment or internal execution configuration.",
         "ApplicationRuntimeFailed": "The task could not be completed. Please try again or contact support.",
         "application_user_required": "Application user required.",

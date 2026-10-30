@@ -1,4 +1,4 @@
-import { applicationInstallationScopeSchema } from '../application-scope.schema'
+import { applicationInstallationScopeSchema } from '../application/application-scope.schema'
 import { z } from 'zod/v3'
 
 const identity = {

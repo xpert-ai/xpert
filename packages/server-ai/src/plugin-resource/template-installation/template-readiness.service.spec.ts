@@ -1,4 +1,4 @@
-jest.mock('../plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../installation/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('../../xpert/xpert.service', () => ({ XpertService: class {} }))
 jest.mock('../../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
@@ -22,7 +22,7 @@ import {
     type TXpertSandboxFeature,
     type TemplateDependencyLock
 } from '@xpert-ai/contracts'
-import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'

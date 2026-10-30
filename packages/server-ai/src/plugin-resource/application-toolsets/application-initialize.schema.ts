@@ -1,4 +1,4 @@
-import { applicationInstallationScopeSchema } from '../application-scope.schema'
+import { applicationInstallationScopeSchema } from '../application/application-scope.schema'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
 import { z } from 'zod/v3'

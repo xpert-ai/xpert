@@ -15,7 +15,7 @@ import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import {
     PluginResourceInstallerService,
     type RuntimeComponent
-} from '../plugin-resource/plugin-resource-installer.service'
+} from '../plugin-resource/installation/plugin-resource-installer.service'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { agentPluginScope, agentPluginScopeWhere, visibleAgentPluginScopes } from './agent-plugin-scope'
