@@ -188,6 +188,20 @@ export class AgentMiddlewareModelRuntimeService {
             {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
+                resolveUsagePricingSnapshot: (context) => modelProvider.getModelManager(copilotModel.modelType)
+                    .getUsagePricingSnapshot(modelName, copilot.modelProvider.credentials, context),
+                handleModelUsage: purpose === 'invoke' && copilotModel.modelType !== AiModelTypeEnum.LLM ? async (report) => {
+                    const pricing = report.pricingSnapshot ?? modelProvider.getModelManager(copilotModel.modelType)
+                        .getUsagePricingSnapshot(modelName, copilot.modelProvider.credentials, {
+                            model: modelName, operation: report.operation, modality: report.modality,
+                            pricingDimensions: report.pricingDimensions, startedAt: report.recordedAt
+                        })
+                    await this.copilotUsage.recordModelUsage({ tenantId, organizationId, userId, xpertId,
+                        copilotOrganizationId: copilot.organizationId ?? null, modelAccess, copilotId: copilot.id,
+                        providerScopeId: copilot.modelProvider.id, provider: copilot.modelProvider.providerName,
+                        originExecutionId: normalizeOptionalString(scope.executionId) },
+                        { ...report, model: modelName, modelType: copilotModel.modelType }, pricing)
+                } : undefined,
                 handleLLMTokens: async (input) => {
                     if (purpose === 'observe') {
                         return
