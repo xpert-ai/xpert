@@ -1,3 +1,4 @@
+import { builtinCliTools } from '@xpert-ai/cli-model-profiles'
 import {
     AiModelTypeEnum,
     defaultModelConfiguration,
@@ -7,14 +8,13 @@ import {
     ModelFeature,
     UserType
 } from '@xpert-ai/contracts'
-import { builtinCliTools } from '@xpert-ai/cli-model-profiles'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot/queries/copilot-model-find.query'
 import { FindCopilotModelsHandler } from '../copilot/queries/handlers/copilot-model-find.handler'
 import { AssistantExecutionPolicyService } from '../model-execution/assistant-execution-policy.service'
 import { parseExecutionPolicy } from '../model-execution/execution-policy'
 import { executionToolModels } from '../model-execution/execution-tool-model'
-import { ModelAccessService } from './model-access.service'
+import { createModelAccessFixture } from './model-access.test-fixture'
 
 const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'user' }
 const legacyProperties = {
@@ -60,7 +60,7 @@ async function resolveModels(
         find: jest.fn().mockResolvedValue([copilot]),
         findOneBy: jest.fn().mockResolvedValue(copilot)
     }
-    const access = new ModelAccessService(
+    const { service: access } = createModelAccessFixture(
         {} as never,
         {} as never,
         {} as never,

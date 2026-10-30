@@ -1,15 +1,15 @@
 import { AiModelTypeEnum, AiProviderRole, FetchFrom, ProviderModel, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IsNull } from 'typeorm'
-import { CopilotProviderModel } from '../../../copilot-provider/models/copilot-provider-model.entity'
-import { CopilotProvider } from '../../../copilot-provider/copilot-provider.entity'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
+import { CopilotProvider } from '../../../copilot-provider/copilot-provider.entity'
+import { CopilotProviderModel } from '../../../copilot-provider/models/copilot-provider-model.entity'
+import { MembershipService } from '../../../membership/membership.service'
+import { createModelAccessFixture } from '../../../model-access/model-access.test-fixture'
 import { Copilot } from '../../copilot.entity'
 import { CopilotService } from '../../copilot.service'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { FindCopilotModelsHandler } from './copilot-model-find.handler'
-import { MembershipService } from '../../../membership/membership.service'
-import { ModelAccessService } from '../../../model-access/model-access.service'
 
 const voiceModels = [
     [AiModelTypeEnum.TTS, 'qwen3-tts-flash'],
@@ -263,7 +263,7 @@ describe('membership model catalog', () => {
                 f.copilots.filter((item) => item.tenantId === where.tenantId)
             )
         }
-        const access = new ModelAccessService(
+        const { service: access, lifecycle } = createModelAccessFixture(
             {} as never,
             {} as never,
             { createQueryBuilder: () => grantQuery } as never,
@@ -278,7 +278,7 @@ describe('membership model catalog', () => {
             f.providers as never,
             membership as never
         )
-        jest.spyOn(access, 'processDueGrants').mockResolvedValue(0)
+        jest.spyOn(lifecycle, 'processDueGrants').mockResolvedValue(0)
         const input = {
             tenantId: 'tenant-1',
             organizationId: 'org-1',

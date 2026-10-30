@@ -12,6 +12,7 @@ import { ModelAccessEvent } from './model-access-event.entity'
 import { ModelAccessRequest } from './model-access-request.entity'
 import { ModelAccessSchedulerService } from './model-access-scheduler.service'
 import { ModelAccessService } from './model-access.service'
+import { MODEL_ACCESS_PROVIDERS } from './model-access.providers'
 import { UserModelGrant } from './user-model-grant.entity'
 import { ModelGatewayPublication } from '../model-gateway/model-gateway-publication.entity'
 
@@ -35,7 +36,7 @@ import { ModelGatewayPublication } from '../model-gateway/model-gateway-publicat
         MembershipModule
     ],
     controllers: [ModelAccessController],
-    providers: [ModelAccessService, ModelAccessSchedulerService],
+    providers: [...MODEL_ACCESS_PROVIDERS, ModelAccessSchedulerService],
     exports: [ModelAccessService]
 })
 export class ModelAccessModule {}

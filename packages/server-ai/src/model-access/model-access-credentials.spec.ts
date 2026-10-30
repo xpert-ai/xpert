@@ -7,7 +7,7 @@ import {
     ModelAccessSourceEnum,
     UserType
 } from '@xpert-ai/contracts'
-import { ModelAccessService } from './model-access.service'
+import { createModelAccessFixture } from './model-access.test-fixture'
 
 function createFixture(showOn?: FormShowOnObject[]) {
     const provider = {
@@ -83,7 +83,7 @@ function createFixture(showOn?: FormShowOnObject[]) {
             getProviderSchema: () => schema
         })
     }
-    const service = new ModelAccessService(
+    const { service, lifecycle } = createModelAccessFixture(
         {} as never,
         {} as never,
         { createQueryBuilder: () => queryBuilder } as never,
@@ -98,7 +98,7 @@ function createFixture(showOn?: FormShowOnObject[]) {
         providersService as never,
         membershipService as never
     )
-    jest.spyOn(service, 'processDueGrants').mockResolvedValue(0)
+    jest.spyOn(lifecycle, 'processDueGrants').mockResolvedValue(0)
 
     return {
         service,

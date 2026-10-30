@@ -1,3 +1,5 @@
+import { userHasPermission } from '../shared/service-operation'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 import { Injectable } from '@nestjs/common'
@@ -85,8 +87,9 @@ export class AssistantExecutionPolicyService {
         const assistant = await this.assistant(actor, runtimeAssistant?.id ?? conversation.xpert.id)
         if (runtimeAssistant && assistant.workspaceId !== runtimeAssistant.workspaceId) throw executionError('Denied')
         // Binding-directed execution uses the selected Assistant's configured default, not an unrelated conversation preference.
-        if (runtimeAssistant) resolveDefault = false
-        const candidates = assistantModelCandidates(assistant)
+        const canEdit = userHasPermission(user, AIPermissionsEnum.XPERT_EDIT)
+        if (runtimeAssistant || !canEdit) resolveDefault = false
+        const candidates = assistantModelCandidates(assistant).filter((candidate) => canEdit || candidate.default)
         const input = {
             ...actor,
             xpertId: assistant.id,
