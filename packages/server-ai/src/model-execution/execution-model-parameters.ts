@@ -46,6 +46,8 @@ export function executionChatParameters(
     ] as const) {
         if (request[key] !== undefined) effective[key] = request[key]
     }
+    if (request.enable_thinking !== undefined) effective.enable_thinking = request.enable_thinking
+    if (request.reasoning_effort !== undefined) effective.reasoning_effort = request.reasoning_effort
     return effective
 }
 

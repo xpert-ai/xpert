@@ -494,10 +494,54 @@
             <div class="border-t border-border pt-5">
               <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-medium">{{ 'XP.ModelGateway.QuickStart' | translate }}</h3>
-                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(curlExample())">
+                <button
+                  z-button
+                  zType="outline"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="!exampleModel()"
+                  (click)="copy(curlExample())"
+                >
                   <z-icon zType="copy" />{{ 'XP.ModelGateway.CopyExample' | translate }}
                 </button>
               </div>
+              <div class="mb-4 grid gap-4 md:grid-cols-2">
+                <z-form-field>
+                  <z-form-label>{{ 'XP.ModelGateway.ExampleModel' | translate }}</z-form-label>
+                  <z-select
+                    class="w-full"
+                    [zValue]="exampleModel()?.id ?? ''"
+                    [zDisabled]="!exampleModels().length"
+                    (zSelectionChange)="selectExampleModel($event)"
+                  >
+                    @for (item of exampleModels(); track item.id) {
+                      <z-select-item [zValue]="item.id">{{ item.externalModelId }}</z-select-item>
+                    }
+                  </z-select>
+                </z-form-field>
+                <z-form-field>
+                  <z-form-label>{{ 'XP.ModelGateway.ExampleThinking' | translate }}</z-form-label>
+                  <z-select
+                    class="w-full"
+                    [zValue]="exampleThinking()"
+                    (zSelectionChange)="selectExampleThinking($event)"
+                  >
+                    <z-select-item zValue="default">{{ 'XP.ModelGateway.ThinkingDefault' | translate }}</z-select-item>
+                    <z-select-item zValue="enabled">{{ 'XP.ModelGateway.ThinkingEnabled' | translate }}</z-select-item>
+                    <z-select-item zValue="disabled">{{
+                      'XP.ModelGateway.ThinkingDisabled' | translate
+                    }}</z-select-item>
+                  </z-select>
+                </z-form-field>
+              </div>
+              <p class="mb-3 text-xs leading-relaxed text-muted-foreground">
+                {{ 'XP.ModelGateway.ExampleModelHint' | translate }}
+              </p>
+              @if (!exampleModel()) {
+                <p class="mb-3 text-sm text-muted-foreground" role="status">
+                  {{ 'XP.ModelGateway.NoCallableExample' | translate }}
+                </p>
+              }
               <pre
                 class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground"
               ><code>{{ curlExample() }}</code></pre>

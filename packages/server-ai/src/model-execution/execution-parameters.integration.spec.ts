@@ -25,6 +25,7 @@ import { AssistantExecutionPolicyService } from './assistant-execution-policy.se
 import { ModelExecutionChatService } from './execution-chat.service'
 import { ModelExecutionGrantService } from './execution-grant.service'
 import { ModelExecutionNativeController } from './execution-native.controller'
+import { ModelExecutionOpenAIController } from './execution-openai.controller'
 import { ModelExecutionGrant } from './execution.entity'
 import { executionModelsSchema } from './execution-schema'
 
@@ -238,8 +239,18 @@ async function fixture(
             ...options
         })
     }
+    const chatController = new ModelExecutionOpenAIController(grants, chat)
+    const runChat = (options: object = {}) => {
+        const request = Object.assign(new EventEmitter(), { headers: { authorization: `Bearer ${secret}` } })
+        return chatController.chat(request as Request, response as unknown as Response, {
+            model: 'assistant-default',
+            messages: [{ role: 'user', content: 'offline diagnostic' }],
+            ...options
+        })
+    }
     return {
         run,
+        runChat,
         transport,
         clients,
         grant,
@@ -260,6 +271,47 @@ async function fixture(
 
 describe('Assistant selection → grant → Chat bridge → provider serialization', () => {
     afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        ['none', false],
+        ['high', true]
+    ] as const)(
+        'maps reasoning_effort=%s at provider serialization without mutating the grant',
+        async (reasoning_effort, enabled) => {
+            const f = await fixture({ enable_thinking: !enabled })
+            await f.runChat({ reasoning_effort })
+            expect(f.transport.mock.calls.at(-1)?.[0]).toMatchObject({ enable_thinking: enabled })
+            expect(f.transport.mock.calls.at(-1)?.[0]).not.toHaveProperty('reasoning_effort')
+            expect(f.grant.models.find((model) => model.id === f.grant.defaultModelId)?.parameters).toEqual({
+                enable_thinking: !enabled
+            })
+            await f.runChat()
+            expect(f.transport.mock.calls.at(-1)?.[0]).toMatchObject({ enable_thinking: !enabled })
+        }
+    )
+
+    it.each([
+        ['enabled', true],
+        ['disabled', false]
+    ] as const)(
+        'overrides captured thinking with %s through Chat Completions without changing the grant',
+        async (type, enabled) => {
+            const f = await fixture({ enable_thinking: !enabled })
+            await f.runChat({ thinking: { type } })
+            expect(f.transport).toHaveBeenLastCalledWith(
+                expect.objectContaining({ enable_thinking: enabled }),
+                expect.anything()
+            )
+            expect(
+                f.grant.models.find((model) => model.id === f.grant.defaultModelId)?.parameters.enable_thinking
+            ).toBe(!enabled)
+            await f.runChat()
+            expect(f.transport).toHaveBeenLastCalledWith(
+                expect.objectContaining({ enable_thinking: !enabled }),
+                expect.anything()
+            )
+        }
+    )
 
     it('inherits the selected alternative rather than the Assistant default, without credentials', async () => {
         const f = await fixture()

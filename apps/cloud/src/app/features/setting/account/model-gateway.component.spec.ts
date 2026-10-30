@@ -284,6 +284,51 @@ function modelRow(host: Element, id: string) {
 describe('external API settings interactions', () => {
   afterEach(() => TestBed.resetTestingModule())
 
+  it('copies the selected publication ID and thinking mode, excluding unavailable models', async () => {
+    const plain = gatewayItem('plain', { allowed: true, externalModelId: 'deepseek-v4.1-flash-1017' })
+    const xirang = gatewayItem('xirang', { allowed: true, externalModelId: 'xirang/deepseek-v4.1-flash-1017' })
+    const view = await setupGatewayView([
+      gatewayItem('unavailable'),
+      gatewayItem('deprecated', { allowed: true, deprecated: true }),
+      plain,
+      xirang
+    ])
+    view.component.selectedTabIndex.set(4)
+    view.fixture.detectChanges()
+    expect(view.component.exampleModels()).toEqual([plain, xirang])
+    expect(view.component.curlExample()).toContain('"model": "deepseek-v4.1-flash-1017"')
+    expect(view.component.curlExample()).not.toContain('thinking')
+
+    view.component.selectExampleModel(xirang.id)
+    view.component.selectExampleThinking('disabled')
+    view.fixture.detectChanges()
+    const selectedLabels = () =>
+      [...view.host.querySelectorAll('z-select button[role="combobox"]')].map((button) => button.textContent.trim())
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingDisabled'])
+    buttonWithText(view.host, 'XP.ModelGateway.CopyExample').click()
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(
+      expect.stringContaining('"model": "xirang/deepseek-v4.1-flash-1017"')
+    )
+    expect(view.clipboard.copy).toHaveBeenLastCalledWith(expect.stringContaining('"type": "disabled"'))
+
+    view.component.selectExampleThinking('enabled')
+    view.fixture.detectChanges()
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingEnabled'])
+    expect(view.component.curlExample()).toContain('"type": "enabled"')
+    view.component.selectExampleThinking('default')
+    view.fixture.detectChanges()
+    expect(selectedLabels()).toEqual([xirang.externalModelId, 'XP.ModelGateway.ThinkingDefault'])
+    expect(view.component.curlExample()).not.toContain('thinking')
+
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [plain] }))
+    expect(view.component.exampleModel()).toEqual(plain)
+    view.component.catalog.update((catalog) => ({ ...catalog!, items: [] }))
+    view.fixture.detectChanges()
+    expect(buttonWithText(view.host, 'XP.ModelGateway.CopyExample').disabled).toBe(true)
+    expect(view.host.textContent).toContain('XP.ModelGateway.NoCallableExample')
+    view.fixture.destroy()
+  })
+
   it('masks existing secrets, copies the full value on the first click and only offers revocation for active keys', async () => {
     const activeKey: IModelGatewayApiKey = {
       id: 'key-1',

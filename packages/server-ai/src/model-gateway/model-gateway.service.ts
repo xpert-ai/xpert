@@ -1,5 +1,6 @@
 import { GatewayAdmissionPolicy } from './gateway-admission-policy'
 import { createGatewayChatModel } from './model-gateway-client'
+import type { RequestReasoningControls } from '../shared/agent/middleware-runtime/request-reasoning'
 import {
     userName,
     resolveKeyExpiration,
@@ -388,9 +389,10 @@ export class ModelGatewayService {
     async createChatModel(
         publication: ModelGatewayPublication,
         resolution: IModelAccessResolution,
-        usageCallback: (usage: ILLMUsage) => void
+        usageCallback: (usage: ILLMUsage) => void,
+        reasoning?: RequestReasoningControls
     ) {
-        return createGatewayChatModel(this.runtimeService, publication, resolution, usageCallback)
+        return createGatewayChatModel(this.runtimeService, publication, resolution, usageCallback, reasoning)
     }
 
     async startCall(input: {
@@ -527,26 +529,27 @@ export class ModelGatewayService {
         input.usage.exchangeRate = cnySettlement?.exchangeRate ?? null
         // Unknown pricing is not a free call. Preserve the completed inference and its billing context.
         const awaitingPrice = input.usage.totalTokens > 0 && !cnySettlement
-        const settlementResult = awaitingPrice
-            ? { chargedPoints: current.chargedPoints, excessPoints: current.excessPoints }
-            : await this.membershipService.recordGatewayUsage({
-                  tenantId: current.tenantId,
-                  organizationId: current.organizationId ?? null,
-                  copilotOrganizationId: input.resolution.organizationId ?? null,
-                  userId: current.userId,
-                  provider: current.provider,
-                  model: current.model,
-                  tokenUsed: input.usage.totalTokens,
-                  priceAmount: input.usage.priceAmount,
-                  priceCurrency: input.usage.priceCurrency,
-                  settlementAmount: cnySettlement?.amount,
-                  settlementCurrency: cnySettlement?.currency,
-                  exchangeRate: cnySettlement?.exchangeRate,
-                  copilotId: input.resolution.copilotId,
-                  modelAccess: input.resolution,
-                  gatewayRequestId: current.requestId,
-                  gatewayApiKeyId: current.apiKeyId
-              })
+        const settlementResult =
+            awaitingPrice || input.usage.source === ModelGatewayUsageSourceEnum.None
+                ? { chargedPoints: current.chargedPoints, excessPoints: current.excessPoints }
+                : await this.membershipService.recordGatewayUsage({
+                      tenantId: current.tenantId,
+                      organizationId: current.organizationId ?? null,
+                      copilotOrganizationId: input.resolution.organizationId ?? null,
+                      userId: current.userId,
+                      provider: current.provider,
+                      model: current.model,
+                      tokenUsed: input.usage.totalTokens,
+                      priceAmount: input.usage.priceAmount,
+                      priceCurrency: input.usage.priceCurrency,
+                      settlementAmount: cnySettlement?.amount,
+                      settlementCurrency: cnySettlement?.currency,
+                      exchangeRate: cnySettlement?.exchangeRate,
+                      copilotId: input.resolution.copilotId,
+                      modelAccess: input.resolution,
+                      gatewayRequestId: current.requestId,
+                      gatewayApiKeyId: current.apiKeyId
+                  })
         const completedAt = retryingSettlement && current.completedAt ? current.completedAt : new Date()
         current.status = awaitingPrice
             ? ModelGatewayCallStatusEnum.SettlementPending

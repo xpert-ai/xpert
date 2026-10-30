@@ -21,7 +21,9 @@ import {
   ZardCardImports,
   ZardEmptyComponent,
   ZardIconComponent,
+  ZardFormImports,
   ZardSearchInputComponent,
+  ZardSelectImports,
   ZardTableImports,
   ZardTabsImports,
   ZardTooltipImports
@@ -46,6 +48,7 @@ import {
   ModelAccessWithdrawDialogResult
 } from './model-access-withdraw-dialog.component'
 import { getCurrentModelAccessStatus } from '../model-access/model-access-status'
+import { modelGatewayCurlExample, ModelGatewayExampleThinking } from './model-gateway-examples'
 
 @Component({
   standalone: true,
@@ -63,6 +66,8 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     ZardEmptyComponent,
     ZardIconComponent,
     ZardSearchInputComponent,
+    ...ZardFormImports,
+    ...ZardSelectImports,
     ...ZardCardImports,
     ...ZardTableImports,
     ...ZardTabsImports,
@@ -115,12 +120,29 @@ export class XpAccountModelGatewayComponent implements OnInit {
     )
   })
   readonly apiBaseUrl = `${this.#document.defaultView?.location.origin ?? ''}${API_PREFIX}/openai/v1`
-  readonly curlExample = computed(() => {
-    const model = this.catalog()?.items.find((item) => item.grant)?.externalModelId ?? 'MODEL_ID'
-    return `curl ${this.apiBaseUrl}/chat/completions \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"Hello"}]}'`
-  })
+  readonly exampleModelId = signal<string | null>(null)
+  readonly exampleThinking = signal<ModelGatewayExampleThinking>('default')
+  readonly exampleModels = computed(
+    () => this.catalog()?.items.filter((item) => item.allowed && !item.deprecated) ?? []
+  )
+  readonly exampleModel = computed(
+    () => this.exampleModels().find((item) => item.id === this.exampleModelId()) ?? this.exampleModels()[0] ?? null
+  )
+  readonly curlExample = computed(() =>
+    modelGatewayCurlExample(this.apiBaseUrl, this.exampleModel()?.externalModelId ?? 'MODEL_ID', this.exampleThinking())
+  )
   readonly requestStatus = ModelAccessRequestStatusEnum
   readonly keyStatus = ModelGatewayApiKeyStatusEnum
+
+  selectExampleModel(value: string | number | Array<string | number>) {
+    if (typeof value === 'string' && this.exampleModels().some((item) => item.id === value)) {
+      this.exampleModelId.set(value)
+    }
+  }
+
+  selectExampleThinking(value: string | number | Array<string | number>) {
+    if (value === 'default' || value === 'enabled' || value === 'disabled') this.exampleThinking.set(value)
+  }
 
   ngOnInit() {
     this.#store
