@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ApplicationAuthoringDenied": "You do not have permission to access Assistant configuration.",
         "ApplicationEmailRequired": "Register with an email address and complete verification.",
         "ApplicationProfileInvalid": "Only name fields can be updated.",
         "ApplicationPasswordInvalid": "Enter your current password and a new password of at least 8 characters.",

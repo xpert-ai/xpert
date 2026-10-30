@@ -5,6 +5,8 @@ const FULL_AI_PERMISSIONS = [
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
     AIPermissionsEnum.MODEL_USAGE_MONITOR,
+    AIPermissionsEnum.XPERT_VIEW,
+    AIPermissionsEnum.APPLICATION_INSTALL,
     AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
     AIPermissionsEnum.EVOLUTION_VIEW,
@@ -38,8 +40,23 @@ const VIEWER_AI_PERMISSIONS = [
 
 export const DEFAULT_ROLE_PERMISSIONS = [
     {
+        role: RolesEnum.APPLICATION_PROVISIONER,
+        defaultEnabledPermissions: [
+            AIPermissionsEnum.APPLICATION_INSTALL,
+            AIPermissionsEnum.XPERT_VIEW,
+            AIPermissionsEnum.XPERT_EDIT,
+            AIPermissionsEnum.KNOWLEDGEBASE_EDIT
+        ]
+    },
+    {
         role: RolesEnum.APP_USER,
-        defaultEnabledPermissions: [AIPermissionsEnum.CHAT_VIEW, ...PROJECT_VIEW_PERMISSIONS, ...PROJECT_EDIT_PERMISSIONS, ...MEMBERSHIP_USE_PERMISSIONS]
+        defaultEnabledPermissions: [
+            AIPermissionsEnum.APPLICATION_USE,
+            AIPermissionsEnum.CHAT_VIEW,
+            ...PROJECT_VIEW_PERMISSIONS,
+            ...PROJECT_EDIT_PERMISSIONS,
+            ...MEMBERSHIP_USE_PERMISSIONS
+        ]
     },
     {
         role: RolesEnum.SUPER_ADMIN,
@@ -48,6 +65,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             ...PROJECT_VIEW_PERMISSIONS,
             ...PROJECT_EDIT_PERMISSIONS,
             ...PROJECT_ADMIN_PERMISSIONS,
+            AIPermissionsEnum.XPERT_WORKSPACE_MANAGE,
             ...MEMBERSHIP_ADMIN_PERMISSIONS,
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
@@ -63,6 +81,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
             ...PROJECT_VIEW_PERMISSIONS,
             ...PROJECT_EDIT_PERMISSIONS,
             ...PROJECT_ADMIN_PERMISSIONS,
+            AIPermissionsEnum.XPERT_WORKSPACE_MANAGE,
             ...MEMBERSHIP_ADMIN_PERMISSIONS,
             ...MODEL_ACCESS_ADMIN_PERMISSIONS,
             ...MODEL_GATEWAY_USER_PERMISSIONS,
@@ -75,6 +94,8 @@ export const DEFAULT_ROLE_PERMISSIONS = [
         role: RolesEnum.TRIAL,
         defaultEnabledPermissions: [
             AIPermissionsEnum.COPILOT_EDIT,
+            AIPermissionsEnum.XPERT_VIEW,
+            AIPermissionsEnum.APPLICATION_INSTALL,
             AIPermissionsEnum.XPERT_EDIT,
             AIPermissionsEnum.CHAT_VIEW,
             ...PROJECT_VIEW_PERMISSIONS,

@@ -1,8 +1,9 @@
 import { activeSharingMemberSql, validSharingGroupSql } from '../xpert/sharing/sharing-policy'
 import {
+    AIPermissionsEnum,
+    UserType,
     IApiPrincipal,
     IUser,
-    RolesEnum,
     SecretTokenBindingType,
     TXpertWorkspaceAccessPurpose,
     TXpertWorkspaceCapabilities,
@@ -22,6 +23,7 @@ import {
 } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertWorkspace } from './workspace.entity'
+import { currentServiceOperation, serviceWorkspaceScopeAllows } from '../shared/service-operation'
 
 export type XpertWorkspaceAccessAction = 'read' | 'run' | 'write' | 'manage'
 
@@ -144,7 +146,13 @@ export class XpertWorkspaceAccessService {
             query.addOrderBy(`workspace.${field}`, this.normalizeOrderDirection(direction))
         })
 
-        return query.getMany()
+        const candidates = await query.getMany()
+        const access = await Promise.all(candidates.map((workspace) => this.buildAccess(workspace)))
+        return access
+            .filter(({ capabilities }) =>
+                options?.purpose === 'authoring' ? capabilities.canWrite : capabilities.canRead || capabilities.canRun
+            )
+            .map(({ workspace }) => workspace)
     }
 
     async buildAccess(workspace: XpertWorkspace): Promise<XpertWorkspaceAccessResult> {
@@ -170,6 +178,20 @@ export class XpertWorkspaceAccessService {
         workspace: XpertWorkspace,
         options?: { includePublishedRunAccess?: boolean }
     ): Promise<TXpertWorkspaceCapabilities> {
+        if (!serviceWorkspaceScopeAllows(workspace)) return this.emptyCapabilities()
+        const access = await this.getResourceAccess(workspace, options)
+        return {
+            canRead: access.canRead && RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW),
+            canWrite: access.canWrite && RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT),
+            canManage: access.canManage && RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT),
+            canRun: access.canRun && RequestContext.hasPermission(AIPermissionsEnum.CHAT_VIEW)
+        }
+    }
+
+    private async getResourceAccess(
+        workspace: XpertWorkspace,
+        options?: { includePublishedRunAccess?: boolean }
+    ): Promise<TXpertWorkspaceCapabilities> {
         const user = RequestContext.currentUser()
         const tenantId = user?.tenantId
         const userId = user?.id
@@ -179,7 +201,7 @@ export class XpertWorkspaceAccessService {
         const isArchived = workspace.status === 'archived'
         const isOwner = !!userId && workspace.ownerId === userId
         const isMember = !!userId && !!workspace.members?.some((member) => member.id === userId)
-        const isTenantAdmin = user?.role?.name === RolesEnum.SUPER_ADMIN || user?.role?.name === RolesEnum.ADMIN
+        const canManageWorkspaces = RequestContext.hasPermission(AIPermissionsEnum.XPERT_WORKSPACE_MANAGE)
         const isTenantShared = isTenantSharedXpertWorkspace(workspace)
         const isOrganizationShared = isOrganizationSharedXpertWorkspace(workspace)
         const isTenantWorkspace = !workspace.organizationId
@@ -217,12 +239,12 @@ export class XpertWorkspaceAccessService {
                 canRead,
                 canRun,
                 canWrite,
-                canManage: isOwner || (isOrganizationShared && isTenantAdmin)
+                canManage: isOwner || (isOrganizationShared && canManageWorkspaces)
             }
         }
 
         if (isTenantWorkspace && isTenantShared) {
-            const canWrite = isTenantScope && (isOwner || isTenantAdmin)
+            const canWrite = isTenantScope && (isOwner || canManageWorkspaces)
             return {
                 canRead: true,
                 canRun: true,
@@ -232,12 +254,12 @@ export class XpertWorkspaceAccessService {
         }
 
         if (isTenantWorkspace && isTenantScope) {
-            const canRead = isOwner || isMember || isTenantAdmin
+            const canRead = isOwner || isMember || canManageWorkspaces
             return {
                 canRead,
                 canRun: canRead,
                 canWrite: canRead,
-                canManage: isOwner || isTenantAdmin
+                canManage: isOwner || canManageWorkspaces
             }
         }
 
@@ -315,10 +337,37 @@ export class XpertWorkspaceAccessService {
         options?: FindAccessibleWorkspacesOptions
     ) {
         const organizationId = RequestContext.getOrganizationId()
-        const isTenantAdmin = user.role?.name === RolesEnum.SUPER_ADMIN || user.role?.name === RolesEnum.ADMIN
+        const canManageWorkspaces = RequestContext.hasPermission(AIPermissionsEnum.XPERT_WORKSPACE_MANAGE)
         const userId = user.id
         const apiKeyBoundWorkspaceId = await this.currentApiKeyBoundWorkspaceIdForUser(user)
         const isAuthoringPurpose = options?.purpose === 'authoring'
+        if (user.type === UserType.COMMUNICATION && !RequestContext.currentApiPrincipal()) {
+            const operation = currentServiceOperation()
+            if (!operation) {
+                query.andWhere('1 = 0')
+                return
+            }
+            query
+                .andWhere('workspace.organizationId = :serviceOrganization', {
+                    serviceOrganization: operation.organizationId
+                })
+                .andWhere(`workspace.settings::jsonb -> 'system' ->> 'kind' = 'plugin-app'`)
+                .andWhere(`workspace.settings::jsonb -> 'system' ->> 'pluginName' = :servicePlugin`, {
+                    servicePlugin: operation.application.pluginName
+                })
+                .andWhere(`workspace.settings::jsonb -> 'system' ->> 'appName' = :serviceApp`, {
+                    serviceApp: operation.application.appName
+                })
+        }
+        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW)) {
+            if (isAuthoringPurpose || !organizationId || !RequestContext.hasPermission(AIPermissionsEnum.CHAT_VIEW))
+                query.andWhere('1 = 0')
+            else
+                query.andWhere('workspace.organizationId = :runtimeOrganization', {
+                    runtimeOrganization: organizationId
+                })
+            return
+        }
 
         if (organizationId) {
             query.andWhere(
@@ -366,7 +415,7 @@ export class XpertWorkspaceAccessService {
                         .where(
                             new Brackets((tenantQb) => {
                                 tenantQb.where('workspace.organizationId IS NULL')
-                                if (!isTenantAdmin) {
+                                if (!canManageWorkspaces) {
                                     this.applyMemberReadCondition(
                                         tenantQb,
                                         userId,
@@ -391,7 +440,7 @@ export class XpertWorkspaceAccessService {
         }
 
         query.andWhere('workspace.organizationId IS NULL')
-        if (!isTenantAdmin) {
+        if (!canManageWorkspaces) {
             query.andWhere(
                 new Brackets((memberQb) =>
                     this.applyMemberReadCondition(memberQb, userId, isAuthoringPurpose ? null : apiKeyBoundWorkspaceId)

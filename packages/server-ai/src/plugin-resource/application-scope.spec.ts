@@ -28,6 +28,7 @@ describe('App installation scope and authorization', () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('alice')
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.VIEWER } } as never)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
     })
     afterEach(() => jest.restoreAllMocks())
 
@@ -81,9 +82,9 @@ describe('App installation scope and authorization', () => {
         return { service: module.get(ApplicationAccessService), execute }
     }
 
-    it('allows an active ordinary member to manage their own installation but not an organization installation', async () => {
+    it('requires installation permission even for a personal installation', async () => {
         const { service, execute } = await access()
-        await expect(service.assertCanInitialize(application('personal'))).resolves.toBeUndefined()
+        await expect(service.assertCanInitialize(application('personal'))).rejects.toThrow(ForbiddenException)
         await expect(service.assertCanInitialize(application('organization'))).rejects.toThrow(ForbiddenException)
         expect(execute).toHaveBeenCalledWith(
             expect.objectContaining({ input: expect.objectContaining({ userId: 'alice' }) })
@@ -92,12 +93,23 @@ describe('App installation scope and authorization', () => {
 
     it('rechecks active membership even for admins and refuses revoked membership', async () => {
         const { service, execute } = await access(RolesEnum.ADMIN)
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
         await expect(service.assertCanInitialize(application('organization'))).resolves.toBeUndefined()
         execute.mockResolvedValue(null)
         await expect(service.assertCanInitialize(application('personal'))).rejects.toThrow(ForbiddenException)
         await expect(service.assertMembership()).rejects.toThrow(ForbiddenException)
     })
+
+    it.each([RolesEnum.APP_USER, 'BID_CUSTOMER'])(
+        'allows %s with installation permission and live membership',
+        async (role) => {
+            const { service } = await access()
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: role } })
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+            await expect(service.assertCanInitialize(application('organization'))).resolves.toBeUndefined()
+        }
+    )
 
     it('does not trust stale admin roles or API principals for personal ownership', async () => {
         const { service, execute } = await access()

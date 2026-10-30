@@ -1,8 +1,10 @@
 // Installation ownership is independent of plugin deployment and the acting user.
 // Preserve legacy organization keys; personal keys always include organization and owner.
-import { getPluginApplicationScopes, PluginTemplateApplicationSummary, RolesEnum } from '@xpert-ai/contracts'
+import { getPluginApplicationScopes, PluginTemplateApplicationSummary, AIPermissionsEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { t } from 'i18next'
+import { serviceApplicationScopeAllows } from '../shared/service-operation'
 
 export function applicationInitializationAccess(
     application: Pick<PluginTemplateApplicationSummary, 'scope'> &
@@ -14,11 +16,9 @@ export function applicationInitializationAccess(
     )
         return 'unsupported' as const
     if (!RequestContext.getOrganizationId()) return 'organization_required' as const
+    if (!serviceApplicationScopeAllows(application)) return 'role_required' as const
     if (RequestContext.currentApiPrincipal()) return 'role_required' as const
-    if (application.scope === 'personal')
-        return RequestContext.currentUserId() ? ('allowed' as const) : ('role_required' as const)
-    const role = RequestContext.currentUser()?.role?.name
-    return role === RolesEnum.SUPER_ADMIN || role === RolesEnum.ADMIN || role === RolesEnum.TRIAL
+    return RequestContext.hasPermission(AIPermissionsEnum.APPLICATION_INSTALL)
         ? ('allowed' as const)
         : ('role_required' as const)
 }
@@ -26,6 +26,8 @@ export function applicationInitializationAccess(
 export function applicationInstallationIdentity(
     application: Pick<PluginTemplateApplicationSummary, 'pluginName' | 'appName' | 'scope'>
 ) {
+    if (!serviceApplicationScopeAllows(application))
+        throw new ForbiddenException(t('server-ai:Error.ApplicationOrganizationAccessDenied'))
     const tenantId = RequestContext.currentTenantId(),
         organizationId = RequestContext.getOrganizationId()
     const userId = RequestContext.currentUserId()

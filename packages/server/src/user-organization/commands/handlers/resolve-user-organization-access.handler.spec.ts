@@ -63,7 +63,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBeNull()
 		expect(f.users.findOne).toHaveBeenCalledWith({
 			where: { id: scope.userId, tenantId: scope.tenantId },
-			relations: ['role']
+			relations: ['role', 'role.rolePermissions']
 		})
 		expect(f.memberships.findOne).not.toHaveBeenCalled()
 		expect(f.organizations.findOne).not.toHaveBeenCalled()
@@ -118,7 +118,10 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		const f = setup()
 		const invocationScope = { ...scope, workspaceId: 'workspace', parentExecutionId: 'execution' }
 		await f.service.execute(new ResolveUserOrganizationAccessCommand(invocationScope))
-		expect(f.users.findOne).toHaveBeenCalledWith({ where: { id: 'user', tenantId: 'tenant' }, relations: ['role'] })
+		expect(f.users.findOne).toHaveBeenCalledWith({
+			where: { id: 'user', tenantId: 'tenant' },
+			relations: ['role', 'role.rolePermissions']
+		})
 		expect(f.memberships.findOne).toHaveBeenCalledWith({
 			where: { ...scope, isActive: true, organization: { tenantId: 'tenant', isActive: true } }
 		})

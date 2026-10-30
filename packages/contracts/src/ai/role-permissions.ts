@@ -16,9 +16,26 @@ export enum AIPermissionsEnum {
   BILLING_REFUND = 'BILLING_REFUND',
   PAYMENT_PROVIDER_EDIT = 'PAYMENT_PROVIDER_EDIT',
   /**
-   * Create or edit Xperts in organization.
+   * Read authorized authoring resources. Published Assistant runtime access is separate.
    */
+  XPERT_VIEW = 'XPERT_VIEW',
+  /**
+   * Manage tenant/shared authoring workspaces within the current scope.
+   * Resource authorization and action permissions such as XPERT_EDIT still apply.
+   */
+  XPERT_WORKSPACE_MANAGE = 'XPERT_WORKSPACE_MANAGE',
+  /** Create, edit or publish Assistants subject to authoring workspace authorization. */
   XPERT_EDIT = 'XPERT_EDIT',
+  /**
+   * Use assigned applications and access their delivery status/retry operations.
+   * Does not grant installation or authoring; chat also requires CHAT_VIEW and Assistant access.
+   */
+  APPLICATION_USE = 'APPLICATION_USE',
+  /**
+   * Initialize or update plugin applications and operate managed application deliveries.
+   * Organization membership and installation/service scope restrictions still apply.
+   */
+  APPLICATION_INSTALL = 'APPLICATION_INSTALL',
   XPERT_PROJECT_VIEW = 'XPERT_PROJECT_VIEW',
   XPERT_PROJECT_CREATE = 'XPERT_PROJECT_CREATE',
   XPERT_PROJECT_EDIT = 'XPERT_PROJECT_EDIT',

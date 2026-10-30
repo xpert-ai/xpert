@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ApplicationAuthoringDenied": "你没有访问助理配置的权限。",
         "ApplicationEmailRequired": "请使用邮箱注册并完成验证。",
         "ApplicationProfileInvalid": "请仅修改姓名。",
         "ApplicationPasswordInvalid": "请输入当前密码以及至少 8 个字符的新密码。",
