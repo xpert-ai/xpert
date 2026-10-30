@@ -89,6 +89,10 @@ async function setup() {
         })
     )
     const assistants = {
+        authorize: jest.fn(async (_actor, _assistant, _model, payer?: string) => {
+            if (payer && payer !== actor.userId) throw new Error('payer changed')
+            return { billableUserId: actor.userId }
+        }),
         user: jest.fn().mockResolvedValue({ id: actor.userId, tenantId: actor.tenantId }),
         resolve: jest.fn().mockResolvedValue({
             assistant: { id: grant.context.xpertId, name: 'Assistant', version: 'v1' },
@@ -224,7 +228,7 @@ describe('execution grant lifecycle', () => {
         await expect(test.service.revalidate(structuredClone(test.grant))).rejects.toThrow()
     })
 
-    it.each(['tenantId', 'runtimeOrganizationId', 'actorUserId', 'billableUserId'] as const)(
+    it.each(['tenantId', 'runtimeOrganizationId', 'actorUserId'] as const)(
         'rejects a persisted context whose %s differs from the owning grant',
         async (field) => {
             const test = await setup()
@@ -336,6 +340,7 @@ integration('execution lease renewal / PostgreSQL', () => {
                     provide: AssistantExecutionPolicyService,
                     useValue: {
                         user: async () => ({ id: actor.userId, tenantId: actor.tenantId }),
+                        authorize: async () => ({ billableUserId: actor.userId }),
                         resolve: async () => ({
                             assistant: { id: grant.context.xpertId, version: 'v1' },
                             models: grant.models

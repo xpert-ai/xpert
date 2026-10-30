@@ -1002,6 +1002,7 @@
         "ProjectXpertRequired": "该数字专家不属于此项目。",
         "ProjectXpertSelectionRequired": "必须选择一个项目数字专家。",
         "ConversationInitializerDuplicate": "会话初始化器已注册：{{key}}",
+        "ConversationEnvironmentFilePolicyDuplicate": "会话环境文件授权策略已注册",
         "ConversationScopeMismatch": "该会话不属于当前租户和组织。",
         "ConversationXpertImmutable": "会话不能迁移到其他数字专家。",
         "RequestedXpertConversationMismatch": "请求的数字专家与会话所属数字专家不一致。",
