@@ -24,6 +24,13 @@ import {
 } from './context-compression.shared'
 import { estimateTokenCountSync } from './context-compression.budget'
 import { projectSummaryBatch, validateRecoverySnapshot } from './context-summary-policy'
+import {
+    RecoverySummarySchema,
+    RECOVERY_SUMMARY_JSON_SCHEMA,
+    parseRecoverySummaryResponse,
+    recoverySummaryPrompt,
+    renderRecoverySummary
+} from './context-recovery-summary'
 import type { EvidenceArchive } from '../chat-conversation/context-evidence/context-evidence.schema'
 
 // Copy constructor fields only: spreading a message also copies lc_kwargs,
@@ -663,6 +670,11 @@ export class ContextCompressionHistory {
         model: BaseLanguageModel,
         budget: { tokenLimit: number; outputTokens: number; inputTokenRatio: number; summaryInputTokens: number }
     ): Promise<string> {
+        const structuredModel = model.withStructuredOutput?.(RecoverySummarySchema, {
+            name: 'context_snapshot',
+            method: 'functionCalling',
+            includeRaw: true
+        })
         let snapshot = ''
         let start = 0
         while (start < messages.length) {
@@ -673,7 +685,28 @@ export class ContextCompressionHistory {
                 budget.inputTokenRatio,
                 snapshot
             )
-            snapshot = await this.generateStateSnapshot([], model, { ...budget, historyText: batch.text })
+            if (structuredModel) {
+                const prompt = recoverySummaryPrompt(batch.text)
+                const inputTokens =
+                    estimateTokenCountSync(JSON.stringify(prompt)) +
+                    estimateTokenCountSync(JSON.stringify(RECOVERY_SUMMARY_JSON_SCHEMA)) +
+                    Math.ceil(
+                        estimateTokenCountSync(JSON.stringify(batch.text)) * Math.max(0, budget.inputTokenRatio - 1)
+                    )
+                if (inputTokens + budget.outputTokens > budget.tokenLimit)
+                    throw new ContextSummaryError('summary_input_budget')
+                const result: unknown = await structuredModel.invoke([new HumanMessage(prompt)], {
+                    metadata: { internal: true }
+                })
+                const response = parseRecoverySummaryResponse(result)
+                if (getFinishReason(response.raw) === 'length') throw new ContextSummaryError('summary_output_budget')
+                if (!response.parsed) throw new ContextSummaryError('summary_invalid')
+                snapshot = renderRecoverySummary(response.parsed)
+                if (estimateTokenCountSync(JSON.stringify(snapshot)) > budget.outputTokens)
+                    throw new ContextSummaryError('summary_output_budget')
+            } else {
+                snapshot = await this.generateStateSnapshot([], model, { ...budget, historyText: batch.text })
+            }
             validateRecoverySnapshot(snapshot)
             start = batch.end
         }

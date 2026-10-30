@@ -614,6 +614,21 @@ export class ContextCompressionEngine {
             const { historyToCompress, historyToKeep } = splitResult
 
             if (historyToCompress.length === 0) {
+                if (recovering && currentPromptWindowEstimate.projectedTotalTokens <= tokenLimit) {
+                    this.recordNoGainRetryState(
+                        stateContainer,
+                        currentTokenCount,
+                        currentTokenCount,
+                        currentPromptWindowEstimate,
+                        tokenLimit
+                    )
+                    this.emitCompressionSkipped(
+                        runtime,
+                        COMPRESSION_NO_UNPROTECTED_HISTORY_DISPLAY,
+                        'no_unprotected_history'
+                    )
+                    return null
+                }
                 if (!fitsPromptBudget(currentPromptWindowEstimate, tokenLimit)) return reportBudgetFailure()
                 this.logger.debug(COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE)
                 if (currentMessages !== messages) return finishToolCompression()

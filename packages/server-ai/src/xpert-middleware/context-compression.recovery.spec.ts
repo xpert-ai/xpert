@@ -1,6 +1,9 @@
 import { AIMessage, BaseMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
-import { ContextCompressionMiddleware } from './context-compression.middleware'
+import {
+    ContextCompressionMiddleware,
+    type ContextCompressionMiddlewareOptions
+} from './context-compression.middleware'
 import { estimateTokens } from './context-compression.budget'
 import { createTemplateOperationPolicy } from '../xpert/template-setup/template-operation-policy'
 
@@ -70,7 +73,11 @@ function longHistory() {
     ]
 }
 
-async function fixture(response = snapshot, operationPolicy?: IAgentMiddlewareContext['operationPolicy']) {
+async function fixture(
+    response = snapshot,
+    operationPolicy?: IAgentMiddlewareContext['operationPolicy'],
+    options: ContextCompressionMiddlewareOptions = { maxPromptTokens: 10000, targetPromptTokens: 7000 }
+) {
     const archive = jest.fn(async (_messages: BaseMessage[]) => ({
         archiveId: 'a'.repeat(64),
         records: 3,
@@ -85,7 +92,7 @@ async function fixture(response = snapshot, operationPolicy?: IAgentMiddlewareCo
         runtime: { createModelClient: jest.fn(async () => ({ invoke })) }
     } as unknown as IAgentMiddlewareContext
     const middleware = await new ContextCompressionMiddleware({ bind: () => ({ archive, read }) }).createMiddleware(
-        { maxPromptTokens: 10000, targetPromptTokens: 7000 },
+        options,
         context
     )
     middleware.tools?.forEach((tool) => context.tools.set(tool.name, tool))
@@ -94,6 +101,82 @@ async function fixture(response = snapshot, operationPolicy?: IAgentMiddlewareCo
     const runtime = { configurable: { copilotModel: { options: { context_size: 200000 } } } }
     return { middleware, before, runtime, archive, read, invoke, context }
 }
+
+it('preserves the four existing settings without exposing new recovery budgets or a tool switch', () => {
+    const strategy = new ContextCompressionMiddleware({ bind: jest.fn() })
+    expect(Object.keys(strategy.meta.configSchema?.properties ?? {})).toEqual([
+        'threshold',
+        'preserveFraction',
+        'enableTwoPhaseCompression',
+        'protectedUserTurns'
+    ])
+    expect(strategy.meta).toMatchObject({ configurableTools: false })
+})
+
+it('skips compression when only the protected newest tool cycle exceeds the cost trigger', async () => {
+    const f = await fixture()
+    const next = jest.fn()
+    const messages = [
+        new HumanMessage('Do not publish.'),
+        new AIMessage({
+            content: '',
+            tool_calls: [{ id: 'only', name: 'write', args: { content: 'x'.repeat(100000) } }]
+        }),
+        new ToolMessage({ tool_call_id: 'only', content: 'Written.' })
+    ]
+    const update = await f.before({ messages }, { configurable: { ...f.runtime.configurable, subscriber: { next } } })
+    expect(update).not.toHaveProperty('messages')
+    expect(next.mock.calls.at(-1)?.[0].data.data.data).toMatchObject({
+        status: 'success',
+        reason: 'no_unprotected_history'
+    })
+    expect(f.archive).not.toHaveBeenCalled()
+    expect(f.invoke).not.toHaveBeenCalled()
+})
+
+it('automatically compresses costly old history on a large-window model without user configuration', async () => {
+    const f = await fixture(snapshot, undefined, {})
+    const messages = [
+        new HumanMessage('Do not publish.'),
+        new AIMessage({
+            content: '',
+            tool_calls: [{ id: 'old', name: 'write', args: { content: 'x'.repeat(240000) } }]
+        }),
+        new ToolMessage({ tool_call_id: 'old', content: 'Written.' }),
+        new AIMessage({ content: '', tool_calls: [{ id: 'latest', name: 'read', args: { path: 'current' } }] }),
+        new ToolMessage({ tool_call_id: 'latest', content: 'Current version is 2.' })
+    ]
+    const update = await f.before(
+        { messages },
+        { configurable: { copilotModel: { options: { context_size: 1000000 } } } }
+    )
+    expect(updatedMessages(update).some((message) => message.additional_kwargs.compressed === true)).toBe(true)
+    expect(f.archive).toHaveBeenCalled()
+    expect(await estimateTokens(updatedMessages(update))).toBeLessThan(40000)
+})
+
+it('still reports failure when protected input exceeds the actual model window', async () => {
+    const f = await fixture()
+    const next = jest.fn()
+    const messages = [
+        new HumanMessage('Do not publish.'),
+        new AIMessage({
+            content: '',
+            tool_calls: [{ id: 'only', name: 'write', args: { content: 'x'.repeat(100000) } }]
+        }),
+        new ToolMessage({ tool_call_id: 'only', content: 'Written.' })
+    ]
+    await f.before(
+        { messages },
+        { configurable: { copilotModel: { options: { context_size: 20000 } }, subscriber: { next } } }
+    )
+    expect(next.mock.calls.at(-1)?.[0].data.data.data).toMatchObject({
+        status: 'fail',
+        reason: 'context_budget_exceeded'
+    })
+    expect(f.archive).not.toHaveBeenCalled()
+    expect(f.invoke).not.toHaveBeenCalled()
+})
 
 it('compresses many complete cycles using bounded summary requests without losing archive record identities', async () => {
     const f = await fixture()

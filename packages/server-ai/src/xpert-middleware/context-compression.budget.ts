@@ -217,6 +217,8 @@ export function fitsPromptBudget(estimate: PromptWindowEstimate, tokenLimit: num
 
 export function limitSummaryModelOutput(model: TAgentRunnableConfigurable['copilotModel'], budget: number) {
     const options = { ...model.options, max_tokens: Math.floor(budget) }
+    // Internal summaries need concise data, not the main agent's explicit thinking mode.
+    if ('enable_thinking' in options) options.enable_thinking = false
     for (const key of [
         'max_output_tokens',
         'max_completion_tokens',

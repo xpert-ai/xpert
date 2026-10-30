@@ -20,6 +20,7 @@ import { t } from 'i18next'
 import { toolOperationDecision } from '../xpert/template-setup/template-operation-policy'
 import {
     DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
+    DEFAULT_RECOVERABLE_PROMPT_TOKENS,
     COMPRESSION_PRESERVE_THRESHOLD,
     COMPRESSION_TOOL_RESPONSE_TOKEN_BUDGET,
     PRUNE_MINIMUM_TOKENS,
@@ -95,53 +96,10 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                 }
             }
         ],
+        // Recovery budgets remain internal; preserve the existing authoring controls.
         configSchema: {
             type: 'object',
             properties: {
-                recoverableHistory: {
-                    type: 'boolean',
-                    default: true,
-                    title: { en_US: 'Recoverable history', zh_Hans: '可恢复历史' },
-                    description: {
-                        en_US: 'Archive and verify source history before summarizing. Disable only for a legacy rollback.',
-                        zh_Hans: '摘要前归档并验证原始历史；仅在需要回退旧流程时关闭。'
-                    }
-                },
-                maxPromptTokens: {
-                    type: 'number',
-                    minimum: 1,
-                    title: { en_US: 'Prompt cost trigger', zh_Hans: '输入成本触发上限' },
-                    description: {
-                        en_US: 'Optional absolute prompt token budget, bounded by model capacity.',
-                        zh_Hans: '可选的总输入 token 上限，仍受模型容量限制。'
-                    }
-                },
-                targetPromptTokens: {
-                    type: 'number',
-                    minimum: 1,
-                    title: { en_US: 'Compression target', zh_Hans: '压缩后目标' },
-                    description: {
-                        en_US: 'Target below the trigger; defaults to 80% of the effective trigger.',
-                        zh_Hans: '应低于触发上限；默认取有效触发上限的80%。'
-                    }
-                },
-                recentHistoryTokens: {
-                    type: 'number',
-                    minimum: 1,
-                    title: { en_US: 'Recent history budget', zh_Hans: '近期原文预算' }
-                },
-                summaryInputTokens: {
-                    type: 'number',
-                    minimum: 1024,
-                    default: 64000,
-                    title: { en_US: 'Summary input budget', zh_Hans: '摘要输入预算' }
-                },
-                summaryOutputTokens: {
-                    type: 'number',
-                    minimum: 256,
-                    default: 4096,
-                    title: { en_US: 'Summary output budget', zh_Hans: '摘要输出预算' }
-                },
                 threshold: {
                     type: 'number',
                     default: DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
@@ -191,7 +149,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                     }
                 }
             }
-        }
+        },
+        configurableTools: false
     }
 
     readonly stateSchema = ContextCompressionStateSchema
@@ -271,6 +230,9 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         const engine = new ContextCompressionEngine(tools, evidence)
         const resolvedOptions: ResolvedContextCompressionOptions = {
             ...recoveryOptions,
+            maxPromptTokens:
+                recoveryOptions.maxPromptTokens ??
+                (recoveryOptions.recoverableHistory ? DEFAULT_RECOVERABLE_PROMPT_TOKENS : undefined),
             threshold: options?.threshold ?? DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
             preserveFraction: options?.preserveFraction ?? COMPRESSION_PRESERVE_THRESHOLD,
             toolOutputBudget: options?.toolOutputBudget ?? COMPRESSION_TOOL_RESPONSE_TOKEN_BUDGET,

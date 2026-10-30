@@ -2,6 +2,8 @@ import { I18nObject, I18nText } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 
 export const DEFAULT_COMPRESSION_TOKEN_THRESHOLD = 0.7
+// A cost trigger for large-window models, always capped by their actual available input window.
+export const DEFAULT_RECOVERABLE_PROMPT_TOKENS = 50_000
 
 /**
  * Preserve the last 30% of conversation history
