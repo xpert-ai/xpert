@@ -1,7 +1,7 @@
 // Invariants: compression updates are checkpointed before the model runs.
 // Manual compaction remains deterministic; automatic compression preserves the latest user request.
 // Completed tool output may be truncated even within the latest user turn to fit its remaining budget.
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AIMessage, BaseMessage, RemoveMessage, isAIMessage } from '@langchain/core/messages'
 import {
     AgentMiddleware,
@@ -13,8 +13,14 @@ import {
 import { REMOVE_ALL_MESSAGES } from '@langchain/langgraph'
 import { channelName, CONTEXT_COMPRESSION_MIDDLEWARE_NAME, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { ContextCompressionEngine } from './context-compression.engine'
+import { ContextEvidenceService } from '../chat-conversation/context-evidence/context-evidence.service'
+import { createContextEvidenceTool } from './context-evidence.tool'
+import { CONTEXT_EVIDENCE_TOOL } from '../chat-conversation/context-evidence/context-evidence.schema'
+import { t } from 'i18next'
+import { toolOperationDecision } from '../xpert/template-setup/template-operation-policy'
 import {
     DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
+    DEFAULT_RECOVERABLE_PROMPT_TOKENS,
     COMPRESSION_PRESERVE_THRESHOLD,
     COMPRESSION_TOOL_RESPONSE_TOKEN_BUDGET,
     PRUNE_MINIMUM_TOKENS,
@@ -27,6 +33,7 @@ import {
     MANUAL_COMPRESSION_SKIPPED_MESSAGE,
     ManualCompressionResultSchema,
     ContextCompressionStateSchema,
+    RecoveryCompressionOptionsSchema,
     ManualCompressionResult,
     ContextCompressionMiddlewareOptions,
     ResolvedContextCompressionOptions,
@@ -54,6 +61,7 @@ export {
 @Injectable()
 @AgentMiddlewareStrategy(CONTEXT_COMPRESSION_MIDDLEWARE_NAME)
 export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
+    constructor(@Inject(ContextEvidenceService) private readonly evidence: Pick<ContextEvidenceService, 'bind'>) {}
     readonly meta: TAgentMiddlewareMeta = {
         name: CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
         label: {
@@ -65,8 +73,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
             value: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg>`
         },
         description: {
-            en_US: 'Two-phase context compression: first prunes old tool outputs, then generates summaries when needed. Preserves recent interactions and critical coding context.',
-            zh_Hans: '双层上下文压缩：首先修剪旧工具输出，然后在需要时生成摘要。保留最近的交互和关键编码上下文。'
+            en_US: 'Archive completed history before summarizing it. Preserve user instructions and recent work, and recover original records on demand.',
+            zh_Hans: '已完成的旧历史先归档再摘要；保留用户原始要求与近期工作，需要时按片段取回原文。'
         },
         slashCommands: [
             {
@@ -88,6 +96,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                 }
             }
         ],
+        // Recovery budgets remain internal; preserve the existing authoring controls.
         configSchema: {
             type: 'object',
             properties: {
@@ -111,8 +120,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                         zh_Hans: '保留比例'
                     },
                     description: {
-                        en_US: 'Keep the last X% of history (0.3 = keep last 30%)',
-                        zh_Hans: '保留最后X%的历史（0.3 = 保留最后30%）'
+                        en_US: 'Recent original-history share of the target budget. User instructions and protected call groups may exceed this share.',
+                        zh_Hans: '近期原文占目标预算的比例；用户原始要求和受保护工具周期可能超过此比例。'
                     }
                 },
                 enableTwoPhaseCompression: {
@@ -123,8 +132,8 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                         zh_Hans: '启用双层压缩'
                     },
                     description: {
-                        en_US: 'First prune old tool outputs, then generate summary if still over limit',
-                        zh_Hans: '先修剪旧工具输出，如果仍超限则生成摘要'
+                        en_US: 'Legacy mode only: prune old tool outputs before summarizing.',
+                        zh_Hans: '仅旧模式生效：先修剪旧工具输出，再按需生成摘要。'
                     }
                 },
                 protectedUserTurns: {
@@ -135,15 +144,20 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
                         zh_Hans: '保护的用户回合数'
                     },
                     description: {
-                        en_US: 'Number of recent user turns to protect from pruning',
-                        zh_Hans: '保护最近多少个用户回合不被修剪'
+                        en_US: 'Legacy mode only. Recoverable history preserves every original user message.',
+                        zh_Hans: '仅旧模式生效；可恢复历史模式保留所有用户原始消息。'
                     }
                 }
             }
-        }
+        },
+        configurableTools: false
     }
 
     readonly stateSchema = ContextCompressionStateSchema
+
+    getToolNames(options: ContextCompressionMiddlewareOptions = {}): readonly string[] {
+        return options.recoverableHistory === false ? [] : [CONTEXT_EVIDENCE_TOOL]
+    }
 
     private readonly logger = new Logger(ContextCompressionMiddleware.name)
     private isManualCompressionRequest(
@@ -195,8 +209,30 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         context: IAgentMiddlewareContext
     ): PromiseOrValue<AgentMiddleware> {
         const middlewareRuntime = context.runtime
-        const engine = new ContextCompressionEngine(context.tools)
+        const recoveryOptions = RecoveryCompressionOptionsSchema.parse(options ?? {})
+        const source = recoveryOptions.recoverableHistory ? this.evidence.bind(context) : undefined
+        // The host fills this live map after applying per-tool configuration and preferences.
+        const tools = context.tools ?? new Map()
+        const evidence = source
+            ? {
+                  ...source,
+                  archive: (messages: BaseMessage[]) => {
+                      if (
+                          !tools.has(CONTEXT_EVIDENCE_TOOL) ||
+                          toolOperationDecision(context.operationPolicy, CONTEXT_EVIDENCE_TOOL) !== 'allow'
+                      )
+                          throw new Error(t('server-ai:Error.ContextEvidenceUnavailable'))
+                      return source.archive(messages)
+                  }
+              }
+            : undefined
+        const recoveryTool = evidence ? createContextEvidenceTool(evidence) : undefined
+        const engine = new ContextCompressionEngine(tools, evidence)
         const resolvedOptions: ResolvedContextCompressionOptions = {
+            ...recoveryOptions,
+            maxPromptTokens:
+                recoveryOptions.maxPromptTokens ??
+                (recoveryOptions.recoverableHistory ? DEFAULT_RECOVERABLE_PROMPT_TOKENS : undefined),
             threshold: options?.threshold ?? DEFAULT_COMPRESSION_TOKEN_THRESHOLD,
             preserveFraction: options?.preserveFraction ?? COMPRESSION_PRESERVE_THRESHOLD,
             toolOutputBudget: options?.toolOutputBudget ?? COMPRESSION_TOOL_RESPONSE_TOKEN_BUDGET,
@@ -209,7 +245,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
         return {
             name: CONTEXT_COMPRESSION_MIDDLEWARE_NAME,
             stateSchema: this.stateSchema,
-            tools: [],
+            tools: recoveryTool ? [recoveryTool] : [],
             beforeModel: async (state, runtime) => {
                 const compressionState = { ...state }
                 const messages = state.messages ?? []

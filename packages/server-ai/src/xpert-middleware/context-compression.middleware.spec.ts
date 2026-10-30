@@ -1,3 +1,4 @@
+import { LegacyContextCompressionMiddleware as ContextCompressionMiddleware } from './context-compression.test-fixture'
 import { AIMessage, HumanMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import {
     Annotation,
@@ -8,10 +9,7 @@ import {
     START,
     StateGraph
 } from '@langchain/langgraph'
-import {
-    ContextCompressionMiddleware,
-    type ContextCompressionMiddlewareOptions
-} from './context-compression.middleware'
+import { type ContextCompressionMiddlewareOptions } from './context-compression.middleware'
 import type { AgentMiddleware } from '@xpert-ai/plugin-sdk'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({

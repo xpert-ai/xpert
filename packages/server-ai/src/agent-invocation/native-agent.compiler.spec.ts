@@ -5,7 +5,7 @@ import { END, InMemoryStore, START, StateGraph } from '@langchain/langgraph'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ChatMessageEventTypeEnum, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
-import { AgentStateAnnotation } from '../shared/agent/state'
+import { AgentStateAnnotation, CONVERSATION_OWNER_XPERT_ID } from '../shared/agent/state'
 import { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands'
 import { NativeAgentCompiler } from './native-agent.compiler'
@@ -26,7 +26,10 @@ describe('Native Agent execution tool correlation', () => {
             getState: jest.fn(async () => ({ config: { configurable: { checkpoint_id: 'checkpoint' } } }))
         }
         const execute = jest.fn(async (command: unknown) => {
-            if (command instanceof XpertAgentSubgraphCommand) return { graph, nextNodes: [] }
+            if (command instanceof XpertAgentSubgraphCommand) {
+                expect(command.options[CONVERSATION_OWNER_XPERT_ID]).toBe('conversation-owner')
+                return { graph, nextNodes: [] }
+            }
             if (command instanceof XpertAgentExecutionUpsertCommand) {
                 execution = { ...execution, ...command.execution, id: 'child' }
                 return execution
@@ -42,6 +45,7 @@ describe('Native Agent execution tool correlation', () => {
             { key: 'worker', name: 'Worker' },
             {
                 xpert: { id: 'assistant' },
+                [CONVERSATION_OWNER_XPERT_ID]: 'conversation-owner',
                 mute: [],
                 store: new InMemoryStore(),
                 subscriber,

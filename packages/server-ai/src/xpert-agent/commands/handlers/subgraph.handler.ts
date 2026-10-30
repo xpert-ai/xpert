@@ -93,6 +93,7 @@ import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import { t } from 'i18next'
+import { CONVERSATION_OWNER_XPERT_ID } from '../../../shared/agent/state'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { exposeModelProfile, prepareModelCall } from '../../../shared/agent/model-call'
@@ -564,6 +565,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     follower,
                     {
                         executionDefinition: options.executionDefinition,
+                        [CONVERSATION_OWNER_XPERT_ID]: options[CONVERSATION_OWNER_XPERT_ID] ?? runtimeXpert.id,
                         planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
@@ -649,6 +651,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     node.entity,
                     {
                         executionDefinition: options.executionDefinition,
+                        [CONVERSATION_OWNER_XPERT_ID]: options[CONVERSATION_OWNER_XPERT_ID] ?? runtimeXpert.id,
                         planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
@@ -923,6 +926,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             xpertId: runtimeXpert.id,
             workspaceDataScope: runtimeXpert.workspaceDataScope,
             xpertFeatures: runtimeXpert.features ?? null,
+            conversationXpertId: options[CONVERSATION_OWNER_XPERT_ID] ?? runtimeXpert.id,
+            operationPolicy: runtimeXpert.options?.operationPolicy,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,
             store: options.store,

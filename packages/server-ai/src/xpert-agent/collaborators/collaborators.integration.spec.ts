@@ -29,7 +29,11 @@ import {
 import { Subscriber } from 'rxjs'
 import { emptyRuntimeResources, RuntimeResourceService } from '../../agent-plugin/runtime-resource.service'
 import { CopilotCheckpointSaver } from '../../copilot-checkpoint'
-import { AgentStateAnnotation, STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../shared/agent/state'
+import {
+    AgentStateAnnotation,
+    CONVERSATION_OWNER_XPERT_ID,
+    STATE_VARIABLE_PENDING_FOLLOW_UPS
+} from '../../shared/agent/state'
 import { AgentMiddlewareRuntimeService } from '../../shared/agent/middleware-runtime'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
@@ -233,7 +237,12 @@ function fixture(
         {
             publish: jest.fn().mockResolvedValue(1)
         } as unknown as RedisClientType,
-        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn() } as unknown as ExecutionControlStore
+        {
+            terminate: jest.fn(),
+            shouldAbort: jest.fn(),
+            attach: jest.fn(),
+            tasks: { execution: jest.fn().mockResolvedValue(null) }
+        } as unknown as ExecutionControlStore
     )
     const runtime = new AgentInvocationGraphService(
         commandBus as unknown as CommandBus,
@@ -427,6 +436,7 @@ describe('Collaborators middleware in the Agent graph', () => {
         }
         expect(f.command.options.mute).toContainEqual(['expert-1', 'private-step'])
         expect(f.childCommands[0].options).toMatchObject({
+            [CONVERSATION_OWNER_XPERT_ID]: 'parent',
             leaderKey: 'leader',
             isStart: true,
             isDraft: false,
@@ -442,6 +452,15 @@ describe('Collaborators middleware in the Agent graph', () => {
         expect(JSON.stringify(f.definition)).toBe(original)
         if (dynamic)
             expect(f.resourceService.resolve).toHaveBeenCalledWith('parent', f.resources.selection, 'project-1')
+    })
+
+    it('preserves the original conversation owner through nested collaboration', async () => {
+        const f = fixture({ dynamic: true })
+        f.command.options[CONVERSATION_OWNER_XPERT_ID] = 'root-assistant'
+        const { graph } = await f.handler.execute(f.command)
+        await graph.invoke(f.input, f.config)
+        expect(f.childCommands[0].options[CONVERSATION_OWNER_XPERT_ID]).toBe('root-assistant')
+        expect(f.childInvocations[0].config.configurable.xpertId).toBe(f.expert.id)
     })
 
     it.each([false, true])(

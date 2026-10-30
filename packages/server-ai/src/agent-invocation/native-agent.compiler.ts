@@ -24,6 +24,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
 import { AgentStateAnnotation, createParameters } from '../shared/agent'
+import { CONVERSATION_OWNER_XPERT_ID } from '../shared/agent/state'
 import { TAgentSubgraphParams, TAgentSubgraphResult, messageEvent } from '../xpert-agent/agent'
 import { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands'
@@ -84,6 +85,7 @@ export class NativeAgentCompiler {
                 leaderKey,
                 isDraft: config.options.isDraft,
                 conversationId: options.conversationId,
+                [CONVERSATION_OWNER_XPERT_ID]: config[CONVERSATION_OWNER_XPERT_ID],
                 projectId: options.projectId,
                 workspaceRoot: options.workspaceRoot,
                 workspacePath: options.workspacePath,

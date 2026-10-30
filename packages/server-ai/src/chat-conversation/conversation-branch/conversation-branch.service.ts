@@ -121,6 +121,8 @@ export class ConversationBranchService {
                         serializer: this.checkpoints.serde,
                         messages: path,
                         targetThreadId: threadId,
+                        sourceConversationId: source.id,
+                        targetConversationId: id,
                         tenantId: source.tenantId,
                         organizationId: source.organizationId,
                         userId,

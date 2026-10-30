@@ -25,7 +25,7 @@ import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
 import { ToolSchemaParser } from '../shared/tools/utils'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
-import { resolveXpertDataVolumeScope } from '../shared/volume'
+import { resolveXpertDataVolumeScope } from '../shared/volume/volume'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertService } from '../xpert/xpert.service'
 import { XpertAgentChatCommand } from './commands'
@@ -219,7 +219,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         return {
             stateSchema: this.normalizeSchema(middleware.stateSchema),
             tools:
-                middleware.tools?.map((tool) => ({
+                (strategy.meta?.configurableTools === false ? [] : middleware.tools)?.map((tool) => ({
                     name: tool.name,
                     description: tool.description,
                     schema: this.normalizeSchema(tool.schema)

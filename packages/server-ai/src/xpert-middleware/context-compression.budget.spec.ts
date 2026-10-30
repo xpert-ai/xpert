@@ -1,10 +1,11 @@
+import { LegacyContextCompressionMiddleware as ContextCompressionMiddleware } from './context-compression.test-fixture'
 import { AIMessage, BaseMessage, HumanMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { AgentMiddleware, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod/v3'
 import { load } from '@langchain/core/load'
-import { estimatePromptWindowUsage } from './context-compression.budget'
-import { ContextCompressionMiddleware, ContextCompressionMiddlewareOptions } from './context-compression.middleware'
+import { estimatePromptWindowUsage, limitSummaryModelOutput } from './context-compression.budget'
+import { ContextCompressionMiddlewareOptions } from './context-compression.middleware'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     __esModule: true,
@@ -13,6 +14,13 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 
 const noGainKey = '__contextCompressionNoGainRetryState'
+
+it('keeps summary generation within its output budget without inheriting explicit thinking mode', () => {
+    const model = { model: 'test', options: { max_tokens: 131072, max_output_tokens: 131072, enable_thinking: true } }
+    const summary = limitSummaryModelOutput(model, 4096)
+    expect(summary.options).toMatchObject({ max_tokens: 4096, max_output_tokens: 4096, enable_thinking: false })
+    expect(model.options).toMatchObject({ max_tokens: 131072, enable_thinking: true })
+})
 const files = new Set<string>()
 const count = (messages: BaseMessage[]) =>
     Math.ceil(messages.reduce((sum, message) => sum + JSON.stringify(message.content).length, 0) / 4)

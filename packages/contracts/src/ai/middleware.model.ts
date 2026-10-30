@@ -82,6 +82,8 @@ export type TAgentMiddlewareMeta = {
   icon?: IconDefinition
   description?: I18nObject
   configSchema?: JsonSchemaObjectType
+  /** False hides infrastructure-owned tools from authoring configuration; runtime policy still applies. */
+  configurableTools?: boolean
   features?: Array<TXpertFeatureKey | string>
   /** Optional display labels keyed by declared Feature identifier; never grants capabilities. */
   featureLabels?: Record<string, I18nObject>

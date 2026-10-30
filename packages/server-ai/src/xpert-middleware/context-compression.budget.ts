@@ -131,7 +131,8 @@ export async function estimatePromptWindowUsage(
     tokenLimit: number,
     threshold: number,
     fixedInputTokens = 0,
-    stateContainer?: unknown
+    stateContainer?: unknown,
+    maxPromptTokens?: number
 ): Promise<PromptWindowEstimate> {
     const messageOnlyTokens = await estimateTokens(messages)
     const anchor = findLatestPromptTokenAnchor(messages)
@@ -174,7 +175,11 @@ export async function estimatePromptWindowUsage(
     const { reservedOutputTokens, source } = resolveReservedOutputTokens(model, tokenLimit, threshold)
     const availablePromptTokens = Math.max(0, tokenLimit - reservedOutputTokens)
     const thresholdPromptTokens = Math.max(0, Math.round(tokenLimit * Math.max(0, Math.min(1, threshold))))
-    const effectivePromptBudget = Math.min(availablePromptTokens, thresholdPromptTokens || availablePromptTokens)
+    const effectivePromptBudget = Math.min(
+        availablePromptTokens,
+        thresholdPromptTokens || availablePromptTokens,
+        maxPromptTokens ?? Number.POSITIVE_INFINITY
+    )
 
     return {
         calibrationRatio,
@@ -212,6 +217,8 @@ export function fitsPromptBudget(estimate: PromptWindowEstimate, tokenLimit: num
 
 export function limitSummaryModelOutput(model: TAgentRunnableConfigurable['copilotModel'], budget: number) {
     const options = { ...model.options, max_tokens: Math.floor(budget) }
+    // Internal summaries need concise data, not the main agent's explicit thinking mode.
+    if ('enable_thinking' in options) options.enable_thinking = false
     for (const key of [
         'max_output_tokens',
         'max_completion_tokens',

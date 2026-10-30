@@ -66,6 +66,8 @@ export class SideChatForkService {
                 serializer: this.checkpoints.serde,
                 messages: [selected],
                 targetThreadId: threadId,
+                sourceConversationId: source.conversationId,
+                targetConversationId: source.conversationId,
                 tenantId: source.tenantId,
                 organizationId: source.organizationId,
                 userId: RequestContext.currentUserId() ?? source.createdById,

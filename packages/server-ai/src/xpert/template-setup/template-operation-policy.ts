@@ -15,6 +15,10 @@ const responseSchema = z
     })
     .strict()
 
+export function toolOperationDecision(policy: AssistantOperationPolicy | undefined, name: string) {
+    return policy?.rules.find((item) => item.tool === name)?.decision ?? policy?.default ?? 'allow'
+}
+
 export function createTemplateOperationPolicy(declared: AssistantOperationPolicy): AgentMiddleware {
     const policy = assistantOperationPolicySchema.parse(declared)
     return {
@@ -22,7 +26,7 @@ export function createTemplateOperationPolicy(declared: AssistantOperationPolicy
         wrapToolCall: async (request, handler) => {
             const call = request.toolCall
             const rule = policy.rules.find((item) => item.tool === call.name)
-            const decision = rule?.decision ?? policy.default
+            const decision = toolOperationDecision(policy, call.name)
             if (decision === 'allow') return handler(request)
             const denied = () =>
                 new ToolMessage({

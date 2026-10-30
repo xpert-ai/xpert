@@ -2,6 +2,8 @@ import { I18nObject, I18nText } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 
 export const DEFAULT_COMPRESSION_TOKEN_THRESHOLD = 0.7
+// A cost trigger for large-window models, always capped by their actual available input window.
+export const DEFAULT_RECOVERABLE_PROMPT_TOKENS = 50_000
 
 /**
  * Preserve the last 30% of conversation history
@@ -128,6 +130,15 @@ export type CompressionNoGainRetryState = z.infer<typeof CompressionNoGainRetryS
 export type ManualCompressionResult = z.infer<typeof ManualCompressionResultSchema>
 
 export interface ContextCompressionMiddlewareOptions {
+    /** False retains the legacy result-pruning path for an explicit rollback. */
+    recoverableHistory?: boolean
+    /** Optional cost trigger, independent of the model's capacity threshold. */
+    maxPromptTokens?: number
+    /** Desired prompt size after compression; defaults to 80% of the effective trigger. */
+    targetPromptTokens?: number
+    recentHistoryTokens?: number
+    summaryInputTokens?: number
+    summaryOutputTokens?: number
     /**
      * Compression threshold (fraction of model token limit)
      */
@@ -164,6 +175,11 @@ export interface ContextCompressionMiddlewareOptions {
 }
 
 export interface ResolvedContextCompressionOptions {
+    maxPromptTokens?: number
+    targetPromptTokens?: number
+    recentHistoryTokens?: number
+    summaryInputTokens?: number
+    summaryOutputTokens?: number
     threshold: number
     preserveFraction: number
     toolOutputBudget: number
@@ -172,6 +188,23 @@ export interface ResolvedContextCompressionOptions {
     pruneMinimumTokens: number
     protectedUserTurns: number
 }
+
+export const RecoveryCompressionOptionsSchema = z
+    .object({
+        recoverableHistory: z.boolean().default(true),
+        maxPromptTokens: z.number().int().positive().optional(),
+        targetPromptTokens: z.number().int().positive().optional(),
+        recentHistoryTokens: z.number().int().positive().optional(),
+        summaryInputTokens: z.number().int().min(1024).default(64000),
+        summaryOutputTokens: z.number().int().min(256).default(4096)
+    })
+    .refine(
+        (value) =>
+            !value.maxPromptTokens || !value.targetPromptTokens || value.targetPromptTokens < value.maxPromptTokens,
+        {
+            message: 'targetPromptTokens must be below maxPromptTokens'
+        }
+    )
 
 export interface CompressionExecutionOptions {
     force: boolean

@@ -379,6 +379,27 @@ describe('XpertAgentService', () => {
         })
     })
 
+    it('hides infrastructure-owned tool toggles while keeping their authorized execution available', async () => {
+        const recovery = tool(async () => 'original source record', {
+            name: 'read_context_evidence',
+            description: 'Read archived history',
+            schema: z.object({})
+        })
+        Object.assign(service, {
+            agentMiddlewareRegistry: {
+                get: () => ({
+                    meta: { configurableTools: false },
+                    createMiddleware: async () => ({ tools: [recovery] })
+                })
+            }
+        })
+        const result = await service.getMiddlewareTools('ContextCompressionMiddleware', {})
+        expect(result.tools).toEqual([])
+        await expect(
+            service.testMiddlewareTool('ContextCompressionMiddleware', 'read_context_evidence', {})
+        ).resolves.toBe('original source record')
+    })
+
     it('loads draft features for middleware tool test requests', async () => {
         const invoke = jest.fn().mockResolvedValue('ok')
         const createMiddleware = jest.fn().mockResolvedValue({
