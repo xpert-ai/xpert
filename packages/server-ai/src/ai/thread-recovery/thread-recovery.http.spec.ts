@@ -2,6 +2,7 @@ import { ReadThreadControlViewQuery } from '../../chat-conversation/control-view
 jest.mock('../../core/entities/internal', () => ({ ChatConversation: class {}, ChatConversationThread: class {} }))
 jest.mock('../../chat-conversation/recovery/thread-recovery.service', () => ({ ThreadRecoveryService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
+    Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
     Public: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},

@@ -1,4 +1,6 @@
 import { resourceSkillsSchema } from '../../agent-plugin/commands/agent-plugin-commands.schema'
+import { publicFileAsset } from '../../file-understanding/file-asset-public'
+import { runtimeMessageContent, runtimePresentationError, usesRuntimePresentation } from '../runtime-presentation'
 import type { RuntimeResourceSkillReference } from '@xpert-ai/contracts'
 import { readChatMessageEnvelope } from '../../chat-message/message-envelope.schema'
 import {
@@ -195,6 +197,17 @@ export class ChatMessageDTO {
             if (parsed.success) this.resourceSkills = parsed.data as RuntimeResourceSkillReference[]
         }
         this.model = readModelMetadata(partial.thirdPartyMessage)
+        if (usesRuntimePresentation()) {
+            this.content = runtimeMessageContent(partial.content)
+            this.reasoning = undefined
+            this.error = partial.error ? runtimePresentationError(partial.error) : undefined
+            this.taskSummary = undefined
+            this.runtimeCapabilities = undefined
+            this.resourceSkills = undefined
+            this.model = undefined
+            this.agentRuns = undefined
+            this.fileAssets = partial.fileAssets?.map(publicFileAsset)
+        }
     }
 }
 

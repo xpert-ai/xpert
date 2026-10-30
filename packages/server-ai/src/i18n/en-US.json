@@ -1,4 +1,5 @@
 {
+    "AppPlatform": { "TaskProgress": "Task progress" },
     "AssistantDependency": {
         "UpdateAvailable": "Assistant update available",
         "VersionOnly": "plugin version changed",
@@ -58,6 +59,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ApplicationRuntimeInputDenied": "Application users cannot override model, environment or internal execution configuration.",
+        "ApplicationRuntimeFailed": "The task could not be completed. Please try again or contact support.",
         "application_user_required": "Application user required.",
         "application_organization_required": "Application organization required.",
         "application_organization_denied": "Application organization denied.",

@@ -1,3 +1,7 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { appUserRuntimeAssistant } from '../../xpert/runtime-dto'
+import { runtimeProject } from '../../xpert-project/dto/runtime-project'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IChatConversation, IUser, IXpert, IXpertAgentExecution, IXpertProject } from '@xpert-ai/contracts'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Expose, Transform, TransformFnParams } from 'class-transformer'
@@ -27,7 +31,14 @@ export class ChatConversationPublicDTO {
     @Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))
     executions?: IXpertAgentExecution[]
 
-    constructor(partial: Partial<ChatConversationPublicDTO> | Partial<IChatConversation>) {
-        Object.assign(this, partial)
+    constructor(partial: Partial<IChatConversation>) {
+        Object.assign(this, !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {
+            id: partial.id, threadId: partial.threadId, title: partial.title,
+            xpertId: partial.xpertId, projectId: partial.projectId, purpose: partial.purpose,
+            createdAt: partial.createdAt, updatedAt: partial.updatedAt, status: partial.status,
+            createdById: partial.createdById, from: partial.from,
+            xpert: partial.xpert ? appUserRuntimeAssistant(partial.xpert) : undefined,
+            project: partial.project ? runtimeProject(partial.project) : undefined
+        } : partial)
     }
 }

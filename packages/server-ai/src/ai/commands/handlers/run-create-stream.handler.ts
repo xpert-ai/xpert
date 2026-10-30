@@ -1,3 +1,4 @@
+import { applyRuntimeInputPolicy } from '../../runtime-input-policy'
 import { randomUUID } from 'node:crypto'
 import { legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { recoveryConflict } from '../../../chat-conversation/recovery/recovery-error'
@@ -400,7 +401,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     public async execute(command: RunCreateStreamCommand) {
         const chatSource = getTrustedApiChatSource()
         const threadId = command.threadId
-        const runCreate = command.runCreate
+        const runCreate = applyRuntimeInputPolicy(command.runCreate)
 
         // Resolve the runtime thread independently from its owning conversation.
         const conversationThread = this.conversationThreadService

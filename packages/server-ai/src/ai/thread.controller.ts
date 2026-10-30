@@ -1,5 +1,7 @@
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { runtimeStream, usesRuntimePresentation } from './runtime-presentation'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 import { publicRunControl } from '../chat-conversation/control-view/public-run-control'
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
@@ -307,7 +309,7 @@ export class ThreadsController {
             }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
-                writeSseResponse(req, res, stream)
+                writeSseResponse(req, res, runtimeStream(stream))
                 return
             }
             const owner = buildSseConnectionOwner(req, {
@@ -333,7 +335,7 @@ export class ThreadsController {
                 }
             })
             startSseHeartbeat(res)
-            writeSseResponse(req, res, sseStream)
+            writeSseResponse(req, res, runtimeStream(sseStream))
         } catch (error) {
             console.error('Error starting run stream:')
             console.error(error)
@@ -419,7 +421,7 @@ export class ThreadsController {
             lastEventId,
             mode: 'join',
             requireReplayStart: true,
-            ...(displaySnapshot === '1'
+            ...(displaySnapshot === '1' && !usesRuntimePresentation()
                 ? { snapshotScope: { tenantId: execution.tenantId, organizationId: execution.organizationId } }
                 : {}),
             isRunFinished: async () => {
@@ -434,7 +436,7 @@ export class ThreadsController {
         })
 
         startSseHeartbeat(res)
-        return stream
+        return runtimeStream(stream)
     }
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
@@ -599,7 +601,10 @@ function transformRun(execution: TAgentExecutionRunSummary) {
         created_at: execution.createdAt.toISOString(),
         updated_at: execution.updatedAt.toISOString(),
         status: execution.status,
-        metadata: { ...execution.metadata, agentRun: toAgentRunSummary(execution) } as Metadata
+        metadata: {
+            ...(!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {} : execution.metadata),
+            agentRun: toAgentRunSummary(execution)
+        } as Metadata
     } as Run
 }
 

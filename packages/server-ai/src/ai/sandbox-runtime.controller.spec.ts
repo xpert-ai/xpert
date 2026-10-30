@@ -10,6 +10,7 @@ import { sign } from 'jsonwebtoken'
 import type { DataSource } from 'typeorm'
 import {
     AIPermissionsEnum,
+    RolesEnum,
     ApiKeyBindingType,
     IApiKey,
     ISecretToken,
@@ -18,6 +19,7 @@ import {
 } from '@xpert-ai/contracts'
 import { RequestContext, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
+import { EndpointPermissionInterceptor } from '../../../server/src/shared/guards/endpoint-permission.interceptor'
 import { AuthGuard } from '../../../server/src/shared/guards/auth.guard'
 import { SecretTokenStrategy } from '../../../server/src/secret-token/secret-token.strategy'
 import { SecretTokenService } from '../../../server/src/secret-token/secret-token.service'
@@ -54,7 +56,8 @@ describe('AI sandbox runtime HTTP authentication', () => {
     const actor = {
         id: 'user',
         tenantId: 'tenant',
-        role: { rolePermissions: [{ permission: AIPermissionsEnum.XPERT_PROJECT_CREATE, enabled: true }] }
+        roleId: 'role',
+        role: { id: 'role', rolePermissions: [] }
     } as IUser
     const tokens = new Map<string, ISecretToken>()
     const apiKeys = new Map<string, IApiKey>()
@@ -111,7 +114,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
         const providers = [
             { provide: I18nService, useValue: {} },
             { provide: CommandBus, useValue: {} },
-            { provide: QueryBus, useValue: {} },
+            { provide: QueryBus, useValue: { execute: jest.fn(async () => undefined) } },
             { provide: getRepositoryToken(ChatConversation), useValue: conversations },
             { provide: getRepositoryToken(ChatConversationThread), useValue: threads },
             { provide: SandboxConversationContextService, useValue: {} },
@@ -169,6 +172,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
         const context = new RequestContextMiddleware()
         app.use(context.use.bind(context))
         app.useGlobalGuards(new AuthGuard(app.get(Reflector)))
+        app.useGlobalInterceptors(new EndpointPermissionInterceptor(app.get(Reflector)))
         await app.listen(0, '127.0.0.1')
         origin = await app.getUrl()
     })
@@ -179,6 +183,11 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        actor.role.name = RolesEnum.ADMIN
+        actor.role.rolePermissions = [AIPermissionsEnum.XPERT_PROJECT_CREATE, AIPermissionsEnum.CHAT_VIEW,
+            AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT].map(permission => ({
+                permission, enabled: true, tenantId: 'tenant', roleId: 'role', role: { id: 'role', name: RolesEnum.ADMIN }
+            }))
         tokens.clear()
         apiKeys.clear()
         apiKeys.set('sk-x-valid', {
@@ -212,10 +221,10 @@ describe('AI sandbox runtime HTTP authentication', () => {
             }
         })
         conversations.findOneBy.mockResolvedValue(null)
-        services.listByThreadId.mockImplementation(async () => ({
+        services.listByThreadId.mockImplementation(async () => ([{
             actor: RequestContext.currentUserId(),
             canCreate: RequestContext.hasPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
-        }))
+        }]))
         services.stopByThreadId.mockResolvedValue({ id: 'service', status: 'stopped' })
     })
 
@@ -229,7 +238,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
     it('accepts the AI SDK route and restores user permissions from a real client-secret strategy', async () => {
         const response = await request('threads/thread/services?organizationId=org')
         expect(response.status).toBe(200)
-        expect(await response.json()).toEqual({ actor: 'user', canCreate: true })
+        expect(await response.json()).toEqual([{ actor: 'user', canCreate: true }])
         expect(services.listByThreadId).toHaveBeenCalledWith('thread')
     })
 
@@ -255,7 +264,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
         })
         const response = await request(undefined, personalToken)
         expect(response.status).toBe(200)
-        expect(await response.json()).toEqual({ actor: actor.id, canCreate: true })
+        expect(await response.json()).toEqual([{ actor: actor.id, canCreate: true }])
         expect(
             (
                 await fetch(`${origin}/api/sandbox/threads/thread/services`, {
@@ -378,6 +387,19 @@ describe('AI sandbox runtime HTTP authentication', () => {
     it('preserves downstream workspace access rejection', async () => {
         services.listByThreadId.mockRejectedValueOnce(new ForbiddenException())
         expect((await request()).status).toBe(403)
+    })
+
+    it('allows application users to read preview status without commands, while denying service administration', async () => {
+        actor.role.name = RolesEnum.APP_USER
+        actor.role.rolePermissions = actor.role.rolePermissions.filter((grant) =>
+            ![AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT].includes(grant.permission as AIPermissionsEnum))
+        services.listByThreadId.mockResolvedValue([{ id: 'service', conversationId: 'conversation', name: 'Preview',
+            status: 'running', command: 'private command', metadata: { environment: 'private' }, runtimeRef: 'private-runtime' }])
+        const response = await request()
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual([{ id: 'service', conversationId: 'conversation', name: 'Preview', status: 'running' }])
+        expect((await request('threads/thread/services/service/stop', 'cs-x-valid', 'POST')).status).toBe(403)
+        expect(services.stopByThreadId).not.toHaveBeenCalled()
     })
 
     it('authenticates service stop operations too', async () => {

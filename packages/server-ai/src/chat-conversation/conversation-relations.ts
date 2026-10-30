@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { t } from 'i18next'
 
@@ -17,7 +19,9 @@ export function assertSafeChatConversationRelations(relations: unknown): asserts
         relations.some(
             (relation) =>
                 typeof relation !== 'string' ||
-                relation.split('.').some((segment) => SENSITIVE_CONVERSATION_RELATIONS.has(segment))
+                relation.split('.').some((segment) => SENSITIVE_CONVERSATION_RELATIONS.has(segment)) ||
+                (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) &&
+                    !['xpert', 'project', 'createdBy', 'messages'].includes(relation))
         )
     ) {
         throw new ForbiddenException(

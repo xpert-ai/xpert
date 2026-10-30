@@ -17,6 +17,7 @@ import {
 } from '@xpert-ai/server-core'
 import {
     BadRequestException,
+    ForbiddenException,
     Body,
     Controller,
     Get,
@@ -31,12 +32,13 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
 import { GetRuntimeCapabilitiesCommand } from '../xpert/runtime-capabilities/get-runtime-capabilities.command'
-import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
+import { normalizeContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
 import { t } from 'i18next'
 import { AssistantModelSelectionService, PublishedXpertAccessService } from '../xpert'
 import { applyAssistantScope } from './assistant-request-context'
+import { appUserRuntimeAssistant } from '../xpert/runtime-dto'
 import {
     getRuntimePrimaryAgentKey,
     RUNTIME_CAPABILITY_XPERT_RELATIONS
@@ -102,6 +104,9 @@ export class AssistantsController {
         const sourceXpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
         })
+        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) && parseQueryBoolean(isDraft)) {
+            throw new ForbiddenException(t('server-ai:Error.ApplicationAuthoringDenied'))
+        }
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
         return this.commandBus.execute(new GetRuntimeCapabilitiesCommand(xpert, id, projectId))
     }
@@ -153,7 +158,9 @@ function transformAssistant(xpert: IXpert) {
     )
     const config = omitBy(
         {
-            ...pick(xpert, 'agentConfig', 'options', 'summarize', 'memory', 'features'),
+            ...(!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW)
+                ? { options: appUserRuntimeAssistant(xpert).options }
+                : pick(xpert, 'agentConfig', 'options', 'summarize', 'memory', 'features')),
             configurable: Object.keys(configurable).length ? configurable : undefined
         },
         isNil

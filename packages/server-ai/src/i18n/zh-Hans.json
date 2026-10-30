@@ -1,4 +1,5 @@
 {
+    "AppPlatform": { "TaskProgress": "任务进度" },
     "AssistantDependency": {
         "UpdateAvailable": "助理有可用更新",
         "VersionOnly": "插件版本变化",
@@ -58,6 +59,8 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ApplicationRuntimeInputDenied": "应用用户不能覆盖模型、环境或内部执行配置。",
+        "ApplicationRuntimeFailed": "任务未能完成，请重试或联系平台支持。",
         "application_user_required": "请使用已验证的应用账号登录。",
         "application_organization_required": "应用操作暂时无法完成，请重试或联系管理员。",
         "application_organization_denied": "当前组织与账号所属组织不一致。",

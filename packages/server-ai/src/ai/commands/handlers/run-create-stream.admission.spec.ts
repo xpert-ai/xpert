@@ -51,6 +51,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     return {
         ...actual,
         RequestContext: {
+            hasPermission: jest.fn(() => true),
             currentApiKey: jest.fn(),
             currentApiPrincipal: jest.fn(),
             currentRequest: jest.fn(),

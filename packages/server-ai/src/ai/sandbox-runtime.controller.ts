@@ -14,7 +14,8 @@ import {
     UseInterceptors
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { TSandboxManagedServiceStartInput } from '@xpert-ai/contracts'
+import { TSandboxManagedServiceStartInput, ISandboxManagedService } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Request, Response } from 'express'
 import { SandboxManagedServiceService } from '../sandbox/sandbox-managed-service.service'
@@ -40,18 +41,18 @@ export class SandboxRuntimeController {
 
     @Get()
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
-    list(@Param('threadId') threadId: string, @Query('organizationId') organizationId?: string) {
-        return this.run(organizationId, () => this.services.listByThreadId(threadId))
+    async list(@Param('threadId') threadId: string, @Query('organizationId') organizationId?: string) {
+        return (await this.run(organizationId, () => this.services.listByThreadId(threadId))).map(publicService)
     }
 
     @Get(':serviceId')
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
-    get(
+    async get(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,
         @Query('organizationId') organizationId?: string
     ) {
-        return this.run(organizationId, () => this.services.getByThreadId(threadId, serviceId))
+        return publicService(await this.run(organizationId, () => this.services.getByThreadId(threadId, serviceId)))
     }
 
     @Post('start')
@@ -121,4 +122,13 @@ export class SandboxRuntimeController {
             throw error
         }
     }
+}
+
+function publicService(service: ISandboxManagedService) {
+    return !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {
+        id: service.id, conversationId: service.conversationId, name: service.name,
+        status: service.status, actualPort: service.actualPort, previewPath: service.previewPath,
+        previewUrl: service.previewUrl, transportMode: service.transportMode,
+        startedAt: service.startedAt, stoppedAt: service.stoppedAt
+    } : service
 }
