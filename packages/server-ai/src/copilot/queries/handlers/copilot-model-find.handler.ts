@@ -124,15 +124,8 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                             models.push(model)
                         }
                     })
-                    const selectedModel = selectedCopilotModelAsProviderModel(copilot.copilotModel, command.type)
-                    if (
-                        !membershipCatalog &&
-                        !configuredOnly &&
-                        selectedModel &&
-                        !models.some((_) => _.model === selectedModel.model)
-                    ) {
-                        models.push(selectedModel)
-                    }
+                    // Saved selections are references, not model definitions. A renamed/deleted
+                    // selection must remain unavailable until the user explicitly selects a valid model.
 
                     if (models.length) {
                         const providerSchema = provider.getProviderSchema()
@@ -200,38 +193,4 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
         }
         return copilots.filter((copilot) => copilot.providerWithModels.models.length)
     }
-}
-
-/**
- * Re-exposes the copilot's current selected model as a ProviderModel when that
- * model is not listed by built-in or custom provider model sources.
- */
-function selectedCopilotModelAsProviderModel(
-    copilotModel: { model?: string | null; modelType?: AiModelTypeEnum | string | null } | null | undefined,
-    modelType: AiModelTypeEnum
-): ProviderModel | null {
-    const model = readString(copilotModel?.model)
-    const selectedModelType = readString(copilotModel?.modelType)
-    if (!model || selectedModelType !== modelType) {
-        return null
-    }
-
-    return {
-        model,
-        model_type: modelType,
-        fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
-        model_properties: {},
-        features: [],
-        label: {
-            zh_Hans: model,
-            en_US: model
-        }
-    }
-}
-
-/**
- * Normalizes optional string-like fields before model id comparisons.
- */
-function readString(value: unknown) {
-    return typeof value === 'string' ? value.trim() : ''
 }

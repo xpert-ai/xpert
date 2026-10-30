@@ -6482,6 +6482,7 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "SavedModelUnavailable": "已保存的模型不可用，请重新选择模型。",
       "CredentialValidation": {
         "Model": "测试模型或接入点 ID",
         "ModelType": "模型类型",
