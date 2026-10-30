@@ -1,8 +1,10 @@
 // Retry follows an execution-owned input boundary. Never substitute the thread's latest state.
-import type { CheckpointTuple } from '@langchain/langgraph-checkpoint'
 import type { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { QueryBus } from '@nestjs/cqrs'
-import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries/get-tuple.query'
+import {
+    CopilotCheckpointGetMetadataQuery,
+    CopilotCheckpointMetadata
+} from '../../copilot-checkpoint/queries/get-metadata.query'
 import { readExecutionRecovery } from './execution-recovery.schema'
 import { recoveryConflict } from './recovery-error'
 
@@ -37,15 +39,15 @@ export async function resolveRetryInputCheckpointId(
         throw recoveryConflict('conversation_graph_changed', options.execution?.error)
     checkpointId = recovery.input.checkpointId
     if (options.requestedCheckpointId && options.requestedCheckpointId !== checkpointId) throw unavailable()
-    const tuple = await queryBus.execute<CopilotCheckpointGetTupleQuery, CheckpointTuple | null>(
-        new CopilotCheckpointGetTupleQuery({ thread_id: threadId, checkpoint_ns: '', checkpoint_id: checkpointId })
+    const checkpoint = await queryBus.execute<CopilotCheckpointGetMetadataQuery, CopilotCheckpointMetadata | null>(
+        new CopilotCheckpointGetMetadataQuery({ thread_id: threadId, checkpoint_ns: '', checkpoint_id: checkpointId })
     )
-    const ref = tuple?.config?.configurable
+    const ref = checkpoint?.config?.configurable
     if (
         ref?.thread_id !== threadId ||
         (ref.checkpoint_ns ?? '') !== '' ||
         ref.checkpoint_id !== checkpointId ||
-        tuple.metadata?.source !== 'input'
+        checkpoint.metadata?.source !== 'input'
     )
         throw unavailable()
     return checkpointId
