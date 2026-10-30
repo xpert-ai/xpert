@@ -1,7 +1,11 @@
+// Invariant: unchanged metadata keeps its original bytes. Formatting-only writes
+// can require an unrelated application image release during Changesets versioning.
+// Real version and checksum changes still propagate before dependent hashes are read.
 import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isDeepStrictEqual } from 'node:util'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const suite = await readJson('package.json')
@@ -108,5 +112,6 @@ async function readOptionalJson(relativePath) {
   }
 }
 async function writeJson(relativePath, value) {
+  if (isDeepStrictEqual(await readJson(relativePath), value)) return
   await writeFile(path.join(packageRoot, relativePath), `${JSON.stringify(value, null, 2)}\n`)
 }
