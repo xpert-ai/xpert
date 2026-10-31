@@ -1,0 +1,2 @@
+export const dateTimeCalendarClasses =
+  'w-full border-0 p-0 shadow-none [&_z-calendar-navigation>div]:w-full [&_z-calendar-grid>div]:w-full [&_z-calendar-grid_[role=row]]:w-full [&_z-calendar-grid_[role=rowgroup]]:w-full [&_z-calendar-grid_[role=columnheader]]:w-full [&_z-calendar-grid_[role=columnheader]]:text-[14px] [&_z-calendar-grid_[role=gridcell]]:h-[44px] [&_z-calendar-grid_[role=gridcell]]:w-full [&_z-calendar-grid_button]:text-[14px]'

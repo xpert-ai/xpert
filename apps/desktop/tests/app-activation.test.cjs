@@ -121,6 +121,7 @@ test('native sidebar consumes host snapshots without a renderer timer, including
   const { useAssistantList } = renderer(
     'useAssistantList.ts',
     {
+      './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
       './host': {
         invoke: async (method, input) => {
           calls.push({ method, input })
@@ -211,6 +212,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
   const { useAssistantList } = renderer(
     'useAssistantList.ts',
     {
+      './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
       './host': host,
       './i18n': i18n,
       './app-activation': activation
@@ -220,6 +222,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
   const { App } = renderer(
     'App.tsx',
     {
+      './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
       './host': host,
       './i18n': i18n,
       './app-activation': activation,

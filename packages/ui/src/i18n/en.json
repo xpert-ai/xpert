@@ -40,5 +40,18 @@
   },
   "chipGrid": {
     "emptyPlaceholder": "Select or add items"
+  },
+  "dateTimePicker": {
+    "chooseDateTime": "Choose date and time",
+    "time": "Time",
+    "timeFormat": "Use HH:mm, for example 09:30.",
+    "now": "Now",
+    "confirm": "Confirm",
+    "hour": "Hour",
+    "minute": "Minute",
+    "selectHour": "Select hour (24-hour clock)",
+    "selectMinute": "Select minute",
+    "clockHint": "Choose the hour, then the minute. Drag the hand or use arrow keys.",
+    "clear": "Clear"
   }
 }
