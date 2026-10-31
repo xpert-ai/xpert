@@ -70,7 +70,10 @@ function setup(options: { embeddingsAvailable?: boolean; rerankAvailable?: boole
     })
     const repository = { findOne: jest.fn(async () => knowledgebase) }
     const workspaceAccess = { assertCan: jest.fn() }
-    const command = jest.fn(async () => ({ structuredSimilaritySearchWithScore: async () => ({ items: [] }) }))
+    const command = jest.fn(async () => ({
+        _vectorstoreType: () => VectorTypeEnum.PGVECTOR,
+        structuredSimilaritySearchWithScore: async () => ({ items: [] })
+    }))
     const service = new KnowledgebaseService(
         repository as unknown as Repository<Knowledgebase>,
         workspaceAccess as unknown as XpertWorkspaceAccessService,

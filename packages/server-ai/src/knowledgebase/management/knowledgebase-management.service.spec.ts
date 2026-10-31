@@ -1,6 +1,6 @@
 import { VectorTypeEnum } from '@xpert-ai/contracts'
 
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ConflictException } from '@nestjs/common'
 import {
     KnowledgebasePermission,
     KnowledgebaseTypeEnum,
@@ -227,101 +227,144 @@ describe('Knowledgebase management', () => {
         expect(result.graphRag).toEqual(expect.objectContaining({ enabled: false, mode: 'hybrid' }))
     })
 
-    it('stops and unpublishes a knowledge pipeline before deleting the knowledgebase', async () => {
-        const graph: TXpertGraph = {
-            nodes: [
-                {
-                    key: 'Trigger_1',
-                    type: 'workflow',
-                    position: {
-                        x: 0,
-                        y: 0
-                    },
-                    entity: {
-                        id: 'trigger-1',
+    it.each([false, true])(
+        'protects bound pipelines and cleans up unbound pipelines before deletion (bound=%s)',
+        async (bound) => {
+            const graph: TXpertGraph = {
+                nodes: [
+                    {
                         key: 'Trigger_1',
-                        type: WorkflowNodeTypeEnum.TRIGGER,
-                        from: 'schedule',
-                        config: {
-                            enabled: true,
-                            cron: '* * * * *',
-                            task: 'sync'
-                        }
-                    } as IWFNTrigger
-                }
-            ],
-            connections: []
-        }
-        const pipeline = {
-            id: 'xpert-1',
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            active: true,
-            publishAt: new Date('2026-06-24T08:00:00.000Z'),
-            graph
-        } as IXpert
-        const knowledgebase = {
-            id: 'kb-1',
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            workspaceId: null,
-            createdById: 'user-1',
-            pipelineId: pipeline.id,
-            pipeline
-        } as Knowledgebase
-        const repository: jest.Mocked<KnowledgebaseRepositoryMock> = {
-            findOne: jest.fn().mockResolvedValue(knowledgebase),
-            delete: jest.fn().mockResolvedValue({
-                affected: 1,
-                raw: []
-            } as DeleteResult)
-        }
-        const commandBus: jest.Mocked<CommandBusMock> = {
-            execute: jest.fn().mockResolvedValue(undefined)
-        }
-        const xpertService: jest.Mocked<XpertServiceMock> = {
-            updateXpert: jest.fn().mockResolvedValue({
-                id: pipeline.id
-            } as IXpert)
-        }
-        const service = createService({
-            repository,
-            commandBus,
-            xpertService
-        })
-
-        await runInRequestContext(() => service.delete('kb-1'))
-
-        const publishCommand = commandBus.execute.mock.calls[0]?.[0]
-        expect(publishCommand).toBeInstanceOf(XpertPublishTriggersCommand)
-        expect((publishCommand as XpertPublishTriggersCommand).xpert).toEqual(
-            expect.objectContaining({
-                id: pipeline.id,
-                graph: {
-                    nodes: [],
-                    connections: []
-                }
+                        type: 'workflow',
+                        position: {
+                            x: 0,
+                            y: 0
+                        },
+                        entity: {
+                            id: 'trigger-1',
+                            key: 'Trigger_1',
+                            type: WorkflowNodeTypeEnum.TRIGGER,
+                            from: 'schedule',
+                            config: {
+                                enabled: true,
+                                cron: '* * * * *',
+                                task: 'sync'
+                            }
+                        } as IWFNTrigger
+                    }
+                ],
+                connections: []
+            }
+            const pipeline = {
+                id: 'xpert-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                active: true,
+                publishAt: new Date('2026-06-24T08:00:00.000Z'),
+                graph
+            } as IXpert
+            const knowledgebase = {
+                id: 'kb-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: null,
+                createdById: 'user-1',
+                pipelineId: pipeline.id,
+                pipeline
+            } as Knowledgebase
+            const repository: jest.Mocked<KnowledgebaseRepositoryMock> = {
+                findOne: jest.fn().mockResolvedValue(knowledgebase),
+                delete: jest.fn().mockResolvedValue({
+                    affected: 1,
+                    raw: []
+                } as DeleteResult)
+            }
+            const commandBus: jest.Mocked<CommandBusMock> = {
+                execute: jest.fn().mockResolvedValue(undefined)
+            }
+            const xpertService: jest.Mocked<XpertServiceMock> = {
+                updateXpert: jest.fn().mockResolvedValue({
+                    id: pipeline.id
+                } as IXpert)
+            }
+            const bindingQuery = {
+                withDeleted: jest.fn().mockReturnThis(),
+                innerJoin: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                getExists: jest.fn().mockResolvedValue(bound)
+            }
+            const runner = {
+                connect: jest.fn(),
+                startTransaction: jest.fn(),
+                query: jest.fn(),
+                commitTransaction: jest.fn(),
+                rollbackTransaction: jest.fn(),
+                release: jest.fn(),
+                isTransactionActive: true
+            }
+            Object.assign(repository, {
+                manager: {
+                    query: jest.fn().mockResolvedValue([{ enrolled: false }]),
+                    connection: { createQueryRunner: () => runner }
+                },
+                createQueryBuilder: () => bindingQuery
             })
-        )
-        expect((publishCommand as XpertPublishTriggersCommand).options).toEqual({
-            strict: false,
-            previousGraph: graph
-        })
-        expect(xpertService.updateXpert).toHaveBeenCalledWith(
-            pipeline.id,
-            expect.objectContaining({
-                active: false,
-                publishAt: null,
-                deletedAt: expect.any(Date)
+            const service = createService({
+                repository,
+                commandBus,
+                xpertService
             })
-        )
-        expect(commandBus.execute.mock.invocationCallOrder[0]).toBeLessThan(
-            repository.delete.mock.invocationCallOrder[0]
-        )
-        expect(xpertService.updateXpert.mock.invocationCallOrder[0]).toBeLessThan(
-            repository.delete.mock.invocationCallOrder[0]
-        )
-    })
+
+            if (bound) {
+                await expect(runInRequestContext(() => service.delete('kb-1'))).rejects.toBeInstanceOf(
+                    ConflictException
+                )
+                expect(commandBus.execute).not.toHaveBeenCalled()
+                expect(xpertService.updateXpert).not.toHaveBeenCalled()
+                expect(repository.delete).not.toHaveBeenCalled()
+                expect(runner.rollbackTransaction).toHaveBeenCalledTimes(1)
+                expect(runner.release).toHaveBeenCalledTimes(1)
+                return
+            }
+            await runInRequestContext(() => service.delete('kb-1'))
+            expect(bindingQuery.getExists.mock.invocationCallOrder[0]).toBeLessThan(
+                commandBus.execute.mock.invocationCallOrder[0]
+            )
+            expect(repository.delete.mock.invocationCallOrder[0]).toBeLessThan(
+                runner.commitTransaction.mock.invocationCallOrder[0]
+            )
+            expect(runner.release).toHaveBeenCalledTimes(1)
+
+            const publishCommand = commandBus.execute.mock.calls[0]?.[0]
+            expect(publishCommand).toBeInstanceOf(XpertPublishTriggersCommand)
+            expect((publishCommand as XpertPublishTriggersCommand).xpert).toEqual(
+                expect.objectContaining({
+                    id: pipeline.id,
+                    graph: {
+                        nodes: [],
+                        connections: []
+                    }
+                })
+            )
+            expect((publishCommand as XpertPublishTriggersCommand).options).toEqual({
+                strict: false,
+                previousGraph: graph
+            })
+            expect(xpertService.updateXpert).toHaveBeenCalledWith(
+                pipeline.id,
+                expect.objectContaining({
+                    active: false,
+                    publishAt: null,
+                    deletedAt: expect.any(Date)
+                })
+            )
+            expect(commandBus.execute.mock.invocationCallOrder[0]).toBeLessThan(
+                repository.delete.mock.invocationCallOrder[0]
+            )
+            expect(xpertService.updateXpert.mock.invocationCallOrder[0]).toBeLessThan(
+                repository.delete.mock.invocationCallOrder[0]
+            )
+        }
+    )
 
     it('keeps knowledgebase identity, scope, and audit ownership server-controlled on update', async () => {
         const knowledgebase = {
