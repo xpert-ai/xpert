@@ -1,3 +1,4 @@
+import { assertAppPlatformUpload } from '../shared/app-platform-resource-policy'
 import { assertGroupWorkspaceFileAccess } from './workspace-files/group-workspace-file-access'
 import { createConversationWorkspaceVolumeClient } from './workspace-files/conversation-workspace-volume'
 import { isGroupRuntime } from '../chat-group/group-runtime-context'
@@ -677,6 +678,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         folderPath: string,
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
+        await assertAppPlatformUpload(this.commandBus, file.buffer.length)
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
         const uploadPath = normalizeRelativePath(

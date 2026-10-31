@@ -1,3 +1,4 @@
+import { AssertAppPlatformUploadHandler } from '../../plugin-resource/app-platform/app-platform-upload.handler'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
@@ -19,7 +20,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { FindOneOptions, Repository } from 'typeorm'
+import { DataSource, FindOneOptions, Repository } from 'typeorm'
 import { VolumeHandle, XpertDataVolumeScope } from '../../shared/volume'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { XpertWorkspace } from '../../xpert-workspace/workspace.entity'
@@ -143,6 +144,11 @@ describe('Assistant file authority integration', () => {
             imports: [CqrsModule],
             providers: [
                 AssistantFileAccessService,
+                AssertAppPlatformUploadHandler,
+                {
+                    provide: DataSource,
+                    useValue: { manager: { getRepository: () => ({ findOneBy: async () => null }) } }
+                },
                 { provide: PublishedXpertAccessService, useValue: published },
                 { provide: XpertService, useValue: xperts }
             ]

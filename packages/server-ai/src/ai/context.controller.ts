@@ -1,5 +1,6 @@
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { assertAppPlatformUpload } from '../shared/app-platform-resource-policy'
 import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
@@ -98,6 +99,7 @@ export class ContextsController {
         @Body('xpertId') xpertId?: string,
         @Body('workspacePath') workspacePath?: string
     ): Promise<AgentFile | IFileAssetDestination> {
+        await assertAppPlatformUpload(this.commandBus, file.buffer.length)
         const target = resolveExternalStorageUploadTarget(targetValue, {
             kind: 'storage',
             directory: 'contexts',

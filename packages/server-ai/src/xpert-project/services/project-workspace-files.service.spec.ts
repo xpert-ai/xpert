@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { AssertAppPlatformUploadCommand } from '../../shared/app-platform-resource-policy'
 import { VolumeHandle } from '../../shared/volume'
 import { XpertProjectAccessService } from './project-access.service'
 import { XpertProjectContentService } from './project-content.service'
@@ -21,6 +22,7 @@ describe('XpertProjectWorkspaceFilesService', () => {
     }
     let service: XpertProjectWorkspaceFilesService
     let assertUnmanaged: jest.Mock
+    let commands: { execute: jest.Mock }
 
     beforeEach(async () => {
         root = await mkdtemp(path.join(tmpdir(), 'xpert-project-files-'))
@@ -52,17 +54,33 @@ describe('XpertProjectWorkspaceFilesService', () => {
             root,
             'http://localhost/project/project-1'
         )
+        commands = { execute: jest.fn().mockResolvedValue(undefined) }
         assertUnmanaged = jest.fn().mockResolvedValue(undefined)
         service = new XpertProjectWorkspaceFilesService(
             accessService as unknown as XpertProjectAccessService,
             contentService as unknown as XpertProjectContentService,
             { resolve: jest.fn().mockReturnValue(volume) },
-            { assertUnmanaged } as never
+            { assertUnmanaged } as never,
+            commands as never
         )
     })
 
     afterEach(async () => {
         await rm(root, { recursive: true, force: true })
+    })
+
+    it('rejects an oversized upload before writing Project files', async () => {
+        const failure = new Error('upload too large')
+        commands.execute.mockRejectedValueOnce(failure)
+        await expect(
+            service.uploadToFolder('project-1', 'shared', {
+                originalname: 'new.txt',
+                buffer: Buffer.from('oversized')
+            })
+        ).rejects.toBe(failure)
+        expect(commands.execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(9))
+        await expect(readFile(path.join(root, 'shared/new.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+        expect(contentService.initializeById).not.toHaveBeenCalled()
     })
 
     it('does not let legacy Project text saving overwrite a collaborative resource', async () => {

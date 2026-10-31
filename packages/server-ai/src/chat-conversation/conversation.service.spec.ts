@@ -765,6 +765,18 @@ describe('ChatConversationService workspace files', () => {
         expect(getDownloadTarget).toHaveBeenCalledWith('', 'docs')
     })
 
+    it('rejects oversized workspace uploads before resolving a destination', async () => {
+        const failure = new Error('upload too large')
+        commandBus.execute.mockRejectedValueOnce(failure)
+        await expect(
+            service.uploadWorkspaceFile('conversation-1', '', {
+                originalname: 'new.txt',
+                buffer: Buffer.from('oversized')
+            })
+        ).rejects.toBe(failure)
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
+    })
+
     it('saves files inside the current conversation workspace', async () => {
         const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const saveWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile').mockResolvedValue({
