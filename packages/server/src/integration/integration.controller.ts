@@ -1,4 +1,4 @@
-import { IIntegration, IntegrationEnum, IntegrationFeatureEnum } from '@xpert-ai/contracts'
+import { IIntegration, IntegrationEnum, IntegrationUsage } from '@xpert-ai/contracts'
 import {
 	Body,
 	Controller,
@@ -13,11 +13,11 @@ import {
 	Query,
 	UseInterceptors,
 	DefaultValuePipe,
-	ParseBoolPipe
+	ParseBoolPipe,
+	ParseEnumPipe
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
-import { FindOptionsWhere } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { TransformInterceptor } from '../core/interceptors'
 import { ParseJsonPipe, UUIDValidationPipe } from '../shared/pipes'
@@ -61,26 +61,20 @@ export class IntegrationController extends CrudController<Integration> {
 	async getSelectOptions(
 		@Query('provider') provider: string | IntegrationEnum,
 		@Query('features') features: string,
-		@Query('tenantOnly', new DefaultValuePipe(false), ParseBoolPipe) tenantOnly = false
+		@Query('tenantOnly', new DefaultValuePipe(false), ParseBoolPipe) tenantOnly = false,
+		@Query(
+			'usage',
+			new DefaultValuePipe('invoke'),
+			new ParseEnumPipe({ configuration: 'configuration', invoke: 'invoke', bind: 'bind' })
+		)
+		usage: IntegrationUsage = 'invoke'
 	) {
-		const _features = features?.split(',') as IntegrationFeatureEnum[]
-		const where: FindOptionsWhere<Integration> = provider ? { provider } : {}
-		const providers = new Map(this.service.getProviders().map((item) => [item.name, item]))
-		// if (_features?.length) {
-		// 	where.features = Raw((alias) => `${alias} @> :features`, { features: _features })
-		// }
-		const { items } = tenantOnly
-			? await this.service.findAllWithoutOrganization({ where })
-			: await this.service.findAll({ where })
-		return items
-			.filter((item) => (_features ? _features.every((feature) => item.features?.includes(feature)) : true))
-			.map((item) => ({
-				value: item.id,
-				label: item.name,
-				description: item.description,
-				icon: providers.get(item.provider)?.icon,
-				avatar: providers.get(item.provider)?.avatar
-			}))
+		const items = await this.service.availableForUsage({
+			provider,
+			features,
+			usage: tenantOnly ? 'configuration' : usage
+		})
+		return tenantOnly ? items.filter((item) => item.scopeLevel === 'tenant') : items
 	}
 
 	@Get('providers')

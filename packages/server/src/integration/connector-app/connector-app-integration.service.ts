@@ -12,6 +12,7 @@ import type {
 	ConnectorIntegrationSelection
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { canConsumeIntegration } from '../sharing/integration-sharing.policy'
 import { Integration } from '../integration.entity'
 import { CheckRolePermissionCommand } from '../../role-permission/commands/check-role-permission.command'
 
@@ -32,7 +33,10 @@ export class ConnectorAppIntegrationService {
 			where: this.where(scope, descriptor.provider),
 			order: { createdAt: 'ASC' }
 		})
-		return integrations.filter((item) => this.configured(item.options, descriptor)).map(publicOption)
+		return integrations
+			.filter((item) => canConsumeIntegration(item, scope, 'configuration'))
+			.filter((item) => this.configured(item.options, descriptor))
+			.map(publicOption)
 	}
 
 	async select(scope: Scope, descriptor: Descriptor, id: string): Promise<ConnectorIntegrationOption> {
@@ -40,7 +44,12 @@ export class ConnectorAppIntegrationService {
 		const integration = await this.repository.findOne({
 			where: this.where(scope, descriptor.provider).map((where) => ({ ...where, id }))
 		})
-		if (!integration || !this.configured(integration.options, descriptor)) throw unavailable()
+		if (
+			!integration ||
+			!canConsumeIntegration(integration, scope, 'configuration') ||
+			!this.configured(integration.options, descriptor)
+		)
+			throw unavailable()
 		return publicOption(integration)
 	}
 

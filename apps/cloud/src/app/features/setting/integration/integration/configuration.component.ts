@@ -30,6 +30,7 @@ import {
   type IntegrationTestResult
 } from '../../../../@core'
 import { IntegrationProviderSelectComponent } from '../integration-provider-select.component'
+import { IntegrationSharingComponent } from './sharing.component'
 import { IntegrationQrDialogComponent, IntegrationQrDialogData } from './integration-qr-dialog.component'
 import { OrganizationSelectorComponent } from '../../../../@theme/header/organization-selector/organization-selector.component'
 
@@ -56,6 +57,7 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
     ZardInputDirective,
     ZardButtonComponent,
     IntegrationProviderSelectComponent,
+    IntegrationSharingComponent,
     OrganizationSelectorComponent,
     XpSpinComponent,
     EmojiAvatarComponent,
@@ -92,6 +94,7 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
   readonly paramId = injectParams('id')
 
   readonly providersResource = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
+  readonly sharingForm = viewChild(IntegrationSharingComponent)
   readonly optionsForm = viewChild('optionsForm', { read: ParameterFormComponent })
 
   readonly formGroup = new FormGroup({
@@ -237,7 +240,7 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
   }
 
   isDirty(): boolean {
-    return this.formGroup.dirty
+    return this.formGroup.dirty || !!this.sharingForm()?.dirty()
   }
 
   createByQr() {

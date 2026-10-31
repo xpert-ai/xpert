@@ -1293,7 +1293,11 @@
         "ArtifactCopyDenied": "This artifact type cannot be copied into another project.",
         "UnsafeTemplateSyncPath": "Cannot synchronize template path {{file}}: symbolic links and special files are not supported.",
         "InvalidTemplateSyncManifest": "Template synchronization manifest {{file}} is invalid. Restore it from a backup before retrying; no template assets were changed.",
-        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation."
+        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation.",
+        "IntegrationSharingAdminRequired": "Only a tenant administrator can manage integration sharing",
+        "IntegrationUnavailable": "Integration is unavailable or unauthorized",
+        "IntegrationSharingOrganizationInvalid": "Select active organizations in the current tenant",
+        "IntegrationSharingInvalid": "Invalid integration access policy or query"
     },
     "Mcp": {
         "Test": {

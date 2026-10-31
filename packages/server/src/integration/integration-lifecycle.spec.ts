@@ -113,6 +113,28 @@ describe('Integration lifecycle', () => {
 		expect(service.create).not.toHaveBeenCalled()
 	})
 
+	it('does not accept sharing or ownership changes through ordinary create and update', async () => {
+		const input = {
+			name: 'Renamed',
+			provider: 'github',
+			tenantId: 'foreign',
+			organizationId: 'foreign-org',
+			sharing: { visibility: 'all-organizations' as const, organizationIds: [], usages: ['invoke' as const] }
+		}
+		await upsert.execute(new IntegrationUpsertCommand(input))
+		expect(service.create).toHaveBeenCalledWith({ name: 'Renamed', provider: 'github' })
+		previous.sharing = { visibility: 'private', organizationIds: [], usages: [] }
+		await upsert.execute(new IntegrationUpsertCommand({ ...input, id: previous.id }))
+		expect(service.update).toHaveBeenCalledWith(
+			previous.id,
+			expect.objectContaining({ tenantId: 'tenant', organizationId: null })
+		)
+		expect(service.update).not.toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ sharing: expect.anything() })
+		)
+	})
+
 	it.each(['github', 'provider-without-strategy'])(
 		'updates a %s integration with no registered strategy',
 		async (provider) => {

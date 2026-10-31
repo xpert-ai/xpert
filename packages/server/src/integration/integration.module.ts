@@ -6,6 +6,7 @@ import { IntegrationStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { TenantModule } from '../tenant/tenant.module'
 import { UserModule } from '../user'
 import { CommandHandlers } from './commands/handlers'
+import { IntegrationSharingController } from './sharing/integration-sharing.controller'
 import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
@@ -26,7 +27,7 @@ import { ResolveConnectorIntegrationHandler } from './connector-app/resolve-conn
 		DiscoveryModule,
 		CqrsModule
 	],
-	controllers: [IntegrationController, IntegrationQrController],
+	controllers: [IntegrationSharingController, IntegrationController, IntegrationQrController],
 	providers: [
 		IntegrationService,
 		ConnectorAppIntegrationService,

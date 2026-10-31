@@ -118,7 +118,20 @@ export class XpertRemoteSelectComponent {
       this.values(),
       this.compareWith,
       'Current value not found, please reselect or clear'
-    )
+    ).map((option) => {
+      if (this.loading() || this.selectOptions().some((available) => this.compareWith(available.value, option.value))) {
+        return option
+      }
+      return {
+        ...option,
+        disabled: true,
+        label: { en_US: 'Selected configuration unavailable', zh_Hans: '已选配置不可用' },
+        description: {
+          en_US: 'The selected value is unavailable. Reselect or clear it.',
+          zh_Hans: '当前配置不可用，请重新选择或清除。'
+        }
+      }
+    })
   )
 
   readonly searchText = toSignal<string>(this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null)))

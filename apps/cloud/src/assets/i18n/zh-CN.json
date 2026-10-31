@@ -5706,6 +5706,31 @@
       "Send": "发送给 Assistant",
       "Loading": "正在读取文档与审阅记录…",
       "BasedOn": "基于版本"
+    },
+    "Integration": {
+      "Sharing": {
+        "Title": "组织使用授权",
+        "Hint": "授权仅开放使用能力，不开放密钥、编辑或删除权限。",
+        "ReviewRequired": "此集成尚未设置共享授权。请检查已有组织绑定，再按实际用途开放。",
+        "private": "不向组织开放",
+        "all-organizations": "开放给本租户全部组织",
+        "selected-organizations": "开放给指定组织",
+        "Organizations": "允许使用的组织",
+        "Usages": "允许的用途",
+        "configuration": "应用配置与账号授权入口",
+        "invoke": "调用服务或发送消息",
+        "bind": "绑定 Assistant 消息入口",
+        "RevokeHint": "收回授权后，组织的新选择、绑定和执行将被拒绝。已有配置会保留，恢复授权后可重新使用。",
+        "Save": "保存使用授权",
+        "Saving": "正在保存…",
+        "Saved": "使用授权已更新",
+        "Loading": "正在加载组织…",
+        "Retry": "重试",
+        "TenantSource": "租户授权集成",
+        "OrganizationSource": "本组织集成",
+        "Unavailable": "当前不可用或未获授权，请联系管理员",
+        "EmptyOrganizations": "暂无可用的活跃组织。"
+      }
     }
   },
   "AUTH": {

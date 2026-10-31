@@ -1,8 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { INTEGRATION_PERMISSION_SERVICE_TOKEN, IntegrationStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { Integration } from '../../integration/integration.entity'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { IntegrationService } from '../../integration/integration.service'
 import { UserService } from '../../user'
 import { assertPermissionForToken } from './index'
@@ -33,6 +34,7 @@ describe('Built-in integration read capability', () => {
 		const module = await Test.createTestingModule({
 			providers: [
 				IntegrationService,
+				{ provide: CommandBus, useValue: {} },
 				PluginIntegrationPermissionService,
 				{ provide: getRepositoryToken(Integration), useValue: repository },
 				{ provide: IntegrationStrategyRegistry, useValue: {} },
@@ -78,6 +80,7 @@ describe('host-bound integration configuration reads', () => {
 			providers: [
 				PluginIntegrationPermissionService,
 				IntegrationService,
+				{ provide: CommandBus, useValue: {} },
 				{ provide: IntegrationStrategyRegistry, useValue: {} },
 				{ provide: UserService, useValue: {} },
 				{ provide: INTEGRATION_PERMISSION_SERVICE_TOKEN, useExisting: PluginIntegrationPermissionService },
@@ -110,6 +113,29 @@ describe('host-bound integration configuration reads', () => {
 	function tenantWhere(tenantId: string) {
 		return { id: row.id, tenantId, provider: In(['github']), organizationId: IsNull() }
 	}
+	it('enforces plugin provider grants, usage, tenant isolation and revocation on each runtime read', async () => {
+		const runtimeScope = { tenantId: 'default-tenant', organizationId: 'org' }
+		const shared = { ...row, sharing: { visibility: 'all-organizations', organizationIds: [], usages: ['invoke'] } }
+		repository.findOne.mockResolvedValue(shared)
+		const service = reader()
+		await expect(service.readForUsage(row.id, 'invoke', runtimeScope)).resolves.toEqual(shared)
+		await expect(service.readForUsage(row.id, 'bind', runtimeScope)).resolves.toBeNull()
+		await expect(
+			service.readForUsage(row.id, 'invoke', { ...runtimeScope, tenantId: 'foreign' })
+		).resolves.toBeNull()
+		await expect(
+			reader(undefined, [{ type: 'integration', service: 'wecom' }]).readForUsage(row.id, 'invoke', runtimeScope)
+		).resolves.toBeNull()
+		await expect(
+			reader(undefined, [{ type: 'integration', service: 'github', scope: ['another-id'] }]).readForUsage(
+				row.id,
+				'invoke',
+				runtimeScope
+			)
+		).resolves.toBeNull()
+		repository.findOne.mockResolvedValue({ ...shared, sharing: null })
+		await expect(service.readForUsage(row.id, 'invoke', runtimeScope)).resolves.toBeNull()
+	})
 	it('preserves legacy runtime reads and relation options through the same bound capability', async () => {
 		const service = reader()
 		const legacy = { ...row, tenantId: 'another-tenant', organizationId: 'another-org' }
@@ -117,6 +143,51 @@ describe('host-bound integration configuration reads', () => {
 		await expect(service.read(row.id, { relations: ['tenant'] })).resolves.toEqual(legacy)
 		expect(repository.findOne).toHaveBeenCalledWith({ where: { id: row.id }, relations: ['tenant'] })
 		await expect(service.readConfiguration(row.id)).resolves.toBeNull()
+	})
+	it('prevents organization plugins from removing or replacing their host-bound scope', async () => {
+		const service = reader({ tenantId: 'default-tenant', organizationId: 'org', scopeKey: 'org' })
+		for (const requested of [
+			{ tenantId: 'default-tenant', organizationId: null },
+			{ tenantId: 'default-tenant', organizationId: 'other-org' },
+			{ tenantId: 'foreign', organizationId: 'org' }
+		])
+			await expect(service.readForUsage(row.id, 'invoke', requested)).resolves.toBeNull()
+		expect(repository.findOne).not.toHaveBeenCalled()
+		await expect(
+			service.readForUsage(row.id, 'invoke', { tenantId: 'default-tenant', organizationId: 'org' })
+		).resolves.toBeNull()
+	})
+	it('captures active execution scope for each invocation of a system plugin', async () => {
+		const execution = jest.spyOn(RequestContext, 'getScope')
+		const service = reader()
+		const scope = { tenantId: 'default-tenant', organizationId: 'org' }
+		execution.mockReturnValue({ ...scope, level: RequestScopeLevel.ORGANIZATION })
+		repository.findOne.mockResolvedValue({
+			...row,
+			sharing: { visibility: 'all-organizations', organizationIds: [], usages: ['invoke'] }
+		})
+		await expect(service.readForUsage(row.id, 'invoke', { ...scope, organizationId: null })).resolves.toBeNull()
+		expect(repository.findOne).not.toHaveBeenCalled()
+		await expect(service.readForUsage(row.id, 'invoke', scope)).resolves.toMatchObject({ id: row.id })
+		execution.mockReturnValue({
+			tenantId: 'another-tenant',
+			organizationId: 'another-org',
+			level: RequestScopeLevel.ORGANIZATION
+		})
+		await expect(service.readForUsage(row.id, 'invoke', scope)).resolves.toBeNull()
+		expect(repository.findOne).toHaveBeenCalledTimes(1)
+	})
+	it('rejects unknown installations and cross-tenant background consumption', async () => {
+		const scope = { tenantId: 'default-tenant', organizationId: null }
+		await expect(reader({}).readForUsage(row.id, 'invoke', scope)).resolves.toBeNull()
+		await expect(
+			reader({ tenantId: 'other-tenant', organizationId: GLOBAL_ORGANIZATION_SCOPE }).readForUsage(
+				row.id,
+				'invoke',
+				scope
+			)
+		).resolves.toBeNull()
+		expect(repository.findOne).not.toHaveBeenCalled()
 	})
 	it('uses the Default tenant without reading request context or exposing storage metadata', async () => {
 		jest.spyOn(RequestContext, 'getScope').mockImplementation(() => {
@@ -147,7 +218,12 @@ describe('host-bound integration configuration reads', () => {
 		expect(repository.findOne).toHaveBeenCalledWith({ where: [tenantWhere('tenant')] })
 	})
 	it.each([null, 'org'])('allows organization or inherited tenant configuration: %s', async (organizationId) => {
-		repository.findOne.mockResolvedValue({ ...row, tenantId: 'tenant', organizationId })
+		repository.findOne.mockResolvedValue({
+			...row,
+			tenantId: 'tenant',
+			organizationId,
+			sharing: { visibility: 'all-organizations', organizationIds: [], usages: ['configuration'] }
+		})
 		await expect(
 			reader({ tenantId: 'tenant', organizationId: 'org', scopeKey: 'org' }).readConfiguration(row.id)
 		).resolves.toMatchObject({ tenantId: 'tenant', organizationId })

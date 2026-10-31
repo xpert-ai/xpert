@@ -1,3 +1,4 @@
+import { IntegrationUsage } from '@xpert-ai/contracts'
 import { Component, computed, effect, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -7,7 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map } from 'rxjs/operators'
-import { IIntegration, IntegrationFeatureEnum, OrderTypeEnum, TSelectOption } from '../../../@core/types'
+import { IIntegration, IntegrationFeatureEnum, TSelectOption } from '../../../@core/types'
 import { IconComponent } from '../../avatar'
 import { XpSelectComponent } from '../../common'
 
@@ -26,6 +27,7 @@ export class IntegrationSelectComponent {
 
   // Inputs
   readonly integrationList = model<IIntegration[]>()
+  readonly usage = input<IntegrationUsage>('invoke')
   readonly provider = input<string | null>(null)
   readonly placeholder = input<string | null>(null)
   readonly features = input<IntegrationFeatureEnum[] | null>(null)
@@ -41,13 +43,16 @@ export class IntegrationSelectComponent {
           value: integration.id,
           label: integration.name || provider?.label,
           description: integration.description || provider?.description,
-          _icon: provider?.icon
+          _icon: provider?.icon,
+          scopeLevel: integration.organizationId ? 'organization' : 'tenant'
         }
       }) ?? []
     // Make sure the current value is in the list, otherwise the listbox will broken
     if (this.integrationId() && !this.integrations()?.some((_) => _.id === this.integrationId())) {
       items.push({
-        value: this.integrationId()
+        value: this.integrationId(),
+        label: this.integrationId(),
+        disabled: true
       })
     }
     return items
@@ -56,26 +61,25 @@ export class IntegrationSelectComponent {
   readonly integrationId = this.cva.value$
 
   readonly integrations = derivedAsync(() => {
-    const where = {}
     const providers = this.#providers()
-    if (this.provider()) {
-      Object.assign(where, { provider: this.provider() })
-    }
-    if (this.features()?.length) {
-      Object.assign(where, { features: { $contains: this.features() } })
-    }
-    return this.integrationAPI.getAllInOrg({ where, order: { createdAt: OrderTypeEnum.DESC } }).pipe(
-      map(({ items }) => {
-        const enterpriseH5Platform = this.enterpriseH5Platform()
-        return items.filter((item) => {
-          if (enterpriseH5Platform) {
-            const provider = providers.find((candidate) => candidate.name === item.provider)
-            return provider?.enterpriseH5?.platform === enterpriseH5Platform
-          }
-          return true
-        })
+    return this.integrationAPI
+      .available({
+        provider: this.provider() ?? undefined,
+        features: this.features() ?? undefined,
+        usage: this.usage()
       })
-    )
+      .pipe(
+        map((items) => {
+          const enterpriseH5Platform = this.enterpriseH5Platform()
+          return items.filter((item) => {
+            if (enterpriseH5Platform) {
+              const provider = providers.find((candidate) => candidate.name === item.provider)
+              return provider?.enterpriseH5?.platform === enterpriseH5Platform
+            }
+            return true
+          })
+        })
+      )
   })
 
   readonly integration = computed(() => {
