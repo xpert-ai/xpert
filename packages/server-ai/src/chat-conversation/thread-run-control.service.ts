@@ -38,6 +38,7 @@ import { ChatConversationThread } from './conversation-thread.entity'
 import { clearThreadDisplayPause, readThreadDisplayPause } from './thread-display-pause'
 import { recoveryConflict } from './recovery/recovery-error'
 import { threadGraphRevisionMatches } from './thread-graph-revision'
+import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
 
 export { threadGraphRevision } from './thread-graph-revision'
 
@@ -243,9 +244,11 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
 
     private async locked<T>(
         threadId: string,
-        work: (thread: ChatConversationThread, manager: EntityManager) => Promise<T>
+        work: (thread: ChatConversationThread, manager: EntityManager) => Promise<T>,
+        beforeLock?: (manager: EntityManager) => Promise<void>
     ) {
         return this.dataSource.transaction(async (manager) => {
+            await beforeLock?.(manager)
             const thread = await manager.getRepository(ChatConversationThread).findOne({
                 where: { threadId },
                 lock: { mode: 'pessimistic_write' }
@@ -510,7 +513,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             this.assignLease(thread, executionId)
             await manager.save(thread)
             return control.checkpoint
-        })
+        }, assertAppPlatformRunCapacity)
         this.owned.set(threadId, executionId)
         return resumed
     }

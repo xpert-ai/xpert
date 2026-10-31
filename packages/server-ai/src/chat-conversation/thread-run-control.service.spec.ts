@@ -1,5 +1,7 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
 import { ExecutionControlStore } from '../execution-control/execution-control.store'
-jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
+jest.mock('i18next', () => ({ t: (_key: string, options?: { defaultValue: string }) => options?.defaultValue ?? _key }))
 import { ThreadDTO } from '../ai/dto/thread.dto'
 import { ChatConversation } from './conversation.entity'
 import { RUN_LEASE_KEY } from './thread-run-lease'
@@ -16,6 +18,11 @@ import { TXpertGraph, XpertAgentExecutionStatusEnum as ExecutionStatus } from '@
 import { threadControlSchema } from '../execution-control/control-admission'
 
 describe('ThreadRunControlService', () => {
+    beforeEach(() => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
+    })
+    afterEach(() => jest.restoreAllMocks())
     function setup() {
         const thread = {
             threadId: 'thread',
@@ -33,15 +40,23 @@ describe('ThreadRunControlService', () => {
                 .fn<Promise<Pick<CopilotCheckpoint, 'checkpoint_id'> | null>, [FindOneOptions<CopilotCheckpoint>]>()
                 .mockResolvedValue({ checkpoint_id: 'saved' })
         }
-        const threadRepository = { findOne: jest.fn(async () => thread) }
+        const threadRepository = { findOne: jest.fn(async () => thread), countBy: jest.fn().mockResolvedValue(0) }
+        const accounts = { findOneBy: jest.fn().mockResolvedValue(null) }
+        const usage = { externalBytes: 0, databaseBytes: 0, measuredAt: new Date() }
         const manager = {
-            query: jest.fn(async () =>
-                threadControlSchema.flatMap((item) =>
-                    item.columns.map((column) => ({ table_name: item.table, column_name: column }))
-                )
+            query: jest.fn(async (sql: string) =>
+                sql.includes('app_platform_storage_usage')
+                    ? [usage]
+                    : threadControlSchema.flatMap((item) =>
+                          item.columns.map((column) => ({ table_name: item.table, column_name: column }))
+                      )
             ),
             getRepository: jest.fn((entity: unknown) =>
-                entity === ChatConversationThread ? threadRepository : checkpointRepository
+                entity === AppPlatformDelivery
+                    ? accounts
+                    : entity === ChatConversationThread
+                      ? threadRepository
+                      : checkpointRepository
             ),
             update: jest.fn(),
             save: jest.fn(async () => thread)
@@ -60,8 +75,47 @@ describe('ThreadRunControlService', () => {
             } as unknown as ExecutionControlStore,
             cancellations as unknown as ExecutionCancelService
         )
-        return { thread, service, manager, cancellations, checkpointRepository, threadRepository }
+        return { thread, service, manager, cancellations, checkpointRepository, threadRepository, accounts, usage }
     }
+
+    it.each([
+        { used: 100, active: 0, rejected: 413 },
+        { used: 20, active: 2, rejected: 429 },
+        { used: 20, active: 0, rejected: null }
+    ])('checks account capacity before resuming a paused thread: %j', async ({ used, active, rejected }) => {
+        const f = setup()
+        const pause = await f.service.requestPause('thread', 'run')
+        const reference = { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' }
+        await f.service.stageCheckpoint('thread', 'run', reference)
+        await f.service.finish('thread', 'run', 'interrupted')
+        f.accounts.findOneBy.mockResolvedValue({
+            configuration: {
+                definition: { entitlements: { defaultPlanRef: 'trial' } },
+                environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+            }
+        })
+        f.usage.externalBytes = used
+        f.threadRepository.countBy.mockResolvedValue(active)
+        f.threadRepository.findOne.mockClear()
+        jest.mocked(f.manager.save).mockClear()
+        jest.mocked(f.manager.query).mockClear()
+        if (rejected) {
+            await expect(f.service.claimResume('thread', 'run', pause.pauseId, 'revision')).rejects.toMatchObject({
+                status: rejected
+            })
+            expect(f.thread.status).toBe('paused')
+            expect(f.thread.runControl.state).toBe('paused')
+            expect(f.threadRepository.findOne).not.toHaveBeenCalled()
+            expect(f.manager.save).not.toHaveBeenCalled()
+        } else {
+            await expect(f.service.claimResume('thread', 'run', pause.pauseId, 'revision')).resolves.toEqual(reference)
+            expect(f.thread.status).toBe('busy')
+            expect(jest.mocked(f.manager.query).mock.calls[0][0]).toContain('pg_advisory_xact_lock')
+            expect(jest.mocked(f.manager.query).mock.invocationCallOrder[0]).toBeLessThan(
+                f.threadRepository.findOne.mock.invocationCallOrder[0]
+            )
+        }
+    })
 
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
 
