@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { assertPublicWorkspacePath, isManagedWorkspacePath } from './workspace-managed-path'
 import { removeVolumePath, type VolumeRemoveOptions } from './volume-remove'
 import { assertWorkspaceLeases } from './workspace-storage-lock'
+import type { VolumeWriteBudget } from './volume-write-budget'
 import {
     DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     FileUploadVolumeCatalog,
@@ -348,6 +349,7 @@ type TVolumeWriteOptions = {
     encoding?: BufferEncoding
     beforeCommit?: () => void | Promise<void>
     assertCanWrite?: (canonicalRelativePath: string, fileStat?: { nlink: number }) => void
+    budgetCommit?: <T>(commit: () => Promise<T>) => Promise<T>
 }
 
 export class VolumeHandle {
@@ -356,7 +358,8 @@ export class VolumeHandle {
         public readonly serverRoot: string,
         public readonly hostRoot: string,
         public readonly publicBaseUrl: string,
-        public readonly serverProvisioningRoot: string = serverRoot
+        public readonly serverProvisioningRoot: string = serverRoot,
+        private readonly writeBudget?: VolumeWriteBudget
     ) {}
 
     async ensureRoot() {
@@ -368,7 +371,7 @@ export class VolumeHandle {
     async writeFile(
         relativePath: string,
         content: string | Uint8Array,
-        options?: Omit<TVolumeWriteOptions, 'boundaryRoot'>
+        options?: Omit<TVolumeWriteOptions, 'boundaryRoot' | 'budgetCommit'>
     ) {
         assertPublicWorkspacePath(relativePath)
         const openedRoot = await this.openOrCreateRoot()
@@ -376,6 +379,7 @@ export class VolumeHandle {
             return await VolumeHandle.writeFileAtRoot(openedRoot, relativePath, content, {
                 ...options,
                 boundaryRoot: openedRoot.descriptorPath,
+                budgetCommit: (commit) => this.withWriteBudget(relativePath, content, commit, options?.encoding),
                 assertCanWrite: (relative, stat) => {
                     assertPublicWorkspacePath(relative, stat)
                     options?.assertCanWrite?.(relative, stat)
@@ -384,6 +388,20 @@ export class VolumeHandle {
         } finally {
             await openedRoot.fileHandle.close()
         }
+    }
+
+    withWriteBudget<T>(
+        relativePath: string,
+        content: string | Uint8Array,
+        commit: () => Promise<T>,
+        encoding?: BufferEncoding
+    ): Promise<T> {
+        const bytes = typeof content === 'string' ? Buffer.byteLength(content, encoding) : content.byteLength
+        return this.writeBudget ? this.writeBudget(this.scope, this.serverRoot, relativePath, bytes, commit) : commit()
+    }
+
+    withRemovalBudget<T>(commit: () => Promise<T>): Promise<T> {
+        return this.writeBudget ? this.writeBudget(this.scope, this.serverRoot, '', null, commit) : commit()
     }
 
     private async openOrCreateRoot() {
@@ -562,34 +580,39 @@ export class VolumeHandle {
                     path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'),
                     existing
                 )
-            const temporary = path.join(openedParent.descriptorPath, `.workspace-write-${randomUUID()}.tmp`)
-            try {
-                const file = await fsPromises.open(
-                    temporary,
-                    fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL,
-                    existing ? existing.mode & 0o777 : 0o600
-                )
+            const commit = async () => {
+                const temporary = path.join(openedParent.descriptorPath, `.workspace-write-${randomUUID()}.tmp`)
                 try {
-                    await file.writeFile(
-                        content,
-                        options?.encoding && typeof content === 'string' ? { encoding: options.encoding } : undefined
+                    const file = await fsPromises.open(
+                        temporary,
+                        fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL,
+                        existing ? existing.mode & 0o777 : 0o600
                     )
-                    await file.sync()
+                    try {
+                        await file.writeFile(
+                            content,
+                            options?.encoding && typeof content === 'string'
+                                ? { encoding: options.encoding }
+                                : undefined
+                        )
+                        await file.sync()
+                    } finally {
+                        await file.close()
+                    }
+                    await options?.beforeCommit?.()
+                    await assertWorkspaceLeases()
+                    // The parent is FD-anchored. Rename never follows a final symlink introduced by a race.
+                    const created = options?.createOnly
+                        ? await publishCreateOnlyFile(temporary, anchoredTarget)
+                        : (await fsPromises.rename(temporary, anchoredTarget), true)
+                    await fsPromises.rm(temporary, { force: true })
+                    await openedParent.fileHandle.sync()
+                    return created
                 } finally {
-                    await file.close()
+                    await fsPromises.rm(temporary, { force: true })
                 }
-                await options?.beforeCommit?.()
-                await assertWorkspaceLeases()
-                // The parent is FD-anchored. Rename never follows a final symlink introduced by a race.
-                const created = options?.createOnly
-                    ? await publishCreateOnlyFile(temporary, anchoredTarget)
-                    : (await fsPromises.rename(temporary, anchoredTarget), true)
-                await fsPromises.rm(temporary, { force: true })
-                await openedParent.fileHandle.sync()
-                return created
-            } finally {
-                await fsPromises.rm(temporary, { force: true })
             }
+            return options?.budgetCommit ? await options.budgetCommit(commit) : await commit()
         } finally {
             if (openedParent !== root) await openedParent.fileHandle.close()
         }
@@ -742,7 +765,9 @@ export class VolumeHandle {
                 throw new Error(t('server-ai:Error.VolumeSubtreeFilePathRequired'))
             }
             assertPublicWorkspacePath(filePath)
-            await VolumeHandle.removePath(this.serverRoot, filePath, { assertCanRemove: assertPublicWorkspacePath })
+            await this.withRemovalBudget(() =>
+                VolumeHandle.removePath(this.serverRoot, filePath, { assertCanRemove: assertPublicWorkspacePath })
+            )
         } catch (error: unknown) {
             if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT') {
                 throw error
@@ -855,6 +880,9 @@ async function listOpenedVolumeDirectory(
 }
 
 abstract class BaseRuntimeVolumeClient extends VolumeClient {
+    constructor(private readonly writeBudget?: VolumeWriteBudget) {
+        super()
+    }
     abstract resolveRoot(tenantId: string): VolumeRootResolution
 
     resolve(scope: VolumeScope): VolumeHandle {
@@ -876,7 +904,8 @@ abstract class BaseRuntimeVolumeClient extends VolumeClient {
             flattened && !isolateCatalog ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
             flattened && !isolateCatalog ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
             getVolumePublicBaseUrl(subscope),
-            roots.serverProvisioningRoot ?? roots.serverRoot
+            roots.serverProvisioningRoot ?? roots.serverRoot,
+            this.writeBudget
         )
     }
 }
@@ -942,8 +971,8 @@ export class LocalShellWorkspacePathMapper implements WorkspacePathMapper {
     }
 }
 
-export function createRuntimeVolumeClient(): VolumeClient {
-    return runsInsideDockerApiContainer() ? new DockerVolumeClient() : new DevVolumeClient()
+export function createRuntimeVolumeClient(writeBudget?: VolumeWriteBudget): VolumeClient {
+    return runsInsideDockerApiContainer() ? new DockerVolumeClient(writeBudget) : new DevVolumeClient(writeBudget)
 }
 
 export function resolveRuntimeVolume(scope: VolumeScope) {

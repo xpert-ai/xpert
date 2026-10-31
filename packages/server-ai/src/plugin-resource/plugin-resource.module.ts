@@ -1,3 +1,4 @@
+import { WithStorageBudgetHandler } from './app-platform/storage/platform-storage-budget.handler'
 import { ApplicationInitializationLocks } from './application/application-initialization-locks'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationAccessService } from './application/application-access.service'
@@ -87,6 +88,7 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        WithStorageBudgetHandler,
         ApplicationInitializationLocks,
         ApplicationUpdateService,
         ApplicationAccessService,
