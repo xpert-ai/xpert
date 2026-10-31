@@ -34,6 +34,8 @@ import { AgentMiddlewareRuntimeService } from '../../shared/agent/middleware-run
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../xpert/queries'
+import { GetAccessiblePublishedXpertQuery } from '../../xpert/published-agent/get-accessible-published-xpert.query'
+import { publishedAgentDelegation } from '../../xpert/published-agent/with-published-agent'
 import { ToolsetGetToolsCommand } from '../../xpert-toolset'
 import { XpertAgentSubgraphHandler } from '../commands/handlers/subgraph.handler'
 import { XpertAgentSubgraphCommand } from '../commands/subgraph.command'
@@ -214,6 +216,7 @@ function fixture(
     model.bindTools.mockReturnValue(model)
     const queryBus = {
         execute: jest.fn(async (query: unknown) => {
+            if (query instanceof GetAccessiblePublishedXpertQuery) return expert
             if (query instanceof GetXpertWorkflowQuery)
                 return query.id === 'parent'
                     ? { agent, graph: definition, next: [], fail: [] }
@@ -233,7 +236,9 @@ function fixture(
         {
             publish: jest.fn().mockResolvedValue(1)
         } as unknown as RedisClientType,
-        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn() } as unknown as ExecutionControlStore
+        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn(),
+            tasks: { execution: jest.fn().mockResolvedValue(null) }
+        } as unknown as ExecutionControlStore
     )
     const runtime = new AgentInvocationGraphService(
         commandBus as unknown as CommandBus,
@@ -760,6 +765,22 @@ describe('Collaborators middleware in the Agent graph', () => {
             'batch-call:0',
             'batch-call:1'
         ])
+    })
+
+    it('keeps exact published delegation scope across concurrent children and clears it afterward', async () => {
+        const observed: Array<ReturnType<typeof publishedAgentDelegation>> = []
+        const f = fixture({ batch: true, onChild: async () => {
+            await Promise.resolve()
+            observed.push(publishedAgentDelegation())
+        } })
+        const { graph } = await f.handler.execute(f.command)
+        await graph.invoke(f.input, f.config)
+        expect(observed).toEqual([
+            { requesterXpertId: 'parent', xpertId: 'expert-1' },
+            { requesterXpertId: 'parent', xpertId: 'expert-1' }
+        ])
+        expect(publishedAgentDelegation()).toBeUndefined()
+        expect(f.queryBus.execute).toHaveBeenCalledWith(new GetAccessiblePublishedXpertQuery('expert-1', ['agent'], 'parent'))
     })
 
     it('returns one child failure without repeating or cancelling successful sibling work', async () => {

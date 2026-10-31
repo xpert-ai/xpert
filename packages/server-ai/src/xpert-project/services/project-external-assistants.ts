@@ -7,7 +7,7 @@ import type {
 import { BadRequestException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
-import { FindXpertQuery } from '../../xpert/queries'
+import { GetAccessiblePublishedXpertQuery } from '../../xpert/published-agent/get-accessible-published-xpert.query'
 import { projectExternalAssistantIds } from './project-initial-assistants'
 import {
     describeExternalAssistantBinding,
@@ -35,9 +35,7 @@ export async function validateProjectExternalAssistants(
     const candidates = await Promise.all(
         projectExternalAssistantIds(requester, requesterAgentKey).map(async (candidateId) => {
             try {
-                return await queryBus.execute<FindXpertQuery, IXpert>(
-                    new FindXpertQuery({ id: candidateId }, { relations: ['agent'] })
-                )
+                return await queryBus.execute(new GetAccessiblePublishedXpertQuery(candidateId, ['agent'], requester.id))
             } catch {
                 return null
             }
