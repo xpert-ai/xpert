@@ -1,3 +1,6 @@
+jest.mock('./project.service', () => ({ XpertProjectService: class XpertProjectService {} }))
+
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertProjectWorkspaceFilesService } from './services/project-workspace-files.service'
 import { XpertProjectInvitationService } from './services/project-invitation.service'
 import { XpertProjectTypeService } from './services/project-type.service'
@@ -18,6 +21,8 @@ import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectMembershipService } from './services/project-membership.service'
 
 describe('XpertProjectController collaboration endpoints', () => {
+    afterEach(() => jest.restoreAllMocks())
+
     it('requires Project management access to bind or remove Xperts', () => {
         expect(Reflect.getMetadata(XPERT_PROJECT_PERMISSION, XpertProjectController.prototype.updateXperts)).toBe(
             AIPermissionsEnum.XPERT_PROJECT_MANAGE
@@ -57,6 +62,68 @@ describe('XpertProjectController collaboration endpoints', () => {
         const method = XpertProjectController.prototype.createTask
         expect(Reflect.getMetadata('path', method)).toBe(':id/tasks')
         expect(Reflect.getMetadata(XPERT_PROJECT_PERMISSION, method)).toBe(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    })
+
+    it.each([false, true])('projects list and detail responses using XPERT_VIEW permission (%s)', async (canView) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockImplementation(
+            (permission) => permission === AIPermissionsEnum.XPERT_VIEW && canView
+        )
+        const assistant = {
+            id: 'assistant',
+            name: 'Bid Assistant',
+            slug: 'bid',
+            graph: { nodes: [{ key: 'private-node' }], connections: [] },
+            agent: { prompt: 'private prompt' },
+            copilotModel: { model: 'private model' },
+            options: { templateSource: { templateId: 'private-template' }, workspaceScope: 'user' }
+        }
+        const project = {
+            id: 'project',
+            name: 'Bid project',
+            ownerId: 'owner',
+            organizationId: 'org',
+            status: 'active',
+            applicationKey: 'bid',
+            projectTypeKey: 'tender',
+            settings: { instruction: 'private instruction' },
+            copilotModel: { model: 'private model' },
+            copilotModelId: 'model-id',
+            workspace: { id: 'private-workspace' },
+            xperts: [assistant]
+        }
+        const service = {
+            findAvailableForXpert: jest.fn().mockResolvedValue({ items: [project], total: 5 }),
+            findAllMy: jest.fn().mockResolvedValue({ items: [project], total: 5 }),
+            findOne: jest.fn().mockResolvedValue(project)
+        }
+        const controller = createController(service)
+        const available = await controller.findAvailable('assistant')
+        const mine = await controller.findAllMyProjects({ take: 25, skip: 0, order: {}, where: {}, withDeleted: false })
+        const detail = await controller.getXpertProject('project')
+        expect(available.total).toBe(5)
+        expect(mine.total).toBe(5)
+        for (const output of [available.items[0], mine.items[0], detail]) {
+            expect(output).toMatchObject({
+                id: 'project',
+                name: 'Bid project',
+                ownerId: 'owner',
+                organizationId: 'org',
+                applicationKey: 'bid',
+                projectTypeKey: 'tender',
+                xperts: [{ id: 'assistant', name: 'Bid Assistant' }]
+            })
+            if (canView) {
+                expect(output).toMatchObject({ settings: project.settings, copilotModel: project.copilotModel })
+                expect(output.xperts[0]).toMatchObject({ graph: assistant.graph, agent: assistant.agent })
+            } else {
+                for (const key of ['settings', 'copilotModel', 'copilotModelId', 'workspace'])
+                    expect(output).not.toHaveProperty(key)
+                for (const key of ['graph', 'agent', 'copilotModel', 'options.templateSource'])
+                    expect(output.xperts[0]).not.toHaveProperty(key)
+            }
+        }
+        expect(project.settings.instruction).toBe('private instruction')
+        expect(assistant.graph.nodes).toEqual([{ key: 'private-node' }])
     })
 
     it('normalizes the available Project query for the selected Xpert', async () => {
