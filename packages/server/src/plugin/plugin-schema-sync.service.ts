@@ -12,6 +12,7 @@ import { withSchemaLock } from '../database/schema-migration'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
 import { loadPlugin } from './plugin-loader'
 import { scopePluginSchemaSynchronization } from './plugin-schema-scope'
+import { registerAccountStorageRelations } from '../database/account-storage-guard'
 
 export interface PluginSchemaSyncInput {
 	pluginName: string
@@ -97,7 +98,13 @@ export class PluginSchemaSyncService {
 			if (migrationDataSource.options.type !== 'postgres') {
 				throw new Error('Plugin schema migrations require PostgreSQL')
 			}
-			await withSchemaLock(migrationDataSource, () => migrationDataSource.synchronize())
+			await withSchemaLock(migrationDataSource, async (runner) => {
+				await migrationDataSource.synchronize()
+				await registerAccountStorageRelations(
+					runner,
+					ormMetadata.entities.map((entity) => migrationDataSource.getMetadata(entity))
+				)
+			})
 		} finally {
 			if (migrationDataSource.isInitialized) {
 				await migrationDataSource.destroy()

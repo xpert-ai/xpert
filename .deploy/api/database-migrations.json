@@ -10,6 +10,8 @@
     "agent_runtime_binding",
     "agent_runtime_delivery",
     "agent_runtime_inbox",
+    "app_platform_storage_relation",
+    "app_platform_storage_usage",
     "artifact_draft",
     "assistant_binding",
     "assistant_template_publication",
@@ -91,6 +93,7 @@
     "ai/shared/stream/display-snapshot/migrations/checks/20261025010000-run-display-snapshot.sql",
     "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
     "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql",
-    "ai/content-resource/catalog/migrations/checks/20261027000000-content-revision-capacity.sql"
+    "ai/content-resource/catalog/migrations/checks/20261027000000-content-revision-capacity.sql",
+    "ai/plugin-resource/app-platform/storage/migrations/checks/20261029100000-account-storage.sql"
   ]
 }
