@@ -9,7 +9,7 @@ import { In, IsNull, Repository } from 'typeorm'
 import { isUUID } from 'class-validator'
 import { t } from 'i18next'
 import { KnowledgeDocument } from '../knowledge-document/document.entity'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphIndexJob } from './entities/knowledge-graph-index-job.entity'
 import { projectGraphDocumentProgress } from './document-progress'
 

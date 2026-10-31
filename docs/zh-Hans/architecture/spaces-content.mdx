@@ -177,3 +177,20 @@ flowchart LR
 已有记录中的协议测试、组件测试和历史浏览器验收只能证明当时的版本。当前最后一轮 ChatKit 职责调整尚需正式包组合验收；Office 插件也需要对齐新版平台依赖后独立验证，不能由 Markdown 验收推导为 Office 可用。
 
 以下边界仍需在面向生产的部署中验证或继续实现：跨节点共享存储与锁故障、数据库和 Volume 联合备份恢复、完整的输入法与双窗口浏览器交互矩阵、持久离线编辑。发布投影目前仍使用对应修订的作者身份，作者权限撤销可能阻塞投影，需要明确的维护身份与恢复策略；当前文档不将其描述为已经解决。
+
+## Project 文件升级的实现对应
+
+原“Spaces：基于 Project 和文件的升级计划”中的 Project 类型、必填归属、共享文件、授权和知识绑定已有实现；其内容现归入功能与架构文档，旧计划已删除。当前内容编辑器与 ChatKit 的职责演进以本页为准，不把旧版 Spaces 审阅界面重新当作目标架构。
+
+| 已实现边界                                               | 当前源码入口                                                                                                                   |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 内置 `platform / space` 项目类型                         | xpert：`packages/server-ai/src/xpert-project/services/project-type.service.ts`                                                 |
+| 项目成员、角色、归档与文件访问                           | xpert：`packages/server-ai/src/xpert-project/services/project-access-runtime.service.ts`、`project-workspace-files.service.ts` |
+| 一个 Project 至多一个 Space、`projectId` 必填            | xpert-plugins：`xpertai/apps/spaces/src/entities.ts`、`spaces.ts`                                                              |
+| Assistant 能力入口与资源授权分离                         | xpert-plugins：`xpertai/apps/spaces/src/access.ts`                                                                             |
+| `catalog: projects`、`scopeId: projectId`、版本/哈希校验 | xpert-plugins：`xpertai/apps/spaces/src/files.ts`、`documents.ts`                                                              |
+| 项目知识绑定、版本与权限重验                             | xpert-plugins：`xpertai/apps/spaces/src/knowledge.ts`、`content-knowledge.ts`                                                  |
+
+插件中的 `tests/project-storage.test.ts`、`tests/capability-entry.test.ts` 和 `tests/content-knowledge.test.ts` 提供相应回归入口。`scripts/project-live-acceptance.mjs` 与 `scripts/project-restart-acceptance.mjs` 是真实环境验收入口，不应在没有目标环境与授权上下文时当作普通单元测试执行。
+
+2026-10-21 的历史记录包含真实服务、浏览器主流程、模型及重启持久性检查，但浏览器原生下载落盘字节检查未完成。保留这项限制：在目标浏览器保存文件，并与同一已发布文件的内容/哈希核对后才能关闭。历史报告不能证明后续内容平台、编辑器及正式发布依赖组合已验收；本次没有重跑这些测试。

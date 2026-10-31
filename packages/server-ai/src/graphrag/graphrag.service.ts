@@ -42,8 +42,8 @@ import { createGraphIndexJob } from './graph-index-job'
 import { KnowledgeDocumentChunkService } from '../knowledge-document/chunk/chunk.service'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { TDocChunkMetadata } from '../knowledge-document/types'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import {
     KnowledgeGraphCommunity,
     KnowledgeGraphEntity,

@@ -2,11 +2,11 @@ import { ForbiddenException, ConflictException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { ProjectKnowledgeRuntimeService } from './project-knowledge-runtime.service'
-import { Knowledgebase } from '../knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
 
-jest.mock('../knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 const resource = { providerKey: 'platform.project', resourceId: 'project-1' }
 const actor = { tenantId: 'tenant-1', organizationId: 'org-1', userId: 'user-1' }
 const library = { id: 'kb-1', resourceRef: resource }

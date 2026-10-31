@@ -8,8 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { In, IsNull, Not, Repository } from 'typeorm'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,

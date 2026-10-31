@@ -1,6 +1,6 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 
 type KnowledgeWikiSourceEventType =
     | 'finish'

@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgebaseClearCommand } from '../knowledge.clear.command'
 
 @CommandHandler(KnowledgebaseClearCommand)

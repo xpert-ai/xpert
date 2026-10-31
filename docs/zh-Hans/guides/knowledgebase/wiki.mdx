@@ -1,0 +1,86 @@
+---
+title: '知识库 Wiki'
+description: '基于来源证据生成 Wiki 页面、管理重建与限定可检索版本'
+---
+
+Wiki 是 Standard 文档知识库的派生知识层。它从已发布的来源内容生成摘要、实体、概念和索引页面，提供页面浏览、证据、链接、反向链接以及可检索投影。源文档和 RAG 仍是独立能力，Wiki 页面不替代原始内容。
+
+## 启用和设置
+
+只有 Standard 知识库支持 Wiki，FAQ 和 External 不支持。当前实现使用知识库自身的 Wiki 配置及现有访问控制，不额外要求组织级 Wiki feature grant；旧计划中的单独 feature gate 已不是当前启用条件。
+
+配置包括：
+
+- `enabled`：是否启用 Wiki。
+- `extractionGranularity`：提取粒度。
+- `contentGenerationRequirements`：页面内容生成要求。
+- `extractionFocus`：提取重点。
+- 可选 `wikiModel`：优先用于 Wiki，未设置时回退到 `chatModel`。
+
+启用时必须存在可用模型。**已有文档的知识库不能直接切换 Wiki 开关**；模型或生成配置变化可能要求重建，非空库的付费重建需要 `confirmModelCharges` 确认。配置指纹纳入有效模型、生成参数和生成器版本，避免复用不匹配的结果。
+
+配置更新使用专用接口；通用知识库 update 不接受任意 Wiki 配置、模型或服务端构建状态。服务端计算的管理能力决定界面是否提供重建、重试等操作。
+
+## 内容与状态
+
+| 对象                    | 作用                                     |
+| ----------------------- | ---------------------------------------- |
+| Canonical page          | 页面稳定身份、类型、名称与当前活动版本   |
+| Page version            | 不可变的页面内容版本                     |
+| Contribution / evidence | 来源贡献及可追溯证据                     |
+| Source state            | 来源资格、内容哈希、撤回和清理状态       |
+| Projection              | 面向检索的系统托管内容，不是新的内容真源 |
+| Job / model invocation  | 异步工作、重试、调用和用量记录           |
+
+知识库构建状态包括 `disabled`、`indexing`、`ready`、`failed`、`rebuild_required`；可用性另有 `unavailable`、`ready`、`degraded`。构建状态和“是否仍有可服务页面”不能混为一谈。
+
+读取正文要求页面、活动版本和投影可服务，并且来源证据仍有效。管理者可以看到尚未就绪条目的诊断信息，但诊断响应不会泄露不可服务版本的正文。内部版本数据不等于面向用户的任意历史回放功能。
+
+## 生成、并发和恢复
+
+```text
+来源发布 → source-map → page-reduce → finalize → 活动版本与检索投影
+来源失效 → retract → 立即取消受影响内容的可服务资格 → 清理/重算
+```
+
+生成工作由持久化任务、队列、dispatcher/reconciler 和 lease 协调。来源修订、哈希、配置及 publication epoch 用于拒绝过期结果；页面更新需要通过当前有效状态校验。
+
+来源变化时先撤回失效证据对应的页面/投影，后台再删除向量并按剩余来源重算或归档。Graph 或 Wiki 派生工作失败不会将已完成的源文档 RAG 处理伪装为未完成。
+
+模型调用沿平台模型运行时执行，保留授权与用量归属。重建和重试可能产生额外模型费用；队列任务成功不等于所有页面或目标部署已经验收。
+
+## 浏览、检索和引用
+
+浏览器显示可服务页面、来源证据、页面链接和反向链接。检索支持独立的内容范围：
+
+| `contentScope` | 含义                     |
+| -------------- | ------------------------ |
+| `all`          | 原始内容与合格 Wiki 内容 |
+| `original`     | 仅原始内容               |
+| `wiki`         | 仅 Wiki 内容             |
+
+Wiki-only 要求 Wiki 已启用，不支持 Graph 模式或 Knowledge Filter 配置。混合范围存在 Knowledge Filter 时跳过 Wiki 投影，不能把聚合了多个来源的页面当成满足任意来源过滤条件。
+
+候选要重新校验活动版本、投影状态、来源资格和内容哈希；同一页面的多个 section 按最高得分去重。Wiki 引用保留页面/版本/section 身份，不伪装成普通原始 chunk。
+
+## API 与权限
+
+管理接口位于 `/api/knowledgebase/:knowledgebaseId/wiki`：
+
+| 方法与后缀                             | 功能           |
+| -------------------------------------- | -------------- |
+| `GET /status`、`GET /documents/status` | 库及来源状态   |
+| `PUT /config`                          | 更新 Wiki 设置 |
+| `POST /rebuild`                        | 发起重建       |
+| `POST /jobs/:jobId/retry`              | 重试任务       |
+| `GET /pages`、`GET /pages/:pageId`     | 页面列表与详情 |
+
+当前 Controller 要求 `KNOWLEDGEBASE_EDIT`，服务层另检查知识库读写/管理范围。运行时检索有自己的授权入口；拥有 Assistant 使用权不意味着可以直接访问 Wiki 管理接口。
+
+## 实现与尚未完成的边界
+
+实体、生成、浏览、配置和检索校验位于 `packages/server-ai/src/knowledgebase/wiki/`；文档发布与撤回由 `packages/server-ai/src/knowledge-document/` 中的派生索引流程衔接。
+
+现有删除流程会撤回 Wiki 来源，但不能将其描述为已经完整交付原计划中的 typed HTTP 202 硬删除 saga。历史模型输出、版本和输入的完整清理、统一 pending/failed/retry 客户端体验及相应恢复验收仍应按独立工作核对。
+
+未完成的 202 删除流程、跨存储清理与客户端恢复见[持久化删除提案](/zh-Hans/proposals/knowledgebase-durable-deletion)。原整体计划已删除，已实现 Wiki 能力由本页维护。文档整理不代表真实数据库、向量后端、模型、队列恢复或浏览器验收通过，也不会为部署开启功能。

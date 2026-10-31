@@ -5,7 +5,7 @@ import { visibleDocumentSql } from './document-list-filter'
 import { assertUserManagedDocument } from './document-management'
 import { questionVectorIds } from './questions/question-vectors'
 import { questionSourceHash } from './questions/question-generation'
-import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
+import { KnowledgeParserSettingsService } from '../knowledgebase/parser/parser-settings.service'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import {
@@ -58,8 +58,8 @@ import {
     SaveOptions,
     UpdateResult
 } from 'typeorm'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
-import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/vector-store'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
+import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/embedding/vector-store'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared/commands/load-storage-file.command'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'

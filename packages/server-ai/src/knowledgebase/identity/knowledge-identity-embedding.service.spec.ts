@@ -1,6 +1,6 @@
 import { KnowledgeIdentityDescriptor } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeIdentity } from './knowledge-identity.entity'
 import { KnowledgeIdentityInput, KnowledgeIdentityCatalogueEntry } from './knowledge-identity.types'
 import { KnowledgeIdentityEmbeddingService } from './knowledge-identity-embedding.service'

@@ -1,0 +1,87 @@
+---
+title: 'Semantic FAQ exclusion'
+description: 'Negative-question decisions, prewarming, caching, candidate replenishment and failures'
+---
+
+Semantic exclusion recognizes queries whose wording differs from a negative question but whose meaning is sufficiently close. It excludes only the owning FAQ and supports Vector, Keyword and Hybrid. It does not add this behavior to document, Wiki, Graph or external knowledgebase retrieval.
+
+## Configuration and decisions
+
+Choose `negativeMatchMode: semantic` when creating an FAQ knowledgebase and provide:
+
+| Parameter           | Valid range | Initial UI value |
+| ------------------- | ----------- | ---------------- |
+| `semanticThreshold` | `[0, 1]`    | 0.85             |
+| `semanticMargin`    | `(0, 2]`    | 0.05             |
+
+The server requires finite numbers. The mode and parameters are immutable after creation, and old knowledgebases are not upgraded automatically. UI defaults are not model-independent accuracy guarantees; cosine similarity is not a probability.
+
+Decisions follow this order:
+
+1. A normalized exact match with a negative question excludes the entry.
+2. An exact match with the standard or a similar question keeps it.
+3. An entry without negative questions is kept without semantic comparison.
+4. Otherwise, the active Embedding model separately encodes positive and negative questions and compares their maximum cosine similarities.
+
+```text
+positiveScore = max(similarity(query, each positive question))
+negativeScore = max(similarity(query, each negative question))
+exclude = negativeScore >= threshold
+          AND negativeScore - positiveScore >= margin
+```
+
+For example, “refund without returning the item” may be a negative question for an FAQ about returning an item for a refund. It does not exclude another FAQ about refund-only eligibility. Close scores keep the candidate at this stage; subsequent relevance checks and reranking may still remove it.
+
+Positive comparison uses standard and similar questions, not answer vectors, Keyword scores or RRF scores. No additional chat model is called. Keyword-only retrieval also requires an available Embedding model when semantic exclusion is enabled.
+
+## Caching and prewarming
+
+After FAQ persistence and positive indexing succeed, background work prewarms independent question-comparison vectors. Scheduling or prewarming failure does not roll back saved entries. Queries compute missing comparison text on demand.
+
+Cache identity includes tenant, organization, knowledgebase, model identity and question content. The current shared-cache TTL is 30 minutes. In-flight calculations coalesce within one process; there is no distributed computation lock, so replicas may encode the same text concurrently.
+
+Background jobs validate the current user and organization, entry version, content hash, enabled state and index state. Stale work cannot reactivate deleted or disabled entries. Per-request decisions are reused only for unchanged FAQ content; fusion ranks are not reused as decision results.
+
+## Candidate replenishment and budgets
+
+```text
+Retrieve → restore current FAQ / deduplicate and fuse → exclude negatives
+         → expand windows if qualified candidates are insufficient
+         → materialize answers → final rerank → Top K
+```
+
+Each Hybrid round recomputes fusion from the latest branch results without accumulating previous RRF scores. Exhausted branches retain their results while eligible branches expand. Zero-weight branches do not run.
+
+| Limit                         | Current implementation                 |
+| ----------------------------- | -------------------------------------- |
+| Outer replenishment rounds    | 6                                      |
+| Candidate slots               | 20,000, counted across retrieval calls |
+| Semantic comparisons          | 400                                    |
+| Question-text encoding budget | 4,000                                  |
+| Request budget duration       | 60 seconds                             |
+| Individual model wait         | 30 seconds                             |
+| Embedding batch               | 32 texts                               |
+| Prewarm worker                | Concurrency 2, up to 3 attempts        |
+
+Request budgets are admission checks before calls, not an exact end-to-end wall-clock deadline; in-flight operations have separate timeouts. Budget exhaustion returns only candidates already checked and may produce fewer than Top K. A final rerank threshold does not restart replenishment or relax the threshold.
+
+## Failures and diagnostics
+
+- Cache-read failure is a miss. Cache-write failure still permits the request to use valid computed vectors.
+- Model failures, timeouts, empty/non-finite vectors and dimension mismatches produce explicit errors; they are not treated as ambiguous matches to keep.
+- Positive retrieval indexes and comparison caches are separate. Encoding a negative question never adds it to the positive index.
+- Retrieval diagnostics include comparisons, exclusions, cache hits, reuse, encoding and budget information. Distinguish cache failures from model failures during investigation.
+
+## Implementation and acceptance limits
+
+Implementation lives in `packages/server-ai/src/knowledgebase/faq/`: `faq-semantic.service.ts`, `faq-semantic-match.ts`, `faq-semantic-cache.service.ts`, `faq-semantic-prewarm.ts` and `faq-retrieval-budget.ts`. Replenishment is orchestrated in `queries/handlers/knowledge-search.handler.ts`.
+
+Real models require separate calibration and acceptance sets covering false exclusions, missed exclusions and latency, especially negation, condition changes, mixed intents and exact positive matches. Mock-vector tests do not establish model quality.
+
+Target-environment acceptance still needs:
+
+- False-exclusion rates for queries to keep, missed exclusions for paraphrased negatives and post-filter Recall@K with fixed model and parameters.
+- p50/p95 latency, model calls and embedding usage for successful prewarming, cold caches after prewarm failure, hot caches and multi-round Hybrid replenishment.
+- Browser checks for creation-time parameter submission, read-only editing, FAQ maintenance and final retrieval results.
+
+The completed plan has been removed. Historical automated results remain in Git history and do not establish completion of these quality checks.

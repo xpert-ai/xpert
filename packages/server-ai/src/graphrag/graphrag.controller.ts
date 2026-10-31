@@ -12,7 +12,7 @@ import { KnowledgeGraphEntity } from './entities'
 import { GraphragService } from './graphrag.service'
 import { GraphDocumentProgressService } from './document-progress.service'
 import { CommandBus } from '@nestjs/cqrs'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphRetryDocumentCommand } from './commands'
 
 @ApiTags('KnowledgeGraph')

@@ -10,7 +10,7 @@ import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nest
 import { InjectRepository } from '@nestjs/typeorm'
 import { EntityManager, In, IsNull, Repository } from 'typeorm'
 import { KnowledgebaseTask } from './task.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { t } from 'i18next'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'

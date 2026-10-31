@@ -1,6 +1,6 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../../knowledgebase/persistence/knowledgebase.entity'
 import { AppPlatformDelivery } from './app-platform-delivery.entity'
 
 /** Keep the producer's resource alive while any platform consumer retains its binding. */

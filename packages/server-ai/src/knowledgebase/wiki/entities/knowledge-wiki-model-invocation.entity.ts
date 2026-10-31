@@ -1,7 +1,7 @@
 import { KnowledgeWikiInvocationStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob } from './knowledge-wiki-job.entity'
 import type { KnowledgeWikiModelOutput } from '../types'
 

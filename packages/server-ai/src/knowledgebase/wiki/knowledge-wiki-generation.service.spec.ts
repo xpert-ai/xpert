@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common'
 import { AiModelTypeEnum, KBDocumentStatusEnum, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiSourceState } from './entities'
 import { createKnowledgeWikiConfigFingerprint, resolveKnowledgeWikiModel } from './knowledge-wiki-config'
 import { KnowledgeWikiGenerationService } from './knowledge-wiki-generation.service'

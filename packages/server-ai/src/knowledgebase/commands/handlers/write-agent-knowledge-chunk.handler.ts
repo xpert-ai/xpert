@@ -11,13 +11,13 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Raw } from 'typeorm'
 import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import {
     AGENT_WRITER_SYSTEM_MANAGED_TYPE,
     getAgentWriterDocumentName,
     getAgentWriterDocumentPath,
     getAgentWriterManagedDocumentPath
-} from '../../agent-knowledge-writer.constants'
+} from '../../writer/agent-knowledge-writer.constants'
 import { WriteAgentKnowledgeChunkCommand } from '../write-agent-knowledge-chunk.command'
 
 type TSystemManagedDocumentMetadata = {

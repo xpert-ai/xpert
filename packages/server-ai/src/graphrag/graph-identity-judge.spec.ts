@@ -17,7 +17,7 @@ import {
     KnowledgeIdentityRuntime,
     KnowledgeIdentitySource
 } from '../knowledgebase/identity/knowledge-identity.types'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { KnowledgeGraphIndexJob } from './entities'
 import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { judgeGraphIdentity } from './graph-identity-judge'

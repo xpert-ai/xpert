@@ -1,7 +1,7 @@
 import { AiProviderRole } from '@xpert-ai/contracts'
 import { CopilotOneByRoleQuery } from '../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
-import { createEmbeddingFingerprint } from '../knowledgebase/embedding-state'
+import { createEmbeddingFingerprint } from '../knowledgebase/embedding/embedding-state'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { FileAsset, FileChunk } from './entities'
 import { FileUnderstandingVectorService } from './file-understanding-vector.service'

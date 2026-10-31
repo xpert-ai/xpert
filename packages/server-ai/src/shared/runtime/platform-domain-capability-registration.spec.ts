@@ -6,7 +6,7 @@ jest.mock('../../execution-control/execution-control-evidence.service', () => ({
 }))
 import { unknownExecutionControl } from '@xpert-ai/contracts'
 jest.mock('../../xpert-project/services/conversation-project.service', () => ({ ConversationProjectService: class {} }))
-jest.mock('../../knowledgebase/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../../knowledgebase/management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 jest.mock('../../knowledgebase/tenant-library/tenant-library-access.service', () => ({
     TenantLibraryAccessService: class {}
 }))

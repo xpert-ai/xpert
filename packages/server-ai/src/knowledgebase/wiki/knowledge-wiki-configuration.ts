@@ -7,7 +7,7 @@ import {
 } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     createKnowledgeWikiConfigFingerprint,
     isUsableKnowledgeWikiModel,

@@ -3,7 +3,7 @@ import { DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, VectorTypeEnum
 import { environment } from '@xpert-ai/server-config'
 import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
 import { PreparedKnowledgeFilter, prepareKnowledgeFilter } from '../filter'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeRetrievalRequest } from './types'
 import { FAQRetrievalBudget, FAQ_RETRIEVAL_LIMITS } from '../faq/faq-retrieval-budget'
 import { refillFAQCandidates } from '../faq/faq-candidate-refill'

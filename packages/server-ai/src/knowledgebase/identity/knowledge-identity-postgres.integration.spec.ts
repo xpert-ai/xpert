@@ -4,7 +4,7 @@ import { KBDocumentStatusEnum, KnowledgeIdentityDescriptor } from '@xpert-ai/con
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema, EntitySchemaColumnOptions } from 'typeorm'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { loadIdentityCatalogue } from './knowledge-identity-catalogue'
 import { KnowledgeIdentityEmbeddingService } from './knowledge-identity-embedding.service'
 import { KnowledgeIdentityObservation } from './knowledge-identity-observation.entity'

@@ -3,12 +3,12 @@ import type { IKnowledgebase, IKnowledgeFAQEntry, IUser } from '@xpert-ai/contra
 import type { UserService } from '@xpert-ai/server-core'
 import type { Queue, Job } from 'bull'
 import type { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
-import type { KnowledgebaseService } from '../knowledgebase.service'
+import type { KnowledgebaseService } from '../management/knowledgebase.service'
 import type { FAQSemanticService } from './faq-semantic.service'
 import { FAQSemanticPrewarmDispatcher, FAQSemanticPrewarmProcessor, FAQPrewarmJob } from './faq-semantic-prewarm'
 import { faqContentHash } from './faq-semantic-cache.service'
 
-jest.mock('../knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
+jest.mock('../management/knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
 jest.mock('../../knowledge-document/chunk/chunk.service', () => ({
     KnowledgeDocumentChunkService: class KnowledgeDocumentChunkService {}
 }))

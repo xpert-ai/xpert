@@ -4,7 +4,7 @@ import { getDataSourceToken } from '@nestjs/typeorm'
 import type { DataSource } from 'typeorm'
 import type { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
 import type { KnowledgeDocumentService } from '../../knowledge-document/document.service'
-import type { KnowledgebaseService } from '../knowledgebase.service'
+import type { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeFAQService } from './knowledge-faq.service'
 import { createFAQLogicalVectorId } from './faq-projection'
 

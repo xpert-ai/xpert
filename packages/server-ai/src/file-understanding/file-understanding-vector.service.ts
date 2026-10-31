@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CopilotOneByRoleQuery } from '../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
-import { createEmbeddingFingerprint } from '../knowledgebase/embedding-state'
+import { createEmbeddingFingerprint } from '../knowledgebase/embedding/embedding-state'
 import { RagCreateVStoreCommand } from '../rag-vstore'
 import { FileAsset, FileChunk, FileEmbedding } from './entities'
 

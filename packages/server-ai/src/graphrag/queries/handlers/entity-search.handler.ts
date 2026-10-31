@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphEntity } from '../../entities'
 import { KnowledgeGraphEntitySearchQuery } from '../knowledge-graph-entity-search.query'
 

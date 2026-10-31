@@ -5,7 +5,7 @@ import { EnsureKnowledgebasesCommand } from '../ensure-knowledgebases.command'
 import { EnsureKnowledgebasesHandler } from './ensure-knowledgebases.handler'
 import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { TenantLibraryAccessService } from '../../tenant-library/tenant-library-access.service'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 import { Repository } from 'typeorm'
 
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))

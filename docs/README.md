@@ -102,3 +102,47 @@ ownership, durable control, local pause/resume and termination behavior. Append
 completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
+
+## Knowledgebase functional documentation
+
+Maintain current behavior in matching `en/guides/knowledgebase/` and
+`zh-Hans/guides/knowledgebase/` routes. Both language menus include the six pages:
+
+| Page | Maintained content |
+| --- | --- |
+| `document-parsing` | Format routing, inheritance, provider validation, snapshots and runtime requirements |
+| `chunking` | Automatic/structured splitting, previews, token budgets and source evidence |
+| `retrieval-pipeline` | Vector/Keyword/Graph, fusion, index prerequisites, finalization and code organization |
+| `faq` | Entries, creation-only configuration, projections, APIs and citations |
+| `faq-semantic-exclusion` | Negative matching, cache/prewarm, replenishment budgets and failures |
+| `wiki` | Configuration, source-derived pages, generation, visibility and remaining deletion boundaries |
+
+The completed FAQ, semantic-exclusion, parser and retrieval implementation plans
+have been removed. Their feature pages retain deployment and quality acceptance
+requirements; Git history preserves the original decisions and test evidence.
+Unfinished work is tracked separately in the bilingual proposals:
+[chunking extensions](./en/proposals/knowledgebase-chunking-next.mdx) /
+[分块扩展](./zh-Hans/proposals/knowledgebase-chunking-next.mdx) and
+[durable deletion](./en/proposals/knowledgebase-durable-deletion.mdx) /
+[持久化删除](./zh-Hans/proposals/knowledgebase-durable-deletion.mdx).
+The combined chunking and Wiki plans have been removed. Implementation completion
+and deployment acceptance remain separate; retiring a plan does not declare
+acceptance passed.
+
+中文功能入口：[文档解析](./zh-Hans/guides/knowledgebase/document-parsing.mdx)、
+[分块](./zh-Hans/guides/knowledgebase/chunking.mdx)、
+[检索与融合](./zh-Hans/guides/knowledgebase/retrieval-pipeline.mdx)、
+[FAQ](./zh-Hans/guides/knowledgebase/faq.mdx)、
+[语义反例排除](./zh-Hans/guides/knowledgebase/faq-semantic-exclusion.mdx)、
+[Wiki](./zh-Hans/guides/knowledgebase/wiki.mdx)。中英文页面同步维护。
+
+## Project-backed Spaces functional documentation
+
+The Project-and-files upgrade is implemented. Its old implementation plan has
+been removed and consolidated into the existing [English Spaces guide](./en/guides/spaces.mdx),
+[中文功能文档](./zh-Hans/guides/spaces.mdx), [English architecture](./en/architecture/spaces-content.mdx)
+and [中文架构文档](./zh-Hans/architecture/spaces-content.mdx).
+These pages retain the unclosed native-browser download byte check and distinguish
+historical acceptance from newer content-platform and released-package validation.
+Do not treat that remaining acceptance task as unimplemented Project ownership or
+reintroduce the retired standalone Space Volume and migration design.

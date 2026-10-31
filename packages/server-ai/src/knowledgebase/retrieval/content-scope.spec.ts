@@ -1,7 +1,7 @@
 import { IKnowledgebase, KnowledgeRetrievalContentScope, VectorTypeEnum } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { prepareKnowledgeFilter } from '../filter'
 import { milvusContentScopePredicate, postgresContentScopePredicate } from './content-scope'
 import { VectorKnowledgeCandidateRetriever } from './vector-knowledge-candidate.retriever'

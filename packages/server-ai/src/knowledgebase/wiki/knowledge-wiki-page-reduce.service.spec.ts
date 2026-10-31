@@ -1,6 +1,6 @@
 import { KBDocumentStatusEnum, KnowledgeWikiPageContributionPayload } from '@xpert-ai/contracts'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiPageReduceInput, KnowledgeWikiPageVersion } from './entities'
 import { hashKnowledgeWikiValue } from './knowledge-wiki-generation.utils'
 import { KnowledgeWikiReduceSource } from './knowledge-wiki-model-invocation.service'

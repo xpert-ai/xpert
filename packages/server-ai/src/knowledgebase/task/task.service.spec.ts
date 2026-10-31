@@ -28,7 +28,7 @@ jest.mock('./task.entity', () => ({
     KnowledgebaseTask: class KnowledgebaseTask {}
 }))
 
-jest.mock('../knowledgebase.entity', () => ({
+jest.mock('../persistence/knowledgebase.entity', () => ({
     Knowledgebase: class Knowledgebase {}
 }))
 

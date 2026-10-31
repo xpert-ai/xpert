@@ -30,7 +30,7 @@ import { KnowledgeDocumentTransformSnapshotService } from '../../../knowledge-do
 import { KnowledgeDocumentAnalysisSnapshotService } from '../../../knowledge-document/analysis-snapshot.service'
 import { AgentStateAnnotation, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgebaseTaskService } from '../../task'
 import { createDocumentsParameter, DOCUMENTS_CHANNEL_NAME, ERROR_CHANNEL_NAME, serializeDocuments } from '../types'
 import { t } from 'i18next'

@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { RequestContext, Tag } from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeTagService } from './knowledge-tag.service'
 
 describe('Knowledge tag usage', () => {

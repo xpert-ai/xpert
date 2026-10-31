@@ -1,0 +1,62 @@
+---
+title: 'Knowledgebase chunking'
+description: 'Automatic, structure-aware, heading and length splitting with preview and source boundaries'
+---
+
+Chunking converts parsing output into retrieval units. Ordinary text supports automatic, structure-aware, Markdown-heading and length strategies. Preview and persisted processing share the execution entry. Selecting a strategy does not call a model.
+
+## Choosing a strategy
+
+| Provider ID           | Behavior                                                                        | Size semantics                                     |
+| --------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `auto`                | Selects an effective strategy from explicit format and structure                | Depends on the selected strategy                   |
+| `structure-aware`     | Preserves sections, paragraphs, tables, lists, code and formulas where possible | Target size; structural units influence boundaries |
+| `markdown-recursive`  | Uses the existing recursive Markdown-heading algorithm                          | Existing strategy semantics                        |
+| `recursive-character` | Splits by length, separators and overlap                                        | Existing strategy semantics                        |
+
+Ordinary chunking defaults to `auto` when no strategy is specified. Existing explicit strategies and parameters remain effective. Structure-aware options default to `chunkSize: 1000` and `chunkOverlap: 100`; these are not the Embedding model's token limit.
+
+## Automatic selection
+
+Automatic processing groups input by known document identity, then examines declared format and structure:
+
+1. Tables, lists, code or formulas select `structure-aware`.
+2. Headings entirely supported by the old ATX level 1–3 algorithm select `markdown-recursive`.
+3. Other explicit or layout headings select `structure-aware`.
+4. Plain text selects `recursive-character`.
+
+Provider names and display labels do not establish structure. Missing required format declarations produce a diagnostic. Explicit layouts rely on page, reading-order and structural fields.
+
+## Structure preservation and limits
+
+Structure-aware splitting retains section paths and looks for continuation boundaries inside oversized units: table rows, list items and code lines. Repeated headings, table headers and code fences also consume the budget. Very small budgets may require further splitting; arbitrary tables, lists or code blocks are not guaranteed to remain whole.
+
+Long tables prioritize complete data rows and reduce repeated context when necessary. A row that itself exceeds the hard token limit may still split. Source text and repeated reading context are recorded separately.
+
+`maxChunkTokens` accepts 0–8192; 0 disables that explicit limit. Explicit pipeline-node token configuration takes precedence, including 0 overriding an inherited limit. Persistence still checks the actual Embedding model's budget, so a preview chunk may produce multiple vector segments.
+
+Current structured analysis accepts up to five million input characters and 10,000 output chunks. Lightweight preview limits input to 100,000 characters. These bound processing, not model context size.
+
+## Preview and source evidence
+
+Preview reports the requested/effective strategy, selection reason, structural counts, heading paths, continuations and fallbacks. Chunk `chunking` metadata carries algorithm revision, input fingerprint and source/context ranges.
+
+Incomplete source mapping or an older algorithm without exact positions is marked as coarse. Repeated headings and headers must not be treated as new source evidence. Algorithm revisions participate in processing cache identity; document-level diagnostic changes alone must not reindex unchanged chunks.
+
+## Supported boundaries
+
+- Ordinary and existing parent/child chunking are separate paths. Inputs with `parentId`, parent/child types, Sheet data or special field projections cannot silently enter the new general strategy.
+- Field projections whose `searchContent` differs from body text retain their own semantics rather than being rewritten as ordinary text segments.
+- Full recovery of HTML/image tables, complex merged cells, cross-fragment continuations or missing parser structure is not promised.
+- Parsing quality determines available structure. A chunker cannot recover content already discarded during conversion.
+- Historical samples separately record CRLF headings, DOCX automatic numbering and non-text PDF fragments. This documentation conversion did not rerun those samples and does not establish full format acceptance.
+
+## Implementation map
+
+- Strategies, analysis and structural units: `packages/server-ai/src/knowledgebase/plugins/textsplitter-common/`.
+- Shared execution: `packages/server-ai/src/knowledge-document/split-documents.ts`.
+- Token limits: `packages/server-ai/src/knowledge-document/token-limited-chunks.ts`.
+- Settings and preview: `packages/server-ai/src/knowledgebase/parser/parser-settings.service.ts`.
+- Shared contracts: `packages/contracts/src/ai/knowledge-chunking.model.ts`.
+
+This page maintains delivered behavior. Parent/child boundaries, strict snapshot preview and fidelity work are tracked in the [chunking extension proposal](/en/proposals/knowledgebase-chunking-next), not as delivered capabilities. The combined plan has been removed; Git history retains samples and test records. Real retrieval quality still requires separate acceptance.

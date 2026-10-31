@@ -20,7 +20,7 @@ import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
 import { In } from 'typeorm'
 import { KnowledgeDocument } from '../core/entities/internal'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 

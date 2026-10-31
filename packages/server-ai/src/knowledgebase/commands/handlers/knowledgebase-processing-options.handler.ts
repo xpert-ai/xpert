@@ -6,7 +6,7 @@ import { type KnowledgebaseProcessingOptionsResult } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { extname } from 'node:path'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { GetKnowledgebaseProcessingOptionsCommand } from '../knowledgebase-documents.command'
 
 /** Shared defaults and permission-filtered choices for document upload clients. */

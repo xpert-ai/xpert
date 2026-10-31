@@ -30,10 +30,10 @@ import {
 } from './knowledgebase-documents.handler'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
 import { VolumeSubtreeClient } from '../../../shared'
-import type { KnowledgebaseService } from '../../knowledgebase.service'
+import type { KnowledgebaseService } from '../../management/knowledgebase.service'
 import type { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 import { FindOperator } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 
 describe('ReprocessKnowledgebaseDocumentsHandler', () => {
     it('rejects read-only library access before changing document metadata or starting processing', async () => {

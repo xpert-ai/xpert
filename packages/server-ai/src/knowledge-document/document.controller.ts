@@ -73,7 +73,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
-import type { TVectorSearchParams } from '../knowledgebase/vector-store'
+import type { TVectorSearchParams } from '../knowledgebase/embedding/vector-store'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import {

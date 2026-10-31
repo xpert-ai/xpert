@@ -1,6 +1,6 @@
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import type { Cache } from 'cache-manager'
-import type { KnowledgebaseService } from '../../knowledgebase.service'
+import type { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { FAQSemanticService } from '../../faq/faq-semantic.service'
 import { FAQSemanticCacheService } from '../../faq/faq-semantic-cache.service'
 import { FAQRetrievalBudget, FAQ_RETRIEVAL_LIMITS } from '../../faq/faq-retrieval-budget'
@@ -14,7 +14,7 @@ import { LegacyWeightedFusion, WeightedRrfFusion } from '../../retrieval'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeSearchQueryHandler } from './knowledge-search.handler'
 
-jest.mock('../../knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
+jest.mock('../../management/knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
 jest.mock('../../../knowledge-document/chunk/chunk.service', () => ({
     KnowledgeDocumentChunkService: class KnowledgeDocumentChunkService {}
 }))

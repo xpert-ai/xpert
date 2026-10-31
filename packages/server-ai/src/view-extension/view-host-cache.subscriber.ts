@@ -3,7 +3,7 @@ import { ViewExtensionCacheService } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, EventSubscriber, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm'
 import { Environment } from '../environment/environment.entity'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { XpertProject } from '../xpert-project/entities/project.entity'
 import { Xpert } from '../xpert/xpert.entity'
 

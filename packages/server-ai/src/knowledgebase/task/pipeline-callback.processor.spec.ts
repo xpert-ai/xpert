@@ -1,6 +1,6 @@
 import { AgentChatCallbackEnvelopePayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import { KnowledgePipelineCallbackProcessor } from './pipeline-callback.processor'
-import { KNOWLEDGE_PIPELINE_CALLBACK } from '../types'
+import { KNOWLEDGE_PIPELINE_CALLBACK } from '../shared/types'
 
 describe('knowledge pipeline callback', () => {
     function setup(kind: AgentChatCallbackEnvelopePayload['kind'] = 'error') {

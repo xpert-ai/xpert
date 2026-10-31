@@ -2,7 +2,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { NotFoundException } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { compileKnowledgeFilterToPostgres, normalizeFolderPath, prepareKnowledgeFilter } from '../../filter'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import {
     KnowledgeFolderOption,
     KnowledgeFolderOptionsQuery,

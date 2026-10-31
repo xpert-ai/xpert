@@ -32,7 +32,7 @@ import { KnowledgebaseTaskService } from '../../task'
 import { createDocumentsParameter, serializeDocuments } from '../types'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 import { PluginPermissionsCommand } from '../../commands'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 
 const ErrorChannelName = 'error'
 const DocumentsChannelName = 'documents'

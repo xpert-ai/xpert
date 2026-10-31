@@ -9,7 +9,7 @@ import {
     KnowledgeGraphFilterScopeService,
     prepareKnowledgeFilter
 } from '../../filter'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeGraphExploreQuery } from '../knowledge-graph-explore.query'
 
 type GraphEvidence = Awaited<ReturnType<KnowledgebaseService['listStructuredGraphEvidence']>>[number]

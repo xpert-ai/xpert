@@ -34,7 +34,7 @@ import { CopilotTokenRecordCommand } from '../../copilot-user'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { AgentMiddlewareRuntimeService } from '../../shared/agent/middleware-runtime'
 import { extractTextFromMessageContent } from '../../shared/agent/stream-text'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiModelInvocation, KnowledgeWikiPage } from './entities'
 import { isUsableKnowledgeWikiModel, resolveKnowledgeWikiModel } from './knowledge-wiki-config'
 import {

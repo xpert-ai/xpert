@@ -17,7 +17,7 @@ import type {
     KnowledgebaseAccessInput,
     KnowledgebaseAccessResult
 } from '@xpert-ai/plugin-sdk'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgebaseCatalogAccessService } from './knowledgebase-catalog-access.service'
 import {
     catalogCursorSchema,

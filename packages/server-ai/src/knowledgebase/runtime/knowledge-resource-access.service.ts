@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { RequestContext, type ContentOperation, type ContentResourceReference } from '@xpert-ai/plugin-sdk'
 import { ContentResourceService } from '../../content-resource/content-resource.service'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 /** Resource policies take precedence over authoring workspace, legacy owner and visibility flags. */
 @Injectable()

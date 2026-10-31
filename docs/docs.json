@@ -89,6 +89,17 @@
                   "en/guides/release",
                   "en/guides/message-assembly-v2"
                 ]
+              },
+              {
+                "group": "Knowledgebases",
+                "pages": [
+                  "en/guides/knowledgebase/document-parsing",
+                  "en/guides/knowledgebase/chunking",
+                  "en/guides/knowledgebase/retrieval-pipeline",
+                  "en/guides/knowledgebase/faq",
+                  "en/guides/knowledgebase/faq-semantic-exclusion",
+                  "en/guides/knowledgebase/wiki"
+                ]
               }
             ]
           },
@@ -98,6 +109,10 @@
               {
                 "group": "Architecture Proposals",
                 "pages": ["en/proposals/scoped-authorization", "en/proposals/shared-checkpoint-forks"]
+              },
+              {
+                "group": "Knowledgebases",
+                "pages": ["en/proposals/knowledgebase-chunking-next", "en/proposals/knowledgebase-durable-deletion"]
               }
             ]
           },
@@ -205,7 +220,15 @@
               },
               {
                 "group": "知识库",
-                "pages": ["zh-Hans/guides/graphrag"]
+                "pages": [
+                  "zh-Hans/guides/knowledgebase/document-parsing",
+                  "zh-Hans/guides/knowledgebase/chunking",
+                  "zh-Hans/guides/knowledgebase/retrieval-pipeline",
+                  "zh-Hans/guides/knowledgebase/faq",
+                  "zh-Hans/guides/knowledgebase/faq-semantic-exclusion",
+                  "zh-Hans/guides/knowledgebase/wiki",
+                  "zh-Hans/guides/graphrag"
+                ]
               }
             ]
           },
@@ -215,6 +238,13 @@
               {
                 "group": "架构提案",
                 "pages": ["zh-Hans/proposals/scoped-authorization", "zh-Hans/proposals/shared-checkpoint-forks"]
+              },
+              {
+                "group": "知识库",
+                "pages": [
+                  "zh-Hans/proposals/knowledgebase-chunking-next",
+                  "zh-Hans/proposals/knowledgebase-durable-deletion"
+                ]
               }
             ]
           },
