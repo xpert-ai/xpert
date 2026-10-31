@@ -23,6 +23,22 @@ const registry = () =>
   new ArtifactTypeRegistry({ getProviders: () => [] } as unknown as DiscoveryService, new Reflector())
 
 describe('Artifact type extension protocol', () => {
+  it('allows Project link audiences only for authenticated organization or workspace shares', () => {
+    const p = provider()
+    p.definition.sharing = {
+      projectAccess: 'link-audience',
+      accessModes: ['organization_all'],
+      versionModes: ['version'],
+      allowDownload: false,
+      mutableLinks: true,
+      descriptor: true
+    }
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).toThrow()
+    p.definition.presentation = { mode: 'authenticated' }
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).not.toThrow()
+    p.definition.sharing.accessModes = ['public_link']
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).toThrow()
+  })
   it('accepts application-managed draft types', () => {
     const p = provider()
     p.definition.versioning = { mode: 'draft-only' }

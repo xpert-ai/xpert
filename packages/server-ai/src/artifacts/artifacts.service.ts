@@ -838,11 +838,10 @@ export class ArtifactsService implements ArtifactsApi {
         if (!artifact) return false
         try {
             await this.sourcePolicies.assertLink(artifact, link)
-            await this.persistence.assertAccess(
+            await this.persistence.assertSharedAccess(
                 artifact,
                 { ...principal, organizationId: artifact.organizationId },
-                'read',
-                false
+                link
             )
         } catch {
             return false

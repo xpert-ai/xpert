@@ -23,6 +23,7 @@ export const artifactTypeDefinitionSchema = z
       .optional(),
     sharing: z
       .object({
+        projectAccess: z.literal('link-audience').optional(),
         accessModes: z
           .array(
             z.enum([
@@ -47,3 +48,10 @@ export const artifactTypeDefinitionSchema = z
     presentation: z.object({ mode: z.enum(['file', 'snapshot', 'authenticated']) }).strict()
   })
   .strict()
+  .refine(
+    (definition) =>
+      definition.sharing?.projectAccess !== 'link-audience' ||
+      (definition.presentation.mode === 'authenticated' &&
+        definition.sharing.accessModes.every((mode) => ['organization_all', 'workspace_all'].includes(mode))),
+    'Project link audiences require authenticated organization or workspace sharing'
+  )

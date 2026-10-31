@@ -20,7 +20,7 @@ import {
     RequestContext,
     User
 } from '@xpert-ai/server-core'
-import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { Brackets, Repository, UpdateResult } from 'typeorm'
 import { of } from 'rxjs'
 import { z } from 'zod'
@@ -362,6 +362,37 @@ describe('XpertTaskService', () => {
                 threadId: 'thread-1',
                 runId: 'run-1'
             }
+        })
+    })
+
+    it('hydrates current run-as permissions for tools and observes revocation on the next run', async () => {
+        const commandBus = createCommandBusMock(),
+            service = createService(commandBus)
+        const observed: boolean[] = []
+        const execute = commandBus.execute.getMockImplementation()!
+        commandBus.execute.mockImplementation((command) => {
+            if (command instanceof XpertChatCommand)
+                observed.push(PluginRequestContext.hasPermission('DATA_SOURCE_VIEW'))
+            return execute(command)
+        })
+        const permission = {
+            permission: 'DATA_SOURCE_VIEW',
+            enabled: true,
+            roleId: 'role',
+            role: { id: 'role', name: 'TEST' }
+        }
+        const find = jest.spyOn(service, 'findOne').mockImplementation(async () =>
+            createTaskFixture({
+                runAsUserId: 'user-2',
+                runAsUser: { id: 'user-2', role: { name: 'TEST', rolePermissions: [{ ...permission }] } }
+            })
+        )
+        await service.executeTask('task-1', { timeZone: 'UTC' })
+        permission.enabled = false
+        await service.executeTask('task-1', { timeZone: 'UTC' })
+        expect(observed).toEqual([true, false])
+        expect(find).toHaveBeenCalledWith('task-1', {
+            relations: expect.arrayContaining(['createdBy.role.rolePermissions', 'runAsUser.role.rolePermissions'])
         })
     })
 

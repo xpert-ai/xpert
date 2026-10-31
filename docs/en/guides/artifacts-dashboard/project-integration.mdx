@@ -20,7 +20,7 @@ The plugin contributes the Live Dashboard project type: `applicationKey: @xpert-
 
 The `live-dashboard-assistant` template uses `workspaceScope.mode: project-required` with this type. ChatKit provides its existing selection and creation flow when no Project is selected. Existing Assistants use the platform's template upgrade flow; installing the plugin does not automatically rewrite their configuration or publication state.
 
-This integration provides the project-required authoring Assistant. It does not register a dashboard inspection template, inspection tools or automatic scheduling.
+The optional `live-dashboard-monitor` template inspects explicitly selected published dashboards in the Project. It reports binding availability, result completeness and evidenced business freshness. It cannot edit or publish, and schedules work only when requested. Query time is not business-data freshness.
 
 ## Two-column cascade picker
 
@@ -68,7 +68,7 @@ Archived Projects are omitted from the picker. Existing entry points still enfor
 
 Dashboard definitions use protected Artifact-owned storage. Generic Project file lists and tools cannot read draft bytes. Platform Artifacts owns content references, checksums and authorization for drafts and formal versions. The plugin declares a `draft-only` version policy so generic version uploads cannot bypass publication checks.
 
-An authenticated organization share requires both the link audience and current Project membership. A link does not grant Project membership, draft access, editing rights or source-data permissions. Non-members must first receive Project access from a manager. Anonymous sharing is unavailable.
+An explicit manager-created, authenticated organization share may let a non-Project member read the published definition. This exception is limited to the authorized share link. It never exposes drafts, editing, generic files or data sources and cannot enable anonymous access.
 
 ## Companion versions and verification
 

@@ -96,10 +96,10 @@ Use `ArtifactsApi.readArtifactVersion({ artifactId, artifactVersionId, purpose }
 
 The authenticated library viewer reuses the type's file, snapshot or authenticated presentation without minting a share. Existing shares are resolved by the type's `sharing.shareKey` (or `artifact-library`) and their stored URLs can be copied repeatedly. Selecting another reference version does not update the published link. Public sharing remains an explicit, separately authorized operation.
 
-## Project working content
+## Project working content and explicit share audiences
 
 Types that own an application draft workflow can declare `versioning: { mode: 'draft-only' }`. Generic version uploads are rejected; publish through Artifact Drafts. `authorizeDraft` adds the working-copy policy. `assertDraftPublication` runs again under the Artifact lock immediately before an immutable version is committed, so domain review checks cannot be bypassed through the generic draft API.
 
 `ArtifactContentRuntimeCapability` stores definition bytes in protected Artifact-owned storage. Ordinary project file listings and file tools cannot read that storage. Reads check the current source policy and require draft access unless the exact content is already referenced by a formal version. The platform validates ownership, canonical references, checksums and the 50 MB limit.
 
-Project membership and link audience are cumulative restrictions. A sharing link does not grant Project membership or access to drafts. Source-resource and data-query permissions remain independent checks.
+By default, Project membership and link audience are cumulative restrictions. A type may explicitly declare `sharing.projectAccess: 'link-audience'` only with authenticated presentation and organization/workspace audiences. In that case a manager's explicit share can grant access to the published definition outside Project membership. Provider authorization and any resource ACL still apply; tenant and audience membership are checked, revocation remains immediate, and the exception never applies to drafts, generic file APIs, library references, edits or data queries. It cannot enable anonymous/public sharing.

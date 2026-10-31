@@ -420,6 +420,15 @@ export class ArtifactPersistence {
         return serializeArtifact(saved)
     }
 
+    async assertSharedAccess(
+        artifact: Parameters<typeof assertArtifactAccess>[1],
+        actor: Parameters<typeof assertArtifactAccess>[2],
+        link: import('@xpert-ai/plugin-sdk').ArtifactTypeLink
+    ) {
+        if (this.dependencies.access) return this.dependencies.access.assertSharedRead(artifact, actor, link)
+        return this.assertAccess(artifact, actor, 'read', false)
+    }
+
     async assertAccess(
         artifact: Parameters<typeof assertArtifactAccess>[1],
         actor: Parameters<typeof assertArtifactAccess>[2],

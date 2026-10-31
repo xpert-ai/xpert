@@ -51,7 +51,7 @@ This is distinct from ordinary generated-file preview: the JSON definition is no
 
 The personal dashboard owner or Project manager enables sharing in Workbench, following the latest formal version or pinning one. Draft-only dashboards cannot be shared, and sharing itself never publishes.
 
-The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Personal dashboards retain owner access. Project members consume formal versions, editors author drafts, and managers publish or share. Project sharing links still require current Project membership and do not grant published-definition access to non-members; see [Project integration](./project-integration). Queries use the viewer's permissions, not the creator's identity.
+The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Personal dashboards retain owner access. Project members consume formal versions, editors author drafts, and managers publish or share. An explicit organization share may grant published-definition viewing to non-Project members; see [Project integration](./project-integration). Queries use the viewer's permissions, not the creator's identity.
 
 Platform `ArtifactPresentationRegistry` selects a provider by plugin and resource type. The plugin interprets the saved package and read-only `query` / `query-binding` operations; the platform owns link policy, formal targets, identity and isolation.
 

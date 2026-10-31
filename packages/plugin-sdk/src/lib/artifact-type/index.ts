@@ -44,6 +44,8 @@ export interface ArtifactTypeDefinition {
   /** A managed application owns publication; generic version uploads cannot bypass its draft workflow. */
   versioning?: { mode: 'draft-only' }
   sharing?: {
+    /** Opt in to authenticated Project shares beyond membership; source ACL and data policy still apply. */
+    projectAccess?: 'link-audience'
     accessModes: readonly ArtifactAccessMode[]
     versionModes: readonly ArtifactLinkVersionMode[]
     maxTtlSeconds?: number

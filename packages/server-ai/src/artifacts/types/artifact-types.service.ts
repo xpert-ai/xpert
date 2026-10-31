@@ -125,6 +125,15 @@ export class ArtifactTypesService {
         await provider.assertPublication?.(source, access)
         if (this.provider(source) !== provider) throw unavailable()
     }
+    allowsProjectLinkAudience(source: TypedArtifactSource, link: ArtifactTypeLink) {
+        const definition = this.provider(source).definition
+        return (
+            definition.presentation.mode === 'authenticated' &&
+            definition.sharing?.projectAccess === 'link-audience' &&
+            ['organization_all', 'workspace_all'].includes(link.accessMode) &&
+            definition.sharing.accessModes.includes(link.accessMode)
+        )
+    }
     async assertLink(source: TypedArtifactSource, link: ArtifactTypeLink) {
         const provider = this.provider(source)
         const sharing = provider.definition.sharing

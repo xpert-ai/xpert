@@ -44,12 +44,32 @@ export class ArtifactContentAccess {
         surface?: 'draft'
     ) {
         await this.sourcePolicies.authorize(artifact, scope, operation, surface)
+        await this.assertSourceConstraints(artifact, scope, operation, true)
+    }
+
+    /** Called only by the canonical authenticated link policy, never by generic content or draft reads. */
+    async assertSharedRead(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        link: import('@xpert-ai/plugin-sdk').ArtifactTypeLink
+    ) {
+        if (!this.sourcePolicies.allowsProjectLinkAudience(artifact, link)) return this.assert(artifact, scope, 'read')
+        await this.sourcePolicies.authorize(artifact, scope, 'read')
+        await this.assertSourceConstraints(artifact, scope, 'read', false)
+    }
+
+    private async assertSourceConstraints(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        operation: ContentOperation,
+        requireProjectMembership: boolean
+    ) {
         const projectId = !artifact.userId ? artifact.projectId : null
         if (!projectId && !artifact.authorizationProviderKey) return
         if (!scope.tenantId || !scope.userId || (artifact.tenantId && artifact.tenantId !== scope.tenantId))
             throw denied()
         const actor = { tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.userId }
-        if (projectId) {
+        if (projectId && requireProjectMembership) {
             if (operation === 'manage') await this.projects.assertManage({ actor, projectId })
             else if (operation !== 'read') await this.projects.assertEdit({ actor, projectId })
             else if (!(await this.projects.listReadable({ actor, projectIds: [projectId] })).length) throw denied()
