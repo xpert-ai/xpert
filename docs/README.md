@@ -102,3 +102,12 @@ ownership, durable control, local pause/resume and termination behavior. Append
 completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
+
+## Announcements and realtime notifications
+
+[公告与用户实时通知](./announcements-and-realtime-notifications.md) documents the
+accepted Web/Bosi announcement workflow, permissions, durable delivery and SSE,
+personal scheduled-task results, shared date/time controls, migration and verification.
+The [completed plan index](./plans/2026-10-31-announcements-and-realtime-notifications.md)
+retains the original planning link. Mobile Push and external messaging channels remain
+future integrations; local acceptance does not imply a production release.

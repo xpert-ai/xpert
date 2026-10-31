@@ -55,3 +55,5 @@ export * from './model-execution/model-execution.module'
 export * from './content-resource/content-resource.module'
 export * from './content-resource/documents/entities'
 export * from './analytics/analytics-definition.module'
+
+export * from './user-notification/notification.module'

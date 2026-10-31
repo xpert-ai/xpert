@@ -145,3 +145,5 @@ export * from './ai/thread-control-view.schema'
 export * from './ai/thread-control-projection.model'
 export * from './ai/mcp-operation.model'
 export * from './ai/mcp-task.schema'
+
+export * from './user-notification.schema'

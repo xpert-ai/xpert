@@ -7,6 +7,11 @@
     "styles.css",
     "src/styles.css",
     {
+      "glob": "*.json",
+      "input": "src/i18n",
+      "output": "i18n"
+    },
+    {
       "glob": "**/*.scss",
       "input": "src/lib/ui/compat",
       "output": "ui/compat"

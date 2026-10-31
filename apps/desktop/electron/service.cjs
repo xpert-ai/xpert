@@ -10,6 +10,7 @@ const {
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
+const { UserNotifications, createNotificationMethods } = require('./user-notifications.cjs')
 const { AssistantActivity } = require('./assistant-activity.cjs')
 const { apiRootUrl, chatkitUrl, resolveConnectionUrls } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
@@ -187,6 +188,7 @@ class DesktopService {
     this.generation = 0
     this.refreshing = null
     this.assistantActivity = new AssistantActivity(this)
+    this.userNotifications = new UserNotifications(this, saved?.notificationDismissals)
   }
 
   snapshot() {
@@ -203,7 +205,12 @@ class DesktopService {
   }
 
   persist() {
-    this.storage.write({ config: this.config, credentials: this.credentials, sidebars: this.sidebars })
+    this.storage.write({
+      config: this.config,
+      credentials: this.credentials,
+      sidebars: this.sidebars,
+      notificationDismissals: this.userNotifications?.dismissals
+    })
   }
 
   async state() {
@@ -294,6 +301,7 @@ class DesktopService {
   async bootstrap() {
     this.profile = parseBootstrap(await this.request('/api/mobile/bootstrap'))
     this.assistantActivity.sync()
+    this.userNotifications.sync()
     this.applyAccountLanguage()
     return this.profile
   }
@@ -327,6 +335,7 @@ class DesktopService {
       this.applyAccountLanguage()
       this.credentials = { ...this.credentials, organizationId: profile.organizationId }
       this.assistantActivity.sync()
+      this.userNotifications.sync()
       this.persist()
       return this.snapshot()
     })().finally(() => {
@@ -345,6 +354,7 @@ class DesktopService {
     this.profile = { ...this.profile, organizationId: id }
     this.credentials = { ...this.credentials, organizationId: id }
     this.assistantActivity.sync()
+    this.userNotifications.sync()
     this.persist()
     return this.snapshot()
   }
@@ -367,6 +377,7 @@ class DesktopService {
     this.sourceBots = items
     this.bots = this.decorateBots(items)
     this.assistantActivity.sync()
+    this.userNotifications.sync()
     return this.bots
   }
 
@@ -401,6 +412,7 @@ class DesktopService {
     this.sourceBots = []
     this.persist()
     this.assistantActivity.sync()
+    this.userNotifications.sync()
     return this.snapshot()
   }
 
@@ -430,6 +442,8 @@ class DesktopService {
       retry = true,
       timeout = 20000,
       responseType = 'json',
+      signal,
+      accept = 'application/json',
       errorMessages,
       includeServerMessage = false,
       runtimeRecoveryBudget = { remaining: 2, deadline: Date.now() + 15_000 }
@@ -439,7 +453,7 @@ class DesktopService {
     const generation = this.generation
     const headers = {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: accept,
       'Accept-Language': this.config.locale,
       language: this.config.locale
     }
@@ -459,7 +473,7 @@ class DesktopService {
             method,
             headers,
             ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
-            signal: AbortSignal.timeout(timeout),
+            signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout),
             redirect: 'error'
           }),
         {
@@ -499,6 +513,8 @@ class DesktopService {
         retry: false,
         timeout,
         responseType,
+        signal,
+        accept,
         errorMessages,
         includeServerMessage,
         runtimeRecoveryBudget
@@ -587,3 +603,5 @@ Object.assign(
 Object.assign(DesktopService.prototype, require('./voice.cjs').createVoiceMethods(ClientError))
 
 Object.assign(DesktopService.prototype, require('./groups.cjs').createGroupMethods(ClientError))
+
+Object.assign(DesktopService.prototype, createNotificationMethods(ClientError))

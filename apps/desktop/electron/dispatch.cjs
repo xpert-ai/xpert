@@ -1,6 +1,13 @@
 const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
+  'notificationSnapshot',
+  'notificationRefresh',
+  'notificationDismiss',
+  'notificationAnnouncement',
+  'notificationHistory',
+  'notificationList',
+  'notificationRead',
   'listGroups',
   'groupCandidates',
   'createGroup',

@@ -1,3 +1,4 @@
+import { USER_NOTIFICATION_ENTITIES } from '../../user-notification/notification.entities'
 import { ArtifactReference } from '../../artifacts/library/artifact-reference.entity'
 import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
 import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
@@ -175,6 +176,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ...USER_NOTIFICATION_ENTITIES,
     ContentResourceEntry,
     ContentResourceOperation,
     ContentEditorPreference,

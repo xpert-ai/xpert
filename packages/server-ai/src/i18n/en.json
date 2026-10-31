@@ -64,6 +64,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "Notification_busy": "Too many notification connections. Retry shortly.",
+        "Notification_invalid": "The notification request is invalid.",
+        "Notification_denied": "You do not have access to this notification operation.",
+        "Notification_conflict": "This announcement changed. Reload before saving.",
+        "Notification_unavailable": "This notification is no longer available.",
         "PluginMarketplaceDetailUnavailable": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
         "PluginMarketplaceLookupFailed": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
         "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",
