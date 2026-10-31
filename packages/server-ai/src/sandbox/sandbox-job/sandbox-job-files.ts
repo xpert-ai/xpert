@@ -18,6 +18,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { VolumeHandle } from '../../shared/volume'
 import { RegisteredSandboxAction } from './sandbox-action.registry'
+import { preparationFailureCode } from '../../plugin-resource/app-platform/platform-error'
 const RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY = '.platform/inputs'
 const INPUT_SNAPSHOT_COPY_BUFFER_BYTES = 1024 * 1024
 
@@ -363,6 +364,9 @@ export function classifyRunnerFailure(output: string, jobId: string): SandboxJob
 }
 
 export function normalizeRuntimeError(error: unknown, jobId: string): SandboxJobRuntimeError {
+    const platformCode = preparationFailureCode(error)
+    if (platformCode === 'application_storage_limit' || platformCode === 'application_temporary_storage_limit')
+        return new SandboxJobRuntimeError('SANDBOX_CAPACITY_UNAVAILABLE', messageOf(error), false, jobId)
     return error instanceof SandboxJobRuntimeError
         ? error
         : new SandboxJobRuntimeError('SANDBOX_START_FAILED', messageOf(error), true, jobId)

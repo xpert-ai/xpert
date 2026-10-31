@@ -32,6 +32,8 @@ import path from 'node:path'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { CommandBus } from '@nestjs/cqrs'
+import { CheckStorageQuotaCommand } from '@xpert-ai/server-core'
 import {
     SandboxJobsRuntimeCapability,
     SandboxJobRuntimeError,
@@ -97,7 +99,8 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi {
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
         private readonly control: SandboxJobControlService,
-        private readonly controlStore: SandboxJobControlStore
+        private readonly controlStore: SandboxJobControlStore,
+        private readonly commands: CommandBus
     ) {}
 
     /** Reserve once; duplicate calls only wait for the original generation. */
@@ -362,6 +365,23 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi {
         options?.signal?.addEventListener('abort', abort, { once: true })
         try {
             options?.signal?.throwIfAborted()
+            await this.commands.execute(
+                new CheckStorageQuotaCommand({
+                    kind: 'run',
+                    scope: { ...input.scope, userId: input.scope.userId ?? undefined }
+                })
+            )
+            await this.commands.execute(
+                new CheckStorageQuotaCommand({
+                    kind: 'temporary',
+                    scope: { ...input.scope, userId: input.scope.userId ?? undefined },
+                    bytes:
+                        (definition.resources.tempDiskMb + definition.resources.shmSizeMb + 64) * 1024 ** 2 +
+                        (input.files ?? [])
+                            .filter((file) => file.access === 'read-only-seekable')
+                            .reduce((sum, file) => sum + file.size, 0)
+                })
+            )
             await this.controlStore.update(jobId, job.generation, (current) => {
                 current.cleanupPending = true
             })

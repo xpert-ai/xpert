@@ -1,3 +1,5 @@
+import { CheckStorageQuotaCommand } from '@xpert-ai/server-core'
+import { platformFailure } from '../../plugin-resource/app-platform/platform-error'
 import { unitControl } from './testing/unit-control'
 import {
     RequestContext,
@@ -17,6 +19,8 @@ import {
     truncateSandboxRunnerOutput
 } from './sandbox-job-runtime-capability.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
+
+const storageBudgetCommands = { execute: jest.fn<Promise<null>, [CheckStorageQuotaCommand]>().mockResolvedValue(null) }
 
 const PROFILE = 'browser/playwright-1.61/v1'
 const ACTION = 'document.export'
@@ -71,10 +75,52 @@ describe('sandbox runner output formatting', () => {
 
 describe('SandboxJobRuntimeCapabilityService action validation', () => {
     beforeEach(() => {
+        storageBudgetCommands.execute.mockReset().mockResolvedValue(null)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
     })
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it.each(['application_storage_limit', 'application_temporary_storage_limit'] as const)(
+        'rejects %s before starting a Runtime',
+        async (code) => {
+            const harness = await createExecuteHarness()
+            try {
+                if (code === 'application_temporary_storage_limit')
+                    storageBudgetCommands.execute.mockResolvedValueOnce(null)
+                storageBudgetCommands.execute.mockRejectedValueOnce(platformFailure(code, 413))
+                await expect(harness.execute()).rejects.toMatchObject({
+                    code: 'SANDBOX_CAPACITY_UNAVAILABLE',
+                    retryable: false
+                })
+                expect(harness.provider.create).not.toHaveBeenCalled()
+                expect(harness.runtime.execute).not.toHaveBeenCalled()
+                expect(harness.workspaceFiles.resolveReadOnlyFileSource).not.toHaveBeenCalled()
+            } finally {
+                await harness.dispose()
+            }
+        }
+    )
+
+    it('counts the Runtime profile and seekable input snapshot in temporary capacity admission', async () => {
+        const harness = await createExecuteHarness()
+        try {
+            await harness.execute()
+            const definition = new SandboxRuntimeDefinitionRegistry().require(PROFILE)
+            expect(storageBudgetCommands.execute.mock.calls.map(([command]) => command.request)).toEqual([
+                { kind: 'run', scope: scope() },
+                {
+                    kind: 'temporary',
+                    scope: scope(),
+                    bytes:
+                        (definition.resources.tempDiskMb + definition.resources.shmSizeMb + 64) * 1024 ** 2 +
+                        harness.sourceBuffer.length
+                }
+            ])
+        } finally {
+            await harness.dispose()
+        }
     })
 
     function createService(
@@ -124,7 +170,8 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
             {} as never,
             volumeClient as never,
             control.service,
-            control.store
+            control.store,
+            storageBudgetCommands as never
         )
     }
 
@@ -876,7 +923,8 @@ function createServiceForExecute(
         {} as never,
         { resolve: jest.fn().mockReturnValue(volume) } as never,
         control.service,
-        control.store
+        control.store,
+        storageBudgetCommands as never
     )
 }
 
