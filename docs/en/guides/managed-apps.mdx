@@ -1,0 +1,312 @@
+---
+title: 'Managed Application Delivery and Use'
+description: 'Accounts, permissions, application provisioning, billing, approximate storage limits, deployment, and verification boundaries.'
+---
+
+Status: maintained feature documentation. Independent environments completed business acceptance on October 29–30, 2026. Later changes on October 31 have separate automated checks and deployment verification limits below. Historical acceptance does not establish that the current revision has repeated the entire deployment exercise.
+
+App Platform combines existing Agentic Apps into a website for business users. The first instance is Bid Studio: after registration and email verification, an account receives an isolated organization, trial entitlements, and a configured Bid application for tender interpretation, reference material, planning, writing, and export.
+
+The website retains Xpert's sidebar, project pages, account settings, ChatKit, and Workbench layout. Enabled role permissions and application grants determine visible entries. The backend independently checks permissions, resource scope, and entitlements.
+
+## User identity and permissions
+
+See the [roles, permissions, and features reference](./role-permissions.mdx) for default assignments, feature combinations, and current boundaries.
+
+Public registration uses `APP_USER`. A role defines available capabilities; membership controls trial duration and credits. `TRIAL` remains a general platform trial role. Instances without App Platform retain the existing registration and role workflow.
+
+Each account receives its own organization. The initial product does not expose team invitations, organization switching, custom model providers, integration configuration, plugin installation, arbitrary template installation, or custom Agents. Creating the organization, owning a project, or belonging to a resource does not grant access to Agent lists, internal graphs, drafts, prompts, versions, import/export, or publication settings.
+
+`APP_USER` is a permission preset: application use, profile editing, chat, project viewing/creation/editing, and membership use. A custom role with the same permissions and resource grants receives the same behavior. Consumer authorization does not branch on the role name. Hiding an entry is not backend authorization.
+
+| Permission               | Responsibility                                                                                         | APP_USER default |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------- |
+| `APPLICATION_USE`        | Assigned applications, preparation status, retry, and account delivery                                 | Yes              |
+| `CHAT_VIEW`              | Published Assistant business execution, with a grant for that Assistant                                | Yes              |
+| `XPERT_VIEW`             | Authoring workspace and configuration reads; not derived from a run grant                              | No               |
+| `XPERT_EDIT`             | Authoring, drafts, publication, and resource configuration, with writable workspace ACL                | No               |
+| `XPERT_WORKSPACE_MANAGE` | Management of in-scope shared/tenant workspaces; does not replace authoring permission                 | No               |
+| `APPLICATION_INSTALL`    | App installation/update and delivery operations, with the required organization and installation scope | No               |
+| `COPILOT_EDIT`           | Model-provider configuration                                                                           | No               |
+
+Endpoints reuse `@Permissions`. The common boundary runs after JWT, API-key, or ChatKit client-secret identity resolution. Method declarations override controller declarations; multiple permissions use any-of semantics. Authentication is global by default, so identity-only self-service endpoints need no additional authentication declaration. Public and special entry points use `@Public` or explicit strategies. No permission declaration adds no feature restriction; an explicitly empty list rejects access. Mixed self-service/administration controllers declare management permissions on individual methods, including overridden inherited CRUD methods. The old `AppUserAccess` allowlist is removed.
+
+The legacy PermissionGuard and global interceptor share one policy and consume authentication's effective grants. They do not reload database permissions during authorization. TenantScopeGuard validates tenant input and selected-organization access; old tenant guard names remain compatibility aliases.
+
+Workspace capabilities combine feature permission and resource ACL. Published Assistant access grants execution, not workspace reading or authoring. Runtime files still authorize the exact published Assistant. Delegated Project/conversation credentials revalidate their original grant; directory visibility does not replace project authorization.
+
+Initialization uses the plugin's `appConfig.assistantTemplateKey` and `assistantSuite`. Coordinators, External Assistants, and standalone Assistants are installed and published separately, then recorded in the same App's resource references. The business directory exposes these published entries rather than maintaining a second Assistant list. Bid currently has eight independent Assistants. Entry access does not grant authoring, draft, prompt, or model-configuration access.
+
+Account suspension, permission revocation, and expired trial access are rechecked for existing JWTs, ChatKit credentials, and subsequent execution. Expiry or exhausted credits stops new consumption while retaining authorized reads of existing outputs. Suspended accounts cannot continue authenticated access.
+
+Provisioning and publication use a separate service account of type `COMMUNICATION`, which cannot log in manually. Its default `APPLICATION_PROVISIONER` role has four permissions: installation, workspace reading, authoring, and knowledge-base editing. It still requires active organization membership and resource ACLs. Revoked permissions remain revoked.
+
+`ServiceOperationScope` restricts the maintenance account to a tenant, organization, and App, and records the beneficiary for entitlement and cost attribution. It grants no permission. Trusted `ApplicationInstallOptions` carry model, knowledge-base, and tool choices through preflight, locked initialization, and suite updates; HTTP DTOs cannot supply these internal options. `currentAppPlatformMaintenance` is removed. Migration only adjusts old technical accounts referenced by delivery records, preserving business users and explicitly assigned custom service roles.
+
+Permission upgrades add missing entries while retaining explicit disabled grants; custom authoring roles receive missing workspace-read capability. Renaming a role or adding other feature permissions does not bypass account delivery, trial, billing, storage, concurrency, or assigned-App restrictions.
+
+## Registration and automatic preparation
+
+1. Register through the existing form and verify the email address.
+2. Create an account-specific organization, delivery record, and one trial entitlement.
+3. Prepare Apps in dependency order, resolve platform models/tools/shared resources, and reuse the App installation and Assistant publication lifecycle.
+4. Enter the default business entry after every required App is ready. Optional failures use the website's existing notification and retry UI.
+
+Delivery records persist the configuration snapshot/digest, installation identity, preparation state, and recovery data. Repeated login, retry, and restart reuse those records without issuing another entitlement or rebuilding successful installations. A newly deployed configuration does not silently replace an unfinished snapshot.
+
+States are `pending`, `initializing`, `ready`, `failed`, `blocked`, and `disabled`. Missing required models, tools, plugins, or bindings produce a bounded failure reason. Retry resumes failed work; a failed prerequisite blocks its dependants.
+
+## Platform configuration
+
+The sibling `app-platforms` repository contains independent configuration projects: `bidding` for Bid and `diagramming` for the second scenario and composition tests. The host does not hard-code either business scenario.
+
+The startup boundary loads two YAML files:
+
+```dotenv
+APP_PLATFORM_FILE=/path/to/platform.yaml
+APP_PLATFORM_ENVIRONMENT_FILE=/path/to/environment.yaml
+```
+
+With neither variable set, the instance is a general platform. Setting only one, or failing validation, stops startup. Loading limits file size, duplicate YAML keys, and aliases, uses strict schemas, and computes a normalized configuration digest. Credentials stay in platform provider configuration, not reusable definitions.
+
+Example Bid definition:
+
+```yaml
+schemaVersion: 1
+key: bidding
+version: 1
+branding:
+  name: Bid Studio
+registration:
+  role: APP_USER
+  organization: per-account
+apps:
+  - key: bid
+    appRef:
+      pluginName: '@xpert-ai/plugin-bid'
+      appName: bid
+    required: true
+    configurationRef: bid-default
+bindings: []
+experience:
+  home: bid
+  navigation: [bid]
+entitlements:
+  defaultPlanRef: local-trial
+```
+
+| Field                         | Behavior                                                                                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `key`, `version`              | Stable platform identity and explicitly increasing definition version                                                                      |
+| `apps[].key`                  | Stable application key for navigation, dependencies, and attribution                                                                       |
+| `appRef`                      | Plugin and declared App name; a plugin may provide several Apps                                                                            |
+| `configurationRef`            | Environment-specific model/tool configuration                                                                                              |
+| `required`, `dependsOn`       | Required set and preparation order; cycles and required Apps depending on optional Apps are rejected                                       |
+| `enabled`                     | Defaults to `true`; `false` disables the whole App's business access while preserving installation/data, without a per-Assistant allowlist |
+| `experience.home`             | An enabled required App included in navigation                                                                                             |
+| `experience.navigation`       | Presentation only; hiding an entry does not revoke existing runtime grants                                                                 |
+| `bindings`                    | Explicit sharing, currently `knowledgebase`; the source must export the resource                                                           |
+| `entitlements.defaultPlanRef` | Trial-plan configuration for platform accounts                                                                                             |
+
+Environment `configurations` support `primary`, `embedding`, `vision`, `speechToText`, `auxiliaryModels`, and `tools`. Models reference provider and model names; auxiliary models also specify `modelType`. Tools reference provider and source-configuration names. Definitions contain no database primary keys, organization IDs, or secrets.
+
+`plans` specify `trialDays`, `creditLimit`, `maxProjects`, `maxUploadBytes`, `maxStorageBytes`, `maxTemporaryBytes`, and `maxConcurrentRuns`. Credits are shared per account. Per-App monetary ceilings were removed; obsolete `appCreditLimits` causes configuration validation to fail.
+
+The local Bid acceptance settings are seven days, 1,000 credits, ten projects, 50 MiB per upload, 2 GiB persistent storage, 5 GiB temporary storage, and two concurrent runs. Diagramming uses 256 MiB temporary storage. These bounded test values are not commercial package commitments.
+
+## Multiple Apps and shared resources
+
+Each App retains its own installation and workspace. Account entitlements are issued once. Sharing requires explicit bindings; belonging to the same platform does not share all data.
+
+```yaml
+bindings:
+  - type: knowledgebase
+    from: { app: publisher, resource: library }
+    to: { app: consumer, resource: library }
+```
+
+The consumer must depend on the source App. Resource type, export declaration, organization, and access are checked together. Sharing grants no authoring permission. Uninstallation cannot delete a shared resource still referenced by another installation.
+
+Deploying YAML does not rewrite existing account snapshots. Operators inspect delivery records and explicitly adopt a new definition using the previous digest. Stale requests and replacement of an unfinished update are rejected. Updates preserve installations, projects, files, conversations, membership validity, and consumption records. Refreshing allowed models neither renews membership nor refills credits.
+
+Removing an App or setting `enabled: false` disables runtime access and retains data. Restoring its original key and installation target reuses the installation. Hiding navigation alone does not disable access. A failed first installation and a failed update of an already usable installation have different availability behavior; configuration rollback is not uninstallation.
+
+Persisted legacy nonempty `entries` lists migrate to whole-App availability; an empty list still means disabled. Existing Assistants need no repeated initialization. New definitions reject `entries` and use `enabled`.
+
+## Models, billing, and storage
+
+Users run platform-selected models and cannot replace providers, models, environment values, or internal parameters through client input. Main Assistants, delegated roles, parsing, embedding, image generation, and retries retain account attribution and the applicable entitlement checks.
+
+Calls retain membership-validity, model-access, and remaining-credit checks before consumption, then record provider-reported usage idempotently afterward. Strict prevention of overdraft is not required: there is no maximum-call-cost estimate, monetary reservation, or frozen balance. In-flight and concurrent calls may overspend; the ledger records `excessPoints`, and later calls are blocked after exhaustion. Missing reliable usage or an exchange rate is not free consumption; preserve raw usage and pricing state for investigation.
+
+The October 30 scope change removed LLM maximum-cost estimation, persistent monetary reservations, and a general pre-call non-LLM budget protocol from this launch. Embedding and image models retain actual-usage accounting. Existing pipeline token budgets, account concurrency, and storage restrictions remain. See [model billing and exchange-rate settlement](../../model-billing.md).
+
+Persistent storage is cumulative across an account's Apps. The October 31 implementation uses approximate measurement and entry-point admission, allowing overshoot caused by measurement delay and concurrency.
+
+- Persistent files use actual bytes across user, Assistant, project, knowledge-base, and workspace directories. Registered project roots remain counted after business-record deletion until physical cleanup.
+- Object storage uses `storage_file` and artifact size metadata, deduplicated by provider/object key, without reserving unfinished uploads. Objects without saved metadata, directories orphaned before registration, and provider-side orphan objects may require separate cleanup and are not guaranteed to be counted.
+- Plugin business rows, documents, vectors, and content records use normalized JSON UTF-8 bytes from registered relations, excluding indexes, database pages, and TOAST overhead. This is delayed logical usage, not a physical disk bill.
+
+The collector checks accounts every 60 seconds. Ordinary snapshots expire after five minutes; accounts at 90% of their limit refresh every minute, and deletion requests refresh. These are scheduling intervals, not completion deadlines. Large scans or failures can delay results. Initialization generates the first snapshot before readiness. An entry point with no snapshot performs one cold calibration; normal writes read an existing snapshot without a full scan, byte reservation, or account write lock. Snapshots older than 15 minutes suspend new writes/runs with HTTP 503.
+
+FileStorage, including multipart upload, Volume, sandbox entry, and Agent start/resume apply the common check. An already full snapshot rejects new writes/runs. Below the limit, admission does not compare each increment against remaining bytes, so a single write, concurrent activity, and the collection window may overshoot. Upload, concurrency, and sandbox limits reduce growth but do not guarantee a fixed overshoot percentage.
+
+Reads and deletion remain available. Volume overwrites known to be equal-sized or smaller may continue. Object storage does not fetch previous sizes per object, so replacing an object at capacity may require deletion first. Database writes no longer use per-row quota-rejection triggers; running tasks can save business state. Soft-deleted rows still count. Deletion follows the existing object lifecycle and may only restore write admission after the next snapshot.
+
+Migration `20261031120000-approximate-storage.sql` removes old quota triggers, changes relation registration to a measurement inventory, and adds snapshot timestamps/refresh flags. Historical migrations are unchanged. Collector locks only prevent duplicate measurement and do not serialize business writes. Run the migration before deployment; otherwise old triggers still enforce the earlier strict policy.
+
+Ordinary sandboxes stage changes in a filesystem with a hard temporary limit, check final size, and persist only successful in-budget results. Temporary directories and shared memory have per-execution limits. Project instructions, skills, and App-private paths retain isolation. Native Compute/LibreOffice uses immutable Runtime profiles and checks temporary, shared-memory, and read-only input budgets before launch. Remote sandboxes, interactive terminals, and persistent services without the quota protocol are unavailable to managed accounts.
+
+The October 31 storage checks covered snapshot admission, concurrent overshoot, deletion recovery, account scope, collector-failure isolation, FileStorage bridging, and related file/sandbox regressions; backend typechecking passed. Runner tests recorded 101 passes and 15 environment skips. Migration format, dependencies, and packaging passed the production loader. Four real PostgreSQL/filesystem tests were skipped without an isolated database. Migration deployment and real business execution still need revalidation; these results do not replace historical A01–A29 acceptance.
+
+## Administration and diagnosis
+
+| Endpoint                                  | Purpose                                                  |
+| ----------------------------------------- | -------------------------------------------------------- |
+| `GET /api/app-platform/presentation`      | Public branding and registration presentation            |
+| `GET /api/app-platform/me`                | Current account preparation status and business entries  |
+| `POST /api/app-platform/retry`            | Retry the current account, with body `{}`                |
+| `GET /api/app-platform/deliveries`        | Operator delivery list with pagination and user filter   |
+| `POST /api/app-platform/adopt-definition` | Explicit adoption with `deliveryId` and `expectedDigest` |
+
+The last two endpoints require `APPLICATION_INSTALL`. Adoption also refreshes membership model policy in the transaction, independently requiring `MEMBERSHIP_EDIT`. A denied or failed refresh neither saves the new snapshot nor dispatches its update. Custom operator roles work with the complete grants.
+
+Verify authentication, organization/workspace access, plugin registration, actual plugin loading, Assistant publication, and business execution separately. Plugin refresh success does not establish that an installed App was updated.
+
+Use `requireAuthentication` and `createRequestHeaders` from `tools/scripts/local-plugin-cli.mjs`. Keep the verified organization context for business access: `organization-id`, `tenant-id`, and `x-scope-level: organization`. System plugins install in the Default tenant's tenant scope, independently of their business organization's scope.
+
+| Symptom                               | Investigation                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Required App cannot become ready      | Status, loaded plugin, primary/embedding/vision models, tools, and bindings                            |
+| Optional App fails                    | Repair its dependency and retry without rebuilding successful installations                            |
+| Workspace HTTP 403                    | Check authenticated identity and authorized organization headers before concluding a permission denial |
+| `application_storage_limit`           | Remove retained files/business data; archived records still consume capacity                           |
+| `application_temporary_storage_limit` | Check sandbox profile and temporary-space settings without removing isolation                          |
+| `application_trial_unavailable`       | Check membership dates/suspension while preserving existing outputs                                    |
+| Credit exhaustion/overspend           | Check actual usage, settlement, and `excessPoints`; missing usage/rates are not free                   |
+| Internal runtime failure              | Show a bounded business message; investigate protected logs without exposing secrets, SQL, or graphs   |
+
+## Complete local environments
+
+See the sibling [App Platform local deployment guide](../../../../app-platforms/README.md). Bid and diagramming use independent source snapshots, PostgreSQL, Redis, Mailpit, NsJail, files, plugin runtime directories, and protected process receipts.
+
+| Environment | API   | Cloud | ChatKit | Compose project                |
+| ----------- | ----- | ----- | ------- | ------------------------------ |
+| Bid         | 33400 | 34420 | 34573   | `xpert-bidding-acceptance`     |
+| Diagramming | 33401 | 34421 | 34574   | `xpert-diagramming-acceptance` |
+
+From `app-platforms/bidding`, prepare the environment:
+
+```sh
+node configure-local.mjs TRUSTED_NSJAIL_IMAGE
+node snapshot-source.mjs xpert
+node snapshot-source.mjs xpert-plugins
+node snapshot-source.mjs apps
+node snapshot-source.mjs chatkit-js
+node environment.mjs infra
+node bootstrap-database.mjs
+node environment.mjs start
+node environment.mjs status
+```
+
+Keep model bootstrap material in the deployment's protected `.local` with mode `0600`, and configure providers through normal APIs. Never put secrets in public YAML. Install verified artifacts:
+
+```sh
+node deploy-plugin.mjs --archive VERIFIED_PACKAGE.tgz
+node restart-runtime.mjs RETURNED_GENERATION
+node bootstrap-services.mjs
+```
+
+Archives belong in `.local/artifacts`; use the generation actually returned by deployment. API startup uses normal build, migrations, and schema validation. Do not modify loaded plugin files instead of source snapshots.
+
+Bid PDF preview requires a native-architecture Compute/LibreOffice rootfs. From `app-platforms`:
+
+```sh
+node runtime/build.mjs "$PWD/bidding/.local/source/xpert" TRUSTED_NSJAIL_IMAGE linux/arm64
+```
+
+AMD64 hosts use `linux/amd64`; NsJail must not depend on cross-architecture emulation. The configuration repository documents image settings and health checks.
+
+Restart while retaining data:
+
+```sh
+node environment.mjs stop
+node environment.mjs start
+node environment.mjs status
+```
+
+Rebuild only an explicitly named dedicated acceptance environment, from the configuration repository root:
+
+```sh
+node reset-local.mjs diagramming --confirm xpert-diagramming-acceptance
+cd diagramming
+node environment.mjs infra
+node bootstrap-database.mjs
+node environment.mjs start
+```
+
+The reset checks active work and ownership, stops that environment, backs up database/Redis/mail/configuration/storage, then removes only its project volumes. Reinstall verified plugins and bootstrap models afterward. Never perform global Docker cleanup. Old accounts/evidence remain in protected `.local/checkpoints` and are not imported into the new database.
+
+## Acceptance scope and evidence
+
+The initial local business acceptance ran on October 29, 2026 with new accounts, isolated organizations, real models/tools, and the full service stack. The following records distinguish historical business exercises from contract, concurrency, and failure-boundary tests.
+
+| Original item         | Historical verification                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A01                   | Native registration, email verification, and automatic Bid preparation; a fresh diagramming account also completed real business work                                                                  |
+| A02                   | Pending-registration retry, repeated verification/login, and identity reuse without duplicate organization, installation, or trial                                                                     |
+| A03                   | Eight concurrent status requests during preparation and API restart; identities survived safe task draining and four Apps became ready                                                                 |
+| A04                   | Required model/tool/resource checks and an actual unavailable-model failure followed by partial recovery                                                                                               |
+| A05–A08               | Organization ownership did not grant authoring; 21 HTTP checks covered management, inherited routes, and tampering                                                                                     |
+| A09                   | Two accounts passed 22 cross-organization isolation checks covering views, projects, files, retrieval, conversations, threads, and sandboxes                                                           |
+| A10–A11               | Main/delegated Bid execution and professional/standalone Assistant entries, with unassigned/management entries restricted                                                                              |
+| A12                   | Output/error/file projection; unknown failures hid diagnostics, SQL, and internal exceptions                                                                                                           |
+| A13                   | Client model/environment replacement rejected; real primary, vision, embedding, and image models worked                                                                                                |
+| A14                   | Main, parsing, image, and multi-App costs attributed to one account; old reservation tests are historical because reservations were removed on October 30                                              |
+| A15                   | Membership pause/expiry/exhaustion, account suspension, and chat revocation/restoration affected old JWT and ChatKit credentials                                                                       |
+| A16                   | Native Workbench refresh, deep links, back navigation, and restricted configuration routes retained the website layout                                                                                 |
+| A17                   | Three accounts' 24 Bid Assistants updated to 0.6.86 while identities/data stayed stable; new execution and export worked                                                                               |
+| A18                   | New ADMIN, AI_BUILDER, and TRIAL fixtures performed authorized workspace/draft CRUD while retaining governance boundaries                                                                              |
+| A19                   | A new tender completed upload recognition, planning, four chapters, nine images, Word export, and PDF preview/download                                                                                 |
+| A20                   | Two Apps in one plugin plus Apps from two plugins had independent workspaces/installations and one shared trial                                                                                        |
+| A21                   | Required Apps controlled initial readiness; optional retry retained successful installations                                                                                                           |
+| A22                   | Explicit knowledge sharing worked within one account and stayed isolated across accounts; contracts/database tests covered cycles, type, exports, authorization, and deletion protection               |
+| A23                   | Navigation hiding, disable/remove/restore retained identities/data and changed access appropriately; old empty `entries` is now `enabled: false`, with compatibility/revocation retested in PostgreSQL |
+| A24                   | The same host supported diagramming branding, registration, default entry, and real drawing without a scenario-specific host branch                                                                    |
+| A25                   | Invalid YAML/references/tampering/in-flight replacement were checked; obsolete App monetary-quota fields now fail strict schemas                                                                       |
+| A26                   | Historical multi-App accounting/shared entitlements passed; per-App monetary ceilings were removed on October 30, so this does not prove current strict budgets or individual App limits               |
+| A27                   | Both environments initialized from empty databases; later checks repeated seed, five-plugin installation, load coordination, model bootstrap, and new-account execution                                |
+| A28                   | Processes, services, directories, and data had independent ownership; rebuilding diagramming did not interrupt Bid                                                                                     |
+| A29                   | Two backed-up dedicated rebuilds excluded old accounts; repeated bootstrap and retained-data restart preserved identities and business summaries                                                       |
+| Earlier storage tests | The old strict implementation exercised admission/database rejection; it was replaced by snapshot admission on October 31. Temporary hard limits remain                                                |
+
+The latest recorded Bid export was a 29,939,722-byte Word file with nine media entries and a 3,233,841-byte, 139-page PDF. Its 131 body pages exceeded the project's 40-page target. Company facts, signatures/seals, and Word table-of-contents refresh still required business review. These artifacts demonstrated generation/export, not submission readiness; this work did not change Bid's length rules.
+
+Earlier strict-storage regression recorded 19 real PostgreSQL/filesystem tests, 74 Volume/cleanup tests, 14 migration/error-projection tests, two parser-projection tests, eight real sandbox-mount tests, and 55 runner tests. Bid recorded 3,087 passes/eight skips and sandbox scripts eight passes/one skip. Host types, plugin build, and lifecycle checks passed. Seventeen existing Volcengine failures were reproduced on baseline, and an existing collaborator-cancellation issue remained; the entire repository was not reported green.
+
+The Assistant-entry fix recorded 47 focused tests: 19 contract, 15 delivery, four configuration, and nine real PostgreSQL. Three existing accounts and one new account exposed eight published Assistants. Business reads and authoring/model-configuration denial passed, alongside 21 HTTP and 22 isolation checks. The native sidebar showed the complete suite; drawing opened its own creative view, and commercial-bid and directory-planning Assistants completed real model conversations. Existing installation/delivery/membership/Assistant/project/file summaries stayed stable without reinstalling or republishing the 24 existing Assistants.
+
+On October 30, a new account prepared/published eight Assistants. A custom role with copied grants passed 30 real HTTP checks covering business reads, denied management, injected configuration, installation identity, and revocation/restoration with the same JWT. Twenty-seven PostgreSQL checks covered role-independent scope/budget behavior, and 19 storage regressions passed. Two professional Assistants completed real conversations. The then-staged permission foundation passed 123 tests/backend types. API-key principals retained credential resource scopes. The account's original role was restored. A final new account prepared eight Assistants without retry; protected checks confirmed separate beneficiary/service identities, no service password, active membership, and exactly four provisioning grants. Earlier full-document output remains historical evidence, not a repeated A01–A29 run for the refactor.
+
+Raw requests, identity mappings, streams, screenshots, exports, and database snapshots remain in each deployment's protected `.local`, outside source control. Receipt names include:
+
+- Bid: `http-boundary-report.json`, `isolation-report.json`, `storage-db-host-update-checks.json`, `storage-db-counter-checks.json`, and `evidence/exports/bid-storage-db-acceptance.docx`/`.pdf`.
+- Permission refactor: `role-refactor-http-report.json`, `account-role-refactor-platform.json`, `role-refactor-fixtures.json`, `role-refactor-execution-checks.json`, and `role-final-identity-checks.json`.
+- Assistant entries: `assistant-entries-existing-checks.json`, `assistant-entries-new-checks.json`, `assistant-entries-execution-checks.json`, `assistant-entries-host-update-checks.json`, and `evidence/assistant-suite-entries-fixed.png`.
+- Fresh diagramming rebuild: `final-fresh-checks.json`, `final-idempotency-checks.json`, `i-recovery-checks.json`, `final-system-after-checks.json`, `storage-db-counter-checks.json`, and `rebuild-drawio-run.sse`.
+- Earlier diagramming checks in `.local/checkpoints`: `entitlement-checks.json`, `paused-membership-checks.json`, `revocation-checks.json`, `storage-http-checks.json`, and `storage-db-http-checks.json`, plus earlier composition/cost evidence.
+
+## Follow-up work
+
+Team invitations/collaboration, additional default Agents, commercial packages, and retention/account-deletion policy are future product/operational work. Users cannot currently create or author Agents. Production rollout and legacy-system migration are outside the local delivery scope.
+
+## Verification after the staged commit batches
+
+The October 31 review separated delivery services, explicit upgrades, HTTP, provisioning, Worker, module wiring, and native frontend. Every batch used HEAD plus staged changes, independent of remaining worktree changes.
+
+- HTTP tests used real authentication, permission interception, and validation with mocked business services, covering use/install separation and invalid/scope-overriding input.
+- Provisioner/Worker tests covered suite grants, model/tool denial, shared-resource scope, retry, durable updates, pagination, and account context, with mocked database/Redis/application boundaries.
+- Module tests created the delivery dependency graph and checked production queue/repository registrations and membership/sharing exports, without complete application startup.
+- Frontend tests covered login/registration, email feedback, polling, business deep-link recovery, optional retry, account-change cleanup, and rejection of old responses. Angular types/templates compiled.
+
+These checks do not replace deployment of the current code followed by PostgreSQL migration, Redis consumption, browser integration, and real-model business acceptance. Record actual host, ChatKit, loaded-plugin versions, and business outputs for every deployment; an old environment's success does not establish a new revision's acceptance.

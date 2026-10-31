@@ -85,6 +85,27 @@ describes the proposed migration manifest, runner, database baseline adoption,
 deployment integration, plugin migration lifecycle, and acceptance criteria.
 It is a delivery plan, not documentation of implemented behavior.
 
+## App Platform managed applications
+
+Maintain the implemented behavior in matching language routes:
+
+| Page                                                                               | English                                                   | 简体中文                                                          |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Accounts, provisioning, permissions, billing, storage, deployment and verification | [Managed applications](./en/guides/managed-apps.mdx)      | [受管应用交付与使用](./zh-Hans/guides/managed-apps.mdx)           |
+| Roles, default grants, feature combinations and authorization boundaries           | [Roles and permissions](./en/guides/role-permissions.mdx) | [角色、权限与功能对照清单](./zh-Hans/guides/role-permissions.mdx) |
+
+The completed Bid launch plan is consolidated into these feature pages. Historical
+business evidence is retained with its date and scope; it does not establish that
+later code has repeated the entire deployment acceptance. The website retains its
+native layout and controls feature visibility through enabled role permissions.
+
+Unimplemented Assistant/View navigation upgrades remain proposals:
+[English](./en/proposals/assistant-view-navigation-performance.mdx) /
+[简体中文](./zh-Hans/proposals/assistant-view-navigation-performance.mdx).
+The proposal separates existing behavior from future read sharing, View context,
+resource delivery and editor work. Promote accepted stages into the relevant
+feature pages when implementation and verification establish their behavior.
+
 ## Runtime Control architecture
 
 Maintain the overall design in [中文架构与实施计划](./zh-Hans/architecture/runtime-control.md)
@@ -108,14 +129,14 @@ status does not imply deployment acceptance.
 Maintain current behavior in matching `en/guides/knowledgebase/` and
 `zh-Hans/guides/knowledgebase/` routes. Both language menus include the six pages:
 
-| Page | Maintained content |
-| --- | --- |
-| `document-parsing` | Format routing, inheritance, provider validation, snapshots and runtime requirements |
-| `chunking` | Automatic/structured splitting, previews, token budgets and source evidence |
-| `retrieval-pipeline` | Vector/Keyword/Graph, fusion, index prerequisites, finalization and code organization |
-| `faq` | Entries, creation-only configuration, projections, APIs and citations |
-| `faq-semantic-exclusion` | Negative matching, cache/prewarm, replenishment budgets and failures |
-| `wiki` | Configuration, source-derived pages, generation, visibility and remaining deletion boundaries |
+| Page                     | Maintained content                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `document-parsing`       | Format routing, inheritance, provider validation, snapshots and runtime requirements          |
+| `chunking`               | Automatic/structured splitting, previews, token budgets and source evidence                   |
+| `retrieval-pipeline`     | Vector/Keyword/Graph, fusion, index prerequisites, finalization and code organization         |
+| `faq`                    | Entries, creation-only configuration, projections, APIs and citations                         |
+| `faq-semantic-exclusion` | Negative matching, cache/prewarm, replenishment budgets and failures                          |
+| `wiki`                   | Configuration, source-derived pages, generation, visibility and remaining deletion boundaries |
 
 The completed FAQ, semantic-exclusion, parser and retrieval implementation plans
 have been removed. Their feature pages retain deployment and quality acceptance

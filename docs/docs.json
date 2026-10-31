@@ -40,6 +40,10 @@
                 ]
               },
               {
+                "group": "Managed Applications",
+                "pages": ["en/guides/managed-apps", "en/guides/role-permissions"]
+              },
+              {
                 "group": "Project Pipelines",
                 "pages": [
                   "en/guides/project-pipelines/overview",
@@ -113,6 +117,10 @@
               {
                 "group": "Knowledgebases",
                 "pages": ["en/proposals/knowledgebase-chunking-next", "en/proposals/knowledgebase-durable-deletion"]
+              },
+              {
+                "group": "Navigation Performance",
+                "pages": ["en/proposals/assistant-view-navigation-performance"]
               }
             ]
           },
@@ -150,6 +158,10 @@
                   "zh-Hans/architecture/file-access-preview-architecture",
                   "zh-Hans/architecture/spaces-content"
                 ]
+              },
+              {
+                "group": "受管应用",
+                "pages": ["zh-Hans/guides/managed-apps", "zh-Hans/guides/role-permissions"]
               },
               {
                 "group": "项目流水线",
@@ -245,6 +257,10 @@
                   "zh-Hans/proposals/knowledgebase-chunking-next",
                   "zh-Hans/proposals/knowledgebase-durable-deletion"
                 ]
+              },
+              {
+                "group": "导航性能",
+                "pages": ["zh-Hans/proposals/assistant-view-navigation-performance"]
               }
             ]
           },

@@ -1,0 +1,279 @@
+---
+title: 'Roles, Permissions, and Features'
+description: 'Seven built-in roles, default grants, feature combinations, authorization boundaries, and troubleshooting.'
+---
+
+This reference answers which permissions let a role use a feature. It reflects source defaults and reviewed authorization behavior as of October 31, 2026. It is neither a production-deployment claim nor an export of a tenant's actual grants. See [managed application delivery](./managed-apps.mdx) for the complete product behavior.
+
+## Choose a role by purpose
+
+Roles are permission presets, not an inheritance ladder. Effective grants, request scope, credential limits, and resource authorization determine access together.
+
+| Role                      | Intended user and default responsibility                                                         | Does not imply                                                       | Default grants |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | -------------- |
+| `SUPER_ADMIN`             | Platform administration, tenants, AI authoring, models, and billing                              | Exemption from all checks or automatic App-consumer identity         | 59             |
+| `ADMIN`                   | Tenant/organization users, roles, AI resources, memberships, and billing                         | Platform-wide administration or cross-organization access            | 56             |
+| `AI_BUILDER`              | Assistant authoring, model/knowledge configuration, App installation, and projects               | Membership/billing administration or management of every workspace   | 24             |
+| `TRIAL`                   | General platform trial with authoring, model configuration, App installation, and projects       | A restricted Bid business trial                                      | 19             |
+| `VIEWER`                  | Chat, project reading, membership use, and selected viewing entries                              | A non-consuming read-only account; it has `CHAT_VIEW`                | 8              |
+| `APP_USER`                | Assigned Apps, chat, and authorized project creation/editing                                     | A special-case role-name bypass; membership defines the trial        | 7              |
+| `APPLICATION_PROVISIONER` | Service identity for installation and template Assistant/knowledge-resource creation/publication | A manually usable administrator or a bypass of membership/ACL checks | 4              |
+
+Counts are the deduplicated union of core and AI source defaults. Explicit disabled entries, upgrades, deployment configuration, and credentials may change effective access. Provisioning binds `APPLICATION_PROVISIONER` to a non-interactive `COMMUNICATION` account; assigning that role to a normal user does not create a service identity or service-operation scope.
+
+## Permission combinations for common features
+
+Different capabilities listed in one row are generally all needed. This differs from a single `@Permissions(A, B)` declaration, which accepts either permission.
+
+| Feature                                         | Suggested permissions                                                                                       | Additional requirements                                                                                                                         |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ready-to-use Bid and its Assistant/View entries | APP_USER's seven defaults below                                                                             | Enabled platform, verified account, completed delivery, App assignment, published Assistant and run grant, applicable entitlements              |
+| Chat with an assigned Assistant                 | `CHAT_VIEW`                                                                                                 | Grant for that published Assistant; no authoring workspace membership is implied                                                                |
+| Read projects                                   | `XPERT_PROJECT_VIEW`                                                                                        | Project ownership/membership/sharing; project chat also needs `CHAT_VIEW`                                                                       |
+| Create/edit projects                            | `XPERT_PROJECT_VIEW` + `XPERT_PROJECT_CREATE` + `XPERT_PROJECT_EDIT`                                        | Project scope, project type, and Assistant access                                                                                               |
+| Manage projects and members                     | Project capabilities above + `XPERT_PROJECT_MANAGE`                                                         | Project owner/manager or equivalent resource authorization                                                                                      |
+| Author/publish Assistants                       | `XPERT_VIEW` + `XPERT_EDIT`                                                                                 | Writable authoring workspace; debugging needs `CHAT_VIEW`, and model/knowledge configuration needs its own grants                               |
+| Read authoring workspace resources              | `XPERT_VIEW`                                                                                                | Readable workspace; this does not provide a complete read-only Studio                                                                           |
+| Manage shared/tenant workspaces                 | `XPERT_VIEW` + `XPERT_EDIT` + `XPERT_WORKSPACE_MANAGE`                                                      | Correct tenant/organization and ACL; no access to another organization's private workspace                                                      |
+| Configure model providers, models, and secrets  | `COPILOT_EDIT`; normal builder presets also include `COPILOT_VIEW`                                          | Resource scope; adding EDIT to APP_USER exposes the configuration capability                                                                    |
+| Install/update an App                           | `APPLICATION_INSTALL` + `XPERT_VIEW` + `XPERT_EDIT`, plus `KNOWLEDGEBASE_EDIT` when needed                  | Active organization membership, target workspace, and template/model/tool dependencies; managed provisioning uses a separate service identity   |
+| List managed deliveries                         | `APPLICATION_INSTALL`                                                                                       | Current-tenant delivery scope; not personal `APPLICATION_USE`                                                                                   |
+| Adopt a managed definition                      | `APPLICATION_INSTALL` + `MEMBERSHIP_EDIT`                                                                   | Transactional membership model-policy refresh independently checks EDIT; adoption does not renew or refill membership                           |
+| Read personal membership and usage              | `MEMBERSHIP_USE`                                                                                            | Personal membership/billing scope, not tenant-wide membership administration                                                                    |
+| Operate membership, billing, and payments       | `MEMBERSHIP_EDIT`; separate contracts for `BILLING_PRODUCT_EDIT`, `BILLING_REFUND`, `PAYMENT_PROVIDER_EDIT` | The last three are contracts/defaults only, not implemented business endpoint checks in this repository                                         |
+| Use the model API gateway                       | `MODEL_GATEWAY_USE`                                                                                         | Gateway credential, model authorization, and membership; not provider configuration                                                             |
+| Change role grants                              | `CHANGE_ROLES_PERMISSIONS`                                                                                  | Tenant scope and SUPER_ADMIN protection                                                                                                         |
+| Edit personal profile/password                  | Business presets include `PROFILE_EDIT`; identity-only self-service uses global authentication              | Current-user ownership, allowed fields, password proof, and endpoint-specific declarations; PROFILE_EDIT is not a universal self-service switch |
+
+### Business account: all seven APP_USER defaults
+
+```text
+APPLICATION_USE
+CHAT_VIEW
+XPERT_PROJECT_VIEW
+XPERT_PROJECT_CREATE
+XPERT_PROJECT_EDIT
+MEMBERSHIP_USE
+PROFILE_EDIT
+```
+
+A custom role with these grants still needs App assignment, published Assistant access, and organization authorization. Permission assignment does not create an installation or publication.
+
+To preserve the product's restrictions on authoring and model configuration, do not add `XPERT_VIEW`, `XPERT_EDIT`, `XPERT_WORKSPACE_MANAGE`, `COPILOT_EDIT`, or `APPLICATION_INSTALL`. Invitations, role administration, and cross-organization selection are outside this preset. Delivery/membership still imposes trial, credit, concurrency, and storage restrictions after a role is renamed.
+
+### Provisioning account: all four defaults
+
+```text
+APPLICATION_INSTALL
+XPERT_VIEW
+XPERT_EDIT
+KNOWLEDGEBASE_EDIT
+```
+
+Initialization uses `appConfig` templates and suites. Service accounts install, publish, and upgrade; business accounts consume. `ServiceOperationScope` constrains tenant, organization, App, and beneficiary without granting permission. Organization membership and ACLs remain mandatory.
+
+## Complete AI default matrix
+
+A checkmark means enabled by source default, not permanently required or unchangeable. S/A combines SUPER_ADMIN and ADMIN because their AI defaults match. B = AI_BUILDER, T = TRIAL, V = VIEWER, U = APP_USER, P = APPLICATION_PROVISIONER.
+
+| Permission                  | Responsibility                                                                  | S/A | B   | T   | V   | U   | P   |
+| --------------------------- | ------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- |
+| `KNOWLEDGEBASE_EDIT`        | Manage knowledge bases, documents, FAQ and configuration                        | ✓   | ✓   | —   | —   | —   | ✓   |
+| `COPILOT_VIEW`              | Deprecated viewing entry; no provider-configuration access                      | ✓   | ✓   | —   | ✓   | —   | —   |
+| `COPILOT_EDIT`              | Manage providers, secrets, models and Copilot configuration                     | ✓   | ✓   | ✓   | —   | —   | —   |
+| `MODEL_USAGE_MONITOR`       | Read in-scope model usage monitoring                                            | ✓   | ✓   | —   | —   | —   | —   |
+| `MEMBERSHIP_EDIT`           | Manage plans, entitlements, credits and membership records                      | ✓   | —   | —   | —   | —   | —   |
+| `MEMBERSHIP_USE`            | Personal membership, billing overview and usage                                 | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `MODEL_ACCESS_REQUEST_VIEW` | Read administrative model requests, grants and audit events                     | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_ACCESS_REQUEST_EDIT` | Approve/reject requests and extend/revoke grants                                | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_GATEWAY_USE`         | Gateway self-service catalog, requests, grants, keys, calls and execution       | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_GATEWAY_MANAGE`      | In-scope gateway settings, key and call administration                          | ✓   | —   | —   | —   | —   | —   |
+| `BILLING_PRODUCT_EDIT`      | Billing-product contract; no business endpoint integration here                 | ✓   | —   | —   | —   | —   | —   |
+| `BILLING_REFUND`            | Refund contract; no business endpoint integration here                          | ✓   | —   | —   | —   | —   | —   |
+| `PAYMENT_PROVIDER_EDIT`     | Payment-provider contract; no business endpoint integration here                | ✓   | —   | —   | —   | —   | —   |
+| `XPERT_VIEW`                | Authorized authoring-resource reads, not complete read-only Studio              | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `XPERT_WORKSPACE_MANAGE`    | Broader management grants for in-scope shared/tenant workspaces                 | ✓   | —   | —   | —   | —   | —   |
+| `XPERT_EDIT`                | Assistant creation/edit/publication and authoring configuration                 | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `APPLICATION_USE`           | Assigned-App use, personal delivery status and retry                            | —   | —   | —   | —   | ✓   | —   |
+| `APPLICATION_INSTALL`       | App install/upgrade and delivery administration                                 | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `XPERT_PROJECT_VIEW`        | Authorized project and business-view reads                                      | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `XPERT_PROJECT_CREATE`      | Create/copy projects with project-type and Assistant checks                     | ✓   | ✓   | ✓   | —   | ✓   | —   |
+| `XPERT_PROJECT_EDIT`        | Edit project content and permitted collaboration                                | ✓   | ✓   | ✓   | —   | ✓   | —   |
+| `XPERT_PROJECT_MANAGE`      | Manage projects, members and pipelines with resource grants                     | ✓   | —   | —   | —   | —   | —   |
+| `CHAT_VIEW`                 | Authorized execution and runtime conversation/file operations, including writes | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `EVOLUTION_VIEW`            | Read evolution dashboard, learning, evaluations and history                     | ✓   | ✓   | —   | ✓   | —   | —   |
+| `EVOLUTION_MANAGE`          | Manage evolution proposals/evaluation/approval/publication under governance     | ✓   | ✓   | —   | —   | —   | —   |
+
+Administrators default to `APPLICATION_INSTALL`, not `APPLICATION_USE`. To make an administrator an App consumer, explicitly grant consumer capabilities and complete its delivery/assignment.
+
+## AI endpoint boundaries
+
+Enum comments define responsibility and limits; default-role modules determine assignment separately. Controller declarations cover methods without overrides. VIEW, EDIT, MANAGE, USE, and INSTALL do not imply one another.
+
+### MODEL_GATEWAY_USE and MODEL_GATEWAY_MANAGE
+
+`MODEL_GATEWAY_USE` covers the gateway catalog, personal requests/withdrawals/grants, personal API-key lifecycle and calls, and Model Execution entry points such as execution reads/session revocation. Services still check credential audience, ownership, and model access.
+
+`MODEL_GATEWAY_MANAGE` covers in-scope administrative settings, key administration, calls, and request-body inspection. It does not include USE or provider configuration's `COPILOT_EDIT`.
+
+For example, the [gateway controller](../../../packages/server-ai/src/model-gateway/model-gateway.controller.ts) uses the following declaration structure:
+
+```ts
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
+class ModelGatewayController {
+  // Self-service catalog, requests, keys and calls inherit USE.
+
+  @Permissions(AIPermissionsEnum.MODEL_GATEWAY_MANAGE)
+  getAdminSettings() {
+    // This method overrides the controller declaration and requires MANAGE.
+  }
+}
+```
+
+This illustrates permission structure, not a new endpoint. Bid Assistant use does not require gateway self-service permission.
+
+The [OpenAI-compatible controller](../../../packages/server-ai/src/model-gateway/openai.controller.ts) uses `@Public()` to skip default JWT authentication, then a dedicated `ModelGatewayAuthGuard` validates its API key before common `MODEL_GATEWAY_USE` enforcement. The owning user must still be active and authorized. Model access/credits remain business checks. Scope comes from the authenticated key; client headers cannot replace it. Authentication happens once per HTTP request and the controller reuses that result. Public does not mean unrestricted anonymous model execution.
+
+### Other capability distinctions
+
+- `COPILOT_EDIT` owns provider/model configuration. Deprecated `COPILOT_VIEW` is a compatibility entry permission and does not grant secret/configuration reads. `MODEL_USAGE_MONITOR` owns authorized usage monitoring, not configuration editing.
+- `MEMBERSHIP_USE` is personal membership/usage access; `MEMBERSHIP_EDIT` is administration. Neither substitutes for billing-product, refund, or payment-provider permissions.
+- `MODEL_ACCESS_REQUEST_VIEW` reads administrative applications/grants/audit; EDIT approves, rejects, extends, or revokes. [ModelAccessController](../../../packages/server-ai/src/model-access/model-access.controller.ts) keeps catalog/personal endpoints under global authentication plus personal scope/eligibility. Administrative methods declare VIEW/EDIT separately; ordinary applicants need no approval grant.
+- `XPERT_VIEW`, `XPERT_EDIT`, and `XPERT_WORKSPACE_MANAGE` respectively govern authoring-resource reads, changes, and workspace management. APPLICATION_USE/INSTALL distinguish consumption from delivery. App, organization, and resource grants remain independent.
+- The four `XPERT_PROJECT_*` grants distinguish reads, creation/copying, content collaboration, and management; project membership and operation policies still apply.
+- `CHAT_VIEW` permits execution and authorized conversation/file operations. It is not read-only and grants no authoring.
+- `EVOLUTION_VIEW` reads evolution state; `EVOLUTION_MANAGE` operates proposals/evaluations/approval/publication, with operation and approval governance still enforced.
+
+### Billing contract integration status
+
+`BILLING_PRODUCT_EDIT`, `BILLING_REFUND`, and `PAYMENT_PROVIDER_EDIT` have enum contracts, editor groups, and administrator defaults. No business controller/service in this repository currently uses these three values as authorization checks.
+
+Their responsibility comments remain useful, but checking them does not establish an implemented feature. Future integrations need explicit enforcement plus order ownership, refund conditions, and configuration scope. External plugins require a separate integration check.
+
+## Complete core default assignments
+
+S = SUPER_ADMIN, A = ADMIN; the other abbreviations are defined above. These are all 37 `PermissionsEnum` values. Descriptions identify configuration choices, not every API's complete conditions. Some older permissions have no independent complete page; use feature combinations and actual declarations.
+
+| Permission                      | Responsibility                           | Default roles    |
+| ------------------------------- | ---------------------------------------- | ---------------- |
+| `PROFILE_EDIT`                  | Profile operations                       | S, A, B, T, V, U |
+| `ADMIN_DASHBOARD_VIEW`          | Administrative dashboard                 | S, A, B          |
+| `ORG_EMPLOYEES_VIEW`            | Read employees                           | S, A             |
+| `ORG_EMPLOYEES_EDIT`            | Manage employees                         | S, A             |
+| `ORG_TAGS_EDIT`                 | Manage tags                              | S, A             |
+| `ORG_USERS_VIEW`                | Read users                               | S, A, B          |
+| `ORG_USERS_EDIT`                | Manage users                             | S, A             |
+| `ORG_INVITE_VIEW`               | Read invitations                         | S, A, B          |
+| `ORG_INVITE_EDIT`               | Manage invitations                       | S, A, T          |
+| `ALL_ORG_VIEW`                  | Read organizations                       | S, A             |
+| `ALL_ORG_EDIT`                  | Manage organizations                     | S, A             |
+| `APPROVALS_POLICY_VIEW`         | Read approval policies (no default role) | None             |
+| `APPROVALS_POLICY_EDIT`         | Edit approval policies (no default role) | None             |
+| `CHANGE_SELECTED_ORGANIZATION`  | Switch to an authorized organization     | S, A, B, T, V    |
+| `CHANGE_ROLES_PERMISSIONS`      | Manage role grants                       | S, A             |
+| `SUPER_ADMIN_EDIT`              | Platform super-administration            | S                |
+| `PUBLIC_PAGE_EDIT`              | Manage public pages                      | S, A             |
+| `VIEW_ALL_EMAILS`               | Read email                               | S, A             |
+| `VIEW_ALL_EMAIL_TEMPLATES`      | Read/manage email templates              | S, A             |
+| `ORG_HELP_CENTER_EDIT`          | Manage help center                       | S, A             |
+| `ORG_CONTACT_EDIT`              | Manage contacts                          | S, A             |
+| `ORG_CONTACT_VIEW`              | Read contacts                            | S, A, B          |
+| `ORG_DEMO_EDIT`                 | Organization demo configuration          | S, A             |
+| `INTEGRATION_EDIT`              | Configure integrations                   | S, A, B, T       |
+| `INTEGRATION_VIEW`              | Read integrations                        | S, A, B, T       |
+| `DATA_SOURCE_VIEW`              | Read data sources                        | S, A, T          |
+| `DATA_SOURCE_EDIT`              | Configure data sources                   | S, A, T          |
+| `BUSINESS_AREA_VIEW`            | Read business areas                      | S, A, B, T, V    |
+| `BUSINESS_AREA_MANAGE`          | Manage business areas                    | S, A, T          |
+| `BUSINESS_AREA_ASSIGN`          | Assign business areas                    | S, A, B, T       |
+| `FILE_STORAGE_VIEW`             | File-storage settings reads              | S, A             |
+| `SMS_GATEWAY_VIEW`              | SMS gateway settings reads               | S, A             |
+| `CUSTOM_SMTP_VIEW`              | SMTP settings reads                      | S, A             |
+| `VIEW_ALL_ACCOUNTING_TEMPLATES` | Accounting-template reads                | S, A             |
+| `ACCESS_DELETE_ACCOUNT`         | Delete account                           | S                |
+| `ACCESS_DELETE_ALL_DATA`        | Delete all data                          | S                |
+| `REFERRAL_VIEW`                 | Read referrals                           | S, A             |
+
+The `APPROVAL_POLICY_VIEW/EDIT` enum members actually store `APPROVALS_POLICY_VIEW/EDIT`; the table uses stored values. Compare actual permission strings in records and endpoints.
+
+## How authorization takes effect
+
+A request normally must satisfy all of the following:
+
+1. Valid authenticated identity through JWT, API key, or ChatKit client secret; the account is active.
+2. Effective role grants match the endpoint declaration within the credential's own ceiling. New common checks do not grant access by role name.
+3. Tenant, organization, and service-operation scope match the resource.
+4. The specific Assistant, workspace, project, or conversation permits the operation.
+5. The App is assigned, dependencies are available, and consumption meets membership/credit/storage policies. In-flight calls and delayed storage measurement may overshoot.
+
+Menus also depend on feature switches, user type, and scope. Visibility is not backend authorization, and hiding entries is not access enforcement.
+
+### Endpoint declaration rules
+
+- Method `@Permissions` overrides the controller rather than intersecting or unioning it.
+- `@Permissions(A, B)` accepts either valid grant; an empty declaration rejects access.
+- Authentication is global by default. Identity-only endpoints need no extra decorator, while services retain ownership/resource checks. Declare `@Permissions` when a feature capability is required.
+- An unauthenticated `@Public` request follows its public protocol, token, or signature policy; an identity already attached to a request still participates in permission checks.
+- No `@Permissions` does not make an endpoint public. An explicitly empty declaration remains denied.
+- Mixed self-service/management controllers declare management grants on each management method, including overridden inherited CRUD. Uniform controllers may retain a class declaration.
+- Running a published Assistant does not grant prompt, draft, model-configuration, or authoring-workspace access.
+
+Workspace capabilities are intersections: `canRead = resource read ∩ XPERT_VIEW`, `canWrite = resource write ∩ XPERT_EDIT`, `canManage = resource management ∩ XPERT_EDIT`, and `canRun = resource run ∩ CHAT_VIEW`. `XPERT_WORKSPACE_MANAGE` participates in resource management but replaces neither EDIT nor tenant/organization boundaries.
+
+## Confirmed limits and common misconfiguration
+
+This is a usage reference, not a complete security audit or an additional authorization refactor.
+
+| Current boundary                                                                                                                        | Configuration consequence                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Studio menus and many configuration endpoints still require `XPERT_EDIT`                                                                | VIEW separates workspace reads from running, but does not provide complete read-only Studio; do not add EDIT just to promise read-only access |
+| Provider configuration requires `COPILOT_EDIT` despite some VIEW entry conditions                                                       | VIEWER does not obtain provider secrets/configuration, and complete read-only model administration is not promised                            |
+| Business-area reads/changes use BUSINESS_AREA_VIEW/MANAGE; default Assistant configuration uses ALL_ORG_EDIT or tenant SUPER_ADMIN_EDIT | Tenant governance, some operations, and approval eligibility retain explicit role rules; defaults do not prove those rules disappeared        |
+| SUPER_ADMIN grant changes/deletion have special protection; manual default synchronization re-enables its defaults                      | Do not use SUPER_ADMIN to test ordinary revocation behavior                                                                                   |
+| PermissionGroups.GENERAL/ADMINISTRATION organize the editor                                                                             | Groups are not runtime policy; records and endpoint declarations decide access                                                                |
+| TRIAL authors/configures models; VIEWER can chat                                                                                        | Use APP_USER plus membership trial entitlements for business trials                                                                           |
+| EDIT, MANAGE, INSTALL, and USE do not inherit                                                                                           | Configure complete combinations; EDIT may not read a workspace, INSTALL may not access personal delivery status                               |
+
+## Common enforcement and compatibility
+
+- `permission-policy.ts` is shared by the guard and global interceptor: method override, any-of, no added restriction when absent, and denial when explicitly empty.
+- Only effective grants loaded by authentication and filtered by the token ceiling are accepted. JWT/Basic authentication loads roles; missing grants deny access. Authorization never reloads excluded database grants. PermissionGuard is a compatibility adapter, not a separate algorithm.
+- TenantScopeGuard trusts the authenticated tenant; tenant headers and legacy query/body fields are consistency constraints. Header names are case-insensitive; repeated, array, empty, or conflicting scopes are rejected. Default scope is the user's tenant. Organization scope requires an explicit authorized organization and shared membership check. The command result decides access without replacing the user or effective grants.
+- TenantPermissionGuard and TenantBaseGuard are compatibility aliases. They neither branch on role names nor read `@Permissions`. Organization policy remains in the shared command; resource policy stays with workspaces/projects.
+- Rejection codes distinguish `permission_denied`, `request_scope_invalid`, `request_scope_mismatch`, and `organization_access_denied`. Internal logs distinguish invalid identity, unloaded grants, empty declarations, and missing permissions without recording tokens/keys/provider secrets.
+- `role-permission-modules.ts` catalogs module, deprecation, configurability, and contract-only status. Core/AI modules define defaults. `node tools/scripts/generate-permission-reference.cjs --check` verifies the generated table and also runs in commit checks.
+
+Common feature checks do not replace separate Assistant, workspace, project, and service-operation resource policies. Compatibility guard calls remain for existing controllers and third-party plugins.
+
+## Configuration and troubleshooting
+
+1. In the correct tenant's Settings → Roles and Permissions, inspect actual enabled grants. The operator needs `CHANGE_ROLES_PERMISSIONS`; a role change affects every user sharing it.
+2. Configure a custom role's feature combination, then assign organization membership, App, published Assistant, and project grants through normal workflows.
+3. Use the target user's JWT for `GET /api/user/me/permissions` to inspect effective grants. API principals cannot substitute for that JWT. The result is credential/scope-limited, not source defaults or resource ACLs.
+4. For HTTP 403, first check `tenant-id`, `organization-id`, and `x-scope-level`. Login does not establish the selected organization. Use only organization IDs from authorized context.
+5. Then inspect method/controller declarations, ownership/sharing, service scope, and membership. Do not mask denial by selecting an unrelated organization, writing the database, or adding an administrator role.
+6. Verify revocation against the next request with the old JWT and check frontend permission refresh. Server enforcement is authoritative.
+
+Local API checks use `requireAuthentication` and `createRequestHeaders` from `tools/scripts/local-plugin-cli.mjs`. Credentials come from the configured login environment or Keychain, never browser credential extraction or documentation output.
+
+Default upgrades add missing grants and preserve explicit disabled entries; custom authoring roles receive missing XPERT_VIEW. `POST /api/role-permissions/sync-defaults` is an authorized mutation, not read-only diagnosis: ordinary roles retain explicit disabled grants, while SUPER_ADMIN defaults are re-enabled. Verify deployed records separately.
+
+## Maintenance sources
+
+Update this reference with enum/default changes and menu or endpoint authorization changes.
+
+| Content                    | Source                                                                                                                                                                                                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles/responsibility       | [role.model.ts](../../../packages/contracts/src/role.model.ts)                                                                                                                                                                                                                |
+| AI codes                   | [ai/role-permissions.ts](../../../packages/contracts/src/ai/role-permissions.ts)                                                                                                                                                                                              |
+| Core codes/editor groups   | [role-permission.model.ts](../../../packages/contracts/src/role-permission.model.ts)                                                                                                                                                                                          |
+| Core defaults              | [server/default-role-permissions.ts](../../../packages/server/src/role-permission/default-role-permissions.ts)                                                                                                                                                                |
+| AI defaults                | [server-ai/default-role-permissions.ts](../../../packages/server-ai/src/core/default-role-permissions.ts)                                                                                                                                                                     |
+| Upgrade/synchronization    | [application-permission-upgrade.ts](../../../packages/server/src/role-permission/application-permission-upgrade.ts), [role-permission.service.ts](../../../packages/server/src/role-permission/role-permission.service.ts)                                                    |
+| Endpoint rules             | [endpoint-permission.interceptor.ts](../../../packages/server/src/shared/guards/endpoint-permission.interceptor.ts)                                                                                                                                                           |
+| Workspace capability/scope | [workspace-access.service.ts](../../../packages/server-ai/src/xpert-workspace/workspace-access.service.ts)                                                                                                                                                                    |
+| App use/install entry      | [app-platform.controller.ts](../../../packages/server-ai/src/plugin-resource/app-platform/app-platform.controller.ts), [plugin-application.controller.ts](../../../packages/server-ai/src/plugin-resource/application/plugin-application.controller.ts)                       |
+| Menus/settings             | [menus.ts](../../../apps/cloud/src/app/features/menus.ts), [settings-navigation.service.ts](../../../apps/cloud/src/app/features/setting/settings-navigation.service.ts), [setting-routing.module.ts](../../../apps/cloud/src/app/features/setting/setting-routing.module.ts) |
+| Effective personal grants  | [current-user-permissions.controller.ts](../../../packages/server/src/user/permissions/current-user-permissions.controller.ts)                                                                                                                                                |
+
+The [generated defaults](../../role-permission-defaults.generated.md) come from the two preset modules and shared catalog. All 25 AI and 37 core values appear once. Remaining legacy role checks require separate maintenance; the default matrix does not imply their removal.

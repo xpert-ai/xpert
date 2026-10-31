@@ -1,0 +1,261 @@
+---
+title: 'Proposal: Assistant and View Navigation Performance'
+description: 'Observed request chains, performance bottlenecks, phased upgrades, and acceptance criteria for Assistant and View navigation.'
+---
+
+Status: not implemented; retained for a future upgrade. Measurement date: October 29, 2026.
+
+Switching an Assistant or opening its View from the sidebar Menu can involve noticeable waiting. Evidence points to repeated identity/Assistant reads, restoration of a complete conversation when opening a View, and the View's own code/data loading. draw.io also has a separate external-editor initialization bottleneck.
+
+The proposed sequence is to establish a production-build baseline, eliminate redundant reads, separate View entry from unnecessary conversation restoration, then optimize static delivery, images, and the editor. Preserve the existing layout and permission-based feature visibility.
+
+## Implemented behavior versus proposed work
+
+Native layout, role-based entries, and App-status cleanup/rejection of old responses after account switching are implemented; see [managed applications](../guides/managed-apps.mdx). These do not establish completion of this proposal's directory/profile read sharing, View/history separation, caching, or editor work. Those stages still require implementation and production-build measurement.
+
+## Background and scope
+
+App Platform provisions isolated account organizations and default Apps using the plugin's `appConfig.assistantTemplateKey` and `assistantSuite`. Bid coordinators, External Assistants, and standalone Assistants appear in the native sidebar as published business entries.
+
+Frequent switching is a normal workflow. Users opening creative centers, project workspaces, or drawing workspaces need the destination to become usable promptly, without sidebar clearing or old requests overwriting the new target.
+
+This proposal spans Xpert Cloud, ChatKit, the View host, Bid, and draw.io. It does not change layout, initialization sources, business-account permissions, or LLM inference policy. Recheck current code before implementation to reuse existing caches, credential-refresh coordination, and iframe retention.
+
+## Measurement method and baseline
+
+The investigation used browser Network/Resource Timing in local bidding and diagramming environments and compared running code with working-directory sources. ChatKit used a Vite development build with React StrictMode; browser caching remained enabled. Measurement did not trigger new LLM work.
+
+These five samples are individual operations, not percentiles. Time starts at the click. Network completion does not establish paint or business readiness. Production builds and explicit ready markers are required for the next baseline.
+
+| Scenario                                                            | Non-OPTIONS requests |        OPTIONS requests | Observed interval                                                              |
+| ------------------------------------------------------------------- | -------------------: | ----------------------: | ------------------------------------------------------------------------------ |
+| Switch to an ordinary Assistant                                     |                   20 |                      17 | Related requests completed in about 1.3 s                                      |
+| Switch to draw.io Assistant                                         |                   21 |                      16 | About 1.6 s                                                                    |
+| Bid Menu opens another Assistant's creative-center View             |                   20 |                      11 | About 1.5 s                                                                    |
+| Return to Bid with unread history and restore its project workspace |                   84 |                      44 | Business data about 6.9 s; original images continued to about 9.45 s           |
+| Open draw.io View within the same Assistant                         |              8 local | 6 in the parent capture | Local data about 1.12 s; external initialization chain continued to about 14 s |
+
+Counts include canceled requests; the Bid sample includes streams. The last draw.io sample also had three externally captured requests, totaling 11 non-OPTIONS requests in that capture. Separate editor Resource Timing added internal resources: neither eight nor eleven is a complete page-resource count. Most OPTIONS requests took only 1–3 ms and were not the dominant bottleneck.
+
+### Navigation request chain
+
+Stages overlap; do not sum their durations as a serial total.
+
+| Stage                 | Data/API                                                                                          | Purpose                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Routing and identity  | `/api/app-platform/me`, `/api/user/me` when needed                                                | Delivery, entries, permissions, organization context      |
+| Directory/sidebar     | `/api/assistant-binding/xperts`, unread summary, conversation sidebar, View slots                 | Target Assistant and navigation entries                   |
+| ChatKit session       | `/api/ai/v1/chatkit/sessions`                                                                     | Client secret when audience or validity requires renewal  |
+| Runtime profile       | `/api/ai/assistants/:id`, runtime capabilities, project types, conversation search, pinned Views  | Destination runtime initialization                        |
+| Existing conversation | Thread, conversation, messages, runs, control-view, task-summary, context-usage, sandbox services | Restore history/execution when a thread is present        |
+| Project context       | Entry-by-thread, project access/detail                                                            | Adopt project scope, potentially changing the route again |
+| View startup          | Manifest → remote-component entry → iframe ready → data/actions                                   | Authorize/load the business interface                     |
+| Later resources       | File view-session, grants, images, external draw.io editor                                        | Content/editor loading                                    |
+
+`CurrentUserHydrationService` already has a 60-second memory cache; `skipSessionCache: true` does not bypass a valid in-memory result. Thus every navigation does not necessarily request `/user/me`. ChatKit also already shares an Assistant provider, coordinates concurrent credential refresh, and retains the outer iframe. Improve trigger/invalidation boundaries rather than duplicating these facilities.
+
+## Main costs and causes
+
+### Repeated directory and profile reads
+
+Ordinary switching and cross-Assistant View samples each requested `assistant-binding/xperts` twice. Sidebar and `XpertWorkbenchFacade` read the full directory separately; `AssistantBindingService` does not share an in-flight read.
+
+The cross-Assistant creative-center sample started a group of four profile requests about 721 ms after the click. Durations were 205, 402, 587, and 773 ms; queue times were approximately 5, 205, 402, and 587 ms. Ordinary switching showed the same group. This is one observed group, not a claim that the entire navigation made exactly four profile requests.
+
+Response waiting was about 150–200 ms for those requests and higher for Bid. Redundancy increased queueing and the navigation tail. Browser evidence cannot establish every queueing cause or assign it directly to the database.
+
+Potential amplifiers include:
+
+- `useAssistantInfo` increases revision after `onSetOptions`; theme/layout changes can trigger another profile fetch. Cleanup ignores old results without canceling or sharing the request.
+- Development StrictMode amplifies some effects. Attribute each of the four calls and repeat under production builds.
+- The App guard writes user/organization state; same-organization `setOrganizationScope` still updates the store and loads permissions, potentially triggering directory subscriptions.
+- Directory reload first empties the sidebar. Menu caching uses loading/nonempty-list state, so a valid empty list may be fetched again.
+
+### Opening a View restores unread history
+
+`openAssistantMenuItem` calls `getLatestUnreadThreadId` for View entries as well as ordinary Assistant entries. An unread target thread turns View navigation into conversation restoration followed by business-context setup.
+
+The heavy Bid sample illustrates this path:
+
+| Time after click | Requests and impact                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| 0–2.4 s          | Directory, credentials, repeated profiles, thread and conversation begin                                   |
+| About 2.5 s      | Control-view starts; about 1.31 s duration, including 1.04 s response waiting                              |
+| About 3.28 s     | Conversation adopts project scope and changes routing; platform status, entry, access and slots load again |
+| 3.83–4.64 s      | View manifest and Bid Studio entry                                                                         |
+| 4.86–6.17 s      | Two workflow reads, the latter using updated selection context                                             |
+| 6.20–6.92 s      | Project files plus outline, interpretation and chapters                                                    |
+| 7.06–9.45 s      | File session/grants and eight original images                                                              |
+
+Repeated thread reads also took about 0.84, 1.27, and 1.14 s. Thread reads include control-view processing; a separate control-view request also touches execution/task/evidence/recovery projections. Investigate overlapping work with server-side timings before identifying a specific SQL bottleneck.
+
+The two workflow reads used different context, so they are not proven identical duplicates. Business slices have separate uses. Stabilize initial context, defer invisible content, and avoid irrelevant history restoration for independent Views.
+
+### Large View entries and images
+
+Observed View entries embedded substantial code in HTML, returned `Cache-Control: no-store`, and showed no Content-Encoding compression.
+
+| Resource                  |                    Response body | Local duration |
+| ------------------------- | -------------------------------: | -------------: |
+| Bid Studio entry          |   4,509,178 bytes, about 4.51 MB |         393 ms |
+| Bid creative-center entry | 10,163,946 bytes, about 10.16 MB |         222 ms |
+| draw.io workspace entry   |     509,391 bytes, about 0.51 MB |         177 ms |
+
+MB is decimal. Queueing/cache conditions differ, so these samples do not establish bandwidth or a fixed size-to-duration relationship. Remote deployment also pays transfer, parsing, and execution costs; measure on the deployment network.
+
+Eight original Bid images transferred about 30.06 MB. Originals and file grants formed the later loading tail. Thumbnails, visibility-based loading, and deferring originals address this directly.
+
+### External draw.io initialization
+
+In the same-Assistant sample, local data completed around 1.12 s and the external iframe began around 0.93 s. Times below are relative to editor navigation:
+
+| Resource                  |        Start |         Duration |
+| ------------------------- | -----------: | ---------------: |
+| `bootstrap.js`, `main.js` | About 0.01 s | About 0.8 s each |
+| `high-contrast.css`       | About 0.01 s |     About 4.79 s |
+| `app.min.js`              | About 0.81 s |     About 3.99 s |
+| `dia_zh.txt`              | About 5.22 s |     About 0.71 s |
+| `stencils.min.js`         | About 5.93 s |     About 4.91 s |
+| `extensions.min.js`       | About 5.93 s |     About 7.40 s |
+
+These overlap and cannot be summed. About 14 s describes the observed external resource chain. Measure editability with editor-init and scene-loaded markers. Zero transferSize for cross-origin resources does not prove a cache hit.
+
+Local drawing list/detail requests each occurred twice. Initialization and theme updates both update bridge context; each callback schedules `reloadList`, which may auto-select and fetch the first drawing. Treat this business-read duplication separately.
+
+### Other observations that require care
+
+- An old-credential 401 followed by refresh, and both 403/successful View-slot calls, may reflect audience/update timing. The complete authorization chain is not proven. Do not diagnose a missing user grant or relax access to remove latency.
+- The outer ChatKit iframe remained retained in observed ordinary switches. There is no evidence of downloading all ChatKit code again. Focus on repeated options, target identity ordering, and internal View/editor lifecycle.
+- Leave protection has a timeout, but these samples do not show it blocking navigation. Preserve unsaved-edit protection.
+
+## Upgrade plan
+
+### Stage 1: production-build phase timings
+
+Assign short-lived navigation correlation across host, ChatKit, View, and server. Record stages, endpoint templates, status, durations, and bytes—not tokens, client secrets, business text, or raw resource IDs.
+
+Measure Menu click, leave-protection completion, route authorization, target identity, credential availability, manifest, entry, View ready, first-screen data, first usable business action, editor init, and scene loaded. Bridge ready is only communication readiness.
+
+Use production builds for first access, warm switches, expired credentials, no/long history, View-query-only changes, cross-Assistant and cross-project cases. Add server timings for authorization, database, control projection, and serialization. Identify the expensive phase before changing queries.
+
+Deliver reproducible steps, build/environment information, P50/P95 per scenario, counts, bytes, and waterfalls. Retain development observations for effect-duplication diagnosis.
+
+### Stage 2: shared reads and stable identity/scope
+
+1. Share directory reads between sidebar and Workbench. Coalesce identical concurrent scope/version requests; represent a valid empty result as loaded.
+2. Avoid repeating an unchanged scope selection while still propagating real role/grant/organization changes. Organization ID equality alone must not suppress permission refresh.
+3. Refresh profiles for identity, publication version, or explicit invalidation; theme and panel width do not refetch profiles. Improve the existing provider.
+4. Share safe read-only requests and bind responses to identity/navigation version. Discard stale A → B → C results; cancel abandoned work only when supported and without canceling requests still used elsewhere.
+5. Resolve target identity/client-secret audience before audience-bound calls. Reuse credential-refresh coordination and valid credentials within their existing boundary.
+6. Keep the sidebar visible while refreshing within one security scope. Clear inaccessible data on account, organization, or grant changes.
+
+Keys must distinguish account, tenant, organization, Assistant, and relevant publication/project/query context. Define invalidation for logout, scope changes, revocation, App disable, and publication. Cache does not replace current server authorization or allow results from different credential audiences to mix.
+
+### Stage 3: start Views with their actual context
+
+Distinguish continuing an Assistant conversation from opening its business View. Preserve unread behavior for ordinary Assistant clicks; a View carries a thread only when its context requires one.
+
+- Assistant-scoped centers/lists open without an implicit unread thread.
+- Project Views carry an authorized project/selection and stabilize context before loading the first screen.
+- Conversation Views retain the exact thread, history, execution controls, and resource binding.
+
+Reuse the View scope contract. If inadequate, extend the shared typed discriminator before host/plugin changes; do not infer scope from names/prefixes. Preserve old links, direct navigation, and browser history.
+
+First-screen loading waits only for required authorization, identity, and context. Defer independent history, task summaries, and sandbox panels until needed. Keep active-task subscriptions timely, and enable controls only after current control state is available.
+
+Remove client duplication before considering same-cycle thread/control projection reuse. Never pause/resume/stop with stale state; retain authorization, recovery semantics, and projection versions.
+
+### Stage 4: resource delivery and business data
+
+Separate live-authorized manifests/startup context from reusable static code. Credential-bearing or user-specific content retains private/no-store policies. Only confirmed identity/data-free assets use content hashes, versioned URLs, and long caching. Protected fetches still authorize each access.
+
+Enable suitable gzip/Brotli in the real deployment chain and measure negotiation, headers, and compressed bytes. If remote-component supports only inline HTML, define compatible build/host resource separation first; never make the entire protected entry publicly cacheable.
+
+For Bid:
+
+- Analyze the roughly 10 MB creative-center and 4.5 MB Studio bundles; split editor/export/graphics and other noncritical code.
+- Stabilize project, selection, and parameters into one first-screen context before workflow fetches.
+- Load outline/interpretation/chapter slices by visible need; prefetch only with demonstrated reuse.
+- Prefer thumbnails/lazy lists. Fetch originals for preview/edit/export, retaining file access boundaries and scoped session/grant reuse.
+
+For draw.io:
+
+- Separate initialization, business context, and theme updates; merge identical initial selection reads.
+- Compare a pinned self-hosted editor with the external deployment, including version maintenance and licensing requirements.
+- Evaluate retaining initialized editors within one security scope, with instance/memory limits and correct destruction on exit.
+- Preserve iframe isolation, origin/message checks, save semantics, and unsaved-edit protection.
+
+### Stage 5: phased rollout and feature documentation
+
+Deliver read sharing, navigation context, resource delivery, and plugin changes in stages with identical comparison scenarios. Roll back the affected stage for authorization errors, stale overwrites, inconsistent control state, lost edits, or persistent memory growth.
+
+Record host, ChatKit, actually loaded plugin versions, and business results separately. Plugin registration/refresh is not proof of active behavior. Do not republish Assistants unless an actual contract migration requires it; specify compatibility for templates, existing installations, and old links when needed.
+
+After acceptance, document implemented behavior in the relevant feature guides and mark stage completion here. Preserve the proposal and measurement evidence as historical context.
+
+## Acceptance criteria
+
+### Measurement and targets
+
+Use identical machines, browser, data, deployment path, and network for baseline/results. Record at least 30 valid operations per warm scenario; list cold accesses separately. Do not silently remove failures, expired credentials, or canceled operations. Report first usable action, first-screen data, and all-background-resource completion separately.
+
+These are proposed first-round budgets, not measured results; freeze the concrete environment in Stage 1.
+
+| Warm scenario                                |       First usable business action, P95 target |
+| -------------------------------------------- | ---------------------------------------------: |
+| Assistant switch without history restoration |                                          ≤ 1 s |
+| Local business View                          |                                        ≤ 1.5 s |
+| Existing Bid project first-screen workspace  | ≤ 3 s, without waiting for invisible originals |
+| Existing editable draw.io drawing            |        ≤ 3 s; record editor hosting separately |
+
+Already compliant scenarios must not regress. Report improvement and remaining critical paths for others. Establish cold/deployed-network budgets after Stage 1; localhost success does not replace deployment acceptance.
+
+Required request behavior:
+
+- Coalesce directory and identical profile concurrent consumers per logical navigation absent invalidation; count explicit refresh, publication, and credential recovery separately.
+- Theme/layout changes do not refetch profiles or drawing lists/details.
+- Stable initial draw.io context fetches one list/target detail; temporary Bid selection does not launch two first-screen workflow chains.
+- Independent Views do not restore unrelated unread history; conversation Views retain semantics.
+- Normal valid-audience switches avoid preventable 401/403, while expiry/revocation/out-of-scope requests remain denied.
+- Prove byte reduction, compression, caching, and image strategy with measurements, not only fewer API calls.
+
+### Authorization and functional regression
+
+| Dimension               | Required behavior                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| Website                 | Native sidebar/project/ChatKit/View layout and permission/App-controlled visibility |
+| Business accounts       | No model configuration, Agent creation, authoring, drafts, prompts, or publication  |
+| Isolation               | No cross-account/tenant/organization/Assistant/project cached data or file grants   |
+| Current authorization   | Old JWT/client secret/cache respects suspension, revocation, and App disable        |
+| Concurrent navigation   | Old responses cannot replace a new target; canceling one consumer preserves others  |
+| Conversations/execution | Preserve history, unread state, events, recovery, and control projections           |
+| Files/editing           | Preserve authorization, save, unsaved protection, and browser back/forward          |
+| Memory/lifecycle        | Retained frames/editors obey limits and cleanup on scope exit                       |
+
+## Ownership and code locations
+
+| Component                | Starting points                                                                                                                                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud sidebar            | [cloud-sidebar-assistants.component.ts](../../../apps/cloud/src/app/features/sidebar/cloud-sidebar-assistants.component.ts): Assistant selection, unread thread, Menu and directory                                                                                                                                                   |
+| Cloud Workbench          | [xpert-workbench.facade.ts](../../../apps/cloud/src/app/features/chat/xpert-workbench/xpert-workbench.facade.ts), [assistant-binding.service.ts](../../../apps/cloud/src/app/@core/services/assistant-binding.service.ts): target resolution and directory reads                                                                      |
+| Cloud identity/scope     | [app-platform.guard.ts](../../../apps/cloud/src/app/features/app-platform/app-platform.guard.ts), [current-user-hydration.service.ts](../../../apps/cloud/src/app/@core/state/current-user-hydration.service.ts), [store.service.ts](../../../apps/cloud/src/app/@core/state/store.service.ts): delivery, identity cache and scope    |
+| Cloud lifecycle          | [routes.ts](../../../apps/cloud/src/app/features/chat/routes.ts), [assistant-chatkit.runtime.ts](../../../apps/cloud/src/app/features/assistant/assistant-chatkit.runtime.ts), [chatkit-lifecycle.service.ts](../../../apps/cloud/src/app/@core/services/chatkit-lifecycle.service.ts): routing, options, iframe and leave protection |
+| View host                | [view-extension.controller.ts](../../../packages/server/src/view-extension/view-extension.controller.ts)                                                                                                                                                                                                                              |
+| Runtime authorization    | [assistant.controller.ts](../../../packages/server-ai/src/ai/assistant.controller.ts), [published-xpert-access.service.ts](../../../packages/server-ai/src/xpert/published-xpert-access.service.ts)                                                                                                                                   |
+| Conversation projections | [thread-find.handler.ts](../../../packages/server-ai/src/ai/queries/handlers/thread-find.handler.ts), [thread-control-view.service.ts](../../../packages/server-ai/src/chat-conversation/control-view/thread-control-view.service.ts)                                                                                                 |
+| ChatKit repository       | `packages/chatkit-ui/src/hooks/useAssistantInfo.ts`, plus `providers/AssistantInfo.tsx`, `providers/ParentMessenger.tsx`, and `workbench/remote-view/RemoteViewFrame.tsx` under `packages/chatkit-ui/src/`                                                                                                                            |
+| draw.io plugin           | `xpertai/apps/drawio/src/lib/remote-components/drawio-workbench/src/main.tsx` and adjacent `runtime.ts`                                                                                                                                                                                                                               |
+| Bid in Apps repository   | `bid/src/lib/remote-components/bid-home/src/`: workflow, project files, and images                                                                                                                                                                                                                                                    |
+
+## Protected local evidence
+
+Raw receipts remain in the sibling `app-platforms` working directory and are not committed as public attachments:
+
+- `diagramming/.local/perf/assistant-switch-plain.json`
+- `diagramming/.local/perf/assistant-switch-drawio.json`
+- `diagramming/.local/perf/same-assistant-view.json`
+- `bidding/.local/perf/assistant-switch-bid.json`
+- `bidding/.local/perf/cross-assistant-view.json`
+- `bidding/.local/perf/assistant-navigation-analysis.json`: redacted request summary and external-editor timings.
+
+This proposal retains endpoint templates, aggregates, and code locations only. Keep account, organization, workspace, conversation identities, and credentials in protected receipts during later acceptance as well.
