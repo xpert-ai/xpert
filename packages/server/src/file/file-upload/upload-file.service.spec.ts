@@ -1,3 +1,5 @@
+import type { WithStorageBudgetCommand } from '@xpert-ai/server-core'
+const commands = { execute: (command: WithStorageBudgetCommand<unknown>) => command.commit(null) }
 jest.mock('../../core', () => ({
 	RequestContext: {
 		currentTenantId: () => 'tenant-1',
@@ -48,7 +50,7 @@ describe('UploadFileService content classification', () => {
 			}
 			mockGetFile.mockResolvedValue(bytes)
 			mockPutFile.mockResolvedValue({ key: 'stored.ts', mimetype: 'video/vnd.dlna.mpeg-tts' })
-			const strategy = new StorageTargetStrategy(storage as never)
+			const strategy = new StorageTargetStrategy(storage as never, commands as never)
 			const registry = { get: jest.fn().mockReturnValue(strategy) }
 			const service = new UploadFileService(storage as never, registry as never)
 			const filePath = path.join(directory, 'streamLoad(1).ts')

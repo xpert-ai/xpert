@@ -6,6 +6,8 @@ import {
 	TResolvedFileUploadSource
 } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { WithStorageBudgetCommand } from '../../../shared/storage-budget.command'
 import { randomBytes } from 'crypto'
 import path from 'path'
 import { FileStorage } from '../../file-storage'
@@ -15,7 +17,10 @@ import { TStorageUploadedFile } from '../types'
 @Injectable()
 @FileUploadTargetStrategy('storage')
 export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadFileStorageTarget> {
-	constructor(private readonly storageFileService: StorageFileService) {}
+	constructor(
+		private readonly storageFileService: StorageFileService,
+		private readonly commands: CommandBus
+	) {}
 
 	async upload(
 		source: TResolvedFileUploadSource,
@@ -31,30 +36,43 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		const tenantDirectory = this.joinRelativePath(directory, tenantId)
 		const key = this.joinRelativePath(tenantDirectory, fileName)
 		this.assertContainedInTenantDirectory(tenantDirectory, key)
-		const uploadedFile = (await provider.putFile(source.buffer, key)) as TStorageUploadedFile
-		const storageProvider = this.normalizeProvider(provider.name)
+		return this.commands.execute(
+			new WithStorageBudgetCommand(
+				{
+					kind: 'object',
+					owner: { ...context.request, tenantId: context.request.tenantId },
+					provider: provider.name,
+					key,
+					bytes: source.buffer.byteLength
+				},
+				async () => {
+					const uploadedFile = (await provider.putFile(source.buffer, key)) as TStorageUploadedFile
+					const storageProvider = this.normalizeProvider(provider.name)
 
-		uploadedFile.originalname = source.originalName
-		uploadedFile.filename = uploadedFile.filename || fileName
-		uploadedFile.key = uploadedFile.key || key
-		uploadedFile.path = uploadedFile.path || uploadedFile.key
-		uploadedFile.url = uploadedFile.url || provider.url(uploadedFile.key)
-		uploadedFile.mimetype = source.mimeType
+					uploadedFile.originalname = source.originalName
+					uploadedFile.filename = uploadedFile.filename || fileName
+					uploadedFile.key = uploadedFile.key || key
+					uploadedFile.path = uploadedFile.path || uploadedFile.key
+					uploadedFile.url = uploadedFile.url || provider.url(uploadedFile.key)
+					uploadedFile.mimetype = source.mimeType
 
-		const storageFile = await this.storageFileService.createStorageFile(uploadedFile, storageProvider)
+					const storageFile = await this.storageFileService.createStorageFile(uploadedFile, storageProvider)
 
-		return {
-			kind: 'storage',
-			status: 'success',
-			path: uploadedFile.key,
-			url: uploadedFile.url,
-			referenceId: storageFile.id,
-			metadata: {
-				...(target.metadata ?? {}),
-				provider: provider.name,
-				storageFile
-			}
-		}
+					return {
+						kind: 'storage',
+						status: 'success',
+						path: uploadedFile.key,
+						url: uploadedFile.url,
+						referenceId: storageFile.id,
+						metadata: {
+							...(target.metadata ?? {}),
+							provider: provider.name,
+							storageFile
+						}
+					}
+				}
+			)
+		)
 	}
 
 	private createStoredFileName(originalName: string, prefix: string) {
