@@ -20,7 +20,10 @@ function fixture() {
     const files = { find: jest.fn(async () => [{ id: 'file', status: 'ready' }]) }
     const authority = { purgeProjectFile: jest.fn() }
     const volumes = {
-        resolve: jest.fn(() => ({ serverRoot: '/tenant/projects/p' })),
+        resolve: jest.fn(() => ({
+            serverRoot: '/tenant/projects/p',
+            withRemovalBudget: <T,>(commit: () => Promise<T>) => commit()
+        })),
         resolveRoot: jest.fn(() => ({ serverRoot: '/tenant' }))
     }
     const service = new XpertProjectPurgeService(
