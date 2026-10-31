@@ -1,9 +1,13 @@
 import { HttpException } from '@nestjs/common'
+import { normalizeAccountStorageError } from '../storage-budget-error'
 
 export function normalizeHttpException(exception: unknown): HttpException | null {
     if (exception instanceof HttpException) {
         return exception
     }
+
+    const storageError = normalizeAccountStorageError(exception)
+    if (storageError) return storageError
 
     const status = resolveHttpStatus(exception)
     if (status === null) {
