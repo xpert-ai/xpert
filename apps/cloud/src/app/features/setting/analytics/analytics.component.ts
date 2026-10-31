@@ -231,7 +231,8 @@ export class AnalyticsSettingsComponent implements OnInit {
       const result = await firstValueFrom(
         this.api.publish(selected!.id, {
           expectedCurrentVersionId: selected!.currentVersionId!,
-          options: input.options
+          options: input.options,
+          visibility: input.visibility
         })
       )
       this.selected.set(result.definition)

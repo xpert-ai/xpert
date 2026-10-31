@@ -177,7 +177,10 @@ describe('Authenticated Artifact presentations', () => {
     it('rejects an unavailable plugin registration and anonymous link policies', async () => {
         const f = await fixture()
         f.registrations.mockReturnValue([])
-        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({ status: 404 })
+        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({
+            status: 503,
+            response: { code: 'ARTIFACT_PRESENTATION_UNAVAILABLE' }
+        })
         f.link.accessMode = 'public_link'
         await expect(f.run(() => f.service.read('team-link'))).rejects.toBeInstanceOf(ForbiddenException)
     })
@@ -188,7 +191,10 @@ describe('Authenticated Artifact presentations', () => {
         const f = await fixture()
         const [registration] = f.registrations()
         f.registrations.mockReturnValue([{ ...registration, source }])
-        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({ status: 404 })
+        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({
+            status: 503,
+            response: { code: 'ARTIFACT_PRESENTATION_UNAVAILABLE' }
+        })
         expect(f.providerRead).not.toHaveBeenCalled()
     })
     it('rejects a different tenant even if the Artifact resolver supplies a result', async () => {

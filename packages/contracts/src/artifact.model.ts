@@ -43,7 +43,15 @@ export type ArtifactLinkDisposition = 'inline' | 'attachment'
 export type ArtifactSafeHtmlProfile = 'strict' | 'interactive'
 
 /** Audited events emitted by Artifact open/download/management flows. */
-export type ArtifactAccessEvent = 'access' | 'download' | 'denied' | 'revoked' | 'expired' | 'archived' | 'deleted'
+export type ArtifactAccessEvent =
+  | 'access'
+  | 'download'
+  | 'denied'
+  | 'revoked'
+  | 'expired'
+  | 'archived'
+  | 'deleted'
+  | 'type_repaired'
 
 /**
  * Persistable reference to a Workspace Files object.

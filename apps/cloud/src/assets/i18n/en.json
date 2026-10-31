@@ -149,6 +149,7 @@
       "Result": "Deleted {{deleted}} records and {{writes}} related writes. Skipped {{skipped}} records due to state changes or concurrent processing. Preview again to see remaining data."
     },
     "Analytics": {
+      "VisibilityHelp": "Organization visibility shares this definition, including its code and declared file snapshots, across all versions. Upstream queries still require each viewer’s current permissions. Private visibility revokes organization access.",
       "AutomaticHelp": "The system or Agent generates analytics definitions from authorized files, toolsets and integrations. Use this page to view, correct and manage versions; internal configuration is supplied automatically.",
       "Title": "Analytics definitions",
       "Description": "View system- or Agent-generated analytics definitions, correct configuration and manage immutable versions.",
@@ -8437,6 +8438,7 @@
     "SourceMigration": "Template source migration"
   },
   "ArtifactPresentation": {
+    "SupportUnavailableHint": "This content is authorized, but its presentation support is unavailable. Ask the owner to repair or update the dashboard plugin and regenerate the share link.",
     "UnavailableHint": "The published version or your access may have changed. Reopen to check again.",
     "Reopen": "Reopen shared page"
   },

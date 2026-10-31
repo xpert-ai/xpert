@@ -7361,6 +7361,7 @@
     "SourceMigration": "模板来源迁移"
   },
   "ArtifactPresentation": {
+    "SupportUnavailableHint": "内容访问已获授权，但展示支持不可用。请所有者修复或更新看板插件，并重新生成分享链接。",
     "UnavailableHint": "正式版本或访问权限可能已变化，请重新打开以检查。",
     "Reopen": "重新打开分享页"
   },

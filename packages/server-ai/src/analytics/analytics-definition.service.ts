@@ -219,6 +219,7 @@ export class AnalyticsDefinitionService {
                     sha256: definitionDigest(options)
                 })
             )
+            if (input.visibility !== undefined) definition.visibility = input.visibility
             definition.currentVersionId = version.id
             await manager.save(AnalyticsDefinition, definition)
             return { definition, version }

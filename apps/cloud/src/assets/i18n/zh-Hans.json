@@ -354,6 +354,7 @@
       "Result": "已删除 {{deleted}} 条记录及 {{writes}} 条关联写入；{{skipped}} 条因状态变化或并发处理被跳过。可重新预览剩余数据。"
     },
     "Analytics": {
+      "VisibilityHelp": "组织内可见将共享此定义的所有版本，包括代码和声明的文件快照。上游查询仍检查查看者的当前权限；改为私有会撤销组织访问。",
       "AutomaticHelp": "分析定义由系统或 Agent 根据已授权的文件、工具集和集成自动生成。此页面用于查看、校正和版本管理，无需手动填写内部配置。",
       "Title": "分析定义",
       "Description": "查看系统或 Agent 生成的分析定义，校正配置并管理不可变版本。",
@@ -13101,6 +13102,7 @@
     "SourceMigration": "模板来源迁移"
   },
   "ArtifactPresentation": {
+    "SupportUnavailableHint": "内容访问已获授权，但展示支持不可用。请所有者修复或更新看板插件，并重新生成分享链接。",
     "UnavailableHint": "正式版本或访问权限可能已变化，请重新打开以检查。",
     "Reopen": "重新打开分享页"
   },

@@ -69,6 +69,8 @@ export interface IArtifactTypeProvider {
   readonly definition: ArtifactTypeDefinition
   authorize(source: ArtifactTypeSource, actor: ArtifactTypeActor, operation: ContentOperation): Promise<void>
   validateContent(content: Buffer, mimeType: string): Promise<void> | void
+  /** Opt-in adoption of legacy file bindings; validate provenance as well as every saved payload. */
+  validateLegacyContent?(source: ArtifactTypeSource, content: Buffer, mimeType: string): Promise<void> | void
   assertPublication?(source: ArtifactTypeSource, access: ArtifactLinkAccessInput): Promise<void> | void
   assertLink?(source: ArtifactTypeSource, link: ArtifactTypeLink): Promise<void> | void
   readonly snapshot?: ArtifactSnapshotProvider

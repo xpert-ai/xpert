@@ -10165,6 +10165,7 @@
     "SourceMigration": "範本來源遷移"
   },
   "ArtifactPresentation": {
+    "SupportUnavailableHint": "內容存取已獲授權，但展示支援不可用。請擁有者修復或更新看板外掛，並重新產生分享連結。",
     "UnavailableHint": "正式版本或存取權限可能已變更，請重新開啟以檢查。",
     "Reopen": "重新開啟分享頁"
   }
