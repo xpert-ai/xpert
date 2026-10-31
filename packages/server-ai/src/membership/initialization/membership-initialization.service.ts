@@ -14,6 +14,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm'
 import { Copilot } from '../../copilot/copilot.entity'
+import { appPlatformTrial } from '../app-platform-trial'
 import { MembershipBackfillQueueService } from '../membership-backfill.queue'
 import { MembershipLifecycleService } from '../periods/membership-lifecycle.service'
 import {
@@ -228,7 +229,14 @@ export class MembershipInitializationService {
             }
         }
 
+        const trial = await appPlatformTrial(manager, input.tenantId, input.userId)
+        if (trial.kind === 'unverified') return { membership: null, created: false }
         const start = new Date()
+        const pointsGranted = trial.kind === 'trial' ? trial.policy.creditLimit : plan.includedPoints
+        const currentPeriodEnd =
+            trial.kind === 'trial'
+                ? new Date(start.getTime() + trial.policy.trialDays * 86_400_000)
+                : periodEndFor(start, plan.period)
         const repository = manager.getRepository(UserMembership)
         const membership = await repository.save(
             repository.create({
@@ -238,10 +246,10 @@ export class MembershipInitializationService {
                 planId: plan.id,
                 status: MembershipStatusEnum.Active,
                 source: MembershipSourceEnum.TenantDefault,
-                renewalMode: MembershipRenewalModeEnum.Auto,
+                renewalMode: trial.kind === 'trial' ? MembershipRenewalModeEnum.Manual : MembershipRenewalModeEnum.Auto,
                 currentPeriodStart: start,
-                currentPeriodEnd: periodEndFor(start, plan.period),
-                pointsGranted: plan.includedPoints,
+                currentPeriodEnd,
+                pointsGranted,
                 pointsUsed: 0,
                 pointsTotalUsed: 0,
                 note: DEFAULT_TENANT_PLAN_GRANT_REASON
@@ -255,7 +263,7 @@ export class MembershipInitializationService {
             membershipId: membership.id,
             planId: plan.id,
             source: MembershipLedgerSourceEnum.Grant,
-            pointsDelta: plan.includedPoints ?? 0,
+            pointsDelta: pointsGranted ?? 0,
             reason: DEFAULT_TENANT_PLAN_GRANT_REASON
         })
         return {
