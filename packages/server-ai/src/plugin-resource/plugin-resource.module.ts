@@ -1,9 +1,15 @@
-import { AssertAppPlatformUploadHandler } from './app-platform/app-platform-upload.handler'
-import { PlatformStorageDatabaseService } from './app-platform/storage/platform-storage-database.service'
-import { CheckStorageQuotaHandler, RequestStorageUsageRefreshHandler, StorageQuotaAccountResolver } from './app-platform/storage/platform-storage-budget.handler'
-import { PlatformStorageUsageService } from './app-platform/storage/platform-storage-usage.service'
-import { ApplicationInitializationLocks } from './application/application-initialization-locks'
+import { PlatformUpdateService } from './app-platform/platform-update.service'
 import { ApplicationUpdateService } from './application-update/application-update.service'
+import { ApplicationInitializationLocks } from './application/application-initialization-locks'
+import { BullModule } from '@nestjs/bull'
+import { MembershipModule } from '../membership/membership.module'
+import { AppPlatformDelivery } from './app-platform/app-platform-delivery.entity'
+import { AppPlatformService, APP_PLATFORM_QUEUE } from './app-platform/app-platform.service'
+import { AppPlatformController } from './app-platform/app-platform.controller'
+import { AppPlatformWorker } from './app-platform/app-platform.worker'
+import { PlatformMaintenanceActorService } from './app-platform/platform-maintenance-actor.service'
+import { PlatformModelsService } from './app-platform/platform-models.service'
+import { PlatformProvisionerService } from './app-platform/platform-provisioner.service'
 import { ApplicationAccessService } from './application/application-access.service'
 import { PrepareTemplateExecutionHandler } from './template-installation/prepare-template-execution.command'
 import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
@@ -39,6 +45,15 @@ import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { XpertTool } from '../xpert-tool/xpert-tool.entity'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { XpertToolsetModule } from '../xpert-toolset'
+import { AssertAppPlatformUploadHandler } from './app-platform/app-platform-upload.handler'
+import {
+    CheckStorageQuotaHandler,
+    RequestStorageUsageRefreshHandler,
+    StorageQuotaAccountResolver
+} from './app-platform/storage/platform-storage-budget.handler'
+import { PlatformStorageUsageService } from './app-platform/storage/platform-storage-usage.service'
+import { PlatformStorageDatabaseService } from './app-platform/storage/platform-storage-database.service'
+import { AppPlatformStorageObject, AppPlatformStorageRoot } from './app-platform/storage/platform-storage-object.entity'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { KnowledgebaseModule } from '../knowledgebase/management/knowledgebase.module'
@@ -62,9 +77,14 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
 
 @Module({
     imports: [
+        BullModule.registerQueue({ name: APP_PLATFORM_QUEUE }),
+        MembershipModule,
         forwardRef(() => XpertAgentModule),
         forwardRef(() => SandboxModule),
         TypeOrmModule.forFeature([
+            AppPlatformDelivery,
+            AppPlatformStorageObject,
+            AppPlatformStorageRoot,
             PluginResourceInstallation,
             TemplateInstallationEntity,
             PluginApplicationInstallation,
@@ -89,14 +109,25 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
         CopilotModule,
         McpPublicationModule
     ],
-    controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
+    controllers: [
+        PluginResourceController,
+        PluginApplicationController,
+        TemplateInstallationController,
+        AppPlatformController
+    ],
     providers: [
         AssertAppPlatformUploadHandler,
-        PlatformStorageDatabaseService,
         CheckStorageQuotaHandler,
         RequestStorageUsageRefreshHandler,
         StorageQuotaAccountResolver,
+        PlatformStorageDatabaseService,
         PlatformStorageUsageService,
+        PlatformUpdateService,
+        AppPlatformService,
+        AppPlatformWorker,
+        PlatformMaintenanceActorService,
+        PlatformModelsService,
+        PlatformProvisionerService,
         ApplicationInitializationLocks,
         ApplicationUpdateService,
         ApplicationAccessService,
