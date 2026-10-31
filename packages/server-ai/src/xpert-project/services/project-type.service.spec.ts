@@ -1,7 +1,7 @@
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { RequestContext, ProjectTypeProviderRegistry, type IProjectTypeProvider } from '@xpert-ai/plugin-sdk'
 import { type LoadedPluginRecord } from '@xpert-ai/server-core'
-import type { IXpert, IUser } from '@xpert-ai/contracts'
+import { RolesEnum, type IXpert, type IUser } from '@xpert-ai/contracts'
 import type { Repository } from 'typeorm'
 import { PluginApplicationInstallation } from '../../plugin-resource/plugin-application-installation.entity'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
@@ -73,6 +73,19 @@ describe('application Project types', () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
+    })
+
+    it('limits application users to types declared by their authorized published assistants', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'owner', tenantId: 'tenant', role: { name: RolesEnum.APP_USER }
+        } as IUser)
+        const f = fixture()
+        f.xperts.getAccessiblePublishedXpert.mockResolvedValue({
+            ...xpert, options: { workspaceScope: { mode: 'project-required', projectType: ref } }
+        })
+        expect((await f.service.list('assistant')).items.map((type) => type.applicationKey)).toEqual([ref.applicationKey])
+        f.xperts.getAccessiblePublishedXpert.mockResolvedValue(xpert)
+        expect((await f.service.list('assistant')).items).toEqual([])
     })
 
     it('resolves a Workbench destination using persisted Project classification and live access', async () => {

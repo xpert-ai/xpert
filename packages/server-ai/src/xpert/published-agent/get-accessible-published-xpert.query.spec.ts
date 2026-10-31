@@ -10,7 +10,7 @@ import {
 describe('published Assistant access query wiring', () => {
     let module: TestingModule
     let queries: QueryBus
-    const access = { getAccessiblePublishedXpert: jest.fn() }
+    const access = { getAccessiblePublishedXpert: jest.fn(), getAccessiblePublishedResource: jest.fn() }
 
     beforeAll(async () => {
         module = await Test.createTestingModule({
@@ -40,5 +40,13 @@ describe('published Assistant access query wiring', () => {
         access.getAccessiblePublishedXpert.mockRejectedValueOnce(denied)
         await expect(queries.execute(new GetAccessiblePublishedXpertQuery('published'))).rejects.toBe(denied)
         expect(access.getAccessiblePublishedXpert).toHaveBeenCalledTimes(2)
+    })
+    it('keeps binding inspection scoped to the authorized parent', async () => {
+        access.getAccessiblePublishedResource.mockResolvedValue({ id: 'child' })
+        await expect(queries.execute(new GetAccessiblePublishedXpertQuery('child', ['agent'], 'parent'))).resolves.toEqual({ id: 'child' })
+        expect(access.getAccessiblePublishedResource).toHaveBeenCalledWith('child', 'parent')
+        expect(access.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        access.getAccessiblePublishedResource.mockRejectedValue(new ForbiddenException())
+        await expect(queries.execute(new GetAccessiblePublishedXpertQuery('other', ['agent'], 'parent'))).rejects.toThrow(ForbiddenException)
     })
 })

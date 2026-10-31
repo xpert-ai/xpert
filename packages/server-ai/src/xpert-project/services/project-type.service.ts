@@ -1,3 +1,4 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 // Invariants: classification is immutable during reconciliation. Plugin providers
 // verify persisted business links; display snapshots never authorize app execution.
 import { projectApplicationDefinitions } from './project-type-metadata'
@@ -104,7 +105,16 @@ export class XpertProjectTypeService {
         const defaultProjectType = xpert?.options?.workspaceScope?.projectType
         // An unavailable App must not silently fall back to creating a generic Project.
         if (defaultProjectType) this.resolve(defaultProjectType)
-        return { items: this.catalog().map(({ pluginName, appName, scopeKey, ...type }) => type), defaultProjectType }
+        let catalog = this.catalog()
+        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT)) {
+            const assistants = xpert ? [xpert] : await this.xperts.findAccessiblePublishedXperts()
+            const types = assistants.flatMap((assistant) => {
+                const ref = assistant.options?.workspaceScope?.projectType
+                return ref ? [`${ref.applicationKey}:${ref.projectTypeKey}`] : []
+            })
+            catalog = catalog.filter((type) => types.includes(`${type.applicationKey}:${type.projectTypeKey}`))
+        }
+        return { items: catalog.map(({ pluginName, appName, scopeKey, ...type }) => type), defaultProjectType }
     }
 
     /** Resolve stable keys against live registrations; snapshots cannot restore an unavailable type. */
