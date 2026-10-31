@@ -41,7 +41,7 @@ function getDbConfig(): ConnectionOptions {
         database: process.env.DB_NAME || 'postgres',
         username: process.env.DB_USER || 'postgres',
         password: process.env.DB_PASS || 'root',
-        logging: true,
+        logging: false,
         ssl: ssl,
         // Removes console logging, instead logs all queries in a file ormlogs.log
         logger: 'file',
@@ -62,7 +62,7 @@ function getDbConfig(): ConnectionOptions {
     // 	return {
     // 		type: dbType,
     // 		database: sqlitePath,
-    // 		logging: true,
+    // 		logging: false,
     // 		// Removes console logging, instead logs all queries in a file ormlogs.log
     // 		logger: 'file',
     // 		synchronize: true
