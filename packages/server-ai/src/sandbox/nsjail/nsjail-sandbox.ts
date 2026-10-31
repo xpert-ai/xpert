@@ -26,10 +26,14 @@ import {
     isPermanentNsjailRunnerRequestError,
     isRetryableNsjailRunnerRequestError,
     NSJAIL_PROXY_RESPONSE_HEADER,
+    NsjailRunnerRequestError,
     NsjailRunnerClient
 } from './nsjail-runner.client'
 import { getNsjailMessage } from './nsjail-i18n'
 import { NsjailRuntimeCreateRequest, NsjailServiceStartRequest, NsjailServiceState } from './nsjail.types'
+import type { SandboxStorageAllowance } from '@xpert-ai/server-core'
+import { NsjailStorageBudget } from './nsjail-storage-budget'
+import { platformFailure } from '../../plugin-resource/app-platform/platform-error'
 
 const TERMINAL_POLL_RETRY_MS = 100
 const TERMINAL_POLL_MAX_RETRY_MS = 5_000
@@ -393,6 +397,7 @@ export class NsjailSandbox
     readonly id: string
     readonly environmentId?: string | null
     private runtimeGeneration = 0
+    private storageBudget?: NsjailStorageBudget
     private runtimeRecreation: { generation: number; promise: Promise<void> } | null = null
 
     constructor(private readonly options: NsjailSandboxOptions) {
@@ -403,7 +408,8 @@ export class NsjailSandbox
     }
 
     async execute(command: string, options?: SandboxExecutionOptions): Promise<ExecuteResponse> {
-        return this.withRuntimeRecovery(() => this.options.client.execute(this.options.runtimeId, command, options))
+        return this.withStorageBudget((budget) => this.withRuntimeRecovery(() =>
+            this.options.client.execute(this.options.runtimeId, command, options, budget)))
     }
 
     override async streamExecute(
@@ -411,18 +417,43 @@ export class NsjailSandbox
         onLine: (line: string) => void,
         options?: SandboxExecutionOptions
     ): Promise<ExecuteResponse> {
-        return this.withRuntimeRecovery(() =>
-            this.options.client.streamExecute(this.options.runtimeId, command, onLine, options)
-        )
+        return this.withStorageBudget((budget) => this.withRuntimeRecovery(() =>
+            this.options.client.streamExecute(this.options.runtimeId, command, onLine, options, budget)))
     }
 
     async uploadFiles(files: Array<[string, Uint8Array]>): Promise<FileUploadResponse[]> {
-        return this.withRuntimeRecovery(() =>
+        return this.withStorageBudget((budget) => this.withRuntimeRecovery(() =>
             this.options.client.uploadFiles(
                 this.options.runtimeId,
-                files.map(([path, content]) => ({ contentBase64: Buffer.from(content).toString('base64'), path }))
+                files.map(([path, content]) => ({ contentBase64: Buffer.from(content).toString('base64'), path })),
+                budget
             )
-        )
+        ))
+    }
+
+    bindStorageBudget(budget: NsjailStorageBudget) {
+        if (this.storageBudget) throw new Error('Sandbox storage budget is already bound')
+        this.storageBudget = budget
+    }
+
+    private withStorageBudget<T>(operation: (budget?: SandboxStorageAllowance) => Promise<T>): Promise<T> {
+        if (!this.storageBudget) return operation()
+        return this.storageBudget(async (budget) => {
+            if (budget && !(await this.options.client.getHealth()).capabilities.storageBudget)
+                throw platformFailure('application_storage_scope_invalid', 503)
+            try { return await operation(budget ?? undefined) }
+            catch (error) {
+                if (budget && error instanceof NsjailRunnerRequestError && error.status === 507)
+                    throw platformFailure('application_storage_limit', 413)
+                throw error
+            }
+        })
+    }
+
+    private async assertUnboundedSessionAllowed() {
+        await this.withStorageBudget(async (budget) => {
+            if (budget) throw platformFailure('application_storage_scope_invalid', 403)
+        })
     }
 
     async downloadFiles(paths: string[]): Promise<FileDownloadResponse[]> {
@@ -437,6 +468,7 @@ export class NsjailSandbox
     }
 
     async open(options: SandboxTerminalOpenOptions): Promise<SandboxTerminalSession> {
+        await this.assertUnboundedSessionAllowed()
         const terminalId = await this.withRuntimeRecovery(() =>
             this.options.client.createTerminal(this.options.runtimeId, {
                 cols: clampTerminalSize(options.cols, 80),
@@ -453,6 +485,7 @@ export class NsjailSandbox
     }
 
     async startService(options: SandboxManagedServiceStartOptions): Promise<SandboxManagedServiceStartResult> {
+        await this.assertUnboundedSessionAllowed()
         const startingState: SandboxManagedServiceStateChange = {
             actualPort: options.port ?? null,
             runtimeRef: toRuntimeRef(this.options.runtimeId, options.serviceId),
@@ -553,6 +586,7 @@ export class NsjailSandbox
     }
 
     async restartService(options: SandboxManagedServiceRestartOptions): Promise<SandboxManagedServiceStartResult> {
+        await this.assertUnboundedSessionAllowed()
         await this.stopService({ onStateChange: options.onStateChange, service: options.service })
         return this.startService({
             command: options.command,
@@ -568,6 +602,7 @@ export class NsjailSandbox
     }
 
     async proxyServiceRequest(request: SandboxServiceProxyRequest): Promise<void> {
+        await this.assertUnboundedSessionAllowed()
         if (!request.service.id || request.service.status !== 'running') {
             request.response.statusCode = 502
             request.response.setHeader('content-type', 'text/plain; charset=utf-8')

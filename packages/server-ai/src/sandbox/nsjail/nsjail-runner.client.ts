@@ -17,6 +17,7 @@ import {
     NsjailTerminalEvent
 } from './nsjail.types'
 import { getNsjailMessage } from './nsjail-i18n'
+import type { SandboxStorageAllowance } from '@xpert-ai/server-core'
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 10_000
 const RUNNER_GRACE_PERIOD_MS = 10_000
@@ -287,7 +288,8 @@ function parseHealthResult(value: unknown): NsjailRunnerHealth {
         capabilities: {
             projectContentReadOnly,
             appDataProtection:
-                isObjectLike(capabilitiesValue) && readBoolean(capabilitiesValue, 'appDataProtection') === true
+                isObjectLike(capabilitiesValue) && readBoolean(capabilitiesValue, 'appDataProtection') === true,
+            storageBudget: isObjectLike(capabilitiesValue) && readBoolean(capabilitiesValue, 'storageBudget') === true
         },
         protocolVersion
     }
@@ -363,13 +365,15 @@ export class NsjailRunnerClient {
     async execute(
         runtimeId: string,
         command: string,
-        options?: SandboxExecutionOptions
+        options?: SandboxExecutionOptions,
+        storageBudget?: SandboxStorageAllowance
     ): Promise<NsjailExecutionResult> {
         const resolved = resolveSandboxExecutionOptions(options)
         const request: NsjailExecutionRequest = {
             command,
             maxOutputBytes: resolved.maxOutputBytes,
-            timeoutMs: resolved.timeoutMs
+            timeoutMs: resolved.timeoutMs,
+            ...(storageBudget ? { storageBudget } : {})
         }
         const value = await this.requestJson(`/v1/runtimes/${encodeURIComponent(runtimeId)}/exec`, {
             body: request,
@@ -383,14 +387,16 @@ export class NsjailRunnerClient {
         runtimeId: string,
         command: string,
         onLine: (line: string) => void,
-        options?: SandboxExecutionOptions
+        options?: SandboxExecutionOptions,
+        storageBudget?: SandboxStorageAllowance
     ): Promise<NsjailExecutionResult> {
         const resolved = resolveSandboxExecutionOptions(options)
         const response = await this.request(`/v1/runtimes/${encodeURIComponent(runtimeId)}/exec/stream`, {
             body: {
                 command,
                 maxOutputBytes: resolved.maxOutputBytes,
-                timeoutMs: resolved.timeoutMs
+                timeoutMs: resolved.timeoutMs,
+                ...(storageBudget ? { storageBudget } : {})
             } satisfies NsjailExecutionRequest,
             method: 'POST',
             timeoutMs: resolved.timeoutMs + RUNNER_GRACE_PERIOD_MS
@@ -436,6 +442,9 @@ export class NsjailRunnerClient {
                 onLine(data)
             } else if (type === 'result') {
                 result = parseExecutionResult(Reflect.get(event, 'result'))
+            } else if (type === 'error') {
+                const status = readNumber(event, 'status')
+                throw new NsjailRunnerRequestError('Sandbox execution failed', status ?? 500, readString(event, 'error') ?? undefined)
             }
         }
 
@@ -465,9 +474,9 @@ export class NsjailRunnerClient {
         return result
     }
 
-    async uploadFiles(runtimeId: string, files: NsjailFileUpload[]): Promise<NsjailFileUploadResult[]> {
+    async uploadFiles(runtimeId: string, files: NsjailFileUpload[], storageBudget?: SandboxStorageAllowance): Promise<NsjailFileUploadResult[]> {
         const value = await this.requestJson(`/v1/runtimes/${encodeURIComponent(runtimeId)}/files/upload`, {
-            body: { files },
+            body: { files, ...(storageBudget ? { storageBudget } : {}) },
             method: 'POST'
         })
         return parseFileUploadResults(value)

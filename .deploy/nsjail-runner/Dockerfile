@@ -166,6 +166,8 @@ RUN for root in /opt/xpert-document-libreoffice-rootfs /opt/xpert-document-node-
     done
 
 COPY .deploy/nsjail-runner/runner.py /app/runner.py
+COPY .deploy/nsjail-runner/bounded_workspace.py /app/bounded_workspace.py
+COPY .deploy/nsjail-runner/verify_storage_budget.py /app/verify_storage_budget.py
 COPY .deploy/nsjail-runner/server.py .deploy/nsjail-runner/compute_*.py .deploy/nsjail-runner/document_service.py .deploy/nsjail-runner/job_control.py /app/
 COPY .deploy/nsjail-runner/network.py /app/network.py
 COPY .deploy/nsjail-runner/net_proxy.py /app/net_proxy.py

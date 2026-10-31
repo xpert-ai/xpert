@@ -1,3 +1,4 @@
+const commands = { execute: async () => null }
 import { SandboxAcquireBackendHandler } from './acquire-backend.handler'
 import { SandboxAcquireBackendCommand } from '../acquire-backend.command'
 import type { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
@@ -23,7 +24,7 @@ describe('SandboxAcquireBackendHandler', () => {
         registry = {
             list: jest.fn(() => [provider])
         }
-        handler = new SandboxAcquireBackendHandler(registry as unknown as SandboxProviderRegistry)
+        handler = new SandboxAcquireBackendHandler(registry as unknown as SandboxProviderRegistry, commands as never)
     })
 
     afterEach(() => {
@@ -51,7 +52,7 @@ describe('SandboxAcquireBackendHandler', () => {
 
     it('keeps conversation context in the application cache without exposing it to providers', async () => {
         provider.create.mockResolvedValue({ execute: jest.fn() })
-        const params = { provider: 'local-shell-sandbox', workFor: { type: 'user' as const, id: 'user-1' } }
+        const params = { tenantId: 'tenant-1', provider: 'local-shell-sandbox', workFor: { type: 'user' as const, id: 'user-1' } }
         await handler.execute(new SandboxAcquireBackendCommand(params))
         const group = await handler.execute(
             new SandboxAcquireBackendCommand({ ...params, conversationId: 'group-runtime' })

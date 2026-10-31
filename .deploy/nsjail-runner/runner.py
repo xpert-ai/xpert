@@ -41,11 +41,12 @@ from typing import Any, BinaryIO, Callable, Iterator
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from network import EgressConfig, NetworkLease, NetworkManager
+from bounded_workspace import StorageBudget, StorageBudgetError, parse_budget, run_bounded
 
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
 RUNNER_TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "").strip()
-RUNNER_PROTOCOL_VERSION = 3
+RUNNER_PROTOCOL_VERSION = 4
 APP_DATA_MASK = pathlib.Path("/opt/xpert-app-data-mask")
 WORKSPACE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_WORKSPACE_ROOT", "/sandbox")).resolve()
 ROOTFS = pathlib.Path(os.environ.get("XPERT_NSJAIL_ROOTFS", "/opt/xpert-rootfs")).resolve()
@@ -117,7 +118,7 @@ def health_response() -> dict[str, Any]:
     return {
         "status": "ok",
         "protocolVersion": RUNNER_PROTOCOL_VERSION,
-        "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
+        "capabilities": {"projectContentReadOnly": True, "appDataProtection": True, "storageBudget": True},
     }
 
 
@@ -514,7 +515,10 @@ def nsjail_args(
     interactive: bool = False,
     time_limit_seconds: int = 0,
     network: NetworkLease | None = None,
+    workspace_path: pathlib.Path | None = None,
+    scratch_root: pathlib.Path | None = None,
 ) -> list[str]:
+    workspace_path = workspace_path or runtime.workspace_path
     args = [
         NSJAIL_BIN,
         "--mode",
@@ -531,12 +535,12 @@ def nsjail_args(
         "--group",
         f"{JAIL_GID}:{JAIL_GID}:1",
         "--bindmount",
-        f"{runtime.workspace_path}:/workspace",
+        f"{workspace_path}:/workspace",
     ]
-    prepare_app_data_mount(runtime.workspace_path)
+    prepare_app_data_mount(workspace_path)
     args.extend(["--bindmount_ro", f"{APP_DATA_MASK}:/workspace/.apps"])
     if runtime.protect_project_content:
-        for source, target in project_content_mounts(runtime.workspace_path):
+        for source, target in project_content_mounts(workspace_path):
             args.extend(["--bindmount_ro", f"{source}:{target}"])
     args.extend(
         [
@@ -548,10 +552,6 @@ def nsjail_args(
             "/dev/random:/dev/random",
             "--bindmount",
             "/dev/urandom:/dev/urandom",
-            "--mount",
-            f"none:/tmp:tmpfs:size={TMPFS_MB * 1024 * 1024},mode=1777",
-            "--tmpfsmount",
-            "/run",
             "--rlimit_as",
             str(RLIMIT_AS_MB),
             "--rlimit_cpu",
@@ -571,6 +571,10 @@ def nsjail_args(
             "--forward_signals",
         ]
     )
+    if scratch_root:
+        args.extend(["--bindmount", f"{scratch_root / 'tmp'}:/tmp", "--bindmount", f"{scratch_root / 'run'}:/run"])
+    else:
+        args.extend(["--mount", f"none:/tmp:tmpfs:size={TMPFS_MB * 1024 * 1024},mode=1777", "--tmpfsmount", "/run"])
     if interactive:
         args.append("--skip_setsid")
     if USE_CGROUP_V2:
@@ -609,12 +613,15 @@ def _execute_command(
     timeout_ms: int,
     max_output_bytes: int,
     on_line: Callable[[str], None] | None = None,
+    workspace_path: pathlib.Path | None = None,
+    scratch_root: pathlib.Path | None = None,
 ) -> dict[str, Any]:
     time_limit_seconds = max(1, math.ceil(timeout_ms / 1000) + 5)
     network = NETWORK.acquire()
     try:
         process = subprocess.Popen(
-            nsjail_args(runtime, command, time_limit_seconds=time_limit_seconds, network=network),
+            nsjail_args(runtime, command, time_limit_seconds=time_limit_seconds, network=network,
+                        workspace_path=workspace_path, scratch_root=scratch_root),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -739,8 +746,14 @@ def execute_command(
     timeout_ms: int,
     max_output_bytes: int,
     on_line: Callable[[str], None] | None = None,
+    storage_budget: StorageBudget | None = None,
 ) -> dict[str, Any]:
     with execution_slot(runtime):
+        if storage_budget:
+            return run_bounded(runtime.workspace_path, STATE_ROOT, storage_budget,
+                lambda workspace, scratch: _execute_command(runtime, command, timeout_ms, max_output_bytes,
+                                                              on_line, workspace, scratch),
+                lambda result: result.get('exitCode') == 0 and not result.get('timedOut'))
         return _execute_command(runtime, command, timeout_ms, max_output_bytes, on_line)
 
 
@@ -783,10 +796,10 @@ def is_protected_project_content_path(runtime: Runtime, parts: list[str]) -> boo
     return runtime.protect_project_content and bool(parts) and parts[0] in ("project.md", "skills")
 
 
-def open_parent_dir(runtime: Runtime, parts: list[str], *, create: bool) -> tuple[int, str]:
+def open_parent_dir(runtime: Runtime, parts: list[str], *, create: bool, workspace_path: pathlib.Path | None = None) -> tuple[int, str]:
     if not parts:
         raise RunnerError("Sandbox path must identify a file")
-    current_fd = os.open(runtime.workspace_path, os.O_RDONLY | os.O_DIRECTORY)
+    current_fd = os.open(workspace_path or runtime.workspace_path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         for part in parts[:-1]:
             created = False
@@ -830,7 +843,7 @@ def file_error(error: OSError) -> str:
     return "invalid_path"
 
 
-def upload_file(runtime: Runtime, path_value: Any, content_value: Any) -> dict[str, Any]:
+def upload_file(runtime: Runtime, path_value: Any, content_value: Any, workspace_path: pathlib.Path | None = None) -> dict[str, Any]:
     original_path = str(path_value)
     try:
         parts = workspace_parts(path_value)
@@ -841,7 +854,7 @@ def upload_file(runtime: Runtime, path_value: Any, content_value: Any) -> dict[s
         content = base64.b64decode(content_value, validate=True)
         if len(content) > MAX_FILE_BYTES:
             raise RunnerError("File exceeds the Runner file size limit")
-        parent_fd, filename = open_parent_dir(runtime, parts, create=True)
+        parent_fd, filename = open_parent_dir(runtime, parts, create=True, workspace_path=workspace_path)
         try:
             created = False
             try:
@@ -1634,7 +1647,7 @@ class RunnerHandler(BaseHTTPRequestHandler):
                 self._handle_runtime(method, runtime, parts[3:], parsed.query, payload)
                 return
             raise RunnerError("Route not found", HTTPStatus.NOT_FOUND)
-        except RunnerError as error:
+        except (RunnerError, StorageBudgetError) as error:
             self._write_json({"error": str(error)}, error.status)
         except (BrokenPipeError, ConnectionResetError):
             return
@@ -1660,10 +1673,12 @@ class RunnerHandler(BaseHTTPRequestHandler):
         runtime.ensure_active()
         if parts == ["exec"] and method == "POST":
             command, timeout_ms, max_output_bytes = self._execution_request(payload)
-            self._write_json(execute_command(runtime, command, timeout_ms, max_output_bytes))
+            budget = parse_budget(payload.get('storageBudget'))
+            self._write_json(execute_command(runtime, command, timeout_ms, max_output_bytes, storage_budget=budget))
             return
         if parts == ["exec", "stream"] and method == "POST":
             command, timeout_ms, max_output_bytes = self._execution_request(payload)
+            budget = parse_budget(payload.get('storageBudget'))
             self.send_response(HTTPStatus.OK)
             self.send_header("content-type", "application/x-ndjson")
             self.send_header("cache-control", "no-store")
@@ -1673,16 +1688,29 @@ class RunnerHandler(BaseHTTPRequestHandler):
                 self.wfile.write((json.dumps({"data": line, "type": "line"}) + "\n").encode())
                 self.wfile.flush()
 
-            result = execute_command(runtime, command, timeout_ms, max_output_bytes, on_line)
-            self.wfile.write((json.dumps({"result": result, "type": "result"}) + "\n").encode())
+            try:
+                result = execute_command(runtime, command, timeout_ms, max_output_bytes, on_line, budget)
+                self.wfile.write((json.dumps({"result": result, "type": "result"}) + "\n").encode())
+            except (RunnerError, StorageBudgetError) as error:
+                self.wfile.write((json.dumps({"error": str(error), "status": error.status, "type": "error"}) + "\n").encode())
             self.wfile.flush()
             return
         if parts == ["files", "upload"] and method == "POST":
             if not isinstance(payload, dict) or not isinstance(payload.get("files"), list):
                 raise RunnerError("Invalid upload request")
-            self._write_json(
-                [upload_file(runtime, entry.get("path"), entry.get("contentBase64")) if isinstance(entry, dict) else {"error": "invalid_path", "path": ""} for entry in payload["files"]]
-            )
+            budget = parse_budget(payload.get('storageBudget'))
+            def upload(workspace: pathlib.Path, _scratch: pathlib.Path) -> list[dict[str, Any]]:
+                results = [upload_file(runtime, entry.get('path'), entry.get('contentBase64'), workspace)
+                           if isinstance(entry, dict) else {'error': 'invalid_path', 'path': ''} for entry in payload['files']]
+                if budget and any(result['error'] for result in results):
+                    raise StorageBudgetError('Workspace upload could not be committed')
+                return results
+            if budget:
+                with execution_slot(runtime):
+                    results = run_bounded(runtime.workspace_path, STATE_ROOT, budget, upload, lambda _result: True)
+            else:
+                results = upload(runtime.workspace_path, STATE_ROOT)
+            self._write_json(results)
             return
         if parts == ["files", "download"] and method == "POST":
             if not isinstance(payload, dict) or not isinstance(payload.get("paths"), list):

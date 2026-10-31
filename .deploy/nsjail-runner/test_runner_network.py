@@ -9,9 +9,10 @@ import runner
 
 class TmpfsSizingTest(unittest.TestCase):
     def test_tmpfs_size_is_configurable_without_changing_run_or_resource_limits(self):
-        runtime = runner.Runtime('a' * 32, pathlib.Path('/sandbox/test'), '/workspace')
-        with mock.patch.object(runner, 'TMPFS_MB', 64):
-            args = runner.nsjail_args(runtime, 'true')
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = runner.Runtime('a' * 32, pathlib.Path(directory), '/workspace')
+            with mock.patch.object(runner, 'TMPFS_MB', 64):
+                args = runner.nsjail_args(runtime, 'true')
         self.assertIn('none:/tmp:tmpfs:size=67108864,mode=1777', args)
         self.assertEqual(args[args.index('--tmpfsmount') + 1], '/run')
         self.assertEqual(args[args.index('--rlimit_fsize') + 1], str(runner.RLIMIT_FSIZE_MB))
