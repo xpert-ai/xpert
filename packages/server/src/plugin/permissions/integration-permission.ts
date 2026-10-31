@@ -11,6 +11,10 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { FindManyOptions, FindOneOptions, Repository } from 'typeorm'
 import { canConsumeIntegration } from '../../integration/sharing/integration-sharing.policy'
+import {
+	projectIntegrationPolicyFields,
+	selectIntegrationPolicyFields
+} from '../../integration/sharing/integration-projection'
 import { IntegrationService } from '../../integration/integration.service'
 import { Integration } from '../../core/entities/internal'
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from '../plugin-webhook.tokens'
@@ -187,10 +191,13 @@ export class PluginIntegrationPermissionService implements IntegrationPermission
 		}
 
 		try {
-			const result = await integrationService.findWithInheritance(options)
-			const items = (result?.items ?? []).filter((item) =>
-				canConsumeIntegration(item, RequestContext.getScope(), 'configuration')
+			const scope = RequestContext.getScope()
+			const result = await integrationService.findWithInheritance(
+				options?.select ? { ...options, select: selectIntegrationPolicyFields(options.select) } : options
 			)
+			const items = (result?.items ?? [])
+				.filter((item) => canConsumeIntegration(item, scope, 'configuration'))
+				.map((item) => projectIntegrationPolicyFields(item, options?.select))
 			return { items: items as TIntegration[], total: items.length }
 		} catch {
 			return { items: [], total: 0 }

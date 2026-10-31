@@ -116,13 +116,11 @@ describe('PluginIntegrationPermissionService', () => {
 	})
 
 	it('exposes authorized tenant and organization integrations for inherited plugin configuration', async () => {
-		const scope = jest
-			.spyOn(RequestContext, 'getScope')
-			.mockReturnValue({
-				tenantId: 'tenant',
-				organizationId: 'organization-1',
-				level: RequestScopeLevel.ORGANIZATION
-			})
+		const scope = jest.spyOn(RequestContext, 'getScope').mockReturnValue({
+			tenantId: 'tenant',
+			organizationId: 'organization-1',
+			level: RequestScopeLevel.ORGANIZATION
+		})
 		const tenantIntegration = {
 			id: 'tenant-integration',
 			tenantId: 'tenant',
@@ -162,6 +160,20 @@ describe('PluginIntegrationPermissionService', () => {
 		})
 		expect(integrationService.findWithInheritance).toHaveBeenCalledWith({
 			where: { provider: 'github' }
+		})
+		const projected = await service.findAllWithInheritance({
+			where: { provider: 'github' },
+			select: ['id', 'provider']
+		})
+		expect(projected.items.map((item) => item.id)).toEqual(['organization-integration', 'tenant-integration'])
+		for (const item of projected.items) {
+			expect(item).not.toHaveProperty('tenantId')
+			expect(item).not.toHaveProperty('organizationId')
+			expect(item).not.toHaveProperty('sharing')
+		}
+		expect(integrationService.findWithInheritance).toHaveBeenLastCalledWith({
+			where: { provider: 'github' },
+			select: ['id', 'provider', 'tenantId', 'organizationId', 'sharing']
 		})
 		scope.mockRestore()
 	})

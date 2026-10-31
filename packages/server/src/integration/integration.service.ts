@@ -17,6 +17,7 @@ import { UserService } from '../user'
 import { Integration } from './integration.entity'
 import type { Organization } from '../organization/organization.entity'
 import { canConsumeIntegration } from './sharing/integration-sharing.policy'
+import { projectIntegrationPolicyFields, selectIntegrationPolicyFields } from './sharing/integration-projection'
 import { t } from 'i18next'
 import { ResolveUserOrganizationAccessCommand } from '../user-organization/commands/resolve-user-organization-access.command'
 
@@ -91,9 +92,12 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		if (!id || !scope.tenantId) return null
 		const integration = await this.repository.findOne({
 			...(options ?? {}),
+			...(options?.select ? { select: selectIntegrationPolicyFields(options.select) } : {}),
 			where: { id, tenantId: scope.tenantId }
 		})
-		return integration && canConsumeIntegration(integration, scope, usage) ? integration : null
+		return integration && canConsumeIntegration(integration, scope, usage)
+			? projectIntegrationPolicyFields(integration, options?.select)
+			: null
 	}
 
 	async updateSharing(id: string, sharing: IntegrationSharingPolicy) {
@@ -196,8 +200,13 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	async findAllInOrganizationOrTenant(options?: FindManyOptions<Integration>) {
-		const result = await this.findWithInheritance(options)
-		const items = result.items.filter((item) => canConsumeIntegration(item, RequestContext.getScope(), 'invoke'))
+		const scope = RequestContext.getScope()
+		const result = await this.findWithInheritance(
+			options?.select ? { ...options, select: selectIntegrationPolicyFields(options.select) } : options
+		)
+		const items = result.items
+			.filter((item) => canConsumeIntegration(item, scope, 'invoke'))
+			.map((item) => projectIntegrationPolicyFields(item, options?.select))
 		return { items, total: items.length }
 	}
 
