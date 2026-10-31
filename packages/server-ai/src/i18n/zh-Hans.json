@@ -1298,7 +1298,10 @@
         "ModelReplacementNarrowScope": "助手超过 500 个，请限定工作区后重试。",
         "ModelReplacementConflict": "草稿已发生变化，请重新预览。",
         "ModelReplacementFailed": "操作失败，请检查权限和目标模型状态后重试。",
-        "ModelDefaultInUse": "此连接仍被默认模型引用，请先调整默认模型设置。"
+        "ModelDefaultInUse": "此连接仍被默认模型引用，请先调整默认模型设置。",
+        "UnsafeTemplateSyncPath": "无法同步模板路径 {{file}}：不支持符号链接或特殊文件。",
+        "InvalidTemplateSyncManifest": "模板同步清单 {{file}} 无效。请从备份恢复后重试；模板资源未被修改。",
+        "TemplateSyncConcurrentChange": "模板资源 {{file}} 在同步期间发生变更。已保留本地内容，请重试。"
     },
     "Mcp": {
         "Test": {
@@ -1482,5 +1485,10 @@
     },
     "TemplateUpgradeReleaseNotes": "模板升级",
     "TemplateRollbackReleaseNotes": "恢复上一版模板内容",
-    "TemplateCommunityPublisher": "社区发布者"
+    "TemplateCommunityPublisher": "社区发布者",
+    "TemplateSync": {
+        "Summary": "内置模板同步：新增 {{added}}，更新 {{updated}}，接管 {{adopted}}，保留 {{preserved}}，冲突 {{conflicted}}。",
+        "Conflict": "已保留本地模板 {{file}}：内容已修改、条目已移除或缺少历史 hash。请核对当前内置版本后手动合并。",
+        "Asset": "模板资源 {{file}}：{{status}}。"
+    }
 }

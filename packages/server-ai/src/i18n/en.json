@@ -1298,7 +1298,10 @@
         "ModelReplacementNarrowScope": "More than 500 assistants match. Select a workspace and retry.",
         "ModelReplacementConflict": "The draft has changed. Preview again.",
         "ModelReplacementFailed": "The operation failed. Check permissions and target model availability.",
-        "ModelDefaultInUse": "This connection is still used by default models. Update the defaults first."
+        "ModelDefaultInUse": "This connection is still used by default models. Update the defaults first.",
+        "UnsafeTemplateSyncPath": "Cannot synchronize template path {{file}}: symbolic links and special files are not supported.",
+        "InvalidTemplateSyncManifest": "Template synchronization manifest {{file}} is invalid. Restore it from a backup before retrying; no template assets were changed.",
+        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation."
     },
     "Mcp": {
         "Test": {
@@ -1482,5 +1485,10 @@
     },
     "TemplateUpgradeReleaseNotes": "Template upgrade",
     "TemplateRollbackReleaseNotes": "Restore previous template content",
-    "TemplateCommunityPublisher": "Community publisher"
+    "TemplateCommunityPublisher": "Community publisher",
+    "TemplateSync": {
+        "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",
+        "Conflict": "Preserved local template {{file}}: modified content, removed entry, or no historical hash. Review and merge the current built-in version manually.",
+        "Asset": "Template asset {{file}}: {{status}}."
+    }
 }

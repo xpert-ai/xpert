@@ -1,16 +1,13 @@
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ConfigService } from '@xpert-ai/server-config'
+import { t } from 'i18next'
 import * as fs from 'node:fs'
-import * as path from 'node:path'
-import { upgradeBuiltinTemplateCatalog } from '../../template-catalog-upgrade'
-import { templateDirectories, templateFiles } from '../../template.constants'
+import { syncBuiltinTemplates } from '../../sync/builtin-template-sync'
 import {
     assertBuiltinTemplateLayout,
     assertBuiltinTemplateSource,
-    assertExternalTemplateLayout,
-    copyDirectoryContentsIfMissing,
-    copyFileIfMissing
+    assertExternalTemplateLayout
 } from '../../utils/template-files'
 import { getTemplateRoots } from '../../utils/template-paths'
 import { EnsureTemplateDirectoryCommand } from '../ensure-template-directory.command'
@@ -46,24 +43,24 @@ export class EnsureTemplateDirectoryHandler implements ICommandHandler<EnsureTem
         await assertBuiltinTemplateLayout(builtinRoot, externalRoot)
         await fs.promises.mkdir(externalRoot, { recursive: true })
 
-        for (const directoryName of templateDirectories) {
-            await fs.promises.mkdir(path.join(externalRoot, directoryName), { recursive: true })
-        }
-
-        for (const fileName of templateFiles) {
-            await copyFileIfMissing(path.join(builtinRoot, fileName), path.join(externalRoot, fileName), externalRoot)
-        }
-
-        for (const directoryName of templateDirectories) {
-            await copyDirectoryContentsIfMissing(
-                path.join(builtinRoot, directoryName),
-                path.join(externalRoot, directoryName),
-                externalRoot
-            )
+        const result = await syncBuiltinTemplates(builtinRoot, externalRoot)
+        this.#logger.log(
+            t('server-ai:TemplateSync.Summary', {
+                added: result.added.length,
+                updated: result.updated.length,
+                adopted: result.adopted.length,
+                preserved: result.preserved.length,
+                conflicted: result.conflicted.length
+            })
+        )
+        for (const [status, files] of Object.entries(result)) {
+            for (const file of files) {
+                if (status === 'conflicted') this.#logger.warn(t('server-ai:TemplateSync.Conflict', { file }))
+                else this.#logger.debug(t('server-ai:TemplateSync.Asset', { file, status }))
+            }
         }
 
         await assertExternalTemplateLayout(externalRoot)
-        await upgradeBuiltinTemplateCatalog(builtinRoot, externalRoot)
         this.#logger.log(`Xpert templates ready at '${externalRoot}'`)
 
         return externalRoot

@@ -108,7 +108,7 @@ A reference bundle is included at `skill-packages/examples/claude-api-bundle/`. 
 
 #### External xpert templates
 
-`XPERT_TEMPLATE_DIR` defaults to `/var/lib/xpert/data/xpert-template`. On the first API startup, missing baseline files are copied into that mounted directory and all future reads use the external directory only.
+`XPERT_TEMPLATE_DIR` defaults to `/var/lib/xpert/data/xpert-template`. At API startup, bundled assets are synchronized into this mounted directory. Template reads use the external directory. No additional environment variable is required.
 
 Update templates in the mounted volume instead of the repository source tree:
 
@@ -125,6 +125,25 @@ Update templates in the mounted volume instead of the repository source tree:
   skill-packages/*/bundle.yaml
   skill-packages/*/SKILL.md
 ```
+
+The synchronizer stores SHA-256 baselines in `.builtin-template-sync.json` inside this directory. It compares the current external content, the last synchronized content, and the content bundled with the running image:
+
+| External content                                                 | Startup behavior                                   |
+| ---------------------------------------------------------------- | -------------------------------------------------- |
+| File missing                                                     | Copy the current bundled file and record its hash. |
+| Matches the last synchronized hash                               | Replace it when the bundled hash changes.          |
+| Already matches the bundled content                              | Record/adopt its hash without rewriting it.        |
+| Differs from both hashes, or differs with no historical baseline | Preserve it and log a conflict for manual review.  |
+
+`templates.json` is merged by locale and template ID, with separate hashes for descriptors, details, and other catalog properties. JSON object key order and formatting do not count as catalog edits. User-created entries, customized descriptors, and deliberately removed entries are retained. Other files are compared byte for byte, so formatting changes count as local changes. Files not shipped by the image are left untouched; assets removed from a later image are not automatically deleted.
+
+**First upgrade of an existing installation:** old persisted files have no synchronization history. Identical content can be adopted automatically, but different content cannot safely be classified as an old official copy or a customization. It is preserved with a warning. Back up the volume, compare those files with the current image, and merge changes manually. To accept the bundled version of one file, stop all API replicas, back up and remove only that file, then restart the API. To accept a catalog descriptor, copy that descriptor from the bundled catalog into the external catalog. A restart adopts matching content so later upgrades can update it. Do not delete the whole directory or its synchronization manifest as an upgrade procedure: the directory can contain custom templates and configuration, and the manifest is needed to recognize unchanged copies.
+
+Synchronization runs once per API process; deleting files while the API is running does not trigger a refresh. Restart after manual maintenance. It updates the source for subsequent template installations, not existing Assistant drafts or published graphs in the database.
+
+Multiple API initializers and template-catalog exports use the same filesystem lock. File replacements use temporary files and atomic rename, with pending hashes recorded before publication so an interrupted update can resume. Assets are published before catalog descriptors. This is atomic per file, not a transaction over the whole directory. Use a persistent filesystem that supports atomic rename and shared lock visibility, and deploy the same image version to every replica sharing the directory. Hashes identify content, not release order: starting an older image can restore its bundled version of an unmodified asset. During manual maintenance or a version change requiring a consistent snapshot, stop all replicas, back up the directory, initialize one replica, inspect its logs, and then start the others with the same image.
+
+Startup logs summarize added, updated, adopted, unchanged, and conflicted assets; debug logs identify individual successful actions and warnings identify conflicts. Synchronization failures are logged by template bootstrap and retried by later template requests. A healthy API alone does not confirm successful template synchronization. A process crash can leave a lock that becomes eligible for recovery after its two-minute stale interval; a request may time out waiting and need retrying. An invalid manifest fails closed: restore it together with the matching template backup. Symbolic links inside managed template paths are rejected.
 
 ### For Chinese users
 
