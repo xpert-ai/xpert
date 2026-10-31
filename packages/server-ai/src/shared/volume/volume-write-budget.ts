@@ -1,7 +1,13 @@
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { StorageBudgetResource, WithStorageBudgetCommand } from '@xpert-ai/server-core'
+import {
+    StorageBudgetResource,
+    CheckStorageQuotaCommand,
+    RequestStorageUsageRefreshCommand
+} from '@xpert-ai/server-core'
 import type { VolumeScope } from './volume'
+import { lstat } from 'node:fs/promises'
+import path from 'node:path'
 
 export interface VolumeWriteBudget {
     <T>(
@@ -34,8 +40,7 @@ export function volumeBudgetResource(scope: VolumeScope): StorageBudgetResource 
         // Job volumes are temporary and governed by the immutable Sandbox Runtime profile.
         case 'runtime-jobs':
             return null
-        // App accounts cannot own these authoring roots; the budget handler rejects
-        // roots outside their registered account resources, including background calls.
+        // Authoring entry points retain their own authorization; admission uses the current account.
         case 'environment':
         case 'skills':
             return { ...owner, kind: 'user' }
@@ -43,17 +48,22 @@ export function volumeBudgetResource(scope: VolumeScope): StorageBudgetResource 
 }
 
 export function commandVolumeWriteBudget(commands: Pick<CommandBus, 'execute'>): VolumeWriteBudget {
-    return (scope, root, relativePath, bytes, commit) => {
+    return async (scope, root, relativePath, bytes, commit) => {
         const resource = volumeBudgetResource(scope)
-        return resource
-            ? commands.execute(
-                  new WithStorageBudgetCommand(
-                      bytes === null
-                          ? { kind: 'remove', resource, root }
-                          : { kind: 'file', resource, root, path: relativePath, bytes },
-                      commit
-                  )
-              )
-            : commit()
+        if (!resource) return commit()
+        if (bytes !== null) {
+            // Volume validates containment before this adapter runs. A smaller replacement
+            // can recover capacity even when the last snapshot is above the allowance.
+            const previous = await lstat(path.resolve(root, relativePath)).catch((error: NodeJS.ErrnoException) => {
+                if (error.code === 'ENOENT') return null
+                throw error
+            })
+            const growthBytes = bytes - (previous?.isFile() ? previous.size : 0)
+            await commands.execute(new CheckStorageQuotaCommand({ kind: 'write', scope: resource, growthBytes }))
+        }
+        const result = await commit()
+        if (bytes === null)
+            await commands.execute(new RequestStorageUsageRefreshCommand(resource)).catch(() => undefined)
+        return result
     }
 }

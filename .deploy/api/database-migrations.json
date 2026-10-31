@@ -94,6 +94,7 @@
     "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
     "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql",
     "ai/content-resource/catalog/migrations/checks/20261027000000-content-revision-capacity.sql",
-    "ai/plugin-resource/app-platform/storage/migrations/checks/20261029100000-account-storage.sql"
+    "ai/plugin-resource/app-platform/storage/migrations/checks/20261029100000-account-storage.sql",
+    "ai/plugin-resource/app-platform/storage/migrations/checks/20261031120000-approximate-storage.sql"
   ]
 }

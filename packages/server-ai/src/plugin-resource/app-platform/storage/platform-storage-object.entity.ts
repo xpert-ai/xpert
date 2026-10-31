@@ -1,7 +1,7 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index } from 'typeorm'
 
-/** Unknown provider outcomes retain their bytes until a confirmed overwrite or deletion. */
+/** Legacy reservation records retained for schema compatibility; snapshot accounting no longer reads or writes them. */
 @Entity('app_platform_storage_object')
 @Index(['tenantId', 'keyDigest'], { unique: true })
 @Index(['tenantId', 'userId'])

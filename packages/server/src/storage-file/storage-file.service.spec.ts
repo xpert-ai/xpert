@@ -1,5 +1,3 @@
-import type { WithStorageBudgetCommand } from '../shared/storage-budget.command'
-const commands = { execute: jest.fn((command: WithStorageBudgetCommand<unknown>) => command.commit(null)) }
 const mockDeleteFile = jest.fn()
 jest.mock('../core/crud', () => ({
 	TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
@@ -57,8 +55,7 @@ describe('StorageFileService', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		mockDeleteFile.mockReset().mockResolvedValue(undefined)
-		commands.execute.mockReset().mockImplementation((command) => command.commit(null))
-		service = new StorageFileService({} as never, commands as never)
+		service = new StorageFileService({} as never)
 	})
 
 	it('keeps decoded multipart filenames unchanged when creating a storage file', async () => {
@@ -71,7 +68,7 @@ describe('StorageFileService', () => {
 			encoding: undefined
 		}
 
-		const result = await service.createStorageFile(file as any, 'LOCAL')
+		const result = await service.createStorageFile(file as never, 'LOCAL')
 
 		expect(result).toEqual(
 			expect.objectContaining({
@@ -91,7 +88,7 @@ describe('StorageFileService', () => {
 			findOne: jest.fn().mockResolvedValue(entity),
 			remove: jest.fn().mockResolvedValue(entity)
 		}
-		service = new StorageFileService(repository as never, commands as never)
+		service = new StorageFileService(repository as never)
 		RequestContext.currentUserId.mockReturnValue('user-1')
 		RequestContext.hasRoles.mockReturnValue(false)
 
@@ -106,7 +103,7 @@ describe('StorageFileService', () => {
 			findOne: jest.fn().mockResolvedValue(entity),
 			remove: jest.fn()
 		}
-		service = new StorageFileService(repository as never, commands as never)
+		service = new StorageFileService(repository as never)
 		RequestContext.currentUserId.mockReturnValue('user-1')
 		RequestContext.hasRoles.mockReturnValue(false)
 
@@ -121,7 +118,7 @@ describe('StorageFileService', () => {
 			findOne: jest.fn().mockResolvedValue(entity),
 			remove: jest.fn().mockResolvedValue(entity)
 		}
-		service = new StorageFileService(repository as never, commands as never)
+		service = new StorageFileService(repository as never)
 		RequestContext.currentUserId.mockReturnValue('admin-1')
 		RequestContext.hasRoles.mockReturnValue(true)
 
@@ -149,19 +146,13 @@ describe('StorageFileService', () => {
 		}
 		RequestContext.currentUserId.mockReturnValue('user-1')
 		RequestContext.hasRoles.mockReturnValue(false)
-		service = new StorageFileService(repository as never, commands as never)
+		service = new StorageFileService(repository as never)
 		return { entity, repository, subscriber }
 	}
 
-	it('deletes the original once, preserves thumbnail cleanup, and charges the persisted owner', async () => {
+	it('deletes the original once, preserves thumbnail cleanup, after confirmation', async () => {
 		const { entity, repository } = removalFixture()
 		await expect(service.deleteStorageFile(entity.id)).resolves.toBe(entity)
-		expect(commands.execute.mock.calls[0][0].write).toEqual({
-			kind: 'delete-object',
-			owner: { tenantId: 'tenant-1', organizationId: 'org-1', userId: 'user-1' },
-			provider: 'LOCAL',
-			key: 'original'
-		})
 		expect(mockDeleteFile.mock.calls).toEqual([['original'], ['thumbnail']])
 		expect(mockDeleteFile.mock.invocationCallOrder[0]).toBeLessThan(repository.remove.mock.invocationCallOrder[0])
 	})
@@ -174,7 +165,7 @@ describe('StorageFileService', () => {
 		expect(repository.remove).not.toHaveBeenCalled()
 	})
 
-	it('propagates metadata failure so the budget handler retains the unconfirmed deletion', async () => {
+	it('propagates metadata failure without reporting successful cleanup', async () => {
 		const { entity, repository } = removalFixture()
 		const failure = new Error('database unavailable')
 		repository.remove.mockRejectedValueOnce(failure)
@@ -182,11 +173,10 @@ describe('StorageFileService', () => {
 		expect(mockDeleteFile).toHaveBeenCalledWith('original')
 	})
 
-	it('does not call the budget or provider for an unauthorized removal', async () => {
+	it('does not call the provider for an unauthorized removal', async () => {
 		const { entity, repository } = removalFixture()
 		RequestContext.currentUserId.mockReturnValue('other-user')
 		await expect(service.deleteStorageFile(entity.id)).rejects.toMatchObject({ status: 403 })
-		expect(commands.execute).not.toHaveBeenCalled()
 		expect(mockDeleteFile).not.toHaveBeenCalled()
 		expect(repository.remove).not.toHaveBeenCalled()
 	})
@@ -199,7 +189,6 @@ describe('StorageFileService', () => {
 		]) {
 			await expect(service.deleteAuthorizedStorageFile(scope)).rejects.toMatchObject({ status: 403 })
 		}
-		expect(commands.execute).not.toHaveBeenCalled()
 		await expect(service.deleteAuthorizedStorageFile(entity)).resolves.toBe(entity)
 	})
 

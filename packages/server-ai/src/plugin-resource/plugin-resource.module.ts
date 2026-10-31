@@ -1,5 +1,6 @@
 import { PlatformStorageDatabaseService } from './app-platform/storage/platform-storage-database.service'
-import { WithStorageBudgetHandler } from './app-platform/storage/platform-storage-budget.handler'
+import { CheckStorageQuotaHandler, RequestStorageUsageRefreshHandler, StorageQuotaAccountResolver } from './app-platform/storage/platform-storage-budget.handler'
+import { PlatformStorageUsageService } from './app-platform/storage/platform-storage-usage.service'
 import { ApplicationInitializationLocks } from './application/application-initialization-locks'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationAccessService } from './application/application-access.service'
@@ -90,7 +91,10 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
         PlatformStorageDatabaseService,
-        WithStorageBudgetHandler,
+        CheckStorageQuotaHandler,
+        RequestStorageUsageRefreshHandler,
+        StorageQuotaAccountResolver,
+        PlatformStorageUsageService,
         ApplicationInitializationLocks,
         ApplicationUpdateService,
         ApplicationAccessService,

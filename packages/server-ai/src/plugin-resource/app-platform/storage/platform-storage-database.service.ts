@@ -1,31 +1,27 @@
-/**
- * Invariants: register database guards before reconciling managed account usage.
- * Database rows and external files share one account budget; both totals must be refreshed.
- * Registration or reconciliation failures abort bootstrap rather than enable incomplete accounting.
- */
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+// Invariants: relation registration inventories billable data without installing row guards.
+// A single collector per account refreshes approximate snapshots; application writes do not wait on its lock.
+import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common'
 import { getConfig } from '@xpert-ai/server-config'
-import {
-    getEntitiesFromPlugins,
-    registerAccountStorageRelations,
-    WithStorageBudgetCommand
-} from '@xpert-ai/server-core'
+import { getEntitiesFromPlugins, registerAccountStorageRelations } from '@xpert-ai/server-core'
 import { DataSource } from 'typeorm'
 import { FileArtifact, FileChunk, FileEmbedding } from '../../../file-understanding/entities'
 import { KnowledgeDocument } from '../../../knowledge-document/document.entity'
 import { KnowledgeDocumentChunk } from '../../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocumentPage } from '../../../knowledge-document/page/document-page.entity'
 import { AppPlatformDelivery } from '../app-platform-delivery.entity'
+import { PlatformStorageUsageService, STORAGE_REFRESH_INTERVAL_MS } from './platform-storage-usage.service'
 
 @Injectable()
-export class PlatformStorageDatabaseService implements OnApplicationBootstrap {
+export class PlatformStorageDatabaseService implements OnApplicationBootstrap, OnApplicationShutdown {
+    private readonly logger = new Logger(PlatformStorageDatabaseService.name)
+    private timer?: ReturnType<typeof setInterval>
+    private running?: Promise<void>
+    private stopping = false
     constructor(
         private readonly database: DataSource,
-        private readonly commands: CommandBus
+        private readonly usage: PlatformStorageUsageService
     ) {}
 
-    /** Install idempotent relation guards and rebuild usage for existing account deliveries. */
     async onApplicationBootstrap() {
         const entities = [
             ...getEntitiesFromPlugins(getConfig().plugins),
@@ -52,35 +48,46 @@ export class PlatformStorageDatabaseService implements OnApplicationBootstrap {
         await this.database.query(
             "SELECT xpert_app_storage_register_relation('knowledge_document_vector'::regclass,'metadata')"
         )
-        // Bound startup memory while visiting deliveries in a deterministic order.
+        this.timer = setInterval(() => this.schedule(), STORAGE_REFRESH_INTERVAL_MS)
+        this.timer.unref()
+        this.schedule()
+    }
+
+    private schedule() {
+        if (this.running || this.stopping) return
+        this.running = this.reconcile()
+            .catch(() => {
+                this.logger.warn('Account storage snapshot collection failed; retrying on the next interval')
+            })
+            .finally(() => {
+                this.running = undefined
+            })
+    }
+
+    /** Pagination and per-account failure isolation keep one large or broken account from blocking the rest. */
+    async reconcile() {
         let skip = 0
         for (;;) {
             const accounts = await this.database
                 .getRepository(AppPlatformDelivery)
                 .find({ order: { id: 'ASC' }, skip, take: 100 })
             for (const account of accounts) {
-                // Rebuild SQL usage first; the command then measures files and tracked objects
-                // under the account lock. Refresh performs no new business-data write.
-                await this.database.query('SELECT xpert_app_storage_reconcile_account($1,$2)', [
-                    account.tenantId,
-                    account.userId
-                ])
-                await this.commands.execute(
-                    new WithStorageBudgetCommand(
-                        {
-                            kind: 'refresh',
-                            owner: {
-                                tenantId: account.tenantId!,
-                                organizationId: account.organizationId,
-                                userId: account.userId
-                            }
-                        },
-                        async () => undefined
-                    )
-                )
+                if (this.stopping) return
+                try {
+                    if (this.usage.needsRefresh(account, await this.usage.snapshot(account)))
+                        await this.usage.refresh(account)
+                } catch {
+                    this.logger.warn('An account storage snapshot could not be refreshed; previous usage is retained')
+                }
             }
-            if (accounts.length < 100) break
+            if (accounts.length < 100) return
             skip += accounts.length
         }
+    }
+
+    async onApplicationShutdown() {
+        this.stopping = true
+        if (this.timer) clearInterval(this.timer)
+        await this.running
     }
 }

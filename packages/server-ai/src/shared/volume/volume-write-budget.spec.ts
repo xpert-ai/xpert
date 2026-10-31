@@ -2,7 +2,7 @@ import { mkdtemp, realpath, rm, readFile, readdir, mkdir } from 'node:fs/promise
 import os from 'node:os'
 import path from 'node:path'
 import { HttpException } from '@nestjs/common'
-import { WithStorageBudgetCommand, StorageBudgetWrite } from '@xpert-ai/server-core'
+import { CheckStorageQuotaCommand, RequestStorageUsageRefreshCommand, StorageQuotaRequest } from '@xpert-ai/server-core'
 import { VolumeHandle } from './volume'
 import { commandVolumeWriteBudget, volumeBudgetResource } from './volume-write-budget'
 import { VolumeSubtreeClient } from './volume-subtree'
@@ -14,7 +14,7 @@ describe('Volume storage budget integration', () => {
     let root: string
     let volume: VolumeHandle
     let reject: boolean
-    let writes: StorageBudgetWrite[]
+    let writes: Array<StorageQuotaRequest | { kind: 'refresh' }>
     const scope = {
         tenantId: 'tenant',
         userId: 'user',
@@ -28,10 +28,14 @@ describe('Volume storage budget integration', () => {
         reject = false
         writes = []
         const commands = {
-            execute: async <T>(command: WithStorageBudgetCommand<T>): Promise<T> => {
-                writes.push(command.write)
-                if (reject && command.write.kind !== 'remove') throw failure
-                return command.commit(null)
+            execute: async (command: CheckStorageQuotaCommand | RequestStorageUsageRefreshCommand) => {
+                if (command instanceof RequestStorageUsageRefreshCommand) {
+                    writes.push({ kind: 'refresh' })
+                    return null
+                }
+                writes.push(command.request)
+                if (reject && command.request.kind === 'write' && (command.request.growthBytes ?? 1) > 0) throw failure
+                return null
             }
         }
         volume = new VolumeHandle(scope, root, root, '', root, commandVolumeWriteBudget(commands as never))
@@ -43,18 +47,16 @@ describe('Volume storage budget integration', () => {
     it('dispatches UTF-8 byte counts and preserves the old file when admission rejects', async () => {
         await volume.writeFile('file.txt', '中文')
         expect(writes[0]).toEqual({
-            kind: 'file',
-            resource: { tenantId: 'tenant', userId: 'user', organizationId: 'org', kind: 'project', id: 'project' },
-            root,
-            path: 'file.txt',
-            bytes: 6
+            kind: 'write',
+            scope: { tenantId: 'tenant', userId: 'user', organizationId: 'org', kind: 'project', id: 'project' },
+            growthBytes: 6
         })
         reject = true
         await expect(volume.writeFile('file.txt', 'replacement')).rejects.toBe(failure)
         expect(await readFile(path.join(root, 'file.txt'), 'utf8')).toBe('中文')
         expect(await readdir(root)).toEqual(['file.txt'])
         await volume.deleteFile('file.txt')
-        expect(writes.at(-1).kind).toBe('remove')
+        expect(writes.at(-1).kind).toBe('refresh')
         expect(await readdir(root)).toEqual([])
     })
 
@@ -71,32 +73,32 @@ describe('Volume storage budget integration', () => {
         await mkdir(path.join(root, 'shared'))
         const subtree = new VolumeSubtreeClient(volume)
         await subtree.uploadFile('shared', '', { originalname: 'file.txt', buffer: Buffer.from('old') })
-        expect(writes.at(-1)).toMatchObject({ kind: 'file', path: 'shared/file.txt', bytes: 3 })
+        expect(writes.at(-1)).toMatchObject({ kind: 'write', growthBytes: 3 })
         await subtree.saveFile('shared', 'file.txt', 'new')
         await subtree.uploadFile('shared', '', { originalname: 'file.docx', buffer: Buffer.from('old') })
         await subtree.saveBinaryFile('shared', 'file.docx', Buffer.from('updated'))
-        expect(writes.at(-1)).toMatchObject({ kind: 'file', path: 'shared/file.docx', bytes: 7 })
+        expect(writes.at(-1)).toMatchObject({ kind: 'write', growthBytes: 4 })
         reject = true
         await expect(subtree.saveFile('shared', 'file.txt', 'blocked')).rejects.toBe(failure)
-        await expect(subtree.saveBinaryFile('shared', 'file.docx', Buffer.from('blocked'))).rejects.toBe(failure)
+        await expect(subtree.saveBinaryFile('shared', 'file.docx', Buffer.from('blocked larger'))).rejects.toBe(failure)
         await expect(
             subtree.uploadFile('shared', '', { originalname: 'new.txt', buffer: Buffer.from('blocked') })
         ).rejects.toBe(failure)
         expect(await readFile(path.join(root, 'shared/file.txt'), 'utf8')).toBe('new')
         expect(await readFile(path.join(root, 'shared/file.docx'), 'utf8')).toBe('updated')
         await subtree.deleteFile('shared', 'file.txt')
-        expect(writes.at(-1).kind).toBe('remove')
+        expect(writes.at(-1).kind).toBe('refresh')
     })
 
     it('applies budgets to application-owned storage without exposing its managed paths', async () => {
         const storage = new VolumeWorkspaceStorage(async () => volume, 'testapp')
         await storage.write('state.json', '{}')
-        expect(writes.at(-1)).toMatchObject({ kind: 'file', path: '.apps/testapp/state.json', bytes: 2 })
+        expect(writes.at(-1)).toMatchObject({ kind: 'write', growthBytes: 2 })
         reject = true
         await expect(storage.write('state.json', 'blocked')).rejects.toBe(failure)
         expect((await storage.read('state.json')).toString()).toBe('{}')
         await storage.remove('state.json')
-        expect(writes.at(-1).kind).toBe('remove')
+        expect(writes.at(-1).kind).toBe('refresh')
         expect(await storage.list('')).toEqual([])
     })
 

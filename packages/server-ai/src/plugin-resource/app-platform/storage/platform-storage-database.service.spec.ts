@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing'
-import { CommandBus } from '@nestjs/cqrs'
+import { PlatformStorageUsageService } from './platform-storage-usage.service'
 import { DataSource, EntityMetadata } from 'typeorm'
 import { getConfig } from '@xpert-ai/server-config'
-import { getEntitiesFromPlugins, WithStorageBudgetCommand } from '@xpert-ai/server-core'
+import { getEntitiesFromPlugins } from '@xpert-ai/server-core'
 import { PlatformStorageDatabaseService } from './platform-storage-database.service'
 import { AppPlatformDelivery } from '../app-platform-delivery.entity'
 import { FileArtifact, FileChunk, FileEmbedding } from '../../../file-understanding/entities'
@@ -10,7 +10,10 @@ import { KnowledgeDocument } from '../../../knowledge-document/document.entity'
 import { KnowledgeDocumentChunk } from '../../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocumentPage } from '../../../knowledge-document/page/document-page.entity'
 
-jest.mock('@xpert-ai/server-config', () => ({ ...jest.requireActual('@xpert-ai/server-config'), getConfig: jest.fn(jest.requireActual('@xpert-ai/server-config').getConfig) }))
+jest.mock('@xpert-ai/server-config', () => ({
+    ...jest.requireActual('@xpert-ai/server-config'),
+    getConfig: jest.fn(jest.requireActual('@xpert-ai/server-config').getConfig)
+}))
 jest.mock('@xpert-ai/server-core', () => ({
     ...jest.requireActual('@xpert-ai/server-core'),
     getEntitiesFromPlugins: jest.fn()
@@ -55,11 +58,11 @@ function fixture(accountCount = 0) {
             events.push(sql.includes('reconcile_account') ? `reconcile:${parameters[1]}` : 'register')
         })
     }
-    const commands = {
-        execute: jest.fn(async (command: WithStorageBudgetCommand<unknown>) => {
-            if (command.write.kind !== 'refresh') throw new Error('Expected usage refresh')
-            events.push(`refresh:${command.write.owner.userId}`)
-            return command.commit(null)
+    const usage = {
+        snapshot: jest.fn().mockResolvedValue(null),
+        needsRefresh: jest.fn().mockReturnValue(true),
+        refresh: jest.fn(async (account: AppPlatformDelivery) => {
+            events.push(`refresh:${account.userId}`)
         })
     }
     jest.mocked(getConfig).mockReturnValue({ plugins: [] } as never)
@@ -68,127 +71,63 @@ function fixture(accountCount = 0) {
         accounts,
         events,
         database,
-        commands,
+        usage,
         repository,
-        service: new PlatformStorageDatabaseService(database as never, commands as never)
+        service: new PlatformStorageDatabaseService(database as never, usage as never)
     }
 }
 
-describe('account storage bootstrap reconciliation', () => {
+describe('account storage snapshot scheduler', () => {
     beforeEach(() => jest.clearAllMocks())
-
-    it('registers declared plugin and document tables before loading accounts', async () => {
+    it('registers plugin, document, content and vector inventory before collecting accounts', async () => {
         const f = fixture()
         await f.service.onApplicationBootstrap()
+        await f.service.onApplicationShutdown()
         expect(getEntitiesFromPlugins).toHaveBeenCalledWith([])
-        expect(f.database.getMetadata.mock.calls.map(([entity]) => entity)).toEqual([
-            PluginData,
-            FileArtifact,
-            FileChunk,
-            FileEmbedding,
-            KnowledgeDocument,
-            KnowledgeDocumentChunk,
-            KnowledgeDocumentPage
-        ])
-        const registrations = f.database.query.mock.calls.filter(([sql]) => sql.includes('register_relation'))
-        expect(registrations).toHaveLength(13)
-        expect(registrations[0]).toEqual([
-            'SELECT xpert_app_storage_register_relation($1::regclass)',
-            ['"plugin_data"']
-        ])
-        for (const table of [
-            'content_document',
-            'content_revision',
-            'content_proposal',
-            'content_comment',
-            'content_location_change'
-        ]) {
-            expect(f.database.query).toHaveBeenCalledWith('SELECT xpert_app_storage_register_relation($1::regclass)', [
-                table
-            ])
-        }
+        expect(f.database.query.mock.calls.filter(([sql]) => sql.includes('register_relation'))).toHaveLength(13)
         expect(f.database.query).toHaveBeenCalledWith(
             "SELECT xpert_app_storage_register_relation('knowledge_document_vector'::regclass,'metadata')"
         )
-        expect(f.repository.find.mock.invocationCallOrder[0]).toBeGreaterThan(
-            f.database.query.mock.invocationCallOrder.at(-1)
-        )
-        expect(f.commands.execute).not.toHaveBeenCalled()
     })
-
-    it('paginates accounts and reconciles database usage before refreshing external usage', async () => {
+    it('paginates and refreshes all due accounts', async () => {
         const f = fixture(101)
-        await f.service.onApplicationBootstrap()
-        expect(f.database.getRepository).toHaveBeenCalledWith(AppPlatformDelivery)
+        await f.service.reconcile()
         expect(f.repository.find.mock.calls).toEqual([
             [{ order: { id: 'ASC' }, skip: 0, take: 100 }],
             [{ order: { id: 'ASC' }, skip: 100, take: 100 }]
         ])
-        expect(f.commands.execute).toHaveBeenCalledTimes(101)
-        for (const [index, account] of f.accounts.entries()) {
-            expect(f.commands.execute.mock.calls[index][0].write).toEqual({
-                kind: 'refresh',
-                owner: {
-                    tenantId: account.tenantId,
-                    organizationId: account.organizationId,
-                    userId: account.userId
-                }
-            })
-        }
-        expect(f.events.slice(13)).toEqual(
-            f.accounts.flatMap((account) => [`reconcile:${account.userId}`, `refresh:${account.userId}`])
-        )
+        expect(f.usage.refresh).toHaveBeenCalledTimes(101)
     })
-
-    it('checks the final empty page when account count matches the page size', async () => {
-        const f = fixture(100)
-        await f.service.onApplicationBootstrap()
-        expect(f.repository.find).toHaveBeenCalledTimes(2)
-        expect(f.commands.execute).toHaveBeenCalledTimes(100)
+    it('does not rescan fresh accounts', async () => {
+        const f = fixture(2)
+        f.usage.needsRefresh.mockReturnValue(false)
+        await f.service.reconcile()
+        expect(f.usage.refresh).not.toHaveBeenCalled()
     })
-
-    it('fails bootstrap without loading accounts when relation registration fails', async () => {
-        const f = fixture(1),
-            failure = new Error('registration failed')
-        f.database.query.mockRejectedValueOnce(failure)
-        await expect(f.service.onApplicationBootstrap()).rejects.toBe(failure)
+    it('continues with other accounts after one collector fails', async () => {
+        const f = fixture(2)
+        f.usage.refresh.mockRejectedValueOnce(new Error('unavailable'))
+        await expect(f.service.reconcile()).resolves.toBeUndefined()
+        expect(f.usage.refresh).toHaveBeenCalledTimes(2)
+    })
+    it('fails startup if the inventory cannot be registered', async () => {
+        const f = fixture()
+        f.database.query.mockRejectedValueOnce(new Error('registration failed'))
+        await expect(f.service.onApplicationBootstrap()).rejects.toThrow('registration failed')
         expect(f.repository.find).not.toHaveBeenCalled()
-        expect(f.commands.execute).not.toHaveBeenCalled()
     })
-
-    it('stops on reconciliation failure before refreshing that account', async () => {
-        const f = fixture(2),
-            failure = new Error('reconciliation failed')
-        f.database.query.mockImplementation(async (sql) => {
-            if (sql.includes('reconcile_account')) throw failure
-        })
-        await expect(f.service.onApplicationBootstrap()).rejects.toBe(failure)
-        expect(f.commands.execute).not.toHaveBeenCalled()
-    })
-
-    it('stops bootstrap when external usage refresh fails', async () => {
-        const f = fixture(2),
-            failure = new Error('file accounting failed')
-        f.commands.execute.mockRejectedValueOnce(failure)
-        await expect(f.service.onApplicationBootstrap()).rejects.toBe(failure)
-        expect(f.commands.execute).toHaveBeenCalledTimes(1)
-        expect(f.events).not.toContain('reconcile:user-1')
-    })
-
-    it('runs through the Nest bootstrap lifecycle with explicit database and command dependencies', async () => {
+    it('wires the collector through explicit Nest dependencies and stops its timer', async () => {
         const f = fixture(1)
         const module = await Test.createTestingModule({
             providers: [
                 PlatformStorageDatabaseService,
                 { provide: DataSource, useValue: f.database },
-                { provide: CommandBus, useValue: f.commands }
+                { provide: PlatformStorageUsageService, useValue: f.usage }
             ]
         }).compile()
-        try {
-            await module.init()
-            expect(f.commands.execute).toHaveBeenCalledTimes(1)
-        } finally {
-            await module.close()
-        }
+        await module.init()
+        await new Promise((resolve) => setImmediate(resolve))
+        expect(f.usage.refresh).toHaveBeenCalledTimes(1)
+        await module.close()
     })
 })

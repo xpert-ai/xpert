@@ -8,7 +8,6 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileStorage } from '../../../file'
 import { StorageFileService } from '../../storage-file.service'
 import { StorageFileCreateCommand } from '../storage-file-create.command'
-import { WithStorageBudgetCommand } from '../../../shared/storage-budget.command'
 
 @CommandHandler(StorageFileCreateCommand)
 export class StorageFileCreateHandler implements ICommandHandler<StorageFileCreateCommand> {
@@ -30,46 +29,30 @@ export class StorageFileCreateHandler implements ICommandHandler<StorageFileCrea
 
 			const provider = new FileStorage().getProvider()
 			const relativePath = join('files', RequestContext.currentTenantId(), fileNameString)
-			return await this._commandBus.execute(
-				new WithStorageBudgetCommand(
-					{
-						kind: 'object',
-						owner: {
-							tenantId: RequestContext.currentTenantId(),
-							organizationId: RequestContext.getOrganizationId(),
-							userId: RequestContext.currentUserId()
-						},
-						provider: provider.name,
-						key: relativePath,
-						bytes: Buffer.byteLength(file.contents ?? '')
-					},
-					async () => {
-						// Resolve the provider-local destination path.
-						const fullPath = resolve(provider.config.rootPath, relativePath)
-						// Create the parent directory after budget admission.
-						await fsp.mkdir(dirname(fullPath), { recursive: true })
 
-						// Persist the generated contents through the selected provider.
-						const storedFile = await provider.putFile(file.contents, relativePath)
+			// Resolve the local upload destination.
+			const fullPath = resolve(provider.config.rootPath, relativePath)
+			// Create the destination directory before writing.
+			await fsp.mkdir(dirname(fullPath), { recursive: true })
 
-						const { key, url: storedUrl, size, mimetype, encoding } = storedFile
+			// Store the file using the configured provider.
+			const storedFile = await provider.putFile(file.contents, relativePath)
 
-						// Record metadata only after the provider confirms the write.
-						const createdStorageFile = await this.fileService.create({
-							file: key,
-							url: storedUrl,
-							originalName: filePath,
-							encoding,
-							size,
-							mimetype,
-							storageProvider: `${provider.name}`.toUpperCase(),
-							recordedAt: new Date()
-						})
+			const { key, url: storedUrl, size, mimetype, encoding } = storedFile
 
-						return createdStorageFile
-					}
-				)
-			)
+			// Persist metadata for subsequent access and usage measurement.
+			const createdStorageFile = await this.fileService.create({
+				file: key,
+				url: storedUrl,
+				originalName: filePath,
+				encoding,
+				size,
+				mimetype,
+				storageProvider: `${provider.name}`.toUpperCase(),
+				recordedAt: new Date()
+			})
+
+			return createdStorageFile
 		} catch (error) {
 			if (error instanceof HttpException) throw error
 			throw new BadRequestException(error, `Can'\t create storage file`)

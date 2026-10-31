@@ -1,8 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { CommandBus } from '@nestjs/cqrs'
-import { WithStorageBudgetCommand } from '../shared/storage-budget.command'
 import { StorageFile } from './storage-file.entity'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
 import { FileStorageProviderEnum, IStorageFile, RolesEnum, UploadedFile } from '@xpert-ai/contracts'
@@ -13,8 +11,7 @@ import { RequestContext } from '../core/context'
 export class StorageFileService extends TenantOrganizationAwareCrudService<StorageFile> {
 	constructor(
 		@InjectRepository(StorageFile)
-		protected readonly fileRepository: Repository<StorageFile>,
-		private readonly commands: CommandBus
+		protected readonly fileRepository: Repository<StorageFile>
 	) {
 		super(fileRepository)
 	}
@@ -71,27 +68,14 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 
 	private async removeStorageFile(entity: StorageFile): Promise<IStorageFile> {
 		if (!entity.file) return this.repository.remove(entity)
-		const provider = new FileStorage().getProvider(entity.storageProvider)
-		return this.commands.execute(
-			new WithStorageBudgetCommand(
-				{
-					kind: 'delete-object',
-					owner: {
-						tenantId: entity.tenantId,
-						organizationId: entity.organizationId,
-						userId: entity.createdById
-					},
-					provider: provider.name,
-					key: entity.file
-				},
-				async () => {
-					await provider.deleteFile(entity.file)
-					// Keep subscriber thumbnail cleanup, but do not delete this confirmed object twice.
-					return this.repository.remove(entity, {
-						data: { confirmedStorageFileDeletion: { provider: provider.name, key: entity.file } }
-					})
-				}
-			)
-		)
+		const provider = new FileStorage(undefined, {
+			tenantId: entity.tenantId,
+			organizationId: entity.organizationId,
+			userId: entity.createdById
+		}).getProvider(entity.storageProvider)
+		await provider.deleteFile(entity.file)
+		return this.repository.remove(entity, {
+			data: { confirmedStorageFileDeletion: { provider: provider.name, key: entity.file } }
+		})
 	}
 }
