@@ -1,4 +1,3 @@
-import { RefreshMembershipModelPolicyHandler } from './refresh-membership-model-policy.command'
 import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -25,6 +24,7 @@ import { Xpert } from '../xpert/xpert.entity'
 import { Copilot } from '../copilot/copilot.entity'
 import { MembershipBackfillProcessor } from './membership-backfill.processor'
 import { MembershipBackfillQueueService, MEMBERSHIP_MAINTENANCE_QUEUE } from './membership-backfill.queue'
+import { RefreshMembershipModelPolicyHandler } from './refresh-membership-model-policy.command'
 
 @Module({
     imports: [
@@ -51,8 +51,8 @@ import { MembershipBackfillQueueService, MEMBERSHIP_MAINTENANCE_QUEUE } from './
     ],
     controllers: [MembershipController],
     providers: [
-        RefreshMembershipModelPolicyHandler,
         ...MEMBERSHIP_PROVIDERS,
+        RefreshMembershipModelPolicyHandler,
         MembershipPeriodSchedulerService,
         MembershipBackfillQueueService,
         MembershipBackfillProcessor
