@@ -90,7 +90,8 @@ async function resolveModels(
         { execute: jest.fn().mockResolvedValue([custom]) } as never,
         { findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([copilot]) } as never,
         providers as never,
-        access
+        access,
+        { resolve: async () => ({ configured: false, binding: null }) } as never
     )
     Object.defineProperty(catalog, 'configService', { value: { get: () => 'http://localhost:3000' } })
     const selection = await execution.resolve(actor, 'conversation')

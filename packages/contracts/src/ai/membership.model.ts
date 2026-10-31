@@ -92,6 +92,8 @@ export interface IMembershipModelMultiplier {
 }
 
 export interface IMembershipAllowedModel {
+  /** Missing on historical rules: retains their original type scope. */
+  modelType?: AiModelTypeEnum
   provider: string
   model: string
   copilotId?: string

@@ -1,6 +1,6 @@
 import { Directive } from '@angular/core'
 import { PLUGIN_COMPONENT_TYPE, PLUGIN_RESOURCE_RUNTIME_TYPE } from '@cloud/app/@core/state'
-import { AiProviderRole } from '@xpert-ai/contracts'
+import { DefaultModelRole } from '@xpert-ai/contracts'
 import { type ZardStepperSelectionEvent } from '@xpert-ai/headless-ui'
 import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
 import { firstValueFrom, take } from 'rxjs'
@@ -189,7 +189,7 @@ export abstract class BlankWizardResources extends BlankWizardState {
 
     this.enablingPrimaryCopilot.set(true)
     try {
-      await firstValueFrom(this._copilotServer.enableCopilot(AiProviderRole.Primary))
+      await firstValueFrom(this._copilotServer.prepareDefaultModelSetup(DefaultModelRole.Primary))
       this._copilotServer.refresh()
     } catch (error) {
       this._toastr.error(getErrorMessage(error))

@@ -1,4 +1,4 @@
-import { AiProviderRole } from './copilot.model'
+import { DefaultModelRole, LegacyProviderRole } from './default-model-role'
 import { TAvatar } from '../types'
 import { IXpertTool, XpertToolType } from './xpert-tool.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -37,9 +37,10 @@ export type TXpertToolset = {
   avatar?: TAvatar
   /**
    * Priority role of AI provider
-   * @default `AiProviderRole.Secondary`
+   * @deprecated Use defaultModelRole. Legacy serialized field remains readable.
    */
-  aiProviderRole?: AiProviderRole
+  aiProviderRole?: LegacyProviderRole
+  defaultModelRole?: DefaultModelRole
 
   /**
    * Privacy policy of this toolset

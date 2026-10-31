@@ -1,8 +1,8 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { DefaultModelRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
-import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../copilot'
+import { CopilotGetOneQuery, ResolveDefaultModelQuery } from '../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
 import { CopilotNotFoundException } from '../core/errors'
 
@@ -10,22 +10,21 @@ export const EventNameXpertValidate = 'xpert.validate'
 export const EventName_XpertPublished = 'xpert.published'
 
 export class XpertDraftValidateEvent {
-  constructor(
-    public readonly draft: TXpertTeamDraft,
-    public readonly context?: {
-      tenantId: string
-      organizationId?: string | null
-      xpertId: string
-      creatorId?: string | null
-    }
-  ) {}
+    constructor(
+        public readonly draft: TXpertTeamDraft,
+        public readonly context?: {
+            tenantId: string
+            organizationId?: string | null
+            xpertId: string
+            creatorId?: string | null
+        }
+    ) {}
 }
 
-
 export class XpertNameInvalidException extends HttpException {
-	constructor(message: string) {
-		super(message, HttpStatus.BAD_REQUEST)
-	}
+    constructor(message: string) {
+        super(message, HttpStatus.BAD_REQUEST)
+    }
 }
 
 /**
@@ -33,41 +32,41 @@ export class XpertNameInvalidException extends HttpException {
  * @returns Embeddings
  */
 export async function createMemoryEmbeddings(
-	memory: TLongTermMemory,
-	queryBus: QueryBus,
-	params: { tenantId: string; organizationId: string; xpertId?: string }
+    memory: TLongTermMemory,
+    queryBus: QueryBus,
+    params: { tenantId: string; organizationId: string; xpertId?: string }
 ) {
-	const { tenantId, organizationId, xpertId } = params
-	let copilot: ICopilot = null
-	if (memory.copilotModel?.copilotId) {
-		copilot = await queryBus.execute(
-			new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
-		)
-	} else {
-		copilot = await queryBus.execute(
-			new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding, [
-				'copilotModel',
-				'modelProvider'
-			])
-		)
-	}
+    const { tenantId, organizationId, xpertId } = params
+    let copilot: ICopilot = null
+    if (memory.copilotModel?.copilotId) {
+        copilot = await queryBus.execute(
+            new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
+        )
+    } else {
+        copilot = await queryBus.execute(
+            new ResolveDefaultModelQuery(tenantId, organizationId, DefaultModelRole.Embedding, [
+                'copilotModel',
+                'modelProvider'
+            ])
+        )
+    }
 
-	if (!copilot?.enabled) {
-		throw new CopilotNotFoundException(`Not found the embeddinga role copilot`)
-	}
+    if (!copilot?.enabled) {
+        throw new CopilotNotFoundException(`Not found the embeddinga role copilot`)
+    }
 
-	let embeddings: Embeddings = null
-	const copilotModel = memory.copilotModel ?? copilot.copilotModel
-	if (copilotModel && copilot?.modelProvider) {
-		embeddings = await queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-			new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
-				xpertId,
-				tokenCallback: (token) => {
-					// execution.embedTokens += token ?? 0
-				}
-			})
-		)
-	}
+    let embeddings: Embeddings = null
+    const copilotModel = memory.copilotModel ?? copilot.copilotModel
+    if (copilotModel && copilot?.modelProvider) {
+        embeddings = await queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
+            new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
+                xpertId,
+                tokenCallback: (token) => {
+                    // execution.embedTokens += token ?? 0
+                }
+            })
+        )
+    }
 
-	return embeddings
+    return embeddings
 }

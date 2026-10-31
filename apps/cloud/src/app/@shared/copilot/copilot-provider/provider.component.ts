@@ -1,3 +1,11 @@
+import {
+  AvailableModelDetailsDialogComponent,
+  ModelDetailsData
+} from '../model-presentation/available-model-details-dialog.component'
+import { ModelAccessOwnershipScopeEnum } from '@xpert-ai/contracts'
+import { ModelTypeIconComponent } from '../model-presentation/model-type-icon.component'
+import { ModelCapabilityTagComponent } from '../model-presentation/model-capability-tag.component'
+import { ZardTableImports, ZardBadgeComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
@@ -29,7 +37,8 @@ import {
 import { CopilotProviderModelComponent } from '../copilot-provider-model/model.component'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
 import { canCreateCustomProviderModel } from './provider-schema'
-import { providerModelRows } from './provider-models'
+import { ProviderModelRow, providerModelRows, providerModelEnabled } from './provider-models'
+import { EnabledModelsDialogComponent } from '../model-management/models.component'
 import { ModelDiscoveryComponent } from '../model-discovery/discovery.component'
 import { ModelImportResult, isConfiguredModelAvailable } from '@xpert-ai/contracts'
 
@@ -40,6 +49,11 @@ import { ModelImportResult, isConfiguredModelAvailable } from '@xpert-ai/contrac
   styleUrls: ['./provider.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...ZardTableImports,
+    ZardBadgeComponent,
+    ZardIconComponent,
+    ModelTypeIconComponent,
+    ModelCapabilityTagComponent,
     CommonModule,
     FormsModule,
     TranslateModule,
@@ -51,9 +65,7 @@ import { ModelImportResult, isConfiguredModelAvailable } from '@xpert-ai/contrac
     ZardSwitchComponent,
     ZardButtonComponent
   ],
-  host: {
-    '[style.background]': 'background()'
-  }
+  host: { class: 'block relative' }
 })
 export class CopilotProviderComponent {
   readonly #dialog = inject(Dialog)
@@ -64,6 +76,8 @@ export class CopilotProviderComponent {
 
   // Inputs
   readonly providerId = input<string>()
+  readonly modelSearch = input('')
+  readonly managedConnections = input(false)
   readonly readonly = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -73,6 +87,7 @@ export class CopilotProviderComponent {
   readonly deleted = output<void>()
   readonly addedModel = output<ICopilotProviderModel>()
   readonly modelsImported = output<ModelImportResult>()
+  readonly changed = output<void>()
 
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly copilotProvider = derivedAsync(() => {
@@ -99,10 +114,63 @@ export class CopilotProviderComponent {
   })
 
   readonly modelRows = computed(() => providerModelRows(this.#models()))
+  readonly matchedRows = computed(() => {
+    const query = this.modelSearch().trim().toLowerCase()
+    return query ? this.modelRows().filter((row) => row.name.toLowerCase().includes(query)) : []
+  })
+  readonly visibleRows = computed(() => (this.matchedRows().length ? this.matchedRows() : this.modelRows()))
+  readonly modelsExpanded = computed(() => this.isShowModels() || this.matchedRows().length > 0)
   readonly discoverySupported = computed(() => this.#models()?.discoverySupported === true)
 
   readonly modelDiscovery = computed(() => this.#models()?.modelDiscovery)
   readonly modelCount = computed(() => this.modelRows().length)
+  readonly enabledCount = computed(() => this.modelRows().filter((row) => this.rowEnabled(row)).length)
+  rowEnabled(row: ProviderModelRow) {
+    return providerModelEnabled(row, this.#models())
+  }
+  showProperties(row: ProviderModelRow) {
+    const provider = this.copilotProvider()
+    if (!provider) return
+    const data: ModelDetailsData = {
+      item: {
+        copilotId: provider.copilotId,
+        copilotModelId: row.name,
+        model: row.name,
+        modelLabel: row.label,
+        provider: provider.providerName,
+        providerLabel: provider.provider?.label,
+        copilotName: provider.copilot?.name || provider.copilotId?.slice(0, 8),
+        modelType: row.modelType,
+        ownershipScope: provider.organizationId
+          ? ModelAccessOwnershipScopeEnum.Organization
+          : ModelAccessOwnershipScopeEnum.Tenant
+      },
+      metadata: { model: row.schema, providerId: provider.id, contextSize: row.contextSize }
+    }
+    this.#dialog.open(AvailableModelDetailsDialogComponent, {
+      data,
+      width: '800px',
+      maxWidth: 'calc(100vw - 32px)',
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
+    })
+  }
+  manageModels() {
+    if (this.readonly() || !this.copilotProvider()) return
+    this.#dialog
+      .open<boolean>(EnabledModelsDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: { provider: this.copilotProvider() }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.refresh$.next()
+          this.changed.emit()
+        }
+      })
+  }
   modelAvailable(model: ICopilotProviderModel) {
     return isConfiguredModelAvailable({ options: { modelDiscovery: this.modelDiscovery() } }, model)
   }
@@ -276,6 +344,7 @@ export class CopilotProviderComponent {
         next: (copilotProvider) => {
           if (copilotProvider) {
             this.refresh$.next()
+            this.changed.emit()
           }
         },
         error: (err) => {}

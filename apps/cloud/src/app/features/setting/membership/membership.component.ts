@@ -5,7 +5,6 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { RouterLink } from '@angular/router'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
-  AiProviderRole,
   ICopilotWithProvider,
   IMembershipAdminUser,
   IMembershipAllowedModel,
@@ -56,12 +55,6 @@ import {
 type MembershipAdminTab = 'plans' | 'users'
 
 const MEMBERSHIP_RATE_LIMIT_PERIODS: TMembershipRateLimitPeriod[] = ['hour', 'day', 'week', 'cycle']
-const COPILOT_ROLE_NAMES: Record<AiProviderRole, string> = {
-  [AiProviderRole.Primary]: 'Primary',
-  [AiProviderRole.Secondary]: 'Secondary',
-  [AiProviderRole.Embedding]: 'Embedding',
-  [AiProviderRole.Reasoning]: 'Reasoning'
-}
 
 @Component({
   standalone: true,
@@ -680,7 +673,9 @@ export class MembershipAdminComponent implements OnInit {
   }
 
   allowedModelValues() {
-    return this.allowedModels.map((item) => allowedModelOptionValue(item.provider, item.model, item.copilotId))
+    return this.allowedModels.map((item) =>
+      allowedModelOptionValue(item.provider, item.model, item.copilotId, item.modelType)
+    )
   }
 
   setAllowedModelValues(value: string | number | Array<string | number>) {
@@ -770,6 +765,8 @@ export class MembershipAdminComponent implements OnInit {
     if (option.copilotLabel) {
       label = `${option.copilotLabel} · ${label}`
     }
+    if (option.modelType)
+      label += ` · ${this.#translate.instant('XP.ModelAccess.ModelTypeValue.' + option.modelType, { Default: option.modelType })}`
     return option.available
       ? label
       : `${label} · ${this.#translate.instant('XP.Membership.HistoricalModelUnavailable', {
@@ -875,11 +872,13 @@ export class MembershipAdminComponent implements OnInit {
         continue
       }
       const copilotLabel = this.copilotProviderLabel(copilot)
-      addAllowedModelOption(options, provider, '*', copilotId, copilotLabel, true)
+      for (const type of new Set(copilot.providerWithModels.models.map((model) => model.model_type))) {
+        addAllowedModelOption(options, provider, '*', copilotId, copilotLabel, true, type)
+      }
       for (const model of copilot.providerWithModels.models ?? []) {
         const modelName = model.model?.trim()
         if (modelName) {
-          addAllowedModelOption(options, provider, modelName, copilotId, copilotLabel, true)
+          addAllowedModelOption(options, provider, modelName, copilotId, copilotLabel, true, model.model_type)
         }
       }
     }
@@ -892,10 +891,7 @@ export class MembershipAdminComponent implements OnInit {
       return name
     }
 
-    const roleName = COPILOT_ROLE_NAMES[copilot.role]
-    const roleLabel = this.#translate.instant(`XP.KEY_WORDS.${roleName}`, { Default: roleName })
-    const providerLabel = this.#translate.instant('XP.KEY_WORDS.Provider', { Default: 'Provider' })
-    return `${roleLabel} ${providerLabel}`
+    return `${copilot.providerWithModels.provider} · ${copilot.id.slice(0, 8)}`
   }
 
   private includeStoredModelOptions() {
@@ -915,14 +911,14 @@ export class MembershipAdminComponent implements OnInit {
       const provider = rule.provider.trim()
       const model = rule.model.trim()
       const copilotId = rule.copilotId?.trim()
-      const value = allowedModelOptionValue(provider, model, copilotId)
+      const value = allowedModelOptionValue(provider, model, copilotId, rule.modelType)
       if (!allowedOptions.has(value)) {
         const available =
           !copilotId &&
           Array.from(allowedOptions.values()).some(
             (option) => option.provider === provider && option.model === model && option.available
           )
-        addAllowedModelOption(allowedOptions, provider, model, copilotId, copilotId, available)
+        addAllowedModelOption(allowedOptions, provider, model, copilotId, copilotId, available, rule.modelType)
       }
     }
     this.allowedModelOptions.set(sortModelOptions(Array.from(allowedOptions.values())))

@@ -2,7 +2,7 @@ import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input }
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { TranslatePipe } from '@xpert-ai/headless-ui'
-import { AiProviderRole, injectCopilotServer } from '../../../@core'
+import { DefaultModelRole, injectCopilotServer } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -24,7 +24,7 @@ export class CopilotEnableModelComponent {
   })
 
   // States
-  readonly primaryCopilot = toSignal(this.#copilotServer.getAvailableByRole(AiProviderRole.Primary), {
+  readonly primaryCopilot = toSignal(this.#copilotServer.getDefaultModel(DefaultModelRole.Primary), {
     initialValue: null
   })
   readonly copilotEnabled = computed(() => !!this.primaryCopilot()?.copilotModel?.model)

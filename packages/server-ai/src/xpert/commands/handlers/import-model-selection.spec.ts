@@ -280,6 +280,14 @@ describe('XpertImportHandler model selection', () => {
                 id: 'copilot-primary',
                 role: AiProviderRole.Primary,
                 copilotModel: { model: 'glm-5', modelType: AiModelTypeEnum.LLM, options: { temperature: 0.2 } },
+                defaultModels: {
+                    primary: {
+                        copilotId: 'copilot-primary',
+                        model: 'glm-5',
+                        modelType: AiModelTypeEnum.LLM,
+                        options: { temperature: 0.2 }
+                    }
+                },
                 providerWithModels: {
                     models: [
                         {
@@ -570,6 +578,14 @@ describe('XpertImportHandler model selection', () => {
                 id: 'copilot-primary',
                 role: AiProviderRole.Primary,
                 copilotModel: { model: 'glm-5', modelType: AiModelTypeEnum.LLM, options: { temperature: 0.2 } },
+                defaultModels: {
+                    primary: {
+                        copilotId: 'copilot-primary',
+                        model: 'glm-5',
+                        modelType: AiModelTypeEnum.LLM,
+                        options: { temperature: 0.2 }
+                    }
+                },
                 providerWithModels: {
                     models: [
                         {

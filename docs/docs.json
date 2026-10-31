@@ -60,6 +60,7 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/model-provider-management",
                   "en/guides/assistant-capabilities",
                   "en/guides/assistant-templates",
                   "en/guides/assistant-template-authoring",
@@ -157,6 +158,7 @@
                 "group": "指南",
                 "pages": [
                   "zh-Hans/guides/plugin",
+                  "zh-Hans/guides/model-provider-management",
                   "zh-Hans/guides/assistant-capabilities",
                   "zh-Hans/guides/assistant-templates",
                   "zh-Hans/guides/assistant-template-authoring",

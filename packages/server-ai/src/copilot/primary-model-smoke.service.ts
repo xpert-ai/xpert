@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException, GatewayTimeoutException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, DefaultModelRole, ICopilot } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { CopilotOneByRoleQuery } from './queries/get-one-by-role.query'
+import { ResolveDefaultModelQuery } from './queries/resolve-default-model.query'
 import { CopilotModelGetChatModelQuery } from '../copilot-model/queries/get-chat-model.query'
 
 // Invariants: only an explicit request spends model tokens. Providers may ignore
@@ -36,11 +36,11 @@ export class PrimaryModelSmokeService {
     }
 
     private async infer(abortController: AbortController): Promise<void> {
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-            new CopilotOneByRoleQuery(
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+            new ResolveDefaultModelQuery(
                 RequestContext.currentTenantId(),
                 RequestContext.getOrganizationId(),
-                AiProviderRole.Primary,
+                DefaultModelRole.Primary,
                 ['copilotModel']
             )
         )

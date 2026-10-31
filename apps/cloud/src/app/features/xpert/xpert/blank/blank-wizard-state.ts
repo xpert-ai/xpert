@@ -8,7 +8,7 @@ import {
   type PluginResourceComponentSelector
 } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
-import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, DefaultModelRole } from '@xpert-ai/contracts'
 import { parseYAML } from '@xpert-ai/headless-ui'
 import { CopilotConfigFormComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { CHAT_WORKFLOW_TRIGGER_PROVIDER, WorkflowTriggerProviderOption } from 'apps/cloud/src/app/@shared/workflow'
@@ -370,27 +370,6 @@ export abstract class BlankWizardState {
     { initialValue: null as ICopilotWithProvider[] | null }
   )
 
-  readonly orgCopilots = toSignal(
-    toObservable(this.isClawAgentWizard).pipe(
-      distinctUntilChanged(),
-      switchMap((enabled) => {
-        if (!enabled) {
-          return of([] as ICopilot[])
-        }
-
-        return this._copilotServer.refresh$.pipe(
-          switchMap(() => this._copilotServer.getAllInOrg()),
-          map(({ items }) => items ?? []),
-          catchError((error) => {
-            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
-            return of([] as ICopilot[])
-          })
-        )
-      })
-    ),
-    { initialValue: [] as ICopilot[] }
-  )
-
   readonly hasCopilotEditPermission = toSignal(
     this._permissionsService.permissions$.pipe(
       map((permissions) => !!permissions[AIPermissionsEnum.COPILOT_EDIT]),
@@ -556,8 +535,24 @@ export abstract class BlankWizardState {
 
   readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
 
-  readonly primaryCopilot = computed(
-    () => this.orgCopilots().find((item) => item.role === AiProviderRole.Primary) ?? null
+  readonly primaryCopilot = toSignal(
+    toObservable(this.isClawAgentWizard).pipe(
+      distinctUntilChanged(),
+      switchMap((enabled) => {
+        if (!enabled) {
+          return of<ICopilot | null>(null)
+        }
+
+        return this._copilotServer.refresh$.pipe(
+          switchMap(() => this._copilotServer.getDefaultModelSetup(DefaultModelRole.Primary)),
+          catchError((error) => {
+            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
+            return of<ICopilot | null>(null)
+          })
+        )
+      })
+    ),
+    { initialValue: null }
   )
 
   readonly hasAvailableLlmProvider = computed(() => (this.availableLlmCopilots()?.length ?? 0) > 0)

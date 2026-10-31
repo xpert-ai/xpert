@@ -1,0 +1,94 @@
+<section xpDialogLayout="wide" class="w-[min(800px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Management.SwitchModel' | translate }}</h2>
+    <p xpDialogDescription [title]="data.target.copilotId">
+      {{ data.connectionName || data.target.copilotId?.slice(0, 8) }} ·
+      {{ 'XP.ModelAccess.ModelTypeValue.' + data.target.modelType | translate: { Default: data.target.modelType } }}
+    </p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      (click)="dialog.close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+      <div class="min-w-0">
+        <span class="break-all text-muted-foreground">{{
+          data.previous?.model || ('XP.Copilot.Management.NotConfigured' | translate)
+        }}</span>
+        @if (data.previous?.copilotId) {
+          <p class="mt-1 text-xs text-muted-foreground" [title]="data.previous.copilotId">
+            {{ data.previous.copilotId.slice(0, 8) }}
+          </p>
+        }
+      </div>
+      <i class="ri-arrow-right-line" aria-hidden="true"></i><strong class="break-all">{{ data.target.model }}</strong>
+    </div>
+    <z-radio-group
+      class="flex flex-col gap-3 py-4"
+      [ngModel]="policy()"
+      (ngModelChange)="policy.set($event)"
+      [attr.aria-label]="'XP.Copilot.Management.ParameterPolicy' | translate"
+    >
+      <z-radio value="reset">{{ 'XP.Copilot.Management.ResetParameters' | translate }}</z-radio>
+      <z-radio value="compatible">{{ 'XP.Copilot.Management.KeepCompatible' | translate }}</z-radio>
+    </z-radio-group>
+    @if (loading()) {
+      <p role="status">{{ 'XP.Copilot.Management.LoadingRules' | translate }}</p>
+    } @else if (error()) {
+      <p role="alert" class="text-destructive">{{ error() }}</p>
+      <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    } @else {
+      <div class="overflow-x-auto">
+        <table z-table class="w-full text-left text-sm">
+          <thead z-table-header class="text-muted-foreground">
+            <tr z-table-row>
+              <th z-table-head class="py-2">{{ 'XP.Copilot.Management.Parameter' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.Before' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.After' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.Action' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody z-table-body>
+            @for (change of preview().changes; track change.name) {
+              <tr z-table-row class="border-t border-border">
+                <td z-table-cell class="py-3">{{ change.name }}</td>
+                <td z-table-cell>{{ display(change.before) }}</td>
+                <td z-table-cell>{{ display(change.after) }}</td>
+                <td z-table-cell>{{ 'XP.Copilot.Management.ParameterAction.' + change.action | translate }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @for (rule of requiredRules(); track rule.name) {
+        <div class="flex items-center justify-between gap-4 border-b border-border py-3">
+          <label>{{ rule.name }} *</label
+          ><copilot-model-parameter-input
+            [parameter]="rule"
+            [ngModel]="requiredValues()[rule.name]"
+            (ngModelChange)="setRequired(rule.name, $event)"
+          />
+        </div>
+      }
+      @if (preview().missing.length) {
+        <p role="alert" class="text-destructive">
+          {{ 'XP.Copilot.Management.MissingParameters' | translate }}: {{ preview().missing.join(', ') }}
+        </p>
+      }
+      <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Management.ResetHint' | translate }}</p>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" (click)="dialog.close()">{{ 'XP.ACTIONS.Cancel' | translate }}</button
+    ><button z-button [zDisabled]="loading() || !!error() || !!preview().missing.length" (click)="apply()">
+      {{ 'XP.Copilot.Management.ConfirmSwitch' | translate }}
+    </button>
+  </footer>
+</section>

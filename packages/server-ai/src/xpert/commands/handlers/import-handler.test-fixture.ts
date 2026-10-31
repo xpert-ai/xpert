@@ -9,6 +9,7 @@ jest.mock('@xpert-ai/contracts', () => ({
         SPEECH2TEXT: 'speech2text',
         TTS: 'tts'
     },
+    DefaultModelRole: { Primary: 'primary' },
     AiProviderRole: {
         Primary: 'primary'
     },

@@ -1,15 +1,17 @@
+import { DefaultModelRole, LegacyProviderRole } from './default-model-role'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel } from './copilot-model.model'
 import { ICopilotProvider } from './copilot-provider.model'
 
 export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
   name?: string
-  role: AiProviderRole
+  /** @deprecated Connection roles are read only for legacy defaults and setup compatibility. */
+  role?: LegacyProviderRole
   enabled?: boolean
 
   showTokenizer?: boolean
   /**
-   * Balance of Token 
+   * Balance of Token
    */
   tokenBalance?: number
 
@@ -23,11 +25,12 @@ export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
 
   // Temporary properties
   usage?: TCopilotTokenUsage
+  /** Explicit role defaults projected into the public catalog, independent of the legacy connection role. */
+  defaultModels?: Partial<Record<DefaultModelRole, ICopilotModel>>
+  configuredDefaultRoles?: DefaultModelRole[]
 }
 
-/**
- * The order of priority is: `Embedding`, `Secondary`, `Primary`
- */
+/** @deprecated Use DefaultModelRole for default assignments; connections have no default purpose. */
 export enum AiProviderRole {
   Primary = 'primary',
   Secondary = 'secondary',

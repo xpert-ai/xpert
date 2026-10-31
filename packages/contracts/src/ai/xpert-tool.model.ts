@@ -1,7 +1,7 @@
 import type { JSONSchema4 } from 'json-schema'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
-import { AiProviderRole } from './copilot.model'
+import { DefaultModelRole, LegacyProviderRole } from './default-model-role'
 import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 
@@ -36,9 +36,10 @@ export type XpertToolType = {
 
   /**
    * Priority role of AI provider
-   * @default `AiProviderRole.Secondary`
+   * @deprecated Use defaultModelRole. Legacy serialized field remains readable.
    */
-  aiProviderRole?: AiProviderRole
+  aiProviderRole?: LegacyProviderRole
+  defaultModelRole?: DefaultModelRole
 
   toolset?: IXpertToolset
   toolsetId?: string

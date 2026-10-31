@@ -88,6 +88,7 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
   readonly zTrigger = input<ZardPopoverTrigger>('click')
   readonly zContent = input.required<TemplateRef<unknown>>()
   readonly zPlacement = input<ZardPopoverPlacement>('bottom')
+  readonly zAlign = input<'start' | 'center' | 'end'>('center')
   readonly zOrigin = input<ElementRef>()
   readonly zVisible = input<boolean>(false)
   readonly zOverlayClickable = input<boolean>(true)
@@ -190,7 +191,7 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
       const positionStrategy = this.overlayPositionBuilder
         .flexibleConnectedTo(this.nativeElement)
         .withPositions(this.getPositions())
-        .withPush(false)
+        .withPush(this.zAlign() !== 'center')
         .withFlexibleDimensions(false)
         .withViewportMargin(8)
 
@@ -205,6 +206,11 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((event) => {
           if (event.key === 'Escape' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            // The menu can detach before this bubbles; its original event path still owns Escape.
+            const sourceOverlay = event
+              .composedPath()
+              .find((node) => node instanceof Element && node.classList.contains('cdk-overlay-pane'))
+            if (sourceOverlay && sourceOverlay !== this.overlayRef?.overlayElement) return
             event.preventDefault()
             event.stopPropagation()
             this.hide()
@@ -385,7 +391,11 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
         break
     }
 
-    return positions
+    return positions.map((position) =>
+      position.originY !== 'center' && position.overlayY !== 'center'
+        ? { ...position, originX: this.zAlign(), overlayX: this.zAlign() }
+        : position
+    )
   }
 }
 

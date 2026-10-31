@@ -155,3 +155,8 @@ export * from './run-display-snapshot.model'
 export * from './execution-control.model'
 export * from './execution-control-evidence.schema'
 export * from './execution-observability.model'
+export * from './model-management.model'
+
+export * from './model-replacement.model'
+
+export * from './default-model-role'

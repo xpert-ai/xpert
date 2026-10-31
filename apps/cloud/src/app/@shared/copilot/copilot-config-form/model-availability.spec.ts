@@ -5,7 +5,7 @@ import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
 import { TranslateModule } from '@ngx-translate/core'
-import { AiModelTypeEnum, AiProviderRole, ICopilotWithProvider } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, ICopilotModel, ICopilotWithProvider } from '@xpert-ai/contracts'
 import { BehaviorSubject, of } from 'rxjs'
 import { CopilotServerService, ToastrService } from '../../../@core'
 import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
@@ -27,16 +27,27 @@ describe('default model availability after provider edits', () => {
   async function setup(initialCatalog: ICopilotWithProvider[]) {
     const catalog$ = new BehaviorSubject(initialCatalog)
     const update = jest.fn().mockReturnValue(of({}))
+    const saveRoleDefaults = jest.fn().mockReturnValue(of([]))
     const getModelParameterRules = jest.fn().mockReturnValue(of([]))
     const refresh = jest.fn()
     await TestBed.configureTestingModule({
       imports: [CopilotConfigFormComponent, TranslateModule.forRoot()],
       providers: [
         provideNoopAnimations(),
-        { provide: CopilotServerService, useValue: { getCopilotModels: () => catalog$, refresh, update } },
+        {
+          provide: CopilotServerService,
+          useValue: { getCopilotModels: () => catalog$, refresh, update, saveRoleDefaults }
+        },
         { provide: CopilotProviderService, useValue: { getModelParameterRules } },
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } },
-        { provide: Dialog, useValue: { open: jest.fn() } }
+        {
+          provide: Dialog,
+          useValue: {
+            open: jest.fn((_component, config: { data: { target: ICopilotModel } }) => ({
+              closed: of(config.data.target)
+            }))
+          }
+        }
       ]
     }).compileComponents()
     const fixture = TestBed.createComponent(CopilotConfigFormComponent)
@@ -47,11 +58,20 @@ describe('default model availability after provider edits', () => {
       fixture.detectChanges()
     }
     await settle()
-    return { fixture, component: fixture.componentInstance, catalog$, update, getModelParameterRules, refresh, settle }
+    return {
+      fixture,
+      component: fixture.componentInstance,
+      catalog$,
+      update,
+      saveRoleDefaults,
+      getModelParameterRules,
+      refresh,
+      settle
+    }
   }
 
   it('shows the stale saved identity, excludes it from the real menu, and blocks saving until reselection', async () => {
-    const { fixture, component, update, getModelParameterRules, settle } = await setup([provider])
+    const { fixture, component, update, saveRoleDefaults, getModelParameterRules, settle } = await setup([provider])
     component.formGroup.controls.tokenBalance.setValue(100)
     component.formGroup.markAsDirty()
     expect(component.formGroup.controls.copilotModel.value).toEqual(savedModel)
@@ -64,7 +84,7 @@ describe('default model availability after provider edits', () => {
     expect(update).not.toHaveBeenCalled()
     expect(getModelParameterRules).not.toHaveBeenCalled()
 
-    fixture.nativeElement.querySelector('.model-select-trigger').click()
+    fixture.nativeElement.querySelector('.model-select-trigger button[z-menu]').click()
     await settle()
     const overlay = TestBed.inject(OverlayContainer).getContainerElement()
     const buttons = Array.from(overlay.querySelectorAll<HTMLButtonElement>('button'))
@@ -76,12 +96,14 @@ describe('default model availability after provider edits', () => {
     expect(component.canSubmit()).toBe(true)
     expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull()
     expect(await component.submit()).toBe(true)
-    expect(update).toHaveBeenCalledWith(
-      'copilot-1',
-      expect.objectContaining({
-        copilotModel: expect.objectContaining({ model: 'new-model', copilotId: 'copilot-1' })
-      })
-    )
+    expect(update).toHaveBeenCalledWith('copilot-1', { tokenBalance: 100 })
+    expect(saveRoleDefaults).toHaveBeenCalledWith([
+      {
+        role: 'primary',
+        mode: 'fixed',
+        binding: expect.objectContaining({ model: 'new-model', copilotId: 'copilot-1', modelType: AiModelTypeEnum.LLM })
+      }
+    ])
     fixture.destroy()
   })
 

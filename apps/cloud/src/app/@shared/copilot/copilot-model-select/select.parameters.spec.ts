@@ -1,10 +1,11 @@
-import { CdkMenuTrigger } from '@angular/cdk/menu'
+import { Dialog } from '@angular/cdk/dialog'
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardMenuDirective } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, of } from 'rxjs'
 import {
   AiModelTypeEnum,
@@ -60,7 +61,7 @@ class SettingsHost {
   }
 }
 
-// Render the real selector/popover/CVAs together; isolated input tests miss parent normalization feedback.
+// Render the real selector/Dialog/CVAs together; isolated input tests miss parent normalization feedback.
 describe('model settings parameter editing', () => {
   let fixture: ComponentFixture<CopilotModelSelectComponent>
   let saved: ICopilotModel
@@ -79,12 +80,25 @@ describe('model settings parameter editing', () => {
   }
 
   async function openParameters() {
-    const trigger = fixture.debugElement
-      .queryAll(By.directive(CdkMenuTrigger))
-      .find((element) => element.references['parametersTrigger'])
-    trigger.nativeElement.click()
+    fixture.nativeElement.querySelector('button[aria-label="XP.Copilot.Parameters"]').click()
+    await fixture.whenStable()
+    TestBed.tick()
     await fixture.whenStable()
     return TestBed.inject(OverlayContainer).getContainerElement()
+  }
+
+  function dialogAction(label: string) {
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    const button = Array.from(overlay.querySelectorAll<HTMLButtonElement>('footer button')).find(
+      (item) => item.textContent.trim() === label
+    )
+    expect(button).toBeDefined()
+    button.click()
+  }
+
+  async function saveParameters() {
+    dialogAction('XP.ACTIONS.Save')
+    await fixture.whenStable()
   }
 
   async function inputValue(input: HTMLInputElement, value: string, blur = true) {
@@ -92,6 +106,7 @@ describe('model settings parameter editing', () => {
     input.value = value
     input.dispatchEvent(new Event('input', { bubbles: true }))
     if (blur) input.dispatchEvent(new Event('blur'))
+    TestBed.tick()
     await fixture.whenStable()
   }
 
@@ -121,28 +136,33 @@ describe('model settings parameter editing', () => {
   })
 
   afterEach(() => {
+    TestBed.inject(Dialog).closeAll()
     fixture.destroy()
     ruleUpdates.complete()
   })
 
-  it.each(['model', 'provider'])(
-    'resets generation options when switching %s, retaining client controls',
-    async (kind) => {
-      fixture.componentInstance.setModel(catalog[kind === 'provider' ? 1 : 0], models[kind === 'model' ? 1 : 0])
-      await fixture.whenStable()
-      expect(saved.options).toEqual({ context_size: 128000, maxRetries: 3 })
-      const restored = JSON.parse(JSON.stringify(saved))
-      fixture.destroy()
-      await mount(restored)
-      expect(saved.options).toEqual({ context_size: 128000, maxRetries: 3 })
-      expect(
-        resolveModelParameterOptions(
-          saved.options,
-          rules.map(({ default: _, ...rule }) => rule)
-        )
-      ).toEqual({ context_size: 128000, maxRetries: 3 })
-    }
-  )
+  it.each(['model', 'provider'])('resets generation options only after confirming a different %s', async (kind) => {
+    const switching = fixture.componentInstance.setModel(
+      catalog[kind === 'provider' ? 1 : 0],
+      models[kind === 'model' ? 1 : 0]
+    )
+    await fixture.whenStable()
+    expect(saved.options.temperature).toBe(0)
+    dialogAction('XP.Copilot.Management.ConfirmSwitch')
+    await switching
+    await fixture.whenStable()
+    expect(saved.options).toEqual({ context_size: 128000 })
+    const restored = JSON.parse(JSON.stringify(saved))
+    fixture.destroy()
+    await mount(restored)
+    expect(saved.options).toEqual({ context_size: 128000 })
+    expect(
+      resolveModelParameterOptions(
+        saved.options,
+        rules.map(({ default: _, ...rule }) => rule)
+      )
+    ).toEqual({ context_size: 128000 })
+  })
 
   it('retains explicit zero and false when reopening or reselecting the same model', async () => {
     fixture.componentInstance.setModel(catalog[0], models[0])
@@ -161,18 +181,19 @@ describe('model settings parameter editing', () => {
     await inputValue(inputs[1], '1', false)
     expect(inputs[1].value).toBe('1') // Below min while typing 1024 must not become 64.
     await inputValue(inputs[1], '1024')
-    expect(saved.options.max_tokens).toBe(1024)
+    expect(saved.options.max_tokens).toBe(16384) // Dialog edits are local until Save.
     await inputValue(inputs[0], '', false)
     await inputValue(inputs[0], '0', false)
     await inputValue(inputs[0], '0.6')
-    expect(saved.options.temperature).toBe(0.6)
     const sliders = overlay.querySelectorAll<HTMLElement>('[role="slider"]')
     expect(Number(sliders[0].getAttribute('aria-valuenow'))).toBe(0.6)
     expect(Number(sliders[2].getAttribute('aria-valuenow'))).toBe(0.95)
     sliders[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
     await fixture.whenStable()
-    expect(saved.options.temperature).toBe(0.61)
     expect(inputs[0].value).toBe('0.61')
+    await saveParameters()
+    expect(saved.options.temperature).toBe(0.61)
+    expect(saved.options.max_tokens).toBe(1024)
   })
 
   it('commits a cleared input through the outer form before an immediate Save click', async () => {
@@ -180,10 +201,9 @@ describe('model settings parameter editing', () => {
     const host = TestBed.createComponent(SettingsHost)
     host.autoDetectChanges()
     await host.whenStable()
-    const trigger = host.debugElement
-      .queryAll(By.directive(CdkMenuTrigger))
-      .find((element) => element.references['parametersTrigger'])
-    trigger.nativeElement.click()
+    host.nativeElement.querySelector('button[aria-label="XP.Copilot.Parameters"]').click()
+    await host.whenStable()
+    TestBed.tick()
     await host.whenStable()
     const input = TestBed.inject(OverlayContainer)
       .getContainerElement()
@@ -191,6 +211,8 @@ describe('model settings parameter editing', () => {
     input.value = ''
     input.dispatchEvent(new Event('input', { bubbles: true }))
     input.dispatchEvent(new Event('blur'))
+    dialogAction('XP.ACTIONS.Save')
+    await host.whenStable()
     host.nativeElement.querySelector('#save').click()
     expect(JSON.parse(host.componentInstance.saved).options.temperature).toBeNull()
     host.destroy()
@@ -201,6 +223,7 @@ describe('model settings parameter editing', () => {
     for (const input of overlay.querySelectorAll<HTMLInputElement>('input[type="number"]')) {
       await inputValue(input, '')
     }
+    await saveParameters()
     ruleUpdates.next(rules.map((rule) => ({ ...rule })))
     await fixture.whenStable()
     expect(saved.options).toMatchObject({ temperature: null, max_tokens: null, top_p: null, enable_thinking: false })
@@ -219,5 +242,15 @@ describe('model settings parameter editing', () => {
     const request = resolveModelParameterOptions(saved.options, rules)
     for (const key of ['temperature', 'max_tokens', 'top_p']) expect(request).not.toHaveProperty(key)
     expect(request.enable_thinking).toBe(false)
+  })
+
+  it('does not cancel Enter in the model menu before the browser can activate a button', async () => {
+    fixture.debugElement.query(By.directive(ZardMenuDirective)).nativeElement.click()
+    await fixture.whenStable()
+    const input = TestBed.inject(OverlayContainer).getContainerElement().querySelector('input')
+    expect(input).toBeTruthy()
+    const event = new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true, cancelable: true })
+    input.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
   })
 })

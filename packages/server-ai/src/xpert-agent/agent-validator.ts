@@ -1,9 +1,9 @@
-import { AiModelTypeEnum, AiProviderRole, ChecklistItem, ICopilot, TXpertTeamNode } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, DefaultModelRole, ChecklistItem, ICopilot, TXpertTeamNode } from '@xpert-ai/contracts'
 import { Injectable, Optional } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { OnEvent } from '@nestjs/event-emitter'
 import { RequestContext } from '@xpert-ai/server-core'
-import { CopilotOneByRoleQuery } from '../copilot'
+import { ResolveDefaultModelQuery } from '../copilot'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from '../xpert/types'
 
 @Injectable()
@@ -64,8 +64,8 @@ export class XpertAgentNodeValidator {
             return false
         }
         try {
-            const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-                new CopilotOneByRoleQuery(tenantId, RequestContext.getOrganizationId(), AiProviderRole.Embedding, [
+            const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+                new ResolveDefaultModelQuery(tenantId, RequestContext.getOrganizationId(), DefaultModelRole.Embedding, [
                     'copilotModel',
                     'modelProvider'
                 ])

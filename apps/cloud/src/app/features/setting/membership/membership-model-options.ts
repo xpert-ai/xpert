@@ -1,4 +1,4 @@
-import { IMembershipAllowedModel, IMembershipModelMultiplier } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, IMembershipAllowedModel, IMembershipModelMultiplier } from '@xpert-ai/contracts'
 
 export type MembershipModelOption = {
   value: string
@@ -6,6 +6,7 @@ export type MembershipModelOption = {
   model: string
   available: boolean
   copilotId?: string
+  modelType?: AiModelTypeEnum
   copilotLabel?: string
 }
 
@@ -31,7 +32,13 @@ export function decodeModelOptionValue(value?: string): IMembershipAllowedModel 
   }
 }
 
-export function allowedModelOptionValue(provider: string, model: string, copilotId?: string) {
+export function allowedModelOptionValue(
+  provider: string,
+  model: string,
+  copilotId?: string,
+  modelType?: AiModelTypeEnum
+) {
+  if (modelType) return [copilotId ?? '', provider, model, modelType].map(encodeURIComponent).join('|')
   return [copilotId ?? '', provider, model].map(encodeURIComponent).join('|')
 }
 
@@ -40,15 +47,17 @@ export function decodeAllowedModelOptionValue(value?: string): IMembershipAllowe
     return null
   }
   const parts = value.split('|')
-  if (parts.length !== 3) {
+  if (parts.length !== 3 && parts.length !== 4) {
     return null
   }
   try {
-    const [copilotId, provider, model] = parts.map(decodeURIComponent)
+    const [copilotId, provider, model, rawType] = parts.map(decodeURIComponent)
     if (!provider || !model) {
       return null
     }
-    return copilotId ? { provider, model, copilotId } : { provider, model }
+    const modelType = Object.values(AiModelTypeEnum).find((type) => type === rawType)
+    if (rawType && !modelType) return null
+    return { provider, model, ...(copilotId ? { copilotId } : {}), ...(modelType ? { modelType } : {}) }
   } catch {
     return null
   }
@@ -76,11 +85,12 @@ export function addAllowedModelOption(
   model: string,
   copilotId: string | undefined,
   copilotLabel: string | undefined,
-  available: boolean
+  available: boolean,
+  modelType?: AiModelTypeEnum
 ) {
-  const value = allowedModelOptionValue(provider, model, copilotId)
+  const value = allowedModelOptionValue(provider, model, copilotId, modelType)
   if (!options.has(value)) {
-    options.set(value, { value, provider, model, copilotId, copilotLabel, available })
+    options.set(value, { value, provider, model, copilotId, copilotLabel, available, modelType })
   }
 }
 

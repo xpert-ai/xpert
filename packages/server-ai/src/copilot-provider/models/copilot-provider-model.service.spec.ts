@@ -4,6 +4,7 @@ import { CopilotProviderModelService } from './copilot-provider-model.service'
 describe('CopilotProviderModelService model access lifecycle', () => {
     function createService() {
         const providerService = {
+            initializeEnabledModels: jest.fn(),
             findOne: jest.fn().mockResolvedValue({
                 id: 'provider-1',
                 copilotId: 'copilot-1',
@@ -17,11 +18,34 @@ describe('CopilotProviderModelService model access lifecycle', () => {
         const service = new CopilotProviderModelService(
             {} as never,
             providerService as never,
-            { execute: jest.fn().mockResolvedValue({ getModelManager: () => ({ validateCredentials }) }) } as never,
+            {
+                execute: jest
+                    .fn()
+                    .mockResolvedValue({
+                        getModelManager: () => ({ validateCredentials }),
+                        getProviderModels: () => []
+                    })
+            } as never,
             modelAccessService as never
         )
         return { modelAccessService, providerService, service, validateCredentials }
     }
+
+    it('freezes the legacy catalog after validation and before creating a new model', async () => {
+        const { service, providerService } = createService()
+        jest.spyOn(service, 'findOneByWhereOptions').mockRejectedValue(new Error('not found'))
+        const create = jest.spyOn(service, 'create').mockResolvedValue({ id: 'new' } as never)
+        await service.upsertModel({
+            providerId: 'provider-1',
+            modelName: 'new-model',
+            modelType: AiModelTypeEnum.LLM,
+            modelProperties: {}
+        })
+        expect(providerService.initializeEnabledModels).toHaveBeenCalledWith('provider-1', [])
+        expect(providerService.initializeEnabledModels.mock.invocationCallOrder[0]).toBeLessThan(
+            create.mock.invocationCallOrder[0]
+        )
+    })
 
     it('persists edited import parameters while retaining the original discovery identity on rename', async () => {
         const { service, validateCredentials } = createService()

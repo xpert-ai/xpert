@@ -18,7 +18,14 @@ export class ListModelProvidersHandler implements IQueryHandler<ListModelProvide
         for (const provider of providers) {
             const schema = provider.getProviderSchema()
             if (!uniqueProviders.has(schema.provider)) {
-                uniqueProviders.set(schema.provider, schema)
+                const source = this.registry.getSource(provider)
+                uniqueProviders.set(schema.provider, {
+                    ...schema,
+                    plugin:
+                        source.kind === 'plugin'
+                            ? { name: source.pluginName, version: source.pluginVersion, scopeKey: source.scopeKey }
+                            : undefined
+                })
             }
         }
 

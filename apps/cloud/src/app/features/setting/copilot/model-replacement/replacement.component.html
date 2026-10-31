@@ -1,0 +1,207 @@
+<section xpDialogLayout="wide" class="w-[min(960px,calc(100vw-32px))] max-h-[86dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Management.BulkReplace' | translate }}</h2>
+    <p xpDialogDescription>{{ 'XP.Copilot.Management.BulkHint' | translate }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      [zDisabled]="busy()"
+      (click)="close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    @if (!results()) {
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div class="space-y-2">
+          <label for="replacement-source" class="block text-sm font-medium">{{
+            'XP.Copilot.Management.SourceModel' | translate
+          }}</label
+          ><input
+            z-input
+            [ngModel]="sourceSearch()"
+            (ngModelChange)="sourceSearch.set($event)"
+            [placeholder]="'XP.Copilot.Management.SearchModels' | translate"
+            [attr.aria-label]="'XP.Copilot.Management.SearchModels' | translate"
+          /><z-select
+            id="replacement-source"
+            class="min-w-44"
+            [zDisabled]="busy() || sourcesLoading()"
+            [ngModel]="sourceKey()"
+            (ngModelChange)="chooseSource($event)"
+            ><z-select-item zValue="">{{ 'XP.Copilot.SelectModel' | translate }}</z-select-item>
+            @for (row of filteredSources(); track identityKey(row.identity)) {
+              <z-select-item [zValue]="identityKey(row.identity)"
+                >{{ row.identity.model }} · {{ row.identity.copilotId.slice(0, 8) }} ·
+                {{ row.references }}</z-select-item
+              >
+            }
+          </z-select>
+          <p class="text-xs text-muted-foreground">{{ 'XP.Copilot.Management.DraftSourcesHint' | translate }}</p>
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium">{{ 'XP.Copilot.Management.TargetModel' | translate }}</label
+          ><copilot-model-select
+            [modelType]="type"
+            [ngModel]="target()"
+            (ngModelChange)="target.set($event); reset()"
+            [hiddenLabel]="true"
+            [showParameters]="false"
+            [confirmChanges]="false"
+            [readonly]="busy()"
+          />
+        </div>
+      </div>
+      <label class="mt-5 flex items-center gap-3 text-sm"
+        >{{ 'XP.Copilot.Management.Workspace' | translate
+        }}<z-select
+          class="min-w-44"
+          [zDisabled]="busy() || sourcesLoading()"
+          [ngModel]="workspaceId()"
+          (ngModelChange)="workspaceId.set($event); loadSources()"
+          ><z-select-item zValue="">{{ 'XP.Copilot.Management.AllWorkspaces' | translate }}</z-select-item>
+          @for (workspace of workspaces(); track workspace.id) {
+            <z-select-item [zValue]="workspace.id">{{ workspace.name }}</z-select-item>
+          }
+        </z-select></label
+      >
+      <label class="mt-5 flex flex-wrap items-center gap-3 text-sm"
+        >{{ 'XP.Copilot.Management.ParameterPolicy' | translate
+        }}<z-select
+          class="min-w-44"
+          [zDisabled]="busy()"
+          [ngModel]="policy()"
+          (ngModelChange)="policy.set($event); reset()"
+          ><z-select-item zValue="reset">{{ 'XP.Copilot.Management.ResetParameters' | translate }}</z-select-item
+          ><z-select-item zValue="compatible">{{
+            'XP.Copilot.Management.KeepCompatible' | translate
+          }}</z-select-item></z-select
+        ></label
+      >
+      <p class="mt-4 text-sm text-muted-foreground">{{ 'XP.Copilot.Management.BulkScope' | translate }}</p>
+      <p class="text-xs text-muted-foreground">{{ 'XP.Copilot.Management.BulkLimit' | translate }}</p>
+      @if (preview(); as rows) {
+        <table z-table class="mt-4 w-full text-left text-sm">
+          <thead z-table-header class="text-muted-foreground">
+            <tr z-table-row>
+              <th z-table-head class="py-3">{{ 'XP.Copilot.Management.Select' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.Assistant' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.References' | translate }}</th>
+              <th z-table-head>{{ 'XP.Copilot.Management.ParameterChanges' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody z-table-body>
+            @for (row of rows; track row.id) {
+              <tr z-table-row class="border-t border-border">
+                <td z-table-cell class="py-4">
+                  <z-checkbox
+                    [ngModel]="selected().has(row.id)"
+                    [zDisabled]="busy() || !!row.missing.length"
+                    (ngModelChange)="toggle(row.id, $event)"
+                    ><span class="sr-only">{{ row.name }}</span></z-checkbox
+                  >
+                </td>
+                <td z-table-cell>
+                  {{ row.name }}
+                  <div class="text-xs text-muted-foreground">{{ row.workspaceId.slice(0, 8) }}</div>
+                </td>
+                <td z-table-cell>{{ row.count }}</td>
+                <td z-table-cell>
+                  <button
+                    z-button
+                    zType="ghost"
+                    [attr.aria-expanded]="expanded().has(row.id)"
+                    (click)="toggleDetails(row.id)"
+                  >
+                    {{ 'XP.Copilot.Management.Preview' | translate }}
+                  </button>
+                  @if (expanded().has(row.id)) {
+                    @for (change of row.changes; track change.path) {
+                      <div class="py-2">
+                        <span class="font-medium">{{ change.path }}</span>
+                        @for (parameter of change.parameters; track parameter.name) {
+                          <div class="break-all text-xs text-muted-foreground">
+                            {{ parameter.name }}: {{ parameter.before ?? '—' }} → {{ parameter.after ?? '—' }}
+                          </div>
+                        }
+                      </div>
+                    }
+                  }
+                  @if (row.missing.length) {
+                    <p class="text-destructive">
+                      {{ 'XP.Copilot.Management.MissingParameters' | translate }}: {{ row.missing.join(', ') }}
+                    </p>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr z-table-row>
+                <td z-table-cell colspan="4" class="py-8 text-center text-muted-foreground">
+                  {{ 'XP.Copilot.Management.NoReferences' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Management.BulkResultHint' | translate }}</p>
+      @for (result of results(); track result.id) {
+        <div class="flex items-center justify-between gap-4 border-b border-border py-4">
+          <div>
+            <p class="font-medium">{{ name(result.id) }}</p>
+            <p class="text-sm text-muted-foreground">
+              {{ 'XP.Copilot.Management.Result.' + result.status | translate }} {{ result.message }}
+            </p>
+          </div>
+          @if (result.operationId) {
+            <button z-button zType="outline" [zDisabled]="busy()" (click)="restore(result)">
+              {{ 'XP.Copilot.Management.Restore' | translate }}
+            </button>
+          }
+        </div>
+      }
+    }
+    @if (error()) {
+      <p role="alert" class="text-destructive">{{ error() }}</p>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" [zDisabled]="busy()" (click)="close()">
+      {{ 'XP.ACTIONS.Close' | translate }}
+    </button>
+    @if (!results()) {
+      @if (preview()) {
+        <span class="mr-auto text-sm text-muted-foreground">{{
+          'XP.Copilot.Management.ReplacementCount' | translate: { assistants: selected().size, models: changes() }
+        }}</span
+        ><button
+          z-button
+          [zLoading]="busy()"
+          [zDisabled]="busy() || !selected().size || selected().size > 100"
+          (click)="execute()"
+        >
+          {{ 'XP.Copilot.Management.ConfirmReplace' | translate }}
+        </button>
+      } @else {
+        <button
+          z-button
+          [zLoading]="busy()"
+          [zDisabled]="
+            busy() ||
+            !source()?.model ||
+            !target()?.model ||
+            (source()?.copilotId === target()?.copilotId && source()?.model === target()?.model)
+          "
+          (click)="inspect()"
+        >
+          {{ 'XP.Copilot.Management.PreviewImpact' | translate }}
+        </button>
+      }
+    }
+  </footer>
+</section>

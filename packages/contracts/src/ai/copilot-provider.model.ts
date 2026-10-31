@@ -3,6 +3,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IAiProviderEntity } from './ai-model.model'
 import { ICopilot } from './copilot.model'
 import type { ModelConfiguration, ModelDiscoveryState } from './model-discovery.model'
+import type { EnabledModelSelection } from './model-management.model'
 
 export interface ICopilotProvider extends IBasePerTenantAndOrganizationEntityModel {
   providerName?: string
@@ -17,7 +18,7 @@ export interface ICopilotProvider extends IBasePerTenantAndOrganizationEntityMod
 
   /**
    */
-  options?: Record<string, unknown> & { modelDiscovery?: ModelDiscoveryState }
+  options?: Record<string, unknown> & { modelDiscovery?: ModelDiscoveryState; enabledModels?: EnabledModelSelection[] }
 
   copilot?: ICopilot
   copilotId?: string

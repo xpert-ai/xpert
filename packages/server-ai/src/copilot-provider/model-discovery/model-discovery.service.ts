@@ -17,6 +17,7 @@ import { AIProvidersService } from '../../ai-model'
 import { CopilotProviderService } from '../copilot-provider.service'
 import { CopilotProvider } from '../copilot-provider.entity'
 import { CopilotProviderModel } from '../models/copilot-provider-model.entity'
+import { snapshotEnabledModels } from '../models/enabled-models'
 
 @Injectable()
 export class ModelDiscoveryService {
@@ -92,6 +93,7 @@ export class ModelDiscoveryService {
                 }
             })
             const configured = configuredModelIds(existing)
+            const enabledModels = snapshotEnabledModels(current, strategy.getProviderModels() ?? [], existing)
             const additions: CopilotProviderModel[] = []
             for (const { model, configuration } of selected) {
                 if (configured.has(model.model)) continue
@@ -118,6 +120,7 @@ export class ModelDiscoveryService {
             await manager.update(CopilotProvider, current.id, {
                 options: {
                     ...current.options,
+                    enabledModels,
                     modelDiscovery: {
                         mode: 'configured',
                         syncedAt: new Date().toISOString(),
