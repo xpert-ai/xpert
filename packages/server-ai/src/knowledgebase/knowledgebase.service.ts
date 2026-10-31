@@ -3,6 +3,7 @@ import {
     assertTenantLibraryAdministrator
 } from './tenant-library/tenant-library-access.service'
 import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
+import { withUnboundKnowledgebase } from './shared-resource-lifecycle'
 import { KnowledgeResourceAccessService } from './runtime/knowledge-resource-access.service'
 import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
@@ -592,16 +593,17 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     async delete(criteria: string | FindOptionsWhere<Knowledgebase>): Promise<DeleteResult> {
         if (typeof criteria !== 'string') {
-            return super.delete(criteria)
+            return withUnboundKnowledgebase(this.repository, criteria, () => super.delete(criteria))
         }
 
         const knowledgebase = await this.assertKnowledgebaseWriteAccess(criteria, {
             relations: ['pipeline']
         })
         await this.resourceAccess?.authorize(criteria, 'manage')
-        await this.cleanupPipelineBeforeDelete(knowledgebase)
-
-        return super.delete(criteria)
+        return withUnboundKnowledgebase(this.repository, criteria, async () => {
+            await this.cleanupPipelineBeforeDelete(knowledgebase)
+            return super.delete(criteria)
+        })
     }
 
     async softDelete(criteria: string | number | FindOptionsWhere<Knowledgebase>) {
@@ -609,13 +611,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             await this.assertKnowledgebaseWriteAccess(criteria)
             await this.resourceAccess?.authorize(criteria, 'manage')
         }
-        return super.softDelete(criteria)
+        return withUnboundKnowledgebase(this.repository, criteria, () => super.softDelete(criteria))
     }
 
     async softRemove(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {
         await this.assertKnowledgebaseWriteAccess(id, options)
         await this.resourceAccess?.authorize(id, 'manage')
-        return super.softRemove(id, options, saveOptions)
+        return withUnboundKnowledgebase(this.repository, id, () => super.softRemove(id, options, saveOptions))
     }
 
     async softRecover(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {

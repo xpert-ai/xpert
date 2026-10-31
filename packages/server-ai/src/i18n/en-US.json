@@ -59,6 +59,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ApplicationSharedResourceInUse": "This shared resource is still used by another application and cannot be deleted.",
         "MembershipPolicyTransactionRequired": "Membership policy must be updated in a transaction.",
         "MembershipPolicyPlanMigrationRequired": "Changing the membership plan requires an explicit migration.",
         "MembershipPolicyPeriodUnavailable": "The current membership period is unavailable.",
