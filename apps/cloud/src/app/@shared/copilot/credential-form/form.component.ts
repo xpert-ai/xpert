@@ -61,15 +61,15 @@ export class CopilotCredentialFormComponent {
   protected cva = inject<NgxControlValueAccessor<Partial<Record<string, any>> | null>>(NgxControlValueAccessor)
 
   // Inputs
-  readonly credentialFormSchemas = input<CredentialFormSchema[]>()
+  readonly credentialFormSchemas = input<CredentialFormSchema[]>([])
   readonly modelType = input<AiModelTypeEnum>()
 
   // Models
   readonly credentials = computed(() => this.cva.value$() ?? {})
 
   readonly credentialSchemas = computed(() => {
-    return this.credentialFormSchemas()
-      ?.filter((credential) =>
+    return (this.credentialFormSchemas() ?? [])
+      .filter((credential) =>
         credential.show_on
           ? credential.show_on.every((item) =>
               item.variable === AI_MODEL_TYPE_VARIABLE
@@ -113,7 +113,7 @@ export class CopilotCredentialFormComponent {
     // Waiting NgxControlValueAccessor has been initialized
     setTimeout(() => {
       if (this.cva.value$() === null) {
-        const defaultValues = this.credentialFormSchemas().reduce(
+        const defaultValues = (this.credentialFormSchemas() ?? []).reduce(
           (acc, credential) => {
             if (!isNil(credential.default)) {
               acc[credential.variable] = credential.default

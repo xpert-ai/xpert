@@ -4,6 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
+  ConfigurateMethod,
   ProviderCredentialValidationCapabilities,
   ProviderCredentialValidationResult
 } from '@xpert-ai/contracts'
@@ -14,7 +15,8 @@ import { CopilotAiProviderAuthComponent } from './authorization.component'
 describe('credential verification before save', () => {
   async function setup(
     capabilities: ProviderCredentialValidationCapabilities = { method: 'discovery' },
-    providerId?: string
+    providerId?: string,
+    modelScoped = false
   ) {
     const service = {
       credentialValidationCapabilities: jest.fn().mockReturnValue(of(capabilities)),
@@ -33,11 +35,13 @@ describe('credential verification before save', () => {
           provide: DIALOG_DATA,
           useValue: {
             providerId,
-            copilot: { id: 'copilot' },
+            copilot: { id: 'copilot', name: 'Test connection' },
             provider: {
               provider: 'test-provider',
               label: { en_US: 'Test' },
-              provider_credential_schema: { credential_form_schemas: [] }
+              provider_credential_schema: modelScoped ? undefined : { credential_form_schemas: [] },
+              configurate_methods: [ConfigurateMethod.CUSTOMIZABLE_MODEL],
+              model_credential_schema: { credential_form_schemas: [] }
             }
           }
         }
@@ -52,6 +56,23 @@ describe('credential verification before save', () => {
     return { fixture, component, service, close }
   }
   afterEach(() => TestBed.resetTestingModule())
+
+  it('renders and saves an empty named connection when credentials belong to models', async () => {
+    const { component, fixture, service, close } = await setup({ method: 'provider' }, undefined, true)
+    component.credentials.set({})
+    fixture.detectChanges()
+    expect(component.credential_form_schemas()).toEqual([])
+    expect(fixture.nativeElement.textContent).toContain('Management.ModelScopedCredentialsHint')
+    expect(service.credentialValidationCapabilities).not.toHaveBeenCalled()
+    await component.apply()
+    expect(service.checkCredentials).not.toHaveBeenCalled()
+    expect(service.saveCredentials).toHaveBeenCalledWith(undefined, {
+      copilotId: 'copilot',
+      connectionName: 'Test connection',
+      providerName: 'test-provider'
+    })
+    expect(close).toHaveBeenCalledWith({ id: 'saved-provider' })
+  })
 
   it('allows an empty authenticated list without persisting during preview', async () => {
     const { component, service, fixture } = await setup()
@@ -97,7 +118,8 @@ describe('credential verification before save', () => {
       'existing-provider'
     )
     expect(component.canTest()).toBe(false)
-    expect(fixture.nativeElement.querySelectorAll('datalist option')).toHaveLength(1)
+    expect(fixture.nativeElement.querySelectorAll('z-select')).toHaveLength(1)
+    expect(component.suggestedModels()).toHaveLength(1)
     component.testModel.set(' ep-user ')
     const target = { modelType: AiModelTypeEnum.LLM, model: 'ep-user' }
     service.checkCredentials.mockReturnValue(of({ method: 'model', target }))

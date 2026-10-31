@@ -1,12 +1,12 @@
 import { Document } from '@langchain/core/documents'
 import { EmbeddingsInterface } from '@langchain/core/embeddings'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { AiProviderRole, ICopilot, TCopilotModel } from '@xpert-ai/contracts'
+import { DefaultModelRole, ICopilot, TCopilotModel } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { CopilotOneByRoleQuery } from '../copilot'
+import { ResolveDefaultModelQuery } from '../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model'
 import { createEmbeddingFingerprint } from '../knowledgebase/embedding-state'
 import { RagCreateVStoreCommand } from '../rag-vstore'
@@ -316,8 +316,8 @@ export class FileUnderstandingVectorService {
         if (!asset.tenantId) {
             return null
         }
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-            new CopilotOneByRoleQuery(asset.tenantId, asset.organizationId, AiProviderRole.Embedding, [
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+            new ResolveDefaultModelQuery(asset.tenantId, asset.organizationId, DefaultModelRole.Embedding, [
                 'copilotModel',
                 'modelProvider'
             ])

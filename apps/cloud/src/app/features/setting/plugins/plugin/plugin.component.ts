@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite, injectToastr, routeAnimations } from '@cloud/app/@core'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
+import { OverlayAnimations, XpI18nPipe, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { Router } from '@angular/router'
@@ -11,14 +11,22 @@ import { injectActiveScope, injectPluginAPI, injectScopeLevel, Store } from '@cl
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
 import { PluginInstallComponent, PluginInstallResult } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
-import { PluginMarketplaceDetailComponent } from '../marketplace/marketplace-detail.component'
 import { pluginMarketplaceDetailCommands } from '../marketplace/plugin-marketplace-navigation'
 import { normalizeMarketplacePlugin } from '../marketplace/plugin-marketplace-normalize'
 import { firstValueFrom } from 'rxjs'
+import { IconComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, PluginComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    FormsModule,
+    PluginComponent,
+    XpI18nPipe,
+    ZardButtonComponent,
+    IconComponent
+  ],
   selector: 'xp-settings-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],
@@ -38,6 +46,7 @@ export class SettingsPluginComponent {
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
 
   readonly plugin = input<TPluginWithDownloads>()
+  readonly presentation = input<'default' | 'provider'>('default')
   readonly displayPlugin = computed(() => {
     const plugin = this.plugin()
     const url = this.iconUrl()
@@ -154,10 +163,10 @@ export class SettingsPluginComponent {
     if (!plugin || this.detailLoading()) {
       return
     }
-    if (plugin.summary) {
-      const scope = this.#scope()
-      this.detailLoading.set(true)
-      try {
+    const scope = this.#scope()
+    this.detailLoading.set(true)
+    try {
+      if (plugin.summary) {
         plugin = normalizeMarketplacePlugin(
           await firstValueFrom(
             this.#pluginAPI.getMarketplacePlugin({
@@ -168,22 +177,23 @@ export class SettingsPluginComponent {
           )
         )
         if (this.#destroyed || scope !== this.#scope()) return
-      } catch (error) {
-        if (!this.#destroyed) this.#toastr.error(getErrorMessage(error))
-        return
-      } finally {
-        this.detailLoading.set(false)
       }
+      const { PluginMarketplaceDetailComponent } = await import('../marketplace/marketplace-detail.component')
+      if (this.#destroyed || scope !== this.#scope()) return
+      this.#dialog.open(PluginMarketplaceDetailComponent, {
+        data: {
+          plugin,
+          showActions: !this.publicCatalog()
+        },
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      })
+    } catch (error) {
+      if (!this.#destroyed && scope === this.#scope()) this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.detailLoading.set(false)
     }
-    this.#dialog.open(PluginMarketplaceDetailComponent, {
-      data: {
-        plugin,
-        showActions: !this.publicCatalog()
-      },
-      backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: 'calc(100vw - 32px)'
-    })
   }
 }
 

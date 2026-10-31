@@ -1,253 +1,292 @@
-import { ActivatedRoute } from '@angular/router'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+import { ConnectionImpactDialogComponent } from '../connection-impact.component'
+import { ModelReplacementDialogComponent } from '../model-replacement/replacement.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { injectOrganizationId } from '@cloud/app/@core/state'
-import { AiProviderRole, ICopilot, MembershipStatusEnum } from '@xpert-ai/contracts'
-import {
-  CapitalizePipe,
-  DisappearAnimations,
-  XpSpinComponent,
-  XpDensityDirective,
-  XpI18nPipe,
-  ZardAccordionImports,
-  type ZardAccordionItemLike,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardInputDirective,
-  ZardSwitchComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
-
+import { CommonModule } from '@angular/common'
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import { IAiProviderEntity, ICopilot, IPluginDescriptor, ProviderModelCatalog } from '@xpert-ai/contracts'
+import { ZardBadgeComponent, XpI18nPipe, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { firstValueFrom } from 'rxjs'
+import { CopilotProviderService, CopilotServerService, getErrorMessage, injectToastr } from '../../../../@core'
+import { injectOrganizationId, PluginAPIService } from '../../../../@core/state'
+import { CopilotAiProvidersComponent } from '../../../../@shared/copilot/ai-providers/providers.component'
+import { CopilotProviderComponent } from '../../../../@shared/copilot/copilot-provider/provider.component'
+import { CopilotAiProviderAuthComponent } from '../../../../@shared/copilot/provider-authorization/authorization.component'
+import { DefaultModelsDialogComponent } from '../default-models/defaults.component'
+import { ProviderConnectionsComponent } from './connection-menu.component'
+import { ProviderMarketplaceComponent } from './provider-marketplace.component'
+import { ProviderPluginVersionComponent } from './provider-plugin-version.component'
 
-import {
-  getErrorMessage,
-  injectCopilots,
-  injectCopilotServer,
-  injectToastr,
-  MembershipService
-} from 'apps/cloud/src/app/@core'
-import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { capitalize } from 'lodash-es'
-import { catchError, map, Observable, of, switchMap } from 'rxjs'
-import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
+type ProviderStatus = 'configured' | 'pending' | 'error'
+interface ProviderGroup {
+  id: string
+  schema: IAiProviderEntity
+  connections: ICopilot[]
+  status: ProviderStatus
+}
+
 @Component({
   standalone: true,
   selector: 'xp-settings-copilot-basic',
   templateUrl: './basic.component.html',
-  styleUrls: ['./basic.component.scss'],
   imports: [
     CommonModule,
-    TranslateModule,
     FormsModule,
-    ReactiveFormsModule,
-    CdkMenuModule,
-    ...ZardAccordionImports,
-    ...ZardTooltipImports,
+    TranslateModule,
     ZardBadgeComponent,
+    XpI18nPipe,
     ZardButtonComponent,
     ZardInputDirective,
-    XpDensityDirective,
-    XpSpinComponent,
-    XpI18nPipe,
-    CapitalizePipe,
     CopilotProviderComponent,
-    CopilotFormComponent,
-    ZardSwitchComponent
+    ProviderConnectionsComponent,
+    ProviderMarketplaceComponent,
+    ProviderPluginVersionComponent
   ],
-  animations: [...DisappearAnimations]
+  host: { class: 'block w-full overflow-auto p-6' }
 })
 export class CopilotBasicComponent {
-  eAiProviderRole = AiProviderRole
-  readonly MembershipStatusEnum = MembershipStatusEnum
-
-  readonly copilotServer = injectCopilotServer()
-  readonly #toastr = injectToastr()
-  readonly #membership = inject(MembershipService)
+  readonly copilotServer = inject(CopilotServerService)
+  readonly providers = inject(CopilotProviderService)
+  readonly pluginAPI = inject(PluginAPIService)
+  readonly plugins = signal<IPluginDescriptor[]>([])
+  readonly dialog = inject(Dialog)
+  readonly toastr = injectToastr()
   readonly organizationId = injectOrganizationId()
-  readonly avaliableCopilots = injectCopilots()
-  readonly #dialog = inject(Dialog)
-
-  readonly membership = toSignal(
-    this.copilotServer.getCopilots().pipe(
-      switchMap(() =>
-        this.#membership.getMe().pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of(null)
-          })
-        )
-      )
-    ),
-    { initialValue: null }
-  )
-
-  readonly #copilots = toSignal(
-    this.copilotServer.refresh$.pipe(
-      switchMap(() => this.copilotServer.getAllInOrg()),
-      map(({ items }) => items)
-    )
-  )
-  readonly primary = computed(() => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary))
-
-  readonly copilots = computed(() => this.#copilots()?.filter((_) => _.role !== AiProviderRole.Primary))
-
-  // Tenant-level Copilots available in organization scope
-  readonly tenantCopilots = computed(() => {
-    return this.organizationId()
-      ? this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider)
-      : []
-  })
-
-  readonly isUnlimitedMembership = computed(() => {
-    const membership = this.membership()
-    return !!membership && membership.pointsGranted === null
-  })
-
-  readonly membershipRemainingPercent = computed(() => {
-    const membership = this.membership()
-    if (!membership || this.isUnlimitedMembership()) {
-      return 100
-    }
-    if (!membership.pointsGranted) {
-      return 0
-    }
-    return Math.max(0, Math.min(100, ((membership.pointsRemaining ?? 0) / membership.pointsGranted) * 100))
-  })
-
-  readonly providers = signal([
-    {
-      value: AiProviderRole.Secondary,
-      label: capitalize(AiProviderRole.Secondary)
-    },
-    {
-      value: AiProviderRole.Embedding,
-      label: capitalize(AiProviderRole.Embedding)
-    },
-    {
-      value: AiProviderRole.Reasoning,
-      label: capitalize(AiProviderRole.Reasoning)
-    }
-  ])
-
-  readonly selectedCopilotId = toSignal(
-    inject(ActivatedRoute, { optional: true })?.queryParamMap.pipe(map((params) => params.get('copilotId'))) ?? of(null)
-  )
-
-  readonly loading = signal(false)
-
-  // Edit
-  readonly editingId = signal<string | null>(null)
-  readonly name = model<string>('')
-
-  constructor() {
-    this.copilotServer.refresh()
-
-    effect(() => {
-      // console.log(this.quotaCopilots())
-    })
-  }
-
-  onToggle(copilot: ICopilot, role: AiProviderRole, current: boolean, expansion: ZardAccordionItemLike) {
-    let updateObs: Observable<unknown>
-    if (copilot) {
-      updateObs = this.copilotServer.update(copilot.id, { enabled: !current })
-    } else {
-      updateObs = current ? this.copilotServer.disableCopilot(role) : this.copilotServer.enableCopilot(role)
-    }
-
-    this.loading.set(true)
-    updateObs.subscribe({
-      next: () => {
-        this.loading.set(false)
-        current ? expansion.close() : expansion.open()
-        this.copilotServer.refresh()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
+  readonly i18n = new XpI18nPipe()
+  readonly loading = signal(true)
+  readonly error = signal('')
+  readonly search = signal('')
+  readonly status = signal<'all' | ProviderStatus>('all')
+  readonly schemas = signal<IAiProviderEntity[]>([])
+  readonly connections = signal<ICopilot[]>([])
+  readonly catalogs = signal<Record<string, ProviderModelCatalog>>({})
+  readonly selected = signal<Record<string, string>>({})
+  readonly selectionQueries = signal<Record<string, string>>({})
+  readonly catalogErrors = signal(new Set<string>())
+  private loadVersion = 0
+  readonly filters = ['all', 'configured', 'pending', 'error'] as const
+  readonly groups = computed<ProviderGroup[]>(() =>
+    this.schemas().map((schema) => {
+      const connections = this.connections().filter((item) => item.modelProvider?.providerName === schema.provider)
+      return {
+        id: schema.provider,
+        schema,
+        connections,
+        status: !connections.length
+          ? 'pending'
+          : connections.some((item) => item.modelProvider?.isValid === false || this.catalogErrors().has(item.id))
+            ? 'error'
+            : connections.some((item) => item.enabled && item.modelProvider?.options?.enabledModels?.length !== 0)
+              ? 'configured'
+              : 'pending'
       }
     })
+  )
+  readonly filtered = computed(() => {
+    const query = this.search().trim().toLowerCase()
+    return this.groups()
+      .filter(
+        (group) =>
+          (this.status() === 'all' || group.status === this.status()) &&
+          (!query ||
+            [
+              group.id,
+              this.i18n.transform(group.schema.label),
+              ...group.connections.flatMap((connection) => {
+                const catalog = this.catalogs()[connection.id]
+                return [
+                  connection.name,
+                  connection.id,
+                  ...(catalog?.builtin ?? []).map((model) => model.model),
+                  ...(catalog?.custom ?? []).map((model) => model.modelName)
+                ]
+              })
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
+              .includes(query))
+      )
+      .sort((a, b) => Number(a.status === 'pending') - Number(b.status === 'pending'))
+  })
+  constructor() {
+    effect(() => {
+      this.organizationId()
+      untracked(() => void this.load())
+    })
   }
-
-  /**
-   * Add AI Model Provider for role.
-   *
-   * @param role Provider role
-   */
-  addProvider(role: AiProviderRole) {
+  count(status: 'all' | ProviderStatus) {
+    return this.groups().filter((group) => status === 'all' || group.status === status).length
+  }
+  active(group: ProviderGroup) {
+    const query = this.search().trim().toLowerCase()
+    const selected = group.connections.find((item) => item.id === this.selected()[group.id])
+    if (selected && (!query || this.selectionQueries()[group.id] === query)) return selected
+    if (query) {
+      const match = group.connections.find((item) => {
+        const catalog = this.catalogs()[item.id]
+        return [
+          item.name,
+          item.id,
+          ...(catalog?.builtin ?? []).map((row) => row.model),
+          ...(catalog?.custom ?? []).map((row) => row.modelName)
+        ]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(query))
+      })
+      if (match) return match
+    }
+    return selected ?? group.connections[0]
+  }
+  choose(group: ProviderGroup, id: string) {
+    this.selected.update((value) => ({ ...value, [group.id]: id }))
+    this.selectionQueries.update((value) => ({ ...value, [group.id]: this.search().trim().toLowerCase() }))
+  }
+  async load() {
+    const version = ++this.loadVersion
     this.loading.set(true)
-    this.copilotServer
-      .create({ role, enabled: true })
-      .pipe(
-        switchMap((copilot) => {
-          return this.#dialog.open<string>(CopilotAiProvidersComponent, {
-            backdropClass: 'backdrop-blur-xs-black',
-            panelClass: 'xp-overlay-pane-dialog',
-            maxWidth: 'calc(100vw - 32px)',
-            data: {
-              copilot
+    this.error.set('')
+    this.connections.set([])
+    this.catalogs.set({})
+    this.catalogErrors.set(new Set())
+    this.plugins.set([])
+    try {
+      const [schemas, result] = await Promise.all([
+        this.copilotServer.refreshAiProviders(),
+        firstValueFrom(this.copilotServer.getAllInOrg())
+      ])
+      if (version !== this.loadVersion) return
+      this.schemas.set(schemas)
+      this.connections.set(result.items)
+      void this.loadPluginVersions(schemas, version)
+      const catalogs: Record<string, ProviderModelCatalog> = {}
+      const errors = new Set<string>()
+      await Promise.all(
+        result.items
+          .filter((item) => item.modelProvider?.id)
+          .map(async (item) => {
+            try {
+              catalogs[item.id] = await firstValueFrom(this.providers.getModels(item.modelProvider.id))
+            } catch {
+              errors.add(item.id)
             }
-          }).closed
+          })
+      )
+      if (version !== this.loadVersion) return
+      this.catalogs.set(catalogs)
+      this.catalogErrors.set(errors)
+    } catch (error) {
+      if (version === this.loadVersion) this.error.set(getErrorMessage(error))
+    } finally {
+      if (version === this.loadVersion) this.loading.set(false)
+    }
+  }
+  providerPlugin(schema: IAiProviderEntity) {
+    return this.plugins().find(
+      (plugin) =>
+        plugin.name === schema.plugin?.name &&
+        plugin.scopeKey === schema.plugin?.scopeKey &&
+        plugin.effectiveInCurrentScope
+    )
+  }
+  private async loadPluginVersions(schemas: IAiProviderEntity[], version: number) {
+    const names = [...new Set(schemas.flatMap((schema) => (schema.plugin ? [schema.plugin.name] : [])))]
+    if (!names.length) return
+    try {
+      const plugins = await firstValueFrom(this.pluginAPI.getByNames(names))
+      if (version !== this.loadVersion) return
+      this.plugins.set(plugins)
+      const versions = await firstValueFrom(this.pluginAPI.getLatestVersions(names))
+      if (version !== this.loadVersion) return
+      this.plugins.set(
+        plugins.map((plugin) => {
+          const latest = versions.find(
+            (item) => item.name === plugin.name && item.organizationId === plugin.organizationId
+          )
+          return latest ? { ...plugin, latestVersion: latest.latestVersion, hasUpdate: latest.hasUpdate } : plugin
         })
       )
-      .subscribe({
-        next: (copilotProvider) => {
-          this.loading.set(false)
-          this.copilotServer.refresh()
-        },
-        error: (err) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+    } catch {
+      /* Version discovery must not block provider configuration. */
+    }
   }
-
-  deleteCopilot(copilot: ICopilot) {
-    this.loading.set(true)
-    this.copilotServer.delete(copilot.id).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.copilotServer.refresh()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
+  async refresh() {
+    this.copilotServer.refresh()
+    await this.load()
+  }
+  async addProvider(schema?: IAiProviderEntity) {
+    const provider =
+      schema ??
+      (await firstValueFrom(
+        this.dialog.open<IAiProviderEntity>(CopilotAiProvidersComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          data: { selectOnly: true }
+        }).closed
+      ))
+    if (!provider) return
+    const result = await firstValueFrom(
+      this.dialog.open(CopilotAiProviderAuthComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true,
+        data: { provider }
+      }).closed
+    )
+    if (result) await this.refresh()
+  }
+  async editConnection(provider: IAiProviderEntity, copilot: ICopilot) {
+    const result = await firstValueFrom(
+      this.dialog.open(CopilotAiProviderAuthComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true,
+        data: { provider, providerId: copilot.modelProvider.id, copilot }
+      }).closed
+    )
+    if (result) await this.refresh()
+  }
+  bulkReplace() {
+    this.dialog.open(ModelReplacementDialogComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      disableClose: true
     })
   }
-
-  editName(event: Event, copilot: ICopilot) {
-    event.stopPropagation()
-    this.editingId.set(copilot.id)
-    this.name.set(copilot.name || '')
+  async defaults() {
+    const saved = await firstValueFrom(
+      this.dialog.open<boolean>(DefaultModelsDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true
+      }).closed
+    )
+    if (saved) await this.refresh()
   }
-
-  saveCopilotName(copilot: ICopilot) {
-    this.loading.set(true)
-    this.copilotServer.update(copilot.id, { name: this.name() }).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.editingId.set(null)
-        this.name.set('')
-        this.copilotServer.refresh()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
-  }
-
-  @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: Event) {
-    if (this.editingId()) {
-      this.editingId.set(null)
-      this.name.set('')
+  async toggleConnection(connection: ICopilot) {
+    if (
+      connection.enabled &&
+      !(await firstValueFrom(
+        this.dialog.open<boolean>(ConnectionImpactDialogComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          data: connection
+        }).closed
+      ))
+    )
+      return
+    try {
+      await firstValueFrom(this.copilotServer.update(connection.id, { enabled: !connection.enabled }))
+      await this.refresh()
+    } catch (error) {
+      this.toastr.error(getErrorMessage(error))
     }
   }
 }

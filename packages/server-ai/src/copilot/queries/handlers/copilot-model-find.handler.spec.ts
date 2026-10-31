@@ -66,7 +66,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: configService
@@ -140,7 +141,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -190,7 +192,8 @@ describe('FindCopilotModelsHandler', () => {
             } as never,
             {
                 canUseCatalogModels: jest.fn()
-            } as never
+            } as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -263,7 +266,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -343,7 +347,8 @@ describe('FindCopilotModelsHandler', () => {
             { execute: jest.fn().mockResolvedValue([]) } as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -417,7 +422,8 @@ describe('configured-only discovery catalog', () => {
                 } as never,
                 {
                     canUseCatalogModels: jest.fn().mockImplementation(async ({ models }) => models.map(() => true))
-                } as never
+                } as never,
+                { resolve: async () => ({ configured: false, binding: null }) } as never
             )
             Object.defineProperty(handler, 'configService', { value: { get: () => 'http://localhost:3000' } })
             const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM, catalogMode))

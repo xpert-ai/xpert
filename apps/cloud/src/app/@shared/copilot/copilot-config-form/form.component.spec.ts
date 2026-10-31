@@ -2,7 +2,7 @@ jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { Dialog } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, DefaultModelRole } from '@xpert-ai/contracts'
 import { Subject } from 'rxjs'
 import { CopilotServerService, ToastrService } from '../../../@core'
 import { CopilotConfigFormComponent } from './form.component'
@@ -51,8 +51,9 @@ describe('CopilotConfigFormComponent', () => {
     component = fixture.componentInstance
   })
 
-  it('uses LLM models for the reasoning provider', () => {
-    fixture.componentRef.setInput('copilot', { role: AiProviderRole.Reasoning })
+  it('uses the default purpose independently of the connection role', () => {
+    fixture.componentRef.setInput('copilot', { role: 'embedding' })
+    fixture.componentRef.setInput('defaultRole', DefaultModelRole.Reasoning)
     fixture.detectChanges()
 
     expect(component.defaultModelType()).toBe(AiModelTypeEnum.LLM)

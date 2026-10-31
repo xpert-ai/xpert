@@ -1,286 +1,150 @@
-@if (membership(); as membership) {
-  <div
-    class="mb-4 flex flex-col gap-3 rounded-xl border-[0.5px] border-divider-regular bg-components-card-bg px-4 py-3"
-  >
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="min-w-0">
-        <div class="text-sm text-text-tertiary">
-          {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
-        </div>
-        <div class="mt-1 flex flex-wrap items-center gap-2">
-          <div
-            class="truncate font-semibold text-text-primary"
-            [title]="membership.plan?.name || membership.membership.planId || '-'"
-          >
-            {{ membership.plan?.name || membership.membership.planId || '-' }}
-          </div>
-          @if (membership.membership.status === MembershipStatusEnum.Expired) {
-            <z-badge zType="destructive" zShape="pill">
-              {{ 'XP.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
-            </z-badge>
-          }
-          @if (membership.membership.status === MembershipStatusEnum.Paused) {
-            <z-badge zType="secondary" zShape="pill">
-              {{ 'XP.Membership.MemberStatuses.paused' | translate: { Default: 'Paused' } }}
-            </z-badge>
-          }
-        </div>
-      </div>
-
-      <div class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:text-right">
-        <div>
-          <div class="text-sm text-text-tertiary">
-            {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
-          </div>
-          <div class="mt-1 font-semibold text-text-primary">
-            @if (isUnlimitedMembership()) {
-              <span
-                [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                >∞</span
-              >
-            } @else {
-              {{ membership.pointsRemaining | number: '1.0-2' }} /
-              {{ membership.pointsGranted | number: '1.0-2' }}
-            }
-          </div>
-          <div class="mt-1 text-xs text-text-tertiary">
-            @if (membership.membership.status === MembershipStatusEnum.Expired) {
-              {{ 'XP.Membership.PlanExpired' | translate: { Default: 'Membership plan expired' } }}
-            } @else if (isUnlimitedMembership()) {
-              {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-            } @else {
-              {{ membershipRemainingPercent() | number: '1.0-0' }}%
-              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
-            }
-          </div>
-        </div>
-        <div>
-          <div class="text-sm text-text-tertiary">
-            {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
-          </div>
-          <div class="mt-1 font-semibold text-text-primary">
-            {{ membership.personalPointsBalance | number: '1.0-2' }}
-          </div>
-          <div class="mt-1 text-xs text-text-tertiary">
-            {{ 'XP.Membership.Permanent' | translate: { Default: 'Permanent' } }}
-          </div>
-        </div>
-      </div>
+<div class="mx-auto max-w-[1440px]">
+  <header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="sr-only">{{ 'XP.Copilot.Management.Title' | translate }}</h1>
+      <p class="text-sm text-text-tertiary">{{ 'XP.Copilot.Management.Description' | translate }}</p>
     </div>
-
-    <div class="border-t border-divider-subtle pt-3 text-xs text-text-tertiary">
-      @if (membership.personalPointsOnly) {
-        <div class="mb-1 font-medium text-text-secondary">
-          {{
-            'XP.Membership.PersonalPointsOnlyHint'
-              | translate: { Default: 'The membership plan is unavailable. Only personal points are currently used.' }
-          }}
-        </div>
-      }
-      <div>
-        {{
-          'XP.Membership.PersonalPointsHint'
-            | translate
-              : {
-                  Default:
-                    'Permanent. While the membership plan is active, cycle points are used first, then personal points.'
-                }
-        }}
-      </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button z-button zType="outline" (click)="bulkReplace()">
+        <i class="ri-arrow-left-right-line" aria-hidden="true"></i>{{ 'XP.Copilot.Management.BulkReplace' | translate }}
+      </button>
+      <button z-button zType="outline" (click)="defaults()">
+        <i class="ri-brain-line" aria-hidden="true"></i>{{ 'XP.Copilot.Management.DefaultModels' | translate }}
+      </button>
+      <button z-button (click)="addProvider()">
+        <i class="ri-add-line" aria-hidden="true"></i>{{ 'XP.Copilot.Management.AddProvider' | translate }}
+      </button>
     </div>
-  </div>
-}
-
-@if (tenantCopilots()?.length) {
-  <div class="text-lg px-2 py-2">
-    {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
-  </div>
-
-  @for (copilot of tenantCopilots(); track copilot.id) {
-    <copilot-provider
-      @disappear1
-      readonly
-      class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
-      [providerId]="copilot.modelProvider.id"
+  </header>
+  <div class="mb-6 flex flex-wrap items-center gap-3">
+    <input
+      z-input
+      class="w-full sm:w-80"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      [placeholder]="'XP.Copilot.Management.Search' | translate"
+      [attr.aria-label]="'XP.Copilot.Management.Search' | translate"
     />
-  }
-}
-
-@if (tenantCopilots()?.length) {
-  <div class="text-lg px-2 py-4">
-    {{ 'XP.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
-  </div>
-}
-<z-accordion class="space-y-2">
-  <z-accordion-item
-    #expansion="zAccordionItem"
-    hideToggle
-    class="shadow-sm rounded-[1rem]"
-    [disabled]="!primary()?.enabled"
-    [expanded]="!!primary()?.enabled"
-  >
-    <z-accordion-header>
-      <z-accordion-title>
-        @if (primary(); as copilot) {
-          @if (copilot.modelProvider?.provider && !expansion.expanded) {
-            <div class="flex" [zTooltip]="copilot.id" zPosition="left">
-              @if (copilot.modelProvider.provider.icon_large) {
-                <img
-                  alt="provider-icon"
-                  class="w-auto h-6 ml-2"
-                  [src]="copilot.modelProvider.provider.icon_large | i18n"
-                />
-              } @else {
-                @if (copilot.modelProvider.provider.icon_small) {
-                  <img
-                    alt="provider-icon"
-                    class="w-auto h-6 ml-2"
-                    [src]="copilot.modelProvider.provider.icon_small | i18n"
-                  />
-                }
-                <span class="ml-2">{{ copilot.modelProvider.provider.label | i18n }}</span>
-              }
-            </div>
-          }
-        }
-        <div class="ml-2">
-          {{ 'XP.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
-          {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
-        </div>
-      </z-accordion-title>
-      <z-accordion-description class="!flex-none">
-        <z-switch
-          labelPosition="before"
-          [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
-          zPosition="top"
-          [checked]="primary()?.enabled"
-          (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
-          (click)="$event.stopPropagation()"
-          zSize="sm"
-        >
-        </z-switch>
-      </z-accordion-description>
-    </z-accordion-header>
-
-    <xp-copilot-form [copilot]="primary()" (saved)="copilotServer.refresh()" />
-  </z-accordion-item>
-
-  @for (copilot of copilots(); track copilot.id) {
-    <z-accordion-item
-      #expansion="zAccordionItem"
-      hideToggle
-      class="shadow-sm rounded-[1rem]"
-      [disabled]="!copilot.enabled"
-      [expanded]="copilot.id === selectedCopilotId() && copilot.enabled"
+    <div
+      class="flex flex-wrap items-center gap-1"
+      role="group"
+      [attr.aria-label]="'XP.Copilot.Management.Status' | translate"
     >
-      <z-accordion-header>
-        <z-accordion-title>
-          <div [zTooltip]="copilot.id" zPosition="left" class="flex">
-            @if (copilot.modelProvider?.provider && !expansion.expanded) {
-              @if (copilot.modelProvider.provider.icon_large) {
-                <img
-                  alt="provider-icon"
-                  class="w-auto h-6 ml-2"
-                  [src]="copilot.modelProvider.provider.icon_large | i18n"
-                />
-              } @else {
-                @if (copilot.modelProvider.provider.icon_small) {
+      @for (filter of filters; track filter) {
+        <button
+          z-button
+          [zType]="status() === filter ? 'secondary' : 'ghost'"
+          [attr.aria-pressed]="status() === filter"
+          (click)="status.set(filter)"
+        >
+          {{ 'XP.Copilot.Management.Filter.' + filter | translate }}
+          <span class="text-text-tertiary">{{ count(filter) }}</span>
+        </button>
+      }
+    </div>
+    @if (search() || status() !== 'all') {
+      <button z-button zType="ghost" (click)="search.set(''); status.set('all')">
+        {{ 'XP.Copilot.ClearFilters' | translate }}
+      </button>
+    }
+    <span class="ml-auto text-sm text-text-tertiary">{{
+      (organizationId() ? 'XP.Copilot.Management.OrganizationScope' : 'XP.Copilot.Management.SystemScope') | translate
+    }}</span>
+  </div>
+  @if (error()) {
+    <div role="alert" class="mb-4 flex items-center gap-3 text-destructive">
+      {{ error() }}<button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    </div>
+  }
+  @if (loading() && !schemas().length) {
+    <p role="status" class="py-12 text-center text-text-tertiary">{{ 'XP.KEY_WORDS.Loading' | translate }}</p>
+  }
+  <div class="space-y-3">
+    @for (group of filtered(); track group.id) {
+      <section class="overflow-hidden rounded-xl border border-border bg-muted/30">
+        @if (active(group); as connection) {
+          <copilot-provider
+            [providerId]="connection.modelProvider.id"
+            [modelSearch]="search()"
+            [managedConnections]="true"
+            (changed)="refresh()"
+            (addedModel)="refresh()"
+            (modelsImported)="refresh()"
+          >
+            <xp-provider-plugin-version
+              provider-version
+              [source]="group.schema.plugin"
+              [plugin]="providerPlugin(group.schema)"
+              (updated)="refresh()"
+            />
+            <xp-provider-connections
+              connection-controls
+              [connections]="group.connections"
+              [selectedId]="connection.id"
+              [catalogs]="catalogs()"
+              [catalogErrors]="catalogErrors()"
+              (selected)="choose(group, $event)"
+              (edit)="editConnection(group.schema, $event)"
+              (toggle)="toggleConnection($event)"
+              (add)="addProvider(group.schema)"
+            />
+          </copilot-provider>
+        } @else {
+          <div class="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div>
+              <div class="flex flex-wrap items-center gap-3">
+                @if (group.schema.icon_small) {
                   <img
-                    alt="provider-icon"
-                    class="w-auto h-6 ml-2"
-                    [src]="copilot.modelProvider.provider.icon_small | i18n"
+                    [src]="group.schema.icon_small | i18n"
+                    [alt]="group.schema.label | i18n"
+                    class="h-8 w-8 object-contain"
                   />
                 }
-                <span class="ml-2">{{ copilot.modelProvider.provider.label | i18n }}</span>
-              }
-            }
-          </div>
-
-          <div class="ml-2 flex items-center justify-start">
-            @if (editingId() === copilot.id) {
-              <input
-                z-input
-                zSize="sm"
-                class="min-w-0 flex-1"
-                cdkFocusInitial
-                type="text"
-                [(ngModel)]="name"
-                (click)="$event.stopPropagation()"
-              />
-              <button
-                z-button
-                zType="ghost"
-                zSize="sm"
-                class="ml-2 w-4 h-4 shrink-0 rounded-full"
-                type="button"
-                (click)="$event.stopPropagation(); saveCopilotName(copilot)"
-              >
-                <i class="ri-check-line text-lg"></i>
-              </button>
-            } @else {
-              <div
-                [ngClass]="expansion.expanded ? 'cursor-text' : ''"
-                (click)="expansion.expanded ? editName($event, copilot) : null"
-              >
-                @if (copilot.name) {
-                  {{ copilot.name }}
-                } @else {
-                  {{
-                    'XP.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
-                  }}
-                  {{ 'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
+                <h3 class="text-lg font-semibold">{{ group.schema.label | i18n }}</h3>
+                <xp-provider-plugin-version
+                  [source]="group.schema.plugin"
+                  [plugin]="providerPlugin(group.schema)"
+                  (updated)="refresh()"
+                />
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs text-text-tertiary">
+                @for (type of group.schema.supported_model_types; track type) {
+                  <z-badge zType="outline">{{
+                    'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type }
+                  }}</z-badge>
                 }
               </div>
-            }
-          </div>
-        </z-accordion-title>
-        <z-accordion-description class="!flex-none">
-          <z-switch
-            labelPosition="before"
-            [zTooltip]="'XP.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
-            zPosition="top"
-            [checked]="copilot.enabled"
-            (change)="onToggle(copilot, null, copilot.enabled, expansion)"
-            (click)="$event.stopPropagation()"
-            zSize="sm"
-          >
-          </z-switch>
-          @if (!copilot.enabled) {
-            <button
-              type="button"
-              class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
-              [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-              zPosition="top"
-              (click)="deleteCopilot(copilot)"
+            </div>
+            <div
+              class="flex w-52 max-w-full flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-1.5 shadow-sm"
             >
-              <i class="ri-close-line"></i>
-            </button>
-          }
-        </z-accordion-description>
-      </z-accordion-header>
-
-      <xp-copilot-form [copilot]="copilot" (saved)="copilotServer.refresh()" />
-    </z-accordion-item>
-  }
-</z-accordion>
-
-<div class="flex justify-end mt-2">
-  <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">
-    <i class="ri-apps-2-add-line"></i> {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
-  </button>
-</div>
-
-<ng-template #addMenu>
-  <div cdkMenu class="cdk-menu__large w-[200px] divide-y-2 p-2">
-    @for (provider of providers(); track provider.value) {
-      <div cdkMenuItem (click)="addProvider(provider.value)">
-        {{ 'XP.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
-      </div>
+              <p class="px-2 text-sm font-medium text-text-secondary">
+                {{ 'XP.Copilot.Management.ApiKeyRequired' | translate }}
+              </p>
+              <button z-button class="w-full gap-2 pointer-coarse:min-h-[44px]" (click)="addProvider(group.schema)">
+                <i class="ri-equalizer-line" aria-hidden="true"></i>{{ 'XP.Copilot.Management.AddApiKey' | translate }}
+              </button>
+            </div>
+          </div>
+          <p class="flex items-center gap-2 border-t border-border px-5 py-3 text-sm text-text-tertiary">
+            <i class="ri-information-fill text-primary" aria-hidden="true"></i
+            >{{ 'XP.Copilot.Management.PendingHint' | translate }}
+          </p>
+        }
+      </section>
+    } @empty {
+      @if (!loading()) {
+        <p class="py-12 text-center text-text-tertiary">{{ 'XP.Copilot.Management.NoProviders' | translate }}</p>
+      }
     }
   </div>
-</ng-template>
-
-@if (loading()) {
-  <xp-spin class="absolute top-0 left-0 w-full h-full" />
-}
+  @if (schemas().length || !loading()) {
+    @defer (on viewport) {
+      <xp-provider-marketplace (providersChanged)="refresh()" />
+    } @placeholder {
+      <section class="mt-8 min-h-48 border-t border-border pt-6">
+        <h2 class="text-lg font-semibold">{{ 'XP.Copilot.Management.Marketplace.Title' | translate }}</h2>
+      </section>
+    }
+  }
+</div>

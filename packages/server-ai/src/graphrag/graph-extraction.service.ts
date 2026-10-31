@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
-    AiProviderRole,
+    DefaultModelRole,
     GraphRagConfig,
     ICopilot,
     IKnowledgebase,
@@ -16,7 +16,7 @@ import {
 import { RequestContext } from '@xpert-ai/server-core'
 import { EntityManager, IsNull, Repository } from 'typeorm'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
-import { CopilotOneByRoleQuery } from '../copilot/queries'
+import { ResolveDefaultModelQuery } from '../copilot/queries'
 import { TDocChunkMetadata } from '../knowledge-document/types'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { identityFingerprint } from '../knowledgebase/identity/knowledge-identity-catalogue'
@@ -230,11 +230,11 @@ export class KnowledgeGraphExtractionService {
             )
         }
 
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
-            new CopilotOneByRoleQuery(
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot>(
+            new ResolveDefaultModelQuery(
                 RequestContext.currentTenantId() ?? knowledgebase.tenantId,
                 RequestContext.getOrganizationId() ?? knowledgebase.organizationId,
-                AiProviderRole.Primary,
+                DefaultModelRole.Primary,
                 ['copilotModel']
             )
         )

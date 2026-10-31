@@ -1,0 +1,142 @@
+<section xpDialogLayout="wide" class="w-[min(760px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
+      {{ (editingRole() ? 'XP.Copilot.Parameters' : 'XP.Copilot.Management.DefaultModels') | translate }}
+    </h2>
+    <p xpDialogDescription>{{ 'XP.Copilot.Management.DefaultModelsHint' | translate }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      [zDisabled]="saving()"
+      (click)="dialog.close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    @if (editingRole()) {
+      <p class="font-medium">{{ parameterModel()?.model }}</p>
+      @if (parametersLoading()) {
+        <p role="status">{{ 'XP.Copilot.Management.LoadingRules' | translate }}</p>
+      }
+      @if (parameterError()) {
+        <p role="alert" class="text-destructive">{{ parameterError() }}</p>
+      }
+      @for (rule of rules(); track rule.name) {
+        <div class="flex items-center justify-between gap-4 border-b border-border py-3">
+          <span>{{ rule.label | i18n }}</span
+          ><copilot-model-parameter-input
+            [parameter]="rule"
+            [ngModel]="parameterModel()?.options?.[rule.name]"
+            (ngModelChange)="setParameter(rule.name, $event)"
+          />
+        </div>
+      }
+      @if (resolvedParameters().missing.length) {
+        <p class="text-destructive">
+          {{ 'XP.Copilot.Management.MissingParameters' | translate }}: {{ resolvedParameters().missing.join(', ') }}
+        </p>
+      }
+    } @else {
+      <p class="text-sm text-muted-foreground">
+        {{
+          (organizationId() ? 'XP.Copilot.Management.OrganizationScope' : 'XP.Copilot.Management.SystemScope')
+            | translate
+        }}
+      </p>
+      <div>
+        @for (row of settings(); track row.role) {
+          <div class="space-y-2 border-b border-border py-3">
+            <div class="flex items-center justify-between gap-4">
+              <label class="font-medium">{{ label(row.role) | translate }} </label>
+              <z-select
+                class="w-44 shrink-0"
+                [attr.aria-label]="(label(row.role) | translate) + ' ' + ('XP.Copilot.Management.Mode' | translate)"
+                [ngModel]="row.mode"
+                (ngModelChange)="setMode(row.role, $event)"
+              >
+                @if (row.mode === 'legacy') {
+                  <z-select-item zValue="legacy">{{ 'XP.Copilot.Management.LegacyDefault' | translate }}</z-select-item>
+                }
+                <z-select-item zValue="fixed">{{ 'XP.Copilot.Management.SpecifyModel' | translate }}</z-select-item>
+                @if (organizationId()) {
+                  <z-select-item zValue="inherit">{{
+                    'XP.Copilot.Management.InheritSystem' | translate
+                  }}</z-select-item>
+                }
+                <z-select-item zValue="disabled">{{ 'XP.Copilot.Management.NotConfigured' | translate }}</z-select-item>
+              </z-select>
+            </div>
+            @if (row.mode !== 'disabled') {
+              <div class="flex items-center gap-3">
+                <copilot-model-select
+                  class="min-w-0 flex-1"
+                  [modelType]="type(row.role)"
+                  [ngModel]="row.binding"
+                  (ngModelChange)="setBinding(row.role, $event)"
+                  [hiddenLabel]="true"
+                  [showParameters]="false"
+                  [confirmChanges]="false"
+                  [readonly]="row.mode === 'inherit'"
+                  [clearable]="false"
+                />
+                <button
+                  z-button
+                  zType="ghost"
+                  [zDisabled]="!row.binding || row.mode === 'inherit'"
+                  (click)="editParameters(row)"
+                >
+                  <i class="ri-equalizer-line" aria-hidden="true"></i>{{ 'XP.Copilot.Parameters' | translate }}
+                </button>
+              </div>
+              @if (row.binding && !row.available) {
+                <p class="text-sm text-destructive">
+                  {{ 'XP.Copilot.Management.Unavailable' | translate }}: {{ row.binding.model }}
+                </p>
+              }
+            }
+            @if (row.role === roles.Embedding) {
+              <p class="text-sm text-muted-foreground">
+                {{ 'XP.Copilot.Management.EmbeddingDefaultHint' | translate }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+      <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Management.DefaultImpactHint' | translate }}</p>
+      @if (loading()) {
+        <p role="status">{{ 'XP.KEY_WORDS.Loading' | translate }}</p>
+      }
+      @if (error()) {
+        <p role="alert" class="text-destructive">{{ error() }}</p>
+        <button z-button zType="ghost" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+      }
+    }
+  </div>
+  <footer xpDialogFooter>
+    @if (editingRole()) {
+      <button z-button zType="outline" (click)="cancelParameters()">{{ 'XP.ACTIONS.Back' | translate }}</button
+      ><button
+        z-button
+        [zDisabled]="parametersLoading() || !!parameterError() || !!resolvedParameters().missing.length"
+        (click)="applyParameters()"
+      >
+        {{ 'XP.ACTIONS.Save' | translate }}
+      </button>
+    } @else {
+      <button z-button zType="outline" [zDisabled]="saving()" (click)="dialog.close()">
+        {{ 'XP.ACTIONS.Cancel' | translate }}</button
+      ><button
+        z-button
+        [zLoading]="saving()"
+        [zDisabled]="loading() || saving() || !settings().length"
+        (click)="save()"
+      >
+        {{ 'XP.ACTIONS.Save' | translate }}
+      </button>
+    }
+  </footer>
+</section>

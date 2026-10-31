@@ -1,3 +1,4 @@
+import { toSignal } from '@angular/core/rxjs-interop'
 import {
   XpDialogFrameImports,
   ZardButtonComponent,
@@ -14,11 +15,10 @@ import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  AiProviderRole,
+  DefaultModelRole,
   CopilotServerService,
   getErrorMessage,
   ICopilotModel,
-  injectCopilots,
   ToastrService
 } from '../../../@core'
 import { PRESET_INSTRUCTIONS } from './agent'
@@ -53,7 +53,6 @@ export class CopilotPromptGeneratorComponent {
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly #copilotAPI = inject(CopilotServerService)
-  readonly #copilots = injectCopilots()
   readonly PRESET_INSTRUCTIONS = PRESET_INSTRUCTIONS
 
   readonly instructions = model<string>('')
@@ -66,9 +65,8 @@ export class CopilotPromptGeneratorComponent {
   readonly loading = signal(false)
   readonly show = signal(false)
 
-  readonly inheritCopilotModel = computed(
-    () => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel
-  )
+  readonly resolvedDefault = toSignal(this.#copilotAPI.getDefaultModel(DefaultModelRole.Primary))
+  readonly inheritCopilotModel = computed(() => this.resolvedDefault()?.copilotModel)
 
   generate() {
     this.loading.set(true)

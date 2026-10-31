@@ -1,4 +1,9 @@
-import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
+import { ModelTypeIconComponent } from '../model-presentation/model-type-icon.component'
+import { ZardIconComponent, ZardBadgeComponent } from '@xpert-ai/headless-ui'
+import { ZardMenuImports, ZardMenuDirective } from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
+import { ModelSwitchDialogComponent } from '../model-switch/switch.component'
+import { ModelParametersDialogComponent } from '../model-switch/parameters.component'
 import { CommonModule } from '@angular/common'
 import {
   afterNextRender,
@@ -20,13 +25,15 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModu
 import { XpDialogControlDirective, XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, XpI18nPipe, nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { map, of } from 'rxjs'
+import { firstValueFrom, map, of } from 'rxjs'
+import { ExternalLink, SlidersHorizontal } from 'lucide-angular'
 import {
   AiModelTypeEnum,
   ModelFeature,
   ModelPropertyKey,
   normalizeModelParameterValue,
-  resolveModelParameterOptions
+  resolveModelParameterOptions,
+  sameModelIdentity
 } from '@xpert-ai/contracts'
 import type {
   I18nObject,
@@ -55,16 +62,18 @@ const MODEL_MENU_MAX_HEIGHT = 560
 const MODEL_MENU_VIEWPORT_MARGIN = 16
 const MODEL_MENU_TRIGGER_GAP = 8
 const MODEL_INLINE_TAGS_MIN_WIDTH = 720
-const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
 
 @Component({
   standalone: true,
   imports: [
+    ZardIconComponent,
+    ZardBadgeComponent,
+    ModelTypeIconComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    CdkMenuModule,
+    ...ZardMenuImports,
     ...ZardTabsImports,
     ...ZardTooltipImports,
     XpI18nPipe,
@@ -92,6 +101,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly i18n = new XpI18nPipe()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #dialog = inject(Dialog)
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
@@ -99,6 +109,8 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   /** Undefined uses the shared catalog; an empty list allows no models. */
   readonly allowedModels = input<ReadonlyArray<Pick<ICopilotModel, 'copilotId' | 'model' | 'modelType'>>>()
   readonly showParameters = input(true, { transform: booleanAttribute })
+  /** Parent configuration dialogs validate and save their own model changes. */
+  readonly confirmChanges = input(true, { transform: booleanAttribute })
   readonly inheritModel = input<ICopilotModel>()
   readonly copilotModel = input<ICopilotModel>()
 
@@ -121,8 +133,10 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly label = input<string | I18nObject>()
 
   readonly modelDisplayTags = providerModelDisplayTags
+  readonly parametersIcon = SlidersHorizontal
+  readonly externalLinkIcon = ExternalLink
   readonly interactionDisabled = computed(() => this.readonly() || this.disabled())
-  private readonly menuTriggers = viewChildren(CdkMenuTrigger)
+  private readonly menuTriggers = viewChildren(ZardMenuDirective)
 
   // States
   readonly __copilotModel = computed(() => this.value$() ?? this.copilotModel())
@@ -448,25 +462,55 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     )
   }
 
-  setModel(copilot: ICopilot, model: ProviderModel) {
+  async setModel(copilot: ICopilot, model: ProviderModel) {
+    if (this.interactionDisabled()) return
     const currentValue = this.value$()
     const effectiveValue = currentValue ?? this._copilotModel()
     const nextModelType = this.modelType()
     const nValue = this.withModelContextSize(
       {
-        options:
-          effectiveValue?.copilotId === copilot.id &&
-          effectiveValue?.model === model.model &&
-          effectiveValue?.modelType === nextModelType
-            ? this.cloneOptions(effectiveValue.options)
-            : this.clientOptions(effectiveValue?.options),
+        options: undefined,
         model: model.model,
         copilotId: copilot.id,
-        modelType: nextModelType
+        modelType: model.model_type ?? nextModelType
       },
       model
     )
-    this.updateValue(nValue)
+    if (sameModelIdentity(effectiveValue, nValue)) return
+    if (!this.confirmChanges()) {
+      this.updateValue(nValue)
+      return
+    }
+    for (const trigger of this.menuTriggers()) trigger.close()
+    const result = await firstValueFrom(
+      this.#dialog.open<ICopilotModel>(ModelSwitchDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: {
+          previous: effectiveValue,
+          target: nValue,
+          providerId: copilot.modelProvider?.id,
+          connectionName: copilot.name
+        }
+      }).closed
+    )
+    if (result && !this.#destroyRef.destroyed && this.value$() === currentValue) this.updateValue(result)
+  }
+
+  async editParameters(event: Event) {
+    event.stopPropagation()
+    if (this.interactionDisabled() || !this._copilotModel()?.model || !this.providerId()) return
+    const current = this.value$()
+    const result = await firstValueFrom(
+      this.#dialog.open<ICopilotModel>(ModelParametersDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: { model: this._copilotModel(), providerId: this.providerId() }
+      }).closed
+    )
+    if (result && !this.#destroyRef.destroyed && this.value$() === current) this.updateValue(result)
   }
 
   getParameter(name: string) {
@@ -536,10 +580,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   showInlineModelTags(menuWidth: number | null | undefined, menuRailWidth: number | null | undefined) {
     return (menuWidth ?? 0) - (menuRailWidth ?? 0) >= MODEL_INLINE_TAGS_MIN_WIDTH
-  }
-
-  showInlineSelectedModelTags(container: HTMLElement | null | undefined) {
-    return (container?.getBoundingClientRect().width ?? 0) >= SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH
   }
 
   getMenuWidth(container: HTMLElement | null | undefined) {
@@ -709,7 +749,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   private getMenuRailBounds(containerWidth: number | null | undefined) {
     const min = 72
     const fallbackMax = 220
-    const fallbackDefault = 88
+    const fallbackDefault = 220
 
     if (!containerWidth) {
       return {
@@ -720,7 +760,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     }
 
     const max = Math.max(min + 32, Math.min(fallbackMax, Math.floor(containerWidth - 220)))
-    const defaultWidth = Math.min(max, Math.max(min, Math.floor(containerWidth * 0.13)))
+    const defaultWidth = Math.min(max, Math.max(176, Math.floor(containerWidth * 0.28)))
 
     return {
       min,

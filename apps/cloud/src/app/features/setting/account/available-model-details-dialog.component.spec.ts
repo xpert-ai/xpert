@@ -149,4 +149,24 @@ describe('available model properties and parameters', () => {
     expect(fixture.nativeElement.textContent).toContain('XP.ModelSettings.NoParameters')
     fixture.destroy()
   })
+  it('reuses the dialog for managed catalog metadata without consulting the consumer catalog', () => {
+    const metadata = findAvailableModelMetadata(item, [copilot])
+    const getCopilotModels = jest.fn()
+    const getModelParameterRules = jest.fn(() => of([]))
+    TestBed.configureTestingModule({
+      imports: [AvailableModelDetailsDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        { provide: DIALOG_DATA, useValue: { item, metadata } },
+        { provide: DialogRef, useValue: { close: jest.fn() } },
+        { provide: CopilotServerService, useValue: { getCopilotModels } },
+        { provide: CopilotProviderService, useValue: { getModelParameterRules } }
+      ]
+    })
+    const fixture = TestBed.createComponent(AvailableModelDetailsDialogComponent)
+    fixture.detectChanges()
+    expect(getCopilotModels).not.toHaveBeenCalled()
+    expect(getModelParameterRules).toHaveBeenCalledWith('provider-instance-a', AiModelTypeEnum.LLM, 'reasoner')
+    expect(fixture.nativeElement.textContent).toContain('131,072')
+    fixture.destroy()
+  })
 })

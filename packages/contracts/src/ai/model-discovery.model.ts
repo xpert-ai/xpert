@@ -188,6 +188,7 @@ export interface ProviderModelCatalog {
   builtin: Array<ProviderModel & Partial<Pick<AIModelEntity, 'parameter_rules'>>>
   discoverySupported: boolean
   modelDiscovery?: ModelDiscoveryState
+  enabledModels?: import('./model-management.model').EnabledModelSelection[]
 }
 
 export const modelImportSchema = z

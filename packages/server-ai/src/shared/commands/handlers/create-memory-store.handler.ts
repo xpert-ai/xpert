@@ -1,12 +1,12 @@
 import { hasGroupRuntime } from '../../../chat-group/group-runtime-context'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseStore } from '@langchain/langgraph-checkpoint'
-import { AiProviderRole, ICopilot, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { DefaultModelRole, ICopilot, mapTranslationLanguage } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
-import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../../../copilot'
+import { CopilotGetOneQuery, ResolveDefaultModelQuery } from '../../../copilot'
 import { CopilotModelGetEmbeddingsQuery } from '../../../copilot-model'
 import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { CopilotNotFoundException } from '../../../core'
@@ -34,7 +34,7 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
             )
         } else {
             copilot = await this.queryBus.execute(
-                new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding, [
+                new ResolveDefaultModelQuery(tenantId, organizationId, DefaultModelRole.Embedding, [
                     'copilotModel',
                     'modelProvider'
                 ])

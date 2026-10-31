@@ -14,9 +14,9 @@ import { matchWithValidator } from '@cloud/app/auth'
 import { injectOrganization, ITenant, Store } from '@cloud/app/@core/state'
 import { XpCommonModule } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { combineLatest, filter, firstValueFrom, map, switchMap } from 'rxjs'
+import { filter, firstValueFrom, switchMap } from 'rxjs'
 import {
-  AiProviderRole,
+  DefaultModelRole,
   AuthStrategy,
   BonusTypeEnum,
   CopilotServerService,
@@ -24,7 +24,6 @@ import {
   DEFAULT_TENANT,
   DefaultValueDateTypeEnum,
   IOrganization,
-  ICopilot,
   TenantService,
   ToastrService,
   getErrorMessage,
@@ -73,16 +72,12 @@ export class TenantDetailsComponent {
     confirmPassword: ['', [Validators.required, Validators.minLength(8), matchWithValidator(this.password)]]
   })
 
-  readonly orgCopilots = toSignal(
-    combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
-      filter(([, organization]) => !!organization?.id),
-      switchMap(() => this.#copilotServer.getAllInOrg()),
-      map(({ items }) => items)
+  readonly primaryCopilot = toSignal(
+    toObservable(this.selectedOrganization).pipe(
+      filter((organization) => !!organization?.id),
+      switchMap(() => this.#copilotServer.getDefaultModelSetup(DefaultModelRole.Primary))
     ),
-    { initialValue: [] as ICopilot[] }
-  )
-  readonly primaryCopilot = computed(
-    () => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null
+    { initialValue: null }
   )
   readonly showAiModelForm = computed(() => !!this.primaryCopilot()?.enabled)
 
@@ -194,7 +189,7 @@ export class TenantDetailsComponent {
         this.primaryCopilotCreatedInOnboarding.set(true)
       }
 
-      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
+      await firstValueFrom(this.#copilotServer.prepareDefaultModelSetup(DefaultModelRole.Primary))
       this.#copilotServer.refresh()
     } catch (error) {
       this.aiModelSetupRequested.set(false)

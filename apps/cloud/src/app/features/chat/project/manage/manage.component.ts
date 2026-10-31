@@ -1,3 +1,4 @@
+import { toSignal } from '@angular/core/rxjs-interop'
 import {
   XpDialogFrameImports,
   ZardButtonComponent,
@@ -22,10 +23,10 @@ import { XP_API_BASE_URL } from '@cloud/app/auth'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  AiProviderRole,
+  CopilotServerService,
+  DefaultModelRole,
   getErrorMessage,
   IIntegration,
-  injectCopilots,
   injectToastr,
   injectUser,
   IXpertProject,
@@ -62,7 +63,6 @@ export class ChatProjectManageComponent {
   readonly #data = inject<{ id: string }>(DIALOG_DATA)
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = injectI18nService()
-  readonly #copilots = injectCopilots()
   // readonly integrationAPI = injectIntegrationAPI()
   readonly API_BASE_URL = inject(XP_API_BASE_URL)
 
@@ -83,9 +83,8 @@ export class ChatProjectManageComponent {
   readonly name = computed(() => this.project()?.name)
   readonly owner = computed(() => this.project()?.owner)
   readonly copilotModel = attrModel(this.project, 'copilotModel')
-  readonly primaryCopilot = computed(
-    () => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel
-  )
+  readonly resolvedDefault = toSignal(inject(CopilotServerService).getDefaultModel(DefaultModelRole.Primary))
+  readonly primaryCopilot = computed(() => this.resolvedDefault()?.copilotModel)
 
   readonly integrations = model<IIntegration[]>(null)
   // readonly integrations = toSignal(this.integrationAPI.getAllInOrg().pipe(map(({ items }) => items)))

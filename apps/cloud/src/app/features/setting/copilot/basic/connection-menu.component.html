@@ -1,0 +1,152 @@
+@if (current(); as active) {
+  <div class="flex w-52 max-w-full flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-1.5 shadow-sm">
+    <div
+      class="flex min-w-0 items-center gap-2 px-2 text-sm font-medium"
+      [title]="'XP.Copilot.Management.ConnectionState.' + active.state | translate"
+    >
+      <z-icon
+        [zType]="active.state === 'invalid' || active.state === 'catalogError' ? 'circle-alert' : 'circle-small'"
+        [ngClass]="stateClasses[active.state]"
+        [class]="active.state === 'invalid' || active.state === 'catalogError' ? '' : 'fill-current'"
+        aria-hidden="true"
+      />
+      <span class="min-w-0 truncate" [title]="active.name">{{ active.name }}</span>
+    </div>
+    <button
+      #connectionTrigger
+      z-button
+      zType="outline"
+      type="button"
+      class="w-full gap-2 pointer-coarse:min-h-[44px]"
+      zPopover
+      [zContent]="connectionList"
+      zPlacement="bottom"
+      zAlign="end"
+      (zVisibleChange)="open.set($event)"
+      [attr.aria-expanded]="open()"
+      aria-haspopup="dialog"
+      [attr.aria-label]="('XP.Copilot.Management.ConnectionManagerTitle' | translate) + ' · ' + active.name"
+      [title]="'XP.Copilot.Management.ConnectionState.' + active.state | translate"
+    >
+      <z-icon [zType]="icons.sliders" aria-hidden="true" />{{ 'XP.Copilot.Configure' | translate }}
+      <z-icon zType="chevron-down" class="text-muted-foreground" aria-hidden="true" />
+    </button>
+  </div>
+}
+
+<ng-template #connectionList>
+  <z-popover
+    class="flex max-h-[min(640px,calc(100dvh-32px))] w-[min(460px,calc(100vw-32px))] flex-col overflow-hidden rounded-xl p-0 text-[14px]"
+    role="dialog"
+    [attr.aria-labelledby]="titleId()"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+  >
+    <header class="flex shrink-0 items-center justify-between gap-4 px-5 py-4">
+      <h4 [id]="titleId()" class="text-[16px] font-semibold">
+        {{ 'XP.Copilot.Management.ConnectionManagerTitle' | translate }}
+      </h4>
+      <span class="text-[12px] text-muted-foreground">{{
+        'XP.Copilot.Management.ConnectionCount' | translate: { count: rows().length }
+      }}</span>
+    </header>
+    <div class="min-h-0 overflow-y-auto px-2 pb-2">
+      @for (row of rows(); track row.connection.id) {
+        <div
+          class="flex items-center gap-2 rounded-lg px-2 py-3"
+          [class]="row.connection.id === selectedId() ? 'bg-accent' : ''"
+        >
+          <button
+            z-button
+            zType="ghost"
+            type="button"
+            class="h-auto min-w-0 flex-1 justify-start gap-3 px-1 py-1 text-left hover:bg-transparent"
+            [attr.aria-pressed]="row.connection.id === selectedId()"
+            (click)="choose(row.connection.id)"
+          >
+            <z-icon
+              zType="check"
+              class="text-primary"
+              [class]="row.connection.id === selectedId() ? '' : 'invisible'"
+              aria-hidden="true"
+            />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[14px] font-semibold" [title]="row.name">{{ row.name }}</span>
+              <span class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-normal text-muted-foreground">
+                <z-icon
+                  [zType]="row.state === 'invalid' || row.state === 'catalogError' ? 'circle-alert' : 'circle-small'"
+                  [ngClass]="stateClasses[row.state]"
+                  [class]="row.state === 'invalid' || row.state === 'catalogError' ? '' : 'fill-current'"
+                  zSize="sm"
+                  aria-hidden="true"
+                />
+                <span>{{ 'XP.Copilot.Management.ConnectionState.' + row.state | translate }}</span>
+                @if (row.count !== null && row.state === 'enabled') {
+                  <span>· {{ 'XP.Copilot.Management.ConnectionModelCount' | translate: { count: row.count } }}</span>
+                }
+              </span>
+            </span>
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            class="h-[36px] shrink-0 gap-1.5 text-[14px] pointer-coarse:min-h-[44px]"
+            [attr.aria-label]="('XP.ACTIONS.Edit' | translate) + ' ' + row.name"
+            (click)="editConnection(row.connection)"
+          >
+            <z-icon [zType]="icons.pencil" aria-hidden="true" />{{ 'XP.ACTIONS.Edit' | translate }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            zSize="icon"
+            type="button"
+            class="size-[36px] shrink-0 pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
+            z-menu
+            [zMenuTriggerFor]="connectionActions"
+            [zMenuTriggerData]="{ connection: row.connection }"
+            zPlacement="bottomRight"
+            [attr.aria-label]="('XP.Copilot.Management.ConnectionActions' | translate) + ' ' + row.name"
+          >
+            <z-icon zType="ellipsis" aria-hidden="true" />
+          </button>
+        </div>
+      }
+    </div>
+    <footer class="shrink-0 border-t border-border px-4 py-4">
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        class="h-[36px] w-full gap-2 text-[14px] pointer-coarse:min-h-[44px]"
+        (click)="addConnection()"
+      >
+        <z-icon zType="plus" aria-hidden="true" />{{ 'XP.Copilot.Management.AddConnection' | translate }}
+      </button>
+      <p class="mt-3 flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground">
+        <z-icon zType="info" zSize="sm" class="mt-0.5" aria-hidden="true" />{{
+          'XP.Copilot.Management.ConnectionViewHint' | translate
+        }}
+      </p>
+    </footer>
+  </z-popover>
+</ng-template>
+
+<ng-template #connectionActions let-connection="connection">
+  <div z-menu-content>
+    <button
+      z-menu-item
+      type="button"
+      [zType]="connection.enabled ? 'destructive' : 'default'"
+      [class]="connection.enabled ? 'danger' : ''"
+      (menuItemTriggered)="toggleConnection(connection)"
+    >
+      <z-icon [zType]="icons.power" aria-hidden="true" />
+      {{
+        (connection.enabled ? 'XP.Copilot.Management.DisableConnection' : 'XP.Copilot.Management.EnableConnection')
+          | translate
+      }}
+    </button>
+  </div>
+</ng-template>

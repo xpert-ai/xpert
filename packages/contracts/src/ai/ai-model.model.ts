@@ -62,6 +62,8 @@ export interface ICopilotWithProvider extends ICopilot {
 
 export interface IAiProviderEntity {
   provider: string
+  /** Runtime registry provenance; never infer a plugin package from the provider name. */
+  plugin?: { name: string; version?: string; scopeKey: string }
   label: I18nObject
   description: I18nObject
   icon_small: I18nObject
@@ -77,6 +79,15 @@ export interface IAiProviderEntity {
    * Not yet implemented, your contribution is needed
    */
   not_implemented?: boolean
+}
+
+/** Custom-model providers without a shared credential schema validate credentials per model. */
+export function usesModelScopedCredentials(provider: Partial<IAiProviderEntity> | null | undefined): boolean {
+  return (
+    provider?.configurate_methods?.includes(ConfigurateMethod.CUSTOMIZABLE_MODEL) === true &&
+    !provider.provider_credential_schema &&
+    !!provider.model_credential_schema
+  )
 }
 
 export interface ProviderHelpInfo {

@@ -1,3 +1,6 @@
+import { ConnectionReferencesService } from './connection-references.service'
+import { CopilotModel } from '../copilot-model/copilot-model.entity'
+import { Xpert } from '../xpert/xpert.entity'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -14,11 +17,14 @@ import { CopilotProviderModule } from '../copilot-provider'
 import { MembershipModule } from '../membership'
 import { ModelAccessModule } from '../model-access'
 import { PrimaryModelSmokeService } from './primary-model-smoke.service'
+import { CopilotRoleDefault } from './role-defaults/role-default.entity'
+import { CopilotRoleDefaultService } from './role-defaults/role-default.service'
+import { CopilotRoleDefaultController } from './role-defaults/role-default.controller'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
-        TypeOrmModule.forFeature([Copilot]),
+        TypeOrmModule.forFeature([Copilot, CopilotRoleDefault, CopilotModel, Xpert]),
         TenantModule,
         CqrsModule,
         UserModule,
@@ -27,8 +33,15 @@ import { PrimaryModelSmokeService } from './primary-model-smoke.service'
         MembershipModule,
         ModelAccessModule
     ],
-    controllers: [CopilotController],
-    providers: [CopilotService, PrimaryModelSmokeService, ...QueryHandlers, ...CommandHandlers],
+    controllers: [CopilotRoleDefaultController, CopilotController],
+    providers: [
+        ConnectionReferencesService,
+        CopilotService,
+        CopilotRoleDefaultService,
+        PrimaryModelSmokeService,
+        ...QueryHandlers,
+        ...CommandHandlers
+    ],
     exports: [CopilotService]
 })
 export class CopilotModule {}

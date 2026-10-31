@@ -1,6 +1,7 @@
-<section xpDialogLayout="wide" class="w-[min(520px,calc(100vw-32px))] max-h-[84dvh]">
+<section xpDialogLayout="wide" class="w-[min(680px,calc(100vw-32px))] max-h-[84dvh]">
   <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h2 xpDialogHeading>{{ 'XP.Copilot.Setup' | translate: { Default: 'Setup' } }} {{ provider().label | i18n }}</h2>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Management.ConnectionSettings' | translate }}</h2>
+    <p xpDialogDescription>{{ provider().label | i18n }}</p>
     <button
       xpDialogCloseButton
       z-button
@@ -14,6 +15,17 @@
     </button>
   </header>
   <div xpDialogBody>
+    <label class="flex flex-col gap-2"
+      ><span>{{ 'XP.Copilot.Management.ConnectionName' | translate }} *</span
+      ><input
+        z-input
+        autocomplete="off"
+        name="provider-connection-name"
+        [(ngModel)]="connectionName"
+        required
+        maxlength="100"
+        [disabled]="loading()"
+    /></label>
     <div class="relative">
       <copilot-credential-form
         #credentialsForm
@@ -24,86 +36,103 @@
         <xp-spin class="absolute inset-0" />
       }
     </div>
-    @if (modelCapabilities(); as config) {
-      <div class="mt-4 flex flex-col gap-2">
-        <label for="credential-test-model" class="font-medium">{{
-          'XP.Copilot.CredentialValidation.Model' | translate
-        }}</label>
-        @if (config.modelTypes.length > 1) {
-          <select
-            class="rounded-lg border border-input bg-background px-3 py-2"
-            [attr.aria-label]="'XP.Copilot.CredentialValidation.ModelType' | translate"
-            [ngModel]="modelType()"
-            (ngModelChange)="changeModelType($event)"
-            [disabled]="loading()"
-          >
-            @for (type of config.modelTypes; track type) {
-              <option [value]="type">{{ type }}</option>
-            }
-          </select>
-        }
-        <input
-          z-input
-          id="credential-test-model"
-          list="credential-test-models"
-          autocomplete="off"
-          [ngModel]="testModel()"
-          (ngModelChange)="testModel.set($event)"
-          [disabled]="loading()"
-          [placeholder]="'XP.Copilot.CredentialValidation.ModelPlaceholder' | translate"
-        />
-        <datalist id="credential-test-models">
-          @for (entry of suggestedModels(); track entry.model) {
-            <option [value]="entry.model"></option>
-          }
-        </datalist>
-        <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ModelHint' | translate }}</p>
-      </div>
+    @if (modelScopedCredentials()) {
+      <p class="mt-4 text-sm text-muted-foreground">
+        {{ 'XP.Copilot.Management.ModelScopedCredentialsHint' | translate }}
+      </p>
+    } @else if (!providerId()) {
+      <p class="mt-4 text-sm text-muted-foreground">{{ 'XP.Copilot.Management.AutoEnableModelsHint' | translate }}</p>
     }
-    <div class="mt-4 flex items-center gap-3">
-      <button
-        z-button
-        zType="secondary"
-        type="button"
-        [zDisabled]="credentialsForm.invalid || !canTest()"
-        [zLoading]="testing() || loadingCapabilities()"
-        (click)="testCredentials()"
-      >
-        {{
-          (capabilities()?.method === 'discovery'
-            ? 'XP.Copilot.CredentialValidation.FetchAndVerify'
-            : 'XP.Copilot.CredentialValidation.Test'
-          ) | translate
-        }}
-      </button>
-      @if (!capabilities() && !loadingCapabilities()) {
-        <button z-button zType="ghost" type="button" (click)="loadCapabilities()">
-          {{ 'XP.Copilot.CredentialValidation.Retry' | translate }}
-        </button>
-      }
-    </div>
-    @if (validationResult(); as result) {
-      <div role="status" class="mt-3 text-sm">
-        @if (result.method === 'discovery') {
-          <p>{{ 'XP.Copilot.CredentialValidation.ListVerified' | translate: { count: result.models.length } }}</p>
-          @if (result.models.length) {
-            <ul class="mt-2 max-h-40 overflow-auto rounded-lg border border-border p-3">
-              @for (entry of result.models; track entry.model) {
-                <li class="break-all py-1">
-                  {{ entry.label }} <span class="text-muted-foreground">{{ entry.model }}</span>
-                </li>
+    @if (!modelScopedCredentials()) {
+      @if (modelCapabilities(); as config) {
+        <div class="mt-4 flex flex-col gap-2">
+          <label for="credential-test-model" class="font-medium">{{
+            'XP.Copilot.CredentialValidation.Model' | translate
+          }}</label>
+          @if (config.modelTypes.length > 1) {
+            <z-select
+              class="min-w-44"
+              [attr.aria-label]="'XP.Copilot.CredentialValidation.ModelType' | translate"
+              [ngModel]="modelType()"
+              (ngModelChange)="changeModelType($event)"
+              [zDisabled]="loading()"
+            >
+              @for (type of config.modelTypes; track type) {
+                <z-select-item [zValue]="type">{{ type }}</z-select-item>
               }
-            </ul>
-          } @else {
-            <p class="text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.Empty' | translate }}</p>
+            </z-select>
           }
-          <p class="mt-2 text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ListHint' | translate }}</p>
-        } @else if (result.method === 'model') {
-          <p>{{ 'XP.Copilot.CredentialValidation.ModelVerified' | translate: { model: result.target.model } }}</p>
-        } @else {
-          <p>{{ 'XP.Copilot.CredentialValidation.Verified' | translate }}</p>
+          <input
+            z-input
+            id="credential-test-model"
+            autocomplete="off"
+            [ngModel]="testModel()"
+            (ngModelChange)="testModel.set($event)"
+            [disabled]="loading()"
+            [placeholder]="'XP.Copilot.CredentialValidation.ModelPlaceholder' | translate"
+          />
+          @if (suggestedModels().length) {
+            <z-select
+              [zSearchable]="true"
+              [ngModel]="testModel()"
+              (ngModelChange)="testModel.set($event)"
+              [zDisabled]="loading()"
+              [zPlaceholder]="'XP.Copilot.Management.SuggestedModels' | translate"
+              [zLabel]="'XP.Copilot.Management.SuggestedModels' | translate"
+            >
+              @for (entry of suggestedModels(); track entry.model) {
+                <z-select-item [zValue]="entry.model">{{ entry.model }}</z-select-item>
+              }
+            </z-select>
+          }
+          <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ModelHint' | translate }}</p>
+        </div>
+      }
+      <div class="mt-4 flex items-center gap-3">
+        <button
+          z-button
+          zType="secondary"
+          type="button"
+          [zDisabled]="credentialsForm.invalid || !canTest()"
+          [zLoading]="testing() || loadingCapabilities()"
+          (click)="testCredentials()"
+        >
+          {{
+            (capabilities()?.method === 'discovery'
+              ? 'XP.Copilot.CredentialValidation.FetchAndVerify'
+              : 'XP.Copilot.CredentialValidation.Test'
+            ) | translate
+          }}
+        </button>
+        @if (!capabilities() && !loadingCapabilities()) {
+          <button z-button zType="ghost" type="button" (click)="loadCapabilities()">
+            {{ 'XP.Copilot.CredentialValidation.Retry' | translate }}
+          </button>
         }
       </div>
+      @if (validationResult(); as result) {
+        <div role="status" class="mt-3 text-sm">
+          @if (result.method === 'discovery') {
+            <p>{{ 'XP.Copilot.CredentialValidation.ListVerified' | translate: { count: result.models.length } }}</p>
+            @if (result.models.length) {
+              <ul class="mt-2 max-h-40 overflow-auto divide-y divide-border">
+                @for (entry of result.models; track entry.model) {
+                  <li class="break-all py-1">
+                    {{ entry.label }} <span class="text-muted-foreground">{{ entry.model }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.Empty' | translate }}</p>
+            }
+            <p class="mt-2 text-muted-foreground">{{ 'XP.Copilot.CredentialValidation.ListHint' | translate }}</p>
+          } @else if (result.method === 'model') {
+            <p>{{ 'XP.Copilot.CredentialValidation.ModelVerified' | translate: { model: result.target.model } }}</p>
+          } @else {
+            <p>{{ 'XP.Copilot.CredentialValidation.Verified' | translate }}</p>
+          }
+        </div>
+      }
     }
     @if (error()) {
       <p role="alert" class="mt-3 break-words text-sm text-destructive">{{ error() }}</p>
@@ -125,7 +154,14 @@
       z-button
       zType="default"
       type="button"
-      [zDisabled]="credentialsForm.invalid || loading() || testing() || !dirty() || !validationResult()"
+      [zDisabled]="
+        credentialsForm.invalid ||
+        !connectionName().trim() ||
+        loading() ||
+        testing() ||
+        !dirty() ||
+        (!modelScopedCredentials() && !validationResult())
+      "
       [zLoading]="loading()"
       (click)="apply()"
     >

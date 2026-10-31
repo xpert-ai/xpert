@@ -1,59 +1,58 @@
-import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { defaultModelDefinition, ICopilot, isProviderModelEnabled } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { CopilotRoleDefaultService } from '../../role-defaults/role-default.service'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotService } from '../../copilot.service'
 import { CopilotWithProviderDto } from '../../dto'
 import { FindCopilotModelsQuery } from '../copilot-model-find.query'
-import { CopilotOneByRoleQuery } from '../get-one-by-role.query'
+import { ResolveDefaultModelQuery } from '../resolve-default-model.query'
 
-@QueryHandler(CopilotOneByRoleQuery)
-export class CopilotOneByRoleHandler implements IQueryHandler<CopilotOneByRoleQuery> {
+@QueryHandler(ResolveDefaultModelQuery)
+export class CopilotOneByRoleHandler implements IQueryHandler<ResolveDefaultModelQuery> {
     constructor(
         private readonly service: CopilotService,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly roleDefaults: CopilotRoleDefaultService
     ) {}
 
-    public async execute(command: CopilotOneByRoleQuery): Promise<ICopilot> {
-        const items = await this.service.findAllAvailablesCopilots(
-            command.tenantId,
-            command.organizationId,
-            {
-                role: command.role
-            },
-            command.relations
-        )
-        if (items.length) {
-            return items[0]
-        }
-
-        // Role lookup must honor the same model grants as the governed catalog.
-        // Its request-scoped query cannot be used for a different background scope.
-        if (
-            !RequestContext.currentUserId() ||
-            RequestContext.currentTenantId() !== command.tenantId ||
-            (RequestContext.getOrganizationId() ?? null) !== (command.organizationId ?? null)
-        ) {
-            return null
-        }
-        const modelType =
-            command.role === AiProviderRole.Embedding ? AiModelTypeEnum.TEXT_EMBEDDING : AiModelTypeEnum.LLM
-        const catalog = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-            new FindCopilotModelsQuery(modelType)
-        )
+    public async execute(command: ResolveDefaultModelQuery): Promise<ICopilot> {
+        const definition = defaultModelDefinition(command.role)
+        const resolved = await this.roleDefaults.resolve(command.tenantId, command.organizationId ?? null, command.role)
+        const binding = resolved.binding
+        if (!binding || binding.modelType !== definition.modelType) return null
         const candidates = await this.service.findAllEnabledCopilotsWithoutMembership(
             command.tenantId,
             command.organizationId,
-            { role: command.role },
+            { id: binding.copilotId },
             command.relations
         )
-        return (
-            candidates.find((copilot) =>
-                catalog.some(
-                    (entry) =>
-                        entry.id === copilot.id &&
-                        entry.providerWithModels.models.some((model) => model.model === copilot.copilotModel?.model)
-                )
-            ) ?? null
+        const connection = candidates.find((item) => item.id === binding.copilotId)
+        if (
+            !connection?.modelProvider ||
+            connection.modelProvider.isValid === false ||
+            !isProviderModelEnabled(connection.modelProvider, { model: binding.model, modelType: binding.modelType })
         )
+            return null
+        if (RequestContext.currentUserId()) {
+            if (
+                RequestContext.currentTenantId() !== command.tenantId ||
+                (RequestContext.getOrganizationId() ?? null) !== (command.organizationId ?? null)
+            )
+                return null
+            const catalog = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
+                new FindCopilotModelsQuery(binding.modelType)
+            )
+            if (
+                !catalog.some(
+                    (item) =>
+                        item.id === binding.copilotId &&
+                        item.providerWithModels.models.some(
+                            (model) => model.model === binding.model && model.model_type === binding.modelType
+                        )
+                )
+            )
+                return null
+        }
+        return { ...connection, copilotModel: { ...binding } }
     }
 }

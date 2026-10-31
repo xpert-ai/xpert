@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { ReactiveFormsModule } from '@angular/forms'
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -11,6 +11,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import type { MembershipAdminComponent } from './membership.component'
 
 /** Presentation only: the existing membership controller owns validation and mutations. */
@@ -19,6 +20,7 @@ import type { MembershipAdminComponent } from './membership.component'
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
@@ -34,5 +36,22 @@ import type { MembershipAdminComponent } from './membership.component'
   host: { class: 'block min-w-0' }
 })
 export class MembershipPlanEditorComponent {
+  readonly modelFilter = signal('')
+  readonly modelSearch = signal('')
+  readonly modelTypes = Object.values(AiModelTypeEnum)
+  filteredModels() {
+    return this.admin()
+      .allowedModelOptions()
+      .filter(
+        (option) =>
+          (!this.modelFilter() || option.modelType === this.modelFilter()) &&
+          this.admin().modelTargetLabel(option).toLowerCase().includes(this.modelSearch().toLowerCase())
+      )
+  }
+  toggleModel(value: string, checked: boolean) {
+    const selected = new Set(this.admin().allowedModelValues())
+    checked ? selected.add(value) : selected.delete(value)
+    this.admin().setAllowedModelValues([...selected])
+  }
   readonly admin = input.required<MembershipAdminComponent>()
 }

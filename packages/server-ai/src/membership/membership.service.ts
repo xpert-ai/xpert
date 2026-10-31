@@ -1,3 +1,4 @@
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import {
     AIPermissionsEnum,
     AiFeatureEnum,
@@ -2651,7 +2652,8 @@ export class MembershipService {
                 access.membership.plan,
                 input.provider,
                 input.model,
-                modelAccess?.copilotId ?? input.copilotId
+                modelAccess?.copilotId ?? input.copilotId,
+                modelAccess?.modelType
             )
         }
 
@@ -2728,7 +2730,13 @@ export class MembershipService {
             }
             if (input.modelAccess?.accessSource !== ModelAccessSourceEnum.Grant) {
                 this.assertCopilotScopeMatches(access, input.copilotOrganizationId)
-                this.assertModelAllowed(access.membership.plan, input.provider, input.model, input.copilotId)
+                this.assertModelAllowed(
+                    access.membership.plan,
+                    input.provider,
+                    input.model,
+                    input.copilotId,
+                    input.modelAccess?.modelType
+                )
             }
 
             const { membership, organizationId } = access
@@ -3102,7 +3110,8 @@ export class MembershipService {
         plan: Pick<IMembershipPlan, 'allowedModels'>,
         provider?: string,
         model?: string,
-        copilotId?: string
+        copilotId?: string,
+        modelType?: AiModelTypeEnum
     ): boolean {
         const allowedModels = plan.allowedModels ?? []
         if (!allowedModels.length) {
@@ -3119,7 +3128,8 @@ export class MembershipService {
             (rule) =>
                 (rule.provider === '*' || rule.provider === providerName) &&
                 (rule.model === '*' || rule.model === modelName) &&
-                (!rule.copilotId?.trim() || rule.copilotId.trim() === copilotId?.trim())
+                (!rule.copilotId?.trim() || rule.copilotId.trim() === copilotId?.trim()) &&
+                (!rule.modelType || rule.modelType === modelType)
         )
     }
 
@@ -5090,8 +5100,14 @@ export class MembershipService {
         }
     }
 
-    private assertModelAllowed(plan: IMembershipPlan, provider?: string, model?: string, copilotId?: string) {
-        if (!this.isModelAllowed(plan, provider, model, copilotId)) {
+    private assertModelAllowed(
+        plan: IMembershipPlan,
+        provider?: string,
+        model?: string,
+        copilotId?: string,
+        modelType?: AiModelTypeEnum
+    ) {
+        if (!this.isModelAllowed(plan, provider, model, copilotId, modelType)) {
             throw new ExceedingLimitException(
                 this.translateMembershipError(
                     'server-ai:Error.CopilotModelUnavailableForMembershipPlan',
@@ -5207,7 +5223,13 @@ export class MembershipService {
                     )
                 )
             }
-            return copilotId ? { provider, model, copilotId } : { provider, model }
+            const modelType =
+                typeof item === 'object' && item !== null && 'modelType' in item
+                    ? Object.values(AiModelTypeEnum).find((type) => type === item.modelType)
+                    : undefined
+            if (item.modelType && !modelType)
+                throw new BadRequestException(t('server-ai:Error.InvalidMembershipAllowedModels'))
+            return { provider, model, ...(copilotId ? { copilotId } : {}), ...(modelType ? { modelType } : {}) }
         })
     }
 

@@ -14,6 +14,7 @@ import { AIModelModule } from '../ai-model'
 import { ModelAccessModule } from '../model-access'
 import { ModelDiscoveryController } from './model-discovery/model-discovery.controller'
 import { ModelDiscoveryService } from './model-discovery/model-discovery.service'
+import { EnabledModelsController } from './models/enabled-models.controller'
 
 @Module({
     imports: [
@@ -26,7 +27,7 @@ import { ModelDiscoveryService } from './model-discovery/model-discovery.service
         AIModelModule,
         ModelAccessModule
     ],
-    controllers: [ModelDiscoveryController, CopilotProviderController],
+    controllers: [EnabledModelsController, ModelDiscoveryController, CopilotProviderController],
     providers: [
         CopilotProviderService,
         CopilotProviderModelService,

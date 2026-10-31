@@ -1,4 +1,5 @@
-import { AiProviderRole, ICopilotModel, ICopilotWithProvider } from '@xpert-ai/contracts'
+import type { DefaultModelRole } from '@xpert-ai/contracts'
+import { LegacyProviderRole, ICopilotModel, ICopilotWithProvider } from '@xpert-ai/contracts'
 import { Expose, Exclude } from 'class-transformer'
 import { ProviderWithModelsDto } from './provider-with-models'
 import { CopilotProviderPublicDto } from '../../copilot-provider/dto'
@@ -8,8 +9,10 @@ export class CopilotWithProviderDto implements Partial<ICopilotWithProvider> {
     id: string
     name?: string
     organizationId?: string | null
-    role?: AiProviderRole
+    role?: LegacyProviderRole
     copilotModel?: ICopilotModel
+    defaultModels?: Partial<Record<DefaultModelRole, ICopilotModel>>
+    configuredDefaultRoles?: DefaultModelRole[]
 
     modelProvider: CopilotProviderPublicDto
     providerWithModels: ProviderWithModelsDto

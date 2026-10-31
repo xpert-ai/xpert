@@ -2,6 +2,7 @@ import {
     AiFeatureEnum,
     AiModelTypeEnum,
     isConfiguredModelAvailable,
+    isProviderModelEnabled,
     usesConfiguredModelCatalog,
     AIPermissionsEnum,
     IModelAccessAdminQuery,
@@ -358,7 +359,8 @@ export class ModelAccessService {
                     membershipAccess.membership.plan,
                     target.provider,
                     target.model,
-                    target.copilotId
+                    target.copilotId,
+                    target.modelType
                 )
             const multiplier = planIncluded
                 ? this.membershipService.resolveModelMultiplierForPlan(
@@ -638,7 +640,8 @@ export class ModelAccessService {
                 membershipAccess.membership.plan,
                 target.provider,
                 target.model,
-                target.copilotId
+                target.copilotId,
+                target.modelType
             )
         const multiplier = planIncluded
             ? this.membershipService.resolveModelMultiplierForPlan(
@@ -2114,6 +2117,10 @@ export class ModelAccessService {
                     : (predefined?.features ?? legacyModelFeatures(custom?.modelProperties)),
             deprecated: predefined?.deprecated === true,
             enabled:
+                isProviderModelEnabled(copilot.modelProvider, {
+                    model: input.copilotModelId,
+                    modelType: input.modelType
+                }) &&
                 catalogModelExists &&
                 isConfiguredModelAvailable(copilot.modelProvider, custom) &&
                 copilot.enabled === true &&
@@ -2351,7 +2358,8 @@ export class ModelAccessService {
                 access.membership.plan,
                 target.provider,
                 target.model,
-                target.copilotId
+                target.copilotId,
+                target.modelType
             )
         )
     }
@@ -2387,11 +2395,25 @@ export class ModelAccessService {
 
             if (
                 !usesConfiguredModelCatalog(modelProvider) &&
-                provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)
+                provider
+                    .getProviderModels()
+                    ?.some(
+                        (model) =>
+                            !!model.model &&
+                            model.deprecated !== true &&
+                            isProviderModelEnabled(modelProvider, { model: model.model, modelType: model.model_type })
+                    )
             ) {
                 return true
             }
-            if (!usesConfiguredModelCatalog(modelProvider) && copilot.copilotModel?.model) {
+            if (
+                !usesConfiguredModelCatalog(modelProvider) &&
+                copilot.copilotModel?.model &&
+                isProviderModelEnabled(modelProvider, {
+                    model: copilot.copilotModel.model,
+                    modelType: copilot.copilotModel.modelType
+                })
+            ) {
                 return true
             }
 
@@ -2404,7 +2426,10 @@ export class ModelAccessService {
             if (
                 customModels.some(
                     (model) =>
-                        !!model.modelName && model.isValid !== false && isConfiguredModelAvailable(modelProvider, model)
+                        !!model.modelName &&
+                        model.isValid !== false &&
+                        isConfiguredModelAvailable(modelProvider, model) &&
+                        isProviderModelEnabled(modelProvider, { model: model.modelName, modelType: model.modelType })
                 )
             ) {
                 return true

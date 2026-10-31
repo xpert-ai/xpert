@@ -1,7 +1,13 @@
+import { t } from 'i18next'
+import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
-    AiProviderRole,
+    LegacyProviderRole,
+    DefaultModelRole,
+    defaultModelRoleSchema,
+    defaultModelDefinition,
+    legacyProviderRoleSchema,
     IAiProviderEntity,
     ICopilot,
     ICopilotModel
@@ -18,6 +24,7 @@ import {
     TransformInterceptor
 } from '@xpert-ai/server-core'
 import {
+    BadRequestException,
     Body,
     Controller,
     Get,
@@ -52,19 +59,68 @@ import { CopilotService } from './copilot.service'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
 import {
     CopilotModelCatalogMode,
-    CopilotOneByRoleQuery,
+    ResolveDefaultModelQuery,
     FindCopilotModelsQuery,
     ModelParameterRulesQuery
 } from './queries'
 import { GeneratePromptCommand } from './commands/'
 import { MembershipService } from '../membership'
 import { PrimaryModelSmokeService } from './primary-model-smoke.service'
+import { CopilotRoleDefaultService } from './role-defaults/role-default.service'
 
 @ApiTags('Copilot')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class CopilotController extends CrudController<Copilot> {
+    @Get('default-models/:role/setup')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async getDefaultSetup(
+        @Param(
+            'role',
+            new ZodValidationPipe(
+                defaultModelRoleSchema,
+                () => new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            )
+        )
+        role: DefaultModelRole
+    ) {
+        const connection = await this.defaults.setupConnection(role)
+        return connection ? new CopilotDto(connection, this.baseUrl) : null
+    }
+
+    @Post('default-models/:role/setup')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async prepareDefaultSetup(
+        @Param(
+            'role',
+            new ZodValidationPipe(
+                defaultModelRoleSchema,
+                () => new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            )
+        )
+        role: DefaultModelRole
+    ) {
+        const connection = await this.defaults.setupConnection(role)
+        if (connection) {
+            if (!connection.enabled) await this.service.update(connection.id, { enabled: true })
+        } else {
+            // Compatibility for the existing credential-first onboarding placeholder.
+            const legacyRole = defaultModelDefinition(role).legacyRole
+            if (!legacyRole) throw new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            await this.service.enableRole(legacyRole)
+        }
+        return this.getDefaultSetup(role)
+    }
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    @Get(':id/references')
+    async connectionReferences(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.connectionReferences(id)
+    }
+
     @Inject(PrimaryModelSmokeService)
     private readonly primaryModelSmoke: PrimaryModelSmokeService
 
@@ -86,7 +142,8 @@ export class CopilotController extends CrudController<Copilot> {
         private readonly service: CopilotService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly membershipService: MembershipService
+        private readonly membershipService: MembershipService,
+        private readonly defaults: CopilotRoleDefaultService
     ) {
         super(service)
     }
@@ -112,10 +169,19 @@ export class CopilotController extends CrudController<Copilot> {
         return items.map((item) => new CopilotDto(item, this.baseUrl))
     }
 
-    @Get('availables/:role')
-    async findAvailableByRole(@Param('role') role: AiProviderRole): Promise<CopilotDto | null> {
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
-            new CopilotOneByRoleQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), role, [
+    @Get(['default-models/:role', 'availables/:role'])
+    async findAvailableByRole(
+        @Param(
+            'role',
+            new ZodValidationPipe(
+                defaultModelRoleSchema,
+                () => new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            )
+        )
+        role: DefaultModelRole
+    ): Promise<CopilotDto | null> {
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot>(
+            new ResolveDefaultModelQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), role, [
                 'copilotModel'
             ])
         )
@@ -167,14 +233,32 @@ export class CopilotController extends CrudController<Copilot> {
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)
     @Post('enable/:role')
-    async enableCopilotRole(@Param('role') role: AiProviderRole) {
+    async enableCopilotRole(
+        @Param(
+            'role',
+            new ZodValidationPipe(
+                legacyProviderRoleSchema,
+                () => new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            )
+        )
+        role: LegacyProviderRole
+    ) {
         await this.service.enableRole(role)
     }
 
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)
     @Post('disable/:role')
-    async disableCopilotRole(@Param('role') role: AiProviderRole) {
+    async disableCopilotRole(
+        @Param(
+            'role',
+            new ZodValidationPipe(
+                legacyProviderRoleSchema,
+                () => new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            )
+        )
+        role: LegacyProviderRole
+    ) {
         const copilot = await this.service.findOne({ where: { role } })
         await this.service.update(copilot.id, { enabled: false })
     }

@@ -1,232 +1,158 @@
-<div class="group flex pl-3 py-2 pr-2 rounded-t-xl">
-  <div class="grow px-1 pt-1 pb-0.5">
-    @if (icon()) {
-      <div class="flex items-center">
-        <img alt="provider-icon" [src]="icon() | i18n" class="w-auto h-8 mb-2" />
-      </div>
-    }
-    @if (!largeIcon()) {
-      <div class="flex items-center">
-        {{ label() | i18n }}
-      </div>
-    }
-
-    <div class="flex gap-0.5">
-      @for (modelType of supported_model_types(); track modelType) {
-        <div
-          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default"
-        >
-          {{ modelType }}
-        </div>
+<header class="flex flex-wrap items-start justify-between gap-4 p-5">
+  <div class="min-w-0">
+    <div class="flex items-center gap-3">
+      @if (smallIcon()) {
+        <img [alt]="label() | i18n" [src]="smallIcon() | i18n" class="h-8 w-8 object-contain" />
+      }
+      <h3 class="text-lg font-semibold text-text-primary">{{ label() | i18n }}</h3>
+      <ng-content select="[provider-version]" />
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2 text-xs text-text-tertiary">
+      @for (type of supported_model_types(); track type) {
+        <z-badge zType="outline">{{ 'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}</z-badge>
       }
     </div>
   </div>
-
-  <div class="flex items-start">
-    @if (!readonly()) {
-      <button
-        class="btn btn-small btn-danger h8 rounded-md items-center justify-center cursor-pointer z-20 hidden group-hover:flex"
-        (click)="delete()"
+  <div class="flex min-w-0 max-w-full flex-wrap items-center gap-3">
+    <ng-content select="[connection-controls]" />
+    @if (!managedConnections()) {
+      <span
+        class="text-sm"
+        [class]="copilotProvider()?.isValid === false ? 'text-destructive' : 'text-muted-foreground'"
+        >{{
+          (copilotProvider()?.isValid === false
+            ? 'XP.Copilot.Management.ConnectionError'
+            : copilotProvider()?.options?.enabledModels?.length === 0
+              ? 'XP.Copilot.Management.Filter.pending'
+              : 'XP.Copilot.Management.Configured'
+          ) | translate
+        }}</span
       >
-        <i class="ri-delete-bin-line"></i>
-      </button>
+      @if (!readonly()) {
+        <button z-button zType="outline" (click)="openSetup()">
+          <i class="ri-equalizer-line" aria-hidden="true"></i>{{ 'XP.Copilot.Configure' | translate }}
+        </button>
+      }
     }
   </div>
-
-  @if (usage(); as usage) {
-    <div
-      class="group relative shrink-0 min-w-[112px] px-3 py-2 rounded-lg bg-components-card-bg border-[0.5px] border-divider-regular text-text-tertiary"
-    >
-      <div class="flex items-center mb-2 h-4 text-sm font-medium text-text-tertiary">
-        {{ 'XP.Copilot.Quota' | translate: { Default: 'Quota' } }}
-        <div
-          class="p-[1px] w-5 h-5 shrink-0"
-          [zTooltip]="
-            'XP.Copilot.FreeTrialTokenQuota'
-              | translate
-                : {
-                    Default:
-                      'The free trial token quota becomes invalid after the organization\'s custom copilot is enabled.'
-                  }
-          "
-          zPosition="top"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            class="text-text-quaternary hover:text-text-tertiary w-full h-full"
-          >
-            <path
-              d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM13 13.3551V14H11V12.5C11 11.9477 11.4477 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.2723 8.5 10.6656 9.01823 10.5288 9.70577L8.56731 9.31346C8.88637 7.70919 10.302 6.5 12 6.5C13.933 6.5 15.5 8.067 15.5 10C15.5 11.5855 14.4457 12.9248 13 13.3551Z"
-            ></path>
-          </svg>
-        </div>
-      </div>
-      <div class="flex items-center h-4 text-sm text-text-tertiary">
-        @if (usage.tokenLimit) {
-          <span class="mr-0.5 text-sm font-semibold text-text-secondary">{{ usage.tokenLimit | number }}</span>
-        } @else {
-          <span class="mr-0.5 text-sm font-semibold text-text-secondary">∞</span>
-        }
-        {{ 'XP.Copilot.Tokens' | translate: { Default: 'Tokens' } }}
-      </div>
-      <div
-        class="text-xs"
-        [ngClass]="{
-          'text-text-warning': usageWarn(),
-          'text-red-500': usageError()
-        }"
-      >
-        {{ 'XP.Copilot.Remain' | translate: { Default: 'Remain' } }}:
-        @if (usage.tokenLimit) {
-          {{ tokenRemain() | number: '0.0-0' }}
-        } @else {
-          100
-        }
-        %
-      </div>
-    </div>
-  }
-
-  @if (provider_credential_schema()) {
-    <div
-      class="shrink-0 relative flex flex-col justify-between ml-1 p-1 w-[112px] rounded-lg bg-components-card-bg border-[0.5px] border-divider-regular"
-    >
-      <div
-        class="relative flex items-center justify-between mb-1 pt-1 pl-2 pr-[7px] h-5 text-sm font-medium text-text-tertiary"
-      >
-        API-KEY
-        <div class="xpert-status-indicator xpert-status-indicator--success"></div>
-      </div>
-
-      <div class="flex items-center gap-0.5">
-        <button
-          type="button"
-          class="btn disabled:btn-disabled btn-secondary btn-small grow items-center"
-          [disabled]="readonly()"
-          (click)="openSetup()"
-        >
-          <i class="ri-settings-5-line mr-1"></i>
-          {{ 'XP.Copilot.Setup' | translate: { Default: 'Setup' } }}
+</header>
+<div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2">
+  <button
+    z-button
+    zType="ghost"
+    [zDisabled]="matchedRows().length > 0"
+    (click)="toggleShowModels()"
+    [attr.aria-expanded]="modelsExpanded()"
+  >
+    <i [class]="modelsExpanded() ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'" aria-hidden="true"></i
+    >{{ (modelsExpanded() ? 'XP.Copilot.Collapse' : 'XP.Copilot.Management.ShowModels') | translate }}
+    <span class="text-text-tertiary">{{ enabledCount() }} / {{ modelCount() }}</span>
+  </button>
+  @if (!readonly()) {
+    <div class="flex flex-wrap items-center gap-2">
+      <button z-button zType="ghost" (click)="manageModels()">
+        <i class="ri-list-check" aria-hidden="true"></i>{{ 'XP.Copilot.Management.ManageModels' | translate }}
+      </button>
+      @if (discoverySupported()) {
+        <button z-button zType="ghost" (click)="discoverModels()">
+          <i class="ri-download-cloud-line" aria-hidden="true"></i>{{ 'XP.Copilot.Discovery.Title' | translate }}
         </button>
-      </div>
+      }
+      @if (canCustomizableModel()) {
+        <button z-button zType="ghost" (click)="addModel()">
+          <i class="ri-add-line" aria-hidden="true"></i>{{ 'XP.Copilot.AddModel' | translate }}
+        </button>
+      }
     </div>
   }
 </div>
-
-@if (isShowModels()) {
-  <div class="px-2 pb-2 rounded-b-xl">
-    <div class="py-1 bg-components-panel-bg rounded-lg">
-      <div class="flex items-center pl-1 pr-[3px]">
-        <span class="group shrink-0 flex items-center mr-2">
-          <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-text-tertiary">
-            {{ modelCount() }} {{ 'XP.Copilot.Models' | translate: { Default: 'Models' } }}
-          </span>
-          <span
-            class="hidden group-hover:inline-flex items-center pl-1 pr-1.5 h-6 text-sm font-medium text-text-tertiary bg-background-default-subtle cursor-pointer rounded-lg"
-            (click)="toggleShowModels()"
-          >
-            <i class="ri-arrow-up-double-line"></i>
-            {{ 'XP.Copilot.Collapse' | translate: { Default: 'Collapse' } }}
-          </span>
-        </span>
-        <ng-container *ngTemplateOutlet="modelActions" />
-      </div>
-
-      @for (model of modelRows(); track model.key) {
-        <div
-          class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg"
-          [class]="model.deprecated ? 'opacity-60' : ''"
-          [zTooltip]="model.deprecated ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
-          zPosition="left"
-        >
-          @if (smallIcon()) {
-            <img alt="model-icon" class="w-4 h-4 shrink-0 mr-2" [src]="smallIcon() | i18n" />
-          }
-
-          <div class="flex min-w-0 items-center overflow-hidden text-[13px] grow text-sm font-normal text-text-primary">
-            <div class="min-w-0 truncate" [title]="model.name">{{ model.name }}</div>
-            <span class="ml-2 shrink-0 text-xs text-text-tertiary">{{
-              'XP.Copilot.Discovery.ModelSource.' + model.source | translate
-            }}</span>
-            @if (model.configuredModel && !modelAvailable(model.configuredModel)) {
-              <span class="ml-2 shrink-0 text-xs text-text-warning">{{
-                'XP.Copilot.Discovery.NotReturned' | translate
-              }}</span>
-            }
-            @for (tag of model.tags; track tag.id) {
-              <div
-                class="flex shrink-0 items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
-              >
-                @if (tag.iconClass) {
-                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
+@if (modelsExpanded()) {
+  <div class="overflow-x-auto border-t border-border">
+    <table z-table class="w-full text-left text-sm">
+      <thead z-table-header>
+        <tr z-table-row>
+          <th z-table-head class="w-14 pl-5">{{ 'XP.ModelSettings.Type' | translate }}</th>
+          <th z-table-head>{{ 'XP.Copilot.Model' | translate }}</th>
+          <th z-table-head>{{ 'XP.ModelSettings.Capabilities' | translate }}</th>
+          <th z-table-head class="whitespace-nowrap">{{ 'XP.ModelSettings.ContextSize' | translate }} (tokens)</th>
+          <th z-table-head>{{ 'XP.Copilot.Management.Status' | translate }}</th>
+          <th z-table-head class="text-right pr-5">{{ 'XP.ModelSettings.PropertiesAndParameters' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @for (row of visibleRows(); track row.key) {
+          <tr z-table-row>
+            <td z-table-cell class="py-3 pl-5 text-muted-foreground">
+              @let typeLabel = 'XP.ModelAccess.ModelTypeValue.' + row.modelType | translate;
+              <span
+                class="inline-flex size-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                tabindex="0"
+                role="img"
+                [attr.aria-label]="typeLabel"
+                [zTooltip]="typeLabel"
+                ><xp-model-type-icon [type]="row.modelType"
+              /></span>
+            </td>
+            <td z-table-cell class="max-w-72 py-3">
+              <h4 class="truncate font-medium" [title]="row.name">{{ (row.label | i18n) || row.name }}</h4>
+            </td>
+            <td z-table-cell class="py-3">
+              <div class="flex w-72 items-center gap-1.5 pointer-coarse:w-[32rem]">
+                @for (feature of row.features; track feature) {
+                  <xp-model-capability-tag [feature]="feature" />
                 }
-                {{ tag.defaultText }}
+                @if (!row.features.length) {
+                  <span class="text-xs text-muted-foreground">—</span>
+                }
               </div>
-            }
-          </div>
-
-          @if (model.configuredModel && !readonly() && canCustomizableModel()) {
-            <button
-              z-button
-              zType="secondary"
-              zSize="sm"
-              type="button"
-              class="shrink-0"
-              (click)="editModel(model.configuredModel)"
-            >
-              <i class="ri-settings-5-line"></i>
-              {{ 'XP.Copilot.Configure' | translate: { Default: 'Configure' } }}
-            </button>
-          }
-        </div>
-      }
-    </div>
-  </div>
-} @else {
-  <div
-    class="group rounded-xl flex items-center justify-between pl-2 py-1.5 pr-[11px] border-t border-t-divider-regular bg-components-card-bg text-sm font-medium text-text-tertiary"
-  >
-    <div class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6">
-      {{
-        'XP.Copilot.ShowNModels'
-          | translate: { value: modelCount() || '', Default: 'Show ' + (modelCount() || '') + ' Models' }
-      }}
-    </div>
-    <div
-      class="hidden group-hover:flex items-center pl-1 pr-1.5 h-6 rounded-lg hover:bg-hover-bg cursor-pointer"
-      (click)="toggleShowModels()"
-    >
-      <i class="ri-arrow-down-double-line"></i>
-      {{
-        'XP.Copilot.ShowNModels'
-          | translate: { value: modelCount() || '', Default: 'Show ' + (modelCount() || '') + ' Models' }
-      }}
-    </div>
-
-    <ng-container *ngTemplateOutlet="modelActions" />
+            </td>
+            <td z-table-cell class="whitespace-nowrap py-3 text-xs tabular-nums text-muted-foreground">
+              @if (row.contextSize; as size) {
+                <span [zTooltip]="(size | number) + ' tokens'" [attr.aria-label]="(size | number) + ' tokens'">
+                  @if (size >= 1000000) {
+                    {{ size / 1000000 | number: '1.0-2' }}M
+                  } @else if (size >= 1000) {
+                    {{ size / 1000 | number: '1.0-2' }}K
+                  } @else {
+                    {{ size | number }}
+                  }
+                </span>
+              } @else {
+                —
+              }
+            </td>
+            <td z-table-cell class="py-3">
+              <z-badge zType="secondary" class="whitespace-nowrap">{{
+                (rowEnabled(row) ? 'XP.Copilot.Management.Enabled' : 'XP.Copilot.Management.NotEnabled') | translate
+              }}</z-badge>
+            </td>
+            <td z-table-cell class="whitespace-nowrap py-3 pr-5 text-right">
+              <button z-button zType="ghost" (click)="showProperties(row)">
+                {{ 'XP.ModelSettings.PropertiesAndParameters' | translate }}<z-icon zType="chevron-right" />
+              </button>
+              @if (row.configuredModel && !readonly() && canCustomizableModel()) {
+                <button
+                  z-button
+                  zType="ghost"
+                  (click)="editModel(row.configuredModel)"
+                  [attr.aria-label]="('XP.Copilot.Configure' | translate) + ' ' + row.name"
+                >
+                  {{ 'XP.Copilot.Configure' | translate }}<z-icon zType="chevron-right" />
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="6" class="py-6 text-center text-muted-foreground">
+              {{ 'XP.Copilot.Management.NoModels' | translate }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
 }
-
-<ng-template #modelActions>
-  @if (!readonly() && canCustomizableModel()) {
-    <div class="grow flex items-center justify-end gap-2">
-      @if (discoverySupported()) {
-        <button z-button zType="secondary" zSize="sm" type="button" (click)="discoverModels()">
-          <i class="ri-download-cloud-line"></i>{{ 'XP.Copilot.Discovery.Title' | translate }}
-        </button>
-      }
-      <button z-button zType="secondary" zSize="sm" type="button" (click)="addModel()">
-        <i class="ri-add-circle-line"></i>
-        {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
-      </button>
-    </div>
-  }
-</ng-template>
-
 @if (loading()) {
-  <xp-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute inset-0" />
 }

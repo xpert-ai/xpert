@@ -1,76 +1,76 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
-import { AiProviderRole, ICopilot } from '@xpert-ai/contracts'
+import { DefaultModelRole, ICopilot } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { CopilotService } from '../../copilot.service'
-import { CopilotOneByRoleQuery } from '../../queries'
+import { ResolveDefaultModelQuery } from '../../queries'
 import { GeneratePromptCommand } from '../generate-prompt.command'
 
 @CommandHandler(GeneratePromptCommand)
 export class GeneratePromptHandler implements ICommandHandler<GeneratePromptCommand> {
-	readonly #logger = new Logger(GeneratePromptHandler.name)
+    readonly #logger = new Logger(GeneratePromptHandler.name)
 
-	constructor(
-		private readonly service: CopilotService,
-		private readonly queryBus: QueryBus
-	) {}
+    constructor(
+        private readonly service: CopilotService,
+        private readonly queryBus: QueryBus
+    ) {}
 
-	public async execute(command: GeneratePromptCommand) {
-		let copilotModel = command.copilotModel
-		let copilot: ICopilot | null = null
-		if (copilotModel?.copilotId) {
-			copilot = await this.service.findOne(copilotModel.copilotId)
-		} else {
-			copilot = await this.queryBus.execute(
-				new CopilotOneByRoleQuery(
-					RequestContext.currentTenantId(),
-					RequestContext.getOrganizationId(),
-					AiProviderRole.Primary
-				)
-			)
-			copilotModel = copilot?.copilotModel
-			if (!copilot) {
-				throw new Error('No available primary copilot found for prompt generation')
-			}
-		}
+    public async execute(command: GeneratePromptCommand) {
+        let copilotModel = command.copilotModel
+        let copilot: ICopilot | null = null
+        if (copilotModel?.copilotId) {
+            copilot = await this.service.findOne(copilotModel.copilotId)
+        } else {
+            copilot = await this.queryBus.execute(
+                new ResolveDefaultModelQuery(
+                    RequestContext.currentTenantId(),
+                    RequestContext.getOrganizationId(),
+                    DefaultModelRole.Primary
+                )
+            )
+            copilotModel = copilot?.copilotModel
+            if (!copilot) {
+                throw new Error('No available primary copilot found for prompt generation')
+            }
+        }
 
-		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, copilotModel, {
-				abortController: new AbortController(),
-				usageCallback: (tokens) => {
-					//
-				}
-			})
-		)
+        const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+            new CopilotModelGetChatModelQuery(copilot, copilotModel, {
+                abortController: new AbortController(),
+                usageCallback: (tokens) => {
+                    //
+                }
+            })
+        )
 
-		const outputSchema = z.object({
-			prompt: z.string().describe('The generated prompt template'),
-			variables: z
-				.array(
-					z.object({
-						name: z.string().describe('The name of the variable'),
-						type: z
-							.string()
-							.optional()
-							.nullable()
-							.describe('The type of the variable, e.g., string, number'),
-						description: z.string().optional().nullable().describe('A brief description of the variable')
-					})
-				)
-				.optional()
-				.nullable()
-				.describe('List of variables used in the prompt template')
-		})
+        const outputSchema = z.object({
+            prompt: z.string().describe('The generated prompt template'),
+            variables: z
+                .array(
+                    z.object({
+                        name: z.string().describe('The name of the variable'),
+                        type: z
+                            .string()
+                            .optional()
+                            .nullable()
+                            .describe('The type of the variable, e.g., string, number'),
+                        description: z.string().optional().nullable().describe('A brief description of the variable')
+                    })
+                )
+                .optional()
+                .nullable()
+                .describe('List of variables used in the prompt template')
+        })
 
-		const prompt = ChatPromptTemplate.fromMessages(
-			[
-				[
-					'human',
-					`Here is a task description for which I would like you to create a high-quality prompt template for:
+        const prompt = ChatPromptTemplate.fromMessages(
+            [
+                [
+                    'human',
+                    `Here is a task description for which I would like you to create a high-quality prompt template for:
 <task_description>
 {{TASK_DESCRIPTION}}
 </task_description>
@@ -82,16 +82,16 @@ Based on task description, please create a well-structured markdown format promp
 - Use the same language as task description. 
 Please generate the full prompt template.
 `
-				]
-			],
-			{ templateFormat: 'mustache' }
-		)
+                ]
+            ],
+            { templateFormat: 'mustache' }
+        )
 
-		const promptGenerator = prompt.pipe(chatModel.withStructuredOutput(outputSchema, { method: 'functionCalling' }))
+        const promptGenerator = prompt.pipe(chatModel.withStructuredOutput(outputSchema, { method: 'functionCalling' }))
 
-		const result = await promptGenerator.invoke({
-			TASK_DESCRIPTION: command.instruction
-		})
-		return result
-	}
+        const result = await promptGenerator.invoke({
+            TASK_DESCRIPTION: command.instruction
+        })
+        return result
+    }
 }

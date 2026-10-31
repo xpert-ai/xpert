@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@xpert-ai/contracts'
+import { DefaultModelRole, defaultModelDefinition, ICopilot, ICopilotModel } from '@xpert-ai/contracts'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { auditTime, distinctUntilChanged, firstValueFrom, startWith } from 'rxjs'
@@ -32,17 +32,17 @@ export class CopilotConfigFormComponent {
   readonly #dialog = inject(Dialog)
 
   readonly copilot = input<ICopilot>()
+  readonly defaultRole = input<DefaultModelRole>(DefaultModelRole.Primary)
   readonly saved = output<void>()
   readonly modelSelector = viewChild(CopilotModelSelectComponent)
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
     tokenBalance: new FormControl(null),
-    copilotModel: new FormControl(null)
+    copilotModel: new FormControl<ICopilotModel | null>(null)
   })
   readonly tokenBalanceControl = this.formGroup.controls.tokenBalance
 
-  readonly role = computed(() => this.copilot()?.role)
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
   readonly saving = signal(false)
   readonly tokenBalance = toSignal(
@@ -54,18 +54,7 @@ export class CopilotConfigFormComponent {
     { initialValue: this.tokenBalanceControl.value }
   )
 
-  readonly defaultModelType = computed(() => {
-    switch (this.role()) {
-      case AiProviderRole.Primary:
-      case AiProviderRole.Secondary:
-      case AiProviderRole.Reasoning:
-        return AiModelTypeEnum.LLM
-      case AiProviderRole.Embedding:
-        return AiModelTypeEnum.TEXT_EMBEDDING
-      default:
-        return null
-    }
-  })
+  readonly defaultModelType = computed(() => defaultModelDefinition(this.defaultRole()).modelType)
 
   constructor() {
     effect(() => {
@@ -100,8 +89,27 @@ export class CopilotConfigFormComponent {
       this.saving.set(true)
       await firstValueFrom(
         this.#copilotServer.update(copilotId, {
-          ...this.formGroup.value
+          tokenBalance: this.tokenBalanceControl.value
         })
+      )
+      const model = this.formGroup.controls.copilotModel.value
+      await firstValueFrom(
+        this.#copilotServer.saveRoleDefaults(
+          model?.copilotId && model.model
+            ? [
+                {
+                  role: this.defaultRole(),
+                  mode: 'fixed',
+                  binding: {
+                    copilotId: model.copilotId,
+                    model: model.model,
+                    modelType: this.defaultModelType(),
+                    options: model.options
+                  }
+                }
+              ]
+            : [{ role: this.defaultRole(), mode: 'disabled' }]
+        )
       )
       this.formGroup.markAsPristine()
       this.#toastrService.success('XP.ACTIONS.Save', { Default: 'Save' })

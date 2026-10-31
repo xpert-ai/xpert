@@ -89,6 +89,26 @@ describe('CopilotServerService', () => {
     httpMock.verify()
   })
 
+  it('refreshes resolved defaults when the organization changes and keeps the old method as an alias', () => {
+    const received = jest.fn()
+    const subscription = service.getAvailableByRole('primary').subscribe(received)
+    httpMock.expectOne('/api/copilot/default-models/primary').flush({ id: 'org-1-default' })
+    organizationId$.next('org-2')
+    httpMock.expectOne('/api/copilot/default-models/primary').flush({ id: 'org-2-default' })
+    expect(received).toHaveBeenLastCalledWith({ id: 'org-2-default' })
+    service.refresh()
+    httpMock.expectOne('/api/copilot/default-models/primary').flush(null)
+    expect(received).toHaveBeenLastCalledWith(null)
+    subscription.unsubscribe()
+  })
+
+  it('prepares the assigned connection through the setup endpoint', () => {
+    service.prepareDefaultModelSetup('primary').subscribe()
+    const request = httpMock.expectOne('/api/copilot/default-models/primary/setup')
+    expect(request.request.method).toBe('POST')
+    request.flush({ id: 'assigned-connection' })
+  })
+
   it('should refetch copilot models when organization changes', () => {
     const org1Models = [
       {
