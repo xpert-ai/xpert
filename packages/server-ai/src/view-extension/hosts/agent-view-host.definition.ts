@@ -1,3 +1,4 @@
+import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
 import {
     AIPermissionsEnum,
@@ -166,6 +167,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         request: XpertViewActionRequest,
         file: ViewExtensionFileActionFile
     ): Promise<XpertViewActionRequest> {
+        await assertAppPlatformUpload(this.commandBus, file.buffer.byteLength)
         const input = isRecord(request.input) ? request.input : {}
         const workspaceUploadPath = getNonEmptyString(input.workspaceUploadPath)
         if (!workspaceUploadPath) {
