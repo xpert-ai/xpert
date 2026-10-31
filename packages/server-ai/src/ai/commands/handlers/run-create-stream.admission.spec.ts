@@ -61,7 +61,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     }
 })
 
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ConflictException } from '@nestjs/common'
+import { EMPTY } from 'rxjs'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
@@ -69,6 +70,63 @@ import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { RunCreateStreamHandler } from './run-create-stream.handler'
 
 describe('run stream admission failures', () => {
+    it.each([false, true])(
+        'leaves input resume admission to the shared claim (message target: %s)',
+        async (messageTarget) => {
+            const conversation = { id: 'conversation', threadId: 'thread', xpertId: 'assistant', options: {} }
+            let waiting = true
+            const control = { start: jest.fn(), finish: jest.fn() }
+            const threads = {
+                requireByThreadId: jest.fn(async () => ({ status: waiting ? 'interrupted' : 'busy', conversation })),
+                findVisibleMessages: jest.fn(async () => ({ items: [{ id: 'ai', role: 'ai', executionId: 'run' }] })),
+                claimForRun: jest.fn(async () => {
+                    waiting = false
+                }),
+                updateRuntimeState: jest.fn()
+            }
+            const commands = {
+                execute: jest.fn(async (command: unknown) => {
+                    if (command instanceof XpertChatCommand) {
+                        // The shared admission checks input_wait before it changes the durable claim.
+                        if (!waiting) throw new ConflictException('A decision is already being processed')
+                        expect(command.options.execution).toBeUndefined()
+                        waiting = false
+                        return EMPTY
+                    }
+                    throw new Error('Input resume must not mutate execution before shared admission')
+                })
+            }
+            const handler = new RunCreateStreamHandler(
+                commands as never,
+                { execute: jest.fn(async () => ({ id: 'run', threadId: 'thread' })) } as never,
+                {} as never,
+                { getAccessiblePublishedXpert: jest.fn(async () => ({ id: 'assistant' })) } as never,
+                undefined,
+                undefined,
+                threads as never,
+                control as never
+            )
+            const request = new RunCreateStreamCommand('thread', {
+                assistant_id: 'assistant',
+                stream_mode: ['messages'],
+                stream_subgraphs: false,
+                on_disconnect: 'continue',
+                multitask_strategy: 'reject',
+                if_not_exists: 'reject',
+                input: {
+                    action: 'resume',
+                    target: messageTarget ? { aiMessageId: 'ai' } : { executionId: 'run' },
+                    decision: { type: 'confirm', payload: { toolMessages: [] } }
+                }
+            })
+            expect((await handler.execute(request)).execution.id).toBe('run')
+            await expect(handler.execute(request)).rejects.toThrow('A decision is already being processed')
+            expect(threads.claimForRun).not.toHaveBeenCalled()
+            expect(control.start).not.toHaveBeenCalled()
+            expect(control.finish).not.toHaveBeenCalled()
+            expect(threads.updateRuntimeState).not.toHaveBeenCalled()
+        }
+    )
     it.each([true, false])(
         'preserves errors while releasing the run claim (run control: %s)',
         async (withRunControl) => {

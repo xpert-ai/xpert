@@ -75,6 +75,7 @@ const PLAN_MODE_PROMPT = [
     `- ${REQUEST_USER_INPUT_TOOL_NAME} arguments must be JSON with this shape: ${JSON.stringify(PLAN_MODE_REQUEST_USER_INPUT_EXAMPLE)}.`,
     '- Each question must have 2 or 3 options. Put "(Recommended)" in the recommended option label when there is a clear default.',
     '- request_user_input results have a content.type of "request_user_input_result" and a content.purpose.',
+    '- If content.status is "cancelled", no answer or approval was given. Do not implement; explain what remains unresolved.',
     '- If you receive content.purpose "plan_clarification", those answers only resolve planning questions. They are never approval to implement.',
     `- After receiving "plan_clarification" answers, do not call ${REQUEST_USER_INPUT_TOOL_NAME} for more clarification. Your next assistant response must present the proposed plan. Do not implement first.`,
     '- When the plan is ready, show the proposed plan to the user wrapped in <proposed_plan> and </proposed_plan>, with each tag on its own line.',

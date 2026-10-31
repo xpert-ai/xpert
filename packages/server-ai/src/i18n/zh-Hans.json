@@ -1478,6 +1478,10 @@
     "TemplateUpgradeReleaseNotes": "模板升级",
     "TemplateRollbackReleaseNotes": "恢复上一版模板内容",
     "TemplateCommunityPublisher": "社区发布者",
+    "UserInput": {
+        "InvalidResponse": "用户输入无效，请重新提交所需字段。",
+        "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。"
+    },
     "TemplateSync": {
         "Summary": "内置模板同步：新增 {{added}}，更新 {{updated}}，接管 {{adopted}}，保留 {{preserved}}，冲突 {{conflicted}}。",
         "Conflict": "已保留本地模板 {{file}}：内容已修改、条目已移除或缺少历史 hash。请核对当前内置版本后手动合并。",

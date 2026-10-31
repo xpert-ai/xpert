@@ -1,5 +1,5 @@
 import { FileChangeStatsService } from './file-change-stats.service'
-import { mergeFileChanges, type ChatFileChange } from '@xpert-ai/chatkit-types'
+import { isRequestUserInputForm, mergeFileChanges, type ChatFileChange } from '@xpert-ai/chatkit-types'
 import {
     ChatTaskSummaryOutput,
     ChatTaskSummarySource,
@@ -319,6 +319,14 @@ export class ChatTaskSummaryService {
                 if (!call || typeof call !== 'object' || Array.isArray(call)) continue
                 const candidate = call as { name?: unknown; args?: unknown }
                 if (candidate.name !== 'request_user_input') continue
+                if (isRequestUserInputForm(candidate.args)) {
+                    return {
+                        title: this.compact(candidate.args.title, 160),
+                        description: candidate.args.description
+                            ? this.compact(candidate.args.description, 160)
+                            : undefined
+                    }
+                }
                 if (!candidate.args || typeof candidate.args !== 'object' || Array.isArray(candidate.args)) continue
                 const questions = (candidate.args as { questions?: unknown }).questions
                 if (!Array.isArray(questions)) continue

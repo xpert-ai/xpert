@@ -1478,6 +1478,10 @@
     "TemplateUpgradeReleaseNotes": "Template upgrade",
     "TemplateRollbackReleaseNotes": "Restore previous template content",
     "TemplateCommunityPublisher": "Community publisher",
+    "UserInput": {
+        "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
+        "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
+    },
     "TemplateSync": {
         "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",
         "Conflict": "Preserved local template {{file}}: modified content, removed entry, or no historical hash. Review and merge the current built-in version manually.",
