@@ -6,6 +6,10 @@ See [platform capabilities and scoped factories](./en/runtime-capabilities.md) f
 
 See [knowledgebase APIs](./en/KNOWLEDGEBASE_API.md) for resource discovery, readiness, permissions and migration from legacy listing.
 
+## Model adapters
+
+See [OpenAI-compatible Embedding usage callbacks](./openai-compatible-embeddings.md) for shared vector clients and host-owned accounting.
+
 ## Building
 
 Run `nx build plugin-sdk` to build the library.
