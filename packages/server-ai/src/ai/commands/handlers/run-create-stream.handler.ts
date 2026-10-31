@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { recoveryConflict } from '../../../chat-conversation/recovery/recovery-error'
+import { resumeTargetDenied } from '../../../chat-conversation/resolve-resume-target'
 import { resolveRetryInputCheckpointId } from '../../../chat-conversation/recovery/retry-checkpoint'
 import { assertInvocationResume } from '../../../agent-invocation/invocation-resume'
 import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
@@ -448,6 +449,17 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 : chatRequest.action === 'resume' || chatRequest.action === 'follow_up'
                   ? chatRequest.target?.executionId
                   : undefined
+        if (chatRequest.action === 'resume' && !referencedExecutionId) {
+            const messages = this.conversationThreadService
+                ? (await this.conversationThreadService.findVisibleMessages(threadId)).items
+                : (conversation.messages ?? [])
+            const target = messages.find(
+                (message) => message.id === chatRequest.target.aiMessageId && message.role === 'ai'
+            )
+            if (!target?.executionId) throw resumeTargetDenied()
+            referencedExecutionId = target.executionId
+            chatRequest.target.executionId = referencedExecutionId
+        }
         if (chatRequest.action === 'retry' && !referencedExecutionId) {
             const messages = this.conversationThreadService
                 ? (await this.conversationThreadService.findVisibleMessages(threadId)).items
@@ -592,7 +604,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             await this.commandBus.execute(new ChatConversationUpsertCommand(conversation))
         }
 
-        const ownsRunClaim = chatRequest.action !== 'follow_up'
+        // Input decisions are authorized and claimed atomically by shared chat admission.
+        // Claiming here first would erase input_wait and reject the same resume downstream.
+        const inputResume = chatRequest.action === 'resume' && !command.resumePaused
+        const ownsRunClaim = chatRequest.action !== 'follow_up' && !inputResume
         const resumeClaimId = command.resumePaused ? randomUUID() : undefined
         let resumeCheckpoint: TChatCheckpointReference | undefined
         if (command.resumePaused && this.threadRunControl) {
@@ -610,7 +625,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         } else if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)
         }
-        let execution = chatRequest.action === 'follow_up' ? referencedExecution : null
+        let execution = chatRequest.action === 'follow_up' || inputResume ? referencedExecution : null
 
         let stream: Observable<MessageEvent>
         try {
