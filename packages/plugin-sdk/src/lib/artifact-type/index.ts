@@ -41,6 +41,8 @@ export interface ArtifactTypeDefinition {
   /** Copying bytes into another Project changes their lifecycle and sharing boundary. Custom views must opt in. */
   collection?: { allowCopy: boolean }
   content?: { mimeTypes: readonly string[]; maxBytes: number }
+  /** A managed application owns publication; generic version uploads cannot bypass its draft workflow. */
+  versioning?: { mode: 'draft-only' }
   sharing?: {
     accessModes: readonly ArtifactAccessMode[]
     versionModes: readonly ArtifactLinkVersionMode[]
@@ -68,6 +70,14 @@ export type ArtifactSnapshotProvider = ArtifactSnapshotReader &
 export interface IArtifactTypeProvider {
   readonly definition: ArtifactTypeDefinition
   authorize(source: ArtifactTypeSource, actor: ArtifactTypeActor, operation: ContentOperation): Promise<void>
+  /** Additional policy for working drafts; published reads keep their ordinary source policy. */
+  authorizeDraft?(source: ArtifactTypeSource, actor: ArtifactTypeActor, operation: ContentOperation): Promise<void>
+  /** Enforce domain review/dependency policy immediately before committing the verified draft. */
+  assertDraftPublication?(
+    source: ArtifactTypeSource,
+    actor: ArtifactTypeActor,
+    draft: import('../runtime/capabilities/artifact-drafts').ArtifactDraftRecord
+  ): Promise<void>
   validateContent(content: Buffer, mimeType: string): Promise<void> | void
   /** Opt-in adoption of legacy file bindings; validate provenance as well as every saved payload. */
   validateLegacyContent?(source: ArtifactTypeSource, content: Buffer, mimeType: string): Promise<void> | void

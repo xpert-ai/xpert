@@ -3,9 +3,11 @@ title: 'Artifacts Dashboard 功能概览'
 description: '统一数据协议、可替换插件与持久化看板的当前功能架构。'
 ---
 
-Artifacts Dashboard 是由 Live Dashboard 插件提供的可持续编辑的数据看板。用户在对话中描述业务需求，Agent 查询授权数据，生成标准图表或 HTML/JavaScript 页面，保存为同一个 Artifact 的工作草稿。用户确认后发布正式版本，并可向组织成员分享只读看板。
+Artifacts Dashboard 是由 Live Dashboard 插件提供的可持续编辑的数据看板。用户在对话中描述业务需求，Agent 查询授权数据，生成标准图表或 HTML/JavaScript 页面，保存为同一个 Artifact 的工作草稿。用户确认后发布正式版本，并可向有权限的组织成员分享只读看板；项目看板还要求访问者具有当前项目成员权限。
 
 本文档描述当前实现，作为开发计划和阶段验收记录之外的功能说明。历史验收保留其日期和环境范围；本文不是正式发布或公开包兼容性声明。
+
+在 Assistant ChatKit 中按项目制作和使用看板，项目选择与 View 双向同步。双栏级联入口、项目类型和角色权限见[项目联动与看板选择](./project-integration)。
 
 ## 功能流程
 
@@ -32,8 +34,8 @@ flowchart LR
 | plugin-sdk      | Provider 注册、标准化与通用 HTML 文档宿主                 | `packages/plugin-sdk/src/lib/data/analytics/`、`artifact-document/` |
 | 平台 Artifacts  | 稳定身份、工作草稿、正式版本、分享链接、展示授权          | `packages/server-ai/src/artifacts/`                                 |
 | Cloud / ChatKit | 资源卡片、Workbench 导航、独立展示页与受控客户端命令      | `apps/cloud/src/app/artifacts/presentation/`                        |
-| 来源插件        | 原生查询格式、发现、参数映射与 Dataset 投影               | `xpert-plugins/community/tools/analytics-*`                         |
-| 看板插件        | 页面定义、Agent 工具、预检、控件、分享界面和渲染器适配    | `xpert-plugins/community/apps/live-dashboard`                       |
+| 来源插件        | 原生查询格式、发现、参数映射与 Dataset 投影               | `xpert-plugins/xpertai/tools/analytics-*`                           |
+| 看板插件        | 页面定义、Agent 工具、预检、控件、分享界面和渲染器适配    | `xpert-plugins/xpertai/apps/live-dashboard`                         |
 
 来源插件不实现页面编辑或图表渲染；平台不解释 SQL、本体 Action 或脚本业务逻辑。看板插件通过同一 Dataset 消费不同来源。
 

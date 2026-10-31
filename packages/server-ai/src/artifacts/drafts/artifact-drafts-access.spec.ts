@@ -29,7 +29,8 @@ describe('Project-owned artifact drafts', () => {
         expect(f.assert).toHaveBeenCalledWith(
             f.artifact,
             { tenantId: 'tenant', organizationId: 'org', userId: 'teammate' },
-            'read'
+            'read',
+            'draft'
         )
     })
     it('checks write rights before reading uploaded content', async () => {
@@ -49,7 +50,12 @@ describe('Project-owned artifact drafts', () => {
             })
         ).rejects.toThrow(ForbiddenException)
         expect(f.files.readBuffer).not.toHaveBeenCalled()
-        expect(f.assert).toHaveBeenCalledWith(f.artifact, expect.objectContaining({ userId: 'teammate' }), 'write')
+        expect(f.assert).toHaveBeenCalledWith(
+            f.artifact,
+            expect.objectContaining({ userId: 'teammate' }),
+            'write',
+            'draft'
+        )
     })
     it('rejects revoked access before looking up cached draft metadata', async () => {
         const f = setup()

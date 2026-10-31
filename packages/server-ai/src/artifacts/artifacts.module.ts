@@ -1,4 +1,5 @@
 import { ArtifactShareQueries } from './artifact-share-queries'
+import { ArtifactContentRuntimeService } from './artifact-content-runtime.service'
 import { ArtifactReference } from './library/artifact-reference.entity'
 import { ArtifactLibraryAccess } from './library/artifact-library-access'
 import { ArtifactLibraryService } from './library/artifact-library.service'
@@ -62,6 +63,7 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         ArtifactSnapshotsController
     ],
     providers: [
+        ArtifactContentRuntimeService,
         ArtifactLibraryAccess,
         ArtifactLibraryService,
         ArtifactContentProvider,

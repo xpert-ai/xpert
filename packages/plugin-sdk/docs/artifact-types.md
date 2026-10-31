@@ -95,3 +95,11 @@ Declare `definition.title` as an `I18nObject` (for example, `{ en_US: 'Shared co
 Use `ArtifactsApi.readArtifactVersion({ artifactId, artifactVersionId, purpose })` to read published bytes with source authorization, active-version checks, content validation and checksum verification. `purpose: 'copy'` additionally requires `definition.collection.allowCopy: true`. Custom types default to denying copies; the built-in file type permits them. Copying creates an independent lifecycle under the destination Project's ACL, so the collecting UI must explain and confirm this boundary. Conversation snapshots remain reference-only.
 
 The authenticated library viewer reuses the type's file, snapshot or authenticated presentation without minting a share. Existing shares are resolved by the type's `sharing.shareKey` (or `artifact-library`) and their stored URLs can be copied repeatedly. Selecting another reference version does not update the published link. Public sharing remains an explicit, separately authorized operation.
+
+## Project working content
+
+Types that own an application draft workflow can declare `versioning: { mode: 'draft-only' }`. Generic version uploads are rejected; publish through Artifact Drafts. `authorizeDraft` adds the working-copy policy. `assertDraftPublication` runs again under the Artifact lock immediately before an immutable version is committed, so domain review checks cannot be bypassed through the generic draft API.
+
+`ArtifactContentRuntimeCapability` stores definition bytes in protected Artifact-owned storage. Ordinary project file listings and file tools cannot read that storage. Reads check the current source policy and require draft access unless the exact content is already referenced by a formal version. The platform validates ownership, canonical references, checksums and the 50 MB limit.
+
+Project membership and link audience are cumulative restrictions. A sharing link does not grant Project membership or access to drafts. Source-resource and data-query permissions remain independent checks.

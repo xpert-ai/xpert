@@ -1,0 +1,79 @@
+---
+title: 'Project integration and dashboard selection'
+description: 'Create and use dashboards inside Assistant ChatKit with shared Project scope, selection and draft permissions.'
+---
+
+Live Dashboard provides its View in Assistant ChatKit Workbench. A Project is the shared scope for conversations, authoring files and dashboard resources. ChatKit and the dashboard View use one host-owned Project state.
+
+## Getting started
+
+1. Configure an Assistant from the Live Dashboard Assistant template, then select or create a Live Dashboard project.
+2. Describe the requirement in ChatKit and follow the existing source discovery, real preview, creation and draft-save workflow.
+3. Open a resource card or the Live Dashboard Workbench View. Use the `Project / Dashboard` picker to choose the dashboard to view or edit.
+4. Continue editing the same Artifact. A manager confirms an exact draft revision to publish a formal version, then optionally enables team sharing.
+
+Authoring does not require a Project Task or a production/review workflow. Platform tasks and Pipelines remain independent capabilities. Project pages do not add a separate Live Dashboard View host.
+
+## Project type and Assistants
+
+The plugin contributes the Live Dashboard project type: `applicationKey: @xpert-ai/plugin-live-dashboard:live-dashboard`, `projectTypeKey: dashboard`, bound to the platform Project. It supplies a creation category and default Assistant scope, without creating another project model or permission system.
+
+The `live-dashboard-assistant` template uses `workspaceScope.mode: project-required` with this type. ChatKit provides its existing selection and creation flow when no Project is selected. Existing Assistants use the platform's template upgrade flow; installing the plugin does not automatically rewrite their configuration or publication state.
+
+This integration provides the project-required authoring Assistant. It does not register a dashboard inspection template, inspection tools or automatic scheduling.
+
+## Two-column cascade picker
+
+One trigger displays the `Project / Dashboard` path. Opening it shows both lists together:
+
+| Left: Projects                                                    | Right: Dashboards                                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Active readable Projects available to this Assistant              | Dashboards the viewer may read in the current Project                |
+| Independent search, scrolling and pagination                      | Independent search, scrolling and pagination                         |
+| Highlights the current Project; selection asks the host to switch | Highlights the current dashboard; selection opens its exact Artifact |
+| Project creation remains in ChatKit                               | New dashboard appears in the column heading                          |
+
+Each list has up to 20 items per page, a centered page number and disabled previous/next buttons at its boundaries. Search resets only its own page. Dashboard search covers authorized titles and Artifact IDs across the whole Project, not just the loaded page. Editors search draft titles; members search published titles without disclosure of private draft names.
+
+Keyboard selection starts at the current item when present, with arrow-key and Enter support. In narrow panels the path trigger can occupy its own toolbar row. The popover keeps both columns, truncates long names and exposes their full title.
+
+## Bidirectional ChatKit synchronization
+
+Selecting a Project in the View invokes the declared `workbench.navigation.open` command with `target: assistant.project`, the target `projectId` and `viewKey: live-dashboard__live-dashboard`. After host authorization and switching, the View reads the new scope, keeps the picker open and displays its dashboards. Failure preserves the original Project and dashboard.
+
+Selecting a Project in ChatKit updates the View's Project name, list and permissions through trusted host scope. The host may restore that Project's conversation and Workbench layout. The View does not maintain a separate Project filter state.
+
+- Switching clears the previous dashboard, version, filters and Assistant target.
+- Old requests and tool receipts cannot restore a previous scope. ChatKit forwards View events with the current `scopeRevision`.
+- `selectionId` identifies the Artifact. Parameters retain formal-version, draft-mode or new-dashboard state. Reload and history navigation restore the host-owned target.
+- `assistant.context.set` supplies the exact editing target. Tools still revalidate Project, Artifact and draft revision; context is not authorization.
+- With no selected dashboard, show a normal request to select a dashboard before editing. Keep target validation without a red technical error, and never infer a target from chat history or recency.
+- The server derives Project scope from runtime context. Dashboard list/search input cannot override `projectId`; cross-Project Artifact reads fail.
+
+## Authoring actions and permissions
+
+The main toolbar retains Publish draft, Refresh and More. Edit working draft, Import definition, Team sharing, Version history, Auto refresh and Delete dashboard appear in More according to permissions. Deletion still confirms the exact dashboard and draft revision. A compact `Draft rN / Published vN` badge replaces repetitive editing text; the path retains the title and More contains the update time.
+
+New dashboard clears the selected target and enters creation state in the current Project. It does not itself save or publish. Existing authoring, save, conflict and publication-confirmation behavior is preserved.
+
+| Project role     | Dashboard access                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Member           | Uses published versions; unpublished dashboards are unavailable and drafts cannot be read |
+| Editor           | Reads, creates and updates drafts with an exact revision baseline                         |
+| Owner or manager | Edits drafts and explicitly publishes, shares or deletes                                  |
+
+Archived Projects are omitted from the picker. Existing entry points still enforce current access and deny mutations. Publication and sharing do not grant source-data access; queries use each viewer's own permissions.
+
+## Protected content and sharing
+
+Dashboard definitions use protected Artifact-owned storage. Generic Project file lists and tools cannot read draft bytes. Platform Artifacts owns content references, checksums and authorization for drafts and formal versions. The plugin declares a `draft-only` version policy so generic version uploads cannot bypass publication checks.
+
+An authenticated organization share requires both the link audience and current Project membership. A link does not grant Project membership, draft access, editing rights or source-data permissions. Non-members must first receive Project access from a manager. Anonymous sharing is unavailable.
+
+## Companion versions and verification
+
+The platform and SDK must supply protected Artifact content, type-level draft authorization and publication checks. ChatKit must preserve callbacks for the first Project message and forward scope-revision-tagged tool events. Release the companion platform/SDK before updating the plugin dependency and lockfile; deliver the ChatKit fixes through the host's frontend version as well. Passing source integration does not imply those public packages have been released.
+
+The user confirmed the scoped local acceptance on 2026-10-31: bidirectional Project selection, isolation, real Assistant authoring and continued edits, separate drafts and publication, independent searches, creation entry, More, keyboard selection and a 480px panel were verified. Data Xpert bindings and results remained consistent. At that acceptance, all 186 plugin tests, build, dist and lifecycle checks passed. Multi-page behavior and title search beyond 100 items used automated fixtures; the real browser lists contained one page. This does not establish production deployment, public-package compatibility or multi-tenant load acceptance.
+
+See [Editing and sharing](./lifecycle-and-sharing) for the complete authoring lifecycle and [Configuration and limits](./configuration-and-limits) for runtime requirements.

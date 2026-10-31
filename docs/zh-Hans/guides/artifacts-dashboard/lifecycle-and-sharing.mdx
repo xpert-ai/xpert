@@ -31,7 +31,7 @@ Agent 工具要求每次显式提交 `title`，不改名时复制当前标题；
 | 人工发布          | 确认冻结的草稿修订，事务内创建不可变正式版本       |
 | 查看历史          | 读取旧版定义和依赖，按当前权限重新查询数据         |
 
-`dashboard_open` 读取选中看板并提供稳定 `editId`、`expectedRevision`、`expectedCurrentVersionId`。HTML 编辑得到独立工作副本及 `saveArguments`；正式基准为空时应提交实际 JSON `null`，不能使用字符串 `None`。修正某个参数错误时须保留其他意图字段，包括新标题。用 SandboxFile 读取、编辑后调用 `dashboard_update`。历史正式版本只读，不准备编辑副本。未选中时使用 `dashboard_list` 明确目标，不根据最近更新时间猜测。
+`dashboard_open` 读取选中看板并提供稳定 `editId`、`expectedRevision`、`expectedCurrentVersionId`。HTML 编辑得到独立工作副本及 `saveArguments`；正式基准为空时应提交实际 JSON `null`，不能使用字符串 `None`。修正某个参数错误时须保留其他意图字段，包括新标题。用 SandboxFile 读取、编辑后调用 `dashboard_update`。历史正式版本只读，不准备编辑副本。未选中时显示“请先选择要编辑的看板”；可在级联选择器选择，或使用 `dashboard_list` 明确目标，不根据历史或最近更新时间猜测。
 
 平台 `artifact_draft` 保存最新草稿内容引用、摘要、修订号和正式基准。保存与发布共用 Artifact 行锁及 CAS。并发基准变化会返回冲突；不能自动覆盖、静默变基或另建同名作品。相同确认发布的重试复用版本。
 
@@ -49,9 +49,9 @@ Agent 没有正式发布工具。发布确认期间草稿若变化，操作失�
 
 ## 团队只读展示
 
-创建者在 Workbench 开启团队分享，选择跟随最新正式版本或固定版本。只有草稿时不能分享；分享本身也不会发布。
+个人看板的所有者或项目看板的管理者在 Workbench 开启团队分享，选择跟随最新正式版本或固定版本。只有草稿时不能分享；分享本身也不会发布。
 
-平台返回 `presentationUrl`，路由为 `/artifacts/view/:slug`。独立页需要登录和组织成员权限，草稿、编辑、发布及分享管理仍由创建者持有。每次查询使用访问者权限，不使用创建者身份代查。
+平台返回 `presentationUrl`，路由为 `/artifacts/view/:slug`。独立页需要登录和组织成员权限，个人看板沿用所有者权限；项目看板按角色区分成员查看正式版、编辑者制作草稿和管理者发布/分享。项目看板的分享链接仍要求项目成员权限，不向非项目成员开放正式定义，详见[项目联动](./project-integration)。每次查询使用访问者权限，不使用创建者身份代查。
 
 平台 `ArtifactPresentationRegistry` 按插件和资源类型选择展示 Provider。插件负责解释版本包和只读 `query` / `query-binding`；平台负责链接、正式目标、身份和隔离宿主。
 
@@ -68,4 +68,4 @@ Agent 没有正式发布工具。发布确认期间草稿若变化，操作失�
 
 注册位于 Artifact 功能 provider，由 AppModule 显式启用并在销毁时清理；`ViewClientCommandRegistry` 保持通用。该命令用于分享独立页，资源卡片仍使用 ChatKit Workbench 导航。只读展示桥不提供客户端命令、文件或写入通道。
 
-Workspace 脚本 Provider 当前声明 `owner_only`，私有定义和输入不能随看板自动共享。SQL 与本体来源继续逐次检查访问者的来源权限。匿名分享、团队编辑不属于此看板功能。
+私有 Workspace 脚本仍为 `owner_only`，定义和输入不能随看板自动共享。需要组织复用时，所有者先在 Analytics 中检查固定的脚本与文件并显式发布 Organization 可见性，再更新看板 Binding 并发布正式版。SQL、本体和脚本上游来源继续检查每个访问者的权限。项目编辑者可以通过修订检查先后修改同一草稿；实时协同合并和匿名分享不在能力范围内。

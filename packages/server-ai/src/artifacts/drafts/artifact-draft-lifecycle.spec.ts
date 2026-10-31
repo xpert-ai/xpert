@@ -13,7 +13,7 @@ function fixture() {
     }
     const draft = { id: 'draft', artifactId: artifact.id, revision: 4, content: { title: 'Draft' } }
     const links = { update: jest.fn() },
-        access = { assert: jest.fn() }
+        access = { assert: jest.fn(), assertDraftPublication: jest.fn() }
     const artifactRepo = { findOne: async () => artifact, save: jest.fn(async (value) => value) }
     const drafts = { findOneBy: async () => draft, save: jest.fn(async (value) => value) }
     const manager = {

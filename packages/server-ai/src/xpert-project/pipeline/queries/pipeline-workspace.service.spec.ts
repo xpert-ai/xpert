@@ -165,3 +165,16 @@ it('keeps the selected historical round and checks its run belongs to this insta
     f.read.mockImplementation(async (entity) => (entity === ProjectPipelineRunEntity ? null : f.round))
     await expect(f.service.entry(context, { instanceId: 'instance', roundId: 'foreign-round' })).rejects.toThrow()
 })
+
+it('rejects a subject entry that bypasses the authorized Assistant host', async () => {
+    const f = await fixture()
+    f.entry.mockResolvedValueOnce({
+        hostType: 'project',
+        viewKey: 'registered__business',
+        selectionId: 'exact-object',
+        parameters: { draftRevision: 3 }
+    })
+    await expect(f.service.entry(context, { instanceId: 'instance' })).rejects.toThrow()
+    expect(f.access.assertCanRead).toHaveBeenCalledWith('project')
+    expect(f.access.assertCanUseXpert).not.toHaveBeenCalled()
+})

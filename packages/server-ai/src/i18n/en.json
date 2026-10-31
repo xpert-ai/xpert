@@ -64,6 +64,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ArtifactApplicationPublicationRequired": "Publish this artifact through its application draft workflow.",
+        "ArtifactContentAccessDenied": "You cannot access this artifact content.",
+        "ArtifactContentTooLarge": "Artifact content must be a file no larger than 50 MB.",
+        "ArtifactContentChanged": "Artifact content has changed. Save a verified snapshot again.",
+        "ArtifactContentReferenceInvalid": "The artifact file reference is invalid.",
         "PluginMarketplaceDetailUnavailable": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
         "PluginMarketplaceLookupFailed": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
         "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",

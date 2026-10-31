@@ -29,8 +29,21 @@ export class ArtifactContentAccess {
         private readonly sourcePolicies: ArtifactTypesService
     ) {}
 
-    async assert(artifact: ArtifactAuthorizationTarget, scope: ActorScope, operation: ContentOperation) {
-        await this.sourcePolicies.authorize(artifact, scope, operation)
+    assertDraftPublication(
+        artifact: ArtifactAuthorizationTarget,
+        actor: ActorScope,
+        draft: import('@xpert-ai/plugin-sdk').ArtifactDraftRecord
+    ) {
+        return this.sourcePolicies.assertDraftPublication(artifact, actor, draft)
+    }
+
+    async assert(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        operation: ContentOperation,
+        surface?: 'draft'
+    ) {
+        await this.sourcePolicies.authorize(artifact, scope, operation, surface)
         const projectId = !artifact.userId ? artifact.projectId : null
         if (!projectId && !artifact.authorizationProviderKey) return
         if (!scope.tenantId || !scope.userId || (artifact.tenantId && artifact.tenantId !== scope.tenantId))
@@ -59,12 +72,13 @@ export async function assertArtifactAccess(
     artifact: ArtifactAuthorizationTarget,
     actor: ActorScope,
     operation: ContentOperation,
-    checkOwner = true
+    checkOwner = true,
+    surface?: 'draft'
 ) {
     if (checkOwner && artifact.userId && artifact.userId !== actor.userId) {
         throw new NotFoundException(t('server-ai:Error.ArtifactNotFound'))
     }
-    if (access) await access.assert(artifact, actor, operation)
+    if (access) await access.assert(artifact, actor, operation, surface)
     else if (artifact.authorizationProviderKey || (!artifact.userId && artifact.projectId)) throw denied()
 }
 

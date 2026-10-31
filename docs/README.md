@@ -51,12 +51,13 @@ Current behavior is documented under `en/guides/artifacts-dashboard/` and
 `zh-Hans/guides/artifacts-dashboard/`, with matching routes in both language menus.
 Read these as feature documentation rather than a delivery plan:
 
-| Page                       | Maintained content                                                    |
-| -------------------------- | --------------------------------------------------------------------- |
-| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership |
-| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation            |
-| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing            |
-| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                |
+| Page                       | Maintained content                                                        |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `project-integration`      | Project type, ChatKit scope synchronization, picker and draft permissions |
+| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership     |
+| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation                |
+| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing                |
+| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                    |
 
 Keep historical plans and acceptance reports as dated evidence. Do not copy commit
 batches, local machine context or future proposals into the current feature pages.

@@ -20,7 +20,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const service = new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
             { resolve },
-            { listReadable, assertEdit: jest.fn() }
+            { listReadable, assertAssistant: jest.fn(), assertEdit: jest.fn() }
         )
         await expect(service.readRuntimeBuffer(reference('private.txt'))).rejects.toBeInstanceOf(ForbiddenException)
         expect(listReadable).toHaveBeenCalledWith({
@@ -136,6 +136,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
                 listReadable: jest
                     .fn()
                     .mockResolvedValue([{ projectId: 'project-1', role: 'member', canManage: false, archived: false }]),
+                assertAssistant: jest.fn(),
                 assertEdit: jest.fn()
             }
         )
@@ -428,6 +429,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
                 listReadable: jest
                     .fn()
                     .mockResolvedValue([{ projectId: 'project-1', role: 'editor', canManage: false, archived: false }]),
+                assertAssistant: jest.fn(),
                 assertEdit: jest
                     .fn()
                     .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false })

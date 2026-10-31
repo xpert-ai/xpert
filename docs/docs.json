@@ -51,6 +51,7 @@
                 "group": "Artifacts Dashboard",
                 "pages": [
                   "en/guides/artifacts-dashboard/overview",
+                  "en/guides/artifacts-dashboard/project-integration",
                   "en/guides/artifacts-dashboard/data-and-rendering",
                   "en/guides/artifacts-dashboard/lifecycle-and-sharing",
                   "en/guides/artifacts-dashboard/configuration-and-limits"
@@ -148,6 +149,7 @@
                 "group": "Artifacts 实时看板",
                 "pages": [
                   "zh-Hans/guides/artifacts-dashboard/overview",
+                  "zh-Hans/guides/artifacts-dashboard/project-integration",
                   "zh-Hans/guides/artifacts-dashboard/data-and-rendering",
                   "zh-Hans/guides/artifacts-dashboard/lifecycle-and-sharing",
                   "zh-Hans/guides/artifacts-dashboard/configuration-and-limits"

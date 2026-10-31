@@ -3,7 +3,7 @@ import { BreakpointObserver } from '@angular/cdk/layout'
 import { Component, OnDestroy, OnInit, computed, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { DestroyRef } from '@angular/core'
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardAvatarComponent,
@@ -13,7 +13,7 @@ import {
   ZardIconComponent
 } from '@xpert-ai/headless-ui'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { map, distinctUntilChanged } from 'rxjs'
+import { map, distinctUntilChanged, filter, startWith } from 'rxjs'
 import { XpertProjectFacade } from './project.facade'
 import { XpertProjectChatPanelComponent } from './project-chat-panel.component'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -27,7 +27,6 @@ import { toSendUserMessageParams } from '../assistant/assistant-chat-client-comm
   imports: [
     CommonModule,
     RouterLink,
-    RouterLinkActive,
     RouterOutlet,
     TranslateModule,
     ZardAvatarComponent,
@@ -137,15 +136,12 @@ import { toSendUserMessageParams } from '../assistant/assistant-chat-client-comm
                 class="whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors hover:text-text-primary"
                 [routerLink]="tab.path ? ['/project', id(), tab.path] : ['/project', id()]"
                 queryParamsHandling="preserve"
-                routerLinkActive
-                #tabActive="routerLinkActive"
-                [routerLinkActiveOptions]="{ exact: tab.path === '' }"
-                [class.border-transparent]="!tabActive.isActive"
-                [class.border-primary-500]="tabActive.isActive"
-                [class.text-text-secondary]="!tabActive.isActive"
-                [class.text-text-primary]="tabActive.isActive"
-                [class.font-medium]="tabActive.isActive"
-                [attr.aria-current]="tabActive.isActive ? 'page' : null"
+                [class]="
+                  activeTab() === tab.path
+                    ? 'border-primary-500 text-text-primary font-medium'
+                    : 'border-transparent text-text-secondary'
+                "
+                [attr.aria-current]="activeTab() === tab.path ? 'page' : null"
                 >{{ tab.label | translate }}</a
               >
             }
@@ -442,6 +438,17 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   #resizeEndListener: ((event: PointerEvent) => void) | null = null
   #pendingExpertSelection: ((xpertId: string | null) => void) | null = null
   #unregisterAssistantCommand: (() => void) | null = null
+  readonly activeTab = toSignal(
+    this.#router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => {
+        const path = this.#route.firstChild?.snapshot.routeConfig?.path ?? ''
+        return path === 'pipelines' ? 'timeline' : path
+      })
+    ),
+    { initialValue: '' }
+  )
   readonly tabs = [
     { label: 'XP.XProject.Overview', path: '' },
     { label: 'XP.XProject.TaskTimeline', path: 'timeline' },
@@ -680,9 +687,9 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   }
 
   private async waitForChatControl(panel: XpertProjectChatPanelComponent) {
-    for (let attempt = 0; attempt < 300; attempt += 1) {
+    for (let attempt = 0; attempt < 900; attempt += 1) {
       const control = panel.control()
-      if (control) return control
+      if (control && panel.ready()) return control
       await nextAnimationFrame()
     }
     throw new Error('Project expert ChatKit did not become ready.')

@@ -23,6 +23,11 @@ const registry = () =>
   new ArtifactTypeRegistry({ getProviders: () => [] } as unknown as DiscoveryService, new Reflector())
 
 describe('Artifact type extension protocol', () => {
+  it('accepts application-managed draft types', () => {
+    const p = provider()
+    p.definition.versioning = { mode: 'draft-only' }
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).not.toThrow()
+  })
   it('derives plugin identity from loader metadata and participates in removal events', () => {
     @ArtifactTypeProvider('report')
     class ReportType implements IArtifactTypeProvider {

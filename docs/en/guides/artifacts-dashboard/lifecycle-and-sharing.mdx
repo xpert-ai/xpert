@@ -31,7 +31,7 @@ The Agent tool requires an explicit `title` on every update; copy the current ti
 | Human publication       | Confirms a frozen draft revision and creates an immutable version transactionally   |
 | Historical viewing      | Reads the old definition and dependencies, then queries with current access         |
 
-`dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy and `saveArguments`. Copy an absent formal-version base as actual JSON `null`, never a string such as `None`. When correcting an argument error, retain the other intended changes, including the new title. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, use `dashboard_list` to resolve the target instead of guessing the most recent item.
+`dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy and `saveArguments`. Copy an absent formal-version base as actual JSON `null`, never a string such as `None`. When correcting an argument error, retain the other intended changes, including the new title. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, show the normal select-before-editing prompt. Select in the cascade picker or use `dashboard_list` to resolve the target; never guess from history or recency.
 
 Platform `artifact_draft` stores the latest content reference, checksum, revision and formal-version base. Save and publish share the Artifact row lock and compare-and-set checks. Changed bases cause conflicts, not silent overwrites, rebases or duplicate dashboards. An identical confirmed-publication retry reuses the version.
 
@@ -49,9 +49,9 @@ This is distinct from ordinary generated-file preview: the JSON definition is no
 
 ## Team presentation
 
-The owner enables sharing in Workbench, following the latest formal version or pinning one. Draft-only dashboards cannot be shared, and sharing itself never publishes.
+The personal dashboard owner or Project manager enables sharing in Workbench, following the latest formal version or pinning one. Draft-only dashboards cannot be shared, and sharing itself never publishes.
 
-The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Drafts, editing, publication and link management stay with the owner. Queries use the viewer's permissions, not the creator's identity.
+The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Personal dashboards retain owner access. Project members consume formal versions, editors author drafts, and managers publish or share. Project sharing links still require current Project membership and do not grant published-definition access to non-members; see [Project integration](./project-integration). Queries use the viewer's permissions, not the creator's identity.
 
 Platform `ArtifactPresentationRegistry` selects a provider by plugin and resource type. The plugin interprets the saved package and read-only `query` / `query-binding` operations; the platform owns link policy, formal targets, identity and isolation.
 
@@ -68,4 +68,4 @@ The authoring View declares and invokes `artifact.presentation.open`. The platfo
 
 An Artifact feature provider registers the command through explicit AppModule composition and unregisters it on destruction. `ViewClientCommandRegistry` remains generic. The command opens shared pages; cards still use ChatKit Workbench navigation. The read-only bridge exposes no client-command, file or write channel.
 
-Workspace script providers currently declare `owner_only`: private definitions and inputs are not shared automatically. SQL and ontology sources continue to check each viewer. Anonymous dashboard sharing and team editing are outside this feature.
+Private Workspace scripts remain `owner_only`; their definitions and inputs are not shared automatically. For organization reuse, the owner reviews pinned code and files in Analytics and explicitly publishes Organization visibility, then updates the dashboard Binding and publishes a formal version. SQL, ontology and upstream script sources continue to authorize each viewer. Project editors may update the same draft sequentially with revision checks; real-time collaborative merging and anonymous sharing are unavailable.

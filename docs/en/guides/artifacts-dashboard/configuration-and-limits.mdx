@@ -13,6 +13,8 @@ description: 'Configure existing dashboard capabilities and understand runtime r
 6. After a plugin update, refresh the installed `live-dashboard` skill in the Assistant workspace and verify its content. Refreshing a plugin alone does not update existing skill copies.
 7. Externally managed schemas must apply `packages/server-ai/src/artifacts/drafts/migrations/20261017-artifact-drafts.sql`. Existing Artifacts start a draft against their current formal version on first edit; no historical-draft backfill is required.
 
+Project authoring uses the project-required Live Dashboard Assistant template. See [Project integration](./project-integration) for protected content, draft authorization, first-message handling and scoped ChatKit events. Companion packages must be released in dependency order; a plugin refresh alone is insufficient.
+
 Data-xpert sources also need the correct service URL, audience, Assistant/Workspace configuration, published resources and viewer policy. The platform supplies identity; generated pages do not carry credentials.
 
 ## Current limits
@@ -49,7 +51,7 @@ Limits describe current behavior, not performance guarantees. Script output also
 
 Current sources include PostgreSQL, MySQL, Doris, data-xpert, Workspace scripts, MCP, REST/JSON and CSV/JSON/XLSX files. Each has scoped local query and page evidence. Coverage for generation, edits, filtering, refresh, reopening, ECharts, draft publication, member viewing and ChatKit navigation must be read from the individual reports; not every source has passed every combination. Reports have different dates and environments. A source review does not rerun model, SSO or multi-user acceptance.
 
-Three.js core objects and packaging have been checked, but a full real-SSO GPU/WebGL page has not. Workspace script team sharing is explicitly blocked. The latest sharing regression did not verify a newly provisioned data-xpert SSO team account.
+Three.js core objects and packaging have been checked, but a full real-SSO GPU/WebGL page has not. Private Workspace scripts cannot be shared directly; organization reuse requires explicit definition publication and upstream access checks. The latest sharing regression did not verify a newly provisioned data-xpert SSO team account.
 
 There is no unified background refresh job, server change-stream push, browsable draft history, collaborative editing, version-diff/one-click rollback UI, anonymous dashboard sharing or general result cache. HTML may implement polling; MySQL/Doris scenarios exercised this path. Available ontology adapters depend on data-xpert's published resources and Actions, not a new direct REST or semantic-model provider.
 
@@ -58,7 +60,7 @@ Local evidence does not establish npm release compatibility, production images/d
 ## Maintenance references
 
 - Platform SDK: `packages/plugin-sdk/docs/analytics.md`, `artifact-documents.md`, `artifact-drafts.md`, `artifact-presentations.md`.
-- Dashboard implementation and skills: `xpert-plugins/community/apps/live-dashboard/src/` and `skills/`.
+- Dashboard implementation and skills: `xpert-plugins/xpertai/apps/live-dashboard/src/` and `skills/`.
 - Historical evidence: plugin `docs/*acceptance*`; source constraints live in each `analytics-*` plugin.
 - Product instructions: the separate docs repository's `en/ai/live-dashboard/` pages under AI → Live Dashboard do not require users to know internal APIs.
 

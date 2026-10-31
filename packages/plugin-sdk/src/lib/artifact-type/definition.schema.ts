@@ -13,6 +13,10 @@ export const artifactTypeDefinitionSchema = z
       .optional(),
     kinds: z.array(z.enum(['html', 'markdown', 'pdf', 'pptx', 'image', 'file', 'site', 'presentation'])).min(1),
     collection: z.object({ allowCopy: z.boolean() }).strict().optional(),
+    versioning: z
+      .object({ mode: z.literal('draft-only') })
+      .strict()
+      .optional(),
     content: z
       .object({ mimeTypes: z.array(z.string().min(1)).min(1), maxBytes: z.number().int().positive() })
       .strict()

@@ -1,5 +1,11 @@
 import { createArtifactLinkSlug } from './artifact-utils'
-import { BadRequestException, GoneException, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import {
+    ForbiddenException,
+    BadRequestException,
+    GoneException,
+    NotFoundException,
+    UnauthorizedException
+} from '@nestjs/common'
 import type { ArtifactAccessEvent } from '@xpert-ai/contracts'
 import {
     ArtifactLinkVersionMode,
@@ -20,6 +26,7 @@ import { t } from 'i18next'
 import path from 'node:path'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { resolveWorkspaceVolumeScope } from '../file-understanding/domain/workspace-file'
+import { artifactContentIdentity, artifactContentStorage } from './artifact-content-storage'
 import { VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { listAuthorizedArtifacts } from './artifact-authorized-list'
 import { ArtifactContentAccess, assertArtifactAccess, assertArtifactPolicyUnchanged } from './artifact-content-access'
@@ -148,10 +155,21 @@ export class ArtifactPersistence {
         defaults: ArtifactsRuntimeScope
     ): Promise<ArtifactVersionRecord> {
         const artifact = await this.resolveScopedArtifact(input.artifactId, defaults)
+        this.dependencies.policies.assertVersionCreation(artifact)
         if (artifact.status === 'deleted') {
             throw new GoneException('Artifact was deleted')
         }
         const versionInput = this.normalizeArtifactVersionInput(input)
+        const protectedContent = artifactContentIdentity(versionInput.workspaceFileRef.filePath)
+        if (
+            protectedContent &&
+            (protectedContent[1] !== artifact.id ||
+                versionInput.workspaceFileRef.tenantId !== artifact.tenantId ||
+                (versionInput.workspaceFileRef.projectId ?? null) !==
+                    (!artifact.userId ? (artifact.projectId ?? null) : null) ||
+                (versionInput.workspaceFileRef.userId ?? null) !== (artifact.userId ?? null))
+        )
+            throw new ForbiddenException('ARTIFACT_CONTENT_REFERENCE_INVALID')
         const file = await this.readWorkspaceArtifact(versionInput.workspaceFileRef)
         await this.dependencies.policies.validateContent(artifact, file.buffer, versionInput.mimeType)
         const sha256 = digestBuffer(file.buffer)
@@ -228,7 +246,18 @@ export class ArtifactPersistence {
     ): Promise<EnsureArtifactVersionResult> {
         const idempotencyKey = normalizeRequiredString(input.idempotencyKey, 'idempotencyKey')
         const artifact = await this.resolveScopedArtifact(input.artifactId, defaults)
+        this.dependencies.policies.assertVersionCreation(artifact)
         const versionInput = this.normalizeArtifactVersionInput(input)
+        const protectedContent = artifactContentIdentity(versionInput.workspaceFileRef.filePath)
+        if (
+            protectedContent &&
+            (protectedContent[1] !== artifact.id ||
+                versionInput.workspaceFileRef.tenantId !== artifact.tenantId ||
+                (versionInput.workspaceFileRef.projectId ?? null) !==
+                    (!artifact.userId ? (artifact.projectId ?? null) : null) ||
+                (versionInput.workspaceFileRef.userId ?? null) !== (artifact.userId ?? null))
+        )
+            throw new ForbiddenException('ARTIFACT_CONTENT_REFERENCE_INVALID')
         const file = await this.readWorkspaceArtifact(versionInput.workspaceFileRef)
         await this.dependencies.policies.validateContent(artifact, file.buffer, versionInput.mimeType)
         const sha256 = digestBuffer(file.buffer)
@@ -636,6 +665,13 @@ export class ArtifactPersistence {
 
     async readWorkspaceArtifact(ref: WorkspacePortableFileReference) {
         const filePath = normalizeWorkspaceFilePath(ref.filePath)
+        if (artifactContentIdentity(filePath)) {
+            const location = artifactContentStorage(this.dependencies.volume, ref)
+            return {
+                buffer: await location.storage.read(location.path),
+                name: ref.originalName ?? ref.name ?? path.posix.basename(filePath)
+            }
+        }
         const resolved = resolveWorkspaceVolumeScope(ref, {
             tenantId: ref.tenantId,
             userId: ref.userId,

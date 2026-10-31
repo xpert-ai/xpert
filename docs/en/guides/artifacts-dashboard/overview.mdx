@@ -3,9 +3,11 @@ title: 'Artifacts Dashboard overview'
 description: 'Current capabilities and ownership across analytics, replaceable plugins and persistent dashboards.'
 ---
 
-Artifacts Dashboard is a persistent, editable data dashboard provided by the Live Dashboard plugin. A user describes a business question in chat. The Agent queries authorized data, creates standard charts or an HTML/JavaScript page, and saves a working draft under a stable Artifact identity. A human publishes a formal version before sharing a read-only dashboard with organization members.
+Artifacts Dashboard is a persistent, editable data dashboard provided by the Live Dashboard plugin. A user describes a business question in chat. The Agent queries authorized data, creates standard charts or an HTML/JavaScript page, and saves a working draft under a stable Artifact identity. A human publishes a formal version before sharing a read-only dashboard with authorized organization members. Project dashboards also require current Project membership.
 
 These pages describe the current implementation, independently of development plans and dated acceptance reports. They do not establish production release readiness or compatibility with publicly published packages.
+
+Create and use dashboards within Projects in Assistant ChatKit, with bidirectional selection synchronization. See [Project integration and dashboard selection](./project-integration) for the two-column picker, project type and permissions.
 
 ## Workflow
 
@@ -32,8 +34,8 @@ Saved content contains the page, controls, Bindings and dependency snapshots, no
 | plugin-sdk         | Provider registration, normalization and isolated HTML document host                    | `packages/plugin-sdk/src/lib/data/analytics/`, `artifact-document/` |
 | Platform Artifacts | Stable identity, drafts, immutable versions, links and presentation authorization       | `packages/server-ai/src/artifacts/`                                 |
 | Cloud / ChatKit    | Resource cards, Workbench navigation, standalone viewer and controlled client commands  | `apps/cloud/src/app/artifacts/presentation/`                        |
-| Source plugins     | Native query syntax, discovery, parameter mapping and Dataset projection                | `xpert-plugins/community/tools/analytics-*`                         |
-| Dashboard plugin   | Definitions, Agent tools, preflight, controls, sharing UI and renderer integration      | `xpert-plugins/community/apps/live-dashboard`                       |
+| Source plugins     | Native query syntax, discovery, parameter mapping and Dataset projection                | `xpert-plugins/xpertai/tools/analytics-*`                           |
+| Dashboard plugin   | Definitions, Agent tools, preflight, controls, sharing UI and renderer integration      | `xpert-plugins/xpertai/apps/live-dashboard`                         |
 
 Providers do not implement page editing or charts. The platform does not interpret SQL, ontology Actions or script business logic. The dashboard consumes the same Dataset across providers.
 

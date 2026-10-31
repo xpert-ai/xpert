@@ -65,7 +65,12 @@ export class ArtifactTypesService {
         if (!binding) throw unavailable()
         return { pluginName: binding.pluginName, resourceType: binding.resourceType, title: provider.definition.title }
     }
-    async authorize(source: TypedArtifactSource, actor: ArtifactTypeActor, operation: ContentOperation) {
+    async authorize(
+        source: TypedArtifactSource,
+        actor: ArtifactTypeActor,
+        operation: ContentOperation,
+        surface?: 'draft'
+    ) {
         // An owner can still revoke after uninstall. Link updates independently require the type.
         let provider: ReturnType<ArtifactTypesService['provider']>
         try {
@@ -81,6 +86,7 @@ export class ArtifactTypesService {
             throw error
         }
         await provider.authorize(source, actor, operation)
+        if (surface === 'draft') await provider.authorizeDraft?.(source, actor, operation)
         if (this.provider(source) !== provider) throw unavailable()
     }
     async validateContent(source: TypedArtifactSource, buffer: Buffer, mimeType: string) {
@@ -89,6 +95,23 @@ export class ArtifactTypesService {
         if (limits && (!limits.mimeTypes.includes(mimeType) || buffer.length > limits.maxBytes)) throw unavailable()
         await provider.validateContent(buffer, mimeType)
         if (this.provider(source) !== provider) throw unavailable()
+    }
+    async assertDraftPublication(
+        source: TypedArtifactSource,
+        actor: ArtifactTypeActor,
+        draft: import('@xpert-ai/plugin-sdk').ArtifactDraftRecord
+    ) {
+        const provider = this.provider(source)
+        await provider.assertDraftPublication?.(source, actor, draft)
+        if (this.provider(source) !== provider) throw unavailable()
+    }
+    assertVersionCreation(source: TypedArtifactSource) {
+        if (this.provider(source).definition.versioning?.mode === 'draft-only')
+            throw new ForbiddenException(
+                t('server-ai:Error.ArtifactApplicationPublicationRequired', {
+                    defaultValue: 'Publish this artifact through its application draft workflow.'
+                })
+            )
     }
     async assertPublication(
         source: TypedArtifactSource,
