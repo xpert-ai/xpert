@@ -1474,5 +1474,9 @@
     },
     "TemplateUpgradeReleaseNotes": "Template upgrade",
     "TemplateRollbackReleaseNotes": "Restore previous template content",
-    "TemplateCommunityPublisher": "Community publisher"
+    "TemplateCommunityPublisher": "Community publisher",
+    "UserInput": {
+        "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
+        "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
+    }
 }

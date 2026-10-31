@@ -138,10 +138,10 @@ import {
     getRuntimeEnabledSubAgentConnections,
     getSubAgentConnectionTargetKey,
     createAgentChannel,
-    createPlanModeMiddlewareEntries,
     getRuntimeConnectorBindingIds,
     isRuntimeCapabilitiesAllowlist
 } from '../../../shared'
+import { createRuntimeUserInputMiddlewareEntries } from '../../../shared/agent/runtime-user-input'
 import { createCollaboratorsMiddleware } from '../../collaborators/collaborators.middleware'
 import { AgentInvocationGraphService } from '../../../agent-invocation/agent-invocation-graph.service'
 import { nativeInvocationTool } from '../../../agent-invocation/graph-tool'
@@ -1075,11 +1075,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     : middleware
         )
         const effectiveVisibleAgentMiddlewares = visibleMiddlewareEntries.map(({ middleware }) => middleware)
-        const runtimeMiddlewareEntries = await createPlanModeMiddlewareEntries(
-            this.agentMiddlewareRegistry,
-            middlewareContext,
-            options.planMode
-        )
+        const runtimeMiddlewareEntries =
+            hiddenAgent || agent.options?.structuredOutputMethod
+                ? []
+                : await createRuntimeUserInputMiddlewareEntries(
+                      this.agentMiddlewareRegistry,
+                      middlewareContext,
+                      options.planMode
+                  )
         const runtimeAgentMiddlewares = runtimeMiddlewareEntries.map(({ middleware }) => middleware)
         const shouldEnableTitleMiddleware = Boolean(
             runtimeXpert.features?.title?.enabled &&

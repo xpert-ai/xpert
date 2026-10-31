@@ -1474,5 +1474,9 @@
     },
     "TemplateUpgradeReleaseNotes": "模板升级",
     "TemplateRollbackReleaseNotes": "恢复上一版模板内容",
-    "TemplateCommunityPublisher": "社区发布者"
+    "TemplateCommunityPublisher": "社区发布者",
+    "UserInput": {
+        "InvalidResponse": "用户输入无效，请重新提交所需字段。",
+        "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。"
+    }
 }
