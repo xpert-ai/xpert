@@ -1290,7 +1290,10 @@
         "ApplicationUpdatePending": "请先续跑未完成的应用更新。",
         "ApplicationUpdateFailed": "更新已停止，已完成步骤已保存。解决资源或权限问题后可续跑；若存在并发编辑或模板变化，需要先检查冲突。",
         "ApplicationUpdateDraftPending": "套件包含未发布的草稿，请先发布或处理草稿，再更新应用。",
-        "ArtifactCopyDenied": "此成果类型不允许复制到其他项目。"
+        "ArtifactCopyDenied": "此成果类型不允许复制到其他项目。",
+        "UnsafeTemplateSyncPath": "无法同步模板路径 {{file}}：不支持符号链接或特殊文件。",
+        "InvalidTemplateSyncManifest": "模板同步清单 {{file}} 无效。请从备份恢复后重试；模板资源未被修改。",
+        "TemplateSyncConcurrentChange": "模板资源 {{file}} 在同步期间发生变更。已保留本地内容，请重试。"
     },
     "Mcp": {
         "Test": {
@@ -1478,5 +1481,10 @@
     "UserInput": {
         "InvalidResponse": "用户输入无效，请重新提交所需字段。",
         "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。"
+    },
+    "TemplateSync": {
+        "Summary": "内置模板同步：新增 {{added}}，更新 {{updated}}，接管 {{adopted}}，保留 {{preserved}}，冲突 {{conflicted}}。",
+        "Conflict": "已保留本地模板 {{file}}：内容已修改、条目已移除或缺少历史 hash。请核对当前内置版本后手动合并。",
+        "Asset": "模板资源 {{file}}：{{status}}。"
     }
 }
