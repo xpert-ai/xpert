@@ -10143,5 +10143,40 @@
   "ArtifactPresentation": {
     "UnavailableHint": "正式版本或存取權限可能已變更，請重新開啟以檢查。",
     "Reopen": "重新開啟分享頁"
+  },
+  "AppPlatform": {
+    "OptionalUnavailable": "有 {{count}} 個可選應用暫時未能準備完成，其他應用可正常使用。",
+    "Welcome": "应用工作台",
+    "Applications": "应用",
+    "Preparing": "正在准备你的应用，请稍候。",
+    "Unavailable": "应用暂时未能准备完成，请重试。",
+    "Retry": "重试准备",
+    "Status": {
+      "pending": "等待准备",
+      "initializing": "准备中",
+      "ready": "可用",
+      "failed": "准备失败",
+      "blocked": "等待依赖",
+      "disabled": "未开放"
+    },
+    "LoginDescription": "登入後繼續使用應用工作台。",
+    "NewAccount": "还没有账号？",
+    "Account": "帳號",
+    "SignOut": "登出",
+    "Usage": "用量与权益",
+    "PointsRemaining": "剩余额度",
+    "PointsUsed": "已用额度",
+    "Expires": "当前权益到期时间",
+    "Profile": "个人资料",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "Save": "儲存",
+    "Password": "修改密码",
+    "Password_current": "当前密码",
+    "Password_next": "新密码（至少 8 个字符）",
+    "Password_confirm": "确认新密码",
+    "PasswordMismatch": "两次新密码不一致。",
+    "Saved": "已儲存。",
+    "SaveFailed": "保存失败，请检查填写内容后重试。"
   }
 }

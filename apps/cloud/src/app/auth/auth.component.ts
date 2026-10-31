@@ -1,5 +1,7 @@
+import { AppPlatformService } from '../@core/services/app-platform.service'
+import type { AppPlatformDefinition } from '@xpert-ai/contracts'
 import { CommonModule, Location } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Store } from '@cloud/app/@core/state'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -25,6 +27,13 @@ type AuthAppConfig = {
   }
 })
 export class XpAuthComponent {
+  readonly branding = signal<AppPlatformDefinition['branding'] | null>(null)
+  constructor() {
+    void inject(AppPlatformService)
+      .presentation()
+      .then((presentation) => this.branding.set(presentation.branding ?? null))
+      .catch(() => undefined)
+  }
   readonly #translate = inject(TranslateService)
   protected auth = inject(XpAuthService)
   protected store = inject(Store)
@@ -40,7 +49,7 @@ export class XpAuthComponent {
   )
   readonly title = computed(() => {
     const langTitle = `tenant_title_${this.language()}`
-    return this.tenantSettings()?.[langTitle] || this.tenantSettings()?.tenant_title
+    return this.branding()?.name || this.tenantSettings()?.[langTitle] || this.tenantSettings()?.tenant_title
   })
 
   token = ''

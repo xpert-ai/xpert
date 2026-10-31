@@ -8347,5 +8347,40 @@
   "ArtifactPresentation": {
     "UnavailableHint": "The published version or your access may have changed. Reopen to check again.",
     "Reopen": "Reopen shared page"
+  },
+  "AppPlatform": {
+    "OptionalUnavailable": "{{count}} optional application(s) could not be prepared. Your other applications remain available.",
+    "Welcome": "Your workspace",
+    "Applications": "Applications",
+    "Preparing": "Your applications are being prepared.",
+    "Unavailable": "Application preparation could not complete. Please retry.",
+    "Retry": "Retry preparation",
+    "Status": {
+      "pending": "Pending",
+      "initializing": "Preparing",
+      "ready": "Ready",
+      "failed": "Preparation failed",
+      "blocked": "Waiting for dependencies",
+      "disabled": "Unavailable"
+    },
+    "LoginDescription": "Sign in to continue to your application workspace.",
+    "NewAccount": "Need an account?",
+    "Account": "Account",
+    "SignOut": "Sign out",
+    "Usage": "Usage and access",
+    "PointsRemaining": "Remaining credits",
+    "PointsUsed": "Used credits",
+    "Expires": "Current period ends",
+    "Profile": "Profile",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "Save": "Save",
+    "Password": "Password",
+    "Password_current": "Current password",
+    "Password_next": "New password (at least 8 characters)",
+    "Password_confirm": "Confirm new password",
+    "PasswordMismatch": "The new passwords do not match.",
+    "Saved": "Saved.",
+    "SaveFailed": "Could not save. Check your details and try again."
   }
 }

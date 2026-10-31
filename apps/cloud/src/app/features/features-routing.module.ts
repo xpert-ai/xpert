@@ -1,3 +1,4 @@
+import { appPlatformGuard } from './app-platform/app-platform.guard'
 import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
@@ -25,7 +26,19 @@ export const routes: Routes = [
   {
     path: '',
     component: FeaturesComponent,
+    canActivateChild: [appPlatformGuard],
     children: [
+      {
+        path: 'apps/account',
+        redirectTo: 'settings/account/profile',
+        pathMatch: 'full'
+      },
+      {
+        path: 'apps',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./app-platform/app-platform-page.component').then((m) => m.AppPlatformPageComponent)
+      },
       {
         path: '',
         redirectTo: 'chat',

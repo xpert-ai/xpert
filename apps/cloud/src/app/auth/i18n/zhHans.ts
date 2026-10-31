@@ -31,6 +31,8 @@ export const ZhHans = {
     RegisterFail: '注册失败，请稍后重试。',
     Varify: '验证',
     VarifyEmailSuccess: '邮箱验证成功, 请前往登录',
+    VerifyEmailInvalidLink: '验证链接无效或已过期，请打开邮件中最新的验证链接。',
+    VerifyEmailFailed: '邮箱验证失败，请稍后重试。',
     Required: '必填',
     AtLeast8Characters: '至少 8 个字符',
     Mismatch: '密码不匹配',
