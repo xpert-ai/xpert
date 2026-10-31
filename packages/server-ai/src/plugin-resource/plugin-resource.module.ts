@@ -1,3 +1,4 @@
+import { AssertAppPlatformUploadHandler } from './app-platform/app-platform-upload.handler'
 import { PlatformStorageDatabaseService } from './app-platform/storage/platform-storage-database.service'
 import { CheckStorageQuotaHandler, RequestStorageUsageRefreshHandler, StorageQuotaAccountResolver } from './app-platform/storage/platform-storage-budget.handler'
 import { PlatformStorageUsageService } from './app-platform/storage/platform-storage-usage.service'
@@ -90,6 +91,7 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        AssertAppPlatformUploadHandler,
         PlatformStorageDatabaseService,
         CheckStorageQuotaHandler,
         RequestStorageUsageRefreshHandler,
