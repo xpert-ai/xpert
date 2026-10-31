@@ -327,8 +327,7 @@ async function volumeFileExists(volume: VolumeHandle, relativePath: string) {
 }
 
 async function writeProjectedVolumeFile(volume: VolumeHandle, relativePath: string, buffer: Buffer) {
-    await VolumeHandle.writeFile(volume.serverRoot, relativePath, buffer, {
-        boundaryRoot: volume.serverRoot,
+    await volume.writeFile(relativePath, buffer, {
         assertCanWrite: (canonicalRelativePath, fileStat) => {
             if (
                 volume.scope.catalog === 'projects' &&
