@@ -253,6 +253,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             provider.publish(
                 {
                     xpertId: xpert.id,
+                    scope: { tenantId: xpert.tenantId, organizationId: xpert.organizationId ?? null },
                     config: this.providerConfig(trigger)
                 },
                 (payload) => {

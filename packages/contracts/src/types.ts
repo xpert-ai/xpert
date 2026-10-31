@@ -73,6 +73,7 @@ export type TranslateOptions = {
  */
 export type TSelectOption<T = string | number | boolean, K = string> = {
   key?: K
+  disabled?: boolean
   value: T
 
   label?: I18nObject | string

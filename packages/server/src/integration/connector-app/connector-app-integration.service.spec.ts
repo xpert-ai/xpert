@@ -20,6 +20,7 @@ describe('Connector application integrations', () => {
 			provider: 'github',
 			tenantId: 'tenant',
 			organizationId: null,
+			sharing: { visibility: 'all-organizations', organizationIds: [], usages: ['configuration'] },
 			options: { clientId: 'client', clientSecret: 'secret' }
 		},
 		{
@@ -49,6 +50,16 @@ describe('Connector application integrations', () => {
 			{ id: 'org-app', name: 'Org app', organizationId: 'org' }
 		])
 		expect(repository.find.mock.calls[0][0].where).toHaveLength(2)
+	})
+
+	it('rejects revoked tenant applications both during discovery and exact selection', async () => {
+		const revoked = { ...rows[0], sharing: { visibility: 'private', organizationIds: [], usages: [] } }
+		repository.find.mockResolvedValue([revoked, rows[1]])
+		repository.findOne.mockResolvedValue(revoked)
+		expect(await service.list(scope, descriptor)).toEqual([
+			{ id: 'org-app', name: 'Org app', organizationId: 'org' }
+		])
+		await expect(service.select(scope, descriptor, revoked.id)).rejects.toThrow()
 	})
 
 	it('does not include organization integrations when listing tenant choices', async () => {

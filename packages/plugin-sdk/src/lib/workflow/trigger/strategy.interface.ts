@@ -9,6 +9,8 @@ export type TWorkflowTriggerBootstrapConfig = {
 
 export type TWorkflowTriggerParams<T> = {
   xpertId: string
+  /** Host-owned Assistant scope; never taken from trigger configuration. */
+  scope?: { tenantId: string; organizationId: string | null }
   agentKey?: string
   node?: TXpertTeamNode
   config: T

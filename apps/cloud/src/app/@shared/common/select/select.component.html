@@ -65,7 +65,9 @@
           [class.bg-accent]="opElem.isSelected()"
           [class.text-accent-foreground]="opElem.isSelected()"
           [cdkOption]="option.value"
-          (click)="selectOption(trigger, option.value)"
+          [cdkOptionDisabled]="option.disabled === true"
+          [attr.aria-disabled]="option.disabled === true"
+          (click)="!option.disabled && selectOption(trigger, option.value)"
         >
           @if (optionTemplate()) {
             <ng-container

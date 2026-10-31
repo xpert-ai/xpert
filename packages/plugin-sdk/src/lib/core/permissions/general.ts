@@ -1,3 +1,4 @@
+import type { IntegrationUsage, IntegrationUsageScope } from '@xpert-ai/contracts'
 import type { IIntegration, IPagination } from '@xpert-ai/contracts'
 import type { PluginWebhookCredentialResult } from '../webhook'
 
@@ -75,6 +76,8 @@ export const INTEGRATION_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_INTEGRATION_PE
  * Read-only integration permission service exposed to plugins.
  */
 export interface IntegrationPermissionService {
+  /** Scope must come from a host-authorized request/execution or a persisted binding, never tool input. */
+  readForUsage?(id: string, usage: IntegrationUsage, scope: IntegrationUsageScope): Promise<IIntegration | null>
   /** Read plugin configuration in its host-bound scope; system plugins use the Default tenant. */
   readConfiguration?(id: string): Promise<IIntegration | null>
   /** Exact lookup for a connector whose actor and persisted scope have been authorized by the host. */

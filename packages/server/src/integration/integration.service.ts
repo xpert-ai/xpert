@@ -1,11 +1,24 @@
-import { IIntegration, IntegrationFeatureEnum, IUser } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+	IIntegration,
+	IntegrationFeatureEnum,
+	IntegrationSharingPolicy,
+	IntegrationUsage,
+	IntegrationUsageScope,
+	RolesEnum,
+	IUser
+} from '@xpert-ai/contracts'
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IntegrationStrategyRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import { FindOneOptions, Repository } from 'typeorm'
+import { FindManyOptions, FindOneOptions, In, IsNull, Repository } from 'typeorm'
 import { TenantOrganizationAwareCrudService } from './../core/crud'
 import { UserService } from '../user'
 import { Integration } from './integration.entity'
+import type { Organization } from '../organization/organization.entity'
+import { canConsumeIntegration } from './sharing/integration-sharing.policy'
+import { t } from 'i18next'
+import { ResolveUserOrganizationAccessCommand } from '../user-organization/commands/resolve-user-organization-access.command'
 
 @Injectable()
 export class IntegrationService extends TenantOrganizationAwareCrudService<Integration> {
@@ -13,9 +26,97 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		@InjectRepository(Integration)
 		integrationRepository: Repository<Integration>,
 		private readonly strategyRegistry: IntegrationStrategyRegistry,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		@Inject(CommandBus) private readonly commands: Pick<CommandBus, 'execute'>
 	) {
 		super(integrationRepository)
+	}
+
+	async availableForUsage(query: { provider?: string; features?: string; usage: IntegrationUsage }) {
+		const scope = RequestContext.getScope()
+		const userId = RequestContext.currentUserId()
+		if (!userId || !scope.tenantId) throw new ForbiddenException()
+		if (scope.organizationId) {
+			const user = await this.commands.execute(
+				new ResolveUserOrganizationAccessCommand({
+					tenantId: scope.tenantId,
+					organizationId: scope.organizationId,
+					userId
+				})
+			)
+			if (!user) throw new ForbiddenException()
+		} else if (!RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
+			throw new ForbiddenException()
+		}
+		const base = { tenantId: scope.tenantId, ...(query.provider ? { provider: query.provider } : {}) }
+		const items = await this.repository.find({
+			where: scope.organizationId
+				? [
+						{ ...base, organizationId: scope.organizationId },
+						{ ...base, organizationId: IsNull() }
+					]
+				: { ...base, organizationId: IsNull() },
+			order: { name: 'ASC' }
+		})
+		const features = query.features?.split(',').filter(Boolean)
+		const providers = new Map(this.getProviders().map((provider) => [provider.name, provider]))
+		return items
+			.filter((item) => canConsumeIntegration(item, scope, query.usage))
+			.filter(
+				(item) =>
+					!features?.length || features.every((feature) => item.features?.some((value) => value === feature))
+			)
+			.map((item) => ({
+				id: item.id,
+				value: item.id,
+				slug: item.slug,
+				organizationId: item.organizationId,
+				name: item.name,
+				label: item.name,
+				description: item.description,
+				provider: item.provider,
+				features: item.features,
+				scopeLevel: item.organizationId ? 'organization' : 'tenant',
+				icon: providers.get(item.provider)?.icon,
+				avatar: providers.get(item.provider)?.avatar
+			}))
+	}
+
+	async readForUsage(
+		id: string,
+		usage: IntegrationUsage,
+		scope: IntegrationUsageScope,
+		options?: FindOneOptions<Integration>
+	) {
+		if (!id || !scope.tenantId) return null
+		const integration = await this.repository.findOne({
+			...(options ?? {}),
+			where: { id, tenantId: scope.tenantId }
+		})
+		return integration && canConsumeIntegration(integration, scope, usage) ? integration : null
+	}
+
+	async updateSharing(id: string, sharing: IntegrationSharingPolicy) {
+		const scope = RequestContext.getScope()
+		if (scope.organizationId || !scope.tenantId || !RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
+			throw new ForbiddenException(t('server-ai:Error.IntegrationSharingAdminRequired'))
+		}
+		const integration = await this.repository.findOne({
+			where: { id, tenantId: scope.tenantId, organizationId: IsNull() }
+		})
+		if (!integration) throw new NotFoundException(t('server-ai:Error.IntegrationUnavailable'))
+		if (sharing.organizationIds.length) {
+			const count = await this.repository.manager.count<Organization>('organization', {
+				where: { id: In(sharing.organizationIds), tenantId: scope.tenantId, isActive: true }
+			})
+			if (count !== sharing.organizationIds.length)
+				throw new BadRequestException(t('server-ai:Error.IntegrationSharingOrganizationInvalid'))
+		}
+		await this.repository.update(
+			{ id, tenantId: scope.tenantId, organizationId: IsNull() },
+			{ sharing, updatedById: RequestContext.currentUserId() }
+		)
+		return { id, sharing }
 	}
 
 	getProviders() {
@@ -92,6 +193,16 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		} catch (error) {
 			throw new BadRequestException(error instanceof Error ? error.message : String(error))
 		}
+	}
+
+	async findAllInOrganizationOrTenant(options?: FindManyOptions<Integration>) {
+		const result = await this.findWithInheritance(options)
+		const items = result.items.filter((item) => canConsumeIntegration(item, RequestContext.getScope(), 'invoke'))
+		return { items, total: items.length }
+	}
+
+	async findOneInOrganizationOrTenant(id: string, options?: FindOneOptions<Integration>) {
+		return this.readForUsage(id, 'invoke', RequestContext.getScope(), options)
 	}
 
 	readOneById(id: string, options?: FindOneOptions<Integration>) {

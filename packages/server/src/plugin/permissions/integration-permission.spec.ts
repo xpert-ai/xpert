@@ -1,3 +1,5 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { IntegrationService } from '../../integration/integration.service'
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from '../plugin-webhook.tokens'
 import { PluginIntegrationPermissionService } from './integration-permission'
@@ -113,19 +115,29 @@ describe('PluginIntegrationPermissionService', () => {
 		})
 	})
 
-	it('exposes tenant and organization integrations for inherited plugin configuration', async () => {
+	it('exposes authorized tenant and organization integrations for inherited plugin configuration', async () => {
+		const scope = jest
+			.spyOn(RequestContext, 'getScope')
+			.mockReturnValue({
+				tenantId: 'tenant',
+				organizationId: 'organization-1',
+				level: RequestScopeLevel.ORGANIZATION
+			})
 		const tenantIntegration = {
 			id: 'tenant-integration',
+			tenantId: 'tenant',
+			sharing: { visibility: 'all-organizations', organizationIds: [], usages: ['configuration'] },
 			provider: 'github',
 			organizationId: null
 		}
 		const organizationIntegration = {
 			id: 'organization-integration',
+			tenantId: 'tenant',
 			provider: 'github',
 			organizationId: 'organization-1'
 		}
 		const integrationService = {
-			findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({
+			findWithInheritance: jest.fn().mockResolvedValue({
 				items: [organizationIntegration, tenantIntegration],
 				total: 2
 			})
@@ -148,8 +160,9 @@ describe('PluginIntegrationPermissionService', () => {
 			items: [organizationIntegration, tenantIntegration],
 			total: 2
 		})
-		expect(integrationService.findAllInOrganizationOrTenant).toHaveBeenCalledWith({
+		expect(integrationService.findWithInheritance).toHaveBeenCalledWith({
 			where: { provider: 'github' }
 		})
+		scope.mockRestore()
 	})
 })

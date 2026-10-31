@@ -100,7 +100,9 @@
         <li
           class="flex items-start gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-gray-100"
           [cdkOption]="option.value"
-          (click)="selectOption(trigger, option.value)"
+          [cdkOptionDisabled]="option.disabled === true"
+          [attr.aria-disabled]="option.disabled === true"
+          (click)="!option.disabled && selectOption(trigger, option.value)"
         >
           <input
             type="checkbox"

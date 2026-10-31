@@ -1293,7 +1293,11 @@
         "ArtifactCopyDenied": "此成果类型不允许复制到其他项目。",
         "UnsafeTemplateSyncPath": "无法同步模板路径 {{file}}：不支持符号链接或特殊文件。",
         "InvalidTemplateSyncManifest": "模板同步清单 {{file}} 无效。请从备份恢复后重试；模板资源未被修改。",
-        "TemplateSyncConcurrentChange": "模板资源 {{file}} 在同步期间发生变更。已保留本地内容，请重试。"
+        "TemplateSyncConcurrentChange": "模板资源 {{file}} 在同步期间发生变更。已保留本地内容，请重试。",
+        "IntegrationSharingAdminRequired": "只有租户管理员可以管理集成共享授权",
+        "IntegrationUnavailable": "集成不可用或未获授权",
+        "IntegrationSharingOrganizationInvalid": "请选择当前租户内的有效组织",
+        "IntegrationSharingInvalid": "集成使用授权或查询参数无效"
     },
     "Mcp": {
         "Test": {

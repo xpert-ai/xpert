@@ -5932,6 +5932,31 @@
       "Send": "Send to Assistant",
       "Loading": "Loading document and review…",
       "BasedOn": "Based on version"
+    },
+    "Integration": {
+      "Sharing": {
+        "Title": "Organization access",
+        "Hint": "Usage grants do not expose credentials or grant edit/delete access.",
+        "ReviewRequired": "Sharing has not been configured. Review existing organization bindings before granting access.",
+        "private": "Private to tenant",
+        "all-organizations": "All organizations in this tenant",
+        "selected-organizations": "Selected organizations",
+        "Organizations": "Allowed organizations",
+        "Usages": "Allowed uses",
+        "configuration": "Application configuration and account authorization",
+        "invoke": "Invoke services or send messages",
+        "bind": "Bind an Assistant message entry",
+        "RevokeHint": "Revocation blocks organization selection, binding and execution. Existing configuration is retained and can be used after access is restored.",
+        "Save": "Save access",
+        "Saving": "Saving…",
+        "Saved": "Access updated",
+        "Loading": "Loading organizations…",
+        "Retry": "Retry",
+        "TenantSource": "Tenant shared integration",
+        "OrganizationSource": "Organization integration",
+        "Unavailable": "Unavailable or unauthorized; contact your administrator",
+        "EmptyOrganizations": "No active organizations are available."
+      }
     }
   },
   "STORY_DESIGNER": {

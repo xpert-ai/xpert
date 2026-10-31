@@ -1,6 +1,6 @@
 // Invariants: configuration reads use the host-bound plugin scope, never request headers.
 // Keep legacy runtime reads unchanged for multi-tenant callback plugins.
-import { IIntegration } from '@xpert-ai/contracts'
+import { IntegrationUsage, IntegrationUsageScope, IIntegration } from '@xpert-ai/contracts'
 import {
 	GLOBAL_ORGANIZATION_SCOPE,
 	SYSTEM_GLOBAL_SCOPE,
@@ -8,6 +8,7 @@ import {
 	type Permissions
 } from '@xpert-ai/plugin-sdk'
 import { In, IsNull, type FindOptionsWhere, type Repository } from 'typeorm'
+import { canConsumeIntegration } from '../../integration/sharing/integration-sharing.policy'
 import { Integration } from '../../integration/integration.entity'
 import type { PluginIntegrationPermissionService } from './integration-permission'
 
@@ -39,6 +40,16 @@ export function bindIntegrationConfigurationReader(
 	return new Proxy(service, {
 		get(target, property) {
 			if (property === 'readConfiguration') return readConfiguration
+			if (property === 'readForUsage')
+				return async (id: string, usage: IntegrationUsage, usageScope: IntegrationUsageScope) => {
+					const allowed = grants.filter((grant) => !grant.scope?.length || grant.scope.includes(id))
+					if (!allowed.length) return null
+					const integration = await service.readForUsage(id, usage, usageScope)
+					return integration &&
+						allowed.some((grant) => grant.service === '*' || grant.service === integration.provider)
+						? integration
+						: null
+				}
 			const value = Reflect.get(target, property)
 			return typeof value === 'function' ? value.bind(target) : value
 		}
@@ -72,5 +83,7 @@ export async function readIntegrationConfiguration(
 		(!providers.includes('*') && !providers.includes(integration.provider))
 	)
 		return null
-	return integration
+	return canConsumeIntegration(integration, { tenantId, organizationId: organizationId ?? null }, 'configuration')
+		? integration
+		: null
 }
