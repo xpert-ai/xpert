@@ -19,6 +19,7 @@ import { ExploreAgentSquareComponent } from './agent-square/agent-square.compone
 import { DEFAULT_EXPLORE_TAB, normalizeExploreTab, type ExploreTab } from './explore-route-state'
 import { ExploreSkillsComponent } from './skills/skills.component'
 import { ExploreScopeService } from './explore-scope.service'
+import { ExploreScopeComponent } from './explore-scope.component'
 
 type ExploreMode = 'square' | 'mine'
 
@@ -36,6 +37,7 @@ const DEFAULT_MODE: ExploreMode = 'square'
     ZardInputDirective,
     ZardInputGroupComponent,
     ...ZardMenuImports,
+    ExploreScopeComponent,
     ExploreAgentSquareComponent,
     ExploreSkillsComponent
   ],

@@ -15,7 +15,7 @@
 >
   <header class="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-xl">
     <div class="flex flex-col gap-3 px-3 py-3 sm:px-6 xl:px-10">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <nav
           class="flex w-fit max-w-full items-center gap-1 overflow-x-auto"
           aria-label="{{ 'XP.Explore.NavigationLabel' | translate: { Default: 'Marketplace navigation' } }}"
@@ -68,35 +68,37 @@
           </button>
         </nav>
 
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <z-input-group class="w-full sm:w-[360px]" zSize="default" [zAddonBefore]="headerSearchIcon">
-            <input
-              z-input
-              zSize="default"
-              class="pr-8"
-              [placeholder]="
-                tab() === 'skills'
-                  ? ('XP.Explore.SkillSearchPlaceholder'
-                    | translate: { Default: 'Search skill name, description, or tags' })
-                  : ('XP.Explore.AgentSquare.SearchExpertsPlaceholder'
-                    | translate: { Default: 'Search experts, scenarios, or capabilities' })
-              "
-              [(ngModel)]="search"
-            />
-          </z-input-group>
+        <div class="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-3">
+          <div class="relative w-full sm:w-64 xl:w-80">
+            <z-input-group class="w-full" zSize="default" [zAddonBefore]="headerSearchIcon">
+              <input
+                z-input
+                zSize="default"
+                class="pr-8"
+                [placeholder]="
+                  tab() === 'skills'
+                    ? ('XP.Explore.SkillSearchPlaceholder'
+                      | translate: { Default: 'Search skill name, description, or tags' })
+                    : ('XP.Explore.AgentSquare.SearchExpertsPlaceholder'
+                      | translate: { Default: 'Search experts, scenarios, or capabilities' })
+                "
+                [(ngModel)]="search"
+              />
+            </z-input-group>
 
-          @if (search()) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="default"
-              type="button"
-              class="cursor-pointer sm:-ml-11"
-              (click)="clearSearch()"
-            >
-              <z-icon zType="x" zSize="sm" />
-            </button>
-          }
+            @if (search()) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                type="button"
+                class="absolute right-1 top-1/2 size-7 -translate-y-1/2 cursor-pointer"
+                (click)="clearSearch()"
+              >
+                <z-icon zType="x" zSize="sm" />
+              </button>
+            }
+          </div>
 
           @if (tab() === 'skills') {
             <button
@@ -128,6 +130,10 @@
               {{ 'XP.Explore.AddSkill' | translate: { Default: 'Add skill' } }}
               <z-icon zType="chevron-down" zSize="sm" />
             </button>
+          }
+
+          @if (tab() === 'agent-square') {
+            <xp-explore-scope class="min-w-0 max-w-full" [compact]="true" />
           }
         </div>
       </div>
