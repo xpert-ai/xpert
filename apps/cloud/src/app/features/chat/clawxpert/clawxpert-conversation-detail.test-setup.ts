@@ -144,6 +144,7 @@ type MockChatKitRuntimeInput = {
   assistantId?: () => string | null
   displayMode?: CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
+  pet?: CreateChatKitOptions['pet']
   initialThread?: () => string | null
   startScreen?: () => CreateChatKitOptions['startScreen'] | null
   projectId?: () => string | null

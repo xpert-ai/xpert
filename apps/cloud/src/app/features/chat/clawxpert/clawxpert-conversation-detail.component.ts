@@ -255,6 +255,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     initialThread: this.chatkitInitialThread,
     startScreen: this.startScreen,
     displayMode: 'chat',
+    pet: false,
     layout: {
       maxWidth: CLAWXPERT_CHAT_COLUMN_MAX_WIDTH
     },
