@@ -17,7 +17,6 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
   Component,
-  NgZone,
   ViewContainerRef,
   computed,
   effect,
@@ -31,8 +30,8 @@ import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { AGENT_WORKBENCH_SLOT, type IconDefinition, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { Observable, combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
-import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
+import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
   AIPermissionsEnum,
   AiFeatureEnum,
@@ -98,7 +97,6 @@ const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
 }
 
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
-const UNREAD_POLL_INTERVAL_MS = 2_000
 const ALL_ASSISTANT_CATEGORY = 'all'
 const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
@@ -148,7 +146,6 @@ export class CloudSidebarAssistantsComponent {
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #destroyRef = inject(DestroyRef)
-  readonly #ngZone = inject(NgZone)
   readonly #router = inject(Router)
   readonly #scopeService = inject(ScopeService)
   readonly #store = inject(Store)
@@ -157,49 +154,6 @@ export class CloudSidebarAssistantsComponent {
   readonly #settings = inject(XpertSettingsService)
   readonly #viewContainerRef = inject(ViewContainerRef)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
-  readonly #unreadPoll$ = new Observable<void>((subscriber) =>
-    this.#ngZone.runOutsideAngular(() => {
-      const documentRef = globalThis.document
-      let intervalId: ReturnType<typeof setInterval> | null = null
-      const emit = () => subscriber.next()
-      const stop = () => {
-        if (intervalId) {
-          clearInterval(intervalId)
-          intervalId = null
-        }
-      }
-      const start = () => {
-        if (!intervalId) {
-          intervalId = setInterval(emit, UNREAD_POLL_INTERVAL_MS)
-        }
-      }
-
-      if (!documentRef) {
-        emit()
-        start()
-        return stop
-      }
-
-      const handleVisibilityChange = () => {
-        if (documentRef.visibilityState === 'visible') {
-          emit()
-          start()
-          return
-        }
-
-        stop()
-      }
-
-      handleVisibilityChange()
-      documentRef.addEventListener('visibilitychange', handleVisibilityChange)
-
-      return () => {
-        stop()
-        documentRef.removeEventListener('visibilitychange', handleVisibilityChange)
-      }
-    })
-  )
-
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
@@ -293,11 +247,12 @@ export class CloudSidebarAssistantsComponent {
           )
         ).pipe(
           switchMap(() => {
-            const binding$ = isTenantListScope
-              ? of(null)
-              : this.#assistantBindingService
-                  .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-                  .pipe(catchError(() => of(null)))
+            const binding$ =
+              isTenantListScope || !this.hasXpertEditPermission()
+                ? of(null)
+                : this.#assistantBindingService
+                    .get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+                    .pipe(catchError(() => of(null)))
 
             const items$ = isTenantListScope
               ? this.#assistantBindingService
@@ -443,9 +398,7 @@ export class CloudSidebarAssistantsComponent {
           return of([])
         }
 
-        return merge(this.#unreadPoll$, this.#conversationService.unreadRefresh$).pipe(
-          exhaustMap(() => this.#conversationService.getUnreadByXperts(xpertIds).pipe(catchError(() => of([]))))
-        )
+        return this.#conversationService.watchUnreadByXperts(xpertIds)
       })
     ),
     { initialValue: [] }
@@ -984,7 +937,9 @@ export class CloudSidebarAssistantsComponent {
     return title || null
   }
 
+  private readonly rolePermissions = toSignal(this.#store.userRolePermissions$)
   private hasXpertEditPermission() {
-    return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
+    this.rolePermissions()
+    return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
   }
 }

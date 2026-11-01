@@ -1,6 +1,6 @@
 import { Tag, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 /** Selects an existing tag; definitions remain owned by the organization/tenant directory. */
 @Entity('knowledgebase_tag')

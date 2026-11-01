@@ -1,8 +1,8 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import type { Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,

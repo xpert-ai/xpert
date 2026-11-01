@@ -1,12 +1,12 @@
 jest.mock('../document.service', () => ({ KnowledgeDocumentService: class {} }))
-jest.mock('../../knowledgebase/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../../knowledgebase/management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 jest.mock('../../shared/agent/middleware-runtime', () => ({ AgentMiddlewareRuntimeService: class {} }))
 import { AiModelTypeEnum, KBDocumentStatusEnum, KnowledgeQuestionGenerationConfig } from '@xpert-ai/contracts'
 import { FindOperator, Repository } from 'typeorm'
 import { KnowledgeQuestionGenerationService } from './question-generation.service'
 import { KnowledgeDocumentChunk } from '../chunk/chunk.entity'
 import { KnowledgeDocumentService } from '../document.service'
-import { KnowledgebaseService } from '../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../knowledgebase/management/knowledgebase.service'
 import { AgentMiddlewareRuntimeService } from '../../shared/agent/middleware-runtime'
 import { questionInputHash } from './question-generation'
 

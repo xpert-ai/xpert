@@ -1,3 +1,7 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { runtimeStream, usesRuntimePresentation } from './runtime-presentation'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 import { publicRunControl } from '../chat-conversation/control-view/public-run-control'
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
@@ -109,6 +113,7 @@ function startSseHeartbeat(res: Response) {
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('threads')
+@Permissions(AIPermissionsEnum.XPERT_VIEW)
 export class ThreadsController {
     readonly #logger = new Logger(ThreadsController.name)
 
@@ -125,18 +130,21 @@ export class ThreadsController {
     // Threads: A thread contains the accumulated outputs of a group of runs.
 
     @Post()
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async createThread(@Body() body: components['schemas']['ThreadCreate'], @CurrentUser() user: IUser) {
         return await this.commandBus.execute(new ThreadCreateCommand(body))
     }
 
     @HttpCode(HttpStatus.OK)
     @Post('search')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async searchThreads(@Body() req: components['schemas']['ThreadSearchRequest']) {
         return this.queryBus.execute(new SearchThreadsQuery(req))
     }
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThread(@Param('thread_id') thread_id: string) {
         return await this.queryBus.execute(new FindThreadQuery(thread_id))
     }
@@ -145,6 +153,7 @@ export class ThreadsController {
     @Header('Connection', 'keep-alive')
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/stream')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Sse()
     async streamThreadActivity(@Res() res: Response, @Param('thread_id') threadId: string) {
         await this.ensureThreadAccess(threadId)
@@ -165,6 +174,7 @@ export class ThreadsController {
 
     @HttpCode(HttpStatus.ACCEPTED)
     @Delete(':thread_id')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async deleteThread(@Param('thread_id') thread_id: string) {
         await this.ensureThreadAccess(thread_id, 'manage')
         return await this.commandBus.execute(new ThreadDeleteCommand(thread_id))
@@ -230,6 +240,7 @@ export class ThreadsController {
     // Runs: A run is an invocation of a graph / assistant on a thread. It updates the state of the thread.
 
     @Get(':thread_id/runs')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadRuns(
         @Param('thread_id') thread_id: string,
         @Query('limit') limit: number,
@@ -258,6 +269,7 @@ export class ThreadsController {
      * @returns
      */
     @Post(':thread_id/runs')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async createRun(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
         const { stream, execution } = await this.commandBus.execute(new RunCreateStreamCommand(thread_id, body))
         stream.subscribe({
@@ -279,6 +291,7 @@ export class ThreadsController {
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
     @Post(':thread_id/runs/stream')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async runStream(
         @Req() req: Request,
         @Res() res: Response,
@@ -296,7 +309,7 @@ export class ThreadsController {
             }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
-                writeSseResponse(req, res, stream)
+                writeSseResponse(req, res, runtimeStream(stream))
                 return
             }
             const owner = buildSseConnectionOwner(req, {
@@ -322,7 +335,7 @@ export class ThreadsController {
                 }
             })
             startSseHeartbeat(res)
-            writeSseResponse(req, res, sseStream)
+            writeSseResponse(req, res, runtimeStream(sseStream))
         } catch (error) {
             console.error('Error starting run stream:')
             console.error(error)
@@ -338,6 +351,7 @@ export class ThreadsController {
      * @returns
      */
     @Post(':thread_id/runs/wait')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async runWait(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
         const { stream, execution } = await this.commandBus.execute<
             RunCreateStreamCommand,
@@ -383,6 +397,7 @@ export class ThreadsController {
     @Header('Connection', 'keep-alive')
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/stream')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Sse()
     async joinRunStream(
         @Req() req: Request,
@@ -406,7 +421,7 @@ export class ThreadsController {
             lastEventId,
             mode: 'join',
             requireReplayStart: true,
-            ...(displaySnapshot === '1'
+            ...(displaySnapshot === '1' && !usesRuntimePresentation()
                 ? { snapshotScope: { tenantId: execution.tenantId, organizationId: execution.organizationId } }
                 : {}),
             isRunFinished: async () => {
@@ -421,11 +436,12 @@ export class ThreadsController {
         })
 
         startSseHeartbeat(res)
-        return stream
+        return runtimeStream(stream)
     }
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/status')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadRunStatus(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
         await this.ensureThreadAccess(threadId)
         const execution = await this.queryBus.execute(new GetAgentExecutionRunStatusQuery(runId))
@@ -453,6 +469,7 @@ export class ThreadsController {
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         await this.ensureThreadAccess(thread_id)
         const execution = await this.queryBus.execute(new GetAgentExecutionRunSummaryQuery(run_id))
@@ -464,6 +481,7 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/runs/:run_id/cancel')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         const execution = await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
         if (execution.metadata?.invocationKind === 'external_assistant') {
@@ -484,6 +502,7 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/runs/:run_id/pause')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @HttpCode(HttpStatus.ACCEPTED)
     async pauseRun(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
         await this.ensureThreadRunAccess(threadId, runId, 'contribute')
@@ -501,6 +520,7 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/runs/:run_id/resume')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async resumeRun(
         @Param('thread_id') threadId: string,
         @Param('run_id') runId: string,
@@ -533,12 +553,14 @@ export class ThreadsController {
 
     // Others
     @Get(':thread_id/context-usage')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
         await this.ensureThreadAccess(threadId)
         return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
     }
 
     @Get(':thread_id/usage')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadUsage(
         @Param('thread_id') threadId: string,
         @Query('start') start: string,
@@ -579,7 +601,10 @@ function transformRun(execution: TAgentExecutionRunSummary) {
         created_at: execution.createdAt.toISOString(),
         updated_at: execution.updatedAt.toISOString(),
         status: execution.status,
-        metadata: { ...execution.metadata, agentRun: toAgentRunSummary(execution) } as Metadata
+        metadata: {
+            ...(!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {} : execution.metadata),
+            agentRun: toAgentRunSummary(execution)
+        } as Metadata
     } as Run
 }
 

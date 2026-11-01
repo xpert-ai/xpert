@@ -44,7 +44,6 @@ import { ChatConversationThread } from '../../chat-conversation/conversation-thr
 import { ThreadRunControlService } from '../../chat-conversation/thread-run-control.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
-import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { GetXpertWorkflowQuery } from '../../xpert/queries/get-xpert-workflow.query'
 import { XpertAgentExecutionUpsertCommand } from '../commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../queries/get-one.query'
@@ -92,7 +91,6 @@ function fixture(external: boolean) {
     const queries = {
         execute: jest.fn(async (query: unknown): Promise<unknown> => {
             if (query instanceof GetAccessiblePublishedXpertQuery) return accessHandler.execute(query)
-            if (query instanceof FindXpertQuery) return query.conditions.id === callerId ? caller : target
             if (query instanceof GetXpertWorkflowQuery) {
                 const xpert = query.id === callerId ? caller : target
                 return { agent: { ...xpert.agent, team: xpert }, graph: xpert.graph }
@@ -121,10 +119,16 @@ function fixture(external: boolean) {
     })
     const runtime = new AgentInvocationRuntime(store, registry)
     const published = jest.fn(
-        async (_id: string, _options?: Omit<FindOneOptions<Xpert>, 'where'>): Promise<IXpert> => target
+        async (id: string, _options?: Omit<FindOneOptions<Xpert>, 'where'>): Promise<IXpert> => {
+            const result = id === callerId ? caller : target
+            if (!result.publishAt) throw new ForbiddenException()
+            return result
+        }
     )
+    const publishedResource = jest.fn(async (id: string, _parentId: string) => published(id))
     const accessHandler = new GetAccessiblePublishedXpertHandler({
-        getAccessiblePublishedXpert: published
+        getAccessiblePublishedXpert: published,
+        getAccessiblePublishedResource: publishedResource
     } as unknown as PublishedXpertAccessService)
     const dependencies = new Map<unknown, unknown>([
         [AgentInvocationRuntime, runtime],
@@ -169,6 +173,7 @@ function fixture(external: boolean) {
         chat,
         queries,
         published,
+        publishedResource,
         dependencies,
         nativeAuthorize,
         nativePrepare,
@@ -202,6 +207,7 @@ function delegatedFixture() {
     }
     const access = new PublishedXpertAccessService(repository as unknown as Repository<Xpert>)
     f.published.mockImplementation((id, options) => access.getAccessiblePublishedXpert(id, options))
+    f.publishedResource.mockImplementation((id, parentId) => access.getAccessiblePublishedResource(id, parentId))
     f.dependencies.set(PublishedXpertAccessService, access)
     return { ...f, access, qb, principal }
 }
@@ -399,7 +405,7 @@ describe('Assistant Task workspace scope', () => {
             f.service.assertExternalAssistantBinding({ ...input, executorXpertId: 'unrelated-assistant' })
         ).rejects.toThrow('assistant_binding_executor_mismatch')
         f.target.publishAt = undefined
-        await expect(f.service.assertExternalAssistantBinding(input)).rejects.toThrow('assistant_unpublished')
+        await expect(f.service.assertExternalAssistantBinding(input)).rejects.toThrow('assistant_binding_missing')
         expect(f.commands.execute).not.toHaveBeenCalled()
     })
 
@@ -470,7 +476,7 @@ describe('Assistant Task workspace scope', () => {
                             transaction: async (work: (value: typeof manager) => Promise<unknown>) => work(manager)
                         }
                     },
-                    { provide: ThreadRunControlService, useValue: {} }
+                    { provide: ThreadRunControlService, useValue: { start: jest.fn() } }
                 ]
             }).compile()
             const admission = module.get(ChatExecutionAdmissionService)

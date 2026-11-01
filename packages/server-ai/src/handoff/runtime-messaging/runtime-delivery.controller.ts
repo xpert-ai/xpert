@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -13,6 +15,7 @@ export const runtimeRedriveSchema = z.object({}).strict()
 
 /** Owner-authorized transport operations. Redrive never changes an Invocation or clears a user stop. */
 @Controller('agent-invocations')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class RuntimeDeliveryController {
     constructor(
         private readonly dataSource: DataSource,

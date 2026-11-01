@@ -8,5 +8,6 @@ node tools/scripts/update-pnpm-lock-if-needed.cjs || exit 1
 node tools/scripts/check-hardcoded-colors.cjs --staged || exit 1
 node tools/scripts/check-typeorm-column-types.cjs --staged || exit 1
 node tools/scripts/check-request-context-imports.cjs --staged || exit 1
+node tools/scripts/generate-permission-reference.cjs --check || exit 1
 
 exit 0

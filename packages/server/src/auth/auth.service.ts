@@ -32,7 +32,8 @@ import {
 } from '@xpert-ai/contracts'
 import type { VerifiedEmailLoginInput } from '@xpert-ai/plugin-sdk'
 import { SocialAuthService } from '@xpert-ai/server-auth'
-import { environment as env, environment, IEnvironment } from '@xpert-ai/server-config'
+import { environment as env, environment, getConfig, IEnvironment } from '@xpert-ai/server-config'
+import { ensureRegistrationOrganization } from './registration-organization'
 import bcrypt from 'bcryptjs'
 import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'
@@ -142,7 +143,7 @@ export class AuthService extends SocialAuthService {
 				const role = await manager.getRepository(Role).findOne({
 					where: {
 						tenantId: normalizedInput.tenantId,
-						name: RolesEnum.TRIAL
+						name: getConfig().appPlatform ? RolesEnum.APP_USER : RolesEnum.TRIAL
 					}
 				})
 				if (!role) {
@@ -463,11 +464,12 @@ export class AuthService extends SocialAuthService {
 		const normalizedIdentifier = email?.trim().toLowerCase()
 		const user = await this.userService.findOneByOptions({
 			where: { email: normalizedIdentifier, emailVerified: true },
+			relations: ['role', 'role.rolePermissions'],
 			order: {
 				createdAt: 'DESC'
 			}
 		})
-		if (!user || !(await bcrypt.compare(password, user.hash))) {
+		if (!user || user.isActive === false || !(await bcrypt.compare(password, user.hash))) {
 			throw new UnauthorizedException()
 		}
 		return user
@@ -690,7 +692,8 @@ export class AuthService extends SocialAuthService {
 		const emailVerificationToken = nanoid()
 		const user = await this.createRegisteredUser(input, languageCode, {
 			emailVerified: false,
-			emailVerificationToken
+			emailVerificationToken,
+			independentOrganization: !!getConfig().appPlatform
 		})
 		const url = `${environment.clientBaseUrl}/auth/verify?token=${emailVerificationToken}`
 		await this.emailService.sendVerifyEmailMail(user, languageCode, url, input.organizationId, input.originalUrl)
@@ -739,6 +742,7 @@ export class AuthService extends SocialAuthService {
 		options?: {
 			emailVerified?: boolean
 			emailVerificationToken?: string
+			independentOrganization?: boolean
 		}
 	): Promise<User> {
 		const normalizedEmail = input.user.email?.trim().toLowerCase()
@@ -772,11 +776,12 @@ export class AuthService extends SocialAuthService {
 
 			const existingUser = where.length
 				? await userRepository.findOne({
-						where
+						where, relations: { emailVerification: true }
 					})
 				: null
-			const isUpdatingPendingSignup =
-				!!input.user.id && existingUser?.id === input.user.id && options?.emailVerified === false
+			const isUpdatingPendingSignup = existingUser && !existingUser.emailVerified && options?.emailVerified === false &&
+				((!!input.user.id && existingUser.id === input.user.id) ||
+					(options.independentOrganization && existingUser.roleId === input.user.roleId))
 			if (existingUser && !isUpdatingPendingSignup) {
 				throw new BadRequestException(
 					await this.i18n.translate('core.User.Error.AccountAlreadyExists', {
@@ -788,6 +793,7 @@ export class AuthService extends SocialAuthService {
 			const user = await userRepository.save(
 				userRepository.create({
 					...input.user,
+					...(isUpdatingPendingSignup ? { id: existingUser.id } : {}),
 					email: normalizedEmail,
 					username: normalizedUsername,
 					tenantId,
@@ -797,6 +803,7 @@ export class AuthService extends SocialAuthService {
 					...(options?.emailVerificationToken
 						? {
 								emailVerification: {
+									...(isUpdatingPendingSignup && existingUser.emailVerification?.id ? { id: existingUser.emailVerification.id } : {}),
 									tenantId,
 									token: options.emailVerificationToken,
 									validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2)
@@ -820,7 +827,10 @@ export class AuthService extends SocialAuthService {
 				)
 			}
 
-			const organizationId =
+			const managedOrganization = options?.independentOrganization
+				? await ensureRegistrationOrganization(manager, tenantId, String(hydratedUser.id), normalizedEmail)
+				: null
+			const organizationId = managedOrganization?.organizationId ??
 				input.organizationId ?? (await this.resolveDefaultOrganizationIdWithManager(manager, tenantId))
 			let membershipCreation: {
 				organizationId: string
@@ -849,12 +859,17 @@ export class AuthService extends SocialAuthService {
 
 			return {
 				user: hydratedUser,
-				membershipCreation
+				membershipCreation,
+				createdOrganizationId: managedOrganization?.created ? managedOrganization.organizationId : null
 			}
 		})
 
 		if (registration.membershipCreation) {
 			await this.userOrganizationService.completeMembershipCreation(registration.membershipCreation)
+		}
+		if (registration.createdOrganizationId) {
+			this.eventEmitter.emit(EVENT_ORGANIZATION_CREATED,
+				new OrganizationCreatedEvent(tenantId, registration.createdOrganizationId, String(registration.user.id)))
 		}
 
 		return registration.user
@@ -892,7 +907,9 @@ export class AuthService extends SocialAuthService {
 	}
 
 	async getAuthenticatedUser(id: string, thirdPartyId?: string): Promise<User> {
-		return thirdPartyId ? this.userService.getIfExistsThirdParty(thirdPartyId) : this.userService.getIfExists(id)
+		const user = await (thirdPartyId ? this.userService.getIfExistsThirdParty(thirdPartyId) : this.userService.getIfExists(id))
+		if (user?.isActive === false) throw new UnauthorizedException('unauthorized')
+		return user
 	}
 
 	async isAuthenticated(token: string): Promise<boolean> {
@@ -1037,7 +1054,7 @@ export class AuthService extends SocialAuthService {
 		success: boolean
 		authData: { jwt: string; refreshToken: string; userId: string }
 	}> {
-		this.logger.debug(`validate OAuth login mobile:`, args)
+		if (getConfig().appPlatform) return this.validateOAuthLoginUser(args)
 		let response = {
 			success: false,
 			authData: { jwt: null, refreshToken: null, userId: null }

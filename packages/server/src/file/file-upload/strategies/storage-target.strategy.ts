@@ -22,7 +22,10 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		target: IUploadFileStorageTarget,
 		context: TFileUploadContext
 	): Promise<IFileAssetDestination> {
-		const provider = new FileStorage().getProvider(target.provider)
+		const provider = new FileStorage(
+			undefined,
+			context.request.tenantId ? { ...context.request, tenantId: context.request.tenantId } : undefined
+		).getProvider(target.provider)
 		const fileName = this.normalizeFileName(
 			target.fileName || this.createStoredFileName(source.originalName, target.prefix || 'file')
 		)

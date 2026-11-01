@@ -3,6 +3,8 @@ import { ContentDocument } from '../../content-resource/documents/entities'
 import { ContentFileOwnershipService } from './content-file-ownership.service'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
+import { CommandBus, CqrsModule } from '@nestjs/cqrs'
+import { commandVolumeWriteBudget } from './volume-write-budget'
 import { SandboxWorkspaceMapperRegistry } from '@xpert-ai/plugin-sdk'
 import { createRuntimeVolumeClient, LocalShellWorkspacePathMapper, VOLUME_CLIENT, VolumeClient } from './volume'
 import { KnowledgeWorkAreaResolver, XpertWorkAreaResolver } from './work-area'
@@ -11,12 +13,14 @@ import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 @Global()
 @Module({
-    imports: [DiscoveryModule, TypeOrmModule.forFeature([ContentDocument])],
+    imports: [DiscoveryModule, CqrsModule, TypeOrmModule.forFeature([ContentDocument])],
     providers: [
         ContentFileOwnershipService,
         {
             provide: VOLUME_CLIENT,
-            useFactory: (): VolumeClient => createRuntimeVolumeClient()
+            inject: [CommandBus],
+            useFactory: (commands: CommandBus): VolumeClient =>
+                createRuntimeVolumeClient(commandVolumeWriteBudget(commands))
         },
         SandboxWorkspaceMapperRegistry,
         LocalShellWorkspacePathMapper,

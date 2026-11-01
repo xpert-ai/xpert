@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
+    AIPermissionsEnum,
     AssistantSharingCapabilities,
     AssistantSharingState,
     AssistantSharingUser,
@@ -21,7 +22,7 @@ import {
     isOrganizationSharedXpertWorkspace
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { User, UserGroup } from '@xpert-ai/server-core'
+import { User, UserGroup, UserOrganization } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { EntityManager, In, IsNull, Not, Repository } from 'typeorm'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
@@ -54,7 +55,7 @@ export class AssistantSharingService {
             !organizationId ||
             !userId ||
             RequestContext.currentApiPrincipal() ||
-            RequestContext.currentUser()?.type === UserType.COMMUNICATION
+            !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW)
         )
             this.denied()
         return { tenantId, organizationId, userId }
@@ -87,7 +88,11 @@ export class AssistantSharingService {
             relations: ['workspace', 'workspace.members', 'organization', 'createdBy']
         })
         if (!xpert) throw new NotFoundException(t('server-ai:Error.AssistantSharingNotFound'))
-        if (!(await this.activeUsers(manager).andWhere('user.id = :actorId', { actorId: userId }).getOne()))
+        if (
+            !(await manager
+                .getRepository(UserOrganization)
+                .existsBy({ tenantId, organizationId, userId, isActive: true }))
+        )
             this.denied()
         const workspace = xpert.workspace
         const access = workspace
@@ -96,7 +101,8 @@ export class AssistantSharingService {
         const owner = !xpert.workspaceId && xpert.createdById === userId
         const capabilities: AssistantSharingCapabilities = {
             canViewAccess: owner || !!access?.canRead,
-            canManageAccess: owner || !!access?.canManage,
+            canManageAccess:
+                RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT) && (owner || !!access?.canManage),
             canUseGroups: RequestContext.hasPermission(PermissionsEnum.ORG_USERS_VIEW),
             canManageGroups: RequestContext.hasPermission(PermissionsEnum.ORG_USERS_EDIT)
         }

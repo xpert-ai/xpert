@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     AssistantCapabilityDraftInput,
     AssistantConfigurationInput,
@@ -12,6 +14,7 @@ import { parseRealtimeVoiceSelection } from '../../xpert-template/capabilities/r
 import { AssistantConfigurationService } from './assistant-configuration.service'
 
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantConfigurationController {
     constructor(private readonly configuration: AssistantConfigurationService) {}
 

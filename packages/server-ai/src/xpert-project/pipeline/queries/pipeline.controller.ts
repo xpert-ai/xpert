@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
@@ -16,6 +17,7 @@ const invalid = () => new BadRequestException(t('server-ai:Error.ProjectPipeline
 
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 export class ProjectPipelineController {
     constructor(private readonly pipelines: ProjectPipelineQueryService) {}
     private context(projectId: string) {

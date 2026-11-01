@@ -9,7 +9,7 @@ import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 @Entity('knowledge_retrieval_log')
 export class KnowledgeRetrievalLog extends TenantOrganizationBaseEntity implements IKnowledgeRetrievalLog {

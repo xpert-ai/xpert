@@ -8,6 +8,7 @@ export type UserOrganizationAccessScope = {
 	organizationId: string
 	/** Human user whose current access is being evaluated. */
 	userId: string
+	allowServiceAccounts?: boolean
 }
 
 /**

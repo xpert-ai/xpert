@@ -1,3 +1,4 @@
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
   XpDialogFrameImports,
   ZardButtonComponent,
@@ -15,6 +16,7 @@ import { isEqual } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import {
   AiModelTypeEnum,
+  usesModelScopedCredentials,
   ProviderCredentialCheckInput,
   ProviderCredentialValidationCapabilities,
   ProviderCredentialValidationResult,
@@ -29,6 +31,7 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
   templateUrl: './authorization.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...ZardSelectImports,
     ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardInputDirective,
@@ -42,7 +45,8 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
 })
 export class CopilotAiProviderAuthComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ provider: IAiProviderEntity; copilot: ICopilot; providerId?: string }>(DIALOG_DATA)
+  readonly #data = inject<{ provider: IAiProviderEntity; copilot?: ICopilot; providerId?: string }>(DIALOG_DATA)
+  readonly connectionName = signal(this.#data.copilot?.name ?? '')
   readonly #service = inject(CopilotProviderService)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
@@ -51,8 +55,9 @@ export class CopilotAiProviderAuthComponent {
   readonly provider = computed(() => this.#data.provider)
   readonly copilot = computed(() => this.#data.copilot)
   readonly credential_form_schemas = computed(
-    () => this.provider()?.provider_credential_schema?.credential_form_schemas
+    () => this.provider()?.provider_credential_schema?.credential_form_schemas ?? []
   )
+  readonly modelScopedCredentials = computed(() => usesModelScopedCredentials(this.provider()))
   readonly copilotProvider = derivedAsync(() =>
     this.providerId() ? this.#service.getOneById(this.providerId()) : null
   )
@@ -65,7 +70,11 @@ export class CopilotAiProviderAuthComponent {
   readonly capabilities = signal<ProviderCredentialValidationCapabilities | null>(null)
   readonly modelType = signal<AiModelTypeEnum | null>(null)
   readonly testModel = signal('')
-  readonly dirty = computed(() => !isEqual(this.copilotProvider()?.credentials, this.credentials()))
+  readonly dirty = computed(
+    () =>
+      !isEqual(this.copilotProvider()?.credentials, this.credentials()) ||
+      this.connectionName().trim() !== (this.#data.copilot?.name ?? '')
+  )
   readonly modelCapabilities = computed(() => {
     const capabilities = this.capabilities()
     return capabilities?.method === 'model' ? capabilities : null
@@ -103,7 +112,8 @@ export class CopilotAiProviderAuthComponent {
     effect(() => {
       if (this.copilotProvider()) this.credentials.set(this.copilotProvider().credentials)
     })
-    void this.loadCapabilities()
+    if (this.modelScopedCredentials()) this.loadingCapabilities.set(false)
+    else void this.loadCapabilities()
   }
 
   async loadCapabilities() {
@@ -157,15 +167,22 @@ export class CopilotAiProviderAuthComponent {
   }
 
   async apply() {
-    if (!this.validationResult() || this.loading() || this.testing()) return
+    if (
+      (!this.modelScopedCredentials() && !this.validationResult()) ||
+      !this.connectionName().trim() ||
+      this.loading() ||
+      this.testing()
+    )
+      return
     const input = this.checkInput()
     this.loading.set(true)
     this.error.set('')
     try {
       const provider = await firstValueFrom(
         this.#service.saveCredentials(this.providerId(), {
-          ...input,
-          copilotId: this.copilot().id,
+          ...(this.modelScopedCredentials() ? {} : input),
+          copilotId: this.copilot()?.id,
+          connectionName: this.connectionName().trim(),
           providerName: this.provider().provider
         })
       )

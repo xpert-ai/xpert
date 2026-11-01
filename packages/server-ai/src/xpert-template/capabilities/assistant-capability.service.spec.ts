@@ -11,6 +11,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 import { AiModelTypeEnum, LanguagesEnum, ModelFeature, TXpertTemplate } from '@xpert-ai/contracts'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
 import { QueryBus } from '@nestjs/cqrs'
+import { Logger } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './assistant-capability.service'
 import {
@@ -330,6 +331,43 @@ describe('Assistant capabilities (OSS)', () => {
         query.execute.mockResolvedValue([])
         await expect(service.prepareInstallation(template, draft, language, ['documents'], model, [])).rejects.toThrow()
         expect(draft).toEqual(before)
+    })
+    it('logs bounded model diagnostics without provider configuration or failed selections', async () => {
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
+        try {
+            providers.push(createProvider('documents', [ModelFeature.VISION]))
+            const draft = parseCapabilityTemplateDraft(template.export_data)
+            await expect(
+                service.prepareInstallation(
+                    template,
+                    draft,
+                    language,
+                    ['documents'],
+                    {
+                        ...model,
+                        copilotId: 'private-selection'
+                    },
+                    []
+                )
+            ).rejects.toThrow()
+            expect(warn).toHaveBeenLastCalledWith({
+                phase: 'template_model_selection',
+                eligibleModels: 1,
+                explicitSelection: true
+            })
+            query.execute.mockResolvedValue([])
+            await expect(
+                service.prepareInstallation(template, draft, language, ['documents'], model, [])
+            ).rejects.toThrow()
+            expect(warn).toHaveBeenLastCalledWith({
+                phase: 'template_model_preflight',
+                eligibleModels: 0,
+                requiredFeatures: [ModelFeature.VISION]
+            })
+            expect(JSON.stringify(warn.mock.calls)).not.toMatch(/do-not-expose|private-selection|apiKey|credentials/)
+        } finally {
+            warn.mockRestore()
+        }
     })
     it('accepts an omitted LLM type from persisted installation input but rejects a different model type', async () => {
         providers.push(createProvider('documents', [ModelFeature.TOOL_CALL]))

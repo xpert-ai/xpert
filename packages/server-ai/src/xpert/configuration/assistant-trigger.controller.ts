@@ -1,8 +1,11 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { AssistantTriggerService } from './assistant-trigger.service'
 import { parseTriggerMutation } from './assistant-trigger.validation'
 
 @Controller(':id/trigger-settings')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantTriggerController {
     constructor(private readonly triggers: AssistantTriggerService) {}
 

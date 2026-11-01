@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     Body,
@@ -40,6 +42,7 @@ const uploadOptions = { limits: { fileSize: WORKSPACE_FILE_UPLOAD_MAX_BYTES } }
 @Public()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @AssistantFileAccess('workspace')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('assistants/:assistantId/workspace')
 export class AssistantWorkspaceFilesController {
     constructor(private readonly workspaceFilesService: AssistantFilesService) {}

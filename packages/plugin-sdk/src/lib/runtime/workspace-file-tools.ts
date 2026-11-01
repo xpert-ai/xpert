@@ -13,6 +13,12 @@ export const workspaceRelativeFilePathSchema = z
     'Use a workspace-relative file path with non-empty segments; no absolute paths, traversal or surrounding whitespace.'
   )
 
+/** Directory discovery also accepts the workspace root and a trailing directory slash. */
+export const workspaceRelativeDirectoryPathSchema = z
+  .string()
+  .transform((value) => (value.endsWith('/') ? value.slice(0, -1) : value))
+  .pipe(z.union([z.literal('.'), workspaceRelativeFilePathSchema]))
+
 /** Host-owned metadata lets plugins observe file intent without guessing tool names. */
 export const workspaceFileMutationMetadata = {
   workspaceFileOperation: { type: 'mutation', pathArgument: 'file_path' }

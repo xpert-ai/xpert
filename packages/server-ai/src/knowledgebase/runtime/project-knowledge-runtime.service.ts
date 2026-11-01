@@ -5,8 +5,8 @@ import { KnowledgebasePermission, KnowledgebaseTypeEnum } from '@xpert-ai/contra
 import { ProjectKnowledgeRuntimeCapability, RequestContext, type ProjectKnowledgeApi, type ContentResourceReference } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { RuntimeCapabilityProvider } from '../../shared/runtime'
-import { Knowledgebase } from '../knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
 import { XpertProject } from '../../xpert-project/entities/project.entity'
 

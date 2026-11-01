@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
@@ -31,6 +33,8 @@ import {
     getPublicXpertSessionConversationScope
 } from '../ai/public-xpert-principal'
 import { FileAssetAccessService, type FileAssetOperation } from './file-asset-access.service'
+import { publicFileAsset, publicFileParseStatus } from './file-asset-public'
+import type { FileAsset } from './entities'
 
 @ApiTags('AI/Files')
 @ApiBearerAuth()
@@ -38,6 +42,7 @@ import { FileAssetAccessService, type FileAssetOperation } from './file-asset-ac
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller()
 export class FileUnderstandingController {
     constructor(
@@ -48,19 +53,19 @@ export class FileUnderstandingController {
 
     @Get('files/:fileId')
     async getFile(@Param('fileId') fileId: string) {
-        return this.authorizeFile(fileId, 'read')
+        return publicFileAsset(await this.authorizeFile(fileId, 'read'))
     }
 
     @Get('files/:fileId/status')
     async getFileStatus(@Param('fileId') fileId: string) {
         const fileAsset = await this.authorizeFile(fileId, 'read')
-        return this.queryBus.execute(new GetFileParseStatusQuery(fileAsset.id))
+        return publicFileParseStatus(await this.queryBus.execute(new GetFileParseStatusQuery(fileAsset.id)))
     }
 
     @Post('files/:fileId/parse/retry')
     async retryParse(@Param('fileId') fileId: string) {
         const fileAsset = await this.authorizeFile(fileId, 'parse')
-        return this.commandBus.execute(new RetryFileParseCommand(fileAsset.id))
+        return publicFileAsset(await this.commandBus.execute(new RetryFileParseCommand(fileAsset.id)))
     }
 
     @Post('files/:fileId/search')
@@ -94,7 +99,8 @@ export class FileUnderstandingController {
         if (getPublicXpertSessionConversationScope()) {
             await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         }
-        return this.queryBus.execute(new ListConversationFilesQuery(conversation.id))
+        const files = await this.queryBus.execute<ListConversationFilesQuery, FileAsset[]>(new ListConversationFilesQuery(conversation.id))
+        return files.map(publicFileAsset)
     }
 
     @Delete('files/:fileId')

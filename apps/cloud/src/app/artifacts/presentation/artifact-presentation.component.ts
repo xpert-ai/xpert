@@ -31,8 +31,10 @@ import { isolatePresentationHtml, presentationMessage } from './presentation-bri
         </h1>
         <p class="max-w-lg text-sm text-text-secondary">
           {{
-            'ArtifactPresentation.UnavailableHint'
-              | translate: { Default: 'The published version or your access may have changed. Reopen to check again.' }
+            (supportUnavailable()
+              ? 'ArtifactPresentation.SupportUnavailableHint'
+              : 'ArtifactPresentation.UnavailableHint'
+            ) | translate: { Default: 'The published version or your access may have changed. Reopen to check again.' }
           }}
         </p>
         <button
@@ -66,6 +68,7 @@ export class ArtifactPresentationComponent {
   readonly slug = input.required<string>()
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame')
   readonly entry = signal<SafeHtml | null>(null)
+  readonly supportUnavailable = signal(false)
   readonly error = signal(false)
   readonly title = signal('')
   private readonly api = inject(ArtifactPresentationService)
@@ -135,6 +138,7 @@ export class ArtifactPresentationComponent {
     this.presentation = null
     this.entry.set(null)
     this.error.set(false)
+    this.supportUnavailable.set(false)
     this.signIn.set(false)
     this.ready.set(false)
     this.activeSlug = slug
@@ -154,7 +158,13 @@ export class ArtifactPresentationComponent {
     } catch (error) {
       if (sequence === this.sequence) {
         if (this.snapshot() && error instanceof HttpErrorResponse && error.status === 401) this.signIn.set(true)
-        else this.error.set(true)
+        else {
+          const body: unknown = error instanceof HttpErrorResponse ? error.error : null
+          this.supportUnavailable.set(
+            !!body && typeof body === 'object' && 'code' in body && body.code === 'ARTIFACT_PRESENTATION_UNAVAILABLE'
+          )
+          this.error.set(true)
+        }
       }
     }
   }

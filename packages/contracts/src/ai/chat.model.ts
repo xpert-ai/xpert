@@ -1,5 +1,9 @@
 import type { TChatConversationStatus } from './chat-activity.model'
-export type { TChatConversationStatus, IChatConversationUnreadXpertSummary } from './chat-activity.model'
+export type {
+  TChatConversationStatus,
+  IChatConversationUnreadXpertSummary,
+  IChatConversationUnreadSnapshot
+} from './chat-activity.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'

@@ -4,7 +4,7 @@ import { link, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
 import { RequestContext, type KnowledgeUploadSessionsApi, type KnowledgeUploadSession } from '@xpert-ai/plugin-sdk'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../../shared/volume/volume'
 
 const CHUNK_SIZE = 4 * 1024 * 1024

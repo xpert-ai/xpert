@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common'
 import { KnowledgebasePermission, RolesEnum, type IUser } from '@xpert-ai/contracts'
 import { RequestContext, runWithRequestContext } from '@xpert-ai/plugin-sdk'
 import { IsNull, Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { TenantLibraryAccessService, assertTenantLibraryAdministrator } from './tenant-library-access.service'
 
 function context<T>(role: RolesEnum, scope: 'tenant' | 'organization', action: () => Promise<T>) {

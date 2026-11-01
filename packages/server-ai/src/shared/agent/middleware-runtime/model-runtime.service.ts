@@ -1,9 +1,9 @@
-import { CopilotOneByRoleQuery } from '../../../copilot/queries/get-one-by-role.query'
+import { ResolveDefaultModelQuery } from '../../../copilot/queries/resolve-default-model.query'
 import { randomUUID } from 'crypto'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
     AiModelTypeEnum,
-    AiProviderRole,
+    DefaultModelRole,
     ChatMessageEventTypeEnum,
     ICopilotModel,
     ICopilot,
@@ -47,6 +47,7 @@ import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createNativeModelBudgetGate } from '../native-model-budget'
 import { resolveAgentExecutionScope } from './execution-scope'
 import { resolveExecutionModelOptions } from '../../../model-execution/execution-model-parameters'
+import { resolveServiceOperationUserId } from '../../service-operation'
 import { resolveRequestReasoningOptions, type RequestReasoningControls } from './request-reasoning'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions &
@@ -56,13 +57,6 @@ export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClien
         skipTokenRecord?: boolean
         purpose?: 'invoke' | 'observe'
     }
-
-const MODEL_PROVIDER_ROLE_PRIORITY = [
-    AiProviderRole.Primary,
-    AiProviderRole.Secondary,
-    AiProviderRole.Reasoning,
-    AiProviderRole.Embedding
-]
 
 @Injectable()
 export class AgentMiddlewareModelRuntimeService {
@@ -77,11 +71,11 @@ export class AgentMiddlewareModelRuntimeService {
     ) {}
 
     async getDefaultChatModel(scope: AgentMiddlewareRuntimeScope = {}): Promise<ICopilotModel> {
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-            new CopilotOneByRoleQuery(
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+            new ResolveDefaultModelQuery(
                 scope.tenantId ?? RequestContext.currentTenantId(),
                 scope.organizationId ?? RequestContext.getOrganizationId(),
-                AiProviderRole.Primary,
+                DefaultModelRole.Primary,
                 ['copilotModel']
             )
         )
@@ -109,7 +103,11 @@ export class AgentMiddlewareModelRuntimeService {
         } = options ?? {}
         const tenantId = scope.tenantId ?? RequestContext.currentTenantId()
         const organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
-        const userId = scope.userId ?? RequestContext.currentUserId()
+        const userId = resolveServiceOperationUserId({
+            tenantId,
+            organizationId,
+            userId: scope.userId ?? RequestContext.currentUserId()
+        })
         const xpertId = scope.xpertId ?? undefined
         const budgetGate = createNativeModelBudgetGate(this.commandBus, { tenantId, organizationId, userId }, () => {
             const current = resolveAgentExecutionScope(scope)
@@ -192,6 +190,42 @@ export class AgentMiddlewareModelRuntimeService {
             {
                 verbose: Logger.isLevelEnabled('verbose'),
                 modelProperties: customModels[0]?.modelProperties,
+                resolveUsagePricingSnapshot: (context) =>
+                    modelProvider
+                        .getModelManager(copilotModel.modelType)
+                        .getUsagePricingSnapshot(modelName, copilot.modelProvider.credentials, context),
+                handleModelUsage:
+                    purpose === 'invoke' && copilotModel.modelType !== AiModelTypeEnum.LLM
+                        ? async (report) => {
+                              const pricing =
+                                  report.pricingSnapshot ??
+                                  modelProvider
+                                      .getModelManager(copilotModel.modelType)
+                                      .getUsagePricingSnapshot(modelName, copilot.modelProvider.credentials, {
+                                          model: modelName,
+                                          operation: report.operation,
+                                          modality: report.modality,
+                                          pricingDimensions: report.pricingDimensions,
+                                          startedAt: report.recordedAt
+                                      })
+                              await this.copilotUsage.recordModelUsage(
+                                  {
+                                      tenantId,
+                                      organizationId,
+                                      userId,
+                                      xpertId,
+                                      copilotOrganizationId: copilot.organizationId ?? null,
+                                      modelAccess,
+                                      copilotId: copilot.id,
+                                      providerScopeId: copilot.modelProvider.id,
+                                      provider: copilot.modelProvider.providerName,
+                                      originExecutionId: normalizeOptionalString(scope.executionId)
+                                  },
+                                  { ...report, model: modelName, modelType: copilotModel.modelType },
+                                  pricing
+                              )
+                          }
+                        : undefined,
                 handleLLMTokens: async (input) => {
                     if (purpose === 'observe') {
                         return
@@ -304,9 +338,6 @@ export class AgentMiddlewareModelRuntimeService {
                 const rightOrganization = right.modelProvider?.organizationId === organizationId ? 0 : 1
                 if (leftOrganization !== rightOrganization) return leftOrganization - rightOrganization
 
-                const leftRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(left.role)
-                const rightRole = MODEL_PROVIDER_ROLE_PRIORITY.indexOf(right.role)
-                if (leftRole !== rightRole) return leftRole - rightRole
                 return String(left.modelProvider?.id).localeCompare(String(right.modelProvider?.id))
             })
         const connection = candidates[0]?.modelProvider

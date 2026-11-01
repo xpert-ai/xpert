@@ -80,7 +80,7 @@ export type SandboxRuntimeResources = {
 
 /** Network access that a Provider must enforce for the Runtime instance. */
 export type SandboxRuntimeNetworkPolicy = {
-  mode: 'none' | 'internal-only'
+  mode: 'none' | 'internal-only' | 'unrestricted'
   allowedHosts?: string[]
 }
 

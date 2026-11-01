@@ -16,6 +16,8 @@ export interface WorkspaceStorage {
  * Native plugins are trusted server code; this handle is not a sandbox for malicious plugin code. */
 export interface WorkspaceAppDataOptions {
   pluginName: string
+  /** Explicit Project application state; membership is rechecked on every operation. */
+  projectId?: string
   /** Opt in for personal data; shared Assistant workspaces otherwise remain supported. */
   requireUserIsolation?: boolean
 }

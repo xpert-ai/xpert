@@ -1,5 +1,6 @@
 import { forwardRef, MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { APP_FILTER } from '@nestjs/core'
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
+import { EndpointPermissionInterceptor } from '../shared/guards/endpoint-permission.interceptor'
 import { RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { DatabaseModule } from '../database/database.module'
 import { HttpLikeExceptionFilter } from '../shared/http'
@@ -40,6 +41,7 @@ import { AnonymousTenantContextMiddleware } from './context/anonymous-tenant-con
 	],
 	controllers: [],
 	providers: [
+		{ provide: APP_INTERCEPTOR, useClass: EndpointPermissionInterceptor },
 		AnonymousTenantContextMiddleware,
 		{
 			provide: APP_FILTER,

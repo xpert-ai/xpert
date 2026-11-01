@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common'
 import { t } from 'i18next'
 import {
@@ -12,6 +13,7 @@ import { ProjectPipelineAnalyticsService } from './pipeline-analytics.service'
 
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 export class ProjectPipelineAnalyticsController {
     constructor(private readonly analytics: ProjectPipelineAnalyticsService) {}
     @Get(':id/pipelines/analytics')

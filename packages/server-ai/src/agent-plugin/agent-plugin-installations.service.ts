@@ -15,7 +15,7 @@ import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import {
     PluginResourceInstallerService,
     type RuntimeComponent
-} from '../plugin-resource/plugin-resource-installer.service'
+} from '../plugin-resource/installation/plugin-resource-installer.service'
 import { SkillPackage } from '../skill-package/skill-package.entity'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { agentPluginScope, agentPluginScopeWhere, visibleAgentPluginScopes } from './agent-plugin-scope'
@@ -95,6 +95,59 @@ export class AgentPluginInstallationsService {
 
     catalogPackages(ids: string[]) {
         return readInstalledPluginDetails(this.packages, agentPluginScope(), ids)
+    }
+
+    /** Read descriptors only for the requested versions, including still-valid pinned installations. */
+    async selectedCatalog(references: RuntimeResourceReference[], workspaceId: string) {
+        const scope = agentPluginScope()
+        const [packages, bindings] = await Promise.all([
+            readInstalledPluginInventory(this.packages, scope),
+            this.bindings.find({ where: visibleAgentPluginScopes(scope), order: { createdAt: 'DESC', id: 'ASC' } })
+        ])
+        const current = installedPluginBindings(packages, bindings, scope, workspaceId)
+        const imported = packages.map((pkg) => importedPluginBinding(pkg))
+        const candidates = references
+            .flatMap((reference) => {
+                const matches = (binding: AgentResourceBinding) =>
+                    binding.id === reference.bindingId && binding.version === reference.version
+                // Persisted configuration, including a disable, takes precedence over synthetic imports.
+                const binding = bindings.find(matches) ?? imported.find(matches)
+                return binding?.enabled && binding.definition.kind === 'agent_plugin' ? [binding] : []
+            })
+            .filter((binding) => {
+                const definition = binding.definition
+                if (definition.kind !== 'agent_plugin') return false
+                const pkg = packages.find((item) => item.id === definition.packageId)
+                return (
+                    pkg &&
+                    current.some((item) => {
+                        const currentDefinition = item.definition
+                        return (
+                            item.enabled &&
+                            currentDefinition.kind === 'agent_plugin' &&
+                            packages.some(
+                                (candidate) =>
+                                    candidate.id === currentDefinition.packageId &&
+                                    candidate.descriptor.name === pkg.descriptor.name
+                            )
+                        )
+                    })
+                )
+            })
+        const details = new Map(
+            (
+                await this.catalogPackages(
+                    candidates.flatMap((binding) =>
+                        binding.definition.kind === 'agent_plugin' ? [binding.definition.packageId] : []
+                    )
+                )
+            ).map((pkg) => [pkg.id, pkg])
+        )
+        return candidates.flatMap((binding) => {
+            const pkg =
+                binding.definition.kind === 'agent_plugin' ? details.get(binding.definition.packageId) : undefined
+            return pkg ? [{ binding, pkg }] : []
+        })
     }
 
     catalogConnectorReferences(

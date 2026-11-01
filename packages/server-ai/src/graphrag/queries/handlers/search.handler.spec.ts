@@ -1,6 +1,6 @@
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgeGraphFilterScopeService } from '../../../knowledgebase/filter'
-import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphSearchQuery } from '../knowledge-graph-search.query'
 import { KnowledgeGraphSearchHandler } from './search.handler'
 

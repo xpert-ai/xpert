@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Put, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { UUIDValidationPipe } from '@xpert-ai/server-core'
@@ -6,6 +8,7 @@ import { KnowledgeTagService } from './knowledge-tag.service'
 @ApiTags('KnowledgeTags')
 @ApiBearerAuth()
 @Controller(':knowledgebaseId')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeTagController {
     constructor(private readonly tags: KnowledgeTagService) {}
 

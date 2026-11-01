@@ -1,3 +1,4 @@
+import { AssertAppPlatformUploadCommand } from '../shared/app-platform-resource-policy'
 jest.mock('./public-xpert-principal', () => ({
     assertPublicXpertSessionConversationAccess: jest.fn(),
     getPublicXpertSessionConversationScope: jest.fn()
@@ -42,6 +43,20 @@ describe('ContextsController restricted uploads', () => {
         ]
     }
 
+    it('rejects an oversized attachment before issuing a persistence command', async () => {
+        const failure = new Error('upload too large')
+        const commandBus = { execute: jest.fn().mockRejectedValueOnce(failure) }
+        const controller = new ContextsController(
+            { execute: jest.fn() } as never,
+            commandBus as never,
+            {} as never,
+            {} as never
+        )
+        await expect(controller.create(file)).rejects.toBe(failure)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(4))
+    })
+
     it('rejects a client-selected upload strategy before dispatching an upload', async () => {
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(undefined)
         const commandBus = { execute: jest.fn() }
@@ -63,7 +78,8 @@ describe('ContextsController restricted uploads', () => {
             )
         ).rejects.toBeInstanceOf(BadRequestException)
 
-        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(4))
     })
 
     it('ignores a client-supplied workspacePath for restricted assistant sessions', async () => {
@@ -72,10 +88,14 @@ describe('ContextsController restricted uploads', () => {
             xpertId: 'xpert-1'
         })
         const commandBus = {
-            execute: jest.fn().mockResolvedValueOnce(uploadResult).mockResolvedValueOnce({
-                id: 'asset-1',
-                status: 'ready'
-            })
+            execute: jest
+                .fn()
+                .mockResolvedValueOnce(undefined)
+                .mockResolvedValueOnce(uploadResult)
+                .mockResolvedValueOnce({
+                    id: 'asset-1',
+                    status: 'ready'
+                })
         }
         const controller = new ContextsController(
             { execute: jest.fn() } as never,
@@ -106,7 +126,7 @@ describe('ContextsController restricted uploads', () => {
             '../../forged/path.txt'
         )
 
-        const createCommand = commandBus.execute.mock.calls[1][0] as CreateFileAssetCommand
+        const createCommand = commandBus.execute.mock.calls[2][0] as CreateFileAssetCommand
         expect(createCommand.input.workspacePath).toBeUndefined()
     })
 
@@ -152,6 +172,7 @@ describe('ContextsController restricted uploads', () => {
         ).rejects.toThrow('Project editor access is required')
 
         expect(fileAssetAccessService.assertCanCreateConversationAsset).toHaveBeenCalledWith(conversation, 'upload')
-        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(4))
     })
 })

@@ -1,5 +1,6 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
-import { AiModelTypeEnum, UserType } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, RolesEnum, UserType } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
@@ -153,7 +154,24 @@ describe('execution model selection stays within its conversation', () => {
                 {
                     provide: CommandBus,
                     useValue: {
-                        execute: jest.fn().mockResolvedValue({ type: UserType.USER })
+                        execute: jest.fn().mockResolvedValue({
+                            id: actor.userId,
+                            tenantId: actor.tenantId,
+                            type: UserType.USER,
+                            roleId: 'role',
+                            role: {
+                                name: 'custom-builder',
+                                rolePermissions: [
+                                    {
+                                        tenantId: actor.tenantId,
+                                        roleId: 'role',
+                                        role: { id: 'role', name: 'custom-builder' },
+                                        permission: AIPermissionsEnum.XPERT_EDIT,
+                                        enabled: true
+                                    }
+                                ]
+                            }
+                        })
                     }
                 },
                 {
@@ -235,6 +253,52 @@ describe('execution model selection stays within its conversation', () => {
                 where: expect.objectContaining({ createdById: actor.userId, threadId: 'group-thread' })
             })
         )
+        await f.module.close()
+    })
+
+    it.each([RolesEnum.APP_USER, RolesEnum.ADMIN, 'custom-consumer'])(
+        'restricts role %s without edit permission to the authored default',
+        async (name) => {
+            const f = await setup('thread', true)
+            jest.spyOn(f.service, 'user').mockResolvedValue({
+                id: actor.userId,
+                tenantId: actor.tenantId,
+                type: UserType.USER,
+                roleId: 'role',
+                role: { name, rolePermissions: [] }
+            })
+            const result = await f.service.resolve(actor, 'conversation')
+            expect(result.models.map((model) => model.model)).toEqual(['primary'])
+            expect(result.defaultModelId).toBe(getAssistantModelId(primary))
+            expect(f.executions.findOne).not.toHaveBeenCalled()
+            expect(f.module.get(getRepositoryToken(AssistantUserPreference)).findOneBy).not.toHaveBeenCalled()
+            await f.module.close()
+        }
+    )
+
+    it('allows an AppUser with explicit edit permission to use the ordinary model selection path', async () => {
+        const f = await setup('thread', true)
+        jest.spyOn(f.service, 'user').mockResolvedValue({
+            id: actor.userId,
+            tenantId: actor.tenantId,
+            type: UserType.USER,
+            roleId: 'role',
+            role: {
+                name: RolesEnum.APP_USER,
+                rolePermissions: [
+                    {
+                        tenantId: actor.tenantId,
+                        roleId: 'role',
+                        role: { id: 'role', name: RolesEnum.APP_USER },
+                        permission: AIPermissionsEnum.XPERT_EDIT,
+                        enabled: true
+                    }
+                ]
+            }
+        })
+        await f.service.resolve(actor, 'conversation')
+        expect(f.executions.findOne).toHaveBeenCalled()
+        expect(f.module.get(getRepositoryToken(AssistantUserPreference)).findOneBy).toHaveBeenCalled()
         await f.module.close()
     })
     it('propagates revoked group access before model or provider resolution, even for the original creator', async () => {

@@ -26,7 +26,7 @@ import {
     KnowledgeGraphIndexJob,
     KnowledgeGraphRelationContribution
 } from './entities'
-import type { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import type { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 function fixture() {

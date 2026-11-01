@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { BadRequestException, Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -15,6 +17,7 @@ import { assertAssistantAudience } from './assistant-audience'
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('assistants/:assistantId/template-setup')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantTemplateSetupRuntimeController {
     constructor(private readonly commands: CommandBus) {}
     @Get()

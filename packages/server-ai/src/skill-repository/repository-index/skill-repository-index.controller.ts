@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
 	CrudController,
@@ -42,6 +44,7 @@ const normalizePaginationNumber = (value: unknown): number | undefined => {
 @ApiTags('SkillRepositoryIndex')
 @UseInterceptors(TransformInterceptor)
 @Controller('skill-repository-indexes')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SkillRepositoryIndexController extends CrudController<SkillRepositoryIndex> {
 	constructor(private readonly service: SkillRepositoryIndexService) {
 		super(service)

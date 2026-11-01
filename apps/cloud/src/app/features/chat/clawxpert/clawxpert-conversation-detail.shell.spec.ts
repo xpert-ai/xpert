@@ -43,6 +43,7 @@ describe('ChatKit-only conversation shell', () => {
         root.querySelector('[data-chatkit-resize-handle], [data-show-workbench-panel], [data-chat-sidebar-backdrop]')
       ).toBeNull()
       expect(getRuntimeInput().displayMode).toBe('chat')
+      expect(getRuntimeInput().pet).toBe(false)
       expect(getRuntimeInput().workbench?.()).toMatchObject({ enabled: true, sideChat: { enabled: true } })
     }
   )

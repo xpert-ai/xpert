@@ -22,7 +22,7 @@ import { LargeLanguageModel, ModelProvider } from '@xpert-ai/plugin-sdk'
 import { EntityManager } from 'typeorm'
 import { MembershipPlan } from '../membership/membership-plan.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
-import { MembershipService } from '../membership/membership.service'
+import { createMembershipFixture, getMembershipFixture } from '../membership/testing/membership.test-fixture'
 import { UserMembership } from '../membership/user-membership.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
 import { ModelGatewayService } from './model-gateway.service'
@@ -115,7 +115,7 @@ function fixture() {
         transaction: jest.fn((run: (manager: EntityManager) => Promise<unknown>) => run(manager as never))
     }
     const settings = { findOne: jest.fn(async () => ({ value: '0.01' })) }
-    const membershipService = new MembershipService(
+    const membershipService = createMembershipFixture(
         dataSource as never,
         {} as never,
         membershipRepository as never,
@@ -127,9 +127,7 @@ function fixture() {
         undefined,
         settings as never
     )
-    const eligibility = membershipService as unknown as {
-        findModelAccessWithOrganizationSelfHeal: (...args: unknown[]) => Promise<unknown>
-    }
+    const eligibility = getMembershipFixture(membershipService).access
     jest.spyOn(eligibility, 'findModelAccessWithOrganizationSelfHeal').mockResolvedValue({
         tenantId: 'tenant-1',
         organizationId: null,

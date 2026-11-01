@@ -6,8 +6,8 @@ import {
     KnowledgeWikiFolderInput
 } from '@xpert-ai/contracts'
 import { t } from 'i18next'
-import { KnowledgebaseService } from '../knowledgebase.service'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiFolder,
     KnowledgeWikiPlacement,

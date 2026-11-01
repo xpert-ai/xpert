@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import type { XpertMobileBootstrap, XpertMobileXpertsResponse } from '@xpert-ai/contracts'
@@ -6,6 +8,7 @@ import { MobileService } from './mobile.service'
 @ApiTags('Mobile')
 @ApiBearerAuth()
 @Controller()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class MobileController {
     constructor(private readonly mobileService: MobileService) {}
 

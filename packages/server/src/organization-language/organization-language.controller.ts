@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	Controller,
 	UseGuards,
@@ -24,6 +26,7 @@ import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
 @ApiTags('OrganizationLanguage')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 export class OrganizationLanguageController extends CrudController<OrganizationLanguage> {
 	constructor(
 		private readonly organizationLanguageService: OrganizationLanguageService

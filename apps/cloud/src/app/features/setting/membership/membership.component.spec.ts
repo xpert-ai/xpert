@@ -220,15 +220,17 @@ describe('MembershipAdminComponent', () => {
     expect(options).toHaveLength(2)
     expect(options[0].value).not.toBe(options[1].value)
     expect(component.modelTargetLabel(options[0])).toBe(
-      'XP.KEY_WORDS.Primary XP.KEY_WORDS.Provider · tongyi · qwen3.7-plus'
+      'tongyi · copilot- · tongyi · qwen3.7-plus · XP.ModelAccess.ModelTypeValue.llm'
     )
-    expect(component.modelTargetLabel(options[1])).toBe('kimikimi · tongyi · qwen3.7-plus')
+    expect(component.modelTargetLabel(options[1])).toBe(
+      'kimikimi · tongyi · qwen3.7-plus · XP.ModelAccess.ModelTypeValue.llm'
+    )
     expect(component.modelTargetLabel(options[0])).not.toContain('copilot-1')
     expect(component.modelTargetLabel(options[1])).not.toContain('copilot-2')
 
     component.setAllowedModelValues(options[0].value)
     expect(component.allowedModels).toEqual([
-      { provider: 'tongyi', model: 'qwen3.7-plus', copilotId: options[0].copilotId }
+      { provider: 'tongyi', model: 'qwen3.7-plus', copilotId: options[0].copilotId, modelType: AiModelTypeEnum.LLM }
     ])
   })
 
@@ -246,7 +248,7 @@ describe('MembershipAdminComponent', () => {
         }))
       )
     )
-    const allowedModels = [{ provider: 'tongyi', model, copilotId: 'primary' }]
+    const allowedModels = [{ provider: 'tongyi', model, copilotId: 'primary', modelType: type }]
     const savedPlan = { ...targetPlan, allowedModels }
     membershipService.updatePlan.mockReturnValue(of(savedPlan))
     membershipService.getPlans.mockReturnValue(of([savedPlan]))

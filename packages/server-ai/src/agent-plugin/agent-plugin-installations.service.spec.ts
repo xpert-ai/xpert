@@ -1,3 +1,5 @@
+import { RuntimeResourceCatalogCache } from './catalog/runtime-catalog.cache'
+import type { Cache } from 'cache-manager'
 import { ModuleRef } from '@nestjs/core'
 import { FindOperator, Repository } from 'typeorm'
 import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -6,7 +8,7 @@ import { AgentPluginInstallationsService } from './agent-plugin-installations.se
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { importedPluginBinding } from './installed-plugin-catalog'
-import { PluginResourceInstallerService } from '../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../plugin-resource/installation/plugin-resource-installer.service'
 import { AgentPluginService } from './agent-plugin.service'
 import { RuntimeResourceService } from './runtime-resource.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -17,7 +19,9 @@ jest.mock('./agent-plugin.service', () => ({
     resourceScope: () => ({ tenantId: 'tenant', organizationId: 'org' })
 }))
 jest.mock('./agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../plugin-resource/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../plugin-resource/installation/plugin-resource-installer.service', () => ({
+    PluginResourceInstallerService: class {}
+}))
 jest.mock('../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))
 jest.mock('../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 jest.mock('../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))
@@ -71,6 +75,8 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     let assistantAccess: jest.Mock
     let findPackages: jest.Mock
     let findBindings: jest.Mock
+    let catalogCache: RuntimeResourceCatalogCache
+    let cacheRead: jest.Mock
     let manager: {
         getRepository: jest.Mock
         query: jest.Mock
@@ -180,6 +186,8 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
                 { getAccessiblePublishedXpert: assistantAccess, findAccessiblePublishedResources: async () => [] }
             ]
         ])
+        cacheRead = jest.fn().mockRejectedValue(new Error('cache offline'))
+        catalogCache = new RuntimeResourceCatalogCache({ get: cacheRead, set: jest.fn() } as unknown as Cache)
         runtime = new RuntimeResourceService(
             {
                 packages: packageRepository,
@@ -187,10 +195,32 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
                 validateMiddleware: jest.fn()
             } as unknown as AgentPluginService,
             { get: (token: unknown) => dependencies.get(token) } as ModuleRef,
-            installations
+            installations,
+            catalogCache
         )
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('reuses one inventory across pages but reauthorizes each request and isolates users', async () => {
+        cacheRead.mockResolvedValue('revision')
+        const user = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-one')
+        const inventory = jest.spyOn(installations, 'catalogInventory')
+        await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 0, limit: 1 })
+        await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 1, limit: 1 })
+        await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 0, limit: 1 })
+        expect(inventory).toHaveBeenCalledTimes(1)
+        expect(assistantAccess).toHaveBeenCalledTimes(3)
+        user.mockReturnValue('user-two')
+        await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 0, limit: 1 })
+        expect(inventory).toHaveBeenCalledTimes(2)
+        await catalogCache.invalidate()
+        await runtime.catalog('assistant', { kind: 'agent_plugin', offset: 0, limit: 1 })
+        expect(inventory).toHaveBeenCalledTimes(3)
+        assistantAccess.mockRejectedValueOnce(new Error('revoked'))
+        await expect(runtime.catalog('assistant', { kind: 'agent_plugin', offset: 0, limit: 1 })).rejects.toThrow(
+            'revoked'
+        )
+    })
 
     it('loads and describes only the sorted page while preserving filtered totals and scope precedence', async () => {
         const original = packages[0]
@@ -212,6 +242,35 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(connectors.mock.calls[0][0].map(({ pkg }) => pkg.id)).toEqual(['package-0'])
         await runtime.catalog('assistant', { kind: 'agent_plugin', search: 'no-match', limit: 1 })
         expect(details).toHaveBeenLastCalledWith([])
+    })
+
+    it('resolves selected versions only, preserving configuration and enforcing revocation and tenant isolation', async () => {
+        const older = packages[0]
+        const newer = { ...older, id: 'newer', digest: 'newer-digest', createdAt: new Date('2026-10-02') }
+        packages.push(newer, { ...older, id: 'other', descriptor: { ...older.descriptor, name: 'other' } })
+        const configured = { ...importedPluginBinding(older), title: 'Configured documents' }
+        records.push(configured)
+        const references = [{ bindingId: configured.id, version: configured.version }]
+        const details = jest.spyOn(installations, 'catalogPackages')
+        const inventory = jest.spyOn(installations, 'catalogInventory')
+        const result = await runtime.catalog('assistant', { purpose: 'selection', references })
+        expect(result.total).toBe(1)
+        expect(result.items[0]).toMatchObject({ ...references[0], title: 'Configured documents' })
+        expect(details).toHaveBeenCalledWith([older.id])
+        expect(inventory).not.toHaveBeenCalled()
+        expect((await installations.selectedCatalog(references, assistant.workspaceId))[0]).toEqual(
+            await installations.reference(references[0], assistant.workspaceId)
+        )
+        configured.enabled = false
+        expect(await installations.selectedCatalog(references, assistant.workspaceId)).toEqual([])
+        configured.enabled = true
+        records.push({ ...importedPluginBinding(newer), enabled: false })
+        expect(await installations.selectedCatalog(references, assistant.workspaceId)).toEqual([])
+        records.pop()
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('other-org')
+        expect(await installations.selectedCatalog(references, assistant.workspaceId)).toEqual([])
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('other-tenant')
+        expect(await installations.selectedCatalog(references, assistant.workspaceId)).toEqual([])
     })
 
     it('narrows targeted inventory reads while retaining organization overrides and immediate revocation', async () => {

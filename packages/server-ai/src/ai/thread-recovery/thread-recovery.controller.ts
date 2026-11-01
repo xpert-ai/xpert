@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ReadThreadControlViewQuery } from '../../chat-conversation/control-view/read-thread-control-view.query'
 import { Controller, Get, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -18,6 +20,7 @@ import { ThreadDTO } from '../dto/thread.dto'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('threads')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ThreadRecoveryController {
     constructor(
         private readonly recovery: ThreadRecoveryService,

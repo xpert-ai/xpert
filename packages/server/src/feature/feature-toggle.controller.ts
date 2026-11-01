@@ -21,6 +21,7 @@ import { RelationsQueryDTO } from '../shared/dto'
 
 @ApiTags('Feature')
 @Controller('toggle')
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class FeatureToggleController {
 	constructor(
 		private readonly _featureService: FeatureService,
@@ -134,7 +135,7 @@ export class FeatureToggleController {
 	@UseValidationPipe({ transform: true, whitelist: true })
 	async enabledDisabledFeature(@Body() input: CreateFeatureToggleDTO[]): Promise<boolean[]> {
 		return await Promise.all(
-			input.map(item => this._commandBus.execute(new FeatureToggleUpdateCommand(item)))
+			input.map((item) => this._commandBus.execute(new FeatureToggleUpdateCommand(item)))
 		)
 	}
 }

@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, HttpCode, Param, Post, UseGuards } from '@nestjs/common'
 import { t } from 'i18next'
 import {
@@ -23,6 +24,7 @@ import { ProjectPipelineCommandsService } from './pipeline-commands.service'
 const invalid = () => new BadRequestException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_EDIT)
 export class ProjectPipelineCommandsController {
     constructor(private readonly commands: ProjectPipelineCommandsService) {}
     private context(projectId: string) {

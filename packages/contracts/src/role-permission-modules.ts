@@ -1,7 +1,7 @@
 import { AIPermissionsEnum as AI } from './ai/role-permissions'
-import { PermissionsEnum as P } from './role-permission.model'
+import { PermissionsEnum as P, PermissionGroups } from './role-permission.model'
 
-/** Display-only grouping. PermissionGroups remains the authority for access rules. */
+/** Display-only grouping. Runtime access is determined by enabled grants and endpoint/resource policy. */
 export type RolePermissionModule = 'ai' | 'projects' | 'members' | 'billing' | 'data' | 'personal' | 'other'
 
 const modulePermissions: ReadonlyArray<{
@@ -19,6 +19,10 @@ const modulePermissions: ReadonlyArray<{
       AI.MODEL_ACCESS_REQUEST_EDIT,
       AI.MODEL_GATEWAY_USE,
       AI.MODEL_GATEWAY_MANAGE,
+      AI.XPERT_VIEW,
+      AI.XPERT_WORKSPACE_MANAGE,
+      AI.APPLICATION_USE,
+      AI.APPLICATION_INSTALL,
       AI.XPERT_EDIT,
       AI.CHAT_VIEW,
       AI.EVOLUTION_VIEW,
@@ -32,6 +36,7 @@ const modulePermissions: ReadonlyArray<{
   {
     module: 'members',
     permissions: [
+      P.ANNOUNCEMENT_MANAGE,
       P.ADMIN_DASHBOARD_VIEW,
       P.ORG_INVITE_VIEW,
       P.ORG_INVITE_EDIT,
@@ -78,3 +83,27 @@ const modulePermissions: ReadonlyArray<{
 export const ROLE_PERMISSION_MODULES: ReadonlyMap<string, RolePermissionModule> = new Map(
   modulePermissions.flatMap(({ module, permissions }) => permissions.map((permission) => [permission, module] as const))
 )
+
+export const DEPRECATED_ROLE_PERMISSIONS = [
+  P.ADMIN_DASHBOARD_VIEW,
+  P.VIEW_ALL_EMAILS,
+  P.ORG_DEMO_EDIT,
+  AI.COPILOT_VIEW,
+  P.CHANGE_SELECTED_ORGANIZATION,
+  P.ACCESS_DELETE_ACCOUNT
+] as const
+
+export const UNWIRED_AI_PERMISSIONS: readonly AI[] = [
+  AI.BILLING_PRODUCT_EDIT,
+  AI.BILLING_REFUND,
+  AI.PAYMENT_PROVIDER_EDIT
+]
+
+/** Complete UI/documentation catalog; presence here never grants access or implies endpoint enforcement. */
+export const ROLE_PERMISSION_CATALOG = [...Object.values(P), ...Object.values(AI)].map((permission) => ({
+  permission,
+  module: ROLE_PERMISSION_MODULES.get(permission) ?? 'other',
+  deprecated: (DEPRECATED_ROLE_PERMISSIONS as readonly string[]).includes(permission),
+  configurable: [...PermissionGroups.GENERAL, ...PermissionGroups.ADMINISTRATION].some((code) => code === permission),
+  contractOnly: (UNWIRED_AI_PERMISSIONS as readonly string[]).includes(permission)
+}))

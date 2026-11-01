@@ -4,11 +4,11 @@ import { InstallAgentPluginTemplateResourcesHandler } from './install-template-r
 import { InstallAgentPluginTemplateResourcesCommand } from './agent-plugin-template.command'
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { AgentPluginConnectorService } from '../agent-plugin-connector.service'
-import { PluginResourceInstallerService } from '../../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../../plugin-resource/installation/plugin-resource-installer.service'
 
 jest.mock('../agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
 jest.mock('../agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../../plugin-resource/plugin-resource-installer.service', () => ({
+jest.mock('../../plugin-resource/installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class {}
 }))
 

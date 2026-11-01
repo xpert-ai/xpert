@@ -9,12 +9,6 @@ import { CopilotServerService } from '../../../@core/services/copilot-server.ser
 import { CopilotModelSelectComponent } from './select.component'
 
 describe('CopilotModelSelectComponent', () => {
-  it('places model parameter help tooltips on top', () => {
-    const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
-
-    expect(template).toContain('[zTooltip]="parameter.help | i18n" zPosition="top"')
-  })
-
   it('uses viewport-aware model menu sizing', () => {
     const template = readFileSync(join(__dirname, 'select.component.html'), 'utf8')
 
@@ -124,6 +118,7 @@ describe('CopilotModelSelectComponent', () => {
     fixture = TestBed.createComponent(CopilotModelSelectComponent)
     component = fixture.componentInstance
     fixture.componentRef.setInput('modelType', AiModelTypeEnum.LLM)
+    fixture.componentRef.setInput('confirmChanges', false)
     fixture.detectChanges()
   })
 

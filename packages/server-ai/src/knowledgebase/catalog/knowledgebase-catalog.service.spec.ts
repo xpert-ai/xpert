@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { KnowledgebasePermission, RolesEnum } from '@xpert-ai/contracts'
 import { RequestContext, type KnowledgebaseQuery } from '@xpert-ai/plugin-sdk'
 import { Repository, SelectQueryBuilder } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { XpertWorkspace } from '../../xpert-workspace/workspace.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
 import { KnowledgebaseCatalogAccessService } from './knowledgebase-catalog-access.service'

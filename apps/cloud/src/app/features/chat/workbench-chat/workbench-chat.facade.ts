@@ -39,7 +39,10 @@ export type WorkbenchChatFacade = {
   /** Initial draft intent; distinct from a running conversation's persisted Project. */
   chatkitProjectSelection?: Signal<ProjectSelection>
   /** Refresh the persisted Project after a run starts or finishes, without starting a new conversation. */
-  syncConversationProject?(threadId: string): Promise<void>
+  syncConversationProject?(
+    threadId: string,
+    conversation?: Pick<IChatConversation, 'id' | 'threadId' | 'projectId' | 'xpertId'>
+  ): Promise<void>
   /** Access for the current Project route; null is pending, unavailable, or denied. */
   projectAccess?: Signal<TXpertProjectAccessSummary | null>
   loading: Signal<boolean>

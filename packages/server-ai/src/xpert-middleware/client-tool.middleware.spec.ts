@@ -22,6 +22,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
 })
 
 import { ToolMessage } from '@langchain/core/messages'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import type { ToolCall } from '@langchain/core/messages/tool'
 import { GraphInterrupt } from '@langchain/langgraph'
 import {
@@ -132,6 +133,51 @@ describe('ClientToolMiddleware', () => {
         mockInterrupt.mockReset()
         mockDispatchCustomEvent.mockReset()
         mockDispatchCustomEvent.mockResolvedValue(undefined)
+    })
+
+    it('does not leave a tool receipt across the input checkpoint', async () => {
+        const start = jest.fn()
+        const end = jest.fn()
+        const error = jest.fn()
+        const callbacks = BaseCallbackHandler.fromMethods({
+            handleToolStart: start,
+            handleToolEnd: end,
+            handleToolError: error
+        })
+        callbacks.awaitHandlers = true
+        const middleware = await createClientToolAgentMiddleware()
+        const request = createToolCallRequest(middleware, {
+            type: 'tool_call',
+            id: 'client-call-1',
+            name: 'client_tool',
+            args: { text: 'hello' }
+        })
+        Object.assign(request.runtime, { callbacks: [callbacks] })
+        const handler: ToolCallHandler = async () => {
+            throw new Error('Must remain a client tool')
+        }
+        const suspended = new GraphInterrupt()
+        mockInterrupt.mockImplementationOnce(() => {
+            throw suspended
+        })
+        await expect(getWrapToolCall(middleware)(request, handler)).rejects.toBe(suspended)
+        expect(start).not.toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+
+        mockInterrupt.mockResolvedValue({
+            toolMessages: [
+                {
+                    tool_call_id: 'client-call-1',
+                    name: 'client_tool',
+                    content: 'answer',
+                    status: 'success'
+                }
+            ]
+        })
+        await getWrapToolCall(middleware)(request, handler)
+        expect(start).toHaveBeenCalledTimes(1)
+        expect(end).toHaveBeenCalledTimes(1)
+        expect(error).not.toHaveBeenCalled()
     })
 
     it('creates declared client tools', async () => {

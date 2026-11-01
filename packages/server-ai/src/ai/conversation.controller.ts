@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
 import { visibleChatMessage } from '../chat-message/message-envelope'
 import { isRuntimeChatMessage } from '@xpert-ai/contracts'
@@ -122,6 +124,7 @@ type MessageMutationRequest = Partial<
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('conversations')
 export class ConversationsController {
     constructor(

@@ -23,7 +23,7 @@ Workspace integration changes are deliberately small: imports use the existing
 `cn` helper; Button, composed triggers and overlay wrappers preserve React 18
 DOM ref forwarding (the upstream code targets React 19); Tabs
 continues forwarding `orientation` to Radix for vertical keyboard navigation.
-These changes do not alter the official appearance.
+Dialog footer spacing follows the workspace standard described below.
 
 ## Theme and consumers
 
@@ -36,6 +36,12 @@ medium and large radii taking precedence.
 
 Compose DialogHeader, DialogTitle, DialogDescription and DialogFooter directly.
 Nova owns the dialog padding, title, corner button, ring and muted footer surface.
+The workspace overrides DialogFooter and AlertDialogFooter to use `px-4 py-2.5`,
+with horizontal padding aligned with the content. Both axes follow Tailwind's
+spacing scale and host density; do not substitute arbitrary pixel values. Keep
+the vertical inset smaller than the horizontal inset, including compact density;
+do not restore uniform `p-4` when refreshing the preset. Wrapped actions retain
+this spacing and grow naturally without shrinking their touch targets.
 Consumers may constrain width/height and scrolling, but should not repeat those
 styles or set `p-0` on an ordinary Dialog. Rebuild consumers after updating shared
 source: existing compiled remote bundles do not update merely by importing the

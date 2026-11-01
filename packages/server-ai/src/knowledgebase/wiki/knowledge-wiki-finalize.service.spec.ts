@@ -1,6 +1,6 @@
 import { KnowledgeWikiFinalizeService } from './knowledge-wiki-finalize.service'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiPageVersion } from './entities'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 function fixture() {
     const page = Object.assign(new KnowledgeWikiPage(), {

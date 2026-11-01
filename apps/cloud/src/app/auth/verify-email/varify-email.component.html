@@ -9,22 +9,38 @@
   <!-- Errors -->
   @for (error of errors; track $index; let i = $index) {
     <div
-      class="bg-[var(--color-status-warning-bg)] border border-[var(--color-status-warning-indicator-border)] rounded p-4 mb-3 flex justify-between items-center"
+      role="alert"
+      class="bg-[var(--color-status-warning-bg)] border border-[var(--color-status-warning-indicator-border)] rounded p-4 mb-3 flex justify-between items-center gap-3"
     >
-      <span class="text-[var(--color-status-warning-fg)]">
-        {{ 'Auth.' + error | translate: { Default: error } }}
+      <span class="min-w-0 flex-1 break-words text-[var(--color-status-warning-fg)]">
+        {{ error }}
       </span>
-      <button (click)="errors.splice(i, 1)" class="text-[var(--color-status-warning-fg)] hover:opacity-80">✕</button>
+      <button
+        type="button"
+        (click)="errors.splice(i, 1)"
+        [attr.aria-label]="'Auth.DismissMessage' | translate: { Default: 'Dismiss message' }"
+        class="shrink-0 text-[var(--color-status-warning-fg)] hover:opacity-80"
+      >
+        ✕
+      </button>
     </div>
   }
 
   <!-- Messages -->
   @for (message of messages; track $index; let i = $index) {
     <div
-      class="bg-[var(--color-status-success-bg)] border border-[var(--color-status-success-indicator-border)] rounded p-4 mb-3 flex justify-between items-center"
+      role="status"
+      class="bg-[var(--color-status-success-bg)] border border-[var(--color-status-success-indicator-border)] rounded p-4 mb-3 flex justify-between items-center gap-3"
     >
-      <span class="text-[var(--color-status-success-fg)]">{{ message }}</span>
-      <button (click)="messages.splice(i, 1)" class="text-[var(--color-status-success-fg)] hover:opacity-80">✕</button>
+      <span class="min-w-0 flex-1 break-words text-[var(--color-status-success-fg)]">{{ message }}</span>
+      <button
+        type="button"
+        (click)="messages.splice(i, 1)"
+        [attr.aria-label]="'Auth.DismissMessage' | translate: { Default: 'Dismiss message' }"
+        class="shrink-0 text-[var(--color-status-success-fg)] hover:opacity-80"
+      >
+        ✕
+      </button>
     </div>
   }
 

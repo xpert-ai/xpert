@@ -1,3 +1,5 @@
+import { Permissions } from './../shared/decorators/permissions'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
 	BadRequestException,
@@ -151,6 +153,7 @@ export class ViewExtensionRoutes {
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller()
 export class ViewExtensionController extends ViewExtensionRoutes {
 	constructor(service: ViewExtensionService) {

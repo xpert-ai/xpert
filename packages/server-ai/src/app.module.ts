@@ -1,3 +1,4 @@
+import { UserNotificationModule } from './user-notification/notification.module'
 import { ConversationArtifactPluginModule } from './ai/conversation-sharing/conversation-artifact-plugin.module'
 import { ManualRetentionModule } from './data-retention/manual-retention.module'
 import { AnalyticsDefinitionModule } from './analytics/analytics-definition.module'
@@ -75,6 +76,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
 
 @Module({
     imports: [
+        UserNotificationModule,
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
         AgentMiddlewareRuntimeModule,

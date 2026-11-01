@@ -8,7 +8,7 @@ import {
     ProcessResult
 } from '@xpert-ai/plugin-sdk'
 import { KnowledgebaseTaskService } from './task.service'
-import { KNOWLEDGE_PIPELINE_CALLBACK } from '../types'
+import { KNOWLEDGE_PIPELINE_CALLBACK } from '../shared/types'
 
 @Injectable()
 @HandoffProcessorStrategy(KNOWLEDGE_PIPELINE_CALLBACK, {

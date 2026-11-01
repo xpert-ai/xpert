@@ -5,7 +5,6 @@ import {
     ICopilotProvider,
     ICopilotProviderModel,
     ProviderModelCatalog,
-    RolesEnum,
     ProviderCredentialValidationTarget,
     providerCredentialValidationTargetSchema
 } from '@xpert-ai/contracts'
@@ -51,7 +50,10 @@ import { AIProvidersService } from '../ai-model'
 import type { IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 
-type ProviderWriteInput = Partial<ICopilotProvider> & { validationTarget?: ProviderCredentialValidationTarget }
+type ProviderWriteInput = Partial<ICopilotProvider> & {
+    validationTarget?: ProviderCredentialValidationTarget
+    connectionName?: string
+}
 const validationTargetPipe = new ZodValidationPipe(
     providerCredentialValidationTargetSchema.optional(),
     () => new BadRequestException(t('server-ai:Error.ProviderCredentialCheckInvalid'))
@@ -61,6 +63,7 @@ const validationTargetPipe = new ZodValidationPipe(
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotProviderController extends CrudController<CopilotProvider> {
     @Inject(ConfigService)
     private readonly configService: ConfigService
@@ -87,8 +90,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
         @Body() entity: ProviderWriteInput,
         @Body('validationTarget', validationTargetPipe) validationTarget?: ProviderCredentialValidationTarget
     ) {
-        const { validationTarget: _target, ...provider } = entity
-        return await this.commandBus.execute(new CopilotProviderUpsertCommand(provider, validationTarget))
+        const { validationTarget: _target, connectionName, ...provider } = entity
+        return await this.commandBus.execute(
+            new CopilotProviderUpsertCommand(provider, validationTarget, connectionName)
+        )
     }
 
     @UseGuards(PermissionGuard)
@@ -99,8 +104,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
         @Body() entity: ProviderWriteInput,
         @Body('validationTarget', validationTargetPipe) validationTarget?: ProviderCredentialValidationTarget
     ) {
-        const { validationTarget: _target, ...provider } = entity
-        return await this.commandBus.execute(new CopilotProviderUpsertCommand({ ...provider, id }, validationTarget))
+        const { validationTarget: _target, connectionName, ...provider } = entity
+        return await this.commandBus.execute(
+            new CopilotProviderUpsertCommand({ ...provider, id }, validationTarget, connectionName)
+        )
     }
 
     @Get(':id')
@@ -155,7 +162,8 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
             builtin: models,
             custom: provider.models,
             discoverySupported: typeof strategy?.discoverModels === 'function',
-            modelDiscovery: provider.options?.modelDiscovery
+            modelDiscovery: provider.options?.modelDiscovery,
+            enabledModels: provider.options?.enabledModels
         }
     }
 

@@ -54,6 +54,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 
 	it.each([
 		['missing', null],
+		['disabled', { type: UserType.USER, isActive: false, role: { name: RolesEnum.SUPER_ADMIN } }],
 		['communication', { type: UserType.COMMUNICATION, role: { name: RolesEnum.SUPER_ADMIN } }],
 		['untyped', { role: { name: RolesEnum.SUPER_ADMIN } }]
 	])('rejects a %s user even with a claimed privileged role', async (_label, user) => {
@@ -62,7 +63,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBeNull()
 		expect(f.users.findOne).toHaveBeenCalledWith({
 			where: { id: scope.userId, tenantId: scope.tenantId },
-			relations: ['role']
+			relations: ['role', 'role.rolePermissions']
 		})
 		expect(f.memberships.findOne).not.toHaveBeenCalled()
 		expect(f.organizations.findOne).not.toHaveBeenCalled()
@@ -117,7 +118,10 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		const f = setup()
 		const invocationScope = { ...scope, workspaceId: 'workspace', parentExecutionId: 'execution' }
 		await f.service.execute(new ResolveUserOrganizationAccessCommand(invocationScope))
-		expect(f.users.findOne).toHaveBeenCalledWith({ where: { id: 'user', tenantId: 'tenant' }, relations: ['role'] })
+		expect(f.users.findOne).toHaveBeenCalledWith({
+			where: { id: 'user', tenantId: 'tenant' },
+			relations: ['role', 'role.rolePermissions']
+		})
 		expect(f.memberships.findOne).toHaveBeenCalledWith({
 			where: { ...scope, isActive: true, organization: { tenantId: 'tenant', isActive: true } }
 		})

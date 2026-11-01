@@ -85,6 +85,24 @@ Remote Views use shared shadcn/ui components and Tailwind CSS. Host theme variab
 
 Views maintain centralized English and Simplified Chinese dictionaries for actions, empty states, errors, and accessibility labels. Business components use translation keys rather than inline bilingual JSX branches. User titles and document bodies are not translated automatically.
 
+## Project files and data lifecycle
+
+The Project-and-files upgrade is implemented. Multiple connected Assistants in one project share one Space extension record and the same project files. Bodies, attachments and version files use the Project workspace; a Space has no independent file Volume and does not derive ownership from an Assistant creator.
+
+- Creation, moves and renames operate on real files. Path conflicts fail explicitly rather than overwriting content.
+- Collaboration persistence and file publication acknowledge different states. Published state drives subsequent version and indexing integration only after actual publication.
+- External changes require conflict resolution rather than silent overwrite by an old editor. See [Markdown collaboration](/en/guides/spaces-markdown) for saving and recovery.
+- Trash and folder operations preserve resource identities. Uninstalling the Spaces view does not delete project files.
+- Knowledge indexes are derived from files/content and can recover independently without rolling back saved files.
+
+The current implementation requires Project ownership and does not provide general migration compatibility for old Assistant-owned Space Volumes. Editing, suggestions, comments and history follow current content-platform/ChatKit responsibilities; the old plan's general AI/review responsibilities inside Spaces View are not reinstated.
+
+## Implementation and acceptance status
+
+The original Project-files upgrade's functional work is implemented and maintained here and in the [architecture guide](/en/architecture/spaces-content), rather than as a future proposal. Released dependency combinations and target deployments still require separate acceptance.
+
+The original acceptance record's only unclosed item was **verification of the file saved locally by a browser download**. API byte checks do not establish browser download acceptance. Download representative Markdown in the target browser, verify a real file was saved and compare its content or SHA-256 with the same published project-file version. This documentation change did not execute that check or repeat real-model/restart acceptance.
+
 ## Capability boundaries
 
 Current functionality includes project files, Markdown collaboration, resource references, knowledge search, and document imports. It does not establish delivery of the following capabilities:

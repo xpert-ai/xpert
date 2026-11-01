@@ -1,3 +1,5 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
 import { QueryBus } from '@nestjs/cqrs'
 import { threadGraphRevision } from './thread-run-control.service'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
@@ -13,6 +15,11 @@ import { ChatConversationThreadService } from './conversation-thread.service'
 import { SideChatForkService } from './side-chat-fork.service'
 
 describe('ChatConversationThreadService', () => {
+    beforeEach(() => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
+    })
+    afterEach(() => jest.restoreAllMocks())
     function createService({
         threadRepository = {},
         messageRepository = {},
@@ -175,7 +182,12 @@ describe('ChatConversationThreadService', () => {
     it.each(['pausing', 'paused'])('blocks automatic or user run admission while %s', async (status) => {
         const thread = { id: 'row', threadId: 'thread', status } as ChatConversationThread
         const save = jest.fn()
-        const manager = { getRepository: () => ({ findOne: async () => thread }), save }
+        const manager = {
+            query: jest.fn(),
+            getRepository: (entity: unknown) =>
+                entity === AppPlatformDelivery ? { findOneBy: async () => null } : { findOne: async () => thread },
+            save
+        }
         const service = createService({
             dataSource: {
                 transaction: async (work: (entityManager: EntityManager) => Promise<unknown>) =>
@@ -186,6 +198,58 @@ describe('ChatConversationThreadService', () => {
         await expect(service.claimForRun('thread')).rejects.toBeInstanceOf(ConflictException)
         expect(save).not.toHaveBeenCalled()
         expect(thread.status).toBe(status)
+    })
+
+    it.each([
+        { used: 100, active: 0, rejected: 413 },
+        { used: 20, active: 2, rejected: 429 },
+        { used: 20, active: 0, rejected: null }
+    ])('applies account admission before claiming an idle thread: %j', async ({ used, active, rejected }) => {
+        const thread = { id: 'row', threadId: 'thread', status: 'idle' } as ChatConversationThread
+        const events: string[] = []
+        const threads = {
+            findOne: jest.fn(async () => {
+                events.push('thread-lock')
+                return thread
+            }),
+            countBy: jest.fn().mockResolvedValue(active)
+        }
+        const accounts = {
+            findOneBy: jest.fn().mockResolvedValue({
+                configuration: {
+                    definition: { entitlements: { defaultPlanRef: 'trial' } },
+                    environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+                }
+            })
+        }
+        const manager = {
+            query: jest.fn(async (sql: string) => {
+                if (sql.includes('pg_advisory_xact_lock')) {
+                    events.push('account-lock')
+                    return []
+                }
+                return [{ externalBytes: used, databaseBytes: 0, measuredAt: new Date() }]
+            }),
+            getRepository: (entity: unknown) => (entity === AppPlatformDelivery ? accounts : threads),
+            save: jest.fn(async () => thread)
+        }
+        const service = createService({
+            dataSource: {
+                transaction: async (work: (m: EntityManager) => Promise<unknown>) =>
+                    work(manager as unknown as EntityManager)
+            } as DataSource
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(thread)
+        if (rejected) {
+            await expect(service.claimForRun('thread')).rejects.toMatchObject({ status: rejected })
+            expect(threads.findOne).not.toHaveBeenCalled()
+            expect(manager.save).not.toHaveBeenCalled()
+            expect(thread.status).toBe('idle')
+        } else {
+            await expect(service.claimForRun('thread')).resolves.toBe(thread)
+            expect(events).toEqual(['account-lock', 'thread-lock'])
+            expect(thread.status).toBe('busy')
+        }
     })
 
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {

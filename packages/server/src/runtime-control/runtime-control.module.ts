@@ -5,6 +5,7 @@
  */
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
+import { CqrsModule } from '@nestjs/cqrs'
 import { RedisModule } from '../core/redis'
 import { ManagedConnectionModule } from '../managed-connection'
 import { RuntimeControlController } from './runtime-control.controller'
@@ -25,7 +26,7 @@ const processSignaler: RuntimeProcessSignaler = {
 }
 
 @Module({
-	imports: [RedisModule, ManagedConnectionModule, DiscoveryModule, TaskControlModule],
+	imports: [CqrsModule, RedisModule, ManagedConnectionModule, DiscoveryModule, TaskControlModule],
 	controllers: [RuntimeControlController],
 	providers: [
 		RuntimeLifecycleService,

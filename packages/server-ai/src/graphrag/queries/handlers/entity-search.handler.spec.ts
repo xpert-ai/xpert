@@ -1,6 +1,6 @@
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
-import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphEntity } from '../../entities'
 import { KnowledgeGraphEntitySearchQuery } from '../knowledge-graph-entity-search.query'
 import { KnowledgeGraphEntitySearchHandler } from './entity-search.handler'

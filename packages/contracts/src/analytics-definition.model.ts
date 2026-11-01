@@ -38,6 +38,8 @@ export interface AnalyticsDefinitionCreate {
   options: Record<string, JSONValue>
 }
 export interface AnalyticsDefinitionPublish {
+  /** Owner-confirmed audience for all immutable versions; omitted preserves the current audience. */
+  visibility?: IAnalyticsDefinition['visibility']
   expectedCurrentVersionId: string
   options: Record<string, JSONValue>
 }

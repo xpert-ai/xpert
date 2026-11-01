@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Public } from '@xpert-ai/server-core'
 import {
     CanActivate,
@@ -30,6 +32,7 @@ export class McpFilesGuard implements CanActivate {
 @Public()
 @Controller('mcp/p')
 @UseGuards(McpFilesGuard)
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpFilesController {
     constructor(private readonly files: McpFilesService) {}
 

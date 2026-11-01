@@ -1,7 +1,9 @@
+import { IBillingConfiguration } from '@xpert-ai/server-common'
 import { DEFAULT_MEMBERSHIP_CNY_PER_POINT } from '@xpert-ai/contracts'
 import { pointsFromCny, settleChargeToCny } from './model-billing'
 
 describe('model billing settlement', () => {
+    const billing: IBillingConfiguration = { settlementCurrency: 'CNY', exchangeRates: { USD: '7.2', EUR: '7.8' } }
     it('keeps CNY charges unchanged and converts them to membership points', () => {
         expect(
             settleChargeToCny({
@@ -27,13 +29,17 @@ describe('model billing settlement', () => {
                     amount: 0.29,
                     currency: 'USD'
                 },
-                '7.2'
+                billing
             )
         ).toEqual({
             amount: 2.088,
             currency: 'CNY',
             exchangeRate: 7.2
         })
+    })
+
+    it('does not turn a missing amount into a free charge', () => {
+        expect(settleChargeToCny({ pricingStatus: 'priced', amount: null, currency: 'CNY' }, billing)).toBeNull()
     })
 
     it('settles an explicitly free rule to zero without requiring an exchange rate', () => {
@@ -52,10 +58,10 @@ describe('model billing settlement', () => {
 
     it.each([
         [{ pricingStatus: 'unpriced' as const, amount: null, currency: null }, '7.2'],
-        [{ pricingStatus: 'priced' as const, amount: 1, currency: 'USD' }, undefined],
+        [{ pricingStatus: 'priced' as const, amount: 1, currency: 'USD' }, ''],
         [{ pricingStatus: 'priced' as const, amount: 1, currency: 'USD' }, 'invalid'],
-        [{ pricingStatus: 'priced' as const, amount: 1, currency: 'EUR' }, '7.2']
+        [{ pricingStatus: 'priced' as const, amount: 1, currency: 'JPY' }, '7.2']
     ])('does not settle an unpriced or unsupported charge', (charge, rate) => {
-        expect(settleChargeToCny(charge, rate)).toBeNull()
+        expect(settleChargeToCny(charge, { settlementCurrency: 'CNY', exchangeRates: { USD: rate } })).toBeNull()
     })
 })

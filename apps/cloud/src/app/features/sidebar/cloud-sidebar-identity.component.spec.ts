@@ -69,6 +69,7 @@ jest.mock('../../@core', () => {
   return {
     IOrganization: {},
     OrganizationsService,
+    PermissionsEnum: { CHANGE_SELECTED_ORGANIZATION: 'CHANGE_SELECTED_ORGANIZATION' },
     RequestScopeLevel: {
       ORGANIZATION: 'organization',
       TENANT: 'tenant'
@@ -129,6 +130,8 @@ describe('CloudSidebarIdentityComponent', () => {
     const secondPage = tenantOrganizations.slice(9)
     const user$ = new BehaviorSubject(currentUser)
     const store = {
+      userRolePermissions$: new BehaviorSubject([]),
+      hasPermission: () => true,
       featureContextHydrated: false,
       featureOrganizations: [],
       selectedOrganization: null,
@@ -255,6 +258,8 @@ describe('CloudSidebarIdentityComponent', () => {
     }
     const user$ = new BehaviorSubject(currentUser)
     const store = {
+      userRolePermissions$: new BehaviorSubject([]),
+      hasPermission: () => true,
       featureContextHydrated: true,
       featureOrganizations: [],
       selectedOrganization: currentUser.organizations[0].organization,

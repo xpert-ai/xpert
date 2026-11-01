@@ -146,7 +146,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     onRefresh: jest.Mock
   }
   let conversationService: {
-    getUnreadByXperts: jest.Mock
+    watchUnreadByXperts: jest.Mock
     getSidebarConversations: jest.Mock
     unreadRefresh$: Subject<void>
     sidebarRefresh$: Subject<{ xpertId: string }>
@@ -163,6 +163,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
+    userRolePermissions$: BehaviorSubject<unknown[]>
     hasPermission: jest.Mock
   }
   let scopeService: {
@@ -222,7 +223,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       )
     }
     conversationService = {
-      getUnreadByXperts: jest.fn(() => of([])),
+      watchUnreadByXperts: jest.fn(() => of([])),
       getSidebarConversations: jest.fn(() => of({ items: [], total: 0 })),
       unreadRefresh$: new Subject<void>(),
       sidebarRefresh$: new Subject<{ xpertId: string }>()
@@ -262,6 +263,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       hasFeatureEnabled: jest.fn((feature: string) =>
         [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT].includes(feature as AiFeatureEnum)
       ),
+      userRolePermissions$: new BehaviorSubject<unknown[]>([]),
       hasPermission: jest.fn((permission: string) => permission === 'XPERT_EDIT')
     }
     scopeService = {
@@ -329,7 +331,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   it('opens the latest unread history thread when an assistant has unread messages', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
+    conversationService.watchUnreadByXperts.mockReturnValue(
       of([
         {
           xpertId: 'other-xpert',
@@ -745,7 +747,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   it('renders assistant status dots only for assistants with unread messages', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
+    conversationService.watchUnreadByXperts.mockReturnValue(
       of([
         {
           xpertId: 'other-xpert',
@@ -769,13 +771,13 @@ describe('CloudSidebarAssistantsComponent', () => {
 
   it('does not reload bindings or cancel unread requests for an equivalent scope recomputation', async () => {
     const pendingUnread = new Subject<never[]>()
-    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread)
+    conversationService.watchUnreadByXperts.mockReturnValue(pendingUnread)
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
     const currentRequest = fixture.componentInstance.request()
-    const calls = conversationService.getUnreadByXperts.mock.calls.length
+    const calls = conversationService.watchUnreadByXperts.mock.calls.length
 
     scopeService.activeScope.set({ ...scopeService.activeScope() })
     fixture.detectChanges()
@@ -784,7 +786,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     expect(fixture.componentInstance.request()).toBe(currentRequest)
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledTimes(1)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(calls)
+    expect(conversationService.watchUnreadByXperts).toHaveBeenCalledTimes(calls)
     expect(pendingUnread.observed).toBe(true)
     fixture.destroy()
   })
@@ -792,13 +794,13 @@ describe('CloudSidebarAssistantsComponent', () => {
   it('keeps the list and in-flight unread request while refreshing the same assistant IDs', async () => {
     const pendingUnread = new Subject<never[]>()
     const refreshedItems = new Subject<Array<{ id: string; latest: boolean }>>()
-    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread)
+    conversationService.watchUnreadByXperts.mockReturnValue(pendingUnread)
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
     const currentItems = fixture.componentInstance.xperts()
-    const calls = conversationService.getUnreadByXperts.mock.calls.length
+    const calls = conversationService.watchUnreadByXperts.mock.calls.length
 
     assistantBindingService.getAvailableXperts.mockReturnValue(refreshedItems)
     xpertRefresh$.next()
@@ -811,108 +813,50 @@ describe('CloudSidebarAssistantsComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(calls)
+    expect(conversationService.watchUnreadByXperts).toHaveBeenCalledTimes(calls)
     expect(pendingUnread.observed).toBe(true)
     fixture.destroy()
   })
 
-  it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
+  it('keeps one scoped unread subscription instead of scheduling component polling', fakeAsync(() => {
+    const pending = new Subject<unknown>()
+    conversationService.watchUnreadByXperts.mockReturnValue(pending)
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
-
     fixture.detectChanges()
     tick()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(1_999)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(1)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    discardPeriodicTasks()
-  }))
-
-  it('pauses unread polling while hidden and refreshes immediately when visible again', fakeAsync(() => {
-    documentVisibilityState = 'hidden'
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
-
-    fixture.detectChanges()
-    tick()
-
-    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
-
-    tick(2_000)
-    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
-
-    documentVisibilityState = 'visible'
-    document.dispatchEvent(new Event('visibilitychange'))
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(2_000)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    discardPeriodicTasks()
-  }))
-
-  it('does not overlap unread summary requests when a prior request is still pending', fakeAsync(() => {
-    const pendingUnread = new Subject<unknown>()
-    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread.asObservable())
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    fixture.componentRef.setInput('xpSidebarHoverPanel', true)
-
-    fixture.detectChanges()
-    tick()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
+    expect(conversationService.watchUnreadByXperts).toHaveBeenCalledTimes(1)
     tick(120_000)
-    conversationService.unreadRefresh$.next()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    pendingUnread.next([])
-    pendingUnread.complete()
-    conversationService.getUnreadByXperts.mockReturnValue(of([]))
-    conversationService.unreadRefresh$.next()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
+    expect(conversationService.watchUnreadByXperts).toHaveBeenCalledTimes(1)
     fixture.destroy()
-    discardPeriodicTasks()
+    expect(pending.observed).toBe(false)
   }))
 
   it('normalizes wrapped unread responses and ignores invalid unread payloads', async () => {
-    conversationService.getUnreadByXperts.mockReturnValueOnce(
-      of({
-        items: [
-          {
-            xpertId: 'other-xpert',
-            unreadMessages: 1,
-            unreadConversations: 1,
-            latestUnreadAt: '2026-06-21T00:00:00.000Z',
-            latestUnreadConversationId: 'conversation-unread',
-            latestUnreadThreadId: 'thread-unread'
-          }
-        ]
-      })
-    )
+    const updates = new Subject<unknown>()
+    conversationService.watchUnreadByXperts.mockReturnValue(updates)
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     fixture.componentRef.setInput('xpSidebarHoverPanel', true)
-
+    fixture.detectChanges()
+    await fixture.whenStable()
+    updates.next({
+      items: [
+        {
+          xpertId: 'other-xpert',
+          unreadMessages: 1,
+          unreadConversations: 1,
+          latestUnreadAt: '2026-06-21T00:00:00.000Z',
+          latestUnreadConversationId: 'conversation-unread',
+          latestUnreadThreadId: 'thread-unread'
+        }
+      ]
+    })
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
 
-    conversationService.getUnreadByXperts.mockReturnValueOnce(of({}))
-    conversationService.unreadRefresh$.next()
+    updates.next({})
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()

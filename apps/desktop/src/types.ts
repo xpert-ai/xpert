@@ -1,3 +1,4 @@
+import type { Announcement, NotificationSnapshot, UserNotification } from '@xpert-ai/contracts'
 import type { PluginLibrary } from './plugin-library-types'
 import type { CertificateCheck, ConnectionUrlField } from './connection/certificate-types'
 import type { BotActivity, DesktopLastSession, SidebarState, SidebarUpdate } from './assistant-list-types'
@@ -99,6 +100,13 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  notificationSnapshot: { input: void; output: NotificationSnapshot | null }
+  notificationRefresh: { input: void; output: NotificationSnapshot | null }
+  notificationDismiss: { input: string; output: { dismissed: true } }
+  notificationAnnouncement: { input: string; output: Announcement }
+  notificationHistory: { input: number; output: { items: Announcement[]; total: number } }
+  notificationList: { input: number; output: { items: UserNotification[]; hasMore: boolean; nextOffset: number } }
+  notificationRead: { input: string; output: { read: true } }
   restoreSession: { input: undefined; output: DesktopLastSession | null }
   rememberSession: { input: { scope: string; session: DesktopLastSession }; output: void }
   bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }
@@ -401,6 +409,7 @@ declare global {
       onNewGroup?: (listener: () => void) => () => void
       onMenuAction?: (listener: (action: 'settings' | 'sign-out') => void) => () => void
       onWindowActivated?: (listener: () => void) => () => void
+      onNotificationsChanged?: (listener: () => void) => () => void
       onAssistantActivityChanged?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,

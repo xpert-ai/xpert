@@ -1,3 +1,4 @@
+import { assertAppPlatformUpload } from '../shared/app-platform-resource-policy'
 import { assertGroupWorkspaceFileAccess } from './workspace-files/group-workspace-file-access'
 import { createConversationWorkspaceVolumeClient } from './workspace-files/conversation-workspace-volume'
 import { isGroupRuntime } from '../chat-group/group-runtime-context'
@@ -190,7 +191,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         projectId: string | null,
         skip: number,
         take: number,
-        sourceConversationId?: string
+        sourceConversationId?: string,
+        titleSearch?: string
     ): Promise<[ChatConversation[], number]> {
         const actorId = RequestContext.currentUserId()
         const tenantId = RequestContext.currentTenantId()
@@ -217,6 +219,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     '(conversation.createdById = :actorId OR (xpert.createdById = :actorId AND xpert.userId = conversation.createdById))',
                     { actorId }
                 )
+        if (titleSearch?.trim())
+            query.andWhere('conversation.title ILIKE :titleSearch', {
+                titleSearch: `%${titleSearch.trim().replace(/[\\%_]/g, '\\$&')}%`
+            })
         if (sourceConversationId)
             query
                 .andWhere(`conversation."branchSource" ->> 'conversationId' = :sourceConversationId`, {
@@ -367,6 +373,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     FROM unread_messages
                     ORDER BY "xpertId", "createdAt" DESC, "messageId" DESC
                 ),
+                activity AS (
+                    SELECT "xpertId", BOOL_OR(status IN ('busy', 'pausing')) AS "hasActiveRuns"
+                    FROM scoped_conversations
+                    GROUP BY "xpertId"
+                ),
                 latest_conversations AS (
                     SELECT DISTINCT ON ("xpertId")
                         "xpertId",
@@ -384,6 +395,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 )
                 SELECT
                     latest_conversations."xpertId" AS "xpertId",
+                    activity."hasActiveRuns" AS "hasActiveRuns",
                     COALESCE(counts."unreadMessages", 0) AS "unreadMessages",
                     COALESCE(counts."unreadConversations", 0) AS "unreadConversations",
                     latest."latestUnreadAt" AS "latestUnreadAt",
@@ -395,6 +407,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     latest_conversations."latestConversationTitle" AS "latestConversationTitle",
                     latest_conversations."latestConversationStatus" AS "latestConversationStatus"
                 FROM latest_conversations
+                INNER JOIN activity ON activity."xpertId" = latest_conversations."xpertId"
                 LEFT JOIN counts
                     ON counts."xpertId" = latest_conversations."xpertId"
                 LEFT JOIN latest
@@ -403,6 +416,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             params
         )) as Array<{
             xpertId: string
+            hasActiveRuns?: boolean
             unreadMessages: string | number
             unreadConversations: string | number
             latestUnreadAt?: Date | string | null
@@ -417,6 +431,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
         return rows.map((row) => ({
             xpertId: row.xpertId,
+            hasActiveRuns: row.hasActiveRuns ?? false,
             unreadMessages: Number(row.unreadMessages) || 0,
             unreadConversations: Number(row.unreadConversations) || 0,
             latestUnreadAt: row.latestUnreadAt ?? null,
@@ -677,6 +692,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         folderPath: string,
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
+        await assertAppPlatformUpload(this.commandBus, file.buffer.length)
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
         const uploadPath = normalizeRelativePath(

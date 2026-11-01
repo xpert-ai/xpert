@@ -197,8 +197,8 @@ chargedPoints = billableSettlementAmountCny / cnyPerPoint
 ```
 
 - CNY/RMB 的 `exchangeRate = 1`；
-- USD 使用环境变量 `MODEL_BILLING_USD_TO_CNY_RATE`，并把实际汇率冻结到账本；
-- 缺少 USD 汇率或遇到其他币种时保留原币用量和金额，但人民币结算为空且不扣点；
+- 来源币种使用统一 `billing.exchangeRates`（环境变量 `BILLING_EXCHANGE_RATES`），按每单位原币对应多少 CNY 配置，并把实际汇率冻结到账本；旧 `MODEL_BILLING_USD_TO_CNY_RATE` 仅作未配置新表时的兼容回退；
+- 缺少对应来源币种汇率时保留原币用量和金额，人民币结算为空且不扣点，不应视为免费；
 - free 保存人民币结算金额 0，不扣点；unpriced 的人民币结算和扣点都为空；
 - 套餐原有 `modelMultipliers` 字段重新定义为“结算金额倍率”，默认值为 1；供应商原币金额不变，倍率只作用于会员最终结算金额；
 - 租户管理员通过 `membershipCnyPerPoint` 配置“1 点 = N RMB”；旧租户缺少该设置时按 `0.1 RMB/点` 结算，即 `1 RMB = 10 点`；
@@ -326,7 +326,7 @@ flowchart TD
 2. 免费模型显示用量和 0 金额；没有可匹配价格的模型显示“未计价”，金额为空；
 3. 用量中心把 LLM、图片和视频的 token、generation、second 合并为一张用量表，并展示原币金额、人民币结算金额和筛选。
 4. 原有积点不重写；缺少租户点值配置时按 `1 RMB = 10 点` 解释，新模型调用先结算人民币金额，再按租户点值扣点。
-5. USD/CNY 汇率暂由 `MODEL_BILLING_USD_TO_CNY_RATE` 配置并随调用冻结；其他币种暂不结算。
+5. 汇率由统一 `billing.exchangeRates` 静态配置并随结算冻结，支持已配置的多种来源币种；会员积分结算币种当前仍限 CNY。详见 [模型费用与汇率结算](../model-billing.md)。
 6. 用量、价格和会员扣减统一使用原有 `membership_point_ledger`，不新增模型用量表。
 7. 会员销售价格、订单、支付和支付后发放由 Pro 维护；开源会员计划中的旧价格列仅临时用于迁移，不作为运行时售价来源。
 

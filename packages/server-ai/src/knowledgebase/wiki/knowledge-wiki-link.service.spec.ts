@@ -1,7 +1,7 @@
 import * as identityCatalogue from '../identity/knowledge-identity-catalogue'
 import { KnowledgeIdentityDescriptor } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiPage,
     KnowledgeWikiPageContribution,

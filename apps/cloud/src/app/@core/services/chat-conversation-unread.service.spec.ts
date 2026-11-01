@@ -21,6 +21,36 @@ describe('ChatConversationService unread polling', () => {
 
   afterEach(() => http.verify())
 
+  it('keeps unchanged snapshots, coalesces events, and resets versions on organization changes', fakeAsync(() => {
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    const next = jest.fn()
+    const subscription = service.watchUnreadByXperts(['assistant']).subscribe(next)
+    const url = '/api/chat-conversation/unread/xperts/sync'
+    const items = [{ xpertId: 'assistant', unreadMessages: 1, unreadConversations: 1 }]
+    http.expectOne(url).flush({ version: 'revision-a', items })
+    tick(44_999)
+    http.expectNone(url)
+    tick(1)
+    const unchanged = http.expectOne(url)
+    expect(unchanged.request.body.version).toBe('revision-a')
+    unchanged.flush(null, { status: 204, statusText: 'No Content' })
+    expect(next).toHaveBeenCalledTimes(1)
+    service.refreshUnread()
+    service.refreshUnread()
+    tick(250)
+    const pending = http.expectOne(url)
+    organization.next('org-2')
+    expect(pending.cancelled).toBe(true)
+    const fresh = http.expectOne(url)
+    expect(fresh.request.body).toEqual({ xpertIds: ['assistant'] })
+    fresh.flush({ version: 'revision-b', items: [] })
+    expect(next).toHaveBeenLastCalledWith([])
+    subscription.unsubscribe()
+    tick(60_000)
+    http.expectNone(url)
+    jest.restoreAllMocks()
+  }))
+
   it('completes each HTTP request so exhaustMap accepts subsequent poll and read-state events', () => {
     const refresh = new Subject<void>()
     const summaries = jest.fn()

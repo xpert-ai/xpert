@@ -2,6 +2,8 @@ export type TChatConversationStatus = 'idle' | 'busy' | 'pausing' | 'paused' | '
 
 export interface IChatConversationUnreadXpertSummary {
   xpertId: string
+  /** Includes running conversations other than the most recently updated one. */
+  hasActiveRuns?: boolean
   unreadMessages: number
   unreadConversations: number
   latestUnreadAt?: Date | string | null
@@ -12,4 +14,9 @@ export interface IChatConversationUnreadXpertSummary {
   latestConversationThreadId?: string | null
   latestConversationTitle?: string | null
   latestConversationStatus?: TChatConversationStatus | null
+}
+
+export interface IChatConversationUnreadSnapshot {
+  version: string
+  items: IChatConversationUnreadXpertSummary[]
 }

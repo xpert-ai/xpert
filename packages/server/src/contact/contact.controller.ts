@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { Controller, Get, HttpStatus, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { IPagination } from '@xpert-ai/contracts';
@@ -10,6 +12,7 @@ import { TenantPermissionGuard } from './../shared/guards';
 @ApiTags('Contact')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.ORG_CONTACT_EDIT)
 export class ContactController extends CrudController<Contact> {
 	constructor(private readonly contactService: ContactService) {
 		super(contactService);

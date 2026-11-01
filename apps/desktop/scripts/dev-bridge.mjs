@@ -13,6 +13,9 @@ export function desktopBridge() {
     name: 'xpert-desktop-development-bridge',
     configureServer(server) {
       const defaultConfig = connectionDefaults()
+      server.httpServer?.once('close', () => {
+        for (const { service } of sessions.values()) service.userNotifications.stop()
+      })
       server.middlewares.use('/__desktop', async (req, res) => {
         const origin = `http://${req.headers.host}`
         const port = server.config.server.port
@@ -50,7 +53,11 @@ export function desktopBridge() {
           }
           const current = sessions.get(id)
           current.touched = Date.now()
-          for (const [key, item] of sessions) if (Date.now() - item.touched > 86400000) sessions.delete(key)
+          for (const [key, item] of sessions)
+            if (Date.now() - item.touched > 86400000) {
+              item.service.userNotifications.stop()
+              sessions.delete(key)
+            }
           res.setHeader('Content-Type', 'application/json')
           res.setHeader('Cache-Control', 'no-store')
           res.end(JSON.stringify(await dispatch(current.service, method, argument)))

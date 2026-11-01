@@ -1,0 +1,265 @@
+---
+title: '提案：Assistant 与 View 导航性能优化'
+description: '导航请求与性能基线、主要慢点、分阶段升级方案及验收标准。'
+---
+
+状态：待实施，保留为后续升级方案。记录日期：2026 年 10 月 29 日。
+
+从侧栏 Menu 切换 Assistant 或打开其 View 时，用户会经历明显等待。当前证据指向三类开销：导航期间重复读取身份及助手数据、打开 View 时附带恢复完整会话、View 自身的资源与业务数据加载。draw.io 另有外部编辑器初始化瓶颈，需要独立优化。
+
+升级顺序建议为：建立可复现的生产构建基线，消除重复请求，再拆开 View 入口与非必需会话加载，最后优化静态资源、图片及外部编辑器。网站保持现有布局，功能可见性继续由 role permissions 和应用授权决定。
+
+## 已落地与待实施的分界
+
+原生网站布局、按角色权限显示入口，以及 App 状态服务在账号切换后清理状态并拒绝旧响应，属于已实现功能，见[受管应用说明](../guides/managed-apps.mdx)。这些行为不表示本提案的目录／profile 请求合并、View 与历史会话解耦、资源缓存和编辑器优化已完成；这些阶段仍待实施与生产构建复测。
+
+## 背景与范围
+
+[App Platform](../guides/managed-apps.mdx) 已支持按账号建立独立组织、交付默认应用及其助手。Bid 的主助手、External Assistants 和其他独立助手沿用插件 `appConfig.assistantTemplateKey` 与 `assistantSuite` 初始化，用户通过原生侧栏进入这些已发布助手及业务 View。
+
+频繁切换是这一产品模式的日常操作。用户打开创作中心、项目工作台或绘图工作台时，主要关注目标业务界面能否立即使用；侧栏切换也不应反复出现助手列表清空、旧请求覆盖新目标等现象。
+
+本提案涉及 Xpert Cloud、ChatKit、View 宿主、Bid 和 draw.io 插件。它不调整网站布局、助手初始化来源、业务账号权限或 LLM 推理策略。实施前重新核对当前版本，避免重复建设已有的缓存、凭据刷新协调和 iframe 复用机制。
+
+## 调查方法与实测基线
+
+调查覆盖本地 bidding 与 diagramming 两个环境，使用浏览器 Network 和 Resource Timing，对照当时运行环境与工作目录中的相关源码。ChatKit 使用 Vite 开发构建并启用 React StrictMode；浏览器保留缓存。没有为测量触发新的 LLM 任务。
+
+以下是五次操作样本，不是统计分位数。耗时以点击为起点；“请求完成”不等于画面完成绘制或业务交互就绪。后续必须用生产构建和明确的 ready 标记重新建立基线。
+
+| 场景                                            | 非 OPTIONS 请求 |      OPTIONS 请求 | 观察到的时间范围                                         |
+| ----------------------------------------------- | --------------: | ----------------: | -------------------------------------------------------- |
+| 切换普通 Assistant                              |              20 |                17 | 相关请求约在 1.3 秒内完成                                |
+| 切换到 draw.io Assistant                        |              21 |                16 | 相关请求约在 1.6 秒内完成                                |
+| Bid 主助手通过 Menu 打开另一助手的创作中心 View |              20 |                11 | 相关请求约在 1.5 秒内完成                                |
+| 切回有未读历史的 Bid 主助手，并恢复项目工作台   |              84 |                44 | 业务数据约 6.9 秒；原图请求延续至约 9.45 秒              |
+| 同一 Assistant 打开 draw.io View                |       本地 8 次 | 父级采集记录 6 次 | 本地数据约 1.12 秒；外部编辑器初始化资源链延续至约 14 秒 |
+
+请求数包含采集到的取消请求；Bid 样本也包含流连接。draw.io 最后一项的父级记录另外采集到 3 次外部请求，合计 11 次非 OPTIONS 请求；编辑器内部资源由单独的 Resource Timing 补充，不能把 8 或 11 当成完整页面的资源总数。多数 OPTIONS 请求仅耗时约 1–3 ms，并非这些样本的主要瓶颈。
+
+### 当前导航请求链
+
+下面列出逻辑依赖；实际请求有交叠，不应把各阶段时长直接相加。
+
+| 阶段           | 数据或接口                                                                                        | 出现条件与用途                                   |
+| -------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 路由与身份     | `/api/app-platform/me`、必要时 `/api/user/me`                                                     | 校验平台状态、应用入口、角色权限和组织范围       |
+| 助手目录与侧栏 | `/api/assistant-binding/xperts`、未读汇总、会话侧栏、View slot 列表                               | 解析目标助手并更新菜单与会话入口                 |
+| ChatKit 会话   | `/api/ai/v1/chatkit/sessions`                                                                     | 目标身份或凭据有效性要求更新时签发 client secret |
+| 助手运行信息   | `/api/ai/assistants/:id`、`runtime-capabilities`、项目类型、会话搜索、固定 View                   | 初始化目标助手的运行界面                         |
+| 已有会话恢复   | thread、conversation、messages、runs、control-view、task-summary、context-usage、sandbox services | 路由带已有 thread 时恢复历史及运行状态           |
+| 项目上下文     | entry-by-thread、项目 access/detail                                                               | 从会话采用项目范围，可能再次更新路由             |
+| View 启动      | manifest → remote-component/entry → iframe ready → data/actions                                   | 校验并加载插件业务界面                           |
+| View 后续资源  | 文件 view-session、grants、图片；draw.io 外部编辑器                                               | 加载文件内容或启动嵌入式编辑器                   |
+
+当前 `CurrentUserHydrationService` 有 60 秒内存缓存；`skipSessionCache: true` 不会跳过这一有效内存结果。因此不能理解为每次路由都一定请求 `/user/me`。同样，ChatKit 已有共享 Assistant provider、并发凭据刷新协调及外层 iframe 保留逻辑，优化应修正其触发与失效边界。
+
+## 主要慢点与成因
+
+### 助手目录和详情重复请求
+
+普通切换和跨助手 View 样本中，`assistant-binding/xperts` 各请求两次。源码中侧栏和 `XpertWorkbenchFacade` 分别读取完整目录，底层 `AssistantBindingService` 没有共享正在进行的请求。
+
+跨助手创作中心样本在点击后约 721 ms 同时发起一组四次 Assistant 详情请求，持续时间分别为 205、402、587、773 ms；对应排队时间约为 5、205、402、587 ms。普通助手样本也出现同样的一组四次请求。这里描述的是一组重复请求，不代表整段导航只请求了四次详情。
+
+详情本身的响应等待约 150–200 ms，Bid 样本更高；重复请求又扩大了排队和导航尾部耗时。浏览器记录尚不能确定排队发生的全部原因，也不能把这部分直接归因于数据库。
+
+源码中有几处会扩大重复加载：
+
+- `useAssistantInfo` 在每次 `onSetOptions` 后增加 revision 并重新取详情，主题、布局等变化可能连带触发。清理函数只忽略旧响应，没有取消底层请求或复用同一请求。
+- 开发环境 StrictMode 会放大部分 effect 的执行；四次请求各由哪个调用者触发，需要补充标记并在生产构建复测。
+- App Platform guard 会重新写入 user 和组织；`setOrganizationScope` 在组织相同时仍更新 store 并加载权限，可能推动目录订阅重复执行。
+- 侧栏目录重新加载时先进入空状态；Menu 缓存以“正在加载”或“非空列表”为判断条件，合法空列表可能被再次获取。
+
+### 打开 View 附带恢复未读会话
+
+`openAssistantMenuItem` 与普通助手入口一样调用 `getLatestUnreadThreadId`。目标助手存在未读会话时，View 路由也携带该 thread。这会把一次业务 View 导航变成“恢复会话，再建立业务上下文”。
+
+切回 Bid 的样本展示了这条重路径：
+
+| 点击后的时间 | 请求阶段与影响                                                               |
+| ------------ | ---------------------------------------------------------------------------- |
+| 0–2.4 秒     | 目录、凭据、重复助手详情、thread 和 conversation 开始加载                    |
+| 约 2.5 秒    | control-view 发起，持续约 1.31 秒，其中响应等待约 1.04 秒                    |
+| 约 3.28 秒   | 会话采用项目范围并改写路由，再次读取平台状态、会话入口、项目权限与 View slot |
+| 3.83–4.64 秒 | View manifest 和 Bid Studio entry 加载                                       |
+| 4.86–6.17 秒 | workflow 数据先后加载两次，后一次带更新后的 selection 上下文                 |
+| 6.20–6.92 秒 | 项目文件及 outline、interpretation、chapters 等数据读取                      |
+| 7.06–9.45 秒 | 文件会话、授权与 8 张原图加载                                                |
+
+thread 读取还出现约 0.84、1.27、1.14 秒的多次请求。后端 thread 查询会读取控制视图，独立 control-view 请求也会触及执行、任务、证据及恢复相关投影；这值得检查重叠计算，但具体 SQL 和服务阶段开销仍需服务端计时才能确认。
+
+两次 workflow 查询的上下文不同，不能直接当作完全相同的重复请求；三个业务切片也各有用途。优化重点是稳定首屏上下文、延后不可见内容，并避免为打开独立 View 恢复无关历史。
+
+### View entry 和图片体积较大
+
+采集到的 View entry 将较多代码打包进 HTML，并返回 `Cache-Control: no-store`，未观察到 `Content-Encoding` 压缩。
+
+| 资源                 |                  响应正文大小 | 本地请求持续时间 |
+| -------------------- | ----------------------------: | ---------------: |
+| Bid Studio entry     |   4,509,178 bytes，约 4.51 MB |           393 ms |
+| Bid 创作中心 entry   | 10,163,946 bytes，约 10.16 MB |           222 ms |
+| draw.io 工作台 entry |     509,391 bytes，约 0.51 MB |           177 ms |
+
+MB 按十进制计算。不同请求的耗时受排队和缓存等因素影响，不能根据这三项推导带宽或体积与耗时的固定关系。在远程部署中，这些资源还会增加网络传输、HTML/JavaScript 解析及执行开销，具体收益需在部署网络下复测。
+
+Bid 样本的 8 张原图累计传输约 30.06 MB。原图和文件授权请求形成首屏之后的加载尾部；缩略图、按可见区域加载以及推迟原图获取，比只减少 API 数量更直接。
+
+### draw.io 外部编辑器占据较长等待
+
+同一助手打开绘图 View 时，本地数据在约 1.12 秒完成，外部编辑器 iframe 在约 0.93 秒开始加载。编辑器内部有以下资源阶段，起点相对于编辑器导航：
+
+| 资源                      |   开始时间 |    持续时间 |
+| ------------------------- | ---------: | ----------: |
+| `bootstrap.js`、`main.js` | 约 0.01 秒 | 各约 0.8 秒 |
+| `high-contrast.css`       | 约 0.01 秒 |  约 4.79 秒 |
+| `app.min.js`              | 约 0.81 秒 |  约 3.99 秒 |
+| `dia_zh.txt`              | 约 5.22 秒 |  约 0.71 秒 |
+| `stencils.min.js`         | 约 5.93 秒 |  约 4.91 秒 |
+| `extensions.min.js`       | 约 5.93 秒 |  约 7.40 秒 |
+
+这些请求存在并行，不能相加。约 14 秒反映观察到的外部初始化资源链；精确“可编辑”时点应由编辑器 init 与场景载入标记测量。跨源 Resource Timing 中的零 transferSize 也不足以证明全部命中缓存。
+
+本地还有两次列表、两次详情请求。draw.io bridge 在初始化和主题更新时都更新 context，工作台每次 context 回调都安排 `reloadList`，列表又可能自动选中首张图并加载详情。这是应独立修复的重复业务读取。
+
+### 不应误判的其他现象
+
+- 切换期间观察到一次旧凭据 401 后刷新，以及目标 View slot 的 403 与成功请求并存。它们可能与目标身份和凭据更新时序有关；完整鉴权链尚未证实，不能据此断言账号缺少权限，也不能通过放宽权限解决。
+- 外层 ChatKit iframe 在观察到的常规切换中得到保留，没有重复下载整套 ChatKit 代码的证据。真正需关注的是重复 options、身份准备顺序和内部 View/editor 生命周期。
+- 离开保护存在等待上限，但本次没有其超时阻塞的证据。不能通过删除未保存编辑保护来缩短切换时间。
+
+## 升级方案
+
+### 阶段一 建立生产构建的分段计时
+
+为一次导航建立短期关联标识，串起宿主、ChatKit、View 和服务端请求。指标只记录阶段、接口模板、状态、耗时和字节数；不记录 token、client secret、业务正文或原始资源标识。
+
+需要区分以下节点：Menu 点击、离开保护完成、路由鉴权完成、目标身份确定、会话凭据可用、manifest 完成、entry 完成、View ready、首屏数据就绪、首个业务操作可执行、编辑器 init 与场景载入。View 的 bridge ready 只表示通信可用，不能替代业务 ready。
+
+使用生产构建分别测量首次访问、缓存有效的重复切换、会话凭据过期、无历史、有长历史、仅变更 View query、跨助手与跨项目。服务端补充授权、数据库、控制投影及响应序列化的计时，先确定具体慢阶段再修改查询。
+
+交付物为可重复操作步骤、构建与环境信息、每个场景的 P50/P95、请求次数、传输字节和关键请求瀑布。保留开发环境作为重复 effect 的诊断样本。
+
+### 阶段二 合并读取并稳定身份和组织上下文
+
+1. 让侧栏和 workbench 共用助手目录读取，同一范围、同一版本的并发读取复用正在进行的请求。合法空结果也有明确的已加载状态。
+2. 组织身份不变时避免重复切换 scope；角色、授权或组织属性确有更新时仍发布相应变化。不能简单按 organization ID 相同就跳过所有权限刷新。
+3. 将 Assistant profile 刷新条件限制为身份、发布版本或明确失效事件。主题、面板宽度等展示变化不重新获取详情。优先完善现有 provider，不再叠加第二套 profile 状态。
+4. 对可以安全合并的只读请求增加共享与失效机制，响应绑定发起时的身份和导航版本。快速 A → B → C 切换时丢弃过期结果；支持取消时终止无人订阅的旧请求，不能取消其他消费者仍需使用的共享请求。
+5. 目标身份和对应 client-secret audience 确定后，再发送需要该身份的 API。复用现有并发凭据刷新协调，避免使用旧助手凭据探测新助手资源；有效凭据按现有边界复用，过期或身份变化仍正常更新。
+6. 同一安全范围内保留已有侧栏展示并标记更新；账号、组织或授权变化时清理不再可见的数据，避免闪空和跨范围残留。
+
+缓存键至少区分账号、tenant、organization、Assistant，以及影响结果的发布版本、项目和查询参数。注销、范围切换、授权撤销、App 停用与发布更新都有明确失效路径。客户端缓存仅减少重复读取，不能替代服务端当前授权检查，也不能把不同凭据 audience 的结果混用。
+
+### 阶段三 让 View 按实际上下文启动
+
+明确区分“继续该助手会话”和“打开该助手业务 View”两种导航意图。默认保留普通 Assistant 点击的既有未读会话行为；Menu 的 View 是否需要 thread，由其实际上下文要求决定。
+
+- Assistant 范围的创作中心、列表等入口直接打开目标 View，不隐式采用未读 thread。
+- 项目 View 携带经授权的项目及 selection；先稳定项目上下文，再请求首屏数据。
+- 会话专属 View 继续携带对应 thread，保留历史、执行控制和资源绑定。
+
+复用已有 View 契约表达范围。如果无法表达，应先在共享契约中补齐明确类型，再接入宿主与插件；不能根据 View 名称或字符串前缀猜测。旧链接、浏览器前进后退和直接访问仍须正常工作。
+
+View 首屏只等待授权、身份与所需业务上下文。独立的消息历史、任务摘要、sandbox 服务等延后至相关面板需要时加载；对运行中任务保留及时状态订阅，执行控制按钮必须在真实控制状态可用后才启用。
+
+对 thread 与 control-view 的重叠读取，先消除客户端重复调用，再根据服务端计时决定是否在同一读取周期复用投影结果。不能使用过期状态执行暂停、继续或终止；仍保留当前授权、恢复语义和投影版本校验。
+
+### 阶段四 优化 View 资源和业务数据
+
+将需要实时授权的 manifest、启动上下文与可复用的静态代码分开。带凭据或用户数据的启动内容继续采用相应的私有缓存或禁止缓存策略；只有确定不含身份及业务数据的静态产物，才使用内容哈希、版本化 URL 和长期缓存。受保护资源仍须在每次获取时满足访问策略。
+
+在实际部署链路启用适当的 gzip/Brotli 压缩，验证响应头、压缩后字节数及协商行为。若现有 remote-component 只支持整段内联 HTML，应先明确分离资源的构建与宿主协议，保留旧插件兼容路径；不直接把整个授权 entry 改成公共缓存。
+
+Bid 的重点为：
+
+- 分析约 10 MB 创作中心和约 4.5 MB Studio entry 的依赖构成，拆分编辑器、导出、图形等非首屏功能，按需加载。
+- 将 project、selection 和 view parameters 稳定到一次首屏上下文，再发起 workflow 查询；后续用户主动切换才读取新范围。
+- outline、interpretation、chapters 等切片按当前可见区域加载，有真实复用价值时才预取。
+- 列表和卡片优先使用缩略图及懒加载，打开预览、编辑或导出时再取原图。缩略图继承原文件访问边界，文件会话和授权在有效期内按现有范围复用。
+
+draw.io 的重点为：
+
+- 将初始化、业务 context 变化、主题变化分开处理；主题变化不重新加载绘图列表和详情，同一初始选择合并读取。
+- 比较固定版本自托管编辑器与当前外部托管的加载表现，再选择部署方式。实施时核对资源版本、部署维护要求和许可条件。
+- 评估同一安全范围内保留已初始化编辑器的收益，设置实例数量和内存上限；退出范围或关闭时正确销毁。
+- 保留 iframe 隔离、来源校验、message 校验、场景保存和未保存离开保护，不以性能优化替换这些约束。
+
+### 阶段五 分批上线和维护功能文档
+
+依次交付读取合并、导航上下文调整、资源交付与插件优化，每批使用相同场景比较。出现权限错误、旧数据覆盖、控制状态不一致、编辑丢失或内存持续增长时，回退对应阶段。
+
+发布验收分别记录宿主版本、ChatKit 版本、插件实际加载版本和业务结果。插件注册或刷新成功不等于新行为已投入使用。无需升级 Assistant 时不强制重新发布；确有契约迁移时再明确模板、已有安装和旧链接的兼容方案。
+
+验收完成后，将实际行为写入相应功能文档，保留本提案及测量报告作为历史依据，并标注各阶段完成情况。
+
+## 验收标准
+
+### 测量口径和性能目标
+
+生产构建基线与升级结果使用相同机器、浏览器、数据、部署链路和网络条件。每个热切换场景至少记录 30 次有效操作，冷访问单列，不把失败、凭据过期或用户取消样本静默剔除。分别报告首个业务操作可执行时间、首屏数据完成时间和全部后台资源完成时间。
+
+以下为首轮升级预算，需在阶段一记录并冻结具体测试环境；它们是目标，不是现有实测结果。
+
+| 热切换场景                    | 首个业务操作可执行时间 P95 目标 |
+| ----------------------------- | ------------------------------: |
+| 无历史恢复的 Assistant 切换   |                          ≤ 1 秒 |
+| 打开本地业务 View             |                        ≤ 1.5 秒 |
+| 恢复已有 Bid 项目的首屏工作区 |        ≤ 3 秒，不等待非可见原图 |
+| 打开已有 draw.io 图并可编辑   |  ≤ 3 秒，单独记录编辑器托管方式 |
+
+对于基线已达标的场景要求不退化；未达标场景同时报告改善幅度及剩余关键路径。冷启动和生产网络下的绝对预算根据阶段一结果补充，不能用 localhost 的成功替代部署验收。
+
+请求行为还应满足：
+
+- 无失效事件的一次逻辑导航中，目录和相同 Assistant profile 的并发消费者各复用一次读取；主动刷新、发布变化与凭据恢复单独计数。
+- 仅更改主题或布局不触发助手详情、绘图列表或详情的业务重载。
+- draw.io 初次稳定 context 只取一次列表和目标详情；Bid 首屏不再因临时 selection 变化连续启动两套 workflow 读取。
+- 独立 View 不加载无关未读会话历史；会话专属 View 保持完整语义。
+- 目标身份有效的常规切换不因错误 audience 产生可避免的 401/403；真正失效、撤权和越界访问仍按既有规则拒绝。
+- 升级后的传输字节、压缩、缓存命中和图片策略均有实测证据，不能只凭请求数量减少宣称达标。
+
+### 权限与功能回归
+
+| 验证维度       | 必须保持的行为                                                                         |
+| -------------- | -------------------------------------------------------------------------------------- |
+| 网站体验       | 原生侧栏、项目、ChatKit 和 View 布局保持；入口由启用的 role permissions 和应用授权决定 |
+| 业务账号       | APP_USER 不获得模型配置、Agent 创建、编排、草稿、Prompt 或发布权限                     |
+| 账号和组织隔离 | 跨账号、tenant、organization、Assistant 和项目不复用越界数据或文件授权                 |
+| 实时授权       | 旧 JWT、旧 client secret、已有缓存下的停用、撤权和 App 禁用仍正确生效                  |
+| 并发导航       | 快速切换和返回时，旧响应不能覆盖新目标；取消一个消费者不破坏其他消费者                 |
+| 会话与执行     | 历史、未读状态、运行事件、恢复和控制投影保持一致，控制操作使用当前授权及版本           |
+| 编辑状态       | 保存、取消离开、切换 View、前进后退和关闭均不丢失未保存内容                            |
+| 插件与部署     | 老 View 契约和已有安装有明确兼容路径，静态缓存不会使代码与 manifest 版本错配           |
+
+测试重点放在上述竞态、失效和业务路径。浏览器验收同时覆盖普通账号与 APP_USER、Bid 与 draw.io、有效与过期凭据，以及空菜单、无历史和长历史数据；无需为纯展示改动增加重复实现逻辑的测试。
+
+## 实现位置
+
+以下是调查时的入口，未来实施以当时源码为准。
+
+| 归属                 | 入口与职责                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Xpert Cloud 侧栏     | [cloud-sidebar-assistants.component.ts](../../../apps/cloud/src/app/features/sidebar/cloud-sidebar-assistants.component.ts)：助手选择、未读 thread、Menu 和目录加载                                                                                                                                                          |
+| Xpert Cloud 工作台   | [xpert-workbench.facade.ts](../../../apps/cloud/src/app/features/chat/xpert-workbench/xpert-workbench.facade.ts)、[assistant-binding.service.ts](../../../apps/cloud/src/app/@core/services/assistant-binding.service.ts)：目标解析及重复目录读取                                                                            |
+| Xpert Cloud 身份范围 | [app-platform.guard.ts](../../../apps/cloud/src/app/features/app-platform/app-platform.guard.ts)、[current-user-hydration.service.ts](../../../apps/cloud/src/app/@core/state/current-user-hydration.service.ts)、[store.service.ts](../../../apps/cloud/src/app/@core/state/store.service.ts)：平台状态、身份缓存和组织更新 |
+| Xpert Cloud 生命周期 | [routes.ts](../../../apps/cloud/src/app/features/chat/routes.ts)、[assistant-chatkit.runtime.ts](../../../apps/cloud/src/app/features/assistant/assistant-chatkit.runtime.ts)、[chatkit-lifecycle.service.ts](../../../apps/cloud/src/app/@core/services/chatkit-lifecycle.service.ts)：路由、options、iframe 与离开保护     |
+| Xpert View 宿主      | [view-extension.controller.ts](../../../packages/server/src/view-extension/view-extension.controller.ts)：manifest、entry 与资源交付                                                                                                                                                                                         |
+| Xpert 运行授权       | [assistant.controller.ts](../../../packages/server-ai/src/ai/assistant.controller.ts)、[published-xpert-access.service.ts](../../../packages/server-ai/src/xpert/published-xpert-access.service.ts)：详情投影与当前发布资源授权                                                                                              |
+| Xpert 会话状态       | [thread-find.handler.ts](../../../packages/server-ai/src/ai/queries/handlers/thread-find.handler.ts)、[thread-control-view.service.ts](../../../packages/server-ai/src/chat-conversation/control-view/thread-control-view.service.ts)：thread 与控制投影读取                                                                 |
+| ChatKit 仓库         | `packages/chatkit-ui/src/hooks/useAssistantInfo.ts`、`providers/AssistantInfo.tsx`、`providers/ParentMessenger.tsx`、`workbench/remote-view/RemoteViewFrame.tsx`：共享详情、options 和 View 加载；除首项外均相对 `packages/chatkit-ui/src/`                                                                                  |
+| draw.io 插件仓库     | `xpertai/apps/drawio/src/lib/remote-components/drawio-workbench/src/main.tsx`、同目录 `runtime.ts`：外部编辑器、context 与列表刷新                                                                                                                                                                                           |
+| Apps 仓库中的 Bid    | `bid/src/lib/remote-components/bid-home/src/`：启动及首屏业务读取；重点检查 workflow、项目文件和图片组件                                                                                                                                                                                                                     |
+
+## 本地证据定位
+
+受保护的原始回执位于同级 `app-platforms` 工作目录，不作为公开文档附件提交：
+
+- `diagramming/.local/perf/assistant-switch-plain.json`
+- `diagramming/.local/perf/assistant-switch-drawio.json`
+- `diagramming/.local/perf/same-assistant-view.json`
+- `bidding/.local/perf/assistant-switch-bid.json`
+- `bidding/.local/perf/cross-assistant-view.json`
+- `bidding/.local/perf/assistant-navigation-analysis.json`：已汇总的脱敏请求记录和外部编辑器资源计时。
+
+提案只保留接口模板、聚合数字和源码位置。后续验收沿用此边界，机器上的账号、组织、空间、会话标识与凭据继续只存于受保护的本地回执。

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Header, Post, UseGuards } from '@nestjs/common'
 import { ManualRetentionRange, RolesEnum } from '@xpert-ai/contracts'
 import { RoleGuard, Roles, TenantPermissionGuard, ZodValidationPipe } from '@xpert-ai/server-core'
@@ -12,6 +14,7 @@ import { ManualRetentionService } from './manual-retention.service'
 @Controller('data-retention')
 @UseGuards(TenantPermissionGuard, RoleGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class ManualRetentionController {
     constructor(private readonly service: ManualRetentionService) {}
 

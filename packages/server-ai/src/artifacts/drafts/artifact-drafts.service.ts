@@ -82,7 +82,9 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
                 organizationId: scope.organizationId ?? RequestContext.getOrganizationId(),
                 userId
             },
-            operation
+            operation,
+            true,
+            'draft'
         )
         return artifact
     }
@@ -211,6 +213,7 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
                 throw new ForbiddenException(
                     t('server-ai:Error.ArtifactDraftAccessDenied', { defaultValue: 'ARTIFACT_DRAFT_ACCESS_DENIED' })
                 )
+            await this.authorized(id, scope, operation)
             return work(manager, artifact)
         })
     }
@@ -278,6 +281,16 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
                         t('server-ai:Error.ArtifactDraftBaseConflict', { defaultValue: 'ARTIFACT_DRAFT_BASE_CONFLICT' })
                     )
                 const content = await this.verified(draft.content, scope, !artifact.userId ? artifact.projectId : null)
+                await this.contentAccess.assertDraftPublication(
+                    artifact,
+                    {
+                        tenantId: scope.tenantId ?? RequestContext.currentTenantId(),
+                        userId: scope.userId ?? RequestContext.currentUserId(),
+                        organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
+                    },
+                    record(draft)
+                )
+                await this.authorized(input.artifactId, scope, 'manage')
                 const previous = await versions.findOne({
                     where: { artifactId: input.artifactId },
                     order: { versionNumber: 'DESC' }

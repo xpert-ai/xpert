@@ -3,7 +3,7 @@ import { DataSource, EntitySubscriberInterface, InsertEvent, UpdateEvent } from 
 import { t } from 'i18next'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeKeywordAnalyzerService } from './keyword-analyzer.service'
 
 @Injectable()

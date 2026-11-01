@@ -30,7 +30,7 @@ import {
   UsersService
 } from '@cloud/app/@core/state'
 import type { IUserOrganization } from '@cloud/app/@core/state'
-import { isNotEmpty, nonNullable } from '@xpert-ai/headless-ui'
+import { nonNullable } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
@@ -39,6 +39,7 @@ import { filter, map, startWith, tap } from 'rxjs/operators'
 import {
   AbilityActions,
   AIPermissionsEnum,
+  PermissionsEnum,
   AiFeatureEnum,
   EmployeesService,
   IOrganization,
@@ -252,14 +253,15 @@ export class FeaturesComponent implements OnInit {
         takeUntilDestroyed(this.#destroyRef)
       )
       .subscribe((value) => {
-        this.checkForEmployee()
+        if (this.#store.hasPermission(PermissionsEnum.ORG_EMPLOYEES_VIEW)) this.checkForEmployee()
         this.#logger?.debug(value)
       })
 
     this.#store.userRolePermissions$
       .pipe(
-        filter((permissions: IRolePermission[]) => isNotEmpty(permissions)),
-        map((permissions) => permissions.map(({ permission }) => permission)),
+        map((permissions: IRolePermission[]) =>
+          permissions.filter((item) => item.enabled).map(({ permission }) => permission)
+        ),
         tap((permissions) => this.#ngxPermissionsService.loadPermissions(permissions)),
         combineLatestWith(
           this.#translateService.onLangChange.pipe(startWith(null)),

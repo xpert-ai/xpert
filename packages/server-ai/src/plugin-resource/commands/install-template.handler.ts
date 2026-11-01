@@ -30,7 +30,7 @@ import { XpertTemplateService } from '../../xpert-template/xpert-template.servic
 import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
 import { capabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
-import { PluginResourceInstallResult, PluginResourceInstallerService } from '../plugin-resource-installer.service'
+import { PluginResourceInstallResult, PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
 import { PluginTemplateInstallCommand, PluginTemplateInstallBasic } from './install-template.command'
 import {
     InstallationSourceChangedError,

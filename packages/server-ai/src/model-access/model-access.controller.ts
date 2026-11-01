@@ -1,12 +1,6 @@
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
-import {
-    PaginationParams,
-    PermissionGuard,
-    Permissions,
-    TransformInterceptor,
-    UseValidationPipe
-} from '@xpert-ai/server-core'
-import { Body, Controller, Get, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import { PaginationParams, Permissions, TransformInterceptor, UseValidationPipe } from '@xpert-ai/server-core'
+import { Body, Controller, Get, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
     ModelAccessAdminQueryDto,
@@ -54,7 +48,6 @@ export class ModelAccessController {
     }
 
     @Get('admin/requests')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW, AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async getAdminRequests(
@@ -66,7 +59,6 @@ export class ModelAccessController {
     }
 
     @Get('admin/grants')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW, AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async getAdminGrants(
@@ -78,7 +70,6 @@ export class ModelAccessController {
     }
 
     @Get('admin/events')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_VIEW, AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async getAdminEvents(
@@ -90,7 +81,6 @@ export class ModelAccessController {
     }
 
     @Post('admin/requests/:id/approve')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async approveRequest(@Param('id') id: string, @Body() input: ModelAccessRequestApproveDto) {
@@ -98,7 +88,6 @@ export class ModelAccessController {
     }
 
     @Post('admin/requests/:id/reject')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async rejectRequest(@Param('id') id: string, @Body() input: ModelAccessRequestRejectDto) {
@@ -106,7 +95,6 @@ export class ModelAccessController {
     }
 
     @Post('admin/grants/:id/extend')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async extendGrant(@Param('id') id: string, @Body() input: UserModelGrantExtendDto) {
@@ -114,7 +102,6 @@ export class ModelAccessController {
     }
 
     @Post('admin/grants/:id/revoke')
-    @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_ACCESS_REQUEST_EDIT)
     @UseValidationPipe()
     async revokeGrant(@Param('id') id: string, @Body() input: UserModelGrantRevokeDto) {

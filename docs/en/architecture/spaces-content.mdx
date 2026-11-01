@@ -177,3 +177,20 @@ Use these source locations to find implementations and adjacent tests:
 Recorded protocol, component, and historical browser checks apply to the versions tested at that time. The latest ChatKit responsibility changes still require acceptance with released packages. Office also needs compatible platform dependencies and its own validation; Markdown acceptance does not establish Office readiness.
 
 Production deployments still need validation or further work for cross-node shared storage and lock failures, joint database/Volume backup and recovery, the full IME and dual-window browser interaction matrix, and durable offline editing. Publication projection currently retains the revision author's identity; revoked author access can block projection. A maintenance identity and recovery policy remain necessary, and are not described here as solved.
+
+## Project-files upgrade implementation map
+
+The original Project-and-files plan's project type, required ownership, shared files, authorization and knowledge binding are implemented. Feature and architecture pages now maintain that behavior, and the old plan has been removed. Current editor and ChatKit responsibilities remain authoritative; the older Space-owned review UI is not restored as the target architecture.
+
+| Implemented boundary                                            | Current source entry                                                                                                           |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Built-in `platform / space` project type                        | xpert: `packages/server-ai/src/xpert-project/services/project-type.service.ts`                                                 |
+| Project membership, roles, archive and file access              | xpert: `packages/server-ai/src/xpert-project/services/project-access-runtime.service.ts`, `project-workspace-files.service.ts` |
+| At most one Space per Project; required `projectId`             | xpert-plugins: `xpertai/apps/spaces/src/entities.ts`, `spaces.ts`                                                              |
+| Assistant capability entry separate from resource authorization | xpert-plugins: `xpertai/apps/spaces/src/access.ts`                                                                             |
+| `catalog: projects`, `scopeId: projectId`, revision/hash checks | xpert-plugins: `xpertai/apps/spaces/src/files.ts`, `documents.ts`                                                              |
+| Project knowledge binding with revision/access revalidation     | xpert-plugins: `xpertai/apps/spaces/src/knowledge.ts`, `content-knowledge.ts`                                                  |
+
+Plugin tests `tests/project-storage.test.ts`, `tests/capability-entry.test.ts` and `tests/content-knowledge.test.ts` provide regression entry points. `scripts/project-live-acceptance.mjs` and `scripts/project-restart-acceptance.mjs` target live acceptance; they are not ordinary unit tests to run without a specified environment and authorized scope.
+
+The historical 2026-10-21 record includes real-service, browser-main-flow, model and restart-persistence checks. Native browser download-to-disk byte verification remained incomplete. Retain that limit: save a file in the target browser and compare it with the same published file's content/hash before closing the check. Historical reports do not establish acceptance of subsequent content-platform/editor changes or released dependency combinations. This documentation change did not rerun those tests.

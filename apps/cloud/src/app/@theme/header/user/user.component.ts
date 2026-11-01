@@ -1,3 +1,4 @@
+import { UserNotificationsService } from '../../../@core/services/user-notifications.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
@@ -12,6 +13,7 @@ import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  AIPermissionsEnum,
   getErrorMessage,
   injectHelpWebsite,
   injectToastr,
@@ -52,6 +54,7 @@ const THEMES = [
   animations: [OverlayAnimation1]
 })
 export class HeaderUserComponent {
+  readonly notifications = inject(UserNotificationsService)
   languages = LANGUAGES
   ThemesEnum = ThemesEnum
   Version = environment.version
@@ -98,6 +101,12 @@ export class HeaderUserComponent {
   readonly themeLabel = computed(
     () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.default))?.caption
   )
+
+  private readonly rolePermissions = toSignal(this.store.userRolePermissions$)
+  readonly canUseEntryGuide = computed(() => {
+    this.rolePermissions()
+    return this.store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
+  })
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
 

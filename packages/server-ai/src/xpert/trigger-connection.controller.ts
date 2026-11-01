@@ -1,3 +1,4 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common'
 import { PermissionsEnum } from '@xpert-ai/contracts'
 import { PermissionGuard, Permissions } from '@xpert-ai/server-core'
@@ -6,6 +7,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
 
 @Controller(':id/trigger-connections')
 @UseGuards(XpertGuard)
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertTriggerConnectionController {
     constructor(private readonly connections: XpertTriggerConnectionService) {}
 

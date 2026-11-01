@@ -19,8 +19,8 @@ import { KnowledgeDocumentModule } from '../../knowledge-document'
 import { KnowledgeDocumentChunk } from '../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { AgentMiddlewareRuntimeModule } from '../../shared/agent/middleware-runtime'
-import { KnowledgebaseModule } from '../knowledgebase.module'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { KnowledgebaseModule } from '../management/knowledgebase.module'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,

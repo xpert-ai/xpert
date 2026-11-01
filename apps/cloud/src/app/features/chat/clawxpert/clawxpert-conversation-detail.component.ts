@@ -1,3 +1,4 @@
+import type { LoadedChatkitConversation } from './conversation-detail/chatkit/conversation'
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import { Component, ElementRef, OnDestroy, computed, effect, inject, signal, untracked, viewChild } from '@angular/core'
@@ -255,6 +256,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     initialThread: this.chatkitInitialThread,
     startScreen: this.startScreen,
     displayMode: 'chat',
+    pet: false,
     layout: {
       maxWidth: CLAWXPERT_CHAT_COLUMN_MAX_WIDTH
     },
@@ -312,9 +314,26 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
       this.facade.onChatProjectChange?.(projectId, undefined, selection)
     },
-    onThreadLoadEnd: ({ threadId }) => {
-      this.markChatkitThreadRead(threadId)
-      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
+    onThreadLoadEnd: ({ threadId, conversation }: { threadId: string; conversation?: LoadedChatkitConversation }) => {
+      if (threadId !== this.activeChatkitThreadId()) return
+      if (this.#workbenchConversationScope()) {
+        this.markChatkitThreadRead(threadId)
+        return
+      }
+      if (
+        conversation?.id &&
+        conversation.threadId === threadId &&
+        conversation.xpertId === this.chatkitAssistantId()
+      ) {
+        this.syncResolvedConversation(conversation.id, { ...conversation, from: conversation.from })
+        this.contextLoading.set(false)
+        this.contextError.set(null)
+        this.markConversationRead(conversation.id)
+        void this.facade.syncConversationProject?.(threadId, conversation)
+      } else {
+        // Older ChatKit versions do not publish metadata with history completion.
+        void this.resolveConversationContext(threadId, () => this.facade.threadId() !== threadId)
+      }
     },
     onEffect: (event) => {
       const projectRequest = chatProjectCreateRequest(event)
@@ -353,12 +372,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseStart: () => {
+      this.#conversationService.refreshUnread()
       this.#responseActive.set(true)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('busy')
       }
     },
     onResponseEnd: () => {
+      this.#conversationService.refreshUnread()
       const threadId = this.activeChatkitThreadId()
       if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
       this.#responseActive.set(false)
@@ -617,7 +638,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       })
     })
 
-    effect((onCleanup) => {
+    effect(() => {
       const threadId = this.facade.threadId()
       if (!threadId) {
         this.#responseActive.set(false)
@@ -629,7 +650,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         return
       }
 
-      let cancelled = false
       this.#responseActive.set(false)
       this.contextLoading.set(true)
       this.contextError.set(null)
@@ -637,11 +657,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.resolvedConversation.set(null)
       this.facade.setActiveConversation(null)
 
-      void this.resolveConversationContext(threadId, () => cancelled)
-
-      onCleanup(() => {
-        cancelled = true
-      })
+      // ChatKit publishes the authorized context after its history read.
     })
   }
 
@@ -833,6 +849,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       this.syncResolvedConversation(conversationId, conversation ?? baseConversation)
+      void this.facade.syncConversationProject?.(threadId, conversation ?? baseConversation ?? undefined)
       this.markConversationRead(conversationId)
       this.contextError.set(null)
     } catch (error) {

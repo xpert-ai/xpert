@@ -51,14 +51,14 @@
                 [attr.data-group-option]="group.id"
                 [attr.aria-current]="isActive(group) ? 'page' : null"
                 [disabled]="busy()"
-                class="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                class="flex min-h-9 pointer-coarse:min-h-[44px] min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                 (click)="selectGroup(group.id)"
               >
                 <span
-                  class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-hover-bg"
+                  class="flex size-[24px] shrink-0 items-center justify-center rounded-lg bg-hover-bg"
                   aria-hidden="true"
                 >
-                  <i class="ri-group-line text-[18px]"></i>
+                  <i class="ri-group-line text-[20px] leading-none"></i>
                 </span>
                 <span
                   class="min-w-0 flex-1 truncate"
@@ -122,7 +122,10 @@
           [attr.aria-pressed]="archived()"
           (click)="toggleArchived()"
         >
-          <i class="ri-archive-line inline-flex size-7 items-center justify-center text-[18px]" aria-hidden="true"></i
+          <i
+            class="ri-archive-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+            aria-hidden="true"
+          ></i
           >{{ (archived() ? 'XP.Groups.Active' : 'XP.Groups.Archived') | translate }}
         </button>
       </div>

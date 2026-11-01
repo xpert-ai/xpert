@@ -1,3 +1,4 @@
+import { AIPermissionsEnum, UserType } from '@xpert-ai/contracts'
 import { ApiKeyBindingType, IApiPrincipal, IUser, RolesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Brackets, Repository } from 'typeorm'
@@ -66,6 +67,9 @@ describe('XpertWorkspaceAccessService', () => {
             role: { name: RolesEnum.VIEWER }
         } as IUser)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'hasPermission').mockImplementation(
+            (permission) => permission !== AIPermissionsEnum.XPERT_WORKSPACE_MANAGE
+        )
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(false)
     })
@@ -73,6 +77,56 @@ describe('XpertWorkspaceAccessService', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
+
+    it.each(['owner', 'member'])('denies authoring without permission despite %s membership', async (relation) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockImplementation(
+            (permission) => permission === AIPermissionsEnum.CHAT_VIEW
+        )
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            role: { name: RolesEnum.APP_USER }
+        } as IUser)
+        const workspace = {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: relation === 'owner' ? 'user-1' : 'owner',
+            members: [{ id: 'user-1' }],
+            settings: { access: { visibility: 'organization-shared' } }
+        } as XpertWorkspace
+        await expect(service.getCapabilities(workspace)).resolves.toMatchObject({
+            canRead: false,
+            canWrite: false,
+            canManage: false
+        })
+    })
+
+    it.each([RolesEnum.APP_USER, RolesEnum.ADMIN, 'BID_CUSTOMER'])(
+        'uses workspace management grants for %s',
+        async (name) => {
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+                id: 'user-1',
+                tenantId: 'tenant-1',
+                role: { name }
+            } as IUser)
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+            jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(true)
+            const workspace = {
+                id: 'workspace',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                ownerId: 'other',
+                members: []
+            } as XpertWorkspace
+            await expect(service.getCapabilities(workspace)).resolves.toMatchObject({
+                canRead: false,
+                canManage: false
+            })
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
+            await expect(service.getCapabilities(workspace)).resolves.toMatchObject({ canRead: true, canManage: true })
+        }
+    )
 
     it('keeps tenant scope workspace listing scoped to tenant workspaces by default', async () => {
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
@@ -181,7 +235,8 @@ describe('XpertWorkspaceAccessService', () => {
         })
     })
 
-    it('allows organization admins to manage organization-shared App workspaces', async () => {
+    it('allows workspace managers to manage organization-shared App workspaces', async () => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue({
             id: 'admin-1',
             tenantId: 'tenant-1',
@@ -303,7 +358,8 @@ describe('XpertWorkspaceAccessService', () => {
                 entityId: 'xpert-1'
             },
             apiKeyUserId: 'assistant-user-1',
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -339,7 +395,8 @@ describe('XpertWorkspaceAccessService', () => {
                 entityId: 'xpert-1'
             },
             apiKeyUserId: 'assistant-user-1',
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -376,7 +433,8 @@ describe('XpertWorkspaceAccessService', () => {
                 entityId: 'xpert-1'
             },
             apiKeyUserId: 'assistant-user-1',
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -512,7 +570,8 @@ describe('XpertWorkspaceAccessService', () => {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
             },
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -581,7 +640,8 @@ describe('XpertWorkspaceAccessService', () => {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-2'
             },
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -614,7 +674,8 @@ describe('XpertWorkspaceAccessService', () => {
                 entityId: 'xpert-1'
             },
             apiKeyUserId: 'assistant-user-1',
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -650,7 +711,8 @@ describe('XpertWorkspaceAccessService', () => {
                 entityId: 'xpert-1'
             },
             apiKeyUserId: 'assistant-user-1',
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
@@ -685,7 +747,8 @@ describe('XpertWorkspaceAccessService', () => {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
             },
-            principalType: 'api_key'
+            principalType: 'api_key',
+            type: UserType.COMMUNICATION
         } as IApiPrincipal
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)

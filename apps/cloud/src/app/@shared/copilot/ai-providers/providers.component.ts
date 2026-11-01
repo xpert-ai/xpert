@@ -46,7 +46,7 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
 export class CopilotAiProvidersComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{ copilot: ICopilot }>(DIALOG_DATA)
+  readonly #data = inject<{ copilot?: ICopilot; selectOnly?: boolean }>(DIALOG_DATA)
   readonly #toastr = inject(ToastrService)
   readonly #copilotServer = injectCopilotServer()
   readonly #copilotProviderService = injectCopilotProviderService()
@@ -81,6 +81,10 @@ export class CopilotAiProvidersComponent {
   }
 
   openSetup(provider: IAiProviderEntity) {
+    if (this.#data.selectOnly) {
+      this.#dialogRef.close(provider)
+      return
+    }
     this.#dialog
       .open(CopilotAiProviderAuthComponent, {
         backdropClass: 'backdrop-blur-xs-black',
@@ -102,6 +106,10 @@ export class CopilotAiProvidersComponent {
   }
 
   addProvider(provider: IAiProviderEntity) {
+    if (this.#data.selectOnly) {
+      this.#dialogRef.close(provider)
+      return
+    }
     this.loading.set(true)
     this.#copilotProviderService
       .create({

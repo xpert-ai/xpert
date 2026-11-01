@@ -2,7 +2,7 @@ import { KnowledgeIdentity } from '../../identity/knowledge-identity.entity'
 import { KnowledgeWikiPageStatus, KnowledgeWikiPageType, KnowledgeWikiProjectionStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId, VersionColumn } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 
 @Entity('knowledge_wiki_page')
 @Index(['knowledgebaseId', 'pageKey'], { unique: true })

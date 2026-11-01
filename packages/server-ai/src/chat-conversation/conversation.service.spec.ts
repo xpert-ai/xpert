@@ -158,6 +158,19 @@ describe('ChatConversationService workspace files', () => {
                 { actorId: 'user-1' }
             )
         })
+        it('filters literal title fragments before pagination while retaining access predicates', async () => {
+            const query = builder()
+            await service.findReadableFamilyConversations(['published'], null, 20, 20, undefined, '  100%_draft  ')
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.title ILIKE :titleSearch', {
+                titleSearch: '%100\\%\\_draft%'
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.projectId IS NULL')
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.xpertId IN (:...xpertIds)', {
+                xpertIds: ['published']
+            })
+            expect(query.andWhere.mock.invocationCallOrder.at(-1)).toBeLessThan(query.skip.mock.invocationCallOrder[0])
+            expect(query.skip).toHaveBeenCalledWith(20)
+        })
         it('does not enumerate or count a denied project', async () => {
             const query = builder()
             projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
@@ -366,6 +379,7 @@ describe('ChatConversationService workspace files', () => {
         repository.query.mockResolvedValue([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: '2',
                 unreadConversations: '1',
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
@@ -415,6 +429,7 @@ describe('ChatConversationService workspace files', () => {
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: 2,
                 unreadConversations: 1,
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
@@ -433,6 +448,7 @@ describe('ChatConversationService workspace files', () => {
         repository.query.mockResolvedValue([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: '0',
                 unreadConversations: '0',
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
@@ -448,6 +464,7 @@ describe('ChatConversationService workspace files', () => {
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: 0,
                 unreadConversations: 0,
                 latestUnreadAt: null,
@@ -763,6 +780,18 @@ describe('ChatConversationService workspace files', () => {
 
         expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(getDownloadTarget).toHaveBeenCalledWith('', 'docs')
+    })
+
+    it('rejects oversized workspace uploads before resolving a destination', async () => {
+        const failure = new Error('upload too large')
+        commandBus.execute.mockRejectedValueOnce(failure)
+        await expect(
+            service.uploadWorkspaceFile('conversation-1', '', {
+                originalname: 'new.txt',
+                buffer: Buffer.from('oversized')
+            })
+        ).rejects.toBe(failure)
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 
     it('saves files inside the current conversation workspace', async () => {

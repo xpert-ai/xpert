@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { Body, Controller, HttpStatus, Post, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -9,6 +11,7 @@ import { FeatureService } from './feature.service'
 
 @ApiTags('Feature')
 @Controller()
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class FeatureController {
 	constructor(
 		private readonly featureService: FeatureService,

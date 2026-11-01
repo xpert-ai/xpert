@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     PLUGIN_COMPONENT_TYPE,
     PluginComponentType,
@@ -18,14 +20,15 @@ import {
 } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { PluginResourceInstallComponent, PluginResourceInstallerService } from './plugin-resource-installer.service'
-import { PluginMcpServerService } from './plugin-mcp-server.service'
+import { PluginResourceInstallComponent, PluginResourceInstallerService } from './installation/plugin-resource-installer.service'
+import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
 import { ListPluginResourceComponentStatesQuery } from './queries'
 
 @ApiTags('PluginResources')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('plugin/:name/resources')
+@Permissions(AIPermissionsEnum.APPLICATION_INSTALL)
 export class PluginResourceController {
     constructor(
         private readonly installer: PluginResourceInstallerService,

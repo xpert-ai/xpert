@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Header, Param, Post } from '@nestjs/common'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -7,6 +9,7 @@ import { ArtifactPresentationService } from './artifact-presentation.service'
 
 /** Normal login auth only. ChatKit client secrets must use conversation-scoped APIs. */
 @Controller('artifacts/shared-links/:slug/presentation')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ArtifactPresentationController {
     constructor(private readonly service: ArtifactPresentationService) {}
 

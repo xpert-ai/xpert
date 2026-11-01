@@ -144,6 +144,7 @@ type MockChatKitRuntimeInput = {
   assistantId?: () => string | null
   displayMode?: CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
+  pet?: CreateChatKitOptions['pet']
   initialThread?: () => string | null
   startScreen?: () => CreateChatKitOptions['startScreen'] | null
   projectId?: () => string | null
@@ -158,7 +159,10 @@ type MockChatKitRuntimeInput = {
     selection?: import('@xpert-ai/contracts').ProjectSelection
   }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
-  onThreadLoadEnd?: (event: { threadId: string | null }) => void
+  onThreadLoadEnd?: (event: {
+    threadId: string | null
+    conversation?: import('./conversation-detail/chatkit/conversation').LoadedChatkitConversation
+  }) => void
   onEffect?: (event: MockChatKitEvent) => void
   onLog?: (event: MockChatKitEvent) => void
   onResponseStart?: () => void
@@ -257,6 +261,7 @@ export function configureConversationDetailTests() {
     activeConversation: ReturnType<typeof signal<IChatConversation | null>>
     onChatThreadChange: jest.Mock
     onChatProjectChange: jest.Mock
+    syncConversationProject: jest.Mock
     beginPendingConversation: jest.Mock
     ensureConversationEntry: jest.Mock
     navigateToOverview: jest.Mock
@@ -272,6 +277,7 @@ export function configureConversationDetailTests() {
     getById: jest.Mock
     resolveWorkbenchNavigation: jest.Mock
     markRead: jest.Mock
+    refreshUnread: jest.Mock
     getFile: jest.Mock
     downloadFile: jest.Mock
   }
@@ -360,6 +366,7 @@ export function configureConversationDetailTests() {
       activeConversation,
       onChatThreadChange: jest.fn(),
       onChatProjectChange: jest.fn(),
+      syncConversationProject: jest.fn(),
       beginPendingConversation: jest.fn(),
       ensureConversationEntry: jest.fn(),
       navigateToOverview: jest.fn(),
@@ -416,6 +423,7 @@ export function configureConversationDetailTests() {
         })
       ),
       markRead: jest.fn(() => of({})),
+      refreshUnread: jest.fn(),
       getFile: jest.fn(() =>
         of({
           filePath: '/workspace/report.pdf',

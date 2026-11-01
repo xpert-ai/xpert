@@ -17,12 +17,14 @@ import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { MembershipPeriod } from './membership-period.entity'
 import { MembershipService } from './membership.service'
+import { MEMBERSHIP_PROVIDERS } from './membership.providers'
 import { MembershipPeriodSchedulerService } from './membership-period-scheduler.service'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Copilot } from '../copilot/copilot.entity'
 import { MembershipBackfillProcessor } from './membership-backfill.processor'
 import { MembershipBackfillQueueService, MEMBERSHIP_MAINTENANCE_QUEUE } from './membership-backfill.queue'
+import { RefreshMembershipModelPolicyHandler } from './refresh-membership-model-policy.command'
 
 @Module({
     imports: [
@@ -49,7 +51,8 @@ import { MembershipBackfillQueueService, MEMBERSHIP_MAINTENANCE_QUEUE } from './
     ],
     controllers: [MembershipController],
     providers: [
-        MembershipService,
+        ...MEMBERSHIP_PROVIDERS,
+        RefreshMembershipModelPolicyHandler,
         MembershipPeriodSchedulerService,
         MembershipBackfillQueueService,
         MembershipBackfillProcessor

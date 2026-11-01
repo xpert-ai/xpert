@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Req, Res, StreamableFile } from '@nestjs/common'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
@@ -12,6 +14,7 @@ import { buildWorkspaceFileContentDisposition } from './workspace-file-content.c
 @ApiTags('WorkspaceFiles')
 @ApiBearerAuth()
 @Controller()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class WorkspaceFileAccessController {
     constructor(private readonly service: WorkspaceFileAccessService) {}
 

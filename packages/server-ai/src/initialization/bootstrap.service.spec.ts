@@ -1,3 +1,4 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ResolveTemplateSkillRefsCommand } from '../xpert-template/commands'
 jest.mock('../environment', () => ({
     EnvironmentService: class EnvironmentService {}
@@ -171,14 +172,13 @@ describe('ServerAIBootstrapService', () => {
             getAdminUsers: jest.fn().mockResolvedValue([
                 {
                     id: 'owner-1',
-                    role: {
-                        name: 'SUPER_ADMIN'
-                    }
+                    tenantId: 'tenant-1', roleId: 'role', role: { name: 'SUPER_ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
                 }
             ]),
             findOne: jest.fn().mockResolvedValue({
                 id: 'owner-1',
-                preferredLanguage: 'en_US'
+                preferredLanguage: 'en_US',
+                tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
             })
         }
         const userOrganizationService = {
@@ -356,9 +356,7 @@ describe('ServerAIBootstrapService', () => {
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: LanguagesEnum.English,
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findUserDefaultWorkspace.mockResolvedValue(null)
         workspaceService.create.mockResolvedValue({
@@ -712,9 +710,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findUserDefaultWorkspace.mockResolvedValue(null)
         workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
@@ -928,9 +924,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findUserDefaultWorkspace.mockResolvedValue({
             id: 'workspace-existing',
@@ -959,9 +953,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'TRIAL'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'TRIAL', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findUserDefaultWorkspace.mockResolvedValue({
             id: 'workspace-existing',
@@ -991,9 +983,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findUserDefaultWorkspace.mockResolvedValue({
             id: 'workspace-existing',
@@ -1024,9 +1014,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'owner-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'SUPER_ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'SUPER_ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
             id: 'org-workspace-1'
@@ -1057,9 +1045,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         xpertTemplateService.getUserDefaultSkillRefs.mockResolvedValue([
             {
@@ -1117,9 +1103,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
             {
@@ -1158,9 +1142,7 @@ connections: []`
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
-            role: {
-                name: 'ADMIN'
-            }
+            tenantId: 'tenant-1', roleId: 'role', role: { name: 'ADMIN', rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, tenantId: 'tenant-1', roleId: 'role' }] }
         })
         xpertTemplateService.getBootstrapDefaultSkillRefs.mockResolvedValue([
             {

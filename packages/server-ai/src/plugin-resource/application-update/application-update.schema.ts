@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { applicationDetailQuerySchema } from '../application-scope.schema'
+import { applicationDetailQuerySchema } from '../application/application-scope.schema'
 
 export const applicationUpdateSchema = applicationDetailQuerySchema
     .extend({

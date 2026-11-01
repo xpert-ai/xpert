@@ -36,6 +36,7 @@ export const HTTP_LOG_REDACTION: redactOptions = {
 	paths: [
 		'req.headers.authorization',
 		'req.headers.cookie',
+		'res.headers["set-cookie"]',
 		'req.headers["x-api-key"]',
 		'req.body.password',
 		'req.body.token',

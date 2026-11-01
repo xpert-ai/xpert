@@ -12,7 +12,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { t } from 'i18next'
-import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
+import { createKnowledgeRetriever } from '../../../knowledgebase/retrieval/retriever'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { AgentStateAnnotation, stateToParameters, stateWithEnvironment } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'

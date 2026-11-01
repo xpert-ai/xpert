@@ -1,8 +1,10 @@
+import { toSignal } from '@angular/core/rxjs-interop'
+import { map } from 'rxjs'
 import { ExecutionUsageComponent } from './execution-usage.component'
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
+import { MembershipService, Store, AIPermissionsEnum, getErrorMessage, injectToastr } from '../../../@core'
 import {
   IMembershipMe,
   IMembershipPointLedger,
@@ -43,6 +45,11 @@ import { forkJoin, take } from 'rxjs'
   styleUrls: ['./billing.component.scss']
 })
 export class XpAccountBillingComponent implements OnInit {
+  private readonly store = inject(Store)
+  readonly canInspectExecutions = toSignal(
+    this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.MODEL_USAGE_MONITOR))),
+    { initialValue: false }
+  )
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)

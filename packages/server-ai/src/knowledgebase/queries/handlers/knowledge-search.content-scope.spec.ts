@@ -7,7 +7,7 @@ import {
     KnowledgebaseTypeEnum,
     KnowledgeRetrievalMode
 } from '@xpert-ai/contracts'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import {
     KnowledgeCandidateRetriever,
     KnowledgeRetrievalBatch,

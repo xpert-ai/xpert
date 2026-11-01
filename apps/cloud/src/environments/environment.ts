@@ -1,6 +1,7 @@
 import { IEnvironment, normalizeDeploymentTarget, VERSION } from './types'
 
-const API_BASE_URL = getEnvValue('VITE_API_BASE_URL') || 'http://localhost:3000'
+// Development uses the configured proxy, so independent instances cannot fall back to another local API.
+const API_BASE_URL = getEnvValue('VITE_API_BASE_URL') || 'same-origin'
 const CHATKIT_FRAME_URL = getEnvValue('VITE_CHATKIT_FRAME_URL') || '/chatkit'
 const MCP_APP_SANDBOX_PROXY_URL = getEnvValue('VITE_MCP_APP_SANDBOX_PROXY_URL')
 const MCP_APP_SANDBOX_ALLOWED_DOMAINS = getEnvValue('VITE_MCP_APP_SANDBOX_ALLOWED_DOMAINS')

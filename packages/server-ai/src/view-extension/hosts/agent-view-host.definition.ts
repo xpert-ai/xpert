@@ -1,3 +1,4 @@
+import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
 import {
     AIPermissionsEnum,
@@ -40,7 +41,7 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
-import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime.service'
+import { ApplicationRuntimeService } from '../../plugin-resource/application-runtime/application-runtime.service'
 
 @Injectable()
 @ViewHostDefinition('agent')
@@ -166,6 +167,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         request: XpertViewActionRequest,
         file: ViewExtensionFileActionFile
     ): Promise<XpertViewActionRequest> {
+        await assertAppPlatformUpload(this.commandBus, file.buffer.byteLength)
         const input = isRecord(request.input) ? request.input : {}
         const workspaceUploadPath = getNonEmptyString(input.workspaceUploadPath)
         if (!workspaceUploadPath) {

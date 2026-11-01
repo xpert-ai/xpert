@@ -4,6 +4,7 @@
         "outDir": "../../dist/out-tsc",
         "module": "commonjs",
         "allowJs": true,
+        "lib": ["dom", "es2022", "esnext.array"],
         "types": ["jest", "node"]
     },
     "include": ["jest.config.ts", "**/*.test.ts", "**/*.spec.ts", "**/*.d.ts"],

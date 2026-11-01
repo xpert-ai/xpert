@@ -1,3 +1,4 @@
+jest.mock('./application-permission-upgrade', () => ({ upgradeApplicationPermissions: jest.fn() }))
 import type { Repository } from 'typeorm'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'

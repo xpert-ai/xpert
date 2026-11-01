@@ -8,7 +8,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
-jest.mock('../../knowledgebase/knowledgebase.service', () => ({
+jest.mock('../../knowledgebase/management/knowledgebase.service', () => ({
     KnowledgebaseService: class KnowledgebaseService {}
 }))
 

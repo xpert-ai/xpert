@@ -15,6 +15,7 @@ import { ReferralService } from './referral.service'
 import { ReferralValidationRateLimitService } from './referral-validation-rate-limit.service'
 
 @Controller('referral')
+@Permissions(PermissionsEnum.REFERRAL_VIEW)
 export class ReferralController {
 	constructor(
 		private readonly referralService: ReferralService,

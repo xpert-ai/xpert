@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Head, NotFoundException, Req, Res, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { Public } from '@xpert-ai/server-core'
@@ -13,6 +15,7 @@ export { buildWorkspaceFileContentDisposition } from './workspace-file-content.r
 @Public()
 @UseGuards(WorkspaceFileAccessGuard)
 @Controller('content')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class WorkspaceFileContentController {
     constructor(private readonly service: WorkspaceFileAccessService) {}
 

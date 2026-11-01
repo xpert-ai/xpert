@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -9,6 +11,7 @@ import { CopilotModelService } from './copilot-model.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotModelController extends CrudController<CopilotModel> {
 	constructor(
 		private readonly service: CopilotModelService,

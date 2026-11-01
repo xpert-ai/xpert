@@ -1,5 +1,7 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     IXpert,
+    ModelAccessUnavailableReasonEnum,
     SecretTokenBindingType,
     TAssistantModelsResponse,
     TAssistantModelSelectionError,
@@ -21,6 +23,7 @@ import {
     ValidAssistantCopilotModel
 } from './assistant-model-selection.util'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
+import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 
 type AssistantModelCandidate = {
     id: string
@@ -145,6 +148,22 @@ export class AssistantModelSelectionService {
             )
         }
 
+        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT)) {
+            if (options.explicitModelId && options.explicitModelId !== primary.id) {
+                throw this.selectionError(options.explicitModelId, 'ASSISTANT_MODEL_NOT_ALLOWED')
+            }
+            const input = this.getAccessInput(xpert, [primary])
+            if (!input) throw platformFailure('application_primary_model_unavailable', 403)
+            const { models, ...scope } = input
+            const access = await this.modelAccessService.resolveModelAccess({ ...scope, ...models[0] })
+            if (access.unavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted)
+                throw platformFailure('application_credit_limit', 402)
+            if (access.unavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired)
+                throw platformFailure('application_trial_unavailable', 403)
+            if (!access.allowed) throw platformFailure('application_primary_model_unavailable', 403)
+            return { id: primary.id, model: primary.model, source: 'default' }
+        }
+
         const continuationModelId = options.continuationModelId?.trim()
         if (continuationModelId) {
             const snapshot = sanitizeAssistantCopilotModel(options.continuationModelSnapshot)
@@ -234,6 +253,7 @@ export class AssistantModelSelectionService {
     }
 
     isPreferencePersistable(): boolean {
+        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT)) return false
         const principal =
             typeof RequestContext.currentApiPrincipal === 'function' ? RequestContext.currentApiPrincipal() : null
         if (!principal) {

@@ -1,7 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { QueryBus } from '@nestjs/cqrs'
 import { DocumentMetadata, KnowledgebaseTypeEnum, VectorTypeEnum } from '@xpert-ai/contracts'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeGraphSearchQuery } from '../../../graphrag/queries'
 import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
@@ -21,7 +21,7 @@ import { FAQSemanticService } from '../../faq/faq-semantic.service'
 import { FAQSemanticCacheService } from '../../faq/faq-semantic-cache.service'
 
 // These providers are supplied by each fixture; avoid loading the unrelated agent runtime through their modules.
-jest.mock('../../knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
+jest.mock('../../management/knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
 jest.mock('../../../knowledge-document/chunk/chunk.service', () => ({
     KnowledgeDocumentChunkService: class KnowledgeDocumentChunkService {}
 }))

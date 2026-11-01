@@ -1,4 +1,5 @@
 import { readArtifactVersion } from './artifact-version-reader'
+import { repairArtifactType } from './types/repair-artifact-type'
 import {
     BadRequestException,
     ForbiddenException,
@@ -631,6 +632,7 @@ export class ArtifactsService implements ArtifactsApi {
         defaults: ArtifactsRuntimeScope
     ): Promise<EnsureArtifactShareResult> {
         const shareKey = normalizeRequiredString(input.shareKey, 'shareKey')
+        await repairArtifactType(this.persistence, this.sourcePolicies, this.dataSource, input.artifactId, defaults)
         const artifact = await this.persistence.resolveScopedArtifact(input.artifactId, defaults)
         const access = normalizeAccessInput(input.access)
         await this.sourcePolicies.assertPublication(artifact, shareKey, access)
@@ -836,11 +838,10 @@ export class ArtifactsService implements ArtifactsApi {
         if (!artifact) return false
         try {
             await this.sourcePolicies.assertLink(artifact, link)
-            await this.persistence.assertAccess(
+            await this.persistence.assertSharedAccess(
                 artifact,
                 { ...principal, organizationId: artifact.organizationId },
-                'read',
-                false
+                link
             )
         } catch {
             return false

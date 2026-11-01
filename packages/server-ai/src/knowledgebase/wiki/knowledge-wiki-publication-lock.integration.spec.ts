@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiPageVersion } from './entities'
 import { KnowledgeWikiFinalizeService } from './knowledge-wiki-finalize.service'
 

@@ -27,13 +27,13 @@ import {
     pluginSkillSharedId,
     readPluginResourceComponents,
     resolveLoadedPluginResourceRoot
-} from '../../plugin-resource-components'
+} from '../../catalog/plugin-resource-components'
 import { RequestContext, type StrategySource, XpertToolProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { McpPublication } from '../../../mcp-publication/entities/mcp-publication.entity'
 import { McpPublicationAccess } from '../../../mcp-publication/entities/mcp-publication-access.entity'
 import { mcpPublicationPublicUrl } from '../../../mcp-publication/mcp-publication-url'
 import { PluginResourceInstallation } from '../../plugin-resource-installation.entity'
-import { applyPluginResourceOrganizationScope } from '../../plugin-resource-installation-scope'
+import { applyPluginResourceOrganizationScope } from '../../installation/plugin-resource-installation-scope'
 import { ListPluginResourceComponentStatesQuery } from '../list-component-states.query'
 
 @QueryHandler(ListPluginResourceComponentStatesQuery)

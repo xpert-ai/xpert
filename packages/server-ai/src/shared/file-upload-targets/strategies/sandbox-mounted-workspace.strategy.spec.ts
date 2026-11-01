@@ -1,8 +1,11 @@
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { CheckStorageQuotaCommand } from '@xpert-ai/server-core'
 import { ForbiddenException } from '@nestjs/common'
 import { SandboxMountedWorkspaceTargetStrategy } from './sandbox-mounted-workspace.strategy'
+
+const commands = { execute: async () => null }
 
 describe('SandboxMountedWorkspaceTargetStrategy', () => {
     let tempRoot: string
@@ -15,6 +18,36 @@ describe('SandboxMountedWorkspaceTargetStrategy', () => {
         await fsPromises.rm(tempRoot, { recursive: true, force: true })
     })
 
+    it('preserves the existing file when storage admission rejects an upload', async () => {
+        const destination = path.join(tempRoot, 'source.txt')
+        await fsPromises.writeFile(destination, 'original')
+        const failure = new Error('quota exceeded')
+        const execute = jest.fn().mockRejectedValue(failure)
+        const strategy = new SandboxMountedWorkspaceTargetStrategy({ execute } as never)
+        const scope = { tenantId: 'tenant', organizationId: 'organization', userId: 'user' }
+        await expect(
+            strategy.upload(
+                {
+                    name: 'source.txt',
+                    originalName: 'source.txt',
+                    buffer: Buffer.from('replacement'),
+                    source: { kind: 'buffer' }
+                },
+                { kind: 'sandbox', mode: 'mounted_workspace', workspacePath: tempRoot },
+                { request: scope }
+            )
+        ).rejects.toBe(failure)
+        expect(execute).toHaveBeenCalledWith(
+            new CheckStorageQuotaCommand({
+                kind: 'write',
+                scope: { kind: 'user', ...scope },
+                growthBytes: Buffer.byteLength('replacement')
+            })
+        )
+        expect(await fsPromises.readFile(destination, 'utf8')).toBe('original')
+        expect(await fsPromises.readdir(tempRoot)).toEqual(['source.txt'])
+    })
+
     it.each([false, true])(
         'rejects a workspace root alias into .apps (explicit boundary: %s)',
         async (withBoundary) => {
@@ -23,7 +56,7 @@ describe('SandboxMountedWorkspaceTargetStrategy', () => {
             await fsPromises.mkdir(app, { recursive: true })
             await fsPromises.writeFile(path.join(app, 'secret.txt'), 'original')
             await fsPromises.symlink(app, alias)
-            const strategy = new SandboxMountedWorkspaceTargetStrategy()
+            const strategy = new SandboxMountedWorkspaceTargetStrategy(commands as never)
             await expect(
                 strategy.upload(
                     {
@@ -51,7 +84,7 @@ describe('SandboxMountedWorkspaceTargetStrategy', () => {
         await fsPromises.mkdir(volumeRoot)
         await fsPromises.mkdir(privateRoot)
         await fsPromises.symlink(privateRoot, path.join(volumeRoot, 'escape'))
-        const strategy = new SandboxMountedWorkspaceTargetStrategy()
+        const strategy = new SandboxMountedWorkspaceTargetStrategy(commands as never)
 
         await expect(
             strategy.upload(
@@ -82,7 +115,7 @@ describe('SandboxMountedWorkspaceTargetStrategy', () => {
         await fsPromises.mkdir(path.join(volumeRoot, 'shared'), { recursive: true })
         await fsPromises.mkdir(path.join(volumeRoot, 'skills'), { recursive: true })
         await fsPromises.symlink('..', path.join(volumeRoot, 'shared', 'project-root'))
-        const strategy = new SandboxMountedWorkspaceTargetStrategy()
+        const strategy = new SandboxMountedWorkspaceTargetStrategy(commands as never)
 
         await expect(
             strategy.upload(

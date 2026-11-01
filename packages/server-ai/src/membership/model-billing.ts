@@ -1,6 +1,6 @@
 import { DEFAULT_MEMBERSHIP_CNY_PER_POINT, type ModelUsagePricingStatus } from '@xpert-ai/contracts'
-
-export const MODEL_BILLING_USD_TO_CNY_RATE = 'MODEL_BILLING_USD_TO_CNY_RATE'
+import { convertToSettlementCurrency } from '@xpert-ai/server-core'
+import { IBillingConfiguration } from '@xpert-ai/server-common'
 
 type ChargeAmount = {
     pricingStatus: ModelUsagePricingStatus
@@ -16,7 +16,7 @@ export type CnySettlement = {
 
 export function settleChargeToCny(
     charge: ChargeAmount,
-    configuredUsdToCnyRate = process.env[MODEL_BILLING_USD_TO_CNY_RATE]
+    billing?: IBillingConfiguration
 ): CnySettlement | null {
     if (charge.pricingStatus === 'unpriced') {
         return null
@@ -30,23 +30,7 @@ export function settleChargeToCny(
         return { amount: 0, currency: 'CNY', exchangeRate: null }
     }
 
-    const currency = charge.currency?.trim().toUpperCase()
-    if (currency === 'CNY' || currency === 'RMB') {
-        return { amount, currency: 'CNY', exchangeRate: 1 }
-    }
-    if (currency !== 'USD') {
-        return null
-    }
-
-    const exchangeRate = positiveNumber(configuredUsdToCnyRate)
-    if (exchangeRate === null) {
-        return null
-    }
-    return {
-        amount: roundBillingNumber(amount * exchangeRate),
-        currency: 'CNY',
-        exchangeRate
-    }
+    return convertToSettlementCurrency(amount, charge.currency, billing)
 }
 
 export function pointsFromCny(amount: number, cnyPerPoint = DEFAULT_MEMBERSHIP_CNY_PER_POINT): number {
@@ -58,6 +42,7 @@ export function pointsFromCny(amount: number, cnyPerPoint = DEFAULT_MEMBERSHIP_C
 }
 
 function finiteNonNegativeNumber(value: number | null | undefined): number | null {
+    if (value == null) return null
     const number = Number(value)
     return Number.isFinite(number) && number >= 0 ? number : null
 }

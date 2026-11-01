@@ -92,7 +92,8 @@ type WorkspaceStageState = {
 	relativeDistPath: string | null
 }
 
-export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
+export const DEFAULT_ORG_PLUGIN_ROOT =
+	getConfig().assetOptions.pluginPath ?? path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
 const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
 const WORKSPACE_STAGE_STATE_SCHEMA_VERSION = 1 as const
@@ -533,7 +534,10 @@ function getPluginDirName(pluginName: string) {
 }
 
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
-	const rootDir = opts?.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins')
+	const rootDir =
+		opts?.rootDir ??
+		getConfig().assetOptions.pluginPath ??
+		path.join(getConfig().assetOptions.serverRoot, 'plugins')
 	const scope = resolvePluginScope({
 		tenantId: opts?.tenantId,
 		organizationId,
@@ -843,7 +847,12 @@ export function withOrganizationPluginStoreLock<T>(
 	opts: OrganizationPluginStoreOptions,
 	action: Parameters<typeof withPluginStoreLock<T>>[1]
 ) {
-	return withPluginStoreLock(opts.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins'), action)
+	return withPluginStoreLock(
+		opts.rootDir ??
+			getConfig().assetOptions.pluginPath ??
+			path.join(getConfig().assetOptions.serverRoot, 'plugins'),
+		action
+	)
 }
 
 export async function removeOrganizationManifestPlugins(

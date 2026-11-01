@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import type { z } from 'zod/v3'
@@ -7,6 +9,7 @@ import { cleanupPluginsInput, packageIdSchema, updatePluginInput } from './agent
 const invalid = (error: z.ZodError) => new BadRequestException(error.flatten())
 
 @Controller('agent-plugins')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AgentPluginMaintenanceController {
     constructor(
         private readonly updates: AgentPluginUpdateService,

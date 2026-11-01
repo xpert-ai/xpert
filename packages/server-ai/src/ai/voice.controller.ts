@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
 import { ApiKeyOrClientSecretAuthGuard, Public, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -10,6 +12,7 @@ import { voiceStartSchema } from '../realtime-voice/voice.schema'
 @Public()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantThreadScopeGuard)
 @Controller('threads/:threadId/voice')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class VoiceController {
     constructor(
         private readonly sessions: VoiceSessionService,

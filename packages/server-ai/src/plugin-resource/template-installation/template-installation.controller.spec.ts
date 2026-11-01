@@ -1,5 +1,8 @@
 jest.mock('./template-installation.service', () => ({ TemplateInstallationService: class {} }))
-jest.mock('@xpert-ai/server-core', () => jest.requireActual('../../../../server/src/shared/pipes/zod-validation.pipe'))
+jest.mock('@xpert-ai/server-core', () => ({
+    ...jest.requireActual('../../../../server/src/shared/pipes/zod-validation.pipe'),
+    ...jest.requireActual('../../../../server/src/shared/decorators/permissions')
+}))
 jest.mock('i18next', () => ({ t: (key: string) => key }))
 import { Test } from '@nestjs/testing'
 import type { INestApplication } from '@nestjs/common'

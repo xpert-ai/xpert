@@ -14,8 +14,8 @@ import { KnowledgeDocumentChunk } from '../../knowledge-document/chunk/chunk.ent
 import { computeKnowledgeDocumentChunkHash } from '../../knowledge-document/document-hash'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { KnowledgeDocumentService } from '../../knowledge-document/document.service'
-import { Knowledgebase } from '../knowledgebase.entity'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeWikiPage, KnowledgeWikiPageVersion, KnowledgeWikiProjectionState } from './entities'
 import { KnowledgeWikiError } from './knowledge-wiki-error'
 

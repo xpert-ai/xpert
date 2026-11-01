@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	Controller,
 	Post,
@@ -94,6 +96,7 @@ export class AuthController {
 			'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@Post('/register')
+	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async create(
 		@Body() entity: RegisterUserDTO,

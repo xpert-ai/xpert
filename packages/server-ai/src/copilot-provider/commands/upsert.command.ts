@@ -6,6 +6,7 @@ export class CopilotProviderUpsertCommand implements ICommand {
 
     constructor(
         public readonly entity: Partial<ICopilotProvider>,
-        public readonly validationTarget?: ProviderCredentialValidationTarget
+        public readonly validationTarget?: ProviderCredentialValidationTarget,
+        public readonly connectionName?: string
     ) {}
 }

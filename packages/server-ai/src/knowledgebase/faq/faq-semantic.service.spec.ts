@@ -1,15 +1,15 @@
 import type { DocumentInterface } from '@langchain/core/documents'
 import { DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import type { Cache } from 'cache-manager'
-import type { KnowledgebaseService } from '../knowledgebase.service'
-import type { KnowledgeDocumentStore } from '../vector-store'
+import type { KnowledgebaseService } from '../management/knowledgebase.service'
+import type { KnowledgeDocumentStore } from '../embedding/vector-store'
 import { prepareKnowledgeFilter } from '../filter'
 import type { KnowledgeRetrievalRequest } from '../retrieval/types'
 import { FAQSemanticCacheService } from './faq-semantic-cache.service'
 import { FAQRetrievalBudget, FAQ_RETRIEVAL_LIMITS } from './faq-retrieval-budget'
 import { FAQSemanticService } from './faq-semantic.service'
 
-jest.mock('../knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
+jest.mock('../management/knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
 
 function faq(id = 'a', negative = 'negative'): DocumentInterface<DocumentMetadata> {
     return {

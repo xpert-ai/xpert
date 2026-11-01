@@ -55,11 +55,15 @@ export class XpertProjectPurgeService {
             catalog: 'projects',
             projectId: project.id
         })
-        await VolumeHandle.removePath(path.dirname(volume.serverRoot), path.basename(volume.serverRoot), {
-            boundaryRoot: this.volumes.resolveRoot(project.tenantId).serverRoot
-        }).catch((error: unknown) => {
-            if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
-        })
+        await volume
+            .withRemovalBudget(() =>
+                VolumeHandle.removePath(path.dirname(volume.serverRoot), path.basename(volume.serverRoot), {
+                    boundaryRoot: this.volumes.resolveRoot(project.tenantId).serverRoot
+                })
+            )
+            .catch((error: unknown) => {
+                if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+            })
         await this.projects.deleteProject(project.id)
         return { projectId: project.id, deleted: true }
     }

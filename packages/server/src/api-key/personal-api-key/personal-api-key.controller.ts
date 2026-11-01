@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../../shared/decorators/permissions'
 import {
 	BadRequestException,
 	Body,
@@ -18,6 +20,7 @@ import { ApiKeyService } from '../api-key.service'
 
 @ApiTags('Personal API keys')
 @Controller('personal')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class PersonalApiKeyController {
 	constructor(private readonly keys: ApiKeyService) {}
 

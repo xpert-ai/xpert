@@ -28,7 +28,7 @@ describe('getSettingsMenuItems', () => {
     expect(organizationArea).toMatchObject({
       label: 'Business Area',
       scopeContext: 'organization-only',
-      data: { permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN] }
+      data: { permissionKeys: [PermissionsEnum.BUSINESS_AREA_VIEW] }
     })
     expect(tenantArea).toBeUndefined()
   })

@@ -1,4 +1,5 @@
 import { omit } from 'lodash'
+import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
 import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { collectMcpAppComponentData } from '../mcp-app-runtime/mcp-app-history-component'
 import {
@@ -367,6 +368,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 throw recoveryConflict('conversation_graph_changed', source.error, source.parentThreadId)
         }
         return this.dataSource.transaction(async (manager) => {
+            await assertAppPlatformRunCapacity(manager)
             const thread = await manager.getRepository(ChatConversationThread).findOne({
                 where: { id: source.id },
                 lock: { mode: 'pessimistic_write' }

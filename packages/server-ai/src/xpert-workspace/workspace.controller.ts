@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IPagination, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -33,6 +35,7 @@ import { WorkspacePublicDTO, XpertWorkspaceDTO } from './dto'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_VIEW)
 export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
     readonly #logger = new Logger(XpertWorkspaceController.name)
     constructor(

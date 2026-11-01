@@ -14,7 +14,7 @@ describe('personal API keys route', () => {
       const router = { createUrlTree: jest.fn(() => 'profile') }
       TestBed.configureTestingModule({
         providers: [
-          { provide: Store, useValue: { user$: of({ type }) } },
+          { provide: Store, useValue: { user$: of({ type }), hasPermission: () => true } },
           { provide: Router, useValue: router }
         ]
       })

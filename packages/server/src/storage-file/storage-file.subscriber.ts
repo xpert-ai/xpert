@@ -46,7 +46,17 @@ export class StorageFileSubscriber implements EntitySubscriberInterface<StorageF
 
 				const instance = new FileStorage().setProvider(storageProvider).getProviderInstance()
 
-				if (entity.file) {
+				// Service removals confirm object deletion before metadata removal. Direct ORM
+				// removals still rely on this fallback, and thumbnails always retain cleanup.
+				const confirmed: unknown = event.queryRunner?.data?.confirmedStorageFileDeletion
+				const alreadyRemoved =
+					confirmed !== null &&
+					typeof confirmed === 'object' &&
+					'provider' in confirmed &&
+					confirmed.provider === instance.name &&
+					'key' in confirmed &&
+					confirmed.key === entity.file
+				if (entity.file && !alreadyRemoved) {
 					await instance.deleteFile(entity.file)
 				}
 				if (entity.thumb) {

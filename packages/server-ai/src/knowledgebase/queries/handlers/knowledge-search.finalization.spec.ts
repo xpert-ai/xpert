@@ -12,7 +12,7 @@ import {
 import { environment } from '@xpert-ai/server-config'
 import { DataSource } from 'typeorm'
 import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import {
     GraphKnowledgeCandidateRetriever,
     KeywordKnowledgeCandidateRetriever,

@@ -1,0 +1,288 @@
+---
+title: '角色、权限与功能对照清单'
+description: '七种内置角色、默认权限、常见功能组合、授权边界与排查方法。'
+---
+
+本文用于快速回答“给哪个角色分配哪些 permissions，才能使用哪些功能”。依据截至 2026-10-31 的源码默认分配和已审核权限实现整理；不表示线上已经部署，也不是某个租户数据库的实际授权导出。应用交付的完整行为见 [受管应用功能文档](managed-apps.mdx)。
+
+## 先按使用目的选择角色
+
+角色是权限预设，不是从低到高的继承链。用户当前角色、启用的权限、请求范围和资源授权共同决定结果。
+
+| 角色                      | 适用对象                 | 默认职责                                             | 不应误解为                                           | 默认权限数 |
+| ------------------------- | ------------------------ | ---------------------------------------------------- | ---------------------------------------------------- | ---------- |
+| `SUPER_ADMIN`             | 平台超级管理员           | 平台管理、租户管理、AI 编排、模型和计费管理          | 所有接口免检查，或自动拥有每个 App 的消费身份        | 59         |
+| `ADMIN`                   | 租户／组织管理员         | 用户、组织、角色权限、AI 资源、会员和计费管理        | 全平台超级管理员或自动获准跨组织访问                 | 56         |
+| `AI_BUILDER`              | AI 开发者／配置人员      | 编排 Assistant、配置模型和知识库、安装 App、编辑项目 | 会员／计费管理员或所有工作空间的管理员               | 24         |
+| `TRIAL`                   | 通用平台试用者           | 试用编排、模型配置、App 安装及项目功能               | Bid 业务试用用户；它默认仍有编排与模型配置能力       | 19         |
+| `VIEWER`                  | 通用平台使用者           | 聊天、项目查看、会员使用及部分查看入口               | 完全不能产生消费的只读账号；它具有 CHAT_VIEW         | 8          |
+| `APP_USER`                | Bid 等受管应用用户       | 使用分配的 App、聊天、创建和编辑自己的获授权项目     | 只能通过角色名特殊放行的账号；试用期限由权益决定     | 7          |
+| `APPLICATION_PROVISIONER` | 平台创建的初始化服务身份 | 安装 App，创建／发布模板 Assistant 和知识库资源      | 可人工登录的管理员，或能绕过组织与资源授权的维护身份 | 4          |
+
+计数为核心权限与 AI 权限的去重并集，仅代表源码默认值。已有数据库的显式禁用、升级补齐、部署配置和凭据限制可能使实际结果不同。`APPLICATION_PROVISIONER` 应由初始化流程绑定到不可人工登录的 `COMMUNICATION` 服务账号；仅把普通用户改成这个角色，不会自动建立服务身份或服务操作范围。
+
+## 常用功能需要怎样配权限
+
+下表是功能组合；同一行列出的不同能力通常都需要具备。它不等于单个 `@Permissions(A, B)` 声明的语义，后者是任一满足。
+
+| 想使用的功能                      | 建议权限组合                                                                                                                             | 还必须满足                                                                                         |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Bid 用户开箱使用、进入助手和 View | APP_USER 的 7 项默认权限，见下一节                                                                                                       | App Platform 启用、账号验证及交付完成、App 分配、Assistant 发布和运行授权；实际消费还受权益限制    |
+| 只使用已授权 Assistant 聊天       | `CHAT_VIEW`                                                                                                                              | 对具体已发布 Assistant 的访问授权；不因此获得编排工作空间成员资格                                  |
+| 查看自己的项目                    | `XPERT_PROJECT_VIEW`                                                                                                                     | 项目成员／所有权／共享授权；进入其中的聊天还需 `CHAT_VIEW`                                         |
+| 创建和编辑项目                    | `XPERT_PROJECT_VIEW` + `XPERT_PROJECT_CREATE` + `XPERT_PROJECT_EDIT`                                                                     | 项目资源范围、项目类型及其 Assistant 授权                                                          |
+| 管理项目、成员或管理型操作        | 上述项目权限 + `XPERT_PROJECT_MANAGE`                                                                                                    | 项目自己的 owner／manager 等资源授权                                                               |
+| 完整 Assistant 编排与发布         | `XPERT_VIEW` + `XPERT_EDIT`                                                                                                              | 编排工作空间可写；调试对话另需 `CHAT_VIEW`；配置模型／知识库时另需对应权限                         |
+| 查看编排工作空间资源              | `XPERT_VIEW`                                                                                                                             | 工作空间可读；当前不能据此承诺完整只读 Studio，见“现有边界”                                        |
+| 管理共享／租户工作空间            | `XPERT_VIEW` + `XPERT_EDIT` + `XPERT_WORKSPACE_MANAGE`                                                                                   | 正确租户和组织范围；不自动获得其他组织私有空间的访问权。空间 owner 的管理权另由 ACL 决定           |
+| 配置模型提供商、模型与密钥        | `COPILOT_EDIT`；常规开发角色另含 `COPILOT_VIEW`                                                                                          | 配置所在租户／组织范围及相应资源授权；给 APP_USER 此权限会开放其原本禁止的配置能力                 |
+| 初始化或升级 App                  | `APPLICATION_INSTALL` + `XPERT_VIEW` + `XPERT_EDIT`；涉及知识库时加 `KNOWLEDGEBASE_EDIT`                                                 | 有效组织成员关系、目标空间授权、模板／模型／工具依赖；受管交付由独立服务身份执行                   |
+| 查看受管 App 交付记录             | `APPLICATION_INSTALL`                                                                                                                    | 当前租户的交付记录范围；不等于本人具备 `APPLICATION_USE`                                           |
+| 采用受管 App 新定义               | `APPLICATION_INSTALL` + `MEMBERSHIP_EDIT`                                                                                                | 更新交付快照的同时刷新会员模型策略；会员能力会在事务内独立检查 `MEMBERSHIP_EDIT`，不续期或补发额度 |
+| 查看本人会员和用量                | `MEMBERSHIP_USE`                                                                                                                         | 本人的会员与账单范围；不是整个租户的会员管理权                                                     |
+| 运营会员、计费与支付              | 已接入的会员管理使用 `MEMBERSHIP_EDIT`；商品、退款、支付配置分别定义了 `BILLING_PRODUCT_EDIT`、`BILLING_REFUND`、`PAYMENT_PROVIDER_EDIT` | 后三项目前仅有权限契约与默认分配，不能仅凭勾选就认为对应业务接口已实现授权控制                     |
+| 使用模型 API 网关                 | `MODEL_GATEWAY_USE`                                                                                                                      | 网关凭据、模型授权和会员权益；不自动获得提供商配置权                                               |
+| 调整角色权限                      | `CHANGE_ROLES_PERMISSIONS`                                                                                                               | 角色管理所在租户范围；SUPER_ADMIN 有额外保护，见后文                                               |
+| 修改本人资料／密码                | 默认业务角色带 `PROFILE_EDIT`；本人资料等自助接口使用全局默认认证，现有密码接口仍声明相应权限                                            | 本人身份、允许修改的字段及密码证明。不能把 `PROFILE_EDIT` 当作所有自助接口的总开关                 |
+
+### Bid 业务用户：完整的 7 项默认权限
+
+```text
+APPLICATION_USE
+CHAT_VIEW
+XPERT_PROJECT_VIEW
+XPERT_PROJECT_CREATE
+XPERT_PROJECT_EDIT
+MEMBERSHIP_USE
+PROFILE_EDIT
+```
+
+创建自定义业务角色时可使用同一组权限，再经正常应用交付流程建立 App、Assistant 和组织授权。只授予 permissions 不会凭空建立已安装的 App 或已发布的 Assistant。
+
+保持“不看编排、不建 Agent、不配置模型”的产品要求时，不要给这类角色增加 `XPERT_VIEW`、`XPERT_EDIT`、`XPERT_WORKSPACE_MANAGE`、`COPILOT_EDIT` 或 `APPLICATION_INSTALL`。团队邀请、角色管理与跨组织选择也不在这个默认集合中。试用、积分、并发和存储限制由账号交付记录及权益管理，更换角色名不会解除限制。
+
+### 初始化服务：完整的 4 项默认权限
+
+```text
+APPLICATION_INSTALL
+XPERT_VIEW
+XPERT_EDIT
+KNOWLEDGEBASE_EDIT
+```
+
+初始化流程使用 `appConfig` 的 Assistant 模板及套件；服务账号承担创建、发布和升级。业务账号继续使用自己的消费权限。`ServiceOperationScope` 约束租户、组织、App 和受益账号，不授予任何权限；这些权限仍与组织成员关系及资源 ACL 一起检查。
+
+## AI 权限默认分配全表
+
+✓ 表示默认启用，— 表示默认未分配，不表示该角色永远不能被授予。S/A 的 AI 默认集合相同，故合并展示。
+
+- S/A：`SUPER_ADMIN` / `ADMIN`
+- B：`AI_BUILDER`；T：`TRIAL`；V：`VIEWER`
+- U：`APP_USER`；P：`APPLICATION_PROVISIONER`
+
+| Permission                  | 功能语义                                                              | S/A | B   | T   | V   | U   | P   |
+| --------------------------- | --------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- |
+| `KNOWLEDGEBASE_EDIT`        | 管理知识库、文档、FAQ 及相关配置                                      | ✓   | ✓   | —   | —   | —   | ✓   |
+| `COPILOT_VIEW`              | 旧模型查看入口权限，权限编辑器已标记弃用；不授予提供商配置读取权      | ✓   | ✓   | —   | ✓   | —   | —   |
+| `COPILOT_EDIT`              | 管理模型提供商、凭据、模型及 Copilot 配置                             | ✓   | ✓   | ✓   | —   | —   | —   |
+| `MODEL_USAGE_MONITOR`       | 读取授权范围内的模型用量监控                                          | ✓   | ✓   | —   | —   | —   | —   |
+| `MEMBERSHIP_EDIT`           | 管理会员方案、用户权益、额度与会员记录                                | ✓   | —   | —   | —   | —   | —   |
+| `MEMBERSHIP_USE`            | 查看本人会员、账单概览及用量；不授予会员管理权                        | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `MODEL_ACCESS_REQUEST_VIEW` | 查看管理端模型访问申请、授权及审计事件                                | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_ACCESS_REQUEST_EDIT` | 审批／拒绝模型访问申请，延长／撤销模型授权                            | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_GATEWAY_USE`         | 使用网关自助目录、申请、本人授权／密钥／调用记录及相关执行接口        | ✓   | —   | —   | —   | —   | —   |
+| `MODEL_GATEWAY_MANAGE`      | 管理范围内的网关设置、密钥及调用记录                                  | ✓   | —   | —   | —   | —   | —   |
+| `BILLING_PRODUCT_EDIT`      | 计费商品管理权限契约；本仓库尚无业务接口接入                          | ✓   | —   | —   | —   | —   | —   |
+| `BILLING_REFUND`            | 退款权限契约；本仓库尚无业务接口接入                                  | ✓   | —   | —   | —   | —   | —   |
+| `PAYMENT_PROVIDER_EDIT`     | 支付提供商配置权限契约；本仓库尚无业务接口接入                        | ✓   | —   | —   | —   | —   | —   |
+| `XPERT_VIEW`                | 读取获授权的编排资源；不是完整只读 Studio 权限                        | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `XPERT_WORKSPACE_MANAGE`    | 扩大范围内共享／租户工作空间的管理授权                                | ✓   | —   | —   | —   | —   | —   |
+| `XPERT_EDIT`                | 创建／编辑／发布 Assistant 并访问编排配置；读取空间、聊天另需对应权限 | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `APPLICATION_USE`           | 使用分配的 App，查看本人交付状态并重试                                | —   | —   | —   | —   | ✓   | —   |
+| `APPLICATION_INSTALL`       | 安装／升级 App，管理应用交付                                          | ✓   | ✓   | ✓   | —   | —   | ✓   |
+| `XPERT_PROJECT_VIEW`        | 读取获授权项目及其业务视图                                            | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `XPERT_PROJECT_CREATE`      | 创建／复制项目，仍检查项目类型与 Assistant 授权                       | ✓   | ✓   | ✓   | —   | ✓   | —   |
+| `XPERT_PROJECT_EDIT`        | 编辑项目内容、执行项目资源策略允许的协作操作                          | ✓   | ✓   | ✓   | —   | ✓   | —   |
+| `XPERT_PROJECT_MANAGE`      | 管理项目、成员及流水线配置，仍需项目管理授权                          | ✓   | —   | —   | —   | —   | —   |
+| `CHAT_VIEW`                 | 运行获授权 Assistant，使用会话及运行时业务接口；包含执行和写入        | ✓   | ✓   | ✓   | ✓   | ✓   | —   |
+| `EVOLUTION_VIEW`            | 查看 Agent 演进看板、学习记录、评估及变更历史                         | ✓   | ✓   | —   | ✓   | —   | —   |
+| `EVOLUTION_MANAGE`          | 管理演进提案、评估、审批与发布，仍受治理规则限制                      | ✓   | ✓   | —   | —   | —   | —   |
+
+特别注意：管理员默认有 `APPLICATION_INSTALL`，但没有 `APPLICATION_USE`。安装运营与受管应用消费是两种能力；需要让管理员同时成为应用消费者时，应明确增加消费权限并完成对应的应用交付／分配。
+
+## AI 权限的接口边界
+
+每个枚举值的源码注释说明职责和限制，默认角色分配另由默认权限模块决定。对控制器声明权限，会影响该控制器中所有未覆盖声明的方法；名称中的 VIEW、EDIT、MANAGE、USE 不形成自动继承关系。
+
+### MODEL_GATEWAY_USE 与 MODEL_GATEWAY_MANAGE
+
+`MODEL_GATEWAY_USE` 是网关使用者的功能权限，当前用于：
+
+- 模型网关目录、提交／撤回本人申请、查看本人模型授权。
+- 创建、查看和撤销本人的网关 API Key，查看本人调用记录。
+- Model Execution 相关入口，包括本人执行记录查询与执行会话撤销；具体请求继续校验执行凭据、所有权和模型授权。
+
+`MODEL_GATEWAY_MANAGE` 则用于网关管理设置、范围内的密钥管理、调用记录及请求体查看。它不自动包含 `MODEL_GATEWAY_USE`，也不包含配置模型提供商所需的 `COPILOT_EDIT`。
+
+例如当前 [ModelGatewayController](../../../packages/server-ai/src/model-gateway/model-gateway.controller.ts) 的结构是：
+
+```ts
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
+class ModelGatewayController {
+  // Self-service catalog, requests, keys and calls inherit USE.
+
+  @Permissions(AIPermissionsEnum.MODEL_GATEWAY_MANAGE)
+  getAdminSettings() {
+    // This method overrides the controller declaration and requires MANAGE.
+  }
+}
+```
+
+这是权限结构示意，不是新增接口。业务用户通过 Bid Assistant 使用平台模型，并不因此需要 `MODEL_GATEWAY_USE`；聊天运行授权与对外网关自助功能分别配置。
+
+OpenAI 兼容入口 [ModelGatewayOpenAIController](../../../packages/server-ai/src/model-gateway/openai.controller.ts) 使用 `@Public()` 跳过默认 JWT 认证，由专用 `ModelGatewayAuthGuard` 先校验网关 API Key，再由统一权限检查执行 `MODEL_GATEWAY_USE`。Key 所属用户需仍有效且具备该权限，模型授权与额度继续由业务服务检查。请求范围来自已认证的 Key，客户端 scope header 不能改变其租户／组织。同一 HTTP 请求只认证一次，控制器复用认证结果；Public 不表示匿名调用。
+
+### 查看、编辑与业务使用的区别
+
+- `KNOWLEDGEBASE_EDIT` 管理知识库、文档等配置；Assistant 检索所需的是运行链路里的具体资源授权，不要求所有聊天用户都能编辑知识库。
+- `COPILOT_VIEW` 是保留在部分查看入口和旧默认分配中的权限，角色编辑器已将其标记弃用；提供商配置 API 使用 `COPILOT_EDIT`。`MODEL_USAGE_MONITOR` 只提供授权范围内的用量监控，不开放模型配置。
+- `MEMBERSHIP_USE` 面向本人会员、账单和用量；`MEMBERSHIP_EDIT` 面向会员管理。两者不替代计费商品、退款或支付配置的独立权限。
+- `MODEL_ACCESS_REQUEST_VIEW` 读取管理端申请、授权及审计事件；`MODEL_ACCESS_REQUEST_EDIT` 用于审批、拒绝、延长及撤销授权。[ModelAccessController](../../../packages/server-ai/src/model-access/model-access.controller.ts) 的目录、本人申请与本人授权接口沿用全局认证，并由服务检查本人范围和业务资格；管理端方法单独声明 VIEW／EDIT，无需为普通申请用户授予审批权限。
+- `XPERT_VIEW`、`XPERT_EDIT`、`XPERT_WORKSPACE_MANAGE` 分别参与编排资源读取、编排修改和空间管理；`APPLICATION_USE`、`APPLICATION_INSTALL` 分别控制受管应用消费与安装交付。它们都不替代目标 App、组织及资源授权。
+- 四项 `XPERT_PROJECT_*` 权限分别对应读取、创建／复制、内容协作和项目管理，仍需通过项目自己的成员与操作授权。
+- `CHAT_VIEW` 名称包含 VIEW，但实际允许聊天执行及获授权的会话／文件等运行时业务操作，不是只读权限，也不提供编排权限。
+- `EVOLUTION_VIEW` 用于演进查看；`EVOLUTION_MANAGE` 用于提案、评估、审批和发布。演进治理仍检查具体操作和审批资格；拥有 MANAGE 不表示可以绕过发布治理流程。
+
+### 计费权限的接入状态
+
+`BILLING_PRODUCT_EDIT`、`BILLING_REFUND`、`PAYMENT_PROVIDER_EDIT` 分别定义计费商品管理、退款、支付提供商配置的权限契约。当前本仓库内可确认的是枚举、权限分组与管理员默认分配，未找到业务控制器／服务使用这三个值进行校验。
+
+因此它们应保留职责注释，但不能描述为已经生效的接口控制。计费或支付模块接入时，需要显式声明并执行对应权限检查，同时校验订单归属、退款条件、配置范围等业务规则；外部插件是否接入需另外核对。
+
+## 核心平台权限默认分配全表
+
+沿用上面的缩写，S、A 分别列出。下表列出 `PermissionsEnum` 的全部 37 个值；“功能语义”用于识别配置项，并非每个 API 的完整访问条件。有些旧权限尚未形成独立完整页面，也有接口采用其他功能权限或身份校验，应结合上一节的功能组合与实际接口判断。
+
+| Permission                      | 功能语义                   | 默认角色         |
+| ------------------------------- | -------------------------- | ---------------- |
+| `PROFILE_EDIT`                  | 个人资料相关操作           | S、A、B、T、V、U |
+| `ADMIN_DASHBOARD_VIEW`          | 管理仪表盘                 | S、A、B          |
+| `ORG_EMPLOYEES_VIEW`            | 员工查看                   | S、A             |
+| `ORG_EMPLOYEES_EDIT`            | 员工管理                   | S、A             |
+| `ORG_TAGS_EDIT`                 | 标签管理                   | S、A             |
+| `ORG_USERS_VIEW`                | 用户查看                   | S、A、B          |
+| `ORG_USERS_EDIT`                | 用户管理                   | S、A             |
+| `ORG_INVITE_VIEW`               | 邀请查看                   | S、A、B          |
+| `ORG_INVITE_EDIT`               | 邀请管理                   | S、A、T          |
+| `ALL_ORG_VIEW`                  | 组织查看                   | S、A             |
+| `ALL_ORG_EDIT`                  | 组织管理                   | S、A             |
+| `APPROVALS_POLICY_VIEW`         | 审批策略查看（无默认分配） | 无               |
+| `APPROVALS_POLICY_EDIT`         | 审批策略编辑（无默认分配） | 无               |
+| `CHANGE_SELECTED_ORGANIZATION`  | 切换已获授权的组织         | S、A、B、T、V    |
+| `CHANGE_ROLES_PERMISSIONS`      | 管理角色权限               | S、A             |
+| `SUPER_ADMIN_EDIT`              | 平台超级管理操作           | S                |
+| `PUBLIC_PAGE_EDIT`              | 公共页面管理               | S、A             |
+| `VIEW_ALL_EMAILS`               | 邮件查看                   | S、A             |
+| `VIEW_ALL_EMAIL_TEMPLATES`      | 邮件模板查看／管理         | S、A             |
+| `ORG_HELP_CENTER_EDIT`          | 帮助中心管理               | S、A             |
+| `ORG_CONTACT_EDIT`              | 联系人管理                 | S、A             |
+| `ORG_CONTACT_VIEW`              | 联系人查看                 | S、A、B          |
+| `ORG_DEMO_EDIT`                 | 组织演示配置               | S、A             |
+| `INTEGRATION_EDIT`              | 集成配置                   | S、A、B、T       |
+| `INTEGRATION_VIEW`              | 集成查看                   | S、A、B、T       |
+| `DATA_SOURCE_VIEW`              | 数据源查看                 | S、A、T          |
+| `DATA_SOURCE_EDIT`              | 数据源配置                 | S、A、T          |
+| `BUSINESS_AREA_VIEW`            | 业务域查看                 | S、A、B、T、V    |
+| `BUSINESS_AREA_MANAGE`          | 业务域管理                 | S、A、T          |
+| `BUSINESS_AREA_ASSIGN`          | 业务域分配                 | S、A、B、T       |
+| `FILE_STORAGE_VIEW`             | 文件存储设置相关查看       | S、A             |
+| `SMS_GATEWAY_VIEW`              | 短信网关设置相关查看       | S、A             |
+| `CUSTOM_SMTP_VIEW`              | SMTP 设置相关查看          | S、A             |
+| `VIEW_ALL_ACCOUNTING_TEMPLATES` | 会计模板相关查看           | S、A             |
+| `ACCESS_DELETE_ACCOUNT`         | 删除账户操作               | S                |
+| `ACCESS_DELETE_ALL_DATA`        | 删除全部数据操作           | S                |
+| `REFERRAL_VIEW`                 | 推荐关系查看               | S、A             |
+
+`APPROVAL_POLICY_VIEW/EDIT` 枚举成员对应的实际字符串为 `APPROVALS_POLICY_VIEW/EDIT`，上表使用实际字符串。权限记录及接口比较应使用实际值。
+
+## 权限怎样生效
+
+一次业务请求通常需要同时满足：
+
+1. **身份有效**：完成 JWT、API Key 或 ChatKit client secret 的相应认证，账号未停用。
+2. **功能权限通过**：当前角色的启用权限匹配接口声明，同时满足凭据本身的限制。角色名不是新统一接口校验的放行条件。
+3. **请求范围正确**：租户、组织、服务操作范围与资源一致。
+4. **资源授权通过**：具体 Assistant、工作空间、项目或会话允许当前用户执行该操作。
+5. **业务条件通过**：App 已分配、依赖可用，实际消费符合会员、账号额度和存储限制；在途消费与延迟存储统计允许超额。
+
+前端菜单还受 feature 开关、用户类型和当前 scope 影响。入口可见不等于接口已授权；入口隐藏也不能代替后端检查。
+
+### 接口声明规则
+
+- 方法上的 `@Permissions` 覆盖控制器声明，不与控制器权限自动做并集或交集。
+- `@Permissions(A, B)` 表示 A 或 B 任一有效即可；空权限列表不放行。
+- 全局默认要求身份认证。只依赖登录身份的接口无需额外装饰器，服务继续校验本人所有权和资源范围；`@Permissions` 仅在需要功能权限时声明。
+- 未认证的 `@Public` 请求交由接口自身的公开协议、令牌或签名逻辑处理；已经带有身份的请求仍进入权限检查。
+- 未声明 `@Permissions` 的接口沿用全局认证，不会因此变成公开接口。显式空权限列表仍拒绝访问。
+- 同时包含账户自助与管理操作的控制器，将管理权限声明在对应方法上，继承的管理 CRUD 路由也需要显式覆盖并声明权限；完全属于同一权限范围的控制器可以保留控制器级声明。
+- 已发布 Assistant 的运行授权不会同时授予读取 Prompt、草稿、模型配置或编排工作空间的权限。
+
+工作空间能力的交集规则是：`canRead = 资源可读 ∩ XPERT_VIEW`，`canWrite = 资源可写 ∩ XPERT_EDIT`，`canManage = 资源可管理 ∩ XPERT_EDIT`，`canRun = 资源可运行 ∩ CHAT_VIEW`。`XPERT_WORKSPACE_MANAGE` 参与资源管理授权计算，不替代 `XPERT_EDIT`，也不取消租户／组织边界。
+
+## 已确认的边界与容易误配之处
+
+这些是当前源码的使用边界；本文没有对它们额外改造，也不把本清单视为完整安全审计。
+
+| 现状                                                                                                                                                                                               | 配权限时的影响                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `XPERT_VIEW` 与 `XPERT_EDIT` 已分开，但 Studio 菜单和大量 Assistant 配置接口仍要求 `XPERT_EDIT`                                                                                                    | 可以分离工作空间读取与运行；尚不能仅给 `XPERT_VIEW` 就得到完整只读 Studio。不要为了“只读查看”直接加 EDIT                                |
+| `COPILOT_VIEW` 出现在查看入口条件中，提供商配置控制器整体要求 `COPILOT_EDIT`                                                                                                                       | `VIEWER` 的查看权限不意味着可以读取提供商配置和密钥，也不能据此承诺完整只读模型管理页面                                                 |
+| 业务域入口已改用 `BUSINESS_AREA_VIEW`，修改使用 `BUSINESS_AREA_MANAGE`；默认 Assistant 配置改用组织的 `ALL_ORG_EDIT` 或租户的 `SUPER_ADMIN_EDIT`。租户管理、部分运维入口与审批资格仍有显式角色规则 | 普通功能可按 permissions 分配给自定义角色；超级管理员保护、租户治理及特殊审批资格仍需按各自规则配置，不能从默认权限表推断这些规则已移除 |
+| SUPER_ADMIN 的权限更新／删除受到专门保护；手动同步默认权限会重新启用其默认项                                                                                                                       | SUPER_ADMIN 不是可任意裁剪的业务角色。不要用它测试普通权限撤销效果                                                                      |
+| `PermissionGroups.GENERAL/ADMINISTRATION` 是权限编辑页面的分组配置                                                                                                                                 | 分组名不是运行时授权规则；实际以角色权限记录和接口声明为准                                                                              |
+| `TRIAL` 默认包含模型配置与编排能力；`VIEWER` 默认可以聊天                                                                                                                                          | 业务试用使用 APP_USER 配合会员试用权益，不能仅凭角色中文名称选择 TRIAL 或 VIEWER                                                        |
+| EDIT、MANAGE、INSTALL、USE 之间没有自动继承                                                                                                                                                        | 自定义角色要明确配置完整功能组合；例如只有 EDIT 未必能读取工作空间，只有 INSTALL 未必能使用本人应用状态接口                             |
+
+## 统一校验实现与兼容边界
+
+- `permission-policy.ts` 是 Guard 与全局拦截器共享的功能权限判断。统一采用方法覆盖控制器、多个权限 any-of、无声明不增加功能限制、显式空声明拒绝的规则。
+- 仅使用认证阶段加载并经过 token 上限过滤的有效权限。JWT、Basic 等认证负责加载角色权限；权限未加载时拒绝，不在授权阶段查询数据库以补回可能被 token 排除的权限。旧 `PermissionGuard` 保留为兼容适配器，不维护另一套算法。
+- `TenantScopeGuard` 将认证身份作为租户来源；header、旧 query/body 中的 tenant 字段只能作为一致性约束。支持标准 HTTP header 大小写；重复、数组、空值或冲突 scope 均拒绝。缺省 scope 为本人 tenant，organization scope 必须明确选择组织，并通过共享组织访问命令复核有效成员关系。命令返回值只用于判断可访问，不替换当前用户或其有效权限。
+- `TenantPermissionGuard`、`TenantBaseGuard` 是新 scope Guard 的兼容别名；不再根据角色名分支，也不读取 `@Permissions`。组织访问规则保留在共享授权命令中，具体工作空间／项目授权仍由对应业务服务执行。
+- 拒绝原因区分 `permission_denied`、`request_scope_invalid`、`request_scope_mismatch`、`organization_access_denied`；内部日志还区分身份无效、权限未加载、显式空声明和缺少权限。不记录 token、Key 或提供商密钥。
+- 权限目录位于 `role-permission-modules.ts`，统一记录模块、弃用状态、是否可配置及是否仅为权限契约。默认角色仍由核心／AI 默认模块定义。运行 `node tools/scripts/generate-permission-reference.cjs --check` 校验自动生成表，提交检查也执行该校验。
+
+统一不表示所有资源都采用一套 ACL。运行 Assistant、工作空间编排、项目成员和服务操作仍保留各自的资源政策；本轮保留旧 Guard 的兼容调用，避免一次性删除第三方插件和已有控制器的入口。
+
+## 配置与排查方法
+
+1. 在正确的租户范围进入“设置 → 角色与权限”，查看目标角色实际启用项；操作人员需要 `CHANGE_ROLES_PERMISSIONS`。修改一个角色会影响共享该角色的用户。
+2. 新角色先按上面的功能组合配置，再通过正常管理流程分配组织成员关系、App、已发布 Assistant 和项目授权。
+3. 使用目标账号的 JWT 请求 `GET /api/user/me/permissions`，核对当前有效权限列表。该接口不接受 API principal 代替用户 JWT；结果受当前身份和范围约束，不是角色源码默认表，也不等于资源 ACL。
+4. 遇到 403，先检查所选组织及请求头：`tenant-id`、`organization-id`、`x-scope-level`。登录成功只表示身份有效，不表示选对了组织。已知组织必须来自当前账号获准读取的上下文。
+5. 再依次检查接口的方法／控制器声明、资源所有权／共享关系、服务身份范围及会员权益。不要通过更换无关组织、直接写数据库或补管理员角色来掩盖原因。
+6. 权限撤销后应验证旧 JWT 的下一次请求确实被拒绝，并检查前端权限刷新；最终以服务端校验为准。
+
+本地 API 验证使用 `tools/scripts/local-plugin-cli.mjs` 的 `requireAuthentication` 与 `createRequestHeaders`，凭据来自已配置登录环境或 Keychain，不读取浏览器凭据，也不把令牌放入文档。
+
+默认权限升级只补缺失项并保留已有显式禁用；本次新增权限迁移也会为已有自定义编排角色补缺失的 `XPERT_VIEW`。`POST /api/role-permissions/sync-defaults` 是需要权限的管理操作，会修改授权数据，不是只读诊断接口；普通角色保留显式禁用，SUPER_ADMIN 的默认项会被重新启用。部署后的实际记录应单独核对。
+
+## 维护依据
+
+权限清单需要与以下源码一起维护；新增枚举、修改默认分配、改变菜单／接口授权时同步更新本文。
+
+| 内容                   | 源码                                                                                                                                                                                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 角色与职责             | [role.model.ts](../../../packages/contracts/src/role.model.ts)                                                                                                                                                                                                                |
+| AI 权限编码            | [ai/role-permissions.ts](../../../packages/contracts/src/ai/role-permissions.ts)                                                                                                                                                                                              |
+| 核心权限编码与编辑分组 | [role-permission.model.ts](../../../packages/contracts/src/role-permission.model.ts)                                                                                                                                                                                          |
+| 核心默认分配           | [server/default-role-permissions.ts](../../../packages/server/src/role-permission/default-role-permissions.ts)                                                                                                                                                                |
+| AI 默认分配            | [server-ai/default-role-permissions.ts](../../../packages/server-ai/src/core/default-role-permissions.ts)                                                                                                                                                                     |
+| 新权限升级与默认同步   | [application-permission-upgrade.ts](../../../packages/server/src/role-permission/application-permission-upgrade.ts)、[role-permission.service.ts](../../../packages/server/src/role-permission/role-permission.service.ts)                                                    |
+| 统一接口规则           | [endpoint-permission.interceptor.ts](../../../packages/server/src/shared/guards/endpoint-permission.interceptor.ts)                                                                                                                                                           |
+| 工作空间能力与资源范围 | [workspace-access.service.ts](../../../packages/server-ai/src/xpert-workspace/workspace-access.service.ts)                                                                                                                                                                    |
+| 应用使用／安装入口     | [app-platform.controller.ts](../../../packages/server-ai/src/plugin-resource/app-platform/app-platform.controller.ts)、[plugin-application.controller.ts](../../../packages/server-ai/src/plugin-resource/application/plugin-application.controller.ts)                       |
+| 菜单与设置入口         | [menus.ts](../../../apps/cloud/src/app/features/menus.ts)、[settings-navigation.service.ts](../../../apps/cloud/src/app/features/setting/settings-navigation.service.ts)、[setting-routing.module.ts](../../../apps/cloud/src/app/features/setting/setting-routing.module.ts) |
+| 目标账号当前有效权限   | [current-user-permissions.controller.ts](../../../packages/server/src/user/permissions/current-user-permissions.controller.ts)                                                                                                                                                |
+
+完整默认分配另见 [自动生成表](../../role-permission-defaults.generated.md)，由两个默认权限模块及共享目录生成；25 项 AI 权限、37 项核心权限均应在表中出现一次。服务端与前端仍存在的旧角色校验需单独维护，不能从这张默认权限表推断其已被移除。

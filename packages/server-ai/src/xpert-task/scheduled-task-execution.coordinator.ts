@@ -1,3 +1,4 @@
+import { enqueueScheduledTaskCompletion } from './scheduled-task-notification'
 import { IXpertTask } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { randomUUID } from 'node:crypto'
@@ -74,8 +75,14 @@ export class TypeOrmScheduledTaskExecutionStore implements ScheduledTaskExecutio
         status: ScheduledTaskExecutionStatus,
         patch: DeepPartial<ScheduledTaskExecution>
     ) {
-        const result = await this.repository.update({ id, ownerId, status }, patch)
-        return result.affected === 1
+        return this.repository.manager.transaction(async (manager) => {
+            const result = await manager.getRepository(ScheduledTaskExecution).update({ id, ownerId, status }, patch)
+            if (result.affected === 1 && patch.status === ScheduledTaskExecutionStatus.SUCCEEDED) {
+                const completed = await manager.getRepository(ScheduledTaskExecution).findOneByOrFail({ id })
+                await enqueueScheduledTaskCompletion(manager, completed)
+            }
+            return result.affected === 1
+        })
     }
 }
 

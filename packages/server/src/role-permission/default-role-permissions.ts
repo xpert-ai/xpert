@@ -9,6 +9,7 @@ const BUSINESS_AREA_PLATFORM_PERMISSIONS = [
 ]
 
 const SUPER_ADMIN_PLATFORM_PERMISSIONS = [
+	PermissionsEnum.ANNOUNCEMENT_MANAGE,
 	...DATA_SOURCE_PLATFORM_PERMISSIONS,
 	...BUSINESS_AREA_PLATFORM_PERMISSIONS,
 	PermissionsEnum.PROFILE_EDIT,
@@ -105,6 +106,10 @@ const VIEWER_PLATFORM_PERMISSIONS = [
 ]
 
 export const DEFAULT_ROLE_PERMISSIONS = [
+	{
+		role: RolesEnum.APP_USER,
+		defaultEnabledPermissions: [PermissionsEnum.PROFILE_EDIT]
+	},
 	{
 		role: RolesEnum.SUPER_ADMIN,
 		defaultEnabledPermissions: [...SUPER_ADMIN_PLATFORM_PERMISSIONS]

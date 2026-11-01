@@ -1,3 +1,4 @@
+import { AssertAppPlatformUploadCommand } from '../../shared/app-platform-resource-policy'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -48,6 +49,19 @@ describe('AssistantFilesService storage', () => {
             size: 13
         }) as Express.Multer.File
 
+    it('rejects oversized uploads through both public file upload methods', async () => {
+        const files = service.forRuntime('assistant')
+        const failure = new Error('upload too large')
+        commands.execute.mockRejectedValueOnce(failure)
+        await expect(files.upload(file())).rejects.toBe(failure)
+        commands.execute.mockRejectedValueOnce(failure)
+        await expect(files.uploadToFolder('reports', file())).rejects.toBe(failure)
+        expect(
+            commands.execute.mock.calls.every(([command]) => command instanceof AssertAppPlatformUploadCommand)
+        ).toBe(true)
+        await expect(files.list()).resolves.toEqual([])
+    })
+
     it('uploads atomically to a content-addressed folder and returns a portable reference', async () => {
         const input = file()
         const files = service.forRuntime('assistant')
@@ -64,7 +78,11 @@ describe('AssistantFilesService storage', () => {
         })
         expect(await files.upload(input)).toEqual(reference)
         await expect(files.read(reference.filePath)).resolves.toMatchObject({ contents: '<html></html>' })
-        expect(commands.execute.mock.calls.every(([command]) => command.entry === 'runtime')).toBe(true)
+        expect(
+            commands.execute.mock.calls
+                .filter(([command]) => !(command instanceof AssertAppPlatformUploadCommand))
+                .every(([command]) => command.entry === 'runtime')
+        ).toBe(true)
     })
 
     it('initializes a missing workspace and lists without requiring a conversation', async () => {

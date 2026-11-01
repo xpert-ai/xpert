@@ -51,12 +51,13 @@ Current behavior is documented under `en/guides/artifacts-dashboard/` and
 `zh-Hans/guides/artifacts-dashboard/`, with matching routes in both language menus.
 Read these as feature documentation rather than a delivery plan:
 
-| Page                       | Maintained content                                                    |
-| -------------------------- | --------------------------------------------------------------------- |
-| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership |
-| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation            |
-| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing            |
-| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                |
+| Page                       | Maintained content                                                        |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `project-integration`      | Project type, ChatKit scope synchronization, picker and draft permissions |
+| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership     |
+| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation                |
+| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing                |
+| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                    |
 
 Keep historical plans and acceptance reports as dated evidence. Do not copy commit
 batches, local machine context or future proposals into the current feature pages.
@@ -85,6 +86,27 @@ describes the proposed migration manifest, runner, database baseline adoption,
 deployment integration, plugin migration lifecycle, and acceptance criteria.
 It is a delivery plan, not documentation of implemented behavior.
 
+## App Platform managed applications
+
+Maintain the implemented behavior in matching language routes:
+
+| Page                                                                               | English                                                   | 简体中文                                                          |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Accounts, provisioning, permissions, billing, storage, deployment and verification | [Managed applications](./en/guides/managed-apps.mdx)      | [受管应用交付与使用](./zh-Hans/guides/managed-apps.mdx)           |
+| Roles, default grants, feature combinations and authorization boundaries           | [Roles and permissions](./en/guides/role-permissions.mdx) | [角色、权限与功能对照清单](./zh-Hans/guides/role-permissions.mdx) |
+
+The completed Bid launch plan is consolidated into these feature pages. Historical
+business evidence is retained with its date and scope; it does not establish that
+later code has repeated the entire deployment acceptance. The website retains its
+native layout and controls feature visibility through enabled role permissions.
+
+Unimplemented Assistant/View navigation upgrades remain proposals:
+[English](./en/proposals/assistant-view-navigation-performance.mdx) /
+[简体中文](./zh-Hans/proposals/assistant-view-navigation-performance.mdx).
+The proposal separates existing behavior from future read sharing, View context,
+resource delivery and editor work. Promote accepted stages into the relevant
+feature pages when implementation and verification establish their behavior.
+
 ## Runtime Control architecture
 
 Maintain the overall design in [中文架构与实施计划](./zh-Hans/architecture/runtime-control.md)
@@ -102,3 +124,56 @@ ownership, durable control, local pause/resume and termination behavior. Append
 completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
+
+## Knowledgebase functional documentation
+
+Maintain current behavior in matching `en/guides/knowledgebase/` and
+`zh-Hans/guides/knowledgebase/` routes. Both language menus include the six pages:
+
+| Page                     | Maintained content                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `document-parsing`       | Format routing, inheritance, provider validation, snapshots and runtime requirements          |
+| `chunking`               | Automatic/structured splitting, previews, token budgets and source evidence                   |
+| `retrieval-pipeline`     | Vector/Keyword/Graph, fusion, index prerequisites, finalization and code organization         |
+| `faq`                    | Entries, creation-only configuration, projections, APIs and citations                         |
+| `faq-semantic-exclusion` | Negative matching, cache/prewarm, replenishment budgets and failures                          |
+| `wiki`                   | Configuration, source-derived pages, generation, visibility and remaining deletion boundaries |
+
+The completed FAQ, semantic-exclusion, parser and retrieval implementation plans
+have been removed. Their feature pages retain deployment and quality acceptance
+requirements; Git history preserves the original decisions and test evidence.
+Unfinished work is tracked separately in the bilingual proposals:
+[chunking extensions](./en/proposals/knowledgebase-chunking-next.mdx) /
+[分块扩展](./zh-Hans/proposals/knowledgebase-chunking-next.mdx) and
+[durable deletion](./en/proposals/knowledgebase-durable-deletion.mdx) /
+[持久化删除](./zh-Hans/proposals/knowledgebase-durable-deletion.mdx).
+The combined chunking and Wiki plans have been removed. Implementation completion
+and deployment acceptance remain separate; retiring a plan does not declare
+acceptance passed.
+
+中文功能入口：[文档解析](./zh-Hans/guides/knowledgebase/document-parsing.mdx)、
+[分块](./zh-Hans/guides/knowledgebase/chunking.mdx)、
+[检索与融合](./zh-Hans/guides/knowledgebase/retrieval-pipeline.mdx)、
+[FAQ](./zh-Hans/guides/knowledgebase/faq.mdx)、
+[语义反例排除](./zh-Hans/guides/knowledgebase/faq-semantic-exclusion.mdx)、
+[Wiki](./zh-Hans/guides/knowledgebase/wiki.mdx)。中英文页面同步维护。
+
+## Project-backed Spaces functional documentation
+
+The Project-and-files upgrade is implemented. Its old implementation plan has
+been removed and consolidated into the existing [English Spaces guide](./en/guides/spaces.mdx),
+[中文功能文档](./zh-Hans/guides/spaces.mdx), [English architecture](./en/architecture/spaces-content.mdx)
+and [中文架构文档](./zh-Hans/architecture/spaces-content.mdx).
+These pages retain the unclosed native-browser download byte check and distinguish
+historical acceptance from newer content-platform and released-package validation.
+Do not treat that remaining acceptance task as unimplemented Project ownership or
+reintroduce the retired standalone Space Volume and migration design.
+
+## Announcements and realtime notifications
+
+[公告与用户实时通知](./announcements-and-realtime-notifications.md) documents the
+accepted Web/Bosi announcement workflow, permissions, durable delivery and SSE,
+personal scheduled-task results, shared date/time controls, migration and verification.
+The [completed plan index](./plans/2026-10-31-announcements-and-realtime-notifications.md)
+retains the original planning link. Mobile Push and external messaging channels remain
+future integrations; local acceptance does not imply a production release.

@@ -27,6 +27,7 @@ import { ModelAccessRequestWithdrawDto } from '../model-access/dto'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('model-gateway')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelGatewayController {
     constructor(
         private readonly service: ModelGatewayService,

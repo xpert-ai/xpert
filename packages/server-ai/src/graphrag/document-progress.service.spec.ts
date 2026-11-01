@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { KBDocumentStatusEnum, KnowledgeGraphIndexJobStatus } from '@xpert-ai/contracts'
 import { EntityManager, Repository } from 'typeorm'
 import { KnowledgeDocument } from '../knowledge-document/document.entity'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphIndexJob } from './entities/knowledge-graph-index-job.entity'
 import { GraphDocumentProgressService } from './document-progress.service'
 

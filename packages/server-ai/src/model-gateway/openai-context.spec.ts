@@ -1,9 +1,12 @@
+import { EndpointPermissionInterceptor } from '../../../server/src/shared/guards/endpoint-permission.interceptor'
+import { FakeListChatModel } from '@langchain/core/utils/testing'
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages'
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import {
     AiModelTypeEnum,
+    AIPermissionsEnum,
     ICopilotModel,
     IModelAccessResolution,
     ModelAccessChannelEnum,
@@ -180,7 +183,21 @@ async function createFixture(
         organizationId: organizationId ?? 'key-org',
         userId
     })
-    const identity = { apiKey, user: Object.assign(new User(), { id: userId, tenantId }) }
+    const identity = {
+        apiKey,
+        user: Object.assign(new User(), {
+            id: userId,
+            tenantId,
+            roleId: 'role',
+            role: {
+                id: 'role',
+                name: 'GATEWAY_USER',
+                rolePermissions: [
+                    { tenantId, roleId: 'role', permission: AIPermissionsEnum.MODEL_GATEWAY_USE, enabled: true }
+                ]
+            }
+        })
+    }
     const publication = Object.assign(new ModelGatewayPublication(), {
         id: 'publication-1',
         tenantId,
@@ -282,6 +299,7 @@ async function startHttpFixture(fixture: Awaited<ReturnType<typeof createFixture
     app.use(legacyContext.use.bind(legacyContext))
     app.use(pluginContext.use.bind(pluginContext))
     app.useGlobalGuards(new AuthGuard(new Reflector()), new PluginScopeGuard(new Reflector()))
+    app.useGlobalInterceptors(new EndpointPermissionInterceptor(new Reflector()))
     app.setGlobalPrefix('api')
     await app.listen(0, '127.0.0.1')
     const baseUrl = await app.getUrl()
@@ -589,6 +607,25 @@ describe('OpenAI gateway authenticated model context', () => {
                 expect(fixture.scopes).toContainEqual({ stage, ...fixture.expected() })
             }
             expect(fixture.service.authenticate).toHaveBeenCalledWith('Bearer fixture-key')
+            expect(fixture.service.authenticate).toHaveBeenCalledTimes(2)
+        } finally {
+            await http.app.close()
+            await fixture.module.close()
+        }
+    })
+
+    it('enforces effective gateway permissions after key authentication on every HTTP request', async () => {
+        const fixture = await createFixture()
+        const http = await startHttpFixture(fixture)
+        try {
+            for (const enabled of [true, false, true]) {
+                fixture.identity.user.role.rolePermissions[0].enabled = enabled
+                const response = await http.models()
+                expect(response.status).toBe(enabled ? 200 : 403)
+                await response.json()
+            }
+            expect(fixture.service.authenticate).toHaveBeenCalledTimes(3)
+            expect(fixture.service.listAccessiblePublications).toHaveBeenCalledTimes(2)
         } finally {
             await http.app.close()
             await fixture.module.close()

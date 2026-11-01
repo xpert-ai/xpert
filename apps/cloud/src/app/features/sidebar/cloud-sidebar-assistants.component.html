@@ -178,20 +178,22 @@
             </button>
           }
 
-          <button
-            type="button"
-            class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            z-menu
-            #conversationMenuTrigger="zMenuTrigger"
-            [zMenuTriggerFor]="conversationMenu"
-            [attr.aria-label]="'XP.Groups.Menu' | translate"
-            [zTooltip]="'XP.Groups.Menu' | translate"
-          >
-            <i class="ri-group-line"></i>
-          </button>
-          <ng-template #conversationMenu
-            ><xp-workbench-assistant-menu (selected)="conversationMenuTrigger.close()"
-          /></ng-template>
+          @if (canCreateDigitalExpert()) {
+            <button
+              type="button"
+              class="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              z-menu
+              #conversationMenuTrigger="zMenuTrigger"
+              [zMenuTriggerFor]="conversationMenu"
+              [attr.aria-label]="'XP.Groups.Menu' | translate"
+              [zTooltip]="'XP.Groups.Menu' | translate"
+            >
+              <i class="ri-group-line"></i>
+            </button>
+            <ng-template #conversationMenu
+              ><xp-workbench-assistant-menu (selected)="conversationMenuTrigger.close()"
+            /></ng-template>
+          }
 
           <button
             type="button"
@@ -402,11 +404,11 @@
   @if (canCreateDigitalExpert()) {
     <button
       type="button"
-      class="mb-2 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="mb-2 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       (click)="openCreateDigitalExpert($event)"
     >
       <i
-        class="ri-add-line inline-flex size-7 shrink-0 items-center justify-center text-[18px] leading-none"
+        class="ri-add-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
         aria-hidden="true"
       ></i>
       {{ 'XP.Xpert.CreateDigitalExpert' | translate }}
@@ -443,7 +445,7 @@
     <div
       role="button"
       tabindex="0"
-      class="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="flex min-h-9 pointer-coarse:min-h-[44px] cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       [attr.data-sidebar-panel-title]="assistantLabel(xpert)"
       [attr.aria-label]="assistantLabel(xpert)"
       [xpSidebarPanelTrigger]="assistantContent"
@@ -455,7 +457,7 @@
     >
       <emoji-avatar
         xs
-        class="size-7! shrink-0 overflow-hidden rounded-lg"
+        class="size-[24px]! shrink-0 overflow-hidden rounded-lg"
         [avatar]="xpert.avatar"
         [alt]="assistantLabel(xpert)"
         [fallbackLabel]="assistantLabel(xpert)"
@@ -506,7 +508,7 @@
   @if (shouldRender() && availableAssistant(xpert)) {
     <button
       type="button"
-      class="mb-1 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-base leading-5 text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="mb-1 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       (click)="startAssistantConversation($event, xpert)"
     >
       <i
@@ -529,7 +531,7 @@
         @for (item of filteredAssistantViews(xpert, query); track item.viewKey) {
           <button
             type="button"
-            class="flex min-h-10 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 px-3 py-2 text-left text-base leading-5 transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="flex min-h-9 pointer-coarse:min-h-[44px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 px-3 py-1.5 text-left text-base leading-5 transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             [class]="
               isAssistantMenuItemActive(xpert, item)
                 ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
@@ -543,7 +545,7 @@
               <xp-icon
                 class="flex size-[24px] shrink-0 items-center justify-center"
                 [icon]="item.icon"
-                [size]="24"
+                [size]="20"
                 aria-hidden="true"
               />
             } @else {
@@ -642,7 +644,7 @@
       <button
         type="button"
         data-sidebar-panel-action
-        class="mt-1 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="mt-1 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         (click)="openAssistantSettings($event, xpert)"
       >
         <i

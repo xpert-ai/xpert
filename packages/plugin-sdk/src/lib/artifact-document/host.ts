@@ -32,7 +32,7 @@ export interface ArtifactDocumentHostOptions<T> {
   html: string
   /** Exact packaged bytes pinned to this Artifact version, never URLs or library names from the document. */
   dependencies?: ArtifactDocumentDependencyAsset[]
-  /** Optional trusted HTTPS resource allowlist. Omit to keep all external resources blocked. */
+  /** Trusted resource policy; unrestricted mode permits networking. Omit to block external resources. */
   networkPolicy?: ArtifactDocumentNetworkPolicy
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext

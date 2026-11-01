@@ -6,7 +6,7 @@ import {
 	ImageUnderstandingRegistry,
 	TextSplitterRegistry
 } from '@xpert-ai/plugin-sdk'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeStrategyQuery } from '../strategy.query'
 
 @QueryHandler(KnowledgeStrategyQuery)

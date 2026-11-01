@@ -4,7 +4,7 @@ import { environment } from '@xpert-ai/server-config'
 import { KnowledgeDocumentChunk } from '../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
 import { questionSourceHash } from '../../knowledge-document/questions/question-generation'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { prepareKnowledgeFilter } from '../filter'
 import { VectorKnowledgeCandidateRetriever } from './vector-knowledge-candidate.retriever'
 

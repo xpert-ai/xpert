@@ -93,7 +93,13 @@ function modelHash(team) {
             selected.memory?.copilotModel,
             selected.features?.speechToText?.copilotModel,
             selected.features?.textToSpeech?.copilotModel
-        ].map(modelSelection)
+        ].map((model) => {
+            const selection = modelSelection(model)
+            // Only the publication model comparison normalizes this nullable relation.
+            // Keep graph/state fingerprints stable for durable checkpoints already in progress.
+            if (selection?.referencedId == null && selection) delete selection.referencedId
+            return selection
+        })
     )
 }
 

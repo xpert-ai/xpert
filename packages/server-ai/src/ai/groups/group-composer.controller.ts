@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { parseRuntimeResources } from '../../agent-plugin/runtime-resource-selection'
@@ -20,6 +22,7 @@ import { workspaceFilesQuerySchema, WorkspaceFilesQuery } from '../assistant-wor
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/members/:participantId/composer')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class GroupComposerController {
     constructor(private readonly composer: GroupComposerService) {}
     @Get('context')

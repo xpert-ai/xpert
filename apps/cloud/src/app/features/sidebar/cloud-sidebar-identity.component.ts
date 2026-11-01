@@ -28,7 +28,15 @@ import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
-import { IOrganization, OrganizationsService, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../@core'
+import {
+  IOrganization,
+  OrganizationsService,
+  PermissionsEnum,
+  RequestScopeLevel,
+  RolesEnum,
+  ScopeService,
+  Store
+} from '../../@core'
 import { OrgAvatarComponent } from '../../@shared/organization'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
@@ -148,7 +156,14 @@ export class CloudSidebarIdentityComponent {
       page.items.length < page.total
     )
   })
-  readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
+  private readonly rolePermissions = toSignal(this.#store.userRolePermissions$)
+  readonly canOpenMenu = computed(() => {
+    this.rolePermissions()
+    return (
+      this.#store.hasPermission(PermissionsEnum.CHANGE_SELECTED_ORGANIZATION) &&
+      (this.showTenantScopeItem() || this.hasOrganizations())
+    )
+  })
   private tenantOrganizationsRequestId = 0
 
   constructor() {

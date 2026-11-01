@@ -4,6 +4,8 @@ import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtre
 import { XpertProjectAccessService } from './project-access.service'
 import { XpertProjectContentService } from './project-content.service'
 import { ContentFileOwnershipService } from '../../shared/volume/content-file-ownership.service'
+import { CommandBus } from '@nestjs/cqrs'
+import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 
 @Injectable()
 export class XpertProjectWorkspaceFilesService {
@@ -12,7 +14,8 @@ export class XpertProjectWorkspaceFilesService {
         private readonly contentService: XpertProjectContentService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
-        private readonly contentOwnership: ContentFileOwnershipService
+        private readonly contentOwnership: ContentFileOwnershipService,
+        private readonly commands: CommandBus
     ) {}
 
     async list(projectId: string, filePath?: string, deepth?: number) {
@@ -45,6 +48,7 @@ export class XpertProjectWorkspaceFilesService {
         folderPath: string,
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ) {
+        await assertAppPlatformUpload(this.commands, file.buffer.length)
         const normalizedFolder = normalizeProjectWorkspacePath(folderPath, true)
         if (isProjectGovernedContentPath(normalizedFolder || file.originalname)) {
             throw new BadRequestException(

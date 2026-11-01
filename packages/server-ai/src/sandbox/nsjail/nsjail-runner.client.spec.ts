@@ -40,7 +40,7 @@ describe('NsjailRunnerClient', () => {
 
         await expect(client.getHealth()).resolves.toEqual({
             available: true,
-            capabilities: { projectContentReadOnly: false, appDataProtection: false },
+            capabilities: { projectContentReadOnly: false, appDataProtection: false, storageBudget: false },
             protocolVersion: null
         })
     })
@@ -49,8 +49,8 @@ describe('NsjailRunnerClient', () => {
         fetchSpy.mockResolvedValue(
             new Response(
                 JSON.stringify({
-                    capabilities: { projectContentReadOnly: true, appDataProtection: true },
-                    protocolVersion: 3,
+                    capabilities: { projectContentReadOnly: true, appDataProtection: true, storageBudget: true },
+                    protocolVersion: 4,
                     status: 'ok'
                 }),
                 {
@@ -62,8 +62,8 @@ describe('NsjailRunnerClient', () => {
 
         await expect(client.getHealth()).resolves.toEqual({
             available: true,
-            capabilities: { projectContentReadOnly: true, appDataProtection: true },
-            protocolVersion: 3
+            capabilities: { projectContentReadOnly: true, appDataProtection: true, storageBudget: true },
+            protocolVersion: 4
         })
     })
 

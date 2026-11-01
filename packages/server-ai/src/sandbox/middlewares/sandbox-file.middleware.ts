@@ -10,9 +10,10 @@ import {
     IAgentMiddlewareStrategy,
     PromiseOrValue,
     workspaceRelativeFilePathSchema,
+    workspaceRelativeDirectoryPathSchema,
     workspaceFileMutationMetadata
 } from '@xpert-ai/plugin-sdk'
-import { isAbsolute, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { z } from 'zod/v3'
 import { getToolCallId, withToolMessage } from './tool-message.utils'
 import { observeFileChanges } from './file-activity'
@@ -23,6 +24,7 @@ import { assertSandboxFeatureEnabled } from './xpert-feature-gate'
 const SANDBOX_FILE_MIDDLEWARE_NAME = 'SandboxFile'
 const WORKSPACE_RELATIVE_PATH_REQUIREMENT =
     'Use a workspace-relative path under the sandbox working directory (for example, outline.yaml). Never pass /workspace/... or a host absolute path.'
+const WORKSPACE_RELATIVE_DIRECTORY_REQUIREMENT = `${WORKSPACE_RELATIVE_PATH_REQUIREMENT} Use . for the workspace root. A trailing directory slash is allowed.`
 
 const indentationSchema = z
     .object({
@@ -59,22 +61,16 @@ const globToolSchema = z.object({
         .string()
         .min(1, 'Pattern is required.')
         .describe('The glob pattern to match files against (e.g., "**/*.ts", "src/*.py")'),
-    path: z
-        .string()
+    path: workspaceRelativeDirectoryPathSchema
         .optional()
-        .describe(
-            `${WORKSPACE_RELATIVE_PATH_REQUIREMENT} Defaults to the current directory if not specified. Always provide this parameter for best results.`
-        )
+        .describe(`${WORKSPACE_RELATIVE_DIRECTORY_REQUIREMENT} Defaults to the workspace root if not specified.`)
 })
 
 const grepToolSchema = z.object({
     pattern: z.string().min(1, 'Pattern is required.').describe('The regex pattern to search for in file contents'),
-    path: z
-        .string()
+    path: workspaceRelativeDirectoryPathSchema
         .optional()
-        .describe(
-            `${WORKSPACE_RELATIVE_PATH_REQUIREMENT} Defaults to the current directory if not specified. Always provide this parameter for best results.`
-        ),
+        .describe(`${WORKSPACE_RELATIVE_DIRECTORY_REQUIREMENT} Defaults to the workspace root if not specified.`),
     include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")')
 })
 
@@ -131,7 +127,7 @@ const appendToolSchema = z
     .strict()
 
 const listDirToolSchema = z.object({
-    dir_path: z.string().min(1, 'Directory path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+    dir_path: workspaceRelativeDirectoryPathSchema.describe(WORKSPACE_RELATIVE_DIRECTORY_REQUIREMENT),
     offset: z.number().optional().describe('1-indexed entry number to start from (defaults to 1)'),
     limit: z.number().optional().describe('Maximum number of entries to return (defaults to 25)'),
     depth: z.number().optional().describe('Maximum depth to traverse (defaults to 2)')
@@ -157,11 +153,8 @@ function resolveSandboxPath(config: any, fileOrDirPath?: string): string {
     if (!fileOrDirPath) {
         return workingDirectory
     }
-    // Agent contract: callers must provide workspace-relative paths. The
-    // middleware intentionally does not translate portable or host-absolute
-    // paths; keeping this boundary explicit prevents provider-specific path
-    // assumptions from leaking into the SandboxFile API.
-    return isAbsolute(fileOrDirPath) ? fileOrDirPath : resolve(workingDirectory, fileOrDirPath)
+    // Agent paths are validated as workspace-relative before backend resolution.
+    return resolve(workingDirectory, fileOrDirPath)
 }
 
 function stringifyPortableFileResult(result: unknown, filePath: string) {
@@ -247,8 +240,9 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             {
                 name: 'sandbox_glob',
                 description:
-                    'Fast file pattern matching tool. Returns matching file paths sorted by modification time. Use this when you need to find files by name patterns.',
-                schema: globToolSchema
+                    'Fast file pattern matching tool. Returns workspace-relative file paths that can be passed directly to sandbox_read_file. Use this when you need to find files by name patterns.',
+                schema: globToolSchema,
+                verboseParsingErrors: true
             }
         )
 
@@ -263,8 +257,9 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             {
                 name: 'sandbox_grep',
                 description:
-                    'Fast content search tool using regex. Returns matching file paths and line numbers, sorted by modification time. Use include parameter to filter files by pattern.',
-                schema: grepToolSchema
+                    'Fast content search tool using regex. Returns workspace-relative file paths and line numbers. Pass the file path to sandbox_read_file; use include to filter files by pattern.',
+                schema: grepToolSchema,
+                verboseParsingErrors: true
             }
         )
 
@@ -433,8 +428,9 @@ CRITICAL FORMAT REQUIREMENTS:
             {
                 name: 'sandbox_list_dir',
                 description:
-                    'List directory contents recursively with depth control and pagination. Returns a tree-like view with indentation showing directory structure. Directories end with /, symlinks with @. Use offset and limit for pagination through large directories.',
-                schema: listDirToolSchema
+                    'List directory contents recursively with depth control and pagination. All returned paths are relative to the workspace root, including entries under nested directories, and file paths can be passed directly to sandbox_read_file. Directories end with /, symlinks with @. Use dir_path="." for the workspace root; use offset and limit for pagination.',
+                schema: listDirToolSchema,
+                verboseParsingErrors: true
             }
         )
 

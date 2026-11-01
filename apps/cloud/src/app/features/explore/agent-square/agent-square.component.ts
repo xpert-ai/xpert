@@ -43,7 +43,6 @@ import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dialog.component'
 import { ExploreScopeService } from '../explore-scope.service'
-import { ExploreScopeComponent } from '../explore-scope.component'
 
 export type AgentSquareCatalog = 'experts' | 'applications' | 'templates'
 type ExpertSort = 'match' | 'updated'
@@ -67,8 +66,7 @@ const TEMPLATE_SOURCES: TemplateSource[] = ['agent-plugin', 'plugin', 'builtin',
     EmojiAvatarComponent,
     IconComponent,
     ZardButtonComponent,
-    ZardIconComponent,
-    ExploreScopeComponent
+    ZardIconComponent
   ],
   templateUrl: './agent-square.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -204,6 +202,11 @@ export class ExploreAgentSquareComponent {
       )
     ).sort()
   )
+  readonly visibleBusinessCategories = computed(() => {
+    if (this.catalog() !== 'applications') return this.businessCategories
+    const available = new Set(this.applicationCategories())
+    return this.businessCategories.filter((category) => available.has(category))
+  })
   readonly applicationTags = computed(() =>
     Array.from(new Set(this.applications().flatMap((item) => item.marketplace.tags))).sort((left, right) =>
       left.localeCompare(right)
@@ -386,6 +389,13 @@ export class ExploreAgentSquareComponent {
 
   setCatalog(catalog: AgentSquareCatalog) {
     this.catalog.set(catalog)
+    if (this.#applicationsLoaded && !this.loadingApplications()) this.reconcileApplicationCategory()
+  }
+
+  private reconcileApplicationCategory() {
+    if (this.catalog() !== 'applications') return
+    const available = new Set(this.applicationCategories())
+    this.selectedBusinessCategories.update((selected) => selected.filter((category) => available.has(category)))
   }
 
   async loadExperts(query = this.currentExpertQuery()) {
@@ -452,7 +462,10 @@ export class ExploreAgentSquareComponent {
     this.applicationLoadError.set(null)
     try {
       const result = await firstValueFrom(this.#applicationService.getCatalog())
-      if (version === this.#scopeVersion) this.applications.set(result)
+      if (version === this.#scopeVersion) {
+        this.applications.set(result)
+        this.reconcileApplicationCategory()
+      }
     } catch (error) {
       if (version !== this.#scopeVersion) return
       this.#applicationsLoaded = false

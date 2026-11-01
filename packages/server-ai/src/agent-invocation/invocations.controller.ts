@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { AgentJson, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -15,6 +17,7 @@ const reply = z.object({ interactionId: z.string().min(1), response: json }).str
 
 /** Owner-scoped inspection; native graph/task controls retain their existing routes. */
 @Controller('agent-invocations')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AgentInvocationsController {
     constructor(
         @InjectRepository(AgentInvocationEntity) private readonly records: Repository<AgentInvocationEntity>,

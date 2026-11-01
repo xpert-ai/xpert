@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { BadRequestException, Body, Controller, Param, Post, UseGuards } from '@nestjs/common'
 import { ApiKeyOrClientSecretAuthGuard, Public } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -16,6 +18,7 @@ const baseline = z.object({ expectedSequence: z.number().int().nonnegative(), ep
 @Public()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @AssistantFileAccess('workspace')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('assistants/:assistantId/projects/:projectId/content/:resourceId')
 export class ContentDocumentsController {
     constructor(

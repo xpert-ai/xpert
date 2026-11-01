@@ -40,6 +40,7 @@ jest.mock('../../../@core', () => {
   return {
     IOrganization: {},
     OrganizationsService,
+    PermissionsEnum: { CHANGE_SELECTED_ORGANIZATION: 'CHANGE_SELECTED_ORGANIZATION' },
     RequestScopeLevel: {
       ORGANIZATION: 'organization',
       TENANT: 'tenant'
@@ -86,6 +87,8 @@ describe('OrganizationSelectorComponent', () => {
     }
     const user$ = new BehaviorSubject(currentUser)
     const store = {
+      userRolePermissions$: new BehaviorSubject([]),
+      hasPermission: () => true,
       featureContextHydrated: false,
       featureOrganizations: [],
       selectedOrganization: null,
@@ -176,7 +179,7 @@ describe('OrganizationSelectorComponent', () => {
 describe('OrganizationSelectorComponent dropdown', () => {
   afterEach(() => TestBed.resetTestingModule())
 
-  async function setup(role = 'SUPER_ADMIN') {
+  async function setup(role = 'SUPER_ADMIN', canSwitch = true) {
     const organization = { id: 'org-1', name: 'Example Organization', isActive: true }
     const currentUser = {
       id: 'user-1',
@@ -202,6 +205,8 @@ describe('OrganizationSelectorComponent dropdown', () => {
         {
           provide: jest.requireMock('../../../@core').Store,
           useValue: {
+            userRolePermissions$: new BehaviorSubject([]),
+            hasPermission: () => canSwitch,
             user: currentUser,
             user$: user$.asObservable(),
             selectedOrganization: null,
@@ -234,6 +239,14 @@ describe('OrganizationSelectorComponent dropdown', () => {
     }
     return { fixture, trigger, overlay, open, scopeService, organizationsService, organization }
   }
+
+  it('keeps the current scope visible but cannot open the selector without its permission', async () => {
+    const { fixture, trigger, overlay, open } = await setup('APP_USER', false)
+    expect(fixture.componentInstance.canOpenMenu()).toBe(false)
+    await open()
+    expect(overlay.textContent).not.toContain('Example Organization')
+    expect(trigger.textContent).toBeTruthy()
+  })
 
   it('switches scope through the existing service by keyboard and click, and marks the active item', async () => {
     const { fixture, trigger, overlay, open, scopeService, organization } = await setup()

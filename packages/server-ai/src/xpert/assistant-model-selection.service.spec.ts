@@ -1,4 +1,4 @@
-import { AiModelTypeEnum, LanguagesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, ModelAccessUnavailableReasonEnum, RolesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
@@ -27,12 +27,13 @@ describe('AssistantModelSelectionService', () => {
         setDomain: jest.Mock
         clearDomain: jest.Mock
     }
-    let modelAccessService: { canUseCatalogModels: jest.Mock; getCatalogModelLabels: jest.Mock }
+    let modelAccessService: { canUseCatalogModels: jest.Mock; getCatalogModelLabels: jest.Mock; resolveModelAccess: jest.Mock }
     let configService: { get: jest.Mock }
     let service: AssistantModelSelectionService
 
     beforeEach(() => {
         jest.restoreAllMocks()
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
@@ -43,6 +44,7 @@ describe('AssistantModelSelectionService', () => {
             clearDomain: jest.fn().mockResolvedValue(true)
         }
         modelAccessService = {
+            resolveModelAccess: jest.fn().mockResolvedValue({ allowed: true, unavailableReason: null }),
             canUseCatalogModels: jest.fn().mockResolvedValue([true, true]),
             getCatalogModelLabels: jest.fn().mockResolvedValue([null, null])
         }
@@ -52,6 +54,18 @@ describe('AssistantModelSelectionService', () => {
             modelAccessService as never,
             configService as never
         )
+    })
+
+    it.each([
+        [ModelAccessUnavailableReasonEnum.MembershipRequired, 'application_trial_unavailable', 403],
+        [ModelAccessUnavailableReasonEnum.QuotaExhausted, 'application_credit_limit', 402],
+        [ModelAccessUnavailableReasonEnum.ModelDisabled, 'application_primary_model_unavailable', 403]
+    ])('returns an application business error for %s without exposing model configuration', async (reason, code, status) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.APP_USER } })
+        modelAccessService.resolveModelAccess.mockResolvedValue({ allowed: false, unavailableReason: reason })
+        await expect(service.resolveSelection(xpert)).rejects.toMatchObject({ status, response: { code } })
+        expect(userPreferenceService.getDomain).not.toHaveBeenCalled()
     })
 
     it('returns Primary first and a saved available preference', async () => {

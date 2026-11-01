@@ -1,14 +1,17 @@
 import { instanceToPlain } from 'class-transformer'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Test } from '@nestjs/testing'
 import { AssistantBindingScope, AssistantCode, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 
-jest.mock('@xpert-ai/server-core', () => ({ TransformInterceptor: class {} }))
+jest.mock('@xpert-ai/server-core', () => ({ TransformInterceptor: class {}, Permissions: () => () => undefined }))
 jest.mock('./assistant-binding.service', () => ({ AssistantBindingService: class {} }))
 
 import { AssistantBindingController } from './assistant-binding.controller'
 import { AssistantBindingService } from './assistant-binding.service'
 
 describe('assistant binding catalog response', () => {
+    beforeEach(() => jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true))
+    afterEach(() => jest.restoreAllMocks())
     it.each(Object.values(AssistantBindingScope))('returns only catalog fields for %s scope', async (scope) => {
         const internal = 'internal-private-data'.repeat(10_000)
         const xpert = {
@@ -18,6 +21,18 @@ describe('assistant binding catalog response', () => {
             latest: true,
             workspaceId: 'workspace',
             createdById: 'owner',
+            starters: ['Use my data'],
+            features: {
+                opener: {
+                    enabled: true,
+                    message: 'Create a dashboard',
+                    questions: ['Try a demo', { label: 'Sales', prompt: 'Full instruction', internal }],
+                    internal
+                },
+                frequentQuestions: { enabled: true, internal },
+                suggestion: { enabled: true, prompt: internal },
+                textToSpeech: { enabled: true, copilotModel: { config: internal } }
+            },
             businessAreaId: 'area',
             businessArea: { id: 'area', name: 'Sales', description: internal },
             tags: [{ id: 'tag', name: 'Sales', tenantId: internal }],
@@ -34,7 +49,12 @@ describe('assistant binding catalog response', () => {
                     defaultViewKey: 'orders',
                     internal
                 },
-                workspaceScope: { mode: 'project-preferred', onMissing: 'create', internal },
+                workspaceScope: {
+                    mode: 'project-preferred',
+                    onMissing: 'create',
+                    projectType: { applicationKey: 'live-dashboard', projectTypeKey: 'dashboard', internal },
+                    internal
+                },
                 templateSource: { manifest: internal },
                 pendingPublication: internal
             },
@@ -58,7 +78,7 @@ describe('assistant binding catalog response', () => {
 
         expect(service.getAvailableXperts).toHaveBeenCalledWith(scope, AssistantCode.CLAWXPERT)
         expect(serialized).not.toContain('internal-private-data')
-        expect(serialized.length).toBeLessThan(1_000)
+        expect(serialized.length).toBeLessThan(1_500)
         expect(result).toEqual([
             expect.objectContaining({
                 id: 'assistant',
@@ -66,6 +86,15 @@ describe('assistant binding catalog response', () => {
                 workspaceId: 'workspace',
                 createdById: 'owner',
                 latest: true,
+                starters: ['Use my data'],
+                features: {
+                    opener: {
+                        enabled: true,
+                        message: 'Create a dashboard',
+                        questions: ['Try a demo', { label: 'Sales', prompt: 'Full instruction' }]
+                    },
+                    frequentQuestions: { enabled: true }
+                },
                 businessArea: { id: 'area', name: 'Sales' },
                 tags: [{ id: 'tag', name: 'Sales' }],
                 workspace: {
@@ -75,7 +104,11 @@ describe('assistant binding catalog response', () => {
                 },
                 options: {
                     workbench: { initialLayout: 'two-columns', defaultViewKey: 'orders' },
-                    workspaceScope: { mode: 'project-preferred', onMissing: 'create' }
+                    workspaceScope: {
+                        mode: 'project-preferred',
+                        onMissing: 'create',
+                        projectType: { applicationKey: 'live-dashboard', projectTypeKey: 'dashboard' }
+                    }
                 }
             })
         ])

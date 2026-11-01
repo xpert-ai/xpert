@@ -66,7 +66,15 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 					sources.push({
 						source,
 						name: item.name,
-						providers: providers.map((provider) => publicDescriptor(provider.descriptor))
+						providers: providers.map((provider) => {
+							const restriction = item.providers.find(
+								(candidate) => candidate.id === provider.descriptor.id
+							)?.sharing
+							return publicDescriptor({
+								...provider.descriptor,
+								...(restriction?.mode === 'owner_only' ? { sharing: restriction } : {})
+							})
+						})
 					})
 			}
 		}

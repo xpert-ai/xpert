@@ -10,7 +10,7 @@ import { BUILTIN_GLOBAL_SCOPE, IKeywordAnalyzerStrategy, KeywordAnalyzerRegistry
 import { DataSource, EntityManager } from 'typeorm'
 import { t } from 'i18next'
 import { keywordTsQuery, keywordTsVector } from './keyword-lexemes'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { keywordIdentifiers, keywordQueryPlan } from './keyword-query'
 
 type AnalyzerKnowledgebase = Pick<

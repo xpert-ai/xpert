@@ -9,7 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { UserModule } from '@xpert-ai/server-core'
 import { KnowledgeDocumentModule } from '../knowledge-document'
 import { KnowledgebaseModule } from '../knowledgebase'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { CommandHandlers } from './commands/handlers'
 import {
     KnowledgeGraphCommunity,

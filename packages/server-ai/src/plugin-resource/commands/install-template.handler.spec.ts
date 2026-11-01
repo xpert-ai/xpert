@@ -58,7 +58,7 @@ jest.mock('../../xpert-workspace', () => ({
     XpertWorkspaceAccessService: class XpertWorkspaceAccessService {}
 }))
 
-jest.mock('../plugin-resource-installer.service', () => ({
+jest.mock('../installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class PluginResourceInstallerService {}
 }))
 
@@ -546,7 +546,7 @@ describe('PluginTemplateInstallHandler', () => {
                 execute: jest.fn().mockResolvedValue([
                     {
                         id: model.copilotId,
-                        ...(source === 'default' ? { role: AiProviderRole.Primary, copilotModel: configured } : {}),
+                        ...(source === 'default' ? { defaultModels: { primary: configured } } : {}),
                         providerWithModels: { models: [{ model: model.model, model_type: AiModelTypeEnum.LLM }] }
                     }
                 ])

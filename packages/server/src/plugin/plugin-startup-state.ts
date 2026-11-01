@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path'
 import type { Worker } from 'node:worker_threads'
 import { createPluginStartupWatchdog } from './plugin-startup-watchdog'
 import { z } from 'zod'
+import { getConfig } from '@xpert-ai/server-config'
 import { serializePluginConfig, deserializePluginConfig } from './plugin-config.crypto'
 import type { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import type { OrganizationPluginConfig } from './plugin-instance.loader'
@@ -217,8 +218,9 @@ export function beginPluginStartup(root: string, timeoutMs = 120_000): void {
 	const replica = createHash('sha256')
 		.update(process.env.XPERT_INSTANCE_ID || process.env.HOSTNAME || hostname())
 		.digest('hex')
-	startup = new PluginStartupState(join(root, 'plugins', '.runtime-plugin-state', `${replica}.json`))
-	watchdog = createPluginStartupWatchdog(join(root, 'plugins', '.runtime-plugin-state', `${replica}.json`), timeoutMs)
+	const pluginRoot = getConfig().assetOptions.pluginPath ?? join(root, 'plugins')
+	startup = new PluginStartupState(join(pluginRoot, '.runtime-plugin-state', `${replica}.json`))
+	watchdog = createPluginStartupWatchdog(join(pluginRoot, '.runtime-plugin-state', `${replica}.json`), timeoutMs)
 }
 export function selectPluginStartup(groups: OrganizationPluginConfig[]): OrganizationPluginConfig[] {
 	return startup?.select(groups) ?? groups

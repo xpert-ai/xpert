@@ -442,7 +442,16 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     ) {
         try {
             const task = await this.findOne(id, {
-                relations: ['xpert', 'createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
+                // Reload enabled permissions for this run; a saved identity is not a permission grant.
+                relations: [
+                    'xpert',
+                    'createdBy',
+                    'createdBy.role',
+                    'createdBy.role.rolePermissions',
+                    'runAsUser',
+                    'runAsUser.role',
+                    'runAsUser.role.rolePermissions'
+                ]
             })
             const actor = task.runAsUser ?? task.createdBy
             if (!actor) {

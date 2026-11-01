@@ -272,11 +272,12 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     expect(projectApi.availableForXpert).not.toHaveBeenCalled()
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
-  it('marks a route-resolved conversation read without waiting for ChatKit thread load callbacks', async () => {
+  it('waits for the visible history before marking the conversation read', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+    expect(conversationService.markRead).not.toHaveBeenCalled()
+    expect(aiThreadService.getThread).not.toHaveBeenCalled()
   })
   it('marks a conversation read when ChatKit finishes loading the visible thread', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -289,6 +290,36 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     await settle(fixture)
 
     expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+    expect(facade.syncConversationProject).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({ id: 'conversation-1' })
+    )
+  })
+  it('adopts the loaded context without reading the thread or transcript again', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onThreadLoadEnd?.({
+      threadId: 'thread-1',
+      conversation: {
+        id: 'conversation-1',
+        threadId: 'thread-1',
+        xpertId: 'assistant-1',
+        title: 'Shared title',
+        from: 'platform',
+        status: 'idle'
+      }
+    })
+    await settle(fixture)
+    expect(aiThreadService.getThread).not.toHaveBeenCalled()
+    expect(conversationService.getById).not.toHaveBeenCalled()
+    expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
+    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Shared title' }))
+    expect(facade.syncConversationProject).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({ title: 'Shared title' })
+    )
+    getRuntimeInput().onThreadLoadEnd?.({ threadId: 'old-thread' })
+    expect(aiThreadService.getThread).not.toHaveBeenCalled()
   })
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -312,8 +343,10 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    getRuntimeInput().onThreadLoadEnd?.({ threadId: 'thread-1' })
+    await settle(fixture)
     expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-1')
-    expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
+    expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: [] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
   })
   it('navigates from a stale route thread to the conversation working thread', async () => {
@@ -330,6 +363,8 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    getRuntimeInput().onThreadLoadEnd?.({ threadId: 'thread-1' })
+    await settle(fixture)
     expect(facade.onChatThreadChange).toHaveBeenCalledWith('branch-b')
     expect(facade.setActiveConversation).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'conversation-1' }))
   })
@@ -363,12 +398,14 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     const runtimeInput = getRuntimeInput()
     conversationService.markRead.mockClear()
 
+    conversationService.refreshUnread.mockClear()
     runtimeInput.onResponseStart?.()
     runtimeInput.onResponseEnd?.()
     await settle(fixture)
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+    expect(conversationService.refreshUnread).toHaveBeenCalledTimes(2)
     expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
   })
   it('asks the facade to resolve the preferred conversation entry when the route has no thread id', async () => {

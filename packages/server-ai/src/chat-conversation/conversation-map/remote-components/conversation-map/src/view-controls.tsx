@@ -54,12 +54,14 @@ export function DisplaySettings({
     labels: l,
     prefs,
     update,
-    segments = false
+    segments = false,
+    nodeStyles = true
 }: {
     labels: Labels
     prefs: Prefs
     update: (change: Partial<Prefs>) => void
     segments?: boolean
+    nodeStyles?: boolean
 }) {
     const id = useId()
     return (
@@ -82,23 +84,25 @@ export function DisplaySettings({
                 className="w-64 max-w-[calc(100vw_-_1.5rem)] space-y-4"
             >
                 <h2 className="text-sm font-medium">{l.display}</h2>
-                <fieldset className="space-y-3">
-                    <legend className="text-xs text-muted-foreground">{l.nodeStyle}</legend>
-                    <RadioGroup
-                        value={prefs.style}
-                        onValueChange={(value) => {
-                            if (value === 'compact' || value === 'summary') update({ style: value })
-                        }}
-                        aria-label={l.nodeStyle}
-                    >
-                        {(['compact', 'summary'] as const).map((style) => (
-                            <div key={style} className="flex items-center gap-2">
-                                <RadioGroupItem id={`${id}-${style}`} value={style} />
-                                <Label htmlFor={`${id}-${style}`}>{l[style]}</Label>
-                            </div>
-                        ))}
-                    </RadioGroup>
-                </fieldset>
+                {nodeStyles && (
+                    <fieldset className="space-y-3">
+                        <legend className="text-xs text-muted-foreground">{l.nodeStyle}</legend>
+                        <RadioGroup
+                            value={prefs.style}
+                            onValueChange={(value) => {
+                                if (value === 'compact' || value === 'summary') update({ style: value })
+                            }}
+                            aria-label={l.nodeStyle}
+                        >
+                            {(['compact', 'summary'] as const).map((style) => (
+                                <div key={style} className="flex items-center gap-2">
+                                    <RadioGroupItem id={`${id}-${style}`} value={style} />
+                                    <Label htmlFor={`${id}-${style}`}>{l[style]}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </fieldset>
+                )}
                 {!segments && (
                     <div className="flex items-center gap-2 border-t pt-4">
                         <Checkbox
@@ -119,5 +123,29 @@ export function DisplaySettings({
                 </div>
             </PopoverContent>
         </Popover>
+    )
+}
+
+export function HistoryToggle({
+    prefs,
+    update,
+    labels: l,
+    className = ''
+}: {
+    prefs: Prefs
+    update: (change: Partial<Prefs>) => void
+    labels: Labels
+    className?: string
+}) {
+    const id = useId()
+    return (
+        <div className={`items-center gap-2 ${className}`}>
+            <Checkbox
+                id={id}
+                checked={prefs.showHistory}
+                onCheckedChange={(value) => update({ showHistory: value === true })}
+            />
+            <Label htmlFor={id}>{l.history}</Label>
+        </div>
     )
 }

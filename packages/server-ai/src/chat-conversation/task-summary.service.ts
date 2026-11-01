@@ -1,5 +1,7 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { TaskSummaryMessageReader } from './task-summary-message-reader'
 import { FileChangeStatsService } from './file-change-stats.service'
-import { mergeFileChanges, type ChatFileChange } from '@xpert-ai/chatkit-types'
+import { isRequestUserInputForm, mergeFileChanges, type ChatFileChange } from '@xpert-ai/chatkit-types'
 import {
     ChatTaskSummaryOutput,
     ChatTaskSummarySource,
@@ -14,7 +16,7 @@ import {
 import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
-import { IsNull, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { extractChatMessageTaskSummary, isCompletedOpenableTaskSummaryOutput } from '../chat-message/task-summary'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
@@ -25,7 +27,6 @@ import { ChatConversationGoalService } from './goal'
 const TASK_SUMMARY_VERSION = 1 as const
 const SUMMARY_PREVIEW_SIZE = 3
 const MAX_PAGE_SIZE = 50
-const BACKFILL_BATCH_SIZE = 100
 
 type TaskSummaryCollections = {
     goal?: IThreadGoal | null
@@ -41,6 +42,8 @@ type TaskSummaryCollections = {
 
 @Injectable()
 export class ChatTaskSummaryService {
+    private readonly messageReader = new TaskSummaryMessageReader()
+
     constructor(
         private readonly messageService: ChatMessageService,
         private readonly goalService: ChatConversationGoalService,
@@ -103,24 +106,9 @@ export class ChatTaskSummaryService {
     }
 
     private async collect(conversation: ChatConversation): Promise<TaskSummaryCollections> {
-        await this.backfillLegacyMessages(conversation.id)
-
         const [goal, messageResult, executionResult, agentRecords] = await Promise.all([
             this.goalService.getByConversationId(conversation.id),
-            this.messageService.findAllInOrganizationOrTenant({
-                where: { conversationId: conversation.id },
-                select: [
-                    'id',
-                    'content',
-                    'taskSummary',
-                    'executionId',
-                    'followUpMode',
-                    'followUpStatus',
-                    'createdAt',
-                    'updatedAt'
-                ],
-                order: { updatedAt: 'DESC' }
-            }),
+            this.messageReader.read(this.messageService, conversation, RequestContext.currentUserId()),
             this.executionService.findAllInOrganizationOrTenant({
                 where: { threadId: conversation.threadId },
                 select: [
@@ -144,9 +132,9 @@ export class ChatTaskSummaryService {
                 : Promise.resolve([])
         ])
 
-        const messages = messageResult.items
+        const messages = messageResult
         // Always apply the same semantic projection as live streaming, including persisted v1 data.
-        const contributions = messages.map((message) => extractChatMessageTaskSummary(message))
+        const contributions = messages.map((message) => message.taskSummary ?? extractChatMessageTaskSummary(message))
         const fileChanges = mergeFileChanges(contributions.flatMap((contribution) => contribution.fileChanges ?? []))
         const plan = this.latestItem(contributions.flatMap((contribution) => contribution.plan ?? []))
         const todos = this.latestItem(contributions.flatMap((contribution) => contribution.todos ?? []))
@@ -200,43 +188,6 @@ export class ChatTaskSummaryService {
         ])
 
         return { goal, plan, todos, outputs, fileChanges, sources, agents, pending, updatedAt }
-    }
-
-    private async backfillLegacyMessages(conversationId: string) {
-        let hasMore = true
-        while (hasMore) {
-            const result = await this.messageService.findAllInOrganizationOrTenant({
-                where: { conversationId, taskSummary: IsNull() },
-                select: [
-                    'id',
-                    'conversationId',
-                    'content',
-                    'references',
-                    'thirdPartyMessage',
-                    'createdAt',
-                    'updatedAt'
-                ],
-                relations: ['attachments', 'fileAssets'],
-                order: { createdAt: 'ASC' },
-                take: BACKFILL_BATCH_SIZE
-            })
-            if (!result.items.length) {
-                return
-            }
-            await Promise.all(
-                result.items.map(async (message) => {
-                    const authorizedMessage = await this.messageService.filterAuthorizedFileRelations(
-                        message,
-                        conversationId
-                    )
-                    message.taskSummary = extractChatMessageTaskSummary(authorizedMessage)
-                    return this.messageService.save(message)
-                })
-            )
-            if (result.items.length < BACKFILL_BATCH_SIZE) {
-                hasMore = false
-            }
-        }
     }
 
     private collectPending(
@@ -319,6 +270,14 @@ export class ChatTaskSummaryService {
                 if (!call || typeof call !== 'object' || Array.isArray(call)) continue
                 const candidate = call as { name?: unknown; args?: unknown }
                 if (candidate.name !== 'request_user_input') continue
+                if (isRequestUserInputForm(candidate.args)) {
+                    return {
+                        title: this.compact(candidate.args.title, 160),
+                        description: candidate.args.description
+                            ? this.compact(candidate.args.description, 160)
+                            : undefined
+                    }
+                }
                 if (!candidate.args || typeof candidate.args !== 'object' || Array.isArray(candidate.args)) continue
                 const questions = (candidate.args as { questions?: unknown }).questions
                 if (!Array.isArray(questions)) continue

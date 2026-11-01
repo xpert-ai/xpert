@@ -1,4 +1,6 @@
-import { PluginTemplateApplicationSummary, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { PlatformToolsetBinding } from '../app-platform/platform-toolset-binding.entity'
+import { runWithServiceOperation } from '../../shared/service-operation'
+import { PluginTemplateApplicationSummary, UserType, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext, ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -101,7 +103,14 @@ describe('PluginApplicationToolsetsService', () => {
                 }
             ])
         }
+        const bindings = { findOneBy: jest.fn().mockResolvedValue(null), upsert: jest.fn().mockResolvedValue({}) }
         const repository = {
+            manager: {
+                getRepository: jest.fn((entity) => {
+                    if (entity !== PlatformToolsetBinding) throw new Error('Unexpected binding entity')
+                    return bindings
+                })
+            },
             find: jest.fn().mockResolvedValue([source]),
             findOne: jest.fn().mockResolvedValue(null),
             delete: jest.fn().mockResolvedValue({ affected: 1 }),
@@ -139,6 +148,7 @@ describe('PluginApplicationToolsetsService', () => {
         })
         return {
             service,
+            bindings,
             source,
             templates,
             access,
@@ -257,6 +267,71 @@ describe('PluginApplicationToolsetsService', () => {
         expect(toolsets.create.mock.calls[0][0].tools[0].toolsetId).toBeUndefined()
         expect(source.name).toBe('My image account')
     })
+
+    it.each([false, true])(
+        'keeps shared credentials on the source and repairs missing bindings (repair=%s)',
+        async (repair) => {
+            const { service, source, repository, bindings, installation, toolsets } = await setup()
+            source.organizationId = null
+            source.workspaceId = null
+            repository.find.mockImplementation(async (options) => (Array.isArray(options.where) ? [] : [source]))
+            const options = { toolsetSourceIds: [source.id] }
+            // A caller-selected ID alone cannot expose a tenant-managed source.
+            await expect(
+                service.prepare(application, [{ key: requirement.key, toolsetId: source.id }], installation, options)
+            ).rejects.toThrow()
+            expect(bindings.upsert).not.toHaveBeenCalled()
+            jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+                id: 'installer',
+                tenantId: 'tenant',
+                type: UserType.COMMUNICATION
+            })
+            if (repair) {
+                installation.resourceRefs[ref] = 'existing-target'
+                repository.findOne.mockResolvedValue(
+                    Object.assign(new XpertToolset(), {
+                        ...source,
+                        id: 'existing-target',
+                        organizationId: 'organization',
+                        workspaceId: installation.workspaceId,
+                        credentials: null,
+                        name: dependency.instanceName
+                    })
+                )
+            }
+            await runWithServiceOperation(
+                {
+                    actorId: 'installer',
+                    tenantId: 'tenant',
+                    organizationId: 'organization',
+                    subjectId: 'beneficiary',
+                    application: { pluginName: application.pluginName, appName: application.appName }
+                },
+                async () => {
+                    const prepared = await service.prepare(
+                        application,
+                        [{ key: requirement.key, toolsetId: source.id }],
+                        installation,
+                        options
+                    )
+                    await service.ensure(prepared, installation, { created: [], restored: [] }, options)
+                }
+            )
+            expect(bindings.upsert).toHaveBeenCalledWith(
+                {
+                    targetId: installation.resourceRefs[ref],
+                    sourceId: source.id,
+                    tenantId: 'tenant',
+                    organizationId: 'organization'
+                },
+                ['targetId']
+            )
+            if (repair) expect(toolsets.create).not.toHaveBeenCalled()
+            else expect(toolsets.create).toHaveBeenCalledWith(expect.objectContaining({ credentials: null }))
+            expect(source.credentials).toEqual({ api_key: 'test-secret' })
+        }
+    )
 
     it('binds a saved configuration in place and preserves its ID for activation', async () => {
         const { service, source, repository, installation, installations, manager, toolsets } = await setup()

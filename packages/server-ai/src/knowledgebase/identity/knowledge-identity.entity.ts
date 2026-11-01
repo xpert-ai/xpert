@@ -1,7 +1,7 @@
 import { KnowledgeIdentityDescriptor, KnowledgeIdentityEmbedding } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 @Entity('knowledge_identity')
 @Index(['knowledgebaseId', 'kind'])

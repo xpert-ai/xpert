@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Delete, Get, Param, Post } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -5,6 +7,7 @@ import { KnowledgeQuestionGenerationService } from './question-generation.servic
 import { KnowledgeQuestionsEnqueueCommand } from './question-generation.command'
 
 @Controller()
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeQuestionGenerationController {
     constructor(
         private readonly questions: KnowledgeQuestionGenerationService,

@@ -11,7 +11,8 @@ import { collaboratorToolDeclaration } from '../xpert-agent/collaborators/collab
 import { nativeInvocationTool } from './graph-tool'
 import type { IXpertSubAgent } from '../shared/agent/types'
 import { XpertCollaborator } from '../shared/agent/xpert'
-import { GetXpertWorkflowQuery } from '../xpert/queries/get-xpert-workflow.query'
+import { GetAccessiblePublishedXpertQuery } from '../xpert/published-agent/get-accessible-published-xpert.query'
+import { runWithPublishedAgent } from '../xpert/published-agent/with-published-agent'
 import type { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { AgentInvocationRuntime } from './invocation-runtime'
 import { NativeAgentCompiler } from './native-agent.compiler'
@@ -154,6 +155,12 @@ export class AgentInvocationGraphService {
                 })
             )
             .digest('hex')
+        const authorizeTarget = async () => {
+            if (snapshot?.resources.length) await this.resources.resolve(scope.xpertId, snapshot, scope.projectId)
+            if (target.id !== scope.xpertId) {
+                await this.queryBus.execute(new GetAccessiblePublishedXpertQuery(target.id, ['agent'], scope.xpertId))
+            }
+        }
         return wrapNativeAgentInvocation(graph, this.invocations, {
             target: {
                 bindingId: `xpert:${target.id}:${entry}`,
@@ -172,10 +179,9 @@ export class AgentInvocationGraphService {
                 callerXpertId: scope.xpertId
             },
             signal,
-            authorize: async () => {
-                if (snapshot?.resources.length) await this.resources.resolve(scope.xpertId, snapshot, scope.projectId)
-                if (target.id !== scope.xpertId) await this.queryBus.execute(new GetXpertWorkflowQuery(target.id))
-            }
+            authorize: authorizeTarget,
+            run: target.id === scope.xpertId ? undefined :
+                (operation) => runWithPublishedAgent(scope.xpertId, { xpertId: target.id }, operation)
         })
     }
 }

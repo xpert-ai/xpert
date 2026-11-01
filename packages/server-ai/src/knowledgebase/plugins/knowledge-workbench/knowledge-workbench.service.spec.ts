@@ -1,4 +1,4 @@
-jest.mock('../../knowledgebase.service', () => ({
+jest.mock('../../management/knowledgebase.service', () => ({
     KnowledgebaseService: class KnowledgebaseService {}
 }))
 jest.mock('../../../knowledge-document', () => ({

@@ -15,7 +15,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution'
 import { XpertEnqueueTriggerDispatchCommand } from '../../xpert/commands'
 import type { KnowledgebaseTaskService } from './task.service'
-import { KNOWLEDGE_PIPELINE_CALLBACK } from '../types'
+import { KNOWLEDGE_PIPELINE_CALLBACK } from '../shared/types'
 
 export interface KnowledgePipelineInputs {
     sources?: { [key: string]: { documents: string[] } }

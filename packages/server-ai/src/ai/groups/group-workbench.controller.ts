@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseGuards, UseInterceptors } from '@nestjs/common'
@@ -15,6 +17,7 @@ import { GroupWorkbenchGuard } from './group-workbench.guard'
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/workbench')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class GroupWorkbenchContextController {
     constructor(private readonly scope: GroupWorkbenchGuard) {}
     @Get('context')

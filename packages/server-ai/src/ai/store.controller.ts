@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BaseStore } from '@langchain/langgraph'
 import { ICopilotModel } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, Public, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
@@ -13,6 +15,7 @@ import { XpertService } from '../xpert'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('store')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class StoreController {
 	readonly #logger = new Logger(StoreController.name)
 

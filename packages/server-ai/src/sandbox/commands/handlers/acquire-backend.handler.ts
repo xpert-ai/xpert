@@ -1,7 +1,14 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { SandboxManagedServiceErrorCode, TSandboxConfigurable } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { SandboxProviderCreateOptions, SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { RequestContext, SandboxProviderCreateOptions, SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { CheckStorageQuotaCommand, SandboxStorageAllowance } from '@xpert-ai/server-core'
+import { volumeBudgetResource } from '../../../shared/volume/volume-write-budget'
+import { NsjailSandbox } from '../../nsjail/nsjail-sandbox'
+import { NSJAIL_SANDBOX_PROVIDER } from '../../nsjail/nsjail-sandbox.provider'
+import { NsjailStorageBudget } from '../../nsjail/nsjail-storage-budget'
+import { platformFailure } from '../../../plugin-resource/app-platform/platform-error'
 import { t } from 'i18next'
 import { SandboxAcquireBackendCommand } from '../acquire-backend.command'
 
@@ -20,7 +27,7 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
 > {
     private readonly instances = new Map<string, Map<string, SandboxInstance>>()
 
-    constructor(private readonly registry: SandboxProviderRegistry) {}
+    constructor(private readonly registry: SandboxProviderRegistry, private readonly commands: CommandBus) {}
 
     find(params: SandboxAcquireBackendCommand['params']): TSandboxConfigurable | null {
         const { workFor, provider, workingDirectory, workspaceBinding, volumeScope, conversationId } = params
@@ -108,6 +115,20 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
         //             }) || fallbackMessage
         //     })
         // }
+        const resource = volumeScope ? volumeBudgetResource(volumeScope) : {
+            kind: 'user' as const, tenantId: tenantId ?? RequestContext.currentTenantId(),
+            organizationId: command.params.organizationId ?? RequestContext.getOrganizationId(), userId: RequestContext.currentUserId()
+        }
+        if (!resource?.tenantId && !RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT))
+            throw platformFailure('application_storage_scope_invalid', 403)
+        const budget: NsjailStorageBudget | null = resource?.tenantId ? async (operation) => {
+            const allowance = await this.commands.execute<CheckStorageQuotaCommand, SandboxStorageAllowance | null>(
+                new CheckStorageQuotaCommand({ kind: 'sandbox', scope: resource, root: workspaceBinding?.volumeRoot ?? '' }))
+            return operation(allowance)
+        } : null
+        if (budget && provider !== NSJAIL_SANDBOX_PROVIDER) await budget(async (allowance) => {
+            if (allowance) throw platformFailure('application_storage_scope_invalid', 503)
+        })
         const backend = await providerInstance.create({
             environmentId,
             tenantId,
@@ -116,6 +137,12 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
             workspaceBinding,
             ...(protectProjectContent ? { protectProjectContent: true as const } : {})
         })
+        if (budget) {
+            if (backend instanceof NsjailSandbox) backend.bindStorageBudget(budget)
+            else await budget(async (allowance) => {
+                if (allowance) throw platformFailure('application_storage_scope_invalid', 503)
+            })
+        }
         const configurable: SandboxRuntimeConfigurable = {
             environmentId: environmentId ?? null,
             provider,

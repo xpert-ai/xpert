@@ -9,7 +9,7 @@ import type { IXpertToolset, TMCPSchema, TMCPServer, XpertPluginMcpServerPolicy 
 import type { LoadedPluginRecord } from '@xpert-ai/server-core'
 import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
 import { resolve } from 'node:path'
-import { parsePluginMcpServerConfig } from '../../../plugin-resource/plugin-mcp-server-contract'
+import { parsePluginMcpServerConfig } from '../../../plugin-resource/mcp/plugin-mcp-server-contract'
 
 type PluginManagedToolsetOptions = {
     pluginManaged?: boolean

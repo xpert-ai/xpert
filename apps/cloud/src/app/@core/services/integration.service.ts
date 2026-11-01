@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import {
   IIntegration,
+  IntegrationSharingPolicy,
+  IntegrationUsage,
   IntegrationFeatureEnum,
   TIntegrationProvider,
   TIntegrationQrSession,
@@ -127,6 +129,26 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
     }
 
     return this.httpClient.get<TSelectOption<string>[]>(this.apiBaseUrl + '/select-options', { params })
+  }
+
+  available(options: { provider?: string; features?: IntegrationFeatureEnum[]; usage?: IntegrationUsage }) {
+    return this.httpClient.get<(IIntegration & { scopeLevel: 'tenant' | 'organization' })[]>(
+      this.apiBaseUrl + '/available',
+      {
+        params: {
+          ...(options.provider ? { provider: options.provider } : {}),
+          ...(options.features?.length ? { features: options.features.join(',') } : {}),
+          usage: options.usage ?? 'invoke'
+        }
+      }
+    )
+  }
+
+  updateSharing(id: string, sharing: IntegrationSharingPolicy) {
+    return this.httpClient.put<{ id: string; sharing: IntegrationSharingPolicy }>(
+      `${this.apiBaseUrl}/${id}/sharing`,
+      sharing
+    )
   }
 
   getProviders() {

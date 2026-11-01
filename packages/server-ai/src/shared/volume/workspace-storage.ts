@@ -39,6 +39,7 @@ function relativePath(value: string, allowEmpty = false) {
 export class VolumeWorkspaceStorage implements WorkspaceStorage {
     private boundNamespace?: string
     private boundVolumeRoot?: string
+    private boundVolume?: VolumeHandle
 
     constructor(
         private readonly authorize: (operation: 'read' | 'write' | 'delete') => Promise<VolumeHandle>,
@@ -54,6 +55,7 @@ export class VolumeWorkspaceStorage implements WorkspaceStorage {
         const volumeRoot = path.resolve(volume.serverRoot)
         if (this.boundVolumeRoot && this.boundVolumeRoot !== volumeRoot) throw invalidPath()
         this.boundVolumeRoot = volumeRoot
+        this.boundVolume = volume
         await volume.ensureRoot()
         const namespace = typeof this.namespace === 'string' ? this.namespace : await this.namespace()
         if (!isPluginArtifactNamespace(namespace) || (this.boundNamespace && this.boundNamespace !== namespace))
@@ -115,7 +117,11 @@ export class VolumeWorkspaceStorage implements WorkspaceStorage {
         const root = await this.root()
         const parent = path.posix.dirname(relative)
         await VolumeHandle.ensureDirectory(root, parent === '.' ? '' : parent, root, true)
-        await VolumeHandle.writeFile(root, relative, content, { boundaryRoot: root })
+        await this.boundVolume!.withWriteBudget(
+            path.relative(this.boundVolumeRoot!, path.join(root, relative)),
+            content,
+            () => VolumeHandle.writeFile(root, relative, content, { boundaryRoot: root })
+        )
     }
 
     async remove(relative: string) {
@@ -124,7 +130,9 @@ export class VolumeWorkspaceStorage implements WorkspaceStorage {
         try {
             const entry = await this.openPath(root, relative)
             await entry.fileHandle.close()
-            await VolumeHandle.removePath(root, relative, { boundaryRoot: root })
+            await this.boundVolume!.withRemovalBudget(() =>
+                VolumeHandle.removePath(root, relative, { boundaryRoot: root })
+            )
         } catch (error) {
             if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') throw error
         }

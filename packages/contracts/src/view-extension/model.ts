@@ -741,6 +741,8 @@ export interface XpertViewActionResult<TData = unknown> {
   message?: I18nObject
   data?: TData
   refresh?: boolean
+  /** Explicitly safe business validation; unclassified failure details remain operator-only. */
+  failure?: { kind: 'business'; code: string }
 }
 
 /** Append text selections to the current draft without sending or replacing it. */

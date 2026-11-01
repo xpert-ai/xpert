@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	Body,
@@ -21,6 +23,7 @@ import { SkillRepositoryService } from './skill-repository.service'
 @ApiTags('SkillRepository')
 @UseInterceptors(TransformInterceptor)
 @Controller('skill-repository')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SkillRepositoryController extends CrudController<SkillRepository> {
 	constructor(
 		private readonly service: SkillRepositoryService,

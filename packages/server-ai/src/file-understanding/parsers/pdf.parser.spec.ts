@@ -1,6 +1,8 @@
 import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
 import path from 'node:path'
 import { PdfFileParser } from './pdf.parser'
+import { readPdfTextPages } from './pdf-text-pages'
+jest.mock('./pdf-text-pages', () => ({ readPdfTextPages: jest.fn(async () => []) }))
 
 const mockPdfLoaderLoad = jest.fn()
 
@@ -128,6 +130,14 @@ describe('PdfFileParser', () => {
         expect(result.summary).toBe('PDF parsed without extractable text. OCR is required.')
         expect(result.capabilities).toEqual(expect.arrayContaining(['ocr', 'vision', 'page_images']))
         expect(result.artifacts.some((artifact) => artifact.kind === 'page_image')).toBe(true)
+    })
+
+    it('indexes CID text recovered with packaged CMaps before declaring OCR necessary', async () => {
+        mockPdfLoaderLoad.mockResolvedValue([{ pageContent: '\n', metadata: {} }])
+        jest.mocked(readPdfTextPages).mockResolvedValueOnce([{ pageContent: '故障 30 分钟响应', metadata: { loc: { pageNumber: 1 } } }])
+        const result = await new TestPdfFileParser().parse(source)
+        expect(result.status).toBe('ready')
+        expect(result.artifacts).toContainEqual(expect.objectContaining({ kind: 'page_text', content: '故障 30 分钟响应', anchor: { page: 1 } }))
     })
 
     it('interleaves mixed PDF text and page images by page', async () => {

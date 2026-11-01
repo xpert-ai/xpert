@@ -4,6 +4,7 @@ import { PermissionGuard, Permissions, RequestContext } from '@xpert-ai/server-c
 import { EvolutionBaselineService } from '../application/evolution-baseline.service'
 
 @Controller('baselines')
+@Permissions(AIPermissionsEnum.EVOLUTION_VIEW)
 export class EvolutionBaselineController {
     constructor(private readonly baselines: EvolutionBaselineService) {}
 

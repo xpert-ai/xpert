@@ -8,7 +8,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource, QueryRunner } from 'typeorm'
 import { setTimeout } from 'node:timers/promises'
 import { t } from 'i18next'
-import { PluginResourceInstallerService, RuntimeComponent } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService, RuntimeComponent } from '../installation/plugin-resource-installer.service'
 import { TemplateReadinessService } from './template-readiness.service'
 
 @Injectable()

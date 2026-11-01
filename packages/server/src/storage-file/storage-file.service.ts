@@ -42,45 +42,40 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 		return `${provider}`.toUpperCase()
 	}
 
-	/**
-	 * DELETE file by ID
-	 *
-	 * @param criteria
-	 * @param options
-	 * @returns
-	 */
+	/** Authorize the caller before deleting the object and its metadata. */
 	async deleteStorageFile(id: IStorageFile['id']): Promise<IStorageFile> {
-		try {
-			// 为了正确触发 StorageFileSubscriber 的 afterRemove 事件参数中的 entity
-			const entity = await this.findOne(id)
-			const userId = RequestContext.currentUserId()
-			const isTenantAdmin = RequestContext.hasRoles([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])
-			if (!userId || (entity.createdById !== userId && !isTenantAdmin)) {
-				throw new ForbiddenException()
-			}
-			return await this.removeStorageFile(entity)
-		} catch {
+		const entity = await this.findOne(id).catch(() => {
 			throw new ForbiddenException()
-		}
+		})
+		const userId = RequestContext.currentUserId()
+		const isTenantAdmin = RequestContext.hasRoles([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])
+		if (!userId || (entity.createdById !== userId && !isTenantAdmin)) throw new ForbiddenException()
+		return this.removeStorageFile(entity)
 	}
 
-	/** Remove a StorageFile that has already been authorized by its owning domain. */
+	/** Remove a StorageFile already authorized by its owning domain, retaining tenant and organization checks. */
 	async deleteAuthorizedStorageFile(storageFile: Pick<StorageFile, 'id' | 'tenantId' | 'organizationId'>) {
-		try {
-			const entity = await this.findOne(storageFile.id)
-			if (
-				entity.tenantId !== storageFile.tenantId ||
-				(entity.organizationId ?? null) !== (storageFile.organizationId ?? null)
-			) {
-				throw new ForbiddenException()
-			}
-			return await this.removeStorageFile(entity)
-		} catch {
+		const entity = await this.findOne(storageFile.id).catch(() => {
 			throw new ForbiddenException()
-		}
+		})
+		if (
+			entity.tenantId !== storageFile.tenantId ||
+			(entity.organizationId ?? null) !== (storageFile.organizationId ?? null)
+		)
+			throw new ForbiddenException()
+		return this.removeStorageFile(entity)
 	}
 
 	private async removeStorageFile(entity: StorageFile): Promise<IStorageFile> {
-		return await this.repository.remove(entity)
+		if (!entity.file) return this.repository.remove(entity)
+		const provider = new FileStorage(undefined, {
+			tenantId: entity.tenantId,
+			organizationId: entity.organizationId,
+			userId: entity.createdById
+		}).getProvider(entity.storageProvider)
+		await provider.deleteFile(entity.file)
+		return this.repository.remove(entity, {
+			data: { confirmedStorageFileDeletion: { provider: provider.name, key: entity.file } }
+		})
 	}
 }

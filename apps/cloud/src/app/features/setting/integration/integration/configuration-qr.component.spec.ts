@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ViewContainerRef } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router } from '@angular/router'
-import { of, Subject } from 'rxjs'
+import { BehaviorSubject, of, Subject } from 'rxjs'
 import { IntegrationService, Store, ToastrService } from '../../../../@core'
 import { IntegrationConfigurationComponent } from './configuration.component'
 import { TIntegrationQrCompletion } from '@xpert-ai/contracts'
@@ -14,13 +14,23 @@ jest.mock('ngxtension/inject-query-params', () => ({
 }))
 
 describe('Integration configuration QR entry', () => {
-  function setup() {
+  function setup(organizationId: string | null = 'org') {
     const closed = new Subject<TIntegrationQrCompletion>()
     const ref = { close: jest.fn(), closed }
     const dialog = { open: jest.fn(() => ref) }
     const router = { navigate: jest.fn() }
     const toastr = { success: jest.fn() }
-    const store = { organizationId: 'org', userId: 'user', selectOrganizationId: () => of('org') }
+    const organization = new BehaviorSubject(organizationId)
+    const store = {
+      get organizationId() {
+        return organization.value
+      },
+      set organizationId(value: string | null) {
+        organization.next(value)
+      },
+      userId: 'user',
+      selectOrganizationId: () => organization.asObservable()
+    }
     const api = {
       getProviders: () =>
         of([
@@ -67,6 +77,36 @@ describe('Integration configuration QR entry', () => {
     expect(component.scanMode()).toBe(false)
     component.formGroup.controls.provider.setValue('manual-provider')
     expect(component.canScan()).toBe(false)
+  })
+
+  it('starts tenant creation in manual mode and does not start QR authorization', () => {
+    const { component, dialog } = setup(null)
+    expect(component.supportsQr()).toBe(true)
+    expect(component.canScan()).toBe(false)
+    expect(component.scanMode()).toBe(false)
+    component.createByQr()
+    expect(dialog.open).not.toHaveBeenCalled()
+    expect(component.name).toBe('Robot')
+  })
+
+  it('offers QR after selecting an organization and returns to manual on tenant scope', () => {
+    const { component, store, dialog } = setup(null)
+    TestBed.flushEffects()
+    component.updateOptions({ secret: 'draft-secret' })
+    store.organizationId = 'selected-org'
+    TestBed.flushEffects()
+    expect(component.scanMode()).toBe(true)
+    component.createByQr()
+    expect(dialog.open.mock.calls[0][1].data.organizationId).toBe('selected-org')
+    store.organizationId = null
+    // Scope changes must make the scan entry unavailable even before effects run.
+    expect(component.scanMode()).toBe(false)
+    TestBed.flushEffects()
+    expect(component.setupMode()).toBe('manual')
+    expect(component.optionsControl.value).toEqual({ secret: 'draft-secret' })
+    expect(component.name).toBe('Robot')
+    component.createByQr()
+    expect(dialog.open).toHaveBeenCalledTimes(1)
   })
 
   it('opens a single QR dialog with metadata and navigates after successful creation', () => {

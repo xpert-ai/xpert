@@ -18,6 +18,7 @@ import { of } from 'rxjs'
 import { XP_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { XpAuthService } from '../services/auth.service'
+import { AppPlatformService } from '../../@core/services/app-platform.service'
 
 type SSOProviderDescriptor = {
   provider: string
@@ -41,6 +42,7 @@ type SSOProviderDiscoveryResponse = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserLoginComponent implements OnDestroy {
+  readonly platform = inject(AppPlatformService)
   readonly #http = inject(HttpClient)
   readonly #destroyRef = inject(DestroyRef)
 

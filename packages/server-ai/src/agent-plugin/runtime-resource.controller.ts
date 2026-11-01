@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { RuntimeResourceCommandsService } from './commands/runtime-resource-commands.service'
 import { resourceCommandsInputSchema } from './commands/agent-plugin-commands.schema'
 import {
@@ -25,12 +27,14 @@ import { z } from 'zod/v3'
 import type { RuntimeResourceService } from './runtime-resource.service'
 import { runtimeResourcesSchema } from './runtime-resource-selection'
 import { parseResourceInput } from './agent-plugin.controller'
+import { runtimeCatalogQuerySchema } from './catalog/runtime-catalog.schema'
 
 @Public()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class RuntimeResourceController {
     constructor(
         @Inject('XpertRuntimeResourceService') private readonly service: RuntimeResourceService,
@@ -43,23 +47,16 @@ export class RuntimeResourceController {
     ) {
         return this.commands.list(id, input.runtimeResources as RuntimeResourcesSelection, input.projectId)
     }
-    @Get('assistants/:id/resources') catalog(@Param('id') id: string, @Query() query: unknown) {
-        return this.service.catalog(
-            id,
-            parseResourceInput(
-                z
-                    .object({
-                        projectId: z.string().uuid().optional(),
-                        search: z.string().max(200).optional(),
-                        kind: z.enum(['agent_plugin', 'middleware', 'external_xpert']).optional(),
-                        purpose: z.enum(['browse', 'selection']).optional(),
-                        offset: z.coerce.number().int().min(0).default(0),
-                        limit: z.coerce.number().int().min(1).max(100).default(50)
-                    })
-                    .strict(),
-                query
-            )
-        )
+    @Get('assistants/:id/resources') catalog(
+        @Param('id') id: string,
+        @Query(new ZodValidationPipe(runtimeCatalogQuerySchema, (error) => new BadRequestException(error.flatten())))
+        query: z.output<typeof runtimeCatalogQuerySchema>
+    ) {
+        const { references, ...options } = query
+        return this.service.catalog(id, {
+            ...options,
+            ...(references ? { references: references as RuntimeResourcesSelection['resources'] } : {})
+        })
     }
     @Post('assistants/:id/resources/validate') async validate(@Param('id') id: string, @Body() body: unknown) {
         const input = parseResourceInput(

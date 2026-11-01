@@ -2,7 +2,7 @@ import { TenantLibraryAccessService } from '../../tenant-library/tenant-library-
 import { Logger, Optional } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { ListWorkspaceKnowledgebasesQuery } from '../list-workspace-knowledgebases.query'
 
 @QueryHandler(ListWorkspaceKnowledgebasesQuery)

@@ -1,11 +1,11 @@
 import { XpertTypeEnum, PLUGIN_COMPONENT_TYPE } from '@xpert-ai/contracts'
-jest.mock('../plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../installation/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('./template-readiness.service', () => ({ TemplateReadinessService: class {} }))
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
 import { TemplateReadinessService } from './template-readiness.service'
 import { TemplateDependencyInstaller } from './template-dependency-installer.service'
 

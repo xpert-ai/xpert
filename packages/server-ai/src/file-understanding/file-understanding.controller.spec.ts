@@ -1,4 +1,5 @@
 jest.mock('@xpert-ai/server-core', () => ({
+    Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     Public: () => () => undefined,
@@ -31,8 +32,8 @@ describe('FileUnderstandingController restricted assistant access', () => {
         queryBus?: { execute: jest.Mock }
         fileAssetAccessService?: { resolve: jest.Mock; assertConversationAccess: jest.Mock }
     }) => {
-        const commandBus = overrides?.commandBus ?? { execute: jest.fn() }
-        const queryBus = overrides?.queryBus ?? { execute: jest.fn() }
+        const commandBus = overrides?.commandBus ?? { execute: jest.fn().mockResolvedValue({ id: 'file-1' }) }
+        const queryBus = overrides?.queryBus ?? { execute: jest.fn().mockResolvedValue({ id: 'file-1', status: 'ready' }) }
         const fileAssetAccessService = overrides?.fileAssetAccessService ?? {
             resolve: jest.fn().mockResolvedValue({
                 asset: {
@@ -142,6 +143,7 @@ describe('FileUnderstandingController restricted assistant access', () => {
     it('authorizes the persisted conversation before listing its files', async () => {
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(undefined)
         const { controller, fileAssetAccessService, queryBus } = createController()
+        queryBus.execute.mockResolvedValue([])
 
         await controller.listConversationFiles('conversation-1')
 

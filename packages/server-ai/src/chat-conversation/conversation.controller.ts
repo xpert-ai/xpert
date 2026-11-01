@@ -1,3 +1,7 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { unreadSnapshot, unreadSyncSchema } from './unread-sync'
+import type { z } from 'zod/v3'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     ChatConversationEntry,
     IChatConversationMarkReadRequest,
@@ -59,6 +63,7 @@ import { GetGroupConversationEntryCommand } from '../chat-group/group-conversati
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_VIEW)
 export class ChatConversationController {
     readonly #logger = new Logger(ChatConversationController.name)
 
@@ -76,6 +81,7 @@ export class ChatConversationController {
         status: HttpStatus.OK,
         description: 'Found my records'
     })
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get('my')
     async findMyAllPublic(
         @Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>,
@@ -100,6 +106,7 @@ export class ChatConversationController {
         }
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Post('unread/xperts')
     async getUnreadByXperts(
         @Body() body: IChatConversationUnreadXpertsRequest,
@@ -108,6 +115,35 @@ export class ChatConversationController {
         return this.organizationScopeService.run(organizationId, () =>
             this.service.getUnreadByXperts(body?.xpertIds ?? [])
         )
+    }
+
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    @Post('unread/xperts/sync')
+    async syncUnreadByXperts(
+        @Body(
+            new ZodValidationPipe(
+                unreadSyncSchema,
+                () => new BadRequestException(t('server-ai:Error.InvalidUnreadSyncRequest'))
+            )
+        )
+        body: z.output<typeof unreadSyncSchema>,
+        @Res({ passthrough: true }) response: Response,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, async () => {
+            const snapshot = unreadSnapshot(await this.service.getUnreadByXperts(body.xpertIds), [
+                RequestContext.currentTenantId(),
+                RequestContext.getOrganizationId(),
+                RequestContext.currentUserId()
+            ])
+            response.setHeader('Cache-Control', 'private, no-store')
+            if (body.version === snapshot.version) {
+                response.status(HttpStatus.NO_CONTENT)
+                return
+            }
+            response.status(HttpStatus.OK)
+            return snapshot
+        })
     }
 
     @ApiOperation({ summary: 'Find by id' })
@@ -119,6 +155,7 @@ export class ChatConversationController {
         status: HttpStatus.NOT_FOUND,
         description: 'Record not found'
     })
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get('by-thread')
     async findOneByThreadId(
         @Query('threadId') threadId: string,
@@ -130,6 +167,7 @@ export class ChatConversationController {
         })
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get('entry-by-thread')
     async findEntryByThreadId(
         @Query(
@@ -158,6 +196,7 @@ export class ChatConversationController {
         })
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get(':id')
     async findOneById(
         @Param('id', UUIDValidationPipe) id: string,
@@ -173,6 +212,7 @@ export class ChatConversationController {
         })
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get(':id/workbench-navigation')
     async resolveWorkbenchNavigation(
         @Param('id', UUIDValidationPipe) id: string,
@@ -324,6 +364,7 @@ export class ChatConversationController {
         })
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Post(':id/read-state')
     async markRead(
         @Param('id', UUIDValidationPipe) id: string,
@@ -336,6 +377,7 @@ export class ChatConversationController {
         })
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Post(':id/cancel')
     async cancelConversation(
         @Param('id', UUIDValidationPipe) id: string,
@@ -352,6 +394,7 @@ export class ChatConversationController {
         }
     }
 
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Get('xpert/:id')
     async findByXpert(
         @Param('id', UUIDValidationPipe) xpertId: string,

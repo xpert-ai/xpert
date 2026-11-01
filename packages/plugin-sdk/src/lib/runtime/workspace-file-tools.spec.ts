@@ -1,10 +1,37 @@
 import {
   workspaceFileMutationMetadata,
   workspaceFileMutationPath,
+  workspaceRelativeDirectoryPathSchema,
   workspaceRelativeFilePathSchema
 } from './workspace-file-tools'
 
 describe('portable file tool inputs', () => {
+  it('accepts relative discovery directories, including the workspace root and directory suffix', () => {
+    for (const [input, output] of [
+      ['.', '.'],
+      ['./', '.'],
+      ['data', 'data'],
+      ['data/', 'data'],
+      ['.xpert/skills/生产质量/', '.xpert/skills/生产质量']
+    ])
+      expect(workspaceRelativeDirectoryPathSchema.parse(input)).toBe(output)
+    for (const input of [
+      '',
+      '/',
+      '/workspace/data',
+      '../data',
+      'data/../other',
+      './data',
+      'data//',
+      ' data',
+      'data /',
+      'C:/data',
+      'data\\nested'
+    ]) {
+      expect(workspaceRelativeDirectoryPathSchema.safeParse(input).success).toBe(false)
+    }
+  })
+
   it('accepts named relative files and rejects ambiguous or escaping paths', () => {
     for (const path of [
       'dashboards/sales.html',

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	Controller,
 	HttpStatus,
@@ -20,6 +22,7 @@ import { TenantPermissionGuard } from './../shared/guards';
 @ApiTags('Email')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.VIEW_ALL_EMAILS)
 export class EmailController extends CrudController<Email> {
 	constructor(private readonly emailService: EmailService) {
 		super(emailService);

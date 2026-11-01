@@ -1,0 +1,77 @@
+---
+title: 'Knowledgebase chunking extensions'
+description: 'Proposed parent/child boundaries, strict snapshot preview and structure fidelity work'
+---
+
+**Status: proposed, not delivered.** This page retains unfinished capabilities and defects requiring revalidation from the original chunking plan. Implemented automatic, structure-aware, heading and length splitting is documented in the [feature guide](/en/guides/knowledgebase/chunking). The new fields and endpoints described here are not current capabilities.
+
+## Existing foundation and gaps
+
+| Existing behavior                                                     | Proposed extension                                                              |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Ordinary `auto` / `structure-aware` strategies and shared execution   | Reuse structural boundaries within parent/child chunking                        |
+| Full-document/paragraph parents and child splitting in `parent-child` | Typed parent/child boundary selection and UI                                    |
+| Existing-document estimate prefers parsing snapshots                  | Explicit strict mode that never invokes a parser when a snapshot is unavailable |
+| Structure, source and token diagnostics                               | Real-converter fidelity fixes and fixed-sample quality evaluation               |
+
+`POST /api/knowledge-document/estimate` can currently fall back to full parsing when a snapshot is missing, stale or corrupt. The existing `rechunk` processing mode does not establish a strict, read-only, no-external-parsing estimate option.
+
+## Parent/child boundaries
+
+Extend the existing `parent-child` provider instead of adding separate automatic-parent or heading-parent providers:
+
+- Preserve full-document parent mode; segmented parents may select heading/structural boundaries. Missing new fields retain existing separator behavior.
+- Children select length, heading, structural or automatic boundaries only within their own parent. Nested parent/child strategies are prohibited.
+- Shared contracts must provide explicit discriminators. `parent.boundary` / `child.boundary` are proposed field locations, to be aligned across types, schemas, normalization and UI during implementation; storing unused fields is insufficient.
+- Full-document parents hide irrelevant parent-splitting options. Search-leaf token limits must not silently fragment parent context; parent-context budgets remain separate.
+- Token subdivision preserves parent identity, ordering, headings and source ranges. Children never merge across parents.
+
+Integrate shared behavior into document loading, preview and pipelines rather than supporting only one entry point.
+
+## Strict snapshot preview
+
+Add an explicit existing-parsing-only option to typed estimate input or a clearly versioned read-only endpoint:
+
+1. Authorize tenant, organization, knowledgebase and file access from trusted document identity.
+2. Validate the parsing snapshot's content, provider, parameter and revision fingerprints.
+3. Execute shared splitting with unsaved configuration and return preview plus effective-strategy diagnostics.
+4. Return explicit missing/stale/corrupt snapshot reasons without reparsing, external service/model calls or new chunk persistence.
+5. Preserve default behavior and response shape for old requests; expose richer diagnostics through a compatible version or separate read-only entry.
+
+Reuse existing snapshot storage. Rechunk caches must include effective configuration and algorithm revision; an unchanged parse snapshot does not justify reusing old chunks.
+
+## Fidelity fixes and experiments
+
+Historical samples recorded the following issues. Reproduce them against current code before implementation; already-fixed cases need regression evidence rather than duplicate changes:
+
+- CRLF heading recognition in the legacy Markdown strategy.
+- DOCX automatic numbering preservation during conversion.
+- Mixed PDF text/image fragments being marked non-text and skipped by general splitting.
+- Boundaries for HTML/image tables, merged cells and cross-fragment continuations.
+
+Converters supply typed structure, and chunkers consume explicit evidence without inferring types from filenames, labels or text appearance. If an external converter needs a new contract, release compatible shared contracts before adapting the plugin and host.
+
+Quality experiments use fixed documents and question/answer sets to compare recall, context quality, latency and index cost across length, heading, structural and automatic strategies. Semantic splitting and custom chapter rules require demonstrated benefit and a separate decision; they are not default deliverables here.
+
+## Implementation sequence
+
+1. Define parent/child contracts, parameter precedence, leaf-token and parent-context budgets with compatibility tests.
+2. Integrate shared execution and all three entry points; expose only connected UI options.
+3. Implement strict snapshot preview and test authorization and zero-parser-call failures.
+4. Reproduce and fix fidelity issues with converter-entry samples.
+5. Record quality and cost on fixed data before expanding strategies.
+
+## Acceptance criteria
+
+- Old parent/child configurations preserve output semantics and ownership. New children cannot cross parent boundaries or form nested hierarchies.
+- With the same snapshot, configuration and algorithm revision, preview and shared execution agree on content, order, tokens and relative parent/child relationships; random IDs and timestamps are excluded.
+- Missing/corrupt/stale snapshots, denial or cancellation in strict mode never start conversion or persist chunks. Default requests preserve compatibility.
+- Validate final Embedding-guard subdivision separately; preview chunk counts are not physical vector counts.
+- Real-format regressions cover Unicode, code indentation, table rows/headers, headings, source ranges and repeated context.
+- Record real retrieval-quality evidence separately from unit tests and do not mark unexecuted checks passed.
+
+## Implementation entry points
+
+`packages/server-ai/src/knowledgebase/plugins/textsplitter-common/parent-child.strategy.ts`, `auto.strategy.ts` and `structure-aware.strategy.ts`; `packages/server-ai/src/knowledge-document/document.controller.ts`, `split-documents.ts` and `transform-snapshot.service.ts`; shared contracts in `packages/contracts/src/ai/knowledge-chunking.model.ts`.
+
+The original combined plan has been removed. Feature pages maintain delivered behavior, while Git history retains samples and decisions. This proposal has not been implemented and does not report database changes or model acceptance.

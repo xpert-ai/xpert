@@ -1,3 +1,9 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ForbiddenException } from '@nestjs/common'
+import { t } from 'i18next'
+import { appUserRuntimeAssistant } from '../xpert/runtime-dto'
 import {
     AssistantBindingScope,
     AssistantCode,
@@ -14,6 +20,7 @@ import { AssistantBindingXpertDTO } from './dto/assistant-binding-xpert.dto'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantBindingController {
     constructor(private readonly service: AssistantBindingService) {}
 
@@ -28,12 +35,18 @@ export class AssistantBindingController {
     }
 
     @Get('xperts')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getAvailableXperts(
         @Query('scope') scope: AssistantBindingScope = AssistantBindingScope.ORGANIZATION,
         @Query('code') code: AssistantCode
     ) {
-        const xperts = await this.service.getAvailableXperts(scope, code)
-        return xperts.map((xpert) => new AssistantBindingXpertDTO(xpert))
+        const appUser = !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW)
+        if (appUser && scope !== AssistantBindingScope.USER)
+            throw new ForbiddenException(t('server-ai:Error.ApplicationAuthoringDenied'))
+        const assistants = await this.service.getAvailableXperts(scope, code)
+        return appUser
+            ? assistants.map(appUserRuntimeAssistant)
+            : assistants.map((assistant) => new AssistantBindingXpertDTO(assistant))
     }
 
     @Get(':code/preference')

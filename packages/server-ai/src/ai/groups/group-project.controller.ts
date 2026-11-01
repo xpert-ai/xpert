@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { SecretTokenBindingType, ChatGroupProjectInput } from '@xpert-ai/contracts'
 import {
@@ -16,6 +18,7 @@ import { groupInvalid } from '../../chat-group/group.errors'
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/project')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class GroupProjectController {
     constructor(private readonly projects: GroupProjectService) {}
     @Get()

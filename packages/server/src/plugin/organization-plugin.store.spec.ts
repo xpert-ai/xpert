@@ -2,13 +2,8 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
-jest.mock('@xpert-ai/server-config', () => ({
-	getConfig: () => ({
-		assetOptions: {
-			serverRoot: '/tmp/xpert'
-		}
-	})
-}))
+const mockAssets: { serverRoot: string; pluginPath?: string } = { serverRoot: '/tmp/xpert' }
+jest.mock('@xpert-ai/server-config', () => ({ getConfig: () => ({ assetOptions: mockAssets }) }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: 'global',
@@ -36,6 +31,7 @@ describe('organization-plugin.store', () => {
 	let pluginRoot: string
 
 	beforeEach(() => {
+		delete mockAssets.pluginPath
 		tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-plugin-store-'))
 		workspaceRoot = path.join(tempRoot, 'workspace', 'plugin-lark')
 		pluginRoot = path.join(tempRoot, 'plugins')
@@ -56,6 +52,15 @@ describe('organization-plugin.store', () => {
 			process.env.PLUGIN_WORKSPACE_ROOTS = originalWorkspaceRoots
 		}
 		fs.rmSync(tempRoot, { recursive: true, force: true })
+	})
+
+	it('resolves current configured plugin paths and preserves explicit root precedence', () => {
+		expect(getOrganizationPluginRoot('org-1')).toBe('/tmp/xpert/plugins/org-1')
+		mockAssets.pluginPath = path.join(tempRoot, 'isolated-plugins')
+		expect(getOrganizationPluginRoot('org-1')).toBe(path.join(mockAssets.pluginPath, 'org-1'))
+		expect(getOrganizationPluginRoot('org-1', { rootDir: pluginRoot })).toBe(path.join(pluginRoot, 'org-1'))
+		mockAssets.pluginPath = path.join(tempRoot, 'updated-plugins')
+		expect(getOrganizationPluginRoot('org-1')).toBe(path.join(mockAssets.pluginPath, 'org-1'))
 	})
 
 	it('keeps the Default Tenant global plugins in the legacy global folder', () => {

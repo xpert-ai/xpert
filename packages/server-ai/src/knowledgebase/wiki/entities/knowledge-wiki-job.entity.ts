@@ -1,7 +1,7 @@
 import { KnowledgeWikiJobStatus, KnowledgeWikiJobType } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 
 @Entity('knowledge_wiki_job')
 @Index(['knowledgebaseId', 'jobKey'], { unique: true })

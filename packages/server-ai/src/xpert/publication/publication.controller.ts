@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Param, Post, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
@@ -10,6 +12,7 @@ export const resumePublicationSchema = z.object({ version: z.string().trim().min
 
 @Controller(':id/publication')
 @UseGuards(XpertGuard)
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertPublicationController {
     constructor(private readonly commands: CommandBus) {}
 

@@ -1,15 +1,15 @@
 import { AiModelTypeEnum, AiProviderRole, FetchFrom, ProviderModel, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IsNull } from 'typeorm'
-import { CopilotProviderModel } from '../../../copilot-provider/models/copilot-provider-model.entity'
-import { CopilotProvider } from '../../../copilot-provider/copilot-provider.entity'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
+import { CopilotProvider } from '../../../copilot-provider/copilot-provider.entity'
+import { CopilotProviderModel } from '../../../copilot-provider/models/copilot-provider-model.entity'
+import { MembershipService } from '../../../membership/membership.service'
+import { createModelAccessFixture } from '../../../model-access/testing/model-access.test-fixture'
 import { Copilot } from '../../copilot.entity'
 import { CopilotService } from '../../copilot.service'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../copilot-model-find.query'
 import { FindCopilotModelsHandler } from './copilot-model-find.handler'
-import { MembershipService } from '../../../membership/membership.service'
-import { ModelAccessService } from '../../../model-access/model-access.service'
 
 const voiceModels = [
     [AiModelTypeEnum.TTS, 'qwen3-tts-flash'],
@@ -28,7 +28,11 @@ function builtin(modelType: AiModelTypeEnum, model: string, deprecated = false):
     }
 }
 
-function copilot(id: string, organizationId: string | null = 'org-1', role = AiProviderRole.Primary): Copilot {
+function copilot(
+    id: string,
+    organizationId: string | null = 'org-1',
+    role: AiProviderRole = AiProviderRole.Primary
+): Copilot {
     return Object.assign(new Copilot(), {
         id,
         tenantId: 'tenant-1',
@@ -69,7 +73,8 @@ function fixture(copilots = [copilot('primary')]) {
         queryBus as never,
         service as never,
         providers as never,
-        access as never
+        access as never,
+        { resolve: async () => ({ configured: false, binding: null }) } as never
     )
     Object.defineProperty(handler, 'configService', { value: { get: () => 'http://localhost:3000' } })
     return {
@@ -147,7 +152,14 @@ describe('membership model catalog', () => {
         'keeps the database query tenant-scoped and enabled-only in %s',
         async (organizationId) => {
             const repository = { find: jest.fn().mockResolvedValue([]) }
-            const service = new CopilotService(repository as never, {} as never, {} as never, {} as never, {} as never)
+            const service = new CopilotService(
+                repository as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                { inspect: async () => ({ defaults: 0 }) } as never
+            )
             await service.findAllEnabledCopilotsWithoutMembership('tenant-1', organizationId)
             const tenantWhere = { tenantId: 'tenant-1', enabled: true, organizationId: IsNull() }
             expect(repository.find).toHaveBeenCalledWith({
@@ -263,7 +275,7 @@ describe('membership model catalog', () => {
                 f.copilots.filter((item) => item.tenantId === where.tenantId)
             )
         }
-        const access = new ModelAccessService(
+        const { service: access, lifecycle } = createModelAccessFixture(
             {} as never,
             {} as never,
             { createQueryBuilder: () => grantQuery } as never,
@@ -278,7 +290,7 @@ describe('membership model catalog', () => {
             f.providers as never,
             membership as never
         )
-        jest.spyOn(access, 'processDueGrants').mockResolvedValue(0)
+        jest.spyOn(lifecycle, 'processDueGrants').mockResolvedValue(0)
         const input = {
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -286,7 +298,7 @@ describe('membership model catalog', () => {
             models: f.copilots.map((item) => ({ copilotId: item.id, copilotModelId: name, modelType: type }))
         }
         expect(await access.canUseCatalogModels(input)).toEqual([true, false, false, false, false])
-        expect(membership.isModelAllowed).toHaveBeenCalledWith({ allowedModels }, 'tongyi', name, 'selected')
+        expect(membership.isModelAllowed).toHaveBeenCalledWith({ allowedModels }, 'tongyi', name, 'selected', type)
 
         selected.modelProvider.providerName = 'another-provider'
         expect(await access.canUseCatalogModels(input)).toEqual([false, false, false, false, false])

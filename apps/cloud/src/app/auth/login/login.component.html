@@ -7,7 +7,7 @@
       {{ 'Auth.WelcomeBack' | translate: { Default: 'Welcome back' } }}
     </h1>
     <p class="mb-0 mt-2 text-sm leading-6 text-text-secondary">
-      {{ 'Auth.LoginDescription' | translate: { Default: 'Sign in to continue to your agent workspace.' } }}
+      {{ (platform.branding() ? 'AppPlatform.LoginDescription' : 'Auth.LoginDescription') | translate }}
     </p>
   </header>
 
@@ -122,7 +122,7 @@
   }
   @if (enablePublicSignup) {
     <p class="mb-0 mt-6 text-center text-sm text-text-secondary">
-      {{ 'Auth.NewToXpert' | translate: { Default: 'New to XpertAI?' } }}
+      {{ (platform.branding() ? 'AppPlatform.NewAccount' : 'Auth.NewToXpert') | translate }}
       <a class="ml-1 font-semibold text-text-accent hover:opacity-80" routerLink="/auth/register">
         {{ 'Auth.Signup' | translate: { Default: 'Create an account' } }}
       </a>

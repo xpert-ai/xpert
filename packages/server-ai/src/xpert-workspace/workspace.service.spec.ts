@@ -137,10 +137,11 @@ describe('XpertWorkspaceService', () => {
             { purpose: 'authoring' }
         )
         expect(result.items).toHaveLength(1)
-        expect(workspaceAccessService.buildAccess).toHaveBeenCalledWith(workspace)
+        expect(workspaceAccessService.buildAccess).not.toHaveBeenCalled()
     })
 
     it('creates a new workspace without accepting client identity, owner, or system fields', async () => {
+        jest.spyOn(SdkRequestContext, 'hasPermission').mockReturnValue(true)
         const input = {
             id: 'workspace-victim',
             name: 'Workspace',

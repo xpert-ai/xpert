@@ -168,6 +168,45 @@ describe('Analytics Definition publication and exact source resolution', () => {
         await expect(service.get(id)).rejects.toThrow()
         await expect(service.authorize({ ...actor, userId: 'owner' })).rejects.toThrow()
     })
+    it('publishes an explicit audience through validated HTTP input and preserves it when omitted', async () => {
+        const result = await request(`/${id}/versions`, {
+            expectedCurrentVersionId: versionId,
+            options: input.options,
+            visibility: 'organization'
+        })
+        expect(result.status).toBe(201)
+        expect(result.body.definition.visibility).toBe('organization')
+        expect(
+            (
+                await request(`/${id}/versions`, {
+                    expectedCurrentVersionId: versionId,
+                    options: input.options,
+                    visibility: 'public'
+                })
+            ).status
+        ).toBe(400)
+        definition.visibility = 'organization'
+        expect(
+            (await service.publish(id, { expectedCurrentVersionId: versionId, options: input.options })).definition
+                .visibility
+        ).toBe('organization')
+    })
+    it('revoking visibility denies existing resolved versions without changing their immutable options', async () => {
+        definition.userId = 'owner'
+        definition.visibility = 'organization'
+        const resolved = await service.resolve(actor, { kind: 'definition', definitionId: id, versionId })
+        definition.visibility = 'private'
+        await expect(resolved.revalidate()).rejects.toThrow()
+        expect(version.options).toEqual(input.options)
+        await expect(
+            service.publish(id, {
+                expectedCurrentVersionId: versionId,
+                options: input.options,
+                visibility: 'organization'
+            })
+        ).rejects.toThrow()
+        expect(save).not.toHaveBeenCalled()
+    })
     it('pins exact versions, and rechecks archive, digest and membership after execution', async () => {
         const source = { kind: 'definition' as const, definitionId: id, versionId }
         const resolved = await service.resolve(actor, source)

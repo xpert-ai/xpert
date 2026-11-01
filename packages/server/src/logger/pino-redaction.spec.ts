@@ -1,7 +1,7 @@
 import pino from 'pino'
 import { HTTP_LOG_REDACTION } from './pino-redaction'
 
-function logRequest(req: object): string {
+function logRequest(req: object, res?: object): string {
 	let output = ''
 	const logger = pino(
 		{ redact: HTTP_LOG_REDACTION },
@@ -11,11 +11,21 @@ function logRequest(req: object): string {
 			}
 		}
 	)
-	logger.info({ req }, 'request completed')
+	logger.info({ req, res }, 'request completed')
 	return output
 }
 
 describe('HTTP credential log redaction', () => {
+	it('redacts response session cookies without changing the outgoing headers', () => {
+		const res = {
+			headers: { 'set-cookie': ['session=fake-session; HttpOnly'], 'content-type': 'application/json' }
+		}
+		const output = logRequest({ url: '/api/auth/login' }, res)
+		expect(output).not.toContain('fake-session')
+		expect(JSON.parse(output).res.headers['set-cookie']).toBe('[Redacted]')
+		expect(res.headers['set-cookie']).toEqual(['session=fake-session; HttpOnly'])
+	})
+
 	it('redacts share bearer tokens from URL paths, parameters and referrers', () => {
 		const secret = 'Abc234Def567'
 		const url = `/api/ai/shared-conversations/${secret}/authenticated`

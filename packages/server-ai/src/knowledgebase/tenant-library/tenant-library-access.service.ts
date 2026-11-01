@@ -6,7 +6,7 @@ import { KnowledgebasePermission, RolesEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IsNull, Repository, type FindOneOptions } from 'typeorm'
 import { t } from 'i18next'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 export function assertTenantLibraryAdministrator() {
     if (

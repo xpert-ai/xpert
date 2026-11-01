@@ -57,6 +57,23 @@ function fixture() {
     return { service, p, typed }
 }
 describe('Artifact types', () => {
+    it('does not allow generic version uploads to bypass an application publication workflow', () => {
+        const { service, p, typed } = fixture()
+        service.assertVersionCreation(typed)
+        p.definition.versioning = { mode: 'draft-only' }
+        expect(() => service.assertVersionCreation(typed)).toThrow()
+    })
+    it('keeps published reads independent while applying the additional draft policy', async () => {
+        const { service, p, typed } = fixture()
+        p.authorizeDraft = jest.fn(async () => {
+            throw new Error('DRAFT_DENIED')
+        })
+        const actor = { tenantId: 'tenant', userId: 'owner' }
+        await service.authorize(typed, actor, 'read')
+        expect(p.authorizeDraft).not.toHaveBeenCalled()
+        await expect(service.authorize(typed, actor, 'read', 'draft')).rejects.toThrow('DRAFT_DENIED')
+        expect(p.authorizeDraft).toHaveBeenCalledWith(typed, actor, 'read')
+    })
     it('registers the conversation type and host view when its feature module joins Artifact core', async () => {
         const module = await Test.createTestingModule({
             imports: [Dependencies, ArtifactTypesModule, ConversationArtifactPluginModule]

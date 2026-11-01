@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Post, Req, Res, Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MCPService } from '../mcp.service';
@@ -8,6 +10,7 @@ import { Public } from '@xpert-ai/server-auth';
  */
 @Public()
 @Controller()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class BaseMCPController {
   constructor(
     @Inject('MCP_OPTIONS') protected readonly options: any,

@@ -26,7 +26,7 @@ const MANAGEMENT_MENU_ORDER = [
   '/settings'
 ] as const
 
-export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSidebarMenuGroup[] {
+export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[], showAssistants = false): CloudSidebarMenuGroup[] {
   const visibleMenus = (menus ?? []).filter((menu) => !menu.hidden)
   const managementMenus = visibleMenus
     .filter(isManagementCloudMenuItem)
@@ -63,7 +63,7 @@ export function buildCloudSidebarMenuGroups(menus: CloudMenuItem[]): CloudSideba
     }
   ]
 
-  return groups.filter((group) => group.items.length)
+  return groups.filter((group) => group.items.length || (showAssistants && group.key === 'work'))
 }
 
 export function addWorkspaceConnectorMenuItem(groups: CloudSidebarMenuGroup[], workspaceId?: string | null) {

@@ -4,7 +4,7 @@ describe('AssistantBindingModule dependency graph', () => {
     it('keeps transitive module imports defined when loaded through the server-ai entrypoint', () => {
         const { AssistantBindingModule } = require('@xpert-ai/server-ai')
         const { FileUnderstandingModule } = require('../file-understanding/file-understanding.module')
-        const { KnowledgebaseModule } = require('../knowledgebase/knowledgebase.module')
+        const { KnowledgebaseModule } = require('../knowledgebase/management/knowledgebase.module')
         const { KnowledgeDocumentModule } = require('../knowledge-document/document.module')
         const { XpertToolsetModule } = require('../xpert-toolset/xpert-toolset.module')
 

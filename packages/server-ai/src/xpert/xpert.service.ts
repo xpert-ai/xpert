@@ -1,3 +1,4 @@
+import { assertAuthoringUser } from '../shared/authoring-access'
 import { AssistantSharingService } from './sharing/sharing.service'
 import {
     ChecklistItem,
@@ -404,6 +405,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async assertCanAuthorById(id: string, resolvedWorkspaceId?: string | null): Promise<void> {
+        assertAuthoringUser()
         const xpert = await this.findOneByIdWithinTenant(id, {
             select: ['id', 'organizationId', 'workspaceId', 'createdById']
         })

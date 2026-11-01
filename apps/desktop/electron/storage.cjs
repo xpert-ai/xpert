@@ -18,7 +18,12 @@ function createStorage(directory, encryption) {
           // A denied Keychain request requires sign-in, but must not discard connection or language settings.
           credentials = null
         }
-        return { config: state.config, credentials, sidebars: state.sidebars }
+        return {
+          config: state.config,
+          credentials,
+          sidebars: state.sidebars,
+          ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
+        }
       } catch {
         return null
       }
@@ -30,9 +35,18 @@ function createStorage(directory, encryption) {
           ? encryption.encryptString(JSON.stringify(state.credentials)).toString('base64')
           : null
       const temporary = `${file}.tmp`
-      fs.writeFileSync(temporary, JSON.stringify({ config: state.config, encrypted, sidebars: state.sidebars }), {
-        mode: 0o600
-      })
+      fs.writeFileSync(
+        temporary,
+        JSON.stringify({
+          config: state.config,
+          encrypted,
+          sidebars: state.sidebars,
+          ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
+        }),
+        {
+          mode: 0o600
+        }
+      )
       fs.renameSync(temporary, file)
     }
   }

@@ -113,7 +113,19 @@ export class ListAnalyticsSourcesHandler implements ICommandHandler<ListAnalytic
                     result.push({
                         source: { kind, definitionId: item.id, versionId: item.currentVersionId },
                         name: item.name,
-                        providers: [provider.descriptor]
+                        providers: [
+                            {
+                                ...provider.descriptor,
+                                ...(item.visibility === 'private'
+                                    ? {
+                                          sharing: {
+                                              mode: 'owner_only' as const,
+                                              reasonCode: 'ANALYTICS_DEFINITION_PRIVATE'
+                                          }
+                                      }
+                                    : {})
+                            }
+                        ]
                     })
             }
             if (page++ * records.pageSize >= records.total) break
