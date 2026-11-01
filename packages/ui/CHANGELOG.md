@@ -1,5 +1,15 @@
 # @xpert-ai/headless-ui
 
+## 0.1.3
+
+### Patch Changes
+
+- fa765b0: Manage model providers through named connections, typed model catalogs, compact configuration dialogs, and an inline plugin marketplace. Keep connection identity and model type visible in Assistant selection and membership configuration.
+
+  Separate default model purposes from provider connections, add defaults for common media and retrieval model types, and migrate valid legacy defaults without changing credentials or existing Assistant bindings. Retain compatibility reads for unmigrated defaults.
+
+  Add previewable, reversible bulk model replacement for editable Assistant drafts, and validate destination parameters when switching models so incompatible settings are not retained.
+
 ## 0.1.2
 
 ### Patch Changes

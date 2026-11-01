@@ -1,5 +1,29 @@
 # @xpert-ai/plugin-sdk
 
+## 3.30.0
+
+### Minor Changes
+
+- d573a89: Allow Analytics Definition owners to publish or revoke organization visibility for immutable script and declared-file snapshots. Keep private source restrictions in discovery and revalidate the current viewer's upstream access on execution.
+
+  Support provider-opted-in repair of legacy Artifact file bindings when sharing, validating source identity, every saved payload and existing link policy while preserving ownership and versions. Report unavailable authenticated presentation support separately from missing or inaccessible content.
+
+- 98c31e4: Export OpenAICompatibleEmbeddings for model plugins to reuse authoritative per-request usage callbacks. Preserve transport batching/retry behavior, capture provider usage before vectors discard it, and keep accounting callback failures outside the transport retry loop.
+- d7ce6da: Add explicit tenant integration grants for selected or all organizations, separated into configuration, invocation, and Assistant binding purposes. Enforce the same policy during discovery and runtime consumption without exposing credentials or widening management access.
+
+  Provide tenant authorization controls, scope labels, and disabled unavailable selections in Cloud. Supply the persisted Assistant scope when publishing triggers, and expose usage-aware integration reads to plugins.
+
+  Coordinate deployment with the WeCom plugin update for xpert-ai/xpert#1269. Apply the integration sharing schema through the normal schema-sync deployment gate; existing tenant integrations remain private until an administrator grants access.
+
+### Patch Changes
+
+- Updated dependencies [d573a89]
+- Updated dependencies [785f4db]
+- Updated dependencies [fa765b0]
+- Updated dependencies [f5eec71]
+- Updated dependencies [d7ce6da]
+  - @xpert-ai/contracts@3.30.0
+
 ## 3.29.1
 
 ### Patch Changes
