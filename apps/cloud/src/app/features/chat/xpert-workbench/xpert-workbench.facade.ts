@@ -231,13 +231,19 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   }
 
   /** Adopt only the server's saved scope, keeping the current stream and composer mounted. */
-  async syncConversationProject(threadId: string): Promise<void> {
+  async syncConversationProject(
+    threadId: string,
+    loaded?: Pick<IChatConversation, 'id' | 'threadId' | 'projectId' | 'xpertId'>
+  ): Promise<void> {
     if (this.groupId()) return
     const assistantId = this.assistantId()
     if (!assistantId || this.threadId() !== threadId) return
     const projectId = this.projectId()
     try {
-      const conversation = await firstValueFrom(this.#conversationService.getByThreadId(threadId))
+      const conversation =
+        loaded?.threadId === threadId && loaded.xpertId === assistantId
+          ? loaded
+          : await firstValueFrom(this.#conversationService.getByThreadId(threadId))
       if (
         !conversation ||
         this.assistantId() !== assistantId ||

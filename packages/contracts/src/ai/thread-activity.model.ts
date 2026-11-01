@@ -5,6 +5,13 @@ export interface ThreadActivitySnapshot {
   version: 1
   controlView?: import('./thread-control-view.schema').ThreadControlView
   threadId: string
-  runs: Array<{ id: string; status: string; updatedAt: string; createdAt: string; messageRevision: string }>
+  runs: Array<{
+    id: string
+    status: string
+    updatedAt: string
+    createdAt: string
+    messageRevision: string
+    messageCount?: number
+  }>
   cards: TMessageContentResourceCard[]
 }

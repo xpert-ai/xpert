@@ -101,6 +101,31 @@ describe('FindThreadHandler', () => {
         expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(CopilotCheckpointGetTupleQuery))
     })
 
+    it('serializes shared conversation metadata without messages, credentials or authoring data', async () => {
+        const { handler, conversation } = threadFixture()
+        Object.assign(conversation, {
+            title: 'Example',
+            projectId: 'project',
+            from: 'platform',
+            options: { runtimeResources: { revision: 2, resources: [] } },
+            messages: [{ content: 'private transcript' }],
+            xpert: { secret: 'private configuration' },
+            createdBy: { password: 'private credential' },
+            tenantId: 'tenant'
+        })
+        const response = instanceToPlain(await handler.execute(new FindThreadQuery('branch-1')))
+        expect(response.conversation).toMatchObject({
+            id: 'conversation-1',
+            threadId: 'primary-thread',
+            title: 'Example',
+            projectId: 'project',
+            options: { runtimeResources: { revision: 2, resources: [] } }
+        })
+        for (const key of ['messages', 'xpert', 'createdBy', 'createdById', 'tenantId']) {
+            expect(response.conversation).not.toHaveProperty(key)
+        }
+    })
+
     it('preserves the full public contract except values and strips private metadata', async () => {
         const { handler, queryBus, thread } = threadFixture()
         thread.createdAt = new Date('2026-10-16T01:00:00Z')
