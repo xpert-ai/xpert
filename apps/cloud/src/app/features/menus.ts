@@ -208,6 +208,13 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'announcements',
+      label: 'Announcements',
+      icon: 'notifications',
+      scopeContext: 'dual-scope',
+      data: { permissionKeys: [PermissionsEnum.ANNOUNCEMENT_MANAGE], translationKey: 'XP.Notifications.AdminTitle' }
+    },
+    {
       path: 'tenant',
       label: 'Tenant',
       icon: 'storage',

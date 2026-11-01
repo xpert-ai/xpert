@@ -79,6 +79,18 @@
 
     @if (user()) {
       <div class="header-user-menu__items flex flex-col justify-start items-stretch gap-0 p-1">
+        @if (notifications.supported() !== false) {
+          <button
+            class="flex items-center justify-between px-3 rounded-lg hover:bg-hover-bg"
+            cdkMenuItem
+            (click)="notifications.open()"
+          >
+            {{ 'XP.Notifications.Title' | translate }}
+            @if (notifications.unread()) {
+              <span class="text-xs">{{ notifications.unread() }}</span>
+            }
+          </button>
+        }
         <div
           class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem

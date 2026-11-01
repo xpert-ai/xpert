@@ -150,15 +150,13 @@ export class ModelReplacementService {
                         updatedAt: new Date(),
                         updatedById: RequestContext.currentUserId()
                     }
-                    const operation = await manager
-                        .getRepository(ModelReplacementOperation)
-                        .save({
-                            ...this.scopeForSave(),
-                            xpertId: current.id,
-                            actorId: RequestContext.currentUserId(),
-                            beforeDraft: current.draft,
-                            afterRevision: draftRevision(next.draft)
-                        })
+                    const operation = await manager.getRepository(ModelReplacementOperation).save({
+                        ...this.scopeForSave(),
+                        xpertId: current.id,
+                        actorId: RequestContext.currentUserId(),
+                        beforeDraft: current.draft,
+                        afterRevision: draftRevision(next.draft)
+                    })
                     // Only draft is written. Published relations and knowledge indexes are untouched.
                     await repo.update(current.id, { draft: next.draft })
                     return { id: current.id, status: 'updated' as const, operationId: operation.id }

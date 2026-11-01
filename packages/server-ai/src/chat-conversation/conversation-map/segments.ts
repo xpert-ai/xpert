@@ -15,7 +15,7 @@ export type SegmentPath = {
     messages: MessageLink[]
 }
 /** Internal query plan. These summary pointers are stripped before returning the View DTO. */
-export type SegmentPlan = { node: MapNode; questionId?: string; replyId?: string }
+export type SegmentPlan = { node: MapNode; questionId?: string; replyId?: string; messageIds?: string[] }
 type Entry = { message: MessageLink; parent: string | null; threads: Set<string>; questionId?: string }
 
 /** Compress authorized root-to-head paths. An explicit boundary is a fork into an independent conversation. */
@@ -87,8 +87,10 @@ export function messageSegments(
             count = 0
         let updatedAt: string | undefined
         let replyId: string | undefined
+        const messageIds: string[] = []
         for (;;) {
             const { message } = entries.get(cursor)!
+            messageIds.push(cursor)
             count++
             updatedAt = latestUpdate(updatedAt ? new Date(updatedAt) : undefined, message.updatedAt, message.createdAt)
             replyId = message.role === 'ai' ? message.id : undefined
@@ -118,7 +120,7 @@ export function messageSegments(
             preview: '',
             expandable: Boolean(next.length || placeholders.length)
         }
-        plans.push({ node, questionId, replyId })
+        plans.push({ node, questionId, replyId, messageIds })
         for (const path of placeholders) empty(path, node.id)
         for (const child of [...next].reverse()) pending.push({ id: child, parentId: node.id })
     }

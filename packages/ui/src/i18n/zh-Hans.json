@@ -39,5 +39,18 @@
   },
   "chipGrid": {
     "emptyPlaceholder": "选择或添加项目"
+  },
+  "dateTimePicker": {
+    "chooseDateTime": "选择日期和时间",
+    "time": "时间",
+    "timeFormat": "时间格式为 HH:mm，例如 09:30。",
+    "now": "现在",
+    "confirm": "确定",
+    "hour": "小时",
+    "minute": "分钟",
+    "selectHour": "选择小时（24 小时制）",
+    "selectMinute": "选择分钟",
+    "clockHint": "先选小时，再选分钟；可拖动指针或用方向键微调。",
+    "clear": "清除"
   }
 }

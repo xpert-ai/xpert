@@ -112,6 +112,16 @@ export const routes: Routes = [
       },
       ...(environment.settingsExtensions?.routes ?? []),
       {
+        path: 'announcements',
+        loadChildren: () => import('./announcements/routes').then((m) => m.routes),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/announcements',
+          scopeContext: 'dual-scope',
+          permissions: { only: [PermissionsEnum.ANNOUNCEMENT_MANAGE], redirectTo }
+        }
+      },
+      {
         path: 'analytics',
         loadChildren: () => import('./analytics/routes').then((m) => m.routes),
         data: { title: 'settings/analytics', scopeContext: 'organization-only' }

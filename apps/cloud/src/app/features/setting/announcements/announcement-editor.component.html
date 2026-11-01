@@ -1,0 +1,138 @@
+<form
+  xpDialogLayout="wide"
+  xpDialogPurpose="workflow"
+  class="w-[min(720px,calc(100vw-2rem))] max-h-[min(90dvh,820px)]"
+  [formGroup]="form"
+  (ngSubmit)="save()"
+>
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
+      {{ (selected() ? 'XP.Notifications.EditAnnouncement' : 'XP.Notifications.New') | translate }}
+    </h2>
+    <p xpDialogDescription>{{ 'XP.Notifications.EditorHint' | translate }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [disabled]="busy()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <z-form-field>
+      <label z-form-label for="announcement-title">{{ 'XP.Notifications.Subject' | translate }}</label>
+      <input z-input id="announcement-title" class="col-span-full" formControlName="title" maxlength="160" />
+    </z-form-field>
+    <z-form-field>
+      <label z-form-label for="announcement-body">{{ 'XP.Notifications.Body' | translate }}</label>
+      <textarea
+        z-input
+        id="announcement-body"
+        class="col-span-full"
+        formControlName="body"
+        rows="6"
+        maxlength="20000"
+      ></textarea>
+    </z-form-field>
+    @if (submitted() && form.invalid) {
+      <z-alert zType="destructive" [zDescription]="'XP.Notifications.Invalid' | translate" />
+    }
+    <div class="grid gap-4 sm:grid-cols-2">
+      <z-form-field class="sm:col-span-2">
+        <z-form-label id="announcement-category-label">{{ 'XP.Notifications.Category' | translate }}</z-form-label>
+        <z-radio-group
+          class="col-span-full flex flex-wrap gap-x-6 gap-y-2"
+          formControlName="category"
+          aria-labelledby="announcement-category-label"
+        >
+          <z-radio value="general">{{ 'XP.Notifications.General' | translate }}</z-radio>
+          <z-radio value="maintenance">{{ 'XP.Notifications.Maintenance' | translate }}</z-radio>
+          <z-radio value="model_retirement">{{ 'XP.Notifications.ModelRetirement' | translate }}</z-radio>
+        </z-radio-group>
+      </z-form-field>
+      <z-form-field class="sm:col-span-2">
+        <z-form-label id="announcement-severity-label">{{ 'XP.Notifications.Priority' | translate }}</z-form-label>
+        <z-radio-group
+          class="col-span-full flex flex-wrap gap-x-6 gap-y-2"
+          formControlName="severity"
+          aria-labelledby="announcement-severity-label"
+        >
+          <z-radio value="info">{{ 'XP.Notifications.Normal' | translate }}</z-radio>
+          <z-radio value="important">{{ 'XP.Notifications.Important' | translate }}</z-radio>
+        </z-radio-group>
+      </z-form-field>
+      <z-form-field>
+        <z-form-label id="announcement-starts-label"
+          >{{ 'XP.Notifications.Starts' | translate }} ({{ timezone }})</z-form-label
+        >
+        <z-date-time-picker
+          class="col-span-full"
+          role="group"
+          aria-labelledby="announcement-starts-label"
+          [label]="'XP.Notifications.Starts' | translate"
+          formControlName="startsAt"
+        />
+      </z-form-field>
+      <z-form-field>
+        <z-form-label id="announcement-expires-label">{{ 'XP.Notifications.Expires' | translate }}</z-form-label>
+        <z-date-time-picker
+          class="col-span-full"
+          role="group"
+          aria-labelledby="announcement-expires-label"
+          [label]="'XP.Notifications.Expires' | translate"
+          formControlName="expiresAt"
+          [clearable]="true"
+          [clearLabel]="'XP.Notifications.ClearExpiry' | translate"
+        />
+      </z-form-field>
+    </div>
+    <z-form-field role="group" aria-labelledby="announcement-clients-label">
+      <z-form-label id="announcement-clients-label">{{ 'XP.Notifications.Clients' | translate }}</z-form-label>
+      <div class="col-span-full flex flex-wrap gap-4">
+        <z-checkbox formControlName="web" [zDisabled]="selected()?.status === 'published'">Web</z-checkbox>
+        <z-checkbox formControlName="desktop" [zDisabled]="selected()?.status === 'published'">{{
+          'XP.Notifications.Desktop' | translate
+        }}</z-checkbox>
+      </div>
+    </z-form-field>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <z-form-field>
+        <label z-form-label for="announcement-action-label">{{ 'XP.Notifications.ActionLabel' | translate }}</label>
+        <input z-input id="announcement-action-label" class="col-span-full" formControlName="actionLabel" />
+      </z-form-field>
+      <z-form-field>
+        <label z-form-label for="announcement-action-url">{{ 'XP.Notifications.ActionUrl' | translate }}</label>
+        <input
+          z-input
+          id="announcement-action-url"
+          class="col-span-full"
+          type="url"
+          formControlName="actionUrl"
+          placeholder="https://"
+        />
+      </z-form-field>
+    </div>
+    @if (preview()) {
+      <section class="space-y-3 border-t pt-4">
+        <h2 class="font-semibold">{{ form.controls.title.value }}</h2>
+        <xp-notification-text [text]="form.controls.body.value" />
+      </section>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="ghost" type="button" [disabled]="busy()" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate }}
+    </button>
+    <button z-button zType="secondary" type="button" [attr.aria-pressed]="preview()" (click)="preview.set(!preview())">
+      {{ 'XP.Notifications.Preview' | translate }}
+    </button>
+    <button z-button type="submit" [disabled]="busy()" [zLoading]="busy()">
+      {{ 'XP.Notifications.Save' | translate }}
+    </button>
+  </footer>
+</form>

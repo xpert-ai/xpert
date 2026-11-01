@@ -1,3 +1,4 @@
+import { USER_NOTIFICATION_ENTITIES } from '../../user-notification/notification.entities'
 import { ModelReplacementOperation } from '../../xpert/model-replacement/operation.entity'
 import { CopilotRoleDefault } from '../../copilot/role-defaults/role-default.entity'
 import { ArtifactReference } from '../../artifacts/library/artifact-reference.entity'
@@ -177,6 +178,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ...USER_NOTIFICATION_ENTITIES,
     ContentResourceEntry,
     ContentResourceOperation,
     ContentEditorPreference,

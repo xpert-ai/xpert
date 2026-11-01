@@ -1,3 +1,4 @@
+import { UserNotificationsService } from '../../../@core/services/user-notifications.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
@@ -52,6 +53,7 @@ const THEMES = [
   animations: [OverlayAnimation1]
 })
 export class HeaderUserComponent {
+  readonly notifications = inject(UserNotificationsService)
   languages = LANGUAGES
   ThemesEnum = ThemesEnum
   Version = environment.version

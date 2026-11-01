@@ -122,6 +122,7 @@ export * from './desktop-shell.model'
 export * from './ai/agent-output-delivery.model'
 
 export * from './ai/execution-activity.model'
+export * from './ai/conversation-trail.model'
 
 export * from './setup-plugins'
 
@@ -146,3 +147,5 @@ export * from './ai/thread-control-view.schema'
 export * from './ai/thread-control-projection.model'
 export * from './ai/mcp-operation.model'
 export * from './ai/mcp-task.schema'
+
+export * from './user-notification.schema'

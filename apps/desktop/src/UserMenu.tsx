@@ -1,5 +1,6 @@
+import { useNotifications } from './notifications/NotificationProvider'
 import { t } from './i18n'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Button,
   DropdownMenu,
@@ -26,6 +27,8 @@ export function UserMenu({
   onSettings: () => void
   onLogout: () => void
 }) {
+  const notificationOpener = useRef<HTMLButtonElement>(null)
+  const notifications = useNotifications()
   const [failedUrl, setFailedUrl] = useState('')
   const { user } = profile
   const name = user.name || t('Xpert user')
@@ -34,6 +37,7 @@ export function UserMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          ref={notificationOpener}
           variant="ghost"
           className={compact ? 'size-12 shrink-0 rounded-full p-1' : 'h-11 w-full justify-start gap-3 px-2'}
           aria-label={t('User menu: {{name}}', { name })}
@@ -65,6 +69,20 @@ export function UserMenu({
           <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">{organization?.name}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {notifications.available && (
+          <DropdownMenuItem
+            className="rounded-lg px-3 py-2.5"
+            onSelect={() => notifications.open(notificationOpener.current)}
+          >
+            {t('Notifications')}{' '}
+            {notifications.count > 0 && (
+              <span className="ml-auto rounded-full bg-muted px-2 text-xs">
+                {notifications.count}
+                {notifications.count >= 30 ? '+' : ''}
+              </span>
+            )}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="rounded-lg px-3 py-2.5" onSelect={() => openWorkspace(webUrl)}>
           <ExternalLink />
           {t('Open Xpert workspace')}

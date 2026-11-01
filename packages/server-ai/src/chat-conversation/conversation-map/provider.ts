@@ -17,8 +17,9 @@ import {
     type XpertViewActionRequest
 } from '@xpert-ai/contracts'
 import { ConversationMapService } from './service'
-import { mapActionSchema, mapQuerySchema } from './schema'
+import { mapActionSchema, mapOptionsQuerySchema, mapQuerySchema } from './schema'
 import { CONVERSATION_MAP_ICON } from './icon'
+import { trailQuerySchema } from './trail.schema'
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 @ViewExtensionProvider('platform.conversation-map')
 export class ConversationMapViewProvider implements IXpertViewExtensionProvider {
@@ -82,6 +83,16 @@ export class ConversationMapViewProvider implements IXpertViewExtensionProvider 
     }
     async getViewData(context: XpertResolvedViewHostContext, _key: string, query: XpertViewQuery) {
         if (_key !== 'topics') throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+        if (query.parameters?.operation === 'options') {
+            const parsed = mapOptionsQuerySchema.safeParse(query.parameters)
+            if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            return { item: await this.map.options(context, parsed.data) }
+        }
+        if (query.parameters?.operation === 'trail') {
+            const parsed = trailQuerySchema.safeParse(query.parameters)
+            if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            return { item: await this.map.trail(context, parsed.data) }
+        }
         if (query.parameters?.operation === 'projects') {
             const parsed = mapQuerySchema.safeParse({ offset: query.parameters.offset })
             if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))

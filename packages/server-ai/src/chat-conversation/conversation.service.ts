@@ -190,7 +190,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         projectId: string | null,
         skip: number,
         take: number,
-        sourceConversationId?: string
+        sourceConversationId?: string,
+        titleSearch?: string
     ): Promise<[ChatConversation[], number]> {
         const actorId = RequestContext.currentUserId()
         const tenantId = RequestContext.currentTenantId()
@@ -217,6 +218,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     '(conversation.createdById = :actorId OR (xpert.createdById = :actorId AND xpert.userId = conversation.createdById))',
                     { actorId }
                 )
+        if (titleSearch?.trim())
+            query.andWhere('conversation.title ILIKE :titleSearch', {
+                titleSearch: `%${titleSearch.trim().replace(/[\\%_]/g, '\\$&')}%`
+            })
         if (sourceConversationId)
             query
                 .andWhere(`conversation."branchSource" ->> 'conversationId' = :sourceConversationId`, {

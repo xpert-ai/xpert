@@ -1,0 +1,113 @@
+---
+title: 'Growth tree'
+description: 'Trace discussion forks, inspect Agent delegation and tool activity for a reply, and navigate between leaves and their recorded sources.'
+---
+
+Growth tree is a graphical view within [Conversation Map](/en/guides/conversation-map). Its tapered branches show discussion paths and Agent execution records. **Discussion paths** shows how a conversation forks; **Reply execution** shows the Agents, activity groups, and tool calls behind one reply.
+
+## Using Growth tree
+
+1. Open **Conversation Map** in the Assistant Workbench, select a project, and choose **Growth tree**.
+2. Choose a conversation in the searchable selector, then the discussion branch to follow. The selector searches on the server, loads more on scroll, and retains loaded results when reopened.
+3. Select an exchange leaf to inspect its question, reply, and source. Questions awaiting a reply remain available.
+4. For a reply with an execution record, select **View this execution** to open its Agent tree.
+5. Select a tool leaf or open **Recorded steps** to inspect status, available input and output, and recorded detail.
+6. Use **Back to discussion** to return to the discussion layer, or **Locate in chat** to open the original message.
+
+## Trunks, branches, and leaves
+
+| Shape        | Discussion paths                                         | Reply execution                                                                                   |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Trunk        | Message ancestry of the selected branch                  | The root Agent execution for the reply                                                            |
+| Limb         | A discussion path diverging from shared message ancestry | A child Agent or external invocation with explicit parentage                                      |
+| Small branch | The visual branch for one exchange                       | Consecutive activities of the same type within an Agent, grouped in batches of at most 24 records |
+| Leaf         | A user question and its reply                            | One tool call with a stable identifier; updates and results merge into that leaf                  |
+| Endpoint     | Branch name and recorded status                          | Agent name, execution status, available duration, and separate business outcome                   |
+
+The execution layer also retains the final text reply as an **Answer** event. The root Agent remains the trunk even when a child Agent has more activity.
+
+**Horizontal position shows recorded order, not a proportional timeline.** Record sources do not share a unified clock. Branch length cannot compare Agent durations or establish waiting time. Explicitly recorded durations appear at endpoints and in details when available.
+
+Branch width follows downstream activity that has not yet branched off, including delegated subtrees, and tapers continuously toward the tip. A child branch is no wider than its parent at the junction. Leaf orientation follows the local curve direction.
+
+## How forks are formed
+
+### Discussion forks
+
+The discussion tree follows message ancestry from the latest message of each visible branch. Shared prefixes appear once, and a fork occurs where those paths actually separate.
+
+**Show previous versions** controls older branches created by message edits. The selected branch is retained, and empty branches can appear. The first reply after a fork uses its actual inherited question as context.
+
+An independent conversation has its own tree. When its source is accessible, the toolbar offers **Source conversation**. A copy is not shown as a live child branch of its source conversation.
+
+### Agent delegation and tool activity
+
+The execution tree reads descendants of the selected reply's root execution. Parent-child links come from explicit execution records. When a matching tool-call identifier is available, the child branch grows smoothly from that call on its parent's trunk. The call remains selectable without being duplicated as a separate activity branch.
+
+A **dashed limb** indicates recorded parentage without an available call anchor. Activity without reliable Agent ownership is explicitly marked unattributed. Matching names, similar content, or nearby timestamps do not create relationships.
+
+Updates sharing a tool-call identifier within the same Agent merge into one record. External activities merge by stable record identifier and retain their first recorded order. Retries with distinct call identifiers remain separate leaves; the view does not infer retry relationships.
+
+## Legend, status, and business outcomes
+
+The legend floats below the zoom controls in the upper-left corner. It presents a vertical list of icons and labels and can be expanded or collapsed. Each layer shows its applicable structure definitions.
+
+| Activity symbol | Meaning        |
+| --------------- | -------------- |
+| Triangle        | Question       |
+| Circle          | Explore        |
+| Square          | Change         |
+| Diamond         | Verify         |
+| Double circle   | Answer         |
+| Dashed circle   | Other activity |
+
+Activity categories come from explicit record types. Older records without a type appear as **Other activity**, without guessing intent from a tool name. Failed calls show a cross. Unknown, running, pending, waiting, or cancelling tool calls use hollow markers with text status.
+
+**Execution completion and business acceptance appear separately.** A verification Agent can finish successfully while its business outcome reports a gap. Business success or failure appears only when an explicit outcome is recorded; execution success alone does not establish acceptance.
+
+## Canvas and recorded steps
+
+The canvas fills the workspace below the content toolbar, preserving horizontal room for long trees. The activity panel is hidden by default. Selecting a leaf or **Recorded steps** slides a rounded card over the right side of the canvas, which remains interactive.
+
+| Control                    | Behavior                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Zoom out / Zoom in         | Changes magnification; short tooltips appear on hover and keyboard focus                                                          |
+| Fit and center tree / Home | Resets pan and zoom, centering actual geometry and label bounds with a usual 32px margin and at most 1.5× automatic magnification |
+| Drag canvas / Arrow keys   | Pans the tree                                                                                                                     |
+| Select a leaf              | Highlights its path and opens recorded detail; Enter or Space also selects a focused leaf                                         |
+| Select a recorded step     | Selects the matching leaf; pans only when the leaf is outside the visible area or behind the panel, without changing zoom         |
+| Locate in tree             | Closes the activity panel and locates the selected leaf                                                                           |
+| Fold diagram branch        | Hides graphical descendants while retaining their records in the list; list expansion is managed separately                       |
+| Close panel / Esc          | Closes the panel, keeps the selection, and returns focus to the Recorded steps trigger                                            |
+
+The activity list and detail area scroll independently. Ordinary panel opening or closing does not reset the user's zoom and pan. On wide screens, explicitly choosing **Fit and center tree** with the panel open uses the unobscured area; closing the panel returns the fit reference area to the full canvas. Narrow screens always fit against the full canvas.
+
+Zoom controls, legend, and activity panel follow the host's container radius; inner records follow its item radius, including square-corner themes. The interface supports English and Chinese, light and dark themes, and disables slide animation when reduced motion is requested.
+
+## Refresh and restoration
+
+While records are active, the view reloads a bounded snapshot approximately every five seconds. Requests run sequentially, and polling pauses in background pages. Automatic refresh preserves the selected record and folded branches; stale responses cannot overwrite a newer selection.
+
+The host saves the view mode, project, and conversation, branch, and reply locations. Reloading can restore the discussion or execution layer. Changing projects clears previous location information. Manual **Refresh** reloads the current records and clears selector caches.
+
+## Accessible records and data limits
+
+Execution access first requires Assistant, project, and conversation authorization. The selected branch must belong to the conversation, and the reply must be on that branch's visible ancestor path. External activity also requires access to the exact invocation and a valid binding.
+
+Copied execution history uses saved snapshots, with its historical nature indicated in the view. It does not reread live activity from the source execution. Input and output show public records subject to credential redaction and length limits. Reasoning, checkpoints, and private runtime state are excluded.
+
+| Scope                       | Current limit or behavior                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| Trunk and branch lanes      | At most 500                                                                                       |
+| Recorded steps              | At most 5,000                                                                                     |
+| External invocation details | At most 40 invocations checked per read, with 100 activity records per invocation                 |
+| Discussion bodies           | At most 5,000 records; topology validation still reads ancestor-link metadata                     |
+| Large histories             | Bounded snapshots and branch folding; zoom in or use the activity list after fitting a large tree |
+
+Coverage notices identify record limits, missing identities, absent execution records, unavailable activity detail, or insufficient timing data. Unsaved activity cannot be recovered. An old reply with unavailable saved state may fail to load execution detail while its discussion layer remains usable. The layout does not synthesize missing wait intervals or a complete timeline across record sources.
+
+## Integration and compatibility
+
+Growth tree reads through the existing Conversation Map View provider using `operation: 'trail'`, a conversation identifier, and optional branch, reply, and previous-version parameters. Omitting the reply identifier reads discussion history; an authorized AI reply selects execution detail. The shared data contract is `TrailGraph` v1.
+
+The feature uses derived read-only views and requires no database migration. Activity type fields remain compatible with older records. Update the API and its bundled remote component assets together. Locating messages from a maximized view requires the ChatKit behavior that reveals chat before scrolling and highlighting; include the corresponding host update when releasing this feature.

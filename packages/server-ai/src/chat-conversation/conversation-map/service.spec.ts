@@ -11,7 +11,7 @@ import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { ConversationMapService } from './service'
-import { mapPageSchema, mapQuerySchema } from './schema'
+import { mapPageSchema, mapQuerySchema, mapOptionsQuerySchema } from './schema'
 
 jest.mock('i18next', () => ({
     t: (key: string) => (key === 'server-ai:ConversationMap.Untitled' ? '未命名对话' : key)
@@ -103,6 +103,130 @@ beforeEach(() => {
 })
 afterEach(() => jest.restoreAllMocks())
 describe('ConversationMapService', () => {
+    it('searches authorized project options with bounded pagination', async () => {
+        const f = fixture()
+        f.projects.findAvailableForXpert.mockResolvedValue({ items: [{ id: projectId, name: 'Project' }], total: 22 })
+        const page = await f.service.options(
+            context,
+            mapOptionsQuerySchema.parse({
+                operation: 'options',
+                kind: 'projects',
+                search: ' Project ',
+                offset: 20,
+                limit: 1
+            })
+        )
+        expect(f.projects.findAvailableForXpert).toHaveBeenCalledWith({
+            xpertId: 'assistant',
+            filter: { search: 'Project' },
+            skip: 20,
+            take: 1
+        })
+        expect(page).toEqual({ options: [{ value: projectId, label: 'Project' }], nextOffset: 21 })
+    })
+    it('searches conversation titles in the bound family and project without reading message bodies', async () => {
+        const f = fixture()
+        const page = await f.service.options(
+            {
+                ...context,
+                runtimeScope: {
+                    projectId,
+                    conversationId,
+                    dataScopeKey: `project:${projectId}`,
+                    workspaceFiles: { catalog: 'projects', scopeId: projectId }
+                }
+            },
+            mapOptionsQuerySchema.parse({ operation: 'options', kind: 'conversations', search: 'Planning', offset: 1 })
+        )
+        expect(f.access.assertCanReadXpert).toHaveBeenCalledWith(projectId, 'assistant')
+        expect(f.conversations.findReadableFamilyConversations).toHaveBeenCalledWith(
+            ['assistant', 'assistant-old'],
+            projectId,
+            1,
+            20,
+            undefined,
+            'Planning'
+        )
+        expect(page).toEqual({ options: [{ value: conversationId, label: 'Planning' }], nextOffset: null })
+        expect(f.threads.findVisibleMessages).not.toHaveBeenCalled()
+    })
+    it('does not enumerate options outside the actor or project Assistant scope', async () => {
+        const f = fixture()
+        const query = mapOptionsQuerySchema.parse({ operation: 'options', kind: 'conversations', projectId })
+        await expect(f.service.options({ ...context, userId: 'foreign' }, query)).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        f.access.assertCanReadXpert.mockRejectedValue(new ForbiddenException())
+        await expect(f.service.options(context, query)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.conversations.findReadableFamilyConversations).not.toHaveBeenCalled()
+    })
+    it('validates option kinds, scope, search length and pagination bounds', () => {
+        for (const patch of [
+            { kind: 'messages' },
+            { projectId: 'invalid' },
+            { search: 'a'.repeat(201) },
+            { offset: -1 },
+            { limit: 51 }
+        ])
+            expect(mapOptionsQuerySchema.safeParse({ operation: 'options', kind: 'projects', ...patch }).success).toBe(
+                false
+            )
+    })
+    it('authorizes growth-tree scope before reading any execution', async () => {
+        const f = fixture()
+        await expect(
+            f.service.trail(
+                { ...context, userId: 'foreign' },
+                {
+                    operation: 'trail',
+                    conversationId,
+                    showHistory: false
+                }
+            )
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.db.getRepository).not.toHaveBeenCalled()
+    })
+    it('rejects a foreign thread and a message outside its visible ancestor path', async () => {
+        const f = fixture()
+        f.threads.requireByThreadId.mockResolvedValueOnce({ conversationId: 'foreign' })
+        await expect(
+            f.service.trail(context, { operation: 'trail', conversationId, threadId: 'foreign', showHistory: false })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            f.service.trail(context, {
+                operation: 'trail',
+                conversationId,
+                threadId: 'main',
+                messageId: 'foreign-message',
+                showHistory: false
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.db.getRepository).not.toHaveBeenCalled()
+    })
+    it('reads a copied execution only from its owned snapshot and never invokes a live reader', async () => {
+        const f = fixture()
+        f.threads.findVisibleMessages.mockResolvedValue({
+            items: [
+                {
+                    id: 'a',
+                    role: 'ai',
+                    executionId: 'root',
+                    historicalAgentRuns: [{ id: 'root', isRoot: true, status: 'success' }],
+                    content: 'Saved reply'
+                }
+            ]
+        })
+        const graph = await f.service.trail(context, {
+            operation: 'trail',
+            conversationId,
+            threadId: 'main',
+            messageId: 'a',
+            showHistory: false
+        })
+        expect(graph.coverage).toContain('historical')
+        expect(f.db.getRepository).not.toHaveBeenCalled()
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
     it.each(['organizationId', 'tenantId', 'userId'] as const)(
         'rejects a mismatching %s before reading',
         async (key) => {

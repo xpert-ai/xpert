@@ -32,6 +32,7 @@ const modulePermissions: ReadonlyArray<{
   {
     module: 'members',
     permissions: [
+      P.ANNOUNCEMENT_MANAGE,
       P.ADMIN_DASHBOARD_VIEW,
       P.ORG_INVITE_VIEW,
       P.ORG_INVITE_EDIT,

@@ -19,12 +19,10 @@ describe('CopilotProviderModelService model access lifecycle', () => {
             {} as never,
             providerService as never,
             {
-                execute: jest
-                    .fn()
-                    .mockResolvedValue({
-                        getModelManager: () => ({ validateCredentials }),
-                        getProviderModels: () => []
-                    })
+                execute: jest.fn().mockResolvedValue({
+                    getModelManager: () => ({ validateCredentials }),
+                    getProviderModels: () => []
+                })
             } as never,
             modelAccessService as never
         )

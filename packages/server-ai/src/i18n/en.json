@@ -64,6 +64,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "Notification_busy": "Too many notification connections. Retry shortly.",
+        "Notification_invalid": "The notification request is invalid.",
+        "Notification_denied": "You do not have access to this notification operation.",
+        "Notification_conflict": "This announcement changed. Reload before saving.",
+        "Notification_unavailable": "This notification is no longer available.",
         "ArtifactApplicationPublicationRequired": "Publish this artifact through its application draft workflow.",
         "ArtifactContentAccessDenied": "You cannot access this artifact content.",
         "ArtifactContentTooLarge": "Artifact content must be a file no larger than 50 MB.",

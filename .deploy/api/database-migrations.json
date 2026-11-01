@@ -10,6 +10,9 @@
     "agent_runtime_binding",
     "agent_runtime_delivery",
     "agent_runtime_inbox",
+    "announcement",
+    "announcement_audit",
+    "announcement_dismissal",
     "artifact_draft",
     "assistant_binding",
     "assistant_template_publication",
@@ -43,10 +46,12 @@
     "model_execution_grant",
     "model_execution_reconciliation",
     "model_gateway_call",
+    "notification_outbox",
     "shell_cli_execution",
     "shell_process_execution",
     "skill_package",
     "template_installation",
+    "user_notification",
     "xpert_agent_execution",
     "xpert_project",
     "xpert_project_pipeline_attention",
@@ -93,6 +98,7 @@
     "ai/chat-conversation/migrations/checks/20261025010100-conversation-recovery.sql",
     "ai/content-resource/documents/migrations/checks/20261025020000-content-document-tables.sql",
     "ai/content-resource/catalog/migrations/checks/20261027000000-content-revision-capacity.sql",
-    "ai/compute-resources/migrations/checks/20261027000100-compute-resource-operations.sql"
+    "ai/compute-resources/migrations/checks/20261027000100-compute-resource-operations.sql",
+    "ai/user-notification/migrations/checks/20261031010000-user-notifications.sql"
   ]
 }

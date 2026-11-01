@@ -158,6 +158,19 @@ describe('ChatConversationService workspace files', () => {
                 { actorId: 'user-1' }
             )
         })
+        it('filters literal title fragments before pagination while retaining access predicates', async () => {
+            const query = builder()
+            await service.findReadableFamilyConversations(['published'], null, 20, 20, undefined, '  100%_draft  ')
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.title ILIKE :titleSearch', {
+                titleSearch: '%100\\%\\_draft%'
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.projectId IS NULL')
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.xpertId IN (:...xpertIds)', {
+                xpertIds: ['published']
+            })
+            expect(query.andWhere.mock.invocationCallOrder.at(-1)).toBeLessThan(query.skip.mock.invocationCallOrder[0])
+            expect(query.skip).toHaveBeenCalledWith(20)
+        })
         it('does not enumerate or count a denied project', async () => {
             const query = builder()
             projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
