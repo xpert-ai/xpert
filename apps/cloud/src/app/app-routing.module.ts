@@ -6,6 +6,11 @@ import { authGuard } from './@core/auth/auth.guard'
 
 const routes: Routes = [
   {
+    path: 's/:token',
+    loadComponent: () =>
+      import('./shared-conversation/shared-conversation.component').then((m) => m.SharedConversationComponent)
+  },
+  {
     path: 'onboarding',
     loadChildren: () => import('./onboarding/onboarding.module').then((m) => m.OnboardingModule)
   },
@@ -21,6 +26,18 @@ const routes: Routes = [
   {
     path: 'artifacts/view/:artifactLinkSlug',
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./artifacts/presentation/artifact-share-page.component').then((m) => m.ArtifactSharePageComponent)
+  },
+  {
+    path: 'artifacts/library/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./artifacts/presentation/artifact-library-page.component').then((m) => m.ArtifactLibraryPageComponent)
+  },
+  {
+    path: 'artifacts/snapshot/:artifactLinkSlug',
+    data: { snapshot: true },
     loadComponent: () =>
       import('./artifacts/presentation/artifact-share-page.component').then((m) => m.ArtifactSharePageComponent)
   },

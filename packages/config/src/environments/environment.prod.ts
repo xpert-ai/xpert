@@ -2,6 +2,7 @@ import 'dotenv/config'
 
 import { FileStorageProviderEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import { IEnvironment, IPACFeatures, LogLevel, normalizeDeploymentTarget } from './ienvironment'
+import { readClientBaseUrl } from '../client-base-url-config'
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
 
@@ -9,7 +10,7 @@ export const prodEnvironment: IEnvironment = {
   port: process.env.PORT || 3000,
   host: process.env.HOST || 'http://localhost',
   baseUrl: API_BASE_URL,
-  clientBaseUrl: process.env.CLIENT_BASE_URL || 'http://localhost:4200',
+  clientBaseUrl: readClientBaseUrl(process.env),
   codeXpertUrl: process.env.CODE_XPERT_URL?.trim() || 'https://code.xpertai.cn/',
   deepResearchUrl: process.env.DEEP_RESEARCH_URL?.trim() || 'https://research.xpertai.cn/',
   dataOntologyUrl: process.env.DATA_ONTOLOGY_URL?.trim() || 'https://data.xpertai.cn/',

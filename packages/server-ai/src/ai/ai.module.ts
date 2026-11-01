@@ -1,3 +1,9 @@
+import { ConversationArtifactShares } from './conversation-sharing/conversation-artifact-shares.service'
+import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
+import { ConversationSharingController, SharedConversationController } from './conversation-sharing/share.controller'
+import { ConversationSharingService } from './conversation-sharing/share.service'
+import { ConversationShareManagementController } from './conversation-sharing/share-management.controller'
+import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { ContentResourceModule } from '../content-resource/content-resource.module'
 import { ContentDocumentsController } from './content-documents.controller'
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
@@ -82,6 +88,8 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
             }
         ]),
         ContentResourceModule,
+        ArtifactsModule,
+        WorkspaceFilesRuntimeModule,
         ChatGroupModule,
         WorkspaceFileAccessModule,
         TenantModule,
@@ -123,6 +131,9 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ConversationSharingController,
+        SharedConversationController,
+        ConversationShareManagementController,
         ContentDocumentsController,
         AssistantTemplateSetupRuntimeController,
         ...GROUP_CONTROLLERS,
@@ -148,6 +159,8 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        ConversationSharingService,
+        ConversationArtifactShares,
         GroupScopeGuard,
         GroupWorkbenchGuard,
         ThreadActivityService,

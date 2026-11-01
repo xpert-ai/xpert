@@ -41,5 +41,8 @@ export type TCopilotModelOptions = {
    * Max input context size of selected model
    */
   context_size?: number
+  /** Client retry policy, independent of the selected model's generation parameters. */
+  maxRetries?: number
+  /** Optional generation parameters use null to persist an explicit unset value. */
   [key: string]: any
 }

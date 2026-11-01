@@ -15,7 +15,7 @@ import { PluginApplicationSuiteService } from '../application-suite/plugin-appli
 import { applicationModelOptions } from './application-models'
 import {
     AiModelTypeEnum,
-    AiProviderRole,
+    DefaultModelRole,
     ICopilot,
     IPluginApplicationInstallation,
     KnowledgeGraphStatus,
@@ -54,7 +54,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { CopilotOneByRoleQuery } from '../../copilot/queries'
+import { ResolveDefaultModelQuery } from '../../copilot/queries'
 import { Knowledgebase } from '../../knowledgebase/persistence/knowledgebase.entity'
 import { KnowledgebaseService } from '../../knowledgebase/management/knowledgebase.service'
 import { Xpert } from '../../xpert/xpert.entity'
@@ -70,9 +70,7 @@ import {
     PluginApplicationToolsetsService
 } from '../application-toolsets/plugin-application-toolsets.service'
 import { t } from 'i18next'
-import {
-    PluginApplicationSetupService
-} from '../application-setup/plugin-application-setup.service'
+import { PluginApplicationSetupService } from '../application-setup/plugin-application-setup.service'
 
 /** Trusted App definition paired with the exact plugin template/version to install. */
 type ResolvedApplication = {
@@ -250,14 +248,20 @@ export class PluginApplicationService {
      * A healthy existing installation is returned before model validation so
      * an idempotent retry does not depend on models that may later be disabled.
      */
-    async initialize(input: PluginApplicationInitializeInput, options: ApplicationInstallOptions = {}): Promise<PluginApplicationStatusSummary> {
+    async initialize(
+        input: PluginApplicationInitializeInput,
+        options: ApplicationInstallOptions = {}
+    ): Promise<PluginApplicationStatusSummary> {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         await this.applicationAccess.assertCanInitialize(resolved.application)
         const identity = JSON.stringify(applicationInstallationIdentity(resolved.application))
         return this.initializationLocks.run(identity, () => this.initializeLocked(input, options))
     }
 
-    private async initializeLocked(input: PluginApplicationInitializeInput, options: ApplicationInstallOptions): Promise<PluginApplicationStatusSummary> {
+    private async initializeLocked(
+        input: PluginApplicationInitializeInput,
+        options: ApplicationInstallOptions
+    ): Promise<PluginApplicationStatusSummary> {
         const resolved = this.resolveApplication(input.pluginName, input.appName, input.installationScope)
         const application = resolved.application
         const operationId = input.operationId?.trim()
@@ -412,9 +416,15 @@ export class PluginApplicationService {
                       })
                     : null
                 if (sharedId) {
-                    if (!knowledgebase || !application.config.resources?.knowledgebases?.imports?.includes(knowledgebaseConfig.key))
+                    if (
+                        !knowledgebase ||
+                        !application.config.resources?.knowledgebases?.imports?.includes(knowledgebaseConfig.key)
+                    )
                         throw new BadRequestException('application_resource_binding_unavailable')
-                    installation.resourceRefs = { ...installation.resourceRefs, [`shared:knowledgebase:${knowledgebaseConfig.key}`]: sharedId }
+                    installation.resourceRefs = {
+                        ...installation.resourceRefs,
+                        [`shared:knowledgebase:${knowledgebaseConfig.key}`]: sharedId
+                    }
                 }
                 if (!knowledgebase) {
                     knowledgebase = await this.knowledgebaseService.create({
@@ -476,8 +486,7 @@ export class PluginApplicationService {
                         {
                             name: assistantName,
                             title: this.localized(application.displayName, 'Application'),
-                            ...(options.primaryModel
-                                ? { copilotModel: options.primaryModel } : {}),
+                            ...(options.primaryModel ? { copilotModel: options.primaryModel } : {}),
                             ...(speechToTextModel ? { speechToTextModel: speechToTextModel.config } : {})
                         },
                         true
@@ -656,10 +665,10 @@ export class PluginApplicationService {
         const primaryModelAvailable = !modelRequirements.primary || primaryModels.length > 0
         const [defaultEmbeddingModelId, defaultVisionModelId] = await Promise.all([
             modelRequirements.embedding
-                ? this.defaultModelOptionId(AiProviderRole.Embedding, embeddingModels)
+                ? this.defaultModelOptionId(DefaultModelRole.Embedding, embeddingModels)
                 : Promise.resolve(null),
             modelRequirements.vision
-                ? this.defaultModelOptionId(AiProviderRole.Primary, visionModels)
+                ? this.defaultModelOptionId(DefaultModelRole.Primary, visionModels)
                 : Promise.resolve(null)
         ])
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
@@ -778,8 +787,11 @@ export class PluginApplicationService {
                                   id,
                                   tenantId: installation.tenantId,
                                   organizationId: installation.organizationId,
-                                  ...(Object.entries(installation.resourceRefs ?? {}).some(([key, value]) => key.startsWith('shared:knowledgebase:') && value === id)
-                                    ? {} : { workspaceId: installation.workspaceId })
+                                  ...(Object.entries(installation.resourceRefs ?? {}).some(
+                                      ([key, value]) => key.startsWith('shared:knowledgebase:') && value === id
+                                  )
+                                      ? {}
+                                      : { workspaceId: installation.workspaceId })
                               }
                           })
                       )
@@ -872,7 +884,7 @@ export class PluginApplicationService {
 
     /** Resolves the configured organization role default only when it remains an authorized setup option. */
     private async defaultModelOptionId(
-        role: AiProviderRole,
+        role: DefaultModelRole,
         options: PluginApplicationModelOption[]
     ): Promise<string | null> {
         const tenantId = RequestContext.currentTenantId()
@@ -880,8 +892,8 @@ export class PluginApplicationService {
         if (!tenantId || !organizationId || !options.length) {
             return null
         }
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-            new CopilotOneByRoleQuery(tenantId, organizationId, role)
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+            new ResolveDefaultModelQuery(tenantId, organizationId, role)
         )
         const copilotId = copilot?.id?.trim()
         const model = copilot?.copilotModel?.model?.trim()

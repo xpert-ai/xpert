@@ -105,6 +105,11 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
                 ...(copilotProvider.credentials ?? {}),
                 ...(entity.modelProperties ?? {})
             })
+            if (!entity.id)
+                await this.providerService.initializeEnabledModels(
+                    providerId,
+                    providerInstance.getProviderModels() ?? []
+                )
         }
 
         if (entity.id) {

@@ -55,6 +55,7 @@
                 "group": "Artifacts Dashboard",
                 "pages": [
                   "en/guides/artifacts-dashboard/overview",
+                  "en/guides/artifacts-dashboard/project-integration",
                   "en/guides/artifacts-dashboard/data-and-rendering",
                   "en/guides/artifacts-dashboard/lifecycle-and-sharing",
                   "en/guides/artifacts-dashboard/configuration-and-limits"
@@ -64,6 +65,7 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/model-provider-management",
                   "en/guides/assistant-capabilities",
                   "en/guides/assistant-templates",
                   "en/guides/assistant-template-authoring",
@@ -72,6 +74,8 @@
                   "en/guides/spaces-markdown",
                   "en/guides/spaces-document-sources",
                   "en/guides/group-chat",
+                  "en/guides/conversation-map",
+                  "en/guides/conversation-trail",
                   "en/guides/project-tasks",
                   "en/guides/group-project-tasks",
                   "en/guides/managed-connection",
@@ -81,6 +85,7 @@
                   "en/guides/sso-architecture",
                   "en/guides/organization-bootstrap",
                   "en/guides/volume-workspace-architecture",
+                  "en/guides/workspace-file-tools",
                   "en/guides/file-upload-architecture",
                   "en/guides/file-understanding-architecture",
                   "en/guides/minio-file-storage",
@@ -88,6 +93,7 @@
                   "en/guides/agent-middleware",
                   "en/guides/workspace-skill-creator",
                   "en/guides/chatkit-slash-commands",
+                  "en/guides/runtime-user-input",
                   "en/guides/handoff",
                   "en/guides/icon-schema",
                   "en/guides/release",
@@ -175,6 +181,7 @@
                 "group": "Artifacts 实时看板",
                 "pages": [
                   "zh-Hans/guides/artifacts-dashboard/overview",
+                  "zh-Hans/guides/artifacts-dashboard/project-integration",
                   "zh-Hans/guides/artifacts-dashboard/data-and-rendering",
                   "zh-Hans/guides/artifacts-dashboard/lifecycle-and-sharing",
                   "zh-Hans/guides/artifacts-dashboard/configuration-and-limits"
@@ -184,6 +191,7 @@
                 "group": "指南",
                 "pages": [
                   "zh-Hans/guides/plugin",
+                  "zh-Hans/guides/model-provider-management",
                   "zh-Hans/guides/assistant-capabilities",
                   "zh-Hans/guides/assistant-templates",
                   "zh-Hans/guides/assistant-template-authoring",
@@ -192,6 +200,8 @@
                   "zh-Hans/guides/spaces-markdown",
                   "zh-Hans/guides/spaces-document-sources",
                   "zh-Hans/guides/group-chat",
+                  "zh-Hans/guides/conversation-map",
+                  "zh-Hans/guides/conversation-trail",
                   "zh-Hans/guides/project-tasks",
                   "zh-Hans/guides/group-project-tasks",
                   "zh-Hans/guides/managed-connection",
@@ -201,6 +211,7 @@
                   "zh-Hans/guides/sso-architecture",
                   "zh-Hans/guides/organization-bootstrap",
                   "zh-Hans/guides/volume-workspace-architecture",
+                  "zh-Hans/guides/workspace-file-tools",
                   "zh-Hans/guides/file-upload-architecture",
                   "zh-Hans/guides/file-understanding-architecture",
                   "zh-Hans/guides/minio-file-storage",
@@ -214,6 +225,7 @@
                   "zh-Hans/guides/datax-metric-management-plugin",
                   "zh-Hans/guides/xpert-prometheus-metrics",
                   "zh-Hans/guides/chatkit-slash-commands",
+                  "zh-Hans/guides/runtime-user-input",
                   "zh-Hans/guides/conversation-goal-architecture",
                   "zh-Hans/guides/handoff",
                   "zh-Hans/guides/icon-schema",

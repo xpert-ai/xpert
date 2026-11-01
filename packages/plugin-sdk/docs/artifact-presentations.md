@@ -7,6 +7,8 @@ Artifact presentations separate authenticated display from owner-only management
 
 ## Provider contract
 
+Register an `ArtifactTypeProvider` with `presentation: {mode: 'authenticated'}` and create Artifacts with its explicit `type` reference. The type and presentation providers must belong to the same plugin installation. See [Artifact type plugins](./artifact-types.md). Anonymous snapshots use the separate snapshot mode and have no query operations.
+
 Register a Nest provider with `@ArtifactPresentationProvider({pluginName, resourceType})`, implement `IArtifactPresentationProvider`, and include it in the plugin module. Registry discovery uses the explicit source pair and plugin provenance in the authorized organization.
 
 - `getEntry()` returns `{html}` with its packaged frontend assets.

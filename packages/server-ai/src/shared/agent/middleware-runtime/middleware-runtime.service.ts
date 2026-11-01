@@ -19,6 +19,7 @@ import {
     ConnectorRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
+    ExecutionObservabilityRuntimeCapability,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     RequestContext,
     ToolImagesRuntimeCapability,
@@ -34,6 +35,7 @@ import { FileRuntimeService } from '../../../file-understanding/runtime/file-run
 import { AgentMiddlewareModelRuntimeService, type AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createToolImagesApi } from '../../runtime/tool-images-runtime'
+import { ExecutionObservationService } from '../../../xpert-agent-execution/observability/observation.service'
 
 export type { AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 
@@ -57,7 +59,9 @@ export class AgentMiddlewareRuntimeService {
         private readonly artifacts: ArtifactsService,
         private readonly collaboration: CollaborationService,
         @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
-        private readonly platformCapabilities: RuntimeCapabilityRegistry
+        private readonly platformCapabilities: RuntimeCapabilityRegistry,
+        @Inject(ExecutionObservationService)
+        private readonly executionObservation: Pick<ExecutionObservationService, 'createScopedApi'>
     ) {}
 
     createModelClient<T = AgentMiddlewareModelClient>(
@@ -117,6 +121,7 @@ export class AgentMiddlewareRuntimeService {
                 ['platform.middleware.mcp-apps', { version: 1 }],
                 [ActorTokenRuntimeCapability, actorTokenApi],
                 [FileRuntimeCapability, this.fileRuntime.createScopedApi(scope)],
+                [ExecutionObservabilityRuntimeCapability, this.executionObservation.createScopedApi(scope)],
                 [ConnectorRuntimeCapability, connectorApi],
                 [ArtifactsRuntimeCapability, artifactsApi],
                 [CollaborationRuntimeCapability, collaborationApi]

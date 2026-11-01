@@ -6,6 +6,7 @@
 
 | Permission                      | 模块     | 状态       | SUPER_ADMIN | ADMIN | AI_BUILDER | VIEWER | APP_USER | APPLICATION_PROVISIONER | TRIAL |
 | ------------------------------- | -------- | ---------- | ----------- | ----- | ---------- | ------ | -------- | ----------------------- | ----- |
+| `ANNOUNCEMENT_MANAGE`           | members  | 已定义     | ✓           | —     | —          | —      | —        | —                       | —     |
 | `PROFILE_EDIT`                  | personal | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
 | `ADMIN_DASHBOARD_VIEW`          | members  | 旧权限     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
 | `ORG_EMPLOYEES_VIEW`            | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |

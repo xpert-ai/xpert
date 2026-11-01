@@ -11,9 +11,9 @@ export class AdmittedChatCommonHandler extends ChatCommonHandler {
         return this.admission.run(
             command.request,
             { ...command.options, automatic: command.options?.messageEnvelope?.source.type === 'runtime' },
-            (id) =>
+            (id, request) =>
                 super.execute(
-                    new ChatCommonCommand(command.request, {
+                    new ChatCommonCommand(request ?? command.request, {
                         ...command.options,
                         ...(id ? { execution: { id } } : {})
                     })

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, ElementRef, inject, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { getErrorMessage } from '@cloud/app/@core'
 import { injectPluginAPI, IPluginMarketplaceDetailItem, PluginMarketplaceItem } from '@cloud/app/@core/state'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { I18nService } from '@cloud/app/@shared/i18n'
@@ -25,6 +24,7 @@ import { PluginMarketplaceDetailComponent } from './marketplace-detail.component
 import { PLUGIN_MARKETPLACE_TARGET_APP } from './plugin-marketplace-categories'
 import { mergeMarketplaceContributions } from './plugin-marketplace-metadata'
 import { pluginNameFromMarketplaceRoute } from './plugin-marketplace-navigation'
+import { pluginMarketplaceError } from './plugin-marketplace-error'
 
 @Component({
   standalone: true,
@@ -96,8 +96,8 @@ export class PluginMarketplaceReadmePageComponent {
   readonly detail = computed(() => this.#detail.value() ?? null)
   readonly loading = computed(() => this.#detail.status() === 'loading')
   readonly error = computed(() => {
-    const error = this.#detail.error()
-    return error ? getErrorMessage(error) : null
+    const error = this.#detail.rawError()
+    return error ? pluginMarketplaceError(error) : null
   })
   readonly pluginForDialog = computed(() => {
     const detail = this.detail()

@@ -45,7 +45,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { In, IsNull } from 'typeorm'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
-import type { Xpert } from './xpert.entity'
+import { Xpert } from './xpert.entity'
 
 describe('XpertService command facade', () => {
     afterEach(() => {
@@ -467,23 +467,22 @@ describe('XpertService command facade', () => {
         ])
     })
 
-    it('normalizes agentConfig recursionLimit on create', async () => {
+    it('strips unsupported concurrency from imported assistant and draft configs on create', async () => {
         const { repository, service } = createService()
         repository.save.mockImplementation(async (entity) => entity)
 
+        const agentConfig = { recursionLimit: undefined, maxConcurrency: 4 }
         const created = await service.create({
             name: 'agent-defaults',
-            agentConfig: {
-                maxConcurrency: 4
-            }
-        } as any)
+            agentConfig,
+            draft: { team: { agentConfig }, nodes: [], connections: [] }
+        })
 
         expect(repository.create).toHaveBeenCalledWith(
             expect.objectContaining({
                 name: 'agent-defaults',
                 workspaceDataScope: DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 agentConfig: {
-                    maxConcurrency: 4,
                     recursionLimit: 1000
                 }
             })
@@ -491,11 +490,12 @@ describe('XpertService command facade', () => {
         expect(created).toEqual(
             expect.objectContaining({
                 agentConfig: {
-                    maxConcurrency: 4,
                     recursionLimit: 1000
                 }
             })
         )
+        expect(created.draft.team.agentConfig).toEqual({ recursionLimit: 1000 })
+        expect(agentConfig.maxConcurrency).toBe(4)
     })
 
     it('preserves an explicit user workspace data scope on create', async () => {
@@ -550,26 +550,76 @@ describe('XpertService command facade', () => {
         )
     })
 
-    it('normalizes agentConfig recursionLimit on save', async () => {
+    it('strips unsupported concurrency and normalizes recursionLimit on save', async () => {
         const { repository, service } = createService()
         repository.save.mockImplementation(async (entity) => entity)
 
-        await service.save({
-            id: 'xpert-1',
-            agentConfig: {
-                maxConcurrency: 2
-            }
-        } as any)
+        await service.save(
+            Object.assign(new Xpert(), {
+                id: 'xpert-1',
+                agentConfig: {
+                    recursionLimit: undefined,
+                    maxConcurrency: 2
+                }
+            })
+        )
 
         expect(repository.save).toHaveBeenCalledWith(
             expect.objectContaining({
                 id: 'xpert-1',
                 agentConfig: {
-                    maxConcurrency: 2,
                     recursionLimit: 1000
                 }
             })
         )
+    })
+
+    it('strips unsupported concurrency from direct assistant and draft updates', async () => {
+        const { repository, service } = createService()
+        repository.findOne.mockResolvedValue({ id: 'xpert-1' })
+        const agentConfig = { recursionLimit: 40, maxConcurrency: 1 }
+        await service.updateXpert('xpert-1', {
+            agentConfig,
+            draft: { team: { agentConfig }, nodes: [], connections: [] }
+        })
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                agentConfig: { recursionLimit: 40 },
+                draft: expect.objectContaining({ team: { agentConfig: { recursionLimit: 40 } } })
+            })
+        )
+    })
+
+    it.each(['saveDraft', 'updateDraft'] as const)('strips legacy concurrency through %s', async (method) => {
+        const { repository, service } = createService()
+        const xpert = Object.assign(new Xpert(), { id: 'xpert-1' })
+        jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+        jest.spyOn(service, 'validate').mockResolvedValue([])
+        const agentConfig = { recursionLimit: 40, maxConcurrency: 1, interruptBefore: ['write'] }
+        const result = await service[method]('xpert-1', {
+            team: { agentConfig },
+            nodes: [],
+            connections: []
+        })
+        expect(result.team.agentConfig).toEqual({ recursionLimit: 40, interruptBefore: ['write'] })
+        expect(repository.save).toHaveBeenCalled()
+        expect(agentConfig.maxConcurrency).toBe(1)
+    })
+
+    it('cleans an old concurrency value without losing stored limits on unrelated draft updates', async () => {
+        const { service } = createService()
+        const xpert = Object.assign(new Xpert(), {
+            id: 'xpert-1',
+            draft: {
+                team: { agentConfig: { recursionLimit: 40, maxConcurrency: 1, interruptAfter: ['write'] } },
+                nodes: [],
+                connections: []
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+        jest.spyOn(service, 'validate').mockResolvedValue([])
+        const result = await service.updateDraft('xpert-1', { team: { title: 'Updated title' } })
+        expect(result.team.agentConfig).toEqual({ recursionLimit: 40, interruptAfter: ['write'] })
     })
 
     it('does not materialize graph fields when a draft patch only updates team', async () => {

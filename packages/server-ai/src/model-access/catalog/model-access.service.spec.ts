@@ -528,7 +528,13 @@ describe('ModelAccessService model resolution', () => {
             organizationId: null,
             scope: ModelAccessOwnershipScopeEnum.Tenant
         })
-        expect(membershipService.isModelAllowed).toHaveBeenCalledWith(plan, 'openai', 'gpt-4.1', 'copilot-1')
+        expect(membershipService.isModelAllowed).toHaveBeenCalledWith(
+            plan,
+            'openai',
+            'gpt-4.1',
+            'copilot-1',
+            AiModelTypeEnum.LLM
+        )
     })
 
     it('reports missing membership when neither a usable plan nor a personal grant exists', async () => {

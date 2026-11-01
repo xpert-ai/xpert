@@ -56,6 +56,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
 import { assertValidTagAssociations } from '../shared/tag-associations'
+import { normalizeXpertExecutionConfig } from './xpert-execution-config'
 
 const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 
@@ -102,7 +103,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         }
         assign(_entity, mutableEntity)
         await this.validateTagAssociations(_entity)
-        return await super.save(_entity)
+        return await super.save(normalizeXpertExecutionConfig(_entity))
     }
 
     async findByPrincipalUserId(userId: string): Promise<IXpertPrincipalReference | null> {
@@ -196,11 +197,10 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         if (entity.userGroups?.length) throw new BadRequestException(t('server-ai:Error.AssistantSharingUseEndpoint'))
         await this.validateTagAssociations(entity)
         return await super.create(
-            {
+            normalizeXpertExecutionConfig({
                 ...entity,
-                workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
-                agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
-            },
+                workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE
+            }),
             ...options
         )
     }
@@ -430,10 +430,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async save(entity: Xpert) {
         await this.validateTagAssociations(entity)
-        return await super.save({
-            ...entity,
-            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
-        })
+        return await super.save(normalizeXpertExecutionConfig(entity))
     }
 
     async validateTagAssociations(entity: DeepPartial<Xpert>) {
@@ -449,11 +446,12 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             TagCategoryEnum.XPERT,
             sourceId
         )
-        return super.create({
-            ...entity,
-            workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
-            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
-        })
+        return super.create(
+            normalizeXpertExecutionConfig({
+                ...entity,
+                workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE
+            })
+        )
     }
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {
@@ -470,6 +468,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
                 ...draft.team,
+                agentConfig: normalizeXpertAgentConfig(draft.team?.agentConfig),
                 workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
@@ -496,6 +495,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             team: {
                 ...(currentDraft.team ?? {}),
                 ...(draft.team ?? {}),
+                agentConfig: normalizeXpertAgentConfig({ ...currentDraft.team, ...draft.team }.agentConfig),
                 workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()

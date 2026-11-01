@@ -15,6 +15,8 @@
               class="block w-full"
               [placeholder]="credential.placeholder | i18n"
               type="password"
+              autocomplete="new-password"
+              [attr.aria-label]="credential.label | i18n"
               [ngModel]="credentials()[credential.variable]"
               (ngModelChange)="updateValue(credential.variable, $event)"
             />
@@ -27,6 +29,8 @@
               class="block w-full"
               [placeholder]="credential.placeholder | i18n"
               type="text"
+              autocomplete="off"
+              [attr.aria-label]="credential.label | i18n"
               [ngModel]="credentials()[credential.variable]"
               (ngModelChange)="updateValue(credential.variable, $event)"
             />

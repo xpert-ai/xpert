@@ -206,6 +206,7 @@ export class XpertProjectChatPanelComponent {
       }
     }
   })
+  readonly ready = signal(false)
   readonly chatkitFrameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
   readonly control = injectHostedAssistantChatkitControl({
     identity: this.identity,
@@ -225,10 +226,15 @@ export class XpertProjectChatPanelComponent {
     layout: { maxWidth: '100%' },
     titleKey: 'XP.XProject.ProjectExpert',
     titleDefault: 'Project expert',
+    onReady: () => this.ready.set(true),
     onThreadChange: ({ threadId }) => this.threadChanged.emit(threadId)
   })
 
   constructor() {
+    effect(() => {
+      this.identity()
+      this.ready.set(false)
+    })
     effect(() => {
       const xperts = this.eligibleAssistants()
       this.selectedAssistantId.set(resolveProjectChatAssistantId(xperts, this.assistantKey(), this.initialThreadId()))

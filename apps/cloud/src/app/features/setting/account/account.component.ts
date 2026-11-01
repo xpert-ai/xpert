@@ -17,6 +17,7 @@ import { firstValueFrom, map } from 'rxjs'
 import { Store, ToastrService, routeAnimations } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserAvatarEditorComponent } from '../../../@shared/user'
+import { SharedLinksSettingsComponent } from './shared-links/shared-links-settings.component'
 
 @Component({
   standalone: true,
@@ -33,7 +34,8 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
     TranslateModule,
     RouterModule,
     UserPipe,
-    UserAvatarEditorComponent
+    UserAvatarEditorComponent,
+    SharedLinksSettingsComponent
   ]
 })
 export class XpAccountComponent {

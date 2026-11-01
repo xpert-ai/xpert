@@ -1,7 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { AiModelTypeEnum, isConfiguredModelAvailable, usesConfiguredModelCatalog } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    isConfiguredModelAvailable,
+    isProviderModelEnabled,
+    usesConfiguredModelCatalog
+} from '@xpert-ai/contracts'
 import { EntityManager, In, Repository } from 'typeorm'
 import { AIProvidersService } from '../../ai-model'
 import { CopilotProviderModel } from '../../copilot-provider/models/copilot-provider-model.entity'
@@ -282,11 +287,25 @@ export class ModelAccessTargetsService {
 
             if (
                 !usesConfiguredModelCatalog(modelProvider) &&
-                provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)
+                provider
+                    .getProviderModels()
+                    ?.some(
+                        (model) =>
+                            !!model.model &&
+                            model.deprecated !== true &&
+                            isProviderModelEnabled(modelProvider, { model: model.model, modelType: model.model_type })
+                    )
             ) {
                 return true
             }
-            if (!usesConfiguredModelCatalog(modelProvider) && copilot.copilotModel?.model) {
+            if (
+                !usesConfiguredModelCatalog(modelProvider) &&
+                copilot.copilotModel?.model &&
+                isProviderModelEnabled(modelProvider, {
+                    model: copilot.copilotModel.model,
+                    modelType: copilot.copilotModel.modelType
+                })
+            ) {
                 return true
             }
 
@@ -299,7 +318,10 @@ export class ModelAccessTargetsService {
             if (
                 customModels.some(
                     (model) =>
-                        !!model.modelName && model.isValid !== false && isConfiguredModelAvailable(modelProvider, model)
+                        !!model.modelName &&
+                        model.isValid !== false &&
+                        isConfiguredModelAvailable(modelProvider, model) &&
+                        isProviderModelEnabled(modelProvider, { model: model.modelName, modelType: model.modelType })
                 )
             ) {
                 return true

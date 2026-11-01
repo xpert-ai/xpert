@@ -164,6 +164,11 @@ export type TChatThreadMetadata = {
   [key: string]: unknown
 }
 export type TToolCallType = 'agent' | 'tool'
+/**
+ * Conversation origin: built-in values and stable identifiers supplied by channel plugins.
+ * Keep legacy values for stored conversations and editor completion; adding a channel
+ * must not require a platform release. Attribution does not grant execution permissions.
+ */
 export type TChatFrom =
   | 'platform'
   | 'webapp'
@@ -177,6 +182,7 @@ export type TChatFrom =
   | 'dingtalk'
   | 'wecom'
   | 'wechat'
+  | (string & {})
 
 /**
  * Operation for interrupt

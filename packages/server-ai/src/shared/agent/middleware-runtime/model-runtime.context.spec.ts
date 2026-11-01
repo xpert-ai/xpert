@@ -1,6 +1,6 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AIMessage, AIMessageChunk, HumanMessage } from '@langchain/core/messages'
-import { AiModelTypeEnum, ICopilotModel } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilotModel, ParameterType, type ParameterRule } from '@xpert-ai/contracts'
 import { ChatOAICompatReasoningModel, getModelContextSize } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider/queries/get-model.query'
@@ -9,15 +9,17 @@ import { ContextCompressionMiddleware } from '../../../xpert-middleware/context-
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 
 describe('middleware model context window', () => {
-    function fixture(providerWindow?: number) {
+    function fixture(providerWindow?: number, rules: ParameterRule[] = []) {
         const queryBus = new QueryBus({} as never)
         const commandBus = new CommandBus({} as never)
         jest.spyOn(commandBus, 'execute').mockResolvedValue(undefined)
         const clients: ChatOAICompatReasoningModel[] = []
+        const configurations: ICopilotModel[] = []
         const provider = {
             getProviderModels: () => [],
-            getModelManager: () => ({ getParameterRules: () => [] }),
+            getModelManager: () => ({ getParameterRules: () => rules }),
             getModelInstance: async (_type: AiModelTypeEnum, configuration: ICopilotModel) => {
+                configurations.push(configuration)
                 const client = new ChatOAICompatReasoningModel({
                     apiKey: 'test-placeholder',
                     model: 'gpt-6.1-sol',
@@ -54,7 +56,7 @@ describe('middleware model context window', () => {
             copilotId: 'copilot',
             options: { max_tokens: 16384 }
         }
-        return { service, scope, configuration, clients }
+        return { service, scope, configuration, clients, configurations }
     }
 
     async function compress(f: ReturnType<typeof fixture>, historyCharacters: number, threshold: number) {
@@ -83,6 +85,24 @@ describe('middleware model context window', () => {
         )
         return { next, currentRequest, update }
     }
+
+    it('preserves cleared options and saved thinking across request overrides and repeated model creation', async () => {
+        const f = fixture(undefined, [
+            { name: 'temperature', label: { en_US: 'Temperature' }, type: ParameterType.FLOAT, default: 0.7 },
+            { name: 'enable_thinking', label: { en_US: 'Thinking' }, type: ParameterType.BOOLEAN, default: false }
+        ])
+        f.configuration.options = { temperature: null, enable_thinking: true, max_tokens: 16384 }
+
+        await f.service.createModelClient(f.configuration, { reasoningEffort: 'none' }, f.scope)
+        expect(f.configurations[0].options).not.toHaveProperty('temperature')
+        expect(f.configurations[0].options).toMatchObject({ enable_thinking: false, context_size: 256000 })
+        expect(f.configuration.options).toMatchObject({ temperature: null, enable_thinking: true })
+
+        await f.service.createModelClient(f.configuration, {}, f.scope)
+        expect(f.configurations[1].options).not.toHaveProperty('temperature')
+        expect(f.configurations[1].options).toMatchObject({ enable_thinking: true, context_size: 256000 })
+        expect(f.configuration.options).toMatchObject({ temperature: null, enable_thinking: true })
+    })
 
     it('uses the same configured window for the runtime client and automatic summary', async () => {
         const f = fixture()

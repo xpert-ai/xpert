@@ -38,7 +38,10 @@ describe('ApiKeyOrClientSecretAuthGuard', () => {
 			context: {
 				getClass: () => TestController,
 				getHandler: () => TestController.prototype.handle,
-				switchToHttp: () => ({ getRequest: () => request })
+				switchToHttp: () => ({
+					getRequest: () => request,
+					getResponse: () => ({ headersSent: false, setHeader: jest.fn() })
+				})
 			} as unknown as ExecutionContext,
 			request
 		}

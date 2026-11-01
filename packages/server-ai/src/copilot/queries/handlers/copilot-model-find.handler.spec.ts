@@ -8,7 +8,7 @@ describe('FindCopilotModelsHandler', () => {
         jest.restoreAllMocks()
     })
 
-    it('includes the currently selected copilot model when the provider catalog does not list it', async () => {
+    it('excludes a historical selection absent from the provider catalog', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
@@ -66,7 +66,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: configService
@@ -75,26 +76,12 @@ describe('FindCopilotModelsHandler', () => {
         const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
 
         expect(result).toHaveLength(1)
-        expect(result[0].providerWithModels.models).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    model: 'qwen3.6-plus',
-                    model_type: AiModelTypeEnum.LLM,
-                    fetch_from: FetchFrom.CUSTOMIZABLE_MODEL
-                })
-            ])
-        )
+        expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['glm-5'])
         expect(modelAccessService.canUseCatalogModels).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             organizationId: null,
             userId: 'user-1',
-            models: expect.arrayContaining([
-                expect.objectContaining({
-                    copilotId: 'copilot-primary',
-                    copilotModelId: 'qwen3.6-plus',
-                    modelType: AiModelTypeEnum.LLM
-                })
-            ])
+            models: [{ copilotId: 'copilot-primary', copilotModelId: 'glm-5', modelType: AiModelTypeEnum.LLM }]
         })
     })
 
@@ -154,7 +141,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -166,8 +154,7 @@ describe('FindCopilotModelsHandler', () => {
 
         expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual([
             'custom-configured',
-            'provider-capability-only',
-            'selected-configured'
+            'provider-capability-only'
         ])
         expect(getProviderModels).toHaveBeenCalledWith(AiModelTypeEnum.LLM)
         expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()
@@ -205,7 +192,8 @@ describe('FindCopilotModelsHandler', () => {
             } as never,
             {
                 canUseCatalogModels: jest.fn()
-            } as never
+            } as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -278,7 +266,8 @@ describe('FindCopilotModelsHandler', () => {
             queryBus as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -358,7 +347,8 @@ describe('FindCopilotModelsHandler', () => {
             { execute: jest.fn().mockResolvedValue([]) } as never,
             service as never,
             providersService as never,
-            modelAccessService as never
+            modelAccessService as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', {
             value: { get: jest.fn().mockReturnValue('http://localhost:3000') }
@@ -432,7 +422,8 @@ describe('configured-only discovery catalog', () => {
                 } as never,
                 {
                     canUseCatalogModels: jest.fn().mockImplementation(async ({ models }) => models.map(() => true))
-                } as never
+                } as never,
+                { resolve: async () => ({ configured: false, binding: null }) } as never
             )
             Object.defineProperty(handler, 'configService', { value: { get: () => 'http://localhost:3000' } })
             const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM, catalogMode))

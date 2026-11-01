@@ -1,6 +1,12 @@
 import { unknownExecutionControl } from '@xpert-ai/contracts'
+jest.mock('../../../xpert-agent-execution/observability/observation.service', () => ({
+    ExecutionObservationService: class {}
+}))
 jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
     ConversationProjectService: class {}
+}))
+jest.mock('../../../xpert/published-xpert-access.service', () => ({
+    PublishedXpertAccessService: class {}
 }))
 import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
 import { GetAccessiblePublishedXpertQuery } from '../../../xpert/published-agent/get-accessible-published-xpert.query'
@@ -126,11 +132,9 @@ import { ExceedingLimitException } from '../../../core/errors'
 import { CopilotGetOneQuery } from '../../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
-import {
-    CreateWorkspaceFileAssetCommand,
-    GetOwnedStorageFileQuery,
-    ResolveAuthorizedFileAssetQuery
-} from '../../../file-understanding'
+import { CreateWorkspaceFileAssetCommand } from '../../../file-understanding/commands/create-workspace-file-asset.command'
+import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
 import {
     CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
@@ -152,7 +156,7 @@ import { FindAgentExecutionsQuery } from '../../../xpert-agent-execution/queries
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
 import { EnsureXpertProjectCommand } from '../../../xpert-project/commands'
-import { CollaborationService } from '../../../collaboration'
+import { CollaborationService } from '../../../collaboration/collaboration.service'
 import { CopilotService } from '../../../copilot/copilot.service'
 import { applicationMetrics } from '../../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-files-runtime-capability.service'
@@ -384,7 +388,19 @@ describe('AgentMiddlewareRuntimeService', () => {
             workspaceFiles,
             artifacts as any,
             collaboration,
-            platformCapabilities
+            platformCapabilities,
+            {
+                createScopedApi: () => ({
+                    workspaces: jest.fn(),
+                    conversations: jest.fn(),
+                    query: jest.fn(),
+                    overview: jest.fn(),
+                    summary: jest.fn(),
+                    get: jest.fn(),
+                    compare: jest.fn(),
+                    findAnomalies: jest.fn()
+                })
+            }
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')

@@ -241,7 +241,8 @@ export async function preBootstrapPlugins(options: { failOnPluginGroupError?: bo
   const defaultPlugins: BootstrapPlugin[] = [
     { name: '@xpert-ai/plugin-draft', source: 'code' as const, level: 'organization' },
     { name: '@xpert-ai/plugin-vlm-default', source: 'code' as const, level: 'system' },
-    { name: '@xpert-ai/plugin-github-integration', source: 'code' as const, level: 'system' }
+    { name: '@xpert-ai/plugin-github-integration', source: 'code' as const, level: 'system' },
+    { name: '@xpert-ai/plugin-execution-observability', source: 'code' as const, level: 'system' }
   ]
   const defaultGlobalPlugins = defaultPlugins.filter((plugin) => plugin.level !== 'system')
   const defaultSystemPlugins = defaultPlugins.filter((plugin) => plugin.level === 'system')

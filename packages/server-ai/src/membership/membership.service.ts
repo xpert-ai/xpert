@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import {
+    AiModelTypeEnum,
     DEFAULT_MEMBERSHIP_CNY_PER_POINT,
     IMembershipAdminUser,
     IMembershipAdminUsersQuery,
@@ -423,9 +424,10 @@ export class MembershipService {
         plan: Pick<IMembershipPlan, 'allowedModels'>,
         provider?: string,
         model?: string,
-        copilotId?: string
+        copilotId?: string,
+        modelType?: AiModelTypeEnum
     ): boolean {
-        return isModelAllowed(plan, provider, model, copilotId)
+        return isModelAllowed(plan, provider, model, copilotId, modelType)
     }
 
     async findModelAccess(

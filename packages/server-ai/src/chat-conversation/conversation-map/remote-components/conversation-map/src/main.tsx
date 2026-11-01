@@ -1,15 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { z } from 'zod'
-import { MessagesSquare, Network, Search, Plus, X, GitBranch, List, ArrowUpRight, Copy, Loader2 } from 'lucide-react'
+import { X, ArrowUpRight, Copy, Loader2 } from 'lucide-react'
 import {
     Button,
+    Tabs,
+    TabsContent,
     Input,
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-    ToggleGroup,
-    ToggleGroupItem,
     Popover,
     PopoverAnchor,
     PopoverContent,
@@ -20,22 +16,35 @@ import {
     DialogDescription,
     DialogFooter,
     Label,
-    Checkbox,
     TooltipProvider
 } from '@xpert-ai/shadcn-ui'
 import type { MapNode, MapPage, MapAction } from '../../../schema'
-import { connect, read, act, navigate, navigationSchema, prefsSchema, savePrefs, request, type Prefs } from './bridge'
+import {
+    connect,
+    read,
+    act,
+    navigate,
+    navigationSchema,
+    prefsSchema,
+    savePrefs,
+    mergePrefs,
+    preferredMapMode,
+    type Prefs
+} from './bridge'
 import { labels } from './i18n'
 import { outlineNodes } from './layout'
-import { ChoiceSelect, DisplaySettings } from './view-controls'
+import { ChoiceSelect } from './view-controls'
+import { MapHeader, MapToolbar } from './map-header'
+import { OptionCache } from './option-cache'
 import { NodeUpdatedAt } from './node-details'
 import { OutlineList } from './outline-list'
 import { TopicGraph, icons, type NodeAction } from './graph'
 import { mapRepresentation, registerSegments, treeProjection } from './tree-mode'
-type Edit = { type: 'create' | 'rename' | 'branch'; node?: MapNode }
+import { TrailWorkspace } from './trail-workspace'
+import { trailLabels } from './trail-i18n'
+type Edit = { type: 'rename' | 'branch'; node: MapNode }
 function App() {
-    const historyId = useId()
-    const createTrigger = useRef<HTMLButtonElement>(null)
+    const headerRef = useRef<HTMLElement>(null)
     const editTrigger = useRef<HTMLElement | null>(null)
     const [locale, setLocale] = useState('zh-Hans'),
         [ready, setReady] = useState(false),
@@ -81,7 +90,11 @@ function App() {
         const timer = setTimeout(() => setQuery(search.trim()), 300)
         return () => clearTimeout(timer)
     }, [search])
+    const optionCache = useMemo(() => new OptionCache(), [revision, locale])
+    const displayMode = prefs.mode === 'tree' || prefs.mode === 'graph' ? 'map' : prefs.mode
     const representation = mapRepresentation(prefs.mode, query)
+    const projectId = prefs.projectId === undefined ? page?.projectId : prefs.projectId
+    const pageMatchesProject = projectId === page?.projectId
     const params = useMemo(
         () => ({
             projectId: prefs.projectId,
@@ -108,7 +121,7 @@ function App() {
             const nextLoaded = new Set<string>(),
                 nextMore: Record<string, number | null> = {},
                 nodes = [...result.nodes]
-            if (!query) {
+            if (!query && prefsRef.current.mode !== 'growth') {
                 for (const node of result.nodes) {
                     if (
                         node.kind !== 'conversation' ||
@@ -165,7 +178,7 @@ function App() {
         } finally {
             if (epoch.current === version) setBusy(false)
         }
-    }, [ready, params, query, revision, locale, representation])
+    }, [ready, params, query, revision, locale, representation, prefs.mode === 'growth'])
     useEffect(() => {
         void reset()
         return () => {
@@ -173,7 +186,7 @@ function App() {
         }
     }, [reset])
     const updatePrefs = (patch: Partial<Prefs>) => {
-        const next = { ...prefsRef.current, ...patch }
+        const next = mergePrefs(prefsRef.current, patch)
         setPrefs(next)
         void savePrefs(next).catch((e) => setError(String(e)))
     }
@@ -251,6 +264,7 @@ function App() {
         try {
             const result = await act(input)
             if (epoch.current !== version) return
+            if (input.type !== 'locate') optionCache.clear()
             if (input.type === 'rename') {
                 setEdit(null)
                 await reset()
@@ -342,14 +356,7 @@ function App() {
     }
     const submit = () => {
         if (!edit || !page) return
-        if (edit.type === 'create')
-            void perform({
-                type: 'create',
-                projectId: page.projectId,
-                title: name.trim() || l.untitled,
-                requestId: idempotency(`create:${page.projectId}:${name}`)
-            })
-        else if (edit.node?.conversationId && edit.node.threadId) {
+        if (edit.node?.conversationId && edit.node.threadId) {
             const n = edit.node
             if (edit.type === 'rename')
                 void perform({
@@ -390,36 +397,6 @@ function App() {
             if (epoch.current === version) setBusy(false)
         }
     }
-    const loadProjects = async () => {
-        if (!page || page.projectsNextOffset == null) return
-        const version = epoch.current
-        try {
-            const result = z
-                .object({
-                    item: z.object({
-                        projects: z.array(z.object({ id: z.string(), name: z.string() })),
-                        nextOffset: z.number().nullable()
-                    })
-                })
-                .parse(
-                    await request('requestData', {
-                        query: { parameters: { operation: 'projects', offset: page.projectsNextOffset } }
-                    })
-                )
-            if (epoch.current !== version) return
-            setPage((old) =>
-                old
-                    ? {
-                          ...old,
-                          projects: [...(old.projects ?? []), ...result.item.projects],
-                          projectsNextOffset: result.item.nextOffset
-                      }
-                    : old
-            )
-        } catch (e) {
-            if (epoch.current === version) setError(String(e))
-        }
-    }
     const root: MapNode = {
         id: `project:${page?.projectId ?? 'unassigned'}`,
         kind: 'project',
@@ -442,314 +419,296 @@ function App() {
         ? items.filter((node) => node.kind !== 'segment').map((node) => ({ node, depth: 1, guides: [] }))
         : outlineNodes(graphItems, expanded).filter(({ node }) => node.kind !== 'project')
     return (
-        <main className="flex h-full min-h-0 flex-col bg-background text-foreground">
-            <header className="flex flex-wrap items-center gap-3 border-b px-5 py-4">
-                <MessagesSquare className="size-6" aria-hidden />
-                <h1 className="text-xl font-semibold">{l.title}</h1>
-                <ChoiceSelect
-                    label={l.project}
-                    className="w-52 max-w-full"
-                    value={(prefs.projectId === undefined ? page?.projectId : prefs.projectId) ?? 'unassigned'}
-                    onChange={(value) => updatePrefs({ projectId: value === 'unassigned' ? null : value })}
-                    choices={[
-                        { value: 'unassigned', label: l.unassigned },
-                        ...(page?.projects ?? []).map((project) => ({ value: project.id, label: project.name })),
-                        ...(page?.projectId && !page.projects?.some((project) => project.id === page.projectId)
-                            ? [{ value: page.projectId, label: page.projectTitle }]
-                            : [])
-                    ]}
-                />
-                {page?.projectsNextOffset != null && (
-                    <Button size="sm" variant="ghost" onClick={() => void loadProjects()}>
-                        {l.loadProjects}
-                    </Button>
-                )}
-                <InputGroup className="min-w-40 flex-1">
-                    <InputGroupAddon>
-                        <Search aria-hidden />
-                    </InputGroupAddon>
-                    <InputGroupInput
-                        aria-label={l.search}
-                        placeholder={l.search}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </InputGroup>
-                <Button
-                    ref={createTrigger}
-                    variant="outline"
-                    onClick={(event) => {
-                        editTrigger.current = event.currentTarget
-                        setName('')
-                        setEdit({ type: 'create' })
-                    }}
-                >
-                    <Plus aria-hidden />
-                    {l.create}
-                </Button>
-            </header>
-            <div className="flex flex-wrap items-center gap-3 border-b px-5 py-2">
-                <ToggleGroup
-                    type="single"
-                    value={prefs.mode}
-                    onValueChange={(value) => {
-                        if (value === 'tree' || value === 'graph' || value === 'list') updatePrefs({ mode: value })
-                    }}
-                    aria-label={l.display}
-                >
-                    {(['graph', 'tree', 'list'] as const).map((mode) => {
-                        const Icon = { graph: Network, tree: GitBranch, list: List }[mode]
-                        return (
-                            <ToggleGroupItem key={mode} value={mode} aria-label={l[mode]}>
-                                <Icon className="size-4" aria-hidden />
-                                {l[mode]}
-                            </ToggleGroupItem>
-                        )
-                    })}
-                </ToggleGroup>
-                <ChoiceSelect
-                    label={l.direction}
-                    value={prefs.direction}
-                    onChange={(value) => {
-                        if (value === 'LR' || value === 'TB') updatePrefs({ direction: value })
-                    }}
-                    choices={[
-                        { value: 'TB', label: l.vertical },
-                        { value: 'LR', label: l.horizontal }
-                    ]}
-                />
-                <div className="hidden items-center gap-2 sm:flex">
-                    <Checkbox
-                        id={historyId}
-                        checked={prefs.showHistory}
-                        onCheckedChange={(value) => updatePrefs({ showHistory: value === true })}
-                    />
-                    <Label htmlFor={historyId}>{l.history}</Label>
-                </div>
-                <DisplaySettings
-                    labels={l}
+        <Tabs
+            asChild
+            value={displayMode}
+            onValueChange={(value) => {
+                if (value === 'map' || value === 'list' || value === 'growth')
+                    updatePrefs({ mode: value === 'map' ? preferredMapMode(prefs) : value })
+            }}
+            className="h-full min-h-0 gap-0"
+        >
+            <main className="flex h-full min-h-0 flex-col bg-background text-foreground">
+                <MapHeader
                     prefs={prefs}
                     update={updatePrefs}
-                    segments={representation === 'segments'}
+                    labels={l}
+                    page={page}
+                    search={search}
+                    setSearch={setSearch}
+                    revision={revision}
+                    headerRef={headerRef}
+                    optionCache={optionCache}
                 />
-                {busy && <Loader2 className="size-4 animate-spin" aria-label={l.loading} />}
-            </div>
-            {error && (
-                <div role="alert" className="flex items-center gap-3 border-b px-5 py-2 text-sm text-destructive">
-                    <span className="flex-1">{error}</span>
-                    <Button variant="outline" size="sm" onClick={() => void reset()}>
-                        {l.retry}
-                    </Button>
-                    <Button variant="ghost" size="icon" aria-label={l.close} onClick={() => setError('')}>
-                        <X aria-hidden />
-                    </Button>
-                </div>
-            )}
-            {notice && (
-                <div className="flex items-center gap-2 px-5 py-2 text-sm" role="status">
-                    <span className="flex-1">{notice}</span>
-                    <Button variant="ghost" size="icon-sm" aria-label={l.close} onClick={() => setNotice('')}>
-                        <X className="size-4" aria-hidden />
-                    </Button>
-                </div>
-            )}
-            <section className="relative flex min-h-0 flex-1">
-                {query || prefs.mode === 'list' ? (
-                    <div className="min-w-0 flex-1 overflow-auto px-3 py-2">
-                        <OutlineList
-                            entries={visibleItems}
-                            expanded={expanded}
-                            selected={selected?.id}
-                            query={query}
+                <TabsContent value={displayMode} className="flex min-h-0 flex-1 flex-col">
+                    {(prefs.mode !== 'growth' || !!query) && (
+                        <MapToolbar
+                            prefs={prefs}
+                            update={updatePrefs}
                             labels={l}
-                            locale={locale}
-                            pending={mutation}
-                            select={setSelected}
-                            toggle={toggle}
-                            action={action}
+                            searching={!!query}
+                            segments={representation === 'segments'}
+                            busy={busy}
                         />
-                        {!items.length && !busy && (
-                            <p className="py-10 text-center text-sm text-muted-foreground">{l.empty}</p>
-                        )}
-                    </div>
-                ) : (
-                    <TopicGraph
-                        items={graphItems}
-                        expanded={expanded}
-                        prefs={prefs}
-                        labels={l}
-                        locale={locale}
-                        pending={mutation}
-                        direction={prefs.direction}
-                        select={setSelected}
-                        toggle={toggle}
-                        action={action}
-                        selected={selected?.id}
-                    />
-                )}
-                {selected?.kind === 'turn' && (
-                    <Popover
-                        open
-                        onOpenChange={(open) => {
-                            if (!open) setSelected(null)
-                        }}
-                    >
-                        <PopoverAnchor className="pointer-events-none absolute bottom-14 right-4" />
-                        <PopoverContent
-                            side="top"
-                            align="end"
-                            aria-label={l.preview}
-                            className="max-h-[65vh] w-[min(360px,calc(100vw_-_2rem))] overflow-auto"
-                            onOpenAutoFocus={(event) => event.preventDefault()}
+                    )}
+                    {error && (
+                        <div
+                            role="alert"
+                            className="flex items-center gap-3 border-b px-5 py-2 text-sm text-destructive"
                         >
-                            <div className="flex items-start gap-2">
-                                <h2 className="min-w-0 flex-1 text-sm font-semibold">{selected.title}</h2>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={l.close}
-                                    onClick={() => setSelected(null)}
-                                >
-                                    <X aria-hidden />
-                                </Button>
-                            </div>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                {selected.path?.map((part) => part.title).join(' / ')}
-                            </p>
-                            <NodeUpdatedAt node={selected} labels={l} locale={locale} />
-                            {selected.conversationTitle && (
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                    {l.conversation}: {selected.conversationTitle}
-                                </p>
-                            )}
-                            <p className="my-3 whitespace-pre-line text-sm">{selected.preview}</p>
-                            <p className="mb-4 whitespace-pre-line text-sm text-muted-foreground">{selected.answer}</p>
-                            {selected.threadIds && selected.threadIds.length > 1 && (
-                                <ChoiceSelect
-                                    label={l.thread}
-                                    className="mb-3 w-full"
-                                    value={selected.threadId ?? selected.threadIds[0]}
-                                    onChange={(value) => void selectBranch(selected, value)}
-                                    choices={selected.threadIds.map((id, index) => ({
-                                        value: id,
-                                        label:
-                                            selected.branchOptions?.find((option) => option.threadId === id)?.title ??
-                                            `${l.thread} ${index + 1}`
-                                    }))}
-                                />
-                            )}
-                            <div className="flex flex-wrap gap-2">
-                                <Button disabled={mutation} onClick={() => action('locate', selected)}>
-                                    <ArrowUpRight aria-hidden />
-                                    {l.locate}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    disabled={mutation || !selected.branchAvailable}
-                                    onClick={() => action('branch', selected)}
-                                >
-                                    {l.branch}
-                                </Button>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    aria-label={l.copy}
-                                    onClick={() => action('copy', selected)}
-                                >
-                                    <Copy aria-hidden />
-                                </Button>
-                            </div>
-                            {!selected.branchAvailable && (
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                    {l.reasons[selected.branchReason as keyof typeof l.reasons] ?? l.unavailable}
-                                </p>
-                            )}
-                        </PopoverContent>
-                    </Popover>
-                )}
-            </section>
-            <footer className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-xs text-muted-foreground">
-                {(representation === 'segments'
-                    ? (['project', 'conversation', 'segment'] as const)
-                    : (['project', 'conversation', 'thread', 'turn'] as const)
-                ).map((kind) => {
-                    const Icon = icons[kind]
-                    return (
-                        <span key={kind} className="flex items-center gap-1">
-                            <Icon className="size-4" aria-hidden />
-                            {l[kind]}
-                        </span>
-                    )
-                })}
-                <span className="flex-1" />
-                {page?.nextOffset != null && (
-                    <Button size="sm" variant="ghost" disabled={busy} onClick={() => void loadRoot()}>
-                        {query ? l.searchMore : l.more}
-                    </Button>
-                )}
-                {Object.entries(more)
-                    .filter(([id, offset]) => offset !== null && expanded.has(id))
-                    .map(([id, offset]) => (
-                        <Button
-                            key={id}
-                            size="sm"
-                            variant="ghost"
-                            disabled={busy}
-                            onClick={() => {
-                                const node = items.find((n) => n.id === id)
-                                if (node) void loadChildren(node, offset!)
-                            }}
-                        >
-                            {items.find((n) => n.id === id)?.title} · {l.more}
-                        </Button>
-                    ))}
-            </footer>
-            <Dialog
-                open={Boolean(edit)}
-                onOpenChange={(open) => {
-                    if (!open && !mutation) setEdit(null)
-                }}
-            >
-                <DialogContent
-                    onCloseAutoFocus={(event) => {
-                        event.preventDefault()
-                        const trigger = editTrigger.current?.isConnected ? editTrigger.current : createTrigger.current
-                        trigger?.focus()
-                    }}
-                >
-                    <DialogHeader>
-                        <DialogTitle>
-                            {edit?.type === 'create' ? l.create : edit?.type === 'branch' ? l.branch : l.rename}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {edit?.type === 'branch' ? l.forkHint : page?.projectTitle}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {edit?.type !== 'branch' && (
-                        <div className="grid gap-3">
-                            <Label htmlFor="topic-name">{l.name}</Label>
-                            <Input
-                                id="topic-name"
-                                value={name}
-                                maxLength={160}
-                                onChange={(e) => setName(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !mutation) submit()
-                                }}
-                            />
+                            <span className="flex-1">{error}</span>
+                            <Button variant="outline" size="sm" onClick={() => void reset()}>
+                                {l.retry}
+                            </Button>
+                            <Button variant="ghost" size="icon" aria-label={l.close} onClick={() => setError('')}>
+                                <X aria-hidden />
+                            </Button>
                         </div>
                     )}
-                    <DialogFooter>
-                        <Button variant="outline" disabled={mutation} onClick={() => setEdit(null)}>
-                            {l.cancel}
-                        </Button>
-                        <Button disabled={mutation || (edit?.type === 'rename' && !name.trim())} onClick={submit}>
-                            {mutation ? <Loader2 size={16} className="animate-spin" /> : l.save}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </main>
+                    {notice && (
+                        <div className="flex items-center gap-2 px-5 py-2 text-sm" role="status">
+                            <span className="flex-1">{notice}</span>
+                            <Button variant="ghost" size="icon-sm" aria-label={l.close} onClick={() => setNotice('')}>
+                                <X className="size-4" aria-hidden />
+                            </Button>
+                        </div>
+                    )}
+                    <section className="relative flex min-h-0 flex-1">
+                        {query || prefs.mode === 'list' ? (
+                            <div className="min-w-0 flex-1 overflow-auto px-3 py-2">
+                                <OutlineList
+                                    entries={visibleItems}
+                                    expanded={expanded}
+                                    selected={selected?.id}
+                                    query={query}
+                                    labels={l}
+                                    locale={locale}
+                                    pending={mutation}
+                                    select={setSelected}
+                                    toggle={toggle}
+                                    action={action}
+                                />
+                                {!items.length && !busy && (
+                                    <p className="py-10 text-center text-sm text-muted-foreground">{l.empty}</p>
+                                )}
+                            </div>
+                        ) : prefs.mode === 'growth' ? (
+                            <TrailWorkspace
+                                projectId={projectId}
+                                optionCache={optionCache}
+                                conversations={
+                                    pageMatchesProject ? items.filter((node) => node.kind === 'conversation') : []
+                                }
+                                currentConversationId={pageMatchesProject ? page?.currentConversationId : undefined}
+                                prefs={prefs}
+                                update={updatePrefs}
+                                revision={revision}
+                                locale={locale}
+                                locate={(node) => action('locate', node)}
+                            />
+                        ) : (
+                            <TopicGraph
+                                items={graphItems}
+                                expanded={expanded}
+                                prefs={prefs}
+                                labels={l}
+                                locale={locale}
+                                pending={mutation}
+                                direction={prefs.direction}
+                                select={setSelected}
+                                toggle={toggle}
+                                action={action}
+                                selected={selected?.id}
+                            />
+                        )}
+                        {selected?.kind === 'turn' && prefs.mode !== 'growth' && (
+                            <Popover
+                                open
+                                onOpenChange={(open) => {
+                                    if (!open) setSelected(null)
+                                }}
+                            >
+                                <PopoverAnchor className="pointer-events-none absolute bottom-14 right-4" />
+                                <PopoverContent
+                                    side="top"
+                                    align="end"
+                                    aria-label={l.preview}
+                                    className="max-h-[65vh] w-[min(360px,calc(100vw_-_2rem))] overflow-auto"
+                                    onOpenAutoFocus={(event) => event.preventDefault()}
+                                >
+                                    <div className="flex items-start gap-2">
+                                        <h2 className="min-w-0 flex-1 text-sm font-semibold">{selected.title}</h2>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            aria-label={l.close}
+                                            onClick={() => setSelected(null)}
+                                        >
+                                            <X aria-hidden />
+                                        </Button>
+                                    </div>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        {selected.path?.map((part) => part.title).join(' / ')}
+                                    </p>
+                                    <NodeUpdatedAt node={selected} labels={l} locale={locale} />
+                                    {selected.conversationTitle && (
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            {l.conversation}: {selected.conversationTitle}
+                                        </p>
+                                    )}
+                                    <p className="my-3 whitespace-pre-line text-sm">{selected.preview}</p>
+                                    <p className="mb-4 whitespace-pre-line text-sm text-muted-foreground">
+                                        {selected.answer}
+                                    </p>
+                                    {selected.threadIds && selected.threadIds.length > 1 && (
+                                        <ChoiceSelect
+                                            label={l.thread}
+                                            className="mb-3 w-full"
+                                            value={selected.threadId ?? selected.threadIds[0]}
+                                            onChange={(value) => void selectBranch(selected, value)}
+                                            choices={selected.threadIds.map((id, index) => ({
+                                                value: id,
+                                                label:
+                                                    selected.branchOptions?.find((option) => option.threadId === id)
+                                                        ?.title ?? `${l.thread} ${index + 1}`
+                                            }))}
+                                        />
+                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        {selected.branchMessageId && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    updatePrefs({
+                                                        mode: 'growth',
+                                                        trailConversationId: selected.conversationId,
+                                                        trailThreadId: selected.threadId,
+                                                        trailMessageId: selected.branchMessageId,
+                                                        search: ''
+                                                    })
+                                                    setSearch('')
+                                                    setQuery('')
+                                                    setSelected(null)
+                                                }}
+                                            >
+                                                {trailLabels(locale).inspect}
+                                            </Button>
+                                        )}
+                                        <Button disabled={mutation} onClick={() => action('locate', selected)}>
+                                            <ArrowUpRight aria-hidden />
+                                            {l.locate}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            disabled={mutation || !selected.branchAvailable}
+                                            onClick={() => action('branch', selected)}
+                                        >
+                                            {l.branch}
+                                        </Button>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            aria-label={l.copy}
+                                            onClick={() => action('copy', selected)}
+                                        >
+                                            <Copy aria-hidden />
+                                        </Button>
+                                    </div>
+                                    {!selected.branchAvailable && (
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            {l.reasons[selected.branchReason as keyof typeof l.reasons] ??
+                                                l.unavailable}
+                                        </p>
+                                    )}
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    </section>
+                    {(prefs.mode !== 'growth' || !!query) && (
+                        <footer className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-xs text-muted-foreground">
+                            {prefs.mode !== 'growth' &&
+                                (representation === 'segments'
+                                    ? (['project', 'conversation', 'segment'] as const)
+                                    : (['project', 'conversation', 'thread', 'turn'] as const)
+                                ).map((kind) => {
+                                    const Icon = icons[kind]
+                                    return (
+                                        <span key={kind} className="flex items-center gap-1">
+                                            <Icon className="size-4" aria-hidden />
+                                            {l[kind]}
+                                        </span>
+                                    )
+                                })}
+                            <span className="flex-1" />
+                            {page?.nextOffset != null && (
+                                <Button size="sm" variant="ghost" disabled={busy} onClick={() => void loadRoot()}>
+                                    {query ? l.searchMore : l.more}
+                                </Button>
+                            )}
+                            {Object.entries(more)
+                                .filter(([id, offset]) => offset !== null && expanded.has(id))
+                                .map(([id, offset]) => (
+                                    <Button
+                                        key={id}
+                                        size="sm"
+                                        variant="ghost"
+                                        disabled={busy}
+                                        onClick={() => {
+                                            const node = items.find((n) => n.id === id)
+                                            if (node) void loadChildren(node, offset!)
+                                        }}
+                                    >
+                                        {items.find((n) => n.id === id)?.title} · {l.more}
+                                    </Button>
+                                ))}
+                        </footer>
+                    )}
+                </TabsContent>
+                <Dialog
+                    open={Boolean(edit)}
+                    onOpenChange={(open) => {
+                        if (!open && !mutation) setEdit(null)
+                    }}
+                >
+                    <DialogContent
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault()
+                            const trigger = editTrigger.current?.isConnected ? editTrigger.current : headerRef.current
+                            trigger?.focus()
+                        }}
+                    >
+                        <DialogHeader>
+                            <DialogTitle>{edit?.type === 'branch' ? l.branch : l.rename}</DialogTitle>
+                            <DialogDescription>
+                                {edit?.type === 'branch' ? l.forkHint : page?.projectTitle}
+                            </DialogDescription>
+                        </DialogHeader>
+                        {edit?.type !== 'branch' && (
+                            <div className="grid gap-3">
+                                <Label htmlFor="topic-name">{l.name}</Label>
+                                <Input
+                                    id="topic-name"
+                                    value={name}
+                                    maxLength={160}
+                                    onChange={(e) => setName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !mutation) submit()
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <DialogFooter>
+                            <Button variant="outline" disabled={mutation} onClick={() => setEdit(null)}>
+                                {l.cancel}
+                            </Button>
+                            <Button disabled={mutation || (edit?.type === 'rename' && !name.trim())} onClick={submit}>
+                                {mutation ? <Loader2 size={16} className="animate-spin" /> : l.save}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </main>
+        </Tabs>
     )
 }
 createRoot(document.getElementById('root')!).render(

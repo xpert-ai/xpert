@@ -1,0 +1,107 @@
+<section xpDialogLayout="wide" class="w-[min(800px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Management.ManageModels' | translate }}</h2>
+    <p xpDialogDescription>
+      {{ data.provider.provider?.label | i18n }} /
+      {{ data.provider.copilot?.name || data.provider.copilotId?.slice(0, 8) }}
+    </p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      [zDisabled]="saving()"
+      (click)="dialog.close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Management.EnabledModelsHint' | translate }}</p>
+    <div class="flex flex-wrap gap-2">
+      <input
+        z-input
+        class="min-w-0 flex-1"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        [placeholder]="'XP.Copilot.Management.SearchModels' | translate"
+        [attr.aria-label]="'XP.Copilot.Management.SearchModels' | translate"
+      /><z-select
+        class="min-w-44"
+        [ngModel]="modelType()"
+        (ngModelChange)="modelType.set($event)"
+        [attr.aria-label]="'XP.Copilot.ModelType' | translate"
+        ><z-select-item zValue="">{{ 'XP.Copilot.Management.Filter.all' | translate }}</z-select-item>
+        @for (type of modelTypes(); track type) {
+          <z-select-item [zValue]="type">{{ 'XP.ModelAccess.ModelTypeValue.' + type | translate }}</z-select-item>
+        }
+      </z-select>
+    </div>
+    <div class="flex gap-2">
+      <button z-button zType="ghost" [zDisabled]="loading() || saving()" (click)="toggleFiltered(true)">
+        {{ 'XP.Copilot.Management.SelectFiltered' | translate }}</button
+      ><button z-button zType="ghost" [zDisabled]="loading() || saving()" (click)="toggleFiltered(false)">
+        {{ 'XP.Copilot.Management.ClearFiltered' | translate }}
+      </button>
+    </div>
+    @if (loading()) {
+      <p role="status">{{ 'XP.KEY_WORDS.Loading' | translate }}</p>
+    } @else {
+      <table z-table class="w-full text-left text-sm">
+        <thead z-table-header class="text-muted-foreground">
+          <tr z-table-row>
+            <th z-table-head class="py-3">{{ 'XP.Copilot.Management.Enabled' | translate }}</th>
+            <th z-table-head>{{ 'XP.Copilot.Model' | translate }}</th>
+            <th z-table-head>{{ 'XP.Copilot.ModelType' | translate }}</th>
+            <th z-table-head>{{ 'XP.Copilot.Management.Status' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @for (row of filtered(); track key(row)) {
+            <tr z-table-row class="border-t border-border">
+              <td z-table-cell class="py-3">
+                <z-checkbox
+                  [ngModel]="selected().has(key(row))"
+                  [zDisabled]="!row.available || saving()"
+                  (ngModelChange)="toggle(row, $event)"
+                  ><span class="sr-only"
+                    >{{ 'XP.Copilot.Management.Enabled' | translate }} {{ row.model }}</span
+                  ></z-checkbox
+                >
+              </td>
+              <td z-table-cell class="break-all">{{ row.model }}</td>
+              <td z-table-cell>
+                {{ 'XP.ModelAccess.ModelTypeValue.' + row.modelType | translate: { Default: row.modelType } }}
+              </td>
+              <td z-table-cell>
+                {{
+                  (row.available ? 'XP.Copilot.Management.Available' : 'XP.Copilot.Management.Unavailable') | translate
+                }}
+              </td>
+            </tr>
+          } @empty {
+            <tr z-table-row>
+              <td z-table-cell colspan="4" class="py-6 text-center text-muted-foreground">
+                {{ 'XP.Copilot.Management.NoModels' | translate }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    @if (error()) {
+      <p role="alert" class="text-destructive">{{ error() }}</p>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <span class="mr-auto text-sm text-muted-foreground">{{
+      'XP.Copilot.Management.EnabledCount' | translate: { count: selected().size }
+    }}</span
+    ><button z-button zType="outline" [zDisabled]="saving()" (click)="dialog.close()">
+      {{ 'XP.ACTIONS.Cancel' | translate }}</button
+    ><button z-button [zLoading]="saving()" [zDisabled]="loading() || saving() || !catalog()" (click)="save()">
+      {{ 'XP.ACTIONS.Save' | translate }}
+    </button>
+  </footer>
+</section>

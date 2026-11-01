@@ -106,3 +106,7 @@ export * from './analytics-definitions.service'
 
 export * from './sidebar-search.service'
 export * from './app-platform.service'
+
+export * from './conversation-sharing.service'
+
+export * from './user-notifications.service'

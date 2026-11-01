@@ -2,7 +2,7 @@
 // admission and exactly-once settlement; model clients must disable their default ledger callback.
 import { AIMessage, AIMessageChunk, isAIMessage, isAIMessageChunk, isBaseMessageChunk } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import type { ILLMUsage, ModelFeature } from '@xpert-ai/contracts'
+import { ModelGatewayUsageSourceEnum, type ILLMUsage, type ModelFeature } from '@xpert-ai/contracts'
 import { BadGatewayException } from '@nestjs/common'
 import type { Response } from 'express'
 import type { ModelGatewayUsage } from './model-gateway.service'
@@ -44,13 +44,17 @@ export async function executeGatewayChat(input: {
     const messages = toLangChainMessages(parsed.messages)
     const call = await lifecycle.begin()
     let providerUsage: ILLMUsage | null = null
+    let invocationStarted = false
     let settled = false
     let output = ''
     let lastUsageChunk: AIMessage | AIMessageChunk | undefined
     const settle = async (error?: unknown, responseBody?: unknown) => {
         if (settled) return
         await lifecycle.settle({
-            usage: responseUsage(messages, output, providerUsage, lastUsageChunk),
+            // Setup failures have no provider usage; a failed invocation can have unknown usage.
+            usage: invocationStarted
+                ? responseUsage(messages, output, providerUsage, lastUsageChunk)
+                : { inputTokens: 0, outputTokens: 0, totalTokens: 0, source: ModelGatewayUsageSourceEnum.None },
             providerUsage,
             error,
             responseBody
@@ -72,6 +76,7 @@ export async function executeGatewayChat(input: {
             model: parsed.model
         }
         if (!parsed.stream) {
+            invocationStarted = true
             const raw = await runnable.invoke(messages, { signal })
             if (!isAIMessage(raw))
                 throw new BadGatewayException(
@@ -122,6 +127,7 @@ export async function executeGatewayChat(input: {
         if (!writer) writeSse(response, chunk({ role: 'assistant' }))
         let hasTools = false
         let reason = 'stop'
+        invocationStarted = true
         for await (const raw of await runnable.stream(messages, { signal })) {
             input.onActivity?.()
             if (!isBaseMessageChunk(raw) || !isAIMessageChunk(raw)) continue

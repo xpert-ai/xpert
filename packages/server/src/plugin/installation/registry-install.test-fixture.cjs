@@ -49,7 +49,9 @@ async function run() {
 	const timer = setInterval(() => ticks++, 20)
 	try {
 		await store.installOrganizationPlugins(options.organizationId || 'org-1', [options.spec], {
-			rootDir: options.root
+			rootDir: options.root,
+			runtimeName: options.runtimeName,
+			publishManifest: options.publishManifest
 		})
 		process.send({ success: true, ticks })
 	} catch (error) {

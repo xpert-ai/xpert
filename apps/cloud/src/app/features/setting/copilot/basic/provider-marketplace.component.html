@@ -1,0 +1,73 @@
+<section aria-labelledby="provider-marketplace-title" [attr.aria-busy]="loading()">
+  <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <h2 id="provider-marketplace-title" class="text-lg font-semibold">
+      {{ 'XP.Copilot.Management.Marketplace.Title' | translate }}
+    </h2>
+    <div class="flex flex-wrap items-center gap-1 text-sm text-text-tertiary">
+      <span>{{ 'XP.Copilot.Management.Marketplace.DiscoverMore' | translate }}</span>
+      <a
+        z-button
+        zType="link"
+        class="gap-1 px-0"
+        routerLink="/settings/plugins"
+        [queryParams]="{ category: 'marketplace' }"
+      >
+        Xpert Marketplace<i class="ri-arrow-right-up-line" aria-hidden="true"></i>
+      </a>
+    </div>
+  </header>
+  @if (loading()) {
+    <div role="status" class="flex min-h-48 items-center justify-center gap-2 text-text-tertiary">
+      <z-loader /><span>{{ 'XP.Copilot.Management.Marketplace.Loading' | translate }}</span>
+    </div>
+  } @else if (error()) {
+    <div role="alert" class="flex min-h-48 flex-col items-center justify-center gap-3 text-sm">
+      <p>{{ 'XP.Copilot.Management.Marketplace.LoadError' | translate }}</p>
+      <p class="max-w-full break-words text-text-tertiary">{{ error() }}</p>
+      <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    </div>
+  } @else {
+    @if (manifest()?.errors?.length) {
+      <div role="alert" class="mb-4 flex flex-wrap items-center gap-3 text-sm text-text-tertiary">
+        <p>{{ 'XP.Copilot.Management.Marketplace.PartialError' | translate }}</p>
+        <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+      </div>
+    }
+    @if (available().length) {
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          z-input
+          class="w-full sm:w-72"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [placeholder]="'XP.Copilot.Management.Marketplace.Search' | translate"
+          [attr.aria-label]="'XP.Copilot.Management.Marketplace.Search' | translate"
+        />
+        <span class="text-sm text-text-tertiary" role="status">{{
+          'XP.Copilot.Management.Marketplace.Count' | translate: { count: filtered().length }
+        }}</span>
+        @if (search()) {
+          <button z-button zType="ghost" (click)="search.set('')">{{ 'XP.Copilot.ClearFilters' | translate }}</button>
+        }
+      </div>
+    }
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      @for (plugin of filtered(); track (plugin.sourceId ?? '') + ':' + plugin.name) {
+        <xp-settings-plugin
+          class="min-w-0"
+          presentation="provider"
+          [plugin]="plugin"
+          [reloadInstalledPlugins]="reload"
+          [refreshStrategies]="refreshProviders"
+        />
+      } @empty {
+        <p role="status" class="col-span-full py-16 text-center text-sm text-text-tertiary">
+          {{
+            (search() ? 'XP.Copilot.Management.Marketplace.NoMatches' : 'XP.Copilot.Management.Marketplace.Empty')
+              | translate
+          }}
+        </p>
+      }
+    </div>
+  }
+</section>

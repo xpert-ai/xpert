@@ -317,9 +317,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const group = input.group?.() ?? undefined
     const composer = input.composer?.() ?? null
     const user = currentUser()
-    const canConfigureResources = user?.role?.rolePermissions?.some(item =>
-      item.enabled && item.permission === AIPermissionsEnum.XPERT_EDIT
-    ) ?? false
+    const canConfigureResources =
+      user?.role?.rolePermissions?.some((item) => item.enabled && item.permission === AIPermissionsEnum.XPERT_EDIT) ??
+      false
     const managed = !canConfigureResources
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
@@ -428,7 +428,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       composer: {
         ...composer,
         ...(managed ? { models: [] } : {}),
-        resources: !canConfigureResources ? { enabled: false } : { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
+        resources: !canConfigureResources
+          ? { enabled: false }
+          : { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
         connectors: !canConfigureResources ? { enabled: false } : { enabled: true, ...composer?.connectors },
         attachments: {
           enabled: true,
@@ -439,7 +441,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         tools: composer?.tools ?? []
       },
       request: {
-        context: managed ? (projectId ? { projectId } : {}) : requestContext ?? {}
+        context: managed ? (projectId ? { projectId } : {}) : (requestContext ?? {})
       },
       onReady: forward(input.onReady),
       onEffect: forward(input.onEffect),
@@ -482,7 +484,7 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
     return null
   }
 
-  return normalized
+  return normalizeAssistantFrameUrl(normalized)
 }
 
 export function resolveAssistantMcpAppsOptions(

@@ -5,15 +5,16 @@ import { AdapterBaseOptions, DBQueryRunner, DBQueryRunnerType } from './types'
  * Helper base class to wrap existing adapter query runner implementations
  * into datasource strategies consumable by the plugin SDK.
  */
-export abstract class AdapterDataSourceStrategy<TOptions extends AdapterBaseOptions = AdapterBaseOptions>
-  implements IDataSourceStrategy<TOptions>
-{
+export abstract class AdapterDataSourceStrategy<
+  TOptions extends AdapterBaseOptions = AdapterBaseOptions
+> implements IDataSourceStrategy<TOptions> {
   abstract readonly type: string
   abstract readonly name: string
+  readonly workbench?: { readonly engine: string }
   readonly description?: string
 
   private configurationSchemaCache: Record<string, unknown> | undefined
-  private runners = new Map<string, DBQueryRunner>(); // dataSourceId -> runner instance
+  private runners = new Map<string, DBQueryRunner>() // dataSourceId -> runner instance
 
   protected constructor(
     private readonly runnerClass: DBQueryRunnerType,
@@ -22,22 +23,22 @@ export abstract class AdapterDataSourceStrategy<TOptions extends AdapterBaseOpti
 
   /**
    * Get from cache or create new instance of DB adapter.
-   * 
-   * @param options 
-   * @param id 
-   * @returns 
+   *
+   * @param options
+   * @param id
+   * @returns
    */
   async create(options: TOptions, id?: string): Promise<DBQueryRunner> {
     if (id) {
       if (this.runners.has(id)) {
-        return this.runners.get(id);
+        return this.runners.get(id)
       }
       const runner = this.instantiateRunner(options)
-      this.runners.set(id, runner);
+      this.runners.set(id, runner)
 
       // If the Runner supports initPool, then initialize the connection pool.
       if (typeof runner.initPool === 'function') {
-				await runner.initPool(options)
+        await runner.initPool(options)
       }
       return runner
     }

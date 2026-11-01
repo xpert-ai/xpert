@@ -114,6 +114,8 @@ import {
 } from '../composer/composer'
 import type { ChatFollowUpRailItem } from '../follow-ups/follow-ups'
 import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import { preparePreviewRetry } from './preview-retry'
+import { PreviewErrorRecovery } from './preview-error-recovery'
 import { loadPreviewConversation } from './preview-conversation'
 
 const LONG_TEXT_REFERENCE_THRESHOLD = 5000
@@ -428,6 +430,14 @@ export class ChatConversationPreviewComponent {
 
   readonly conversationStatus = computed(() => this.conversation()?.status)
   readonly error = computed(() => this.conversation()?.error)
+  readonly errorRecovery = new PreviewErrorRecovery(
+    () => this.conversation(),
+    (id) => loadPreviewConversation(this.conversationService, id, this.organizationId(), this.aiThreadService),
+    (conversation) => {
+      this.conversation.set(conversation)
+      this._messages.set(conversation.messages ?? [])
+    }
+  )
   // Interrupt operation
   readonly operation = computed(() => this.conversation()?.operation)
   readonly command = model<TInterruptCommand>()
@@ -485,6 +495,7 @@ export class ChatConversationPreviewComponent {
       takeUntilDestroyed(this.#destroyRef)
     )
     .subscribe(({ conversation: conv, error }) => {
+      this.errorRecovery.reset()
       this.conversationLoadError.set(error ?? '')
       this.conversation.set(conv)
       if (conv) {
@@ -702,6 +713,15 @@ export class ChatConversationPreviewComponent {
     const planMode = options?.planMode ?? this.planModeEnabled()
     const commandSource = options?.commandSource ?? null
 
+    const retry = options?.retry
+      ? preparePreviewRetry(this.messages(), {
+          conversationId: this.conversation()?.id,
+          environmentId: this.environmentId(),
+          messageId: options.messageId,
+          checkpointId: options.checkpointId,
+          placeholderId: uuid()
+        })
+      : null
     const shouldAppendHuman = !!options?.input?.trim() || references.length > 0
     if (shouldAppendHuman) {
       if (queuedFollowUpGroup?.items?.length) {
@@ -760,13 +780,8 @@ export class ChatConversationPreviewComponent {
         content: '',
         status: 'thinking'
       })
-    } else if (options?.retry) {
-      this.currentMessage.set({
-        id: uuid(),
-        role: 'ai',
-        content: '',
-        status: 'thinking'
-      })
+    } else if (retry) {
+      this.currentMessage.set(retry.message)
     } else if (this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
       this.currentMessage.set({
         ...this.lastMessage(),
@@ -786,16 +801,8 @@ export class ChatConversationPreviewComponent {
     const currentCommand = options?.confirm ? this.command() : options?.command
     const lastAiMessageId = options?.messageId ?? findLastAiMessageId(this.messages())
     let request: TChatRequest
-    if (options?.retry) {
-      request = {
-        action: 'retry',
-        conversationId: this.conversation()?.id,
-        environmentId: this.environmentId(),
-        ...(options.checkpointId ? { checkpointId: options.checkpointId } : {}),
-        source: {
-          aiMessageId: lastAiMessageId
-        }
-      } as TChatRequest
+    if (retry) {
+      request = retry.request
     } else if (options?.confirm || options?.reject || currentCommand) {
       const patch = extractInterruptPatch(currentCommand)
       request = {
@@ -829,6 +836,8 @@ export class ChatConversationPreviewComponent {
       } as TChatRequest
     }
 
+    this.errorRecovery.reset()
+    let streamFailed = false
     this.chatSubscription = this.xpertService
       .chat(this.xpert().id, request, {
         isDraft: true,
@@ -838,7 +847,10 @@ export class ChatConversationPreviewComponent {
       .subscribe({
         next: (msg) => {
           this.handleIncomingStreamMessage(msg, {
-            onError: (message) => this.onChatError(message)
+            onError: (message) => {
+              streamFailed = true
+              this.onChatError(message)
+            }
           })
         },
         error: (err) => {
@@ -849,7 +861,11 @@ export class ChatConversationPreviewComponent {
         complete: () => {
           this.messageAppendContextTracker.reset()
           this.shouldStartFreshAssistantMessageAfterSteer = false
-          if (this.#destroyed) {
+          if (this.#destroyed || streamFailed) {
+            return
+          }
+          if (this.conversationStatus() === XpertAgentExecutionStatusEnum.ERROR) {
+            this.onChatError(this.error())
             return
           }
           this.loading.set(false)
@@ -884,6 +900,7 @@ export class ChatConversationPreviewComponent {
       status: XpertAgentExecutionStatusEnum.ERROR,
       error: message
     }))
+    void this.errorRecovery.synchronize(message)
     this.chatError.emit(message)
   }
 
@@ -1884,6 +1901,7 @@ export class ChatConversationPreviewComponent {
   }
 
   clear() {
+    this.errorRecovery.reset()
     this.conversationId.set(null)
     this.conversation.set(null)
     this._messages.set([])
@@ -1895,38 +1913,14 @@ export class ChatConversationPreviewComponent {
   }
 
   onRetry() {
-    this.conversation.update((state) => {
-      return {
-        ...state,
-        status: 'busy',
-        error: null
-      }
-    })
     this.retryMessage()
   }
 
   onConfirm() {
-    this.conversation.update((state) => {
-      return {
-        ...state,
-        status: 'busy',
-        error: null
-      }
-    })
     this.resumeOperation('confirm', this.command())
   }
 
-  /**
-   * @deprecated use onConfirm with command resume instead
-   */
   onReject() {
-    this.conversation.update((state) => {
-      return {
-        ...state,
-        status: 'busy',
-        error: null
-      }
-    })
     this.resumeOperation('reject', this.command())
   }
 

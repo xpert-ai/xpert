@@ -38,7 +38,8 @@ describe('model discovery incremental import', () => {
         const strategy = {
             discoverModels,
             getProviderSchema: () => ({ supported_model_types: ['llm', 'text-embedding', 'rerank'] }),
-            getModelManager: jest.fn()
+            getModelManager: jest.fn(),
+            getProviderModels: () => []
         }
         const service = new ModelDiscoveryService(
             { findOneInOrganizationOrTenant: jest.fn().mockResolvedValue(provider) } as never,
@@ -65,7 +66,7 @@ describe('model discovery incremental import', () => {
             },
             { modelName: 'removed-upstream', modelProperties: { endpoint_model_name: 'keep' } }
         ]
-        const { service, rows, manager } = setup(existing)
+        const { service, rows, manager, current } = setup(existing)
         const original = JSON.stringify(rows)
         const preview = await service.discover('provider')
         expect(preview.models.map((model) => model.configured)).toEqual([true, false])
@@ -89,6 +90,7 @@ describe('model discovery incremental import', () => {
             expect.objectContaining({ lock: { mode: 'pessimistic_write' } })
         )
         expect(manager.save).toHaveBeenCalledTimes(1)
+        expect(current.options).toMatchObject({ enabledModels: [] })
     })
 
     it('keeps manual overrides ahead of the latest API and YAML suggestions', async () => {

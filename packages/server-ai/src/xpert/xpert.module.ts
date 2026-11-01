@@ -1,3 +1,6 @@
+import { ModelReplacementOperation } from './model-replacement/operation.entity'
+import { ModelReplacementService } from './model-replacement/replacement.service'
+import { ModelReplacementController } from './model-replacement/replacement.controller'
 import { AuthorizeAssistantMcpHandler } from './mcp-access/authorize-assistant-mcp.handler'
 import { AssistantMiddlewareAccessService } from './middleware-access/assistant-middleware-access.service'
 import { ResolvePublishedAgentHandler } from './published-agent/resolve-published-agent.query'
@@ -94,6 +97,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([
+            ModelReplacementOperation,
             Xpert,
             BusinessArea,
             ChatConversation,
@@ -133,6 +137,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        ModelReplacementController,
         AssistantSharingController,
         XpertPublicationController,
         TemplateLifecycleController,
@@ -147,6 +152,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
         XpertAccessController
     ],
     providers: [
+        ModelReplacementService,
         AuthorizeAssistantMcpHandler,
         ResolvePublishedAgentHandler,
         PublishedAgentContextHandler,

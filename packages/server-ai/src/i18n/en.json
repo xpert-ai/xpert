@@ -1306,7 +1306,53 @@
         "ApplicationRuntimeFailed": "The task could not be completed. Please try again or contact support.",
         "application_storage_limit": "Storage limit reached. Remove files you no longer need and try again.",
         "application_storage_scope_invalid": "File storage scope could not be verified. Please try again later.",
-        "application_temporary_storage_limit": "This operation requires more temporary storage than your account allows. Contact support."
+        "application_temporary_storage_limit": "This operation requires more temporary storage than your account allows. Contact support.",
+        "Notification_busy": "Too many notification connections. Retry shortly.",
+        "Notification_invalid": "The notification request is invalid.",
+        "Notification_denied": "You do not have access to this notification operation.",
+        "Notification_conflict": "This announcement changed. Reload before saving.",
+        "Notification_unavailable": "This notification is no longer available.",
+        "ArtifactApplicationPublicationRequired": "Publish this artifact through its application draft workflow.",
+        "ArtifactContentAccessDenied": "You cannot access this artifact content.",
+        "ArtifactContentTooLarge": "Artifact content must be a file no larger than 50 MB.",
+        "ArtifactContentChanged": "Artifact content has changed. Save a verified snapshot again.",
+        "ArtifactContentReferenceInvalid": "The artifact file reference is invalid.",
+        "PluginMarketplaceDetailUnavailable": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
+        "PluginMarketplaceLookupFailed": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
+        "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",
+        "ToolApprovalCallUnresolved": "Cannot uniquely resolve the original tool call for task {{taskId}} ({{toolName}}).",
+        "DatabaseAdapterRegistrationMismatch": "Database adapter does not match its registration",
+        "ArtifactTypeUnavailable": "This artifact type is unavailable.",
+        "ArtifactTypeImmutable": "Artifact type and installation cannot be changed.",
+        "ConversationShareInvalid": "Invalid share request, empty conversation, or sharing size limit exceeded.",
+        "ConversationShareUnavailable": "This shared conversation is unavailable.",
+        "ConversationShareForbidden": "Only the owner of a private conversation in an active organization can share it. Public sharing requires explicit confirmation.",
+        "ConversationShareChanged": "The conversation changed. Review a fresh preview before sharing.",
+        "ConversationShareSignIn": "Sign in as a member of the originating organization to view this conversation.",
+        "ProjectTaskRuntimeAssigneeRequired": "Assign a project-member Assistant to this task, then retry delegation with the latest task revision. An executor such as Codex is not the responsible Assistant.",
+        "ModelGatewayOpenAIThinkingInvalid": "thinking must be an object containing only type: \"enabled\" or \"disabled\".",
+        "ModelThinkingUnsupported": "This model does not declare support for request-controlled thinking.",
+        "ModelGatewayOpenAIReasoningEffortInvalid": "reasoning_effort must be one of: none, minimal, low, medium, high, xhigh, max.",
+        "ModelGatewayOpenAIReasoningConflict": "thinking and reasoning_effort must agree on whether thinking is enabled.",
+        "ModelReasoningEffortUnsupported": "This model does not support the requested reasoning_effort.",
+        "ModelGatewayExternalApiBaseUrlInvalid": "Enter an HTTP(S) base URL without credentials, a query string or a fragment (maximum 2048 characters).",
+        "ConversationEnvironmentFilePolicyDuplicate": "Conversation environment file policy is already registered",
+        "ArtifactCopyDenied": "This artifact type cannot be copied into another project.",
+        "ModelDefaultInvalid": "Invalid model configuration. Select a connection and model again.",
+        "ModelDefaultUnavailable": "The selected model is unavailable. Check credentials, connection and enabled models.",
+        "ModelParametersRequired": "The target model requires additional parameters.",
+        "ModelCapabilitiesIncompatible": "The target model lacks capabilities of the source model.",
+        "ModelReplacementNarrowScope": "More than 500 assistants match. Select a workspace and retry.",
+        "ModelReplacementConflict": "The draft has changed. Preview again.",
+        "ModelReplacementFailed": "The operation failed. Check permissions and target model availability.",
+        "ModelDefaultInUse": "This connection is still used by default models. Update the defaults first.",
+        "UnsafeTemplateSyncPath": "Cannot synchronize template path {{file}}: symbolic links and special files are not supported.",
+        "InvalidTemplateSyncManifest": "Template synchronization manifest {{file}} is invalid. Restore it from a backup before retrying; no template assets were changed.",
+        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation.",
+        "IntegrationSharingAdminRequired": "Only a tenant administrator can manage integration sharing",
+        "IntegrationUnavailable": "Integration is unavailable or unauthorized",
+        "IntegrationSharingOrganizationInvalid": "Select active organizations in the current tenant",
+        "IntegrationSharingInvalid": "Invalid integration access policy or query"
     },
     "Mcp": {
         "Test": {
@@ -1493,5 +1539,20 @@
     "TemplateCommunityPublisher": "Community publisher",
     "AppPlatform": {
         "TaskProgress": "Task progress"
+    },
+    "ExecutionObservability": {
+        "AccessDenied": "An active organization administrator session is required.",
+        "InvalidQuery": "Choose a valid past range of at most 31 days.",
+        "NarrowRange": "More than 20,000 records match. Narrow the time range or filter an Assistant/workspace.",
+        "NotFound": "Execution not found."
+    },
+    "UserInput": {
+        "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
+        "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
+    },
+    "TemplateSync": {
+        "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",
+        "Conflict": "Preserved local template {{file}}: modified content, removed entry, or no historical hash. Review and merge the current built-in version manually.",
+        "Asset": "Template asset {{file}}: {{status}}."
     }
 }

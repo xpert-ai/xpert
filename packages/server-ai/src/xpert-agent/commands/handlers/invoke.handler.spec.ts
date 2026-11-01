@@ -837,7 +837,7 @@ describe('XpertAgentInvokeHandler', () => {
             parentConfig: null,
             values: {},
             next: ['search'],
-            tasks: [{ id: 'task-1', name: 'search' }]
+            tasks: [{ id: 'task-1', name: 'search', interrupts: [{ value: 'approve' }] }]
         })
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) return sandbox

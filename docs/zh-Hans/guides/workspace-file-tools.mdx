@@ -1,0 +1,135 @@
+---
+title: '工作区文件工具'
+description: '让智能体在当前文件工作区查找、读取和编辑文件，使用统一的相对路径，并在编辑失败后恢复。'
+---
+
+工作区文件工具通过平台的 `SandboxFile` 中间件，让智能体查找目录和文件、读取文本，以及创建、追加和修改文件。它适用于维护 HTML 页面、脚本、配置和文本资料等任务。
+
+所有 Agent 工具路径都以当前 Assistant 的文件工作区为根。目录列表和搜索返回的文件路径可以直接用于后续读取或编辑，模型无需知道服务器或容器的实际目录。
+
+## 启用与作用范围
+
+Assistant 必须启用 Sandbox 功能并配置 `SandboxFile` 中间件，运行时还需要可用的沙箱后端。添加工具不会自动启用 Sandbox，也不会授予额外的文件访问权限。
+
+这里的“文件工作区”指运行文件所在的 Volume 及其沙箱映射，不是组织 Assistant、技能和连接器的 `XpertWorkspace` 创作工作区。当前项目或 Assistant 的运行上下文决定文件归属；模型不能通过路径参数切换到其他用户、项目或 Assistant 的目录。
+
+## 支持的操作
+
+| 工具                      | 功能                         | 主要参数与行为                                                                                  |
+| ------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| `sandbox_list_dir`        | 列出目录及下级条目           | `dir_path` 必填；`offset` 从 1 开始，`limit` 默认 25，`depth` 默认 2。                          |
+| `sandbox_glob`            | 按文件名模式查找文件         | `pattern` 必填，例如 `*.md`；`path` 可选，省略时搜索工作区根目录。                              |
+| `sandbox_grep`            | 按正则表达式搜索文本         | `pattern` 必填；`path` 可选；`include` 可按文件模式缩小范围，结果包含文件路径、行号和匹配文本。 |
+| `sandbox_read_file`       | 读取带行号的文本             | `file_path` 必填；`offset` 默认 1，`limit` 默认 2000；支持 `slice` 和 `indentation` 模式。      |
+| `sandbox_write_file`      | 创建新文件                   | 接收 `file_path` 与 `content`；文件已存在时失败，避免覆盖已有编辑副本。                         |
+| `sandbox_append_file`     | 追加文本                     | 接收 `file_path` 与 `content`；文件不存在时创建。                                               |
+| `sandbox_edit_file`       | 精确替换文本                 | 接收 `file_path`、`old_string`、`new_string` 和可选的 `replace_all`。                           |
+| `sandbox_multi_edit_file` | 在一个文件中依次执行多次替换 | 接收 `file_path` 和 `edits`；每项使用 `oldString`、`newString` 和可选的 `replaceAll`。          |
+
+写入和追加的参数必须是单个对象，`content` 必须是一整段字符串，可以为空。不能传入内容数组、使用 `html` 等别名或添加未声明字段。编辑和批量编辑同样拒绝未声明字段；批量编辑的每个条目也会校验。
+
+## 统一的相对路径
+
+文件路径最多 1024 个字符，使用 `/` 分隔，允许中文等 Unicode 名称以及名称内部的空格。路径片段不能为空，也不能包含 `.`、`..`、首尾空白、反斜杠或控制字符；绝对路径和 Windows 盘符路径会被拒绝。
+
+目录参数遵循相同规则，并允许用 `.` 表示工作区根目录、用末尾 `/` 表示目录。末尾的一个 `/` 会被移除，因此 `./` 也表示根目录；文件参数不接受这些目录写法。
+
+| 输入                                       | 结果                                 |
+| ------------------------------------------ | ------------------------------------ |
+| `reports/summary.md`                       | 有效的文件路径。                     |
+| `资料/项目说明.md`                         | 有效的 Unicode 文件路径。            |
+| `reports/`                                 | 有效的目录参数，规范化为 `reports`。 |
+| `.` 或 `./`                                | 目录工具的工作区根目录。             |
+| `/workspace/reports/summary.md`            | 无效：绝对路径。                     |
+| `../summary.md` 或 `reports/../summary.md` | 无效：包含父目录跳转。               |
+| `reports//summary.md` 或 `./reports`       | 无效：存在空片段或嵌入的 `.` 片段。  |
+| ` reports/summary.md`                      | 无效：路径片段有首尾空白。           |
+
+`sandbox_list_dir`、`sandbox_glob` 和 `sandbox_grep` 返回的路径均相对于**工作区根目录**，即使查询的是下级目录。不要再次给结果拼接查询目录或主机绝对路径。
+
+目录列表保留缩进、目录的 `/` 后缀和符号链接的 `@` 标记，递归列举时不进入这些符号链接。空目录仍返回相对目录标题和空目录提示。路径格式化只处理工具生成的路径标签，不改写文件内容或搜索命中的原文。
+
+## 从目录列表直接读取文件
+
+假设工作区已存在 `reports/README.md`。调用 `sandbox_list_dir`：
+
+```json
+{
+  "dir_path": "reports/",
+  "depth": 1,
+  "limit": 25
+}
+```
+
+返回内容使用完整的工作区相对路径：
+
+```text
+Workspace-relative directory: reports
+reports/README.md
+reports/archive/
+```
+
+将其中的文件路径原样传给 `sandbox_read_file`：
+
+```json
+{
+  "file_path": "reports/README.md",
+  "offset": 1,
+  "limit": 20
+}
+```
+
+按文件名搜索时，可调用 `sandbox_glob` 并传入 `{"pattern":"*.md","path":"reports"}`。内容搜索同样返回工作区相对路径，但读取时只取文件路径，不包含行号、标题冒号或匹配文本。目录和符号链接的展示标记也不是文件名的一部分。
+
+## 编辑结果与失败恢复
+
+先读取当前内容，再使用能够唯一定位目标的原文进行精确替换。`sandbox_edit_file` 的 `oldLines`、`newLines` 表示输入文本行数；`changed` 与 `diff.removed`、`diff.added` 表示实际变化。相同文本替换可以成功返回 `changed=false`。如果返回 `diffUnavailable`，表示无法测量变化量，不能解释为没有变化。
+
+`BaseSandbox.multiEdit` 按顺序保存每一步，并以修改后的内容执行下一步。后续步骤失败时，之前成功的步骤仍然保留，不会整体回滚。它的可选 `progress` 字段包含：
+
+| 字段                 | 含义                        |
+| -------------------- | --------------------------- |
+| `mode: "sequential"` | 按顺序执行并保存。          |
+| `appliedEdits`       | 已成功应用的编辑数量。      |
+| `failedEdit`         | 失败步骤的序号，从 1 开始。 |
+
+其他后端可能不提供 `progress`，此时不能推断已应用数量或是否回滚。返回包含 `error` 的结构化修改结果时，中间件还提供相对路径形式的 `recovery.read` 调用和恢复说明；这不表示失败操作已经成功。传输异常会继续抛出。
+
+| 遇到的问题                   | 处理方式                                                            |
+| ---------------------------- | ------------------------------------------------------------------- |
+| 路径参数校验失败             | 改用工作区相对路径；列根目录使用 `.`，不要放宽路径校验。            |
+| 创建文件时提示已存在         | 读取已有文件后编辑；确需独立文件时选择新的路径。                    |
+| 替换文本不存在或存在歧义     | 重新读取文件，使用当前内容中的唯一原文。                            |
+| 批量编辑中途失败或结果不确定 | 重新读取当前文件，核对实际状态，只执行尚未完成的修改。              |
+| Sandbox 未启用或无访问权限   | 检查 Assistant 功能、运行后端和资源授权；改变路径不能解决权限问题。 |
+
+## 文件修改与业务保存
+
+文件工具保存的是工作区文件。对于 Live Dashboard 等基于 Artifact 的功能，写好 HTML 不等于保存看板草稿，也不等于发布正式版本。业务插件仍需选择正确目标、验证内容，并通过自己的保存流程返回带修订号的成功回执。
+
+插件应通过 `WorkspaceFilesRuntimeCapability` 使用平台文件能力，复用 `SandboxFile` 的写入工具。业务文件选择、内容验证、草稿保存和发布规则继续由业务插件维护。
+
+## 插件与后端接入约定
+
+SDK 提供 `workspaceRelativeFilePathSchema` 和 `workspaceRelativeDirectoryPathSchema`，供接入方复用同一输入规则。参数校验不能代替宿主授权、文件系统范围校验或符号链接保护。
+
+四个修改文件的工具通过 `workspaceFileMutationMetadata` 声明修改意图：
+
+```ts
+metadata: workspaceFileMutationMetadata
+// { workspaceFileOperation: { type: 'mutation', pathArgument: 'file_path' } }
+```
+
+插件调用 `workspaceFileMutationPath(tool.metadata, toolCall.args)` 可取得经过校验的相对路径。其他工具可通过 `pathArgument` 声明自己的路径参数名。元数据缺失或格式错误、操作不是修改、路径无效时，返回 `undefined`；不能通过工具名称、界面文字或扩展名猜测是否修改文件。
+
+修改意图只表示即将尝试操作。插件可以在执行前将已登记文件标记为可能有修改，但确认业务保存前必须检查执行结果和实际文件内容。
+
+后端内部仍解析实际文件系统路径。结构化接口 `lsInfo`、`globInfo`、`grepRaw` 保持各自的内部路径约定，不能假设它们与面向 Agent 的文本结果格式相同。
+
+获得沙箱后，若实际 Provider 与请求的 Provider 不同，平台使用实际 Provider 的 workspace mapper，包括宿主选择默认 Provider 的情况。图编译和执行使用映射后的工作目录，服务端文件访问仍保留 Volume 路径和授权范围。该映射不改变沙箱生命周期归属，也不会为要求显式 Provider 的宿主增加自动选择逻辑。
+
+## 相关功能
+
+- [文件卷与工作区架构](./volume-workspace-architecture)：文件归属、运行路径和权限边界。
+- [Agent 中间件](./agent-middleware)：为 Assistant 配置工具与执行行为。
+- [看板生命周期与分享](./artifacts-dashboard/lifecycle-and-sharing)：文件制作之后的草稿保存与发布。

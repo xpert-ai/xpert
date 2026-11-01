@@ -20,6 +20,7 @@ const packages = [
   'plugins/cli-model-profiles',
   'plugins/draft',
   'plugins/github-integration',
+  'plugins/execution-observability',
   'plugins/vlm-default'
 ].map((name) => `packages/${name}`)
 const dependencyFields = [

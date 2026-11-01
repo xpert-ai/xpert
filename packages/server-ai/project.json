@@ -58,6 +58,7 @@
                 "{projectRoot}/tsconfig*.json",
                 "{projectRoot}/package.json",
                 "{projectRoot}/src/chat-conversation/conversation-map/schema.ts",
+                "{projectRoot}/src/chat-conversation/conversation-map/trail.schema.ts",
                 "{projectRoot}/src/shared/coding-tools/**/*",
                 "{workspaceRoot}/packages/contracts/src/**/*",
                 "{workspaceRoot}/packages/plugin-sdk/src/**/*",

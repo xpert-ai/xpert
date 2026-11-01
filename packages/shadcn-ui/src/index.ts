@@ -37,3 +37,5 @@ export * from './components/ui/context-menu'
 
 export * from './components/ui/hover-card'
 export * from './components/ui/input-group'
+
+export * from './components/ui/avatar'

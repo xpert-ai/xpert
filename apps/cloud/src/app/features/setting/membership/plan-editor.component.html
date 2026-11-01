@@ -176,18 +176,41 @@
 
             @if (!vm.planForm.controls.allowAllModels.value) {
               <div class="mt-4">
-                <z-select
-                  class="w-full"
-                  [zMultiple]="true"
-                  [zMaxLabelCount]="3"
-                  [zValue]="vm.allowedModelValues()"
-                  [zPlaceholder]="'XP.Membership.SelectModels' | translate: { Default: 'Select allowed models' }"
-                  (zSelectionChange)="vm.setAllowedModelValues($event)"
-                >
-                  @for (option of vm.allowedModelOptions(); track option.value) {
-                    <z-select-item [zValue]="option.value">{{ vm.modelTargetLabel(option) }}</z-select-item>
+                <div class="mb-3 flex flex-wrap gap-2">
+                  <input
+                    z-input
+                    class="min-w-0 flex-1"
+                    [ngModelOptions]="{ standalone: true }"
+                    [ngModel]="modelSearch()"
+                    (ngModelChange)="modelSearch.set($event)"
+                    [placeholder]="'XP.Copilot.Management.SearchModels' | translate"
+                    [attr.aria-label]="'XP.Copilot.Management.SearchModels' | translate"
+                  />
+                  <z-select
+                    class="min-w-44"
+                    [ngModelOptions]="{ standalone: true }"
+                    [ngModel]="modelFilter()"
+                    (ngModelChange)="modelFilter.set($event)"
+                    [attr.aria-label]="'XP.Copilot.ModelType' | translate"
+                    ><z-select-item zValue="">{{ 'XP.Copilot.Management.Filter.all' | translate }}</z-select-item>
+                    @for (type of modelTypes; track type) {
+                      <z-select-item [zValue]="type">{{
+                        'XP.ModelAccess.ModelTypeValue.' + type | translate
+                      }}</z-select-item>
+                    }
+                  </z-select>
+                </div>
+                <div class="max-h-72 overflow-auto">
+                  @for (option of filteredModels(); track option.value) {
+                    <z-checkbox
+                      class="flex border-b border-border py-3 text-sm"
+                      [ngModelOptions]="{ standalone: true }"
+                      [ngModel]="vm.allowedModelValues().includes(option.value)"
+                      (ngModelChange)="toggleModel(option.value, $event)"
+                      >{{ vm.modelTargetLabel(option) }}</z-checkbox
+                    >
                   }
-                </z-select>
+                </div>
                 @if (!vm.allowedModelOptions().length) {
                   <div class="mt-2 text-xs text-muted-foreground">
                     {{

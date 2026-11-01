@@ -6,6 +6,7 @@ import { t } from 'i18next'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import type { VolumeClient } from '../volume'
 import { VolumeWorkspaceStorage } from '../volume/workspace-storage'
+import type { ProjectAccessApi } from '@xpert-ai/plugin-sdk'
 
 function denied(): never {
     throw new ForbiddenException(t('server-ai:Error.WorkspaceFileAccessDenied'))
@@ -49,8 +50,46 @@ export function createWorkspaceAppData(
     options: WorkspaceAppDataOptions,
     commands: Pick<CommandBus, 'execute'>,
     volumes: Pick<VolumeClient, 'resolve'>,
-    queries: Pick<QueryBus, 'execute'>
+    queries: Pick<QueryBus, 'execute'>,
+    projects?: Pick<ProjectAccessApi, 'listReadable' | 'assertEdit' | 'assertAssistant'>
 ) {
+    const projectId = defaults.projectId ?? options.projectId
+    if (projectId) {
+        if (!projects || (options.projectId && options.projectId !== projectId) || options.requireUserIsolation)
+            denied()
+        const tenantId = RequestContext.currentTenantId(),
+            organizationId = RequestContext.getOrganizationId(),
+            userId = RequestContext.currentUserId()
+        if (
+            !tenantId ||
+            !organizationId ||
+            !userId ||
+            (defaults.tenantId && defaults.tenantId !== tenantId) ||
+            (defaults.userId && defaults.userId !== userId) ||
+            (defaults.organizationId && defaults.organizationId !== organizationId)
+        )
+            denied()
+        const actor = { tenantId, organizationId, userId },
+            assistantId = defaults.xpertId
+        return new VolumeWorkspaceStorage(
+            async (operation) => {
+                if (
+                    RequestContext.currentTenantId() !== tenantId ||
+                    RequestContext.currentUserId() !== userId ||
+                    RequestContext.getOrganizationId() !== organizationId
+                )
+                    denied()
+                const access =
+                    operation === 'read'
+                        ? (await projects.listReadable({ actor, projectIds: [projectId] }))[0]
+                        : await projects.assertEdit({ actor, projectId })
+                if (!access) denied()
+                if (assistantId) await projects.assertAssistant({ actor, projectId, assistantId })
+                return volumes.resolve({ tenantId, projectId, catalog: 'projects' })
+            },
+            () => queries.execute(new ResolvePluginArtifactNamespaceQuery(options.pluginName))
+        )
+    }
     if (
         !defaults.xpertId ||
         defaults.projectId ||

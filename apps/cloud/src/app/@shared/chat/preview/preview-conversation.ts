@@ -6,7 +6,7 @@ import {
   IChatMessage,
   PaginationParams
 } from '@cloud/app/@core'
-import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs'
+import { catchError, forkJoin, map, Observable, of, switchMap, take } from 'rxjs'
 import { filterLatestMessages } from '../filter-latest-messages'
 import { applyDisplayPauseSnapshot } from './preview-display-pause'
 
@@ -64,6 +64,7 @@ export function loadPreviewConversation(
       organizationId
     )
     .pipe(
+      take(1),
       switchMap((conversation) => {
         const threadId = normalizePreviewThreadId(conversation.threadId)
         const messages$ = conversationService.searchMessages(
@@ -73,7 +74,7 @@ export function loadPreviewConversation(
         )
         const thread$ =
           threadId && threadService ? threadService.getThread(threadId).pipe(catchError(() => of(null))) : of(null)
-        return forkJoin({ page: messages$, thread: thread$ }).pipe(
+        return forkJoin({ page: messages$.pipe(take(1)), thread: thread$.pipe(take(1)) }).pipe(
           map(({ page, thread }) => ({
             conversation: {
               ...conversation,

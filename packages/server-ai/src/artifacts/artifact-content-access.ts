@@ -1,3 +1,4 @@
+import { ArtifactTypesService } from './types/artifact-types.service'
 // Ownership, resource ACL and share-link policy are independent restrictions.
 // A provider always authorizes the canonical source resourceId, never a second copy.
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
@@ -8,9 +9,13 @@ import { ProjectAccessRuntimeService } from '../xpert-project/services/project-a
 
 type ActorScope = { tenantId?: string | null; organizationId?: string | null; userId?: string | null }
 export type ArtifactAuthorizationTarget = {
+    typeBinding?: import('@xpert-ai/contracts').ArtifactTypeBinding | null
     tenantId?: string | null
     authorizationProviderKey?: string | null
     resourceId: string
+    pluginName: string
+    resourceType: string
+    organizationId?: string | null
     /** A null owner with projectId denotes explicit Project ownership. */
     userId?: string | null
     projectId?: string | null
@@ -20,15 +25,51 @@ export type ArtifactAuthorizationTarget = {
 export class ArtifactContentAccess {
     constructor(
         private readonly resources: ContentResourceService,
-        private readonly projects: ProjectAccessRuntimeService
+        private readonly projects: ProjectAccessRuntimeService,
+        private readonly sourcePolicies: ArtifactTypesService
     ) {}
 
-    async assert(artifact: ArtifactAuthorizationTarget, scope: ActorScope, operation: ContentOperation) {
+    assertDraftPublication(
+        artifact: ArtifactAuthorizationTarget,
+        actor: ActorScope,
+        draft: import('@xpert-ai/plugin-sdk').ArtifactDraftRecord
+    ) {
+        return this.sourcePolicies.assertDraftPublication(artifact, actor, draft)
+    }
+
+    async assert(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        operation: ContentOperation,
+        surface?: 'draft'
+    ) {
+        await this.sourcePolicies.authorize(artifact, scope, operation, surface)
+        await this.assertSourceConstraints(artifact, scope, operation, true)
+    }
+
+    /** Called only by the canonical authenticated link policy, never by generic content or draft reads. */
+    async assertSharedRead(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        link: import('@xpert-ai/plugin-sdk').ArtifactTypeLink
+    ) {
+        if (!this.sourcePolicies.allowsProjectLinkAudience(artifact, link)) return this.assert(artifact, scope, 'read')
+        await this.sourcePolicies.authorize(artifact, scope, 'read')
+        await this.assertSourceConstraints(artifact, scope, 'read', false)
+    }
+
+    private async assertSourceConstraints(
+        artifact: ArtifactAuthorizationTarget,
+        scope: ActorScope,
+        operation: ContentOperation,
+        requireProjectMembership: boolean
+    ) {
         const projectId = !artifact.userId ? artifact.projectId : null
         if (!projectId && !artifact.authorizationProviderKey) return
-        if (!scope.tenantId || !scope.userId || (artifact.tenantId && artifact.tenantId !== scope.tenantId)) throw denied()
+        if (!scope.tenantId || !scope.userId || (artifact.tenantId && artifact.tenantId !== scope.tenantId))
+            throw denied()
         const actor = { tenantId: scope.tenantId, organizationId: scope.organizationId, userId: scope.userId }
-        if (projectId) {
+        if (projectId && requireProjectMembership) {
             if (operation === 'manage') await this.projects.assertManage({ actor, projectId })
             else if (operation !== 'read') await this.projects.assertEdit({ actor, projectId })
             else if (!(await this.projects.listReadable({ actor, projectIds: [projectId] })).length) throw denied()
@@ -51,15 +92,14 @@ export async function assertArtifactAccess(
     artifact: ArtifactAuthorizationTarget,
     actor: ActorScope,
     operation: ContentOperation,
-    checkOwner = true
+    checkOwner = true,
+    surface?: 'draft'
 ) {
     if (checkOwner && artifact.userId && artifact.userId !== actor.userId) {
         throw new NotFoundException(t('server-ai:Error.ArtifactNotFound'))
     }
-    if (artifact.authorizationProviderKey || (!artifact.userId && artifact.projectId)) {
-        if (!access) throw denied()
-        await access.assert(artifact, actor, operation)
-    }
+    if (access) await access.assert(artifact, actor, operation, surface)
+    else if (artifact.authorizationProviderKey || (!artifact.userId && artifact.projectId)) throw denied()
 }
 
 export function assertArtifactPolicyUnchanged(
@@ -67,10 +107,14 @@ export function assertArtifactPolicyUnchanged(
     requested: ArtifactAuthorizationTarget
 ) {
     // Idempotent creation may refresh metadata, but cannot replace resource policy or move Project ownership.
-    if ((existing.authorizationProviderKey ?? null) !== (requested.authorizationProviderKey ?? null) ||
-        (!existing.userId && (existing.projectId ?? null) !== (requested.projectId ?? null))) {
+    if (
+        (existing.authorizationProviderKey ?? null) !== (requested.authorizationProviderKey ?? null) ||
+        (!existing.userId && (existing.projectId ?? null) !== (requested.projectId ?? null))
+    ) {
         throw new ForbiddenException(t('server-ai:Error.ArtifactPolicyImmutable'))
     }
 }
 
-function denied() { return new ForbiddenException(t('server-ai:Error.ContentAccessDenied')) }
+function denied() {
+    return new ForbiddenException(t('server-ai:Error.ContentAccessDenied'))
+}

@@ -7,7 +7,7 @@ import { ChatConversationThreadService } from '../conversation-thread.service'
 import { ThreadRecoveryService } from './thread-recovery.service'
 import { legacyThreadGraphRevision, threadGraphRevision } from '../thread-graph-revision'
 import { GetXpertRecoveryDefinitionQuery } from '../../xpert/queries/get-xpert-recovery-definition.query'
-import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries/get-tuple.query'
+import { CopilotCheckpointGetMetadataQuery } from '../../copilot-checkpoint/queries/get-metadata.query'
 
 function fixture() {
     const conversation = Object.assign(new ChatConversation(), {
@@ -109,7 +109,7 @@ it.each(['layout', 'logic', 'legacy-same', 'legacy-layout', 'missing-revision'] 
         expect(f.execute).toHaveBeenCalledWith(new GetXpertRecoveryDefinitionQuery('assistant'))
         if (result.canRetry) {
             expect(f.execute).toHaveBeenCalledWith(
-                new CopilotCheckpointGetTupleQuery({
+                new CopilotCheckpointGetMetadataQuery({
                     thread_id: 'failed',
                     checkpoint_ns: '',
                     checkpoint_id: 'input'

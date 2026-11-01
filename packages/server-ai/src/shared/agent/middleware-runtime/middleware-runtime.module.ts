@@ -12,12 +12,14 @@ import { CollaborationModule } from '../../../collaboration/collaboration.module
 import { CopilotModule } from '../../../copilot/copilot.module'
 import { CopilotUsageModule } from '../../../copilot-usage'
 import { RuntimeCapabilityModule } from '../../runtime'
+import { ExecutionObservationModule } from '../../../xpert-agent-execution/observability/observation.module'
 
 @Global()
 @Module({
     imports: [
         CqrsModule,
         RuntimeCapabilityModule,
+        ExecutionObservationModule,
         WorkspaceFilesRuntimeModule,
         FileRuntimeModule,
         ConnectorModule,

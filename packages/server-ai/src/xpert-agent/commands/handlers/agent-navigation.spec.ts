@@ -3,9 +3,10 @@ import { Annotation, END, START, StateGraph } from '@langchain/langgraph'
 import {
     buildAgentDecisionPathMap,
     getPendingToolCallsAfterTrailingToolMessages,
-    routeAgentToolCall
+    routeAgentToolCalls
 } from './agent-navigation'
 import { ToolNode } from './tool_node'
+import { installAgentToolSnapshots } from './agent-tool-snapshots'
 
 describe('buildAgentDecisionPathMap', () => {
     it('declares middleware tool nodes as valid Send targets', () => {
@@ -88,13 +89,17 @@ describe('unknown tool routing', () => {
             state = { projectId: 'project' }
         for (const name of ['bid-retry-role-task', 'before_model', 'Agent_Unbound']) {
             const call = { name, id: 'call-invalid', args: { taskId: 'task' } }
-            const send = routeAgentToolCall(call, state, tools, 'unknown_tool')
+            const send = routeAgentToolCalls([call], state, tools, 'unknown_tool', {
+                configurable: { __pregel_send: jest.fn() }
+            })[0]
             expect(send.node).toBe('unknown_tool')
-            expect(send.args).toEqual({ ...state, toolCall: call })
+            expect(send.args).toMatchObject({ toolCall: call })
         }
-        expect(routeAgentToolCall({ name: 'bid_retry_role_task', args: {} }, state, tools, 'unknown_tool').node).toBe(
-            'bid_retry_role_task'
-        )
+        expect(
+            routeAgentToolCalls([{ name: 'bid_retry_role_task', args: {} }], state, tools, 'unknown_tool', {
+                configurable: { __pregel_send: jest.fn() }
+            })[0].node
+        ).toBe('bid_retry_role_task')
     })
 
     it('returns a matching error ToolMessage through a compiled graph instead of an invalid Send packet', async () => {
@@ -102,15 +107,19 @@ describe('unknown tool routing', () => {
         const State = Annotation.Root({
             messages: Annotation<ToolMessage[]>({ reducer: (old, next) => [...old, ...next] })
         })
-        const graph = new StateGraph(State)
-            .addNode('model', () => ({}))
-            .addNode('unknown_tool', new ToolNode([], { caller: 'Agent_Bid', toolName: 'Tool' }))
-            .addEdge(START, 'model')
-            .addConditionalEdges('model', (state) => routeAgentToolCall(call, state, new Set(), 'unknown_tool'), [
-                'unknown_tool'
-            ])
-            .addEdge('unknown_tool', END)
-            .compile()
+        const graph = installAgentToolSnapshots(
+            new StateGraph(State)
+                .addNode('model', () => ({}))
+                .addNode('unknown_tool', new ToolNode([], { caller: 'Agent_Bid', toolName: 'Tool' }))
+                .addEdge(START, 'model')
+                .addConditionalEdges(
+                    'model',
+                    (state, config) => routeAgentToolCalls([call], state, new Set(), 'unknown_tool', config),
+                    ['unknown_tool']
+                )
+                .addEdge('unknown_tool', END)
+                .compile()
+        )
         const result = await graph.invoke({ messages: [] })
         expect(result.messages).toHaveLength(1)
         expect(result.messages[0]).toMatchObject({ name: call.name, tool_call_id: call.id, status: 'error' })

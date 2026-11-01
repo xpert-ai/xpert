@@ -3,9 +3,11 @@ import { IOrganizationProjectsUpdateInput } from './organization-projects.model'
 import { IOrganizationUpdateInput } from './organization.model'
 import { ITag } from './tag-entity.model'
 import { I18nObject, IconDefinition, TAvatar, TParameterSchema } from './types'
+import { IntegrationSharingPolicy } from './integration-sharing.model'
 import { IUser } from './user.model'
 
 export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
+  sharing?: IntegrationSharingPolicy | null
   name: string
   description?: string
   /**

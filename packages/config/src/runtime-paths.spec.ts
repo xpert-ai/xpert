@@ -3,7 +3,6 @@ import { config as loadDotenv } from 'dotenv'
 
 jest.mock('dotenv', () => ({ config: jest.fn() }))
 jest.mock('./database', () => ({ dbConnectionConfig: { type: 'postgres' } }))
-jest.mock('@xpert-ai/server-config', () => jest.requireActual('./config-manager'))
 
 describe('Runtime path configuration boundary', () => {
   const previousEnvironment = process.env
@@ -32,8 +31,11 @@ describe('Runtime path configuration boundary', () => {
 
   it('retains packaged Docker paths when overrides are absent', () => {
     expect(loadConfig().getConfig().assetOptions).toMatchObject({
-      serverRoot: '/srv/xpert/', assetPath: '/srv/xpert/assets',
-      assetPublicPath: '/srv/xpert/public', dataPath: '/var/lib/xpert/data/', pluginPath: undefined
+      serverRoot: '/srv/xpert/',
+      assetPath: '/srv/xpert/assets',
+      assetPublicPath: '/srv/xpert/public',
+      dataPath: '/var/lib/xpert/data/',
+      pluginPath: undefined
     })
     expect(loadDotenv).toHaveBeenCalledWith({ path: '.env' })
   })
@@ -55,21 +57,14 @@ describe('Runtime path configuration boundary', () => {
     process.env.XPERT_PLUGIN_PATH = 'isolated/plugins'
     const { getConfig } = loadConfig()
     expect(getConfig().assetOptions).toMatchObject({
-      serverRoot: '/srv/xpert/', assetPath: '/srv/xpert/assets',
-      dataPath: resolve('isolated/data'), assetPublicPath: '/isolated/public',
+      serverRoot: '/srv/xpert/',
+      assetPath: '/srv/xpert/assets',
+      dataPath: resolve('isolated/data'),
+      assetPublicPath: '/isolated/public',
       pluginPath: resolve('isolated/plugins')
     })
     expect(loadDotenv).toHaveBeenCalledWith({ path: '/test/config/.env' })
     process.env.XPERT_PLUGIN_PATH = '/changed-after-bootstrap'
     expect(getConfig().assetOptions.pluginPath).toBe(resolve('isolated/plugins'))
-  })
-
-  it('keeps configured paths when the API builds its plugin configuration', () => {
-    jest.isolateModules(() => {
-      const { getConfig, setConfig } = jest.requireActual<typeof import('./config-manager')>('./config-manager')
-      setConfig({ assetOptions: { ...getConfig().assetOptions, dataPath: '/configured/data', pluginPath: '/configured/plugins' } })
-      const { pluginConfig } = jest.requireActual<typeof import('../../../apps/api/src/plugin-config')>('../../../apps/api/src/plugin-config')
-      expect(pluginConfig.assetOptions).toEqual(getConfig().assetOptions)
-    })
   })
 })

@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common'
+import { t } from 'i18next'
 import {
+    AiModelTypeEnum,
     IMembershipAllowedModel,
     IMembershipModelMultiplier,
     IMembershipPlan,
@@ -15,7 +17,8 @@ export function isModelAllowed(
     plan: Pick<IMembershipPlan, 'allowedModels'>,
     provider?: string,
     model?: string,
-    copilotId?: string
+    copilotId?: string,
+    modelType?: AiModelTypeEnum
 ): boolean {
     const allowedModels = plan.allowedModels ?? []
     if (!allowedModels.length) {
@@ -32,7 +35,8 @@ export function isModelAllowed(
         (rule) =>
             (rule.provider === '*' || rule.provider === providerName) &&
             (rule.model === '*' || rule.model === modelName) &&
-            (!rule.copilotId?.trim() || rule.copilotId.trim() === copilotId?.trim())
+            (!rule.copilotId?.trim() || rule.copilotId.trim() === copilotId?.trim()) &&
+            (!rule.modelType || rule.modelType === modelType)
     )
 }
 
@@ -57,8 +61,14 @@ export function resolveModelMultiplier(
     return Math.max(0, Number(multiplier?.multiplier ?? 1))
 }
 
-export function assertModelAllowed(plan: IMembershipPlan, provider?: string, model?: string, copilotId?: string) {
-    if (!isModelAllowed(plan, provider, model, copilotId)) {
+export function assertModelAllowed(
+    plan: IMembershipPlan,
+    provider?: string,
+    model?: string,
+    copilotId?: string,
+    modelType?: AiModelTypeEnum
+) {
+    if (!isModelAllowed(plan, provider, model, copilotId, modelType)) {
         throw new ExceedingLimitException(
             translateMembershipError(
                 'server-ai:Error.CopilotModelUnavailableForMembershipPlan',
@@ -102,7 +112,13 @@ export function normalizeAllowedModels(value: unknown): IMembershipAllowedModel[
                 )
             )
         }
-        return copilotId ? { provider, model, copilotId } : { provider, model }
+        const modelType =
+            typeof item === 'object' && item !== null && 'modelType' in item
+                ? Object.values(AiModelTypeEnum).find((type) => type === item.modelType)
+                : undefined
+        if (item.modelType && !modelType)
+            throw new BadRequestException(t('server-ai:Error.InvalidMembershipAllowedModels'))
+        return { provider, model, ...(copilotId ? { copilotId } : {}), ...(modelType ? { modelType } : {}) }
     })
 }
 

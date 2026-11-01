@@ -20,6 +20,7 @@ COPY --chown=node:node packages/shadcn-ui/package.json ./packages/shadcn-ui/
 COPY --chown=node:node packages/desktop-protocol/package.json ./packages/desktop-protocol/
 COPY --chown=node:node packages/plugins/cli-model-profiles/package.json ./packages/plugins/cli-model-profiles/
 COPY --chown=node:node packages/plugins/draft/package.json ./packages/plugins/draft/
+COPY --chown=node:node packages/plugins/execution-observability/package.json ./packages/plugins/execution-observability/
 COPY --chown=node:node packages/plugins/github-integration/package.json ./packages/plugins/github-integration/
 COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plugins/vlm-default/
 

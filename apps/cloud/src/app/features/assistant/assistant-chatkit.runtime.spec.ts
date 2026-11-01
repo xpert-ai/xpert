@@ -23,9 +23,23 @@ import {
   hasAssistantBindingSource,
   hasCompleteAssistantBinding,
   injectHostedAssistantChatkitControl,
+  sanitizeAssistantFrameUrl,
   resolveAssistantMcpAppsOptions,
   CHATKIT_ATTACHMENT_MAX_BYTES
 } from './assistant-chatkit.runtime'
+
+describe('configured ChatKit frame entry', () => {
+  it.each([
+    ['/chatkit', '/chatkit/index.html'],
+    [' /chatkit/?foo=1#thread ', '/chatkit/index.html?foo=1#thread'],
+    ['https://frame.example.com/chatkit', 'https://frame.example.com/chatkit'],
+    ['DOCKER_CHATKIT_FRAME_URL', null],
+    ['', null],
+    [undefined, null]
+  ])('resolves %s without a local directory redirect', (value, expected) => {
+    expect(sanitizeAssistantFrameUrl(value)).toBe(expected)
+  })
+})
 
 jest.mock('../../app.service', () => ({
   AppService: class AppService {}
@@ -181,10 +195,12 @@ describe('assistant chatkit runtime helpers', () => {
     const initialThread = signal<string | null>('thread-1')
     const projectId = signal<string | null>('project-1')
     const organizationId = new BehaviorSubject('org-1')
-    const user = new BehaviorSubject<Partial<IUser> | null>({ role: {
-      name: RolesEnum.AI_BUILDER,
-      rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true }]
-    } })
+    const user = new BehaviorSubject<Partial<IUser> | null>({
+      role: {
+        name: RolesEnum.AI_BUILDER,
+        rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true }]
+      }
+    })
     const composer = signal({
       projects: { enabled: false },
       connectors: { enabled: true }
@@ -446,11 +462,16 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
     user.next({ role: { name: RolesEnum.APP_USER } })
     flushAngularEffects()
-    expect(setOptions).toHaveBeenLastCalledWith(expect.objectContaining({
-      composer: expect.objectContaining({ models: [], resources: { enabled: false }, connectors: { enabled: false } }),
-      request: { context: { projectId: 'project-2' } }
-    }))
-
+    expect(setOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        composer: expect.objectContaining({
+          models: [],
+          resources: { enabled: false },
+          connectors: { enabled: false }
+        }),
+        request: { context: { projectId: 'project-2' } }
+      })
+    )
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {

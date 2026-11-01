@@ -43,6 +43,8 @@ export type ArtifactSourceInput = {
 
 /** Creates or locates an Artifact container without uploading content bytes. */
 export type CreateArtifactInput = {
+  /** Omit for the built-in file type. Custom types must match source's pluginName/resourceType. */
+  type?: import('@xpert-ai/contracts').ArtifactTypeReference
   /** Optional explicit provider key; authorizes source.resourceId without changing ownership or list visibility. */
   authorizationProviderKey?: string | null
   source: ArtifactSourceInput
@@ -143,6 +145,7 @@ export type ArtifactVersionRecord = {
 
 /** Durable Artifact container returned to plugins. */
 export type ArtifactRecord = ArtifactScopeInput & {
+  typeBinding?: import('@xpert-ai/contracts').ArtifactTypeBinding | null
   /** Additional resource ACL, evaluated against this record's resourceId. */
   authorizationProviderKey?: string | null
   id: string
@@ -246,6 +249,14 @@ export type UpdateArtifactLinkAccessInput = {
 
 /** Platform runtime capability exposed to plugins for managing generated Artifacts. */
 export interface ArtifactsApi {
+  /** Authorized immutable bytes, with status, digest and type validation. Copying additionally checks the type's export policy. */
+  readArtifactVersion(input: { artifactId: string; artifactVersionId: string; purpose: 'view' | 'copy' }): Promise<{
+    artifact: ArtifactRecord
+    version: ArtifactVersionRecord
+    buffer: Buffer
+    mimeType: string
+    fileName: string
+  }>
   createArtifact(input: CreateArtifactInput): Promise<ArtifactRecord>
   findArtifactBySource(input: FindArtifactBySourceInput): Promise<ArtifactRecord | null>
   createArtifactVersion(input: CreateArtifactVersionInput): Promise<ArtifactVersionRecord>

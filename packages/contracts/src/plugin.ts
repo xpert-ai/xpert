@@ -365,6 +365,9 @@ export interface PluginCodeSourceConfig {
 }
 
 export interface PluginSourceConfig extends PluginCodeSourceConfig {
+  /** Host-owned immutable installation directory; never supplied as an authorization grant. */
+  runtimeName?: string
+  immutableRuntime?: boolean
   [key: string]: unknown
 }
 
@@ -601,6 +604,11 @@ export interface PluginMarketplaceReadme {
 export interface PluginMarketplaceDetailItem extends PluginMarketplaceItem {
   readme: PluginMarketplaceReadme
   availableReadmeLocales?: string[]
+}
+
+export enum PluginMarketplaceDetailErrorCode {
+  Unavailable = 'PLUGIN_MARKETPLACE_DETAIL_UNAVAILABLE',
+  LookupFailed = 'PLUGIN_MARKETPLACE_LOOKUP_FAILED'
 }
 
 export interface PluginMarketplaceResponse {

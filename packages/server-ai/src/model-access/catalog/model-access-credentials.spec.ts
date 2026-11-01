@@ -221,7 +221,8 @@ describe('ModelAccessService model credentials', () => {
             plan,
             'openai-compatible',
             input.copilotModelId,
-            input.copilotId
+            input.copilotId,
+            input.modelType
         )
     })
 

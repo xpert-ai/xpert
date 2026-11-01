@@ -52,7 +52,8 @@ export class ModelAccessPolicyService {
                 access.membership.plan,
                 target.provider,
                 target.model,
-                target.copilotId
+                target.copilotId,
+                target.modelType
             )
         )
     }

@@ -1,3 +1,5 @@
+export * from './conversation-share.model'
+
 export const STATE_VARIABLE_HUMAN = 'human'
 export * from './prompt-workflow-capabilities.model'
 
@@ -152,3 +154,9 @@ export * from './run-display-snapshot.model'
 
 export * from './execution-control.model'
 export * from './execution-control-evidence.schema'
+export * from './execution-observability.model'
+export * from './model-management.model'
+
+export * from './model-replacement.model'
+
+export * from './default-model-role'

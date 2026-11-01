@@ -99,7 +99,8 @@ export class MembershipBillingService {
                 access.membership.plan,
                 input.provider,
                 input.model,
-                modelAccess?.copilotId ?? input.copilotId
+                modelAccess?.copilotId ?? input.copilotId,
+                modelAccess?.modelType
             )
         }
 
@@ -179,7 +180,13 @@ export class MembershipBillingService {
             }
             if (input.modelAccess?.accessSource !== ModelAccessSourceEnum.Grant) {
                 assertCopilotScopeMatches(access, input.copilotOrganizationId)
-                assertModelAllowed(access.membership.plan, input.provider, input.model, input.copilotId)
+                assertModelAllowed(
+                    access.membership.plan,
+                    input.provider,
+                    input.model,
+                    input.copilotId,
+                    input.modelAccess?.modelType
+                )
             }
 
             const { membership, organizationId } = access

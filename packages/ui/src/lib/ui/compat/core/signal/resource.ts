@@ -114,6 +114,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
   return {
     value: computed(() => valueSig()),
     error: computed(() => getErrorMessage(errorSig())),
+    rawError: computed(() => errorSig()),
     status: computed(() => statusSig()),
     reload: () => untracked(() => refreshTrigger.set(refreshTrigger() + 1))
   }

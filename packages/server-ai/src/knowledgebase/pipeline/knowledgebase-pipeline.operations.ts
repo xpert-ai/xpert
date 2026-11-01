@@ -169,7 +169,8 @@ export class KnowledgebasePipelineOperations {
         k: number,
         filter?: Record<string, string>
     ) {
-        const integration = await this.context.integrationService.findOne(entity.integrationId)
+        const integration = await this.context.integrationService.findOneInOrganizationOrTenant(entity.integrationId)
+        if (!integration) throw new BadRequestException(t('server-ai:Error.IntegrationUnavailable'))
         const knowledgeStrategy = this.context.knowledgeStrategyRegistry.get(
             integration.provider as unknown as KnowledgeProviderEnum
         )

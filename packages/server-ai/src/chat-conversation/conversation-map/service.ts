@@ -1,9 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, HttpException, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { DataSource } from 'typeorm'
+import { DataSource, In, IsNull } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
+import type { IChatMessage, XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../conversation.service'
 import { ChatConversationThreadService } from '../conversation-thread.service'
 import { ConversationBranchCommand } from '../conversation-branch/branch.command'
@@ -14,9 +14,17 @@ import { XpertProjectAccessService } from '../../xpert-project/services/project-
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { WorkbenchAssistantConversationNavigationService } from '../workbench-assistant-conversation-navigation.service'
 import { humanMessageSummary, latestUpdate, matches, turnNodes } from './presentation'
-import type { MapAction, MapNode, MapPage, MapQuery } from './schema'
+import type { MapAction, MapNode, MapPage, MapQuery, MapOptionsQuery, MapOptionsPage } from './schema'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { readSegments } from './segment-reader'
+import { conversationTrail } from './trail-conversation'
+import { executionTrail } from './trail-execution'
+import { readTrailRuns } from './trail-reader'
+import type { TrailGraph, TrailQuery } from './trail.schema'
+import { isRuntimeChatMessage } from '@xpert-ai/contracts'
+import { ReadTrailActivityCommand } from '../../agent-invocation/execution-view/read-trail-activity.command'
+import { appendTrailActivity } from './trail-activity'
+import { messageAncestorPath } from '../message-path'
 
 // New conversations can have messages before a title has been generated.
 function displayConversationTitle(title: string | null | undefined): string {
@@ -68,6 +76,36 @@ export class ConversationMapService {
         }
     }
 
+    async options(context: XpertResolvedViewHostContext, query: MapOptionsQuery): Promise<MapOptionsPage> {
+        const family = await this.scope(context)
+        if (query.kind === 'projects') {
+            const page = await this.projects.findAvailableForXpert({
+                xpertId: context.hostId,
+                filter: { search: query.search },
+                skip: query.offset,
+                take: query.limit
+            })
+            return {
+                options: page.items.map(({ id, name }) => ({ value: id, label: name })),
+                nextOffset: query.offset + page.items.length < page.total ? query.offset + page.items.length : null
+            }
+        }
+        const projectId = query.projectId === undefined ? (context.runtimeScope?.projectId ?? null) : query.projectId
+        if (projectId) await this.access.assertCanReadXpert(projectId, context.hostId)
+        const [items, total] = await this.conversations.findReadableFamilyConversations(
+            family,
+            projectId,
+            query.offset,
+            query.limit,
+            undefined,
+            query.search
+        )
+        return {
+            options: items.map(({ id, title }) => ({ value: id, label: displayConversationTitle(title) })),
+            nextOffset: query.offset + items.length < total ? query.offset + items.length : null
+        }
+    }
+
     private async threadSummary(threadId: string, conversationId: string) {
         const thread = await this.threads.requireByThreadId(threadId)
         if (thread.conversationId !== conversationId)
@@ -86,6 +124,131 @@ export class ConversationMapService {
             ),
             lastHumanMessage: humanMessageSummary(messages.items[0], threadId)
         }
+    }
+    async trail(context: XpertResolvedViewHostContext, query: TrailQuery): Promise<TrailGraph> {
+        const conversation = await this.conversation(context, query.conversationId)
+        await this.threads.ensurePrimary(conversation)
+        const threadId = query.threadId ?? conversation.threadId
+        const selected = await this.threads.requireByThreadId(threadId)
+        if (selected.conversationId !== conversation.id)
+            throw new ForbiddenException(t('server-ai:Error.ConversationAccessDenied'))
+        const title = displayConversationTitle(conversation.title)
+        if (query.messageId) {
+            const messages = await this.threads.findVisibleMessages(threadId)
+            const message = messages.items.find((item) => item.id === query.messageId)
+            if (!message || message.role !== 'ai' || isRuntimeChatMessage(message))
+                throw new ForbiddenException(t('server-ai:Error.ConversationAccessDenied'))
+            const recorded: IChatMessage = { ...message, historical: message.historicalAgentRuns != null }
+            const { runs, truncated } = await readTrailRuns(this.db, context, recorded, threadId)
+            const graph = executionTrail(conversation.id, threadId, title, recorded, runs)
+            if (truncated) graph.coverage.push('record_limit')
+            if (!recorded.historical && runs.length) {
+                const activities = await this.commands.execute(
+                    new ReadTrailActivityCommand(
+                        {
+                            ...context,
+                            runtimeScope: context.runtimeScope
+                                ? {
+                                      ...context.runtimeScope,
+                                      conversationId: conversation.id,
+                                      projectId: conversation.projectId ?? null
+                                  }
+                                : undefined
+                        },
+                        runs.map((run) => run.id)
+                    )
+                )
+                appendTrailActivity(graph, activities.items, runs)
+                if (activities.limitReached) graph.coverage.push('record_limit')
+            }
+            graph.coverage = [...new Set(graph.coverage)]
+            return graph
+        }
+        const all = await this.threads.listByConversation(conversation.id)
+        const editedParents = new Set(
+            all.filter((thread) => thread.metadata.purpose === 'message-edit').map((thread) => thread.parentThreadId)
+        )
+        const visible = all.filter(
+            (thread) =>
+                query.showHistory ||
+                thread.threadId === threadId ||
+                (thread.metadata.purpose !== 'message-edit' && !editedParents.has(thread.threadId))
+        )
+        const repository = this.db.getRepository(ChatMessage)
+        const scope = {
+            conversationId: conversation.id,
+            tenantId: context.tenantId,
+            organizationId: context.organizationId ?? IsNull()
+        }
+        const links = await repository.find({
+            where: scope,
+            select: {
+                id: true,
+                parentId: true,
+                role: true,
+                status: true,
+                executionId: true,
+                messageEnvelope: true,
+                createdInThreadId: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        })
+        const visibleIds = [
+            ...new Set(
+                visible.flatMap((thread) =>
+                    thread.headMessageId
+                        ? messageAncestorPath(links, thread.headMessageId)
+                              .filter(
+                                  (message) => !isRuntimeChatMessage(message) && ['human', 'ai'].includes(message.role)
+                              )
+                              .map((message) => message.id)
+                        : []
+                )
+            )
+        ]
+        const summaries = visibleIds.length
+            ? await repository.find({
+                  where: { ...scope, id: In(visibleIds.slice(0, 5000)) },
+                  select: { id: true, content: true }
+              })
+            : []
+        const content = new Map(summaries.map((message) => [message.id, message.content]))
+        const messages = links.map((message) => ({ ...message, content: content.get(message.id) }))
+        const graph = conversationTrail(
+            conversation.id,
+            title,
+            threadId,
+            visible.map((thread) => ({
+                threadId: thread.threadId,
+                headMessageId: thread.headMessageId,
+                title:
+                    thread.metadata.title ||
+                    t(
+                        `server-ai:ConversationMap.${thread.threadId === threadId ? 'Current' : thread.metadata.purpose === 'message-edit' ? 'History' : 'SideChat'}`
+                    ),
+                current: thread.threadId === threadId,
+                status: thread.status,
+                purpose: thread.metadata.purpose
+            })),
+            messages
+        )
+        if (visibleIds.length > 5000) graph.coverage.push('record_limit')
+        if (conversation.branchSource) {
+            // A provenance pointer alone is not access to the source conversation.
+            try {
+                await this.conversation(context, conversation.branchSource.conversationId)
+                graph.source = {
+                    conversationId: conversation.branchSource.conversationId,
+                    threadId: conversation.branchSource.threadId,
+                    messageId: conversation.branchSource.messageId
+                }
+            } catch (error) {
+                if (!(error instanceof HttpException) || ![403, 404].includes(error.getStatus())) throw error
+            }
+        }
+        graph.coverage = [...new Set(graph.coverage)]
+        return graph
     }
     async read(context: XpertResolvedViewHostContext, query: MapQuery): Promise<MapPage> {
         const family = await this.scope(context)

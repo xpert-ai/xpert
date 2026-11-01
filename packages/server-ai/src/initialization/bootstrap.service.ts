@@ -1,7 +1,7 @@
 import { userHasPermission } from '../shared/service-operation'
 import {
     AiModelTypeEnum,
-    AiProviderRole,
+    DefaultModelRole,
     AssistantBindingScope,
     AssistantCode,
     ICopilotWithProvider,
@@ -29,7 +29,7 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
-import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
+import { ResolveDefaultModelQuery, FindCopilotModelsQuery } from '../copilot/queries'
 import { SkillRepositoryIndexService } from '../skill-repository'
 import { SkillPackageService } from '../skill-package'
 import { XpertImportCommand, XpertService } from '../xpert'
@@ -168,7 +168,8 @@ export class ServerAIBootstrapService {
             return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         }
         const user = await this.userService.findOne(event.userId, { relations: ['role', 'role.rolePermissions'] })
-        if (!userHasPermission(user, AIPermissionsEnum.XPERT_EDIT)) return { workspaceId: null, createdNewUserDefaultWorkspace: false }
+        if (!userHasPermission(user, AIPermissionsEnum.XPERT_EDIT))
+            return { workspaceId: null, createdNewUserDefaultWorkspace: false }
         let workspaceId: string | null = null
         let environmentId: string | null = null
         let createdNewUserDefaultWorkspace = false
@@ -391,7 +392,9 @@ export class ServerAIBootstrapService {
     }) {
         if (event.ownerUserId) {
             try {
-                return await this.userService.findOne(event.ownerUserId, { relations: ['role', 'role.rolePermissions'] })
+                return await this.userService.findOne(event.ownerUserId, {
+                    relations: ['role', 'role.rolePermissions']
+                })
             } catch (error) {
                 const scopeLabel = event.organizationId
                     ? `organization '${event.organizationId}'`
@@ -715,7 +718,7 @@ export class ServerAIBootstrapService {
         }
 
         const primaryCopilot = await this.queryBus.execute(
-            new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Primary)
+            new ResolveDefaultModelQuery(tenantId, organizationId, DefaultModelRole.Primary)
         )
         const primaryModel = primaryCopilot?.copilotModel
         if (

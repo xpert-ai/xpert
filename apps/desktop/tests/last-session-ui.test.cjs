@@ -25,6 +25,7 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
     react: React,
     'react/jsx-runtime': require('react/jsx-runtime'),
     './i18n': i18n,
+    './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
     './host': {
       HostError: class HostError extends Error {},
       invoke: async (method, input) => {

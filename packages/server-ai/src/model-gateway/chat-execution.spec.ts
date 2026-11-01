@@ -1,4 +1,4 @@
-import { AIMessageChunk } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk } from '@langchain/core/messages'
 import { ModelFeature, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
 import { executeGatewayChat } from './chat-execution'
 import { parseOpenAIChatRequest } from './openai-adapter'
@@ -7,6 +7,7 @@ import type { GatewayChatWriter } from './chat-writer'
 function setup() {
     const abort = new AbortController()
     const writer: GatewayChatWriter = { start: jest.fn(), delta: jest.fn(), complete: jest.fn(), fail: jest.fn() }
+    const invoke = jest.fn(async () => new AIMessage('done'))
     const stream = jest.fn(async function* () {
         yield new AIMessageChunk({
             content: 'working',
@@ -22,7 +23,7 @@ function setup() {
     const lifecycle = {
         capabilities: [ModelFeature.STREAM_TOOL_CALL],
         begin: jest.fn(async () => ({ requestId: 'one-attempt', startedAt: new Date() })),
-        createModel: jest.fn(async () => ({ stream }) as never),
+        createModel: jest.fn(async () => ({ invoke, stream }) as never),
         beforeDispatch: jest.fn(),
         settle: jest.fn()
     }
@@ -33,7 +34,7 @@ function setup() {
     })
     const run = () =>
         executeGatewayChat({ response: response as never, parsed, signal: abort.signal, lifecycle, writer })
-    return { run, writer, lifecycle, stream, abort }
+    return { run, writer, lifecycle, invoke, stream, abort, parsed }
 }
 describe('one governed Chat attempt across protocol writers', () => {
     it('settles once using provider usage, independently of the selected response format', async () => {
@@ -78,5 +79,45 @@ describe('one governed Chat attempt across protocol writers', () => {
         await f.run()
         expect(f.stream).not.toHaveBeenCalled()
         expect(f.lifecycle.settle).toHaveBeenCalledTimes(1)
+        expect(f.lifecycle.settle).toHaveBeenCalledWith(
+            expect.objectContaining({
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, source: ModelGatewayUsageSourceEnum.None }
+            })
+        )
+    })
+
+    it.each(['model creation', 'stream setup'])('records no usage when %s fails before invocation', async (stage) => {
+        const f = setup()
+        if (stage === 'model creation') f.lifecycle.createModel.mockRejectedValue(new Error('unsupported'))
+        else jest.mocked(f.writer.start).mockRejectedValue(new Error('disconnected'))
+        await f.run()
+        expect(f.invoke).not.toHaveBeenCalled()
+        expect(f.stream).not.toHaveBeenCalled()
+        expect(f.lifecycle.settle).toHaveBeenCalledTimes(1)
+        expect(f.lifecycle.settle).toHaveBeenCalledWith(
+            expect.objectContaining({
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, source: ModelGatewayUsageSourceEnum.None }
+            })
+        )
+    })
+
+    it.each([false, true])('retains uncertain usage once invocation has started (stream=%s)', async (stream) => {
+        const f = setup()
+        f.parsed.stream = stream
+        f.invoke.mockRejectedValue(new Error('connection lost'))
+        f.stream.mockImplementation(async function* () {
+            throw new Error('connection lost')
+        })
+        await f.run()
+        expect(stream ? f.stream : f.invoke).toHaveBeenCalledTimes(1)
+        expect(f.lifecycle.settle).toHaveBeenCalledWith(
+            expect.objectContaining({
+                usage: expect.objectContaining({
+                    source: ModelGatewayUsageSourceEnum.Estimated,
+                    totalTokens: expect.any(Number)
+                })
+            })
+        )
+        expect(f.lifecycle.settle.mock.calls[0][0].usage.totalTokens).toBeGreaterThan(0)
     })
 })

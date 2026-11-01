@@ -47,6 +47,7 @@ export class ModelExecutionMeteringService {
         providerRequestId?: string
     }) {
         const { call, grant, usage } = input
+        this.assertAttribution(call, grant, input.resolution)
         const actual = usage.source === ModelGatewayUsageSourceEnum.Provider && usage.totalTokens > 0
         const context = grant.context
         const price = input.providerUsage
@@ -98,6 +99,7 @@ export class ModelExecutionMeteringService {
                 })
                 .setLock('pessimistic_write')
                 .getOneOrFail()
+            this.assertAttribution(current, grant, input.resolution, current.usageFact)
             if (
                 current.usageFact &&
                 fact &&
@@ -157,6 +159,7 @@ export class ModelExecutionMeteringService {
         const model = call.usageFact.model
         if (!grant || !model || !call.settlementContext) throw executionError('Invalid')
         const fact = call.usageFact
+        this.assertAttribution(call, grant, call.settlementContext, fact)
         try {
             await this.commands.execute(
                 new CopilotTokenRecordCommand({
@@ -221,6 +224,43 @@ export class ModelExecutionMeteringService {
             usageDeliveredAt: new Date(),
             status: call.errorCode ? ModelGatewayCallStatusEnum.Failed : ModelGatewayCallStatusEnum.Succeeded
         })
+    }
+
+    /** Settlement uses the original attribution even after execution permission is revoked. */
+    private assertAttribution(
+        call: ModelGatewayCall,
+        grant: ModelExecutionGrant,
+        resolution: IModelAccessResolution,
+        fact?: ExecutionUsageFact | null
+    ) {
+        const context = grant.context
+        if (
+            context.tenantId !== grant.tenantId ||
+            context.runtimeOrganizationId !== grant.organizationId ||
+            context.actorUserId !== grant.ownerId ||
+            !context.billableUserId ||
+            resolution.billableUserId !== context.billableUserId ||
+            call.tenantId !== grant.tenantId ||
+            call.organizationId !== grant.organizationId ||
+            call.userId !== context.actorUserId ||
+            call.grantId !== grant.id ||
+            call.source !== 'execution_grant'
+        )
+            throw executionError('Invalid')
+        if (
+            fact &&
+            (fact.context.actorUserId !== context.actorUserId ||
+                fact.context.billableUserId !== context.billableUserId ||
+                fact.context.grantId !== grant.id ||
+                fact.context.callId !== call.callId ||
+                fact.context.attemptId !== call.requestId ||
+                fact.context.conversationId !== context.conversationId ||
+                fact.context.assistantVersion !== context.assistantVersion ||
+                !isDeepStrictEqual(fact.context.source, context.source) ||
+                !isDeepStrictEqual(fact.context.environment, context.environment) ||
+                !isDeepStrictEqual(fact.context.tool, context.tool))
+        )
+            throw executionError('Invalid')
     }
 
     @Interval(30_000)

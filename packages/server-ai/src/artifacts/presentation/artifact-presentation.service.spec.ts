@@ -6,6 +6,9 @@ import { captureRequestContext, runWithCapturedRequestContext } from '../../shar
 import { Artifact, ArtifactLink, ArtifactVersion } from '../entities'
 import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import { ArtifactPresentationService } from './artifact-presentation.service'
+import { ArtifactTypesService } from '../types/artifact-types.service'
+import { configuredArtifactPolicies } from '../testing/source-policies'
+import { artifactTypeKey } from '@xpert-ai/plugin-sdk'
 
 describe('Authenticated Artifact presentations', () => {
     async function fixture() {
@@ -60,6 +63,17 @@ describe('Authenticated Artifact presentations', () => {
             read: providerRead,
             query
         }
+        const types = configuredArtifactPolicies()
+        types.registry.register(
+            artifactTypeKey(artifact),
+            {
+                definition: { kinds: ['file'], presentation: { mode: 'authenticated' } },
+                authorize: async () => {},
+                validateContent: () => {}
+            },
+            { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
+        )
+        artifact.typeBinding = types.bind(artifact, artifact, 'file')
         const registrations = jest.fn(
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
                 {
@@ -76,7 +90,8 @@ describe('Authenticated Artifact presentations', () => {
                     provide: ArtifactsService,
                     useValue: { resolveForAuthenticatedAccess: read, resolveDescriptorForAuthenticatedAccess: describe }
                 },
-                { provide: ArtifactPresentationRegistry, useValue: { listRegistrations: registrations } }
+                { provide: ArtifactPresentationRegistry, useValue: { listAllRegistrations: registrations } },
+                { provide: ArtifactTypesService, useValue: types }
             ]
         }).compile()
         const service = module.get(ArtifactPresentationService)
@@ -162,7 +177,10 @@ describe('Authenticated Artifact presentations', () => {
     it('rejects an unavailable plugin registration and anonymous link policies', async () => {
         const f = await fixture()
         f.registrations.mockReturnValue([])
-        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({ status: 404 })
+        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({
+            status: 503,
+            response: { code: 'ARTIFACT_PRESENTATION_UNAVAILABLE' }
+        })
         f.link.accessMode = 'public_link'
         await expect(f.run(() => f.service.read('team-link'))).rejects.toBeInstanceOf(ForbiddenException)
     })
@@ -173,7 +191,10 @@ describe('Authenticated Artifact presentations', () => {
         const f = await fixture()
         const [registration] = f.registrations()
         f.registrations.mockReturnValue([{ ...registration, source }])
-        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({ status: 404 })
+        await expect(f.run(() => f.service.read('team-link'))).rejects.toMatchObject({
+            status: 503,
+            response: { code: 'ARTIFACT_PRESENTATION_UNAVAILABLE' }
+        })
         expect(f.providerRead).not.toHaveBeenCalled()
     })
     it('rejects a different tenant even if the Artifact resolver supplies a result', async () => {

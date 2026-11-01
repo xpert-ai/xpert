@@ -13,6 +13,8 @@ description: '配置现有看板能力，理解不同来源、运行环境和验
 6. 插件更新后同步更新 Assistant 工作区中已安装的 `live-dashboard` 技能，并核对安装内容；仅刷新插件不会更新既有技能副本。
 7. 使用外部 schema 管理的环境需应用 `packages/server-ai/src/artifacts/drafts/migrations/20261017-artifact-drafts.sql`。已有 Artifact 首次编辑按当前正式版本建立草稿，无需回填历史草稿。
 
+项目制作使用 `project-required` 的实时看板 Assistant 模板；配套的受保护 Artifact 内容、草稿授权、ChatKit 首条消息及作用域事件支持见[项目联动](./project-integration)。这些配套包需要按依赖顺序发布，不能只刷新插件。
+
 data-xpert 来源还需要正确的服务地址、受众、Assistant/Workspace 配置及已发布资源和访问者策略。身份由平台生成和转发，不写入 Agent 生成页面。
 
 ## 当前限额
@@ -49,7 +51,7 @@ data-xpert 来源还需要正确的服务地址、受众、Assistant/Workspace �
 
 现有来源包含 PostgreSQL、MySQL、Doris、data-xpert、Workspace 脚本、MCP、REST/JSON 和 CSV/JSON/XLSX 文件。各来源已有范围明确的本地查询和页面记录；生成、修改、筛选、刷新、重开、ECharts、草稿定稿、团队访问和 ChatKit 卡片导航的覆盖范围应以各条验收记录为准，不能推定每一种来源都验证过全部组合。不同记录有不同时间和环境；不能把一次代码检查当作重新执行模型、SSO 或多用户验收。
 
-Three.js 核心对象和打包已验证，真实 SSO 的 GPU/WebGL 页面尚未完成完整验收。Workspace 脚本团队共享被明确禁止；团队成员的 data-xpert 新账号 SSO 不在最近一次分享复验范围。
+Three.js 核心对象和打包已验证，真实 SSO 的 GPU/WebGL 页面尚未完成完整验收。私有 Workspace 脚本不能直接团队共享，组织共享需先显式发布定义且保留上游访问控制；团队成员的 data-xpert 新账号 SSO 不在最近一次分享复验范围。
 
 目前没有统一后台刷新任务、服务端数据变更推送、浏览型草稿历史、多人协同编辑、版本比较/一键回滚、匿名看板分享或通用查询结果缓存。HTML 自身可实现轮询，MySQL/Doris 场景已验证该路径。data-xpert 的可用本体适配器由其已发布资源和 Action 决定，不等于新增了直接 REST/语义模型 Provider。
 
@@ -58,7 +60,7 @@ Three.js 核心对象和打包已验证，真实 SSO 的 GPU/WebGL 页面尚未�
 ## 维护入口
 
 - 平台 SDK：`packages/plugin-sdk/docs/analytics.md`、`artifact-documents.md`、`artifact-drafts.md`、`artifact-presentations.md`。
-- 看板技能与实现：`xpert-plugins/community/apps/live-dashboard/skills/` 和 `src/`。
+- 看板技能与实现：`xpert-plugins/xpertai/apps/live-dashboard/skills/` 和 `src/`。
 - 看板历史证据：插件 `docs/*acceptance*`；来源约束见各 `analytics-*` 插件文档。
 - 产品使用文档：独立 docs 仓库 AI → 实时看板下的 `zh-Hans/ai/live-dashboard/`，使用流程不要求用户了解内部接口。
 

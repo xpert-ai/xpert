@@ -28,7 +28,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "build:plugins": "pnpm nx run-many -t build -p cli-model-profiles,vlm-default,draft,github-integration --parallel=2"
+    "build:plugins": "pnpm nx run-many -t build -p cli-model-profiles,vlm-default,draft,github-integration --parallel=2 && pnpm nx build execution-observability"
   },
   "dependencies": {
     "@langchain/community": "0.3.53",

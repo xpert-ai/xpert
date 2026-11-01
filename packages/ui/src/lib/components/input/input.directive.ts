@@ -72,7 +72,8 @@ export class ZardInputDirective implements ControlValueAccessor {
     effect(() => {
       const value = this.value()
 
-      if (value !== undefined && value !== null) {
+      // Rewriting an unchanged number input discards drafts such as "0." or "-" and moves the caret.
+      if (value !== undefined && value !== null && this.elementRef.nativeElement.value !== String(value)) {
         this.elementRef.nativeElement.value = value
       }
     })

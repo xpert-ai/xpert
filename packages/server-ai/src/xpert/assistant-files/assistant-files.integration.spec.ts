@@ -535,6 +535,7 @@ describe('Assistant file authority integration', () => {
             { resolve },
             {
                 listReadable: jest.fn().mockResolvedValue([]),
+                assertAssistant: jest.fn(),
                 assertEdit: jest.fn().mockRejectedValue(new ForbiddenException())
             },
             { execute: jest.fn().mockResolvedValue('meetings') }

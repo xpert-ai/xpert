@@ -1,5 +1,6 @@
+import { configuredArtifactPolicies } from './testing/source-policies'
 import { MemoryRepository } from './testing/memory-repository'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, GoneException, NotFoundException } from '@nestjs/common'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -33,12 +34,42 @@ describe('ArtifactsService', () => {
             {
                 resolve: (scope: Record<string, unknown>) =>
                     new VolumeHandle(scope as never, volumeRoot, volumeRoot, 'https://files.test')
-            } as never
+            } as never,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            configuredArtifactPolicies()
         )
     })
 
     afterEach(() => {
         rmSync(volumeRoot, { recursive: true, force: true })
+    })
+
+    it('reads a pinned version for an authorized copy without creating a link; rejects tampering and revoked versions', async () => {
+        const api = service.createScopedApi({ tenantId: 'tenant-1', userId: 'user-1' })
+        const artifact = await api.createArtifact({
+            source: { pluginName: 'test', resourceType: 'file', resourceId: 'copy' }
+        })
+        writeWorkspaceFile('copy.txt', 'Published bytes')
+        const version = await api.createArtifactVersion({
+            artifactId: artifact.id,
+            workspaceFileRef: workspaceRef('copy.txt'),
+            mimeType: 'text/plain'
+        })
+        const input = { artifactId: artifact.id, artifactVersionId: version.id, purpose: 'copy' as const }
+        expect((await api.readArtifactVersion(input)).buffer.toString()).toBe('Published bytes')
+        expect(linkRepository.items).toHaveLength(0)
+        await expect(
+            service.createScopedApi({ tenantId: 'tenant-1', userId: 'another-user' }).readArtifactVersion(input)
+        ).rejects.toBeInstanceOf(NotFoundException)
+        writeWorkspaceFile('copy.txt', 'Replaced bytes')
+        await expect(api.readArtifactVersion(input)).rejects.toBeInstanceOf(GoneException)
+        writeWorkspaceFile('copy.txt', 'Published bytes')
+        versionRepository.items[0].status = 'deleted'
+        await expect(api.readArtifactVersion(input)).rejects.toThrow()
     })
 
     it.each([
@@ -526,7 +557,10 @@ describe('ArtifactsService', () => {
             } as never,
             { findMembershipByUserAndOrganization: membership } as never,
             { assertCanRead } as never,
-            { getIfExists } as never
+            { getIfExists } as never,
+            undefined,
+            undefined,
+            configuredArtifactPolicies()
         )
         const html = '<!doctype html><html><body>Restricted design</body></html>'
         const filePath = 'exports/restricted-design.html'

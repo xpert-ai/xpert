@@ -1,5 +1,7 @@
 {
 	"Error": {
+		"PluginPublicationPending": "先前的插件安装正在等待运行版本发布，请稍后重试。",
+		"PluginCommittedArtifactMissing": "插件 {{plugin}} 已提交的版本文件缺失或不完整，请恢复文件后再重启。",
 		"PluginRuntimePolicyInvalid": "插件 runtimePolicy 必须将 install、update 和 uninstall 声明为 hot 或 restart。",
 		"PluginRuntimePolicyChanged": "插件运行策略在安装期间发生变化，请使用最新的插件信息重试。",
 		"PluginAppDataNamespaceUnavailable": "需要具有已注册应用命名空间的已加载插件。",

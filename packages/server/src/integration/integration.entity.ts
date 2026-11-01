@@ -1,4 +1,4 @@
-import { IIntegration, IntegrationFeatureEnum, ITag, TAvatar } from '@xpert-ai/contracts'
+import { IIntegration, IntegrationFeatureEnum, IntegrationSharingPolicy, ITag, TAvatar } from '@xpert-ai/contracts'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
@@ -7,6 +7,9 @@ import { Tag, TenantOrganizationBaseEntity, User } from '../core/entities/intern
 
 @Entity('integration')
 export class Integration extends TenantOrganizationBaseEntity implements IIntegration {
+	@Column({ type: 'jsonb', nullable: true })
+	sharing?: IntegrationSharingPolicy | null
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()

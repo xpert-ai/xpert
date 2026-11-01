@@ -47,7 +47,7 @@ export class ModelExecutionGrantService {
         const policy = await this.policy.require(actor.tenantId)
         if (!policy.tools.some((tool) => tool.id === input.tool.id && tool.version === input.tool.version))
             throw executionError('Invalid')
-        const user = await this.assistants.user(actor)
+        const user = await this.assistants.user(actor, input.conversationId)
         return runWithCapturedRequestContext(captureRequestContext({ ...actor, user }), async () => {
             if (input.source.type === 'shell_execution' && !input.prepare) throw executionError('Denied')
             const runtimeAssistant =
@@ -70,12 +70,14 @@ export class ModelExecutionGrantService {
                 policy,
                 this.capabilities.get(CliModelProfilesCapability)
             )
-            if (!models.some((model) => model.id === selection.defaultModelId)) throw executionError('Model')
+            const defaultModel = models.find((model) => model.id === selection.defaultModelId)
+            if (!defaultModel) throw executionError('Model')
+            const resolution = await this.assistants.authorize(actor, selection.assistant.id, defaultModel)
             const context = {
                 tenantId: actor.tenantId,
                 runtimeOrganizationId: actor.organizationId,
                 actorUserId: actor.userId,
-                billableUserId: actor.userId,
+                billableUserId: resolution.billableUserId,
                 xpertId: selection.assistant.id,
                 assistantName: selection.assistant.name,
                 assistantVersion: selection.assistant.version ?? String(selection.assistant.updatedAt),
@@ -169,7 +171,7 @@ export class ModelExecutionGrantService {
             grant.context.tenantId !== grant.tenantId ||
             grant.context.runtimeOrganizationId !== grant.organizationId ||
             grant.context.actorUserId !== grant.ownerId ||
-            grant.context.billableUserId !== grant.ownerId
+            !grant.context.billableUserId
         )
             throw executionError('Denied')
         this.assertActive(grant, activating)
@@ -185,7 +187,7 @@ export class ModelExecutionGrantService {
         this.assertActive(grant, activating)
         await this.sources.assertCurrent(grant.context)
         const actor = { tenantId: grant.tenantId, organizationId: grant.organizationId, userId: grant.ownerId }
-        const user = await this.assistants.user(actor)
+        const user = await this.assistants.user(actor, grant.context.conversationId)
         const snapshot = captureRequestContext({ ...actor, user })
         const models = await runWithCapturedRequestContext(snapshot, async () => {
             const runtimeAssistant =
@@ -213,6 +215,9 @@ export class ModelExecutionGrantService {
                         )
                       : await this.assistants.resolve(actor, grant.context.conversationId, false)
             if (selection.assistant.id !== grant.context.xpertId) throw executionError('Denied')
+            const defaultModel = selection.models.find((model) => model.id === grant.defaultModelId)
+            if (!defaultModel) throw executionError('Model')
+            await this.assistants.authorize(actor, selection.assistant.id, defaultModel, grant.context.billableUserId)
             await this.capabilities.require(ModelExecutionEnvironmentCapability).assertCurrent(grant.context)
             const profiles = this.capabilities.get(CliModelProfilesCapability)
             const available = executionToolModels(selection.models, grant.context.tool, policy, profiles)

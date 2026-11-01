@@ -57,6 +57,7 @@ export type RestartTargetState = {
 }
 
 export type PluginGenerationChange = {
+	publicationId?: string
 	generation: number
 	requirements: IRuntimePluginRequirement[]
 	source: 'interactive' | 'plugin-change'
@@ -87,6 +88,7 @@ export type RestartOperationInput = {
 }
 
 export interface PluginRuntimeChangeInput {
+	publicationId?: string
 	pluginName: string
 	version?: string | null
 	runtimeRevision?: string | null

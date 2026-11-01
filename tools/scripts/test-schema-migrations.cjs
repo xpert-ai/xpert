@@ -466,10 +466,19 @@ async function main() {
 
     // Reconstruct the pre-runner deployment path, independently of the new baseline SQL.
     // The inventory pins the historical scripts, so this is not a freshly migrated DB with its history deleted.
+    // Notifications were introduced later; current entities must not pre-create their SQL-owned tables.
+    const { USER_NOTIFICATION_ENTITIES } = require(
+      path.join(root, 'packages/server-ai/src/user-notification/notification.entities')
+    )
+    const notificationTables = USER_NOTIFICATION_ENTITIES.map((entity) => host.getMetadata(entity).tableName)
     await admin.query('CREATE DATABASE legacy')
+    const historical = await connect(
+      [...coreEntities, ...ALL_AI_ENTITIES].filter((entity) => !USER_NOTIFICATION_ENTITIES.includes(entity)),
+      'legacy'
+    )
+    await historical.query('CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS vector')
+    await historical.synchronize()
     const legacy = await connect([...coreEntities, ...ALL_AI_ENTITIES], 'legacy')
-    await legacy.query('CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS vector')
-    await legacy.synchronize()
     const inventory = JSON.parse(
       await fs.readFile(path.join(root, 'packages/server/src/database/platform-baseline/legacy-inventory.json'), 'utf8')
     )
@@ -482,8 +491,19 @@ async function main() {
         throw new Error(`${entry.source}: ${error.message}`)
       }
     }
+    const notificationTableNames = async () =>
+      (
+        await legacy.query('SELECT to_regclass(name)::text AS name FROM unnest($1::text[]) AS name', [
+          notificationTables
+        ])
+      ).map((row) => row.name)
+    assert.deepEqual(
+      await notificationTableNames(),
+      notificationTables.map(() => null)
+    )
     const verifyPreserved = await verifyLegacyCompatibility(legacy, hostBundle, synchronizeWithMigrations, root)
     await verifyLegacyAdoption(legacy, hostBundle, synchronizeWithMigrations)
+    assert.deepEqual(await notificationTableNames(), notificationTables)
     await verifyPreserved()
     console.log('PASS legacy Entity synchronization + 38 original SQL scripts -> baseline -> apply -> verify')
   } finally {

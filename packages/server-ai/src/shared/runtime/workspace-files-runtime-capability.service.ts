@@ -77,6 +77,11 @@ import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtre
 import { createWorkspaceAppData, authorizeAssistantWorkspace } from './workspace-files-app-data'
 import { assertPublicWorkspacePath } from '../volume/workspace-managed-path'
 import { RuntimeCapabilityProvider } from './runtime-capability-provider.decorator'
+import {
+    ArtifactContentRuntimeCapability,
+    XPERT_RUNTIME_CAPABILITIES_TOKEN,
+    type RuntimeCapabilityRegistry
+} from '@xpert-ai/plugin-sdk'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -117,7 +122,10 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
         @Inject(ProjectAccessRuntimeService)
-        private readonly projectAccess: Pick<ProjectAccessRuntimeService, 'listReadable' | 'assertEdit'>,
+        private readonly projectAccess: Pick<
+            ProjectAccessRuntimeService,
+            'listReadable' | 'assertEdit' | 'assertAssistant'
+        >,
         @Optional()
         @Inject(QueryBus)
         private readonly queryBus?: Pick<QueryBus, 'execute'>
@@ -133,12 +141,23 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
     @Inject(ContentFileOwnershipService)
     private readonly contentOwnership?: ContentFileOwnershipService
 
+    @Optional()
+    @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
+    private readonly runtime?: RuntimeCapabilityRegistry
+
     createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
         defaults = Object.freeze({ ...defaults })
         const binding = applyRuntimeScopeDefaults<WorkspaceFileScope>({}, defaults)
         return {
             appData: (options) =>
-                createWorkspaceAppData(defaults, options, this.commandBus, this.volumeClient, this.requireQueryBus()),
+                createWorkspaceAppData(
+                    defaults,
+                    options,
+                    this.commandBus,
+                    this.volumeClient,
+                    this.requireQueryBus(),
+                    this.projectAccess
+                ),
             scope: Object.freeze({
                 tenantId: binding.tenantId,
                 organizationId: binding.organizationId,
@@ -169,8 +188,15 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
-    appData(_options: WorkspaceAppDataOptions): WorkspaceStorage {
-        throw new BadRequestException(t('server-ai:Error.WorkspaceAppDataScopeRequired'))
+    appData(options: WorkspaceAppDataOptions): WorkspaceStorage {
+        return createWorkspaceAppData(
+            {},
+            options,
+            this.commandBus,
+            this.volumeClient,
+            this.requireQueryBus(),
+            this.projectAccess
+        )
     }
 
     async uploadBuffer(input: WorkspaceUploadBufferInput): Promise<WorkspaceFile> {
@@ -396,6 +422,12 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async readBuffer(input: WorkspaceFileReference): Promise<WorkspaceFileBuffer> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
+        if (filePath.startsWith('.apps/artifact_content/')) {
+            if (!this.runtime) throw new ForbiddenException('ARTIFACT_CONTENT_UNAVAILABLE')
+            return this.runtime
+                .require(ArtifactContentRuntimeCapability)
+                .read({ ...input, source: WORKSPACE_FILES_SOURCE, filePath, workspacePath: filePath })
+        }
         assertPublicWorkspacePath(filePath)
         const { volumeScope, catalog, scopeId } = await this.resolveVolumeScope(input)
         const volume = this.volumeClient.resolve(volumeScope)

@@ -1,0 +1,178 @@
+---
+title: 'Model providers and default models'
+description: 'Configure provider connections, manage enabled models and defaults, and replace models across Assistant drafts.'
+---
+
+Use **Model providers** (`/copilot/basic`) to manage connection credentials, enabled models, and default assignments. Assistant model selection retains the exact connection, so models with the same name from different connections remain distinct. Users can inspect their callable models under **Settings → Personal → Available models** (`/settings/account/models`).
+
+## Providers, connections, model types, and default purposes
+
+| Concept         | Meaning                                                                                                | Example                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Provider        | An integration that supplies model protocols, credential forms, and a catalog                          | Tongyi or OpenAI-API-compatible                       |
+| Connection      | An independently named configuration with credentials and provider-specific fields such as an endpoint | Production and test connections for the same provider |
+| Model type      | The model's actual capability category                                                                 | LLM, text embedding, or realtime speech               |
+| Default purpose | The default binding used when a business operation does not specify a model                            | Primary, secondary, or reasoning                      |
+
+A model binding is identified by **connection ID + model type + model ID**. Matching display names do not imply the same binding. Selecting the same model name through another connection is also a model switch.
+
+Connections are no longer restricted by a primary-provider or embedding-provider role. One connection can supply several model types and serve several default purposes. Selector availability depends on the actual type, connection and model state, and the current user's access.
+
+## Configure provider connections
+
+### Add and edit
+
+1. Open Model providers and check whether you are editing organization or system configuration. System configuration here means the current tenant's defaults and connections.
+2. Select **Add API key** on the provider. For a configured provider, use **Configure → Add connection** to add another connection.
+3. Give the connection a recognizable name and complete the credentials, endpoint, and other fields required by the provider.
+4. Save. Providers using shared credentials validate those credentials and automatically enable the currently available, non-deprecated preset models.
+
+Credential requirements vary by provider. A provider that requires credentials per model can start with an empty connection; use **Add model** to configure and validate individual models. Newly added custom models and models imported through discovery require explicit enablement in **Manage enabled models**.
+
+Editing a connection preserves its enabled-model selection. An upgrade does not expand an existing connection's selection automatically. An explicitly saved empty list continues to mean that no models are enabled.
+
+### Switch between connections
+
+The provider's **Configure** control shows the current connection and its state. Open it to inspect the connection count, names, states, and enabled-model counts, or to select, edit, enable, disable, or add a connection.
+
+Selecting another connection changes only the management view. The model list switches to that connection; default assignments and saved Assistant bindings do not change.
+
+| State                     | Meaning and next step                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| Enabled                   | The connection is enabled; calls still depend on credentials, model availability, and access |
+| Disabled                  | Enable the connection before using it for normal model calls                                 |
+| Validation failed         | Check credentials and provider settings, then save again                                     |
+| Catalog loading failed    | The catalog could not be read; check the connection or retry later                           |
+| Models pending enablement | The enabled selection is empty; choose available entries in model management                 |
+
+Before disabling a connection, the interface shows references from default assignments, saved model bindings, and Assistant drafts. A connection used by an explicit default assignment cannot be disabled until that assignment is changed. Disabling can also make other existing bindings unavailable. This page does not provide permanent connection deletion.
+
+## Manage models within a connection
+
+Search by provider, connection, or model, and filter providers by all, configured, pending configuration, or error state.
+
+The action bar sits below provider information and above the model list:
+
+- **Show models / Collapse** expands or collapses the list and shows enabled and total model counts.
+- **Manage enabled models** filters by name and type, selects individual entries, and selects or clears the current filtered results.
+- **Discover models** appears only when the provider supports discovery.
+- **Add model** appears only when the provider supports custom models.
+
+The table shows model type, name, capabilities, context length, enabled state, and **Properties and parameters**. Missing or invalid context lengths appear as a dash. Details share their presentation with the personal Available models page. Administrators can inspect disabled models; the management catalog is separate from the current user's callable catalog.
+
+To dedicate a connection to embeddings, retain only text-embedding entries in **Manage enabled models**. A historical `embedding` role does not turn the connection's entire catalog into embedding models.
+
+## Select models in an Assistant
+
+When creating or editing an Assistant, the selector distinguishes connections within each provider. Multiple connections can appear separately, each listing models that match the required type and the user's access.
+
+For example, production and test connections may both offer the same LLM name. Either can be selected and saved independently. The saved binding follows the selected connection, not the connection currently displayed on the provider management page. An LLM selector does not treat text-embedding models as LLMs; separately enabled LLMs on the same connection remain selectable.
+
+The selector supports search, capability filters, and an adjustable provider column. Model labels include connection information, and parameter editing opens a dialog. Repair an unavailable binding or explicitly select a replacement; matching names do not cause automatic switching between connections.
+
+## Default model settings
+
+Select **Default model settings** at the top of the page. All purposes appear in one continuous list, without separate role-default and other-model-type tabs.
+
+| Default purpose    | Required model type |
+| ------------------ | ------------------- |
+| Primary            | LLM                 |
+| Secondary          | LLM                 |
+| Reasoning          | LLM                 |
+| Embedding          | Text embedding      |
+| Realtime speech    | Realtime            |
+| Text to speech     | TTS                 |
+| Speech to text     | Speech-to-text      |
+| Image generation   | Image               |
+| Video generation   | Video               |
+| Reranking          | Rerank              |
+| Content moderation | Moderation          |
+
+Primary, secondary, and reasoning remain independent assignments even though all require LLMs. They can use different models or connections. Reasoning currently validates the LLM type; it does not infer reasoning capabilities from model names. Business callers decide when to use the secondary purpose. Configuring it does not by itself enable general automatic failover.
+
+### Modes and scope
+
+| Mode                   | Behavior                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| Specify a model        | Save an explicit connection, model, and parameters for the purpose                  |
+| Inherit system default | Use the tenant's assignment for this purpose; available only at organization scope  |
+| Not configured         | Explicitly provide no default for this purpose and stop using its legacy assignment |
+| Use legacy default     | Read an unmigrated legacy assignment until a new setting replaces it                |
+
+Without a new setting, resolution preserves a readable organization legacy default before consulting tenant defaults. Explicit inheritance uses the tenant default instead of the organization's legacy value. An unavailable explicit assignment is reported as unavailable; it is not silently replaced with another model.
+
+Parameters can be edited for an explicit assignment. Inherited models and parameters are read-only at organization scope; choose an explicit model to use different parameters. After editing parameters, return to the list and save the complete dialog.
+
+Changing defaults does not rewrite fixed Assistant bindings. The embedding default is used when creating knowledge bases or in other operations that resolve a default embedding model. Existing knowledge indexes keep their original model and are not rebuilt automatically.
+
+## Handle parameters when switching models
+
+When a connection or model changes, the system loads the destination model's parameter rules and presents a confirmation:
+
+- **Reset parameters** uses destination defaults and removes source-only optional fields or optional fields without destination defaults.
+- **Keep compatible parameters** retains only values that satisfy the destination field types, ranges, and allowed options. Other values follow the destination rules.
+
+Required parameters must be completed before confirmation. Rule-loading failures block submission, and cancelling preserves the original binding. During rapid switches, results from earlier requests do not replace the current selection.
+
+Valid saved overrides for the same model remain effective, including `0` and `false`. Optional parameters can be cleared. With the compatible-value policy, an explicitly cleared field remains unset rather than being filled with its default again.
+
+## Replace models across Assistant drafts
+
+Use bulk replacement to change a model version or connection. Its current scope is **LLM bindings in drafts**.
+
+1. Select **Bulk replace Assistant models**, optionally restricting the workspace.
+2. Choose the source and destination models. Sources come from existing writable drafts, so a retired model can still be selected as a replacement source.
+3. Choose the reset or compatible parameter policy and preview the impact.
+4. Inspect each Assistant's reference count and parameter changes, select entries, and execute. Entries missing required parameters cannot be executed directly.
+5. Review updated, failed, conflict, or skipped results. Successful entries provide a restore action in the results.
+
+Replacement matches the exact connection ID, model type, and model ID. It does not affect the same model name on another connection. It covers the Assistant draft's default model, owned Agents, and classifier nodes. It does not change read-only references to other Assistants, published versions, knowledge vector indexes, or fallback configuration. Publish the updated draft through the normal workflow to change a published Assistant.
+
+An execution accepts at most **100 Assistants**. If the workspace scope contains more than **500 Assistants**, narrow the scope. Execution rechecks write access, destination availability, and draft revisions. Drafts changed by another editor are not overwritten. Each draft commits independently, so a partial failure does not undo successful entries.
+
+Only the operation's initiator can restore it, while still holding write access and only if the draft has not changed since replacement. This prevents overwriting later edits. Replacement is blocked when the destination lacks capabilities declared by the source model in the current catalog.
+
+## Membership access and personal available models
+
+Membership configuration distinguishes authorization entries by connection, actual model type, and model ID. Identically named models can belong to different connections, and embedding entries retain their real type instead of appearing as LLMs.
+
+New rules use the complete model identity. Legacy rules without a recorded type retain their original matching semantics; catalog presentation changes do not expand existing membership access. Unavailable or unrecognized historical entries remain available for repair and are not automatically mapped to another connection by display name.
+
+The personal **Available models** page shows models the current user can use. Enabling a model does not grant it to every member. Calls remain subject to existing scope and authorization rules.
+
+## Install and update provider plugins
+
+Scrolling to **Install model providers** at the bottom automatically loads installable, non-deprecated model plugins. The grid uses five columns on wide screens and adapts to narrower screens. Cards show the icon, name, author, and description; download counts appear only when supplied by the catalog.
+
+Hovering reveals compact **Install** and **Details** buttons without increasing card height. Keyboard focus and touch also expose the actions. The section supports search, loading-error retries, and empty states. The **Xpert Marketplace** link opens the full plugin marketplace.
+
+The provider heading shows the running plugin version. An **Update** action appears when an update is available and the user has permission. Installation, details, updates, and any required restart prompts use the existing plugin-management workflow. After installation, configure the required connection or model credentials.
+
+## Upgrade and compatibility
+
+The normal API build and database `schema-sync` workflow applies the legacy-default migration after entity synchronization:
+
+| Legacy provider role | New default purpose | Required model type |
+| -------------------- | ------------------- | ------------------- |
+| `primary`            | Primary             | `llm`               |
+| `secondary`          | Secondary           | `llm`               |
+| `reasoning`          | Reasoning           | `llm`               |
+| `embedding`          | Embedding           | `text-embedding`    |
+
+Migration processes tenant and organization scopes separately, creating explicit assignments from valid legacy settings while preserving connection IDs, model types, model IDs, and parameters. Existing explicit, inherited, or unconfigured assignments are not overwritten. Repeated execution does not create duplicates. Connections, credentials, legacy fields, and source model records are retained rather than deleted and recreated.
+
+When multiple enabled connections share a legacy role in one scope, creation time and ID determine the first candidate. Empty models, incorrect types, and invalid parameter structures are not forced through migration. An invalid first candidate does not silently select a later connection. Source records remain available for administrators to repair in default settings. New speech, image, video, and other purposes have no legacy role to migrate; specify them or inherit an existing tenant default.
+
+Valid unmigrated legacy defaults remain readable through the compatibility path. After migration, the new assignments are authoritative. There is no bidirectional synchronization or write-back for older versions.
+
+Integration code should use `DefaultModelRole` for default purposes and `AiModelTypeEnum` for model types. `AiProviderRole` is deprecated and retained for historical compatibility, along with the legacy role-based read entry points. Carry contracts, entities, migration SQL, unified resolution, and the UI together when synchronizing another edition; copying only the page is insufficient.
+
+## Frequently asked questions
+
+**Must every model be manually enabled on a new connection?** Shared-credential connections automatically enable current available preset models after validation. Model-level credentials, custom and newly imported models, and historical explicitly empty selections still require configuration.
+
+**Why does an Assistant keep its old connection after switching connections on the provider page?** That switch changes only the management view. Edit the Assistant's model binding or use bulk replacement to update drafts.
+
+**Why can a migrated default remain unavailable?** Migration preserves configuration; it does not repair expired credentials, restore retired models, or expand access. Check the connection, enabled selection, actual type, and permissions, then select an available model.
+
+**Does this include priority routing between platform message credits and API keys?** No. This feature uses independent connections and existing authorization rules; it does not automatically prioritize platform credits versus personal credentials.

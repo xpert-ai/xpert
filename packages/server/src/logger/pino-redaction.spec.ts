@@ -17,11 +17,40 @@ function logRequest(req: object, res?: object): string {
 
 describe('HTTP credential log redaction', () => {
 	it('redacts response session cookies without changing the outgoing headers', () => {
-		const res = { headers: { 'set-cookie': ['session=fake-session; HttpOnly'], 'content-type': 'application/json' } }
+		const res = {
+			headers: { 'set-cookie': ['session=fake-session; HttpOnly'], 'content-type': 'application/json' }
+		}
 		const output = logRequest({ url: '/api/auth/login' }, res)
 		expect(output).not.toContain('fake-session')
 		expect(JSON.parse(output).res.headers['set-cookie']).toBe('[Redacted]')
 		expect(res.headers['set-cookie']).toEqual(['session=fake-session; HttpOnly'])
+	})
+
+	it('redacts share bearer tokens from URL paths, parameters and referrers', () => {
+		const secret = 'Abc234Def567'
+		const url = `/api/ai/shared-conversations/${secret}/authenticated`
+		const output = logRequest({
+			url,
+			originalUrl: url,
+			params: { token: secret, path: ['ai', 'shared-conversations', secret, 'authenticated'] },
+			headers: { referer: `https://app.example/s/${secret}` }
+		})
+		expect(output).not.toContain(secret)
+		expect(JSON.parse(output).req.url).toBe('/api/ai/shared-conversations/[Redacted]/authenticated')
+	})
+	it('redacts Artifact content slugs and route parameters', () => {
+		const secret = 'Abc234Def567'
+		for (const prefix of [
+			'/api/artifacts/share/',
+			'/artifacts/share/',
+			'/api/artifacts/shared-links/',
+			'/artifacts/snapshot/',
+			'/artifacts/view/'
+		]) {
+			const output = logRequest({ url: `${prefix}${secret}`, params: { artifactLinkSlug: secret, slug: secret } })
+			expect(output).not.toContain(secret)
+			expect(JSON.parse(output).req.url).toBe(`${prefix}[Redacted]`)
+		}
 	})
 	it('redacts lease tokens from URLs and parsed queries without changing the live request', () => {
 		const url = '/api/ai/mcp-apps/app-1/resource?messageId=message%2F1&token=fake-lease&view=map+list'

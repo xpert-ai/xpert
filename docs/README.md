@@ -51,12 +51,13 @@ Current behavior is documented under `en/guides/artifacts-dashboard/` and
 `zh-Hans/guides/artifacts-dashboard/`, with matching routes in both language menus.
 Read these as feature documentation rather than a delivery plan:
 
-| Page                       | Maintained content                                                    |
-| -------------------------- | --------------------------------------------------------------------- |
-| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership |
-| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation            |
-| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing            |
-| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                |
+| Page                       | Maintained content                                                        |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `project-integration`      | Project type, ChatKit scope synchronization, picker and draft permissions |
+| `overview`                 | User workflow, implemented capabilities and platform/plugin ownership     |
+| `data-and-rendering`       | Dataset/Binding, source providers, rendering and isolation                |
+| `lifecycle-and-sharing`    | Save evidence, drafts, publication, cards and team viewing                |
+| `configuration-and-limits` | Assistant/runtime setup, limits and verification scope                    |
 
 Keep historical plans and acceptance reports as dated evidence. Do not copy commit
 batches, local machine context or future proposals into the current feature pages.
@@ -167,3 +168,12 @@ These pages retain the unclosed native-browser download byte check and distingui
 historical acceptance from newer content-platform and released-package validation.
 Do not treat that remaining acceptance task as unimplemented Project ownership or
 reintroduce the retired standalone Space Volume and migration design.
+
+## Announcements and realtime notifications
+
+[公告与用户实时通知](./announcements-and-realtime-notifications.md) documents the
+accepted Web/Bosi announcement workflow, permissions, durable delivery and SSE,
+personal scheduled-task results, shared date/time controls, migration and verification.
+The [completed plan index](./plans/2026-10-31-announcements-and-realtime-notifications.md)
+retains the original planning link. Mobile Push and external messaging channels remain
+future integrations; local acceptance does not imply a production release.

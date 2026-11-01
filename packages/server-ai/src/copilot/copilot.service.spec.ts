@@ -10,6 +10,7 @@ import { MembershipService } from '../membership'
 import { ModelAccessService } from '../model-access'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
+import { ConnectionReferencesService } from './connection-references.service'
 
 jest.mock('../ai-model', () => ({
     AiProviderDto: class AiProviderDto {},
@@ -75,6 +76,10 @@ describe('CopilotService', () => {
         moduleRef = await Test.createTestingModule({
             providers: [
                 CopilotService,
+                {
+                    provide: ConnectionReferencesService,
+                    useValue: { inspect: jest.fn().mockResolvedValue({ defaults: 0, bindings: 0, drafts: 0 }) }
+                },
                 {
                     provide: getRepositoryToken(Copilot),
                     useValue: repository
@@ -456,41 +461,44 @@ describe('CopilotService', () => {
         permissionSpy.mockRestore()
     })
 
-    it.each([true, false])('checks selected model credentials for default Copilot availability: %s', async (configured) => {
-        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
-        membershipService.findModelAccess.mockResolvedValue(null)
-        repository.find.mockResolvedValue([
-            createCopilot({
-                id: 'organization-copilot',
-                organizationId: 'org-1',
-                copilotModel: { model: 'custom-model', modelType: AiModelTypeEnum.LLM }
-            })
-        ])
-        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
-            new Map([
-                [
-                    'organization-copilot',
-                    createProvider({
-                        id: 'organization-provider',
-                        organizationId: 'org-1',
-                        credentials: null
-                    })
-                ]
+    it.each([true, false])(
+        'checks selected model credentials for default Copilot availability: %s',
+        async (configured) => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+            membershipService.findModelAccess.mockResolvedValue(null)
+            repository.find.mockResolvedValue([
+                createCopilot({
+                    id: 'organization-copilot',
+                    organizationId: 'org-1',
+                    copilotModel: { model: 'custom-model', modelType: AiModelTypeEnum.LLM }
+                })
             ])
-        )
-        modelAccessService.hasOrganizationModelCredentials.mockResolvedValue(configured)
+            copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
+                new Map([
+                    [
+                        'organization-copilot',
+                        createProvider({
+                            id: 'organization-provider',
+                            organizationId: 'org-1',
+                            credentials: null
+                        })
+                    ]
+                ])
+            )
+            modelAccessService.hasOrganizationModelCredentials.mockResolvedValue(configured)
 
-        const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
+            const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
 
-        expect(result.map((copilot) => copilot.id)).toEqual(configured ? ['organization-copilot'] : [])
-        expect(modelAccessService.hasOrganizationModelCredentials).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            copilotId: 'organization-copilot',
-            copilotModelId: 'custom-model',
-            modelType: AiModelTypeEnum.LLM
-        })
-    })
+            expect(result.map((copilot) => copilot.id)).toEqual(configured ? ['organization-copilot'] : [])
+            expect(modelAccessService.hasOrganizationModelCredentials).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                copilotId: 'organization-copilot',
+                copilotModelId: 'custom-model',
+                modelType: AiModelTypeEnum.LLM
+            })
+        }
+    )
 
     it('returns no organization copilots without configured credentials when membership access is missing', async () => {
         const permissionSpy = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)

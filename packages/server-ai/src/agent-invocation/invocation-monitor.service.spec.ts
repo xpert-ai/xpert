@@ -2,7 +2,9 @@ jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { AgentRuntimeRegistry } from '@xpert-ai/plugin-sdk'
+import { ResolveAssistantExecutionIdentityCommand } from '../model-execution/resolve-assistant-execution-identity.command'
+import { ResolveAssistantExecutionIdentityHandler } from '../model-execution/resolve-assistant-execution-identity.handler'
+import { AgentRuntimeRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { UserType, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
@@ -12,7 +14,7 @@ import { AgentInvocationFactoryService } from './invocation-factory.service'
 import { AgentInvocationEntity, AgentInvocationWaitEntity } from './invocation.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 
-async function fixture() {
+async function fixture(technical = false) {
     const wait = Object.assign(new AgentInvocationWaitEntity(), {
         id: 'invocation',
         tenantId: 'tenant',
@@ -46,7 +48,21 @@ async function fixture() {
         status: 'succeeded',
         result: { text: 'done', artifacts: [{ id: 'artifact' }] }
     }))
-    const commands = { execute: jest.fn(async (_command: unknown) => ({ stream: of({ type: 'done' }) })) }
+    const assistantRecords = {
+        findOne: jest.fn().mockResolvedValue({ id: 'assistant', active: true, latest: true, publishAt: new Date() })
+    }
+    const identity = new ResolveAssistantExecutionIdentityHandler(
+        { findOneBy: async () => ({ id: 'user', tenantId: 'tenant', type: UserType.COMMUNICATION }) } as never,
+        assistantRecords as never,
+        { findOneBy: async () => ({ id: 'conversation', createdById: 'user', xpertId: 'assistant' }) } as never
+    )
+    const commands = {
+        execute: jest.fn(async (command: unknown) =>
+            command instanceof ResolveAssistantExecutionIdentityCommand
+                ? identity.execute(command)
+                : { stream: of({ type: 'done' }) }
+        )
+    }
     const queries = {
         execute: jest.fn(async () => ({
             checkpoint: { id: 'checkpoint' },
@@ -94,7 +110,13 @@ async function fixture() {
             },
             {
                 provide: getRepositoryToken(User),
-                useValue: { findOne: async () => ({ id: 'user', tenantId: 'tenant', type: UserType.USER }) }
+                useValue: {
+                    findOne: async () => ({
+                        id: 'user',
+                        tenantId: 'tenant',
+                        type: technical ? UserType.COMMUNICATION : UserType.USER
+                    })
+                }
             },
             { provide: getRepositoryToken(UserOrganization), useValue: membership },
             { provide: getRepositoryToken(XpertAgentExecution), useValue: executions },
@@ -109,6 +131,7 @@ async function fixture() {
     }).compile()
     return {
         wait,
+        assistantRecords,
         records,
         inspect,
         commands,
@@ -120,6 +143,29 @@ async function fixture() {
 }
 
 describe('durable invocation completion monitor', () => {
+    it('restores a channel Assistant for background inspection without a human membership', async () => {
+        const f = await fixture(true)
+        f.membership.findOne.mockResolvedValue(null)
+        f.inspect.mockImplementation(async () => {
+            expect(RequestContext.currentUserId()).toBe('user')
+            expect(RequestContext.currentApiPrincipal()?.resourceScope).toEqual({
+                kind: 'assistant',
+                xpertId: 'assistant'
+            })
+            return { status: 'succeeded', result: { text: 'done', artifacts: [] } }
+        })
+        await f.monitor.process(f.wait)
+        expect(f.inspect).toHaveBeenCalledTimes(1)
+        expect(f.wait.state).toBe('ready')
+        f.assistantRecords.findOne.mockResolvedValue(null)
+        await f.monitor.deliver(f.wait)
+        expect(
+            f.commands.execute.mock.calls.every(
+                ([command]) => command instanceof ResolveAssistantExecutionIdentityCommand
+            )
+        ).toBe(true)
+        expect(f.wait.state).not.toBe('delivered')
+    })
     it('resumes exactly one matching parent with scoped result persistence after competing claims', async () => {
         const f = await fixture()
         await Promise.all([f.monitor.process(f.wait), f.monitor.process(f.wait)])

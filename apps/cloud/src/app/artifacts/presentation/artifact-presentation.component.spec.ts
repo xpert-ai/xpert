@@ -1,4 +1,5 @@
 import { signal } from '@angular/core'
+import { HttpErrorResponse } from '@angular/common/http'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { RouterTestingHarness } from '@angular/router/testing'
@@ -41,17 +42,26 @@ function receive(source: Window, data: object) {
 
 describe('Artifact presentation page boundary', () => {
   const read = jest.fn((_slug: string) => of(presentation()))
+  const readSnapshot = jest.fn((_slug: string) => of(presentation()))
+  const readLibraryPresentation = jest.fn((_id: string) => of(presentation()))
+  const queryLibrary = jest.fn(() => of<object>({ rows: [] }))
   const query = jest.fn(() => of<object>({ rows: [] }))
   const themeClass = signal('light')
 
   beforeEach(() => {
     read.mockReset().mockImplementation(() => of(presentation()))
+    readSnapshot.mockReset().mockImplementation(() => of(presentation()))
     query.mockReset().mockImplementation(() => of({ rows: [] }))
+    readLibraryPresentation.mockReset().mockImplementation(() => of(presentation()))
+    queryLibrary.mockReset().mockImplementation(() => of({ rows: [] }))
     themeClass.set('light')
     TestBed.configureTestingModule({
       imports: [ArtifactPresentationComponent, TranslateModule.forRoot()],
       providers: [
-        { provide: ArtifactPresentationService, useValue: { read, query } },
+        {
+          provide: ArtifactPresentationService,
+          useValue: { read, readSnapshot, query, readLibraryPresentation, queryLibrary }
+        },
         { provide: XpThemeService, useValue: { themeClass } },
         provideRouter([{ path: 'artifacts/view/:artifactLinkSlug', component: ArtifactSharePageComponent }])
       ]
@@ -59,9 +69,11 @@ describe('Artifact presentation page boundary', () => {
   })
   afterEach(() => TestBed.resetTestingModule())
 
-  async function open() {
+  async function open(snapshot = false, library = false) {
     const fixture = TestBed.createComponent(ArtifactPresentationComponent)
     fixture.componentRef.setInput('slug', 'shared-one')
+    fixture.componentRef.setInput('snapshot', snapshot)
+    fixture.componentRef.setInput('library', library)
     await settle(fixture)
     const source = frameWindow(fixture)
     const post = jest.spyOn(source, 'postMessage')
@@ -74,6 +86,38 @@ describe('Artifact presentation page boundary', () => {
     post.mockClear()
     return { fixture, source, post, instanceId: init.instanceId }
   }
+
+  it('opens a private reference and dispatches queries through its authenticated library endpoints', async () => {
+    const { fixture, source, instanceId } = await open(false, true)
+    expect(readLibraryPresentation).toHaveBeenCalledWith('shared-one')
+    expect(read).not.toHaveBeenCalled()
+    expect(readSnapshot).not.toHaveBeenCalled()
+    receive(source, { type: 'executeAction', requestId: 'query', instanceId, actionKey: 'query', input: {} })
+    await settle(fixture)
+    expect(queryLibrary).toHaveBeenCalled()
+    expect(query).not.toHaveBeenCalled()
+  })
+
+  it('renders snapshots through the public endpoint and never dispatches query actions', async () => {
+    const { fixture, source, post, instanceId } = await open(true)
+    expect(readSnapshot).toHaveBeenCalledWith('shared-one')
+    expect(read).not.toHaveBeenCalled()
+    receive(source, { type: 'executeAction', requestId: 'query', instanceId, actionKey: 'query', input: {} })
+    await settle(fixture)
+    expect(query).not.toHaveBeenCalled()
+    expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'error' }), '*')
+  })
+
+  it('shows login for a restricted snapshot without rendering content', async () => {
+    readSnapshot.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 401 })))
+    const fixture = TestBed.createComponent(ArtifactPresentationComponent)
+    fixture.componentRef.setInput('slug', 'shared-one')
+    fixture.componentRef.setInput('snapshot', true)
+    await settle(fixture)
+    expect(fixture.componentInstance.signIn()).toBe(true)
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
+    expect(fixture.nativeElement.querySelector('a')?.getAttribute('href')).toContain('/auth/login')
+  })
 
   it('isolates source windows and instances and dispatches only declared operations against the server target', async () => {
     const { fixture, source, post, instanceId } = await open()

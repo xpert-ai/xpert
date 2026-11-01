@@ -263,9 +263,22 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         return (await this.threads.findOne({ where: { threadId }, select: { runControl: true } }))?.runControl ?? null
     }
 
-    async start(threadId: string, executionId: string, context?: Record<string, unknown>): Promise<void> {
+    async start(
+        threadId: string,
+        executionId: string,
+        context?: Record<string, unknown>,
+        inputResumeOnly = false
+    ): Promise<void> {
         await this.locked(threadId, async (thread, manager) => {
             await requireControlSchema(manager, threadControlSchema)
+            if (
+                inputResumeOnly &&
+                (thread.status !== 'interrupted' || (thread.runControl && thread.runControl.state !== 'input_wait'))
+            )
+                throw threadControlConflict(
+                    'ThreadHasActiveOperation',
+                    'Thread already has a running or paused operation.'
+                )
             if (thread.runControl && thread.runControl.executionId !== executionId)
                 throw threadControlConflict(
                     'ThreadHasActiveOperation',
@@ -476,44 +489,51 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
         legacyRevision?: string,
         claimId?: string
     ): Promise<TChatCheckpointReference> {
-        const resumed = await this.locked(threadId, async (thread, manager) => {
-            await requireControlSchema(manager, threadControlSchema)
-            const control = thread.runControl
-            if (
-                thread.status !== 'paused' ||
-                control?.state !== 'paused' ||
-                control.executionId !== executionId ||
-                control.pauseId !== pauseId ||
-                !control.checkpoint
-            ) {
-                throw threadControlConflict('ThreadNotPaused', 'This pause is no longer available to resume.')
-            }
-            if (!threadGraphRevisionMatches(control.graphRevision, graphRevision, legacyRevision)) {
-                throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
-            }
-            const checkpoint = await manager.getRepository(CopilotCheckpoint).findOne({
-                select: { checkpoint_id: true },
-                where: {
-                    thread_id: threadId,
-                    checkpoint_ns: control.checkpoint.checkpointNs,
-                    checkpoint_id: control.checkpoint.checkpointId,
-                    tenantId: thread.tenantId,
-                    organizationId: thread.organizationId
+        const resumed = await this.locked(
+            threadId,
+            async (thread, manager) => {
+                await requireControlSchema(manager, threadControlSchema)
+                const control = thread.runControl
+                if (
+                    thread.status !== 'paused' ||
+                    control?.state !== 'paused' ||
+                    control.executionId !== executionId ||
+                    control.pauseId !== pauseId ||
+                    !control.checkpoint
+                ) {
+                    throw threadControlConflict('ThreadNotPaused', 'This pause is no longer available to resume.')
                 }
-            })
-            if (!checkpoint)
-                throw threadControlConflict('CheckpointUnavailable', 'The saved checkpoint is unavailable.')
-            const target = await this.controls.tasks.execution(executionId, manager)
-            if (target) await this.controls.tasks.assertAncestorsRunning(target.id, manager)
-            await this.controls.intent(manager, executionId, 'running')
-            thread.status = 'busy'
-            control.state = 'running'
-            control.resumeClaimed = true
-            control.resumeClaimId = claimId
-            this.assignLease(thread, executionId)
-            await manager.save(thread)
-            return control.checkpoint
-        }, assertAppPlatformRunCapacity)
+                if (!threadGraphRevisionMatches(control.graphRevision, graphRevision, legacyRevision)) {
+                    throw threadControlConflict(
+                        'PausedGraphChanged',
+                        'The workflow has changed since this run started.'
+                    )
+                }
+                const checkpoint = await manager.getRepository(CopilotCheckpoint).findOne({
+                    select: { checkpoint_id: true },
+                    where: {
+                        thread_id: threadId,
+                        checkpoint_ns: control.checkpoint.checkpointNs,
+                        checkpoint_id: control.checkpoint.checkpointId,
+                        tenantId: thread.tenantId,
+                        organizationId: thread.organizationId
+                    }
+                })
+                if (!checkpoint)
+                    throw threadControlConflict('CheckpointUnavailable', 'The saved checkpoint is unavailable.')
+                const target = await this.controls.tasks.execution(executionId, manager)
+                if (target) await this.controls.tasks.assertAncestorsRunning(target.id, manager)
+                await this.controls.intent(manager, executionId, 'running')
+                thread.status = 'busy'
+                control.state = 'running'
+                control.resumeClaimed = true
+                control.resumeClaimId = claimId
+                this.assignLease(thread, executionId)
+                await manager.save(thread)
+                return control.checkpoint
+            },
+            assertAppPlatformRunCapacity
+        )
         this.owned.set(threadId, executionId)
         return resumed
     }

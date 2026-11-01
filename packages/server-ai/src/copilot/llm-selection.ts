@@ -1,11 +1,19 @@
-import { AiModelTypeEnum, AiProviderRole, ICopilotModel, ProviderModel } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    DefaultModelRole,
+    LegacyProviderRole,
+    ICopilotModel,
+    ProviderModel
+} from '@xpert-ai/contracts'
 
 /** These helpers only consume the current actor's governed LLM catalog. */
 export type AvailableLlmCopilot = {
     id?: string | null
     organizationId?: string | null
-    role?: AiProviderRole | null
+    role?: LegacyProviderRole | null
     copilotModel?: ICopilotModel | null
+    defaultModels?: Partial<Record<DefaultModelRole, ICopilotModel>>
+    configuredDefaultRoles?: DefaultModelRole[]
     providerWithModels?: { models?: ProviderModel[] | null } | null
 }
 
@@ -46,18 +54,10 @@ export function findAvailableLlmSelection(
         : null
 }
 
-/** Prefer an eligible organization default, then an eligible tenant default; never choose an arbitrary model. */
+/** Only consume defaults projected by the scoped resolver; absence never means first model. */
 export function findDefaultLlmSelection(catalog: AvailableLlmCopilot[]): LlmSelection | null {
-    const candidates = catalog
-        .filter((copilot) => copilot.role === AiProviderRole.Primary)
-        .sort(
-            (left, right) =>
-                Number(!!right.organizationId) - Number(!!left.organizationId) ||
-                (left.id ?? '').localeCompare(right.id ?? '')
-        )
-    for (const copilot of candidates) {
-        const selection = findAvailableLlmSelection(catalog, { ...copilot.copilotModel, copilotId: copilot.id })
-        if (selection) return selection
-    }
-    return null
+    const binding = catalog.find((item) => item.defaultModels?.[DefaultModelRole.Primary])?.defaultModels?.[
+        DefaultModelRole.Primary
+    ]
+    return findAvailableLlmSelection(catalog, binding)
 }

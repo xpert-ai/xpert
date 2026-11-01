@@ -1,4 +1,5 @@
 import { z } from 'zod/v3'
+import { trailActivityKindSchema } from './conversation-trail.model'
 
 export const codingExecutionViewKey = 'platform.coding-execution__execution'
 export const executionActivityCapabilitiesSchema = z
@@ -26,6 +27,7 @@ export const executionActivityItemSchema = z
       z
         .object({
           kind: z.literal('tool'),
+          activityKind: trailActivityKindSchema.optional(),
           name: z.string().max(256).optional(),
           status: z.enum(['running', 'succeeded', 'failed', 'unknown']),
           input: text.optional(),

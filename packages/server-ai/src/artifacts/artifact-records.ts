@@ -4,6 +4,7 @@ import type { Artifact, ArtifactVersion } from './entities'
 
 export function serializeArtifact(artifact: Artifact, currentVersion?: ArtifactVersion | null): ArtifactRecord {
     return {
+        typeBinding: artifact.typeBinding,
         authorizationProviderKey: artifact.authorizationProviderKey ?? null,
         id: persistedId(artifact.id),
         pluginName: artifact.pluginName,

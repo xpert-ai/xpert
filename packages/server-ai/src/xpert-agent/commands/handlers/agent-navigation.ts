@@ -1,15 +1,26 @@
 import { BaseMessage, isAIMessage, isToolMessage, ToolMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { Send } from '@langchain/langgraph'
+import type { RunnableConfig } from '@langchain/core/runnables'
+import { createAgentToolInput, writeAgentToolSnapshot } from './agent-tool-input'
 
 /** Unknown model tool names must reach a tool error node, never arbitrary graph nodes. */
-export function routeAgentToolCall(
-    toolCall: ToolCall,
+export function routeAgentToolCalls(
+    toolCalls: ToolCall[],
     state: object,
     toolNames: ReadonlySet<string>,
-    unknownToolNode: string
-): Send {
-    return new Send(toolNames.has(toolCall.name) ? toolCall.name : unknownToolNode, { ...state, toolCall })
+    unknownToolNode: string,
+    config: RunnableConfig
+): Send[] {
+    if (!toolCalls.length) return []
+    const snapshotId = writeAgentToolSnapshot(state, config)
+    return toolCalls.map(
+        (toolCall) =>
+            new Send(
+                toolNames.has(toolCall.name) ? toolCall.name : unknownToolNode,
+                createAgentToolInput(toolCall, snapshotId)
+            )
+    )
 }
 
 /**

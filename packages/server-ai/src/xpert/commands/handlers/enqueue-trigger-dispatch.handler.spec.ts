@@ -151,4 +151,39 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
             )
         ).rejects.toThrow('Xpert "xpert-404" not found')
     })
+
+    it.each([
+        ['feishu', 'lark'],
+        ['lark', 'lark'],
+        ['api', 'api'],
+        ['wecom', 'xpert'],
+        ['dingtalk', 'xpert'],
+        ['telegram', 'xpert'],
+        ['example-channel', 'xpert']
+    ])('preserves %s attribution and the existing %s trigger producer', async (from, source) => {
+        const { handler, xpertService, handoffQueue } = createHandler()
+        xpertService.findOne.mockResolvedValue({ id: 'assistant-id', tenantId: 'tenant-id', organizationId: 'org-id' })
+
+        await handler.execute(
+            new XpertEnqueueTriggerDispatchCommand(
+                'assistant-id',
+                null,
+                { [STATE_VARIABLE_HUMAN]: { input: 'hello' } },
+                { isDraft: false, from }
+            )
+        )
+
+        expect(handoffQueue.enqueue).toHaveBeenCalledWith(
+            expect.objectContaining({
+                payload: expect.objectContaining({
+                    options: {
+                        xpertId: 'assistant-id',
+                        from,
+                        runtimePrincipal: { type: 'assistant', xpertId: 'assistant-id' }
+                    }
+                }),
+                headers: { organizationId: 'org-id', source }
+            })
+        )
+    })
 })

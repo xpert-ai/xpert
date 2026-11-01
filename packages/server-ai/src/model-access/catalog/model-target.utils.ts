@@ -2,6 +2,7 @@ import {
     AiModelTypeEnum,
     ModelAccessOwnershipScopeEnum,
     isConfiguredModelAvailable,
+    isProviderModelEnabled,
     legacyModelFeatures,
     readModelConfiguration
 } from '@xpert-ai/contracts'
@@ -64,6 +65,10 @@ export function createModelTarget(
                 : (predefined?.features ?? legacyModelFeatures(custom?.modelProperties)),
         deprecated: predefined?.deprecated === true,
         enabled:
+            isProviderModelEnabled(copilot.modelProvider, {
+                model: input.copilotModelId,
+                modelType: input.modelType
+            }) &&
             catalogModelExists &&
             isConfiguredModelAvailable(copilot.modelProvider, custom) &&
             copilot.enabled === true &&

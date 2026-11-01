@@ -123,7 +123,8 @@ export class ModelAccessGatewayService {
                     membershipAccess.membership.plan,
                     target.provider,
                     target.model,
-                    target.copilotId
+                    target.copilotId,
+                    target.modelType
                 )
             const multiplier = planIncluded
                 ? this.membershipService.resolveModelMultiplierForPlan(
@@ -407,7 +408,8 @@ export class ModelAccessGatewayService {
                 membershipAccess.membership.plan,
                 target.provider,
                 target.model,
-                target.copilotId
+                target.copilotId,
+                target.modelType
             )
         const multiplier = planIncluded
             ? this.membershipService.resolveModelMultiplierForPlan(

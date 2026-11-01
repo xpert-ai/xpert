@@ -22,3 +22,5 @@
 /packages/server-ai/src/*/remote-components/*/app.css
 /packages/server-ai/src/knowledgebase/plugins/*/remote-components/*/app.js
 /packages/server-ai/src/knowledgebase/plugins/*/remote-components/*/app.css
+/packages/plugins/*/remote-components/*/app.js
+/packages/plugins/*/remote-components/*/app.css

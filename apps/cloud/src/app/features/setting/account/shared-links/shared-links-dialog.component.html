@@ -1,0 +1,207 @@
+<section xpDialogLayout="wide" class="w-[min(72rem,calc(100vw-2rem))] max-h-[88dvh]">
+  <header xpDialogHeader>
+    <h2 id="shared-links-heading" xpDialogHeading>{{ 'ConversationShare.ManagementTitle' | translate }}</h2>
+    <p xpDialogDescription>{{ 'ConversationShare.ManagementDescription' | translate }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [zDisabled]="busy()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody class="min-w-0">
+    @if (error()) {
+      <p role="alert" class="text-sm text-destructive">{{ error() | translate }}</p>
+    }
+    @if (notice()) {
+      <p role="status" class="text-sm text-muted-foreground">{{ notice() | translate }}</p>
+    }
+    @if (pending()) {
+      <div class="space-y-3" role="alert">
+        <h3 class="text-base font-semibold">
+          {{
+            (pending() === 'all' ? 'ConversationShare.ConfirmAllTitle' : 'ConversationShare.ConfirmOneTitle')
+              | translate
+          }}
+        </h3>
+        @if (pending() !== 'all') {
+          <p class="break-words text-sm">{{ pendingTitle() }}</p>
+        }
+        <p class="text-sm text-muted-foreground">
+          {{
+            (pending() === 'all' ? 'ConversationShare.ConfirmAllHint' : 'ConversationShare.ConfirmOneHint') | translate
+          }}
+        </p>
+      </div>
+    } @else {
+      <form class="flex flex-wrap items-center gap-2" (ngSubmit)="find()" xpDialogActionGroup="inline">
+        <input
+          z-input
+          name="search"
+          [(ngModel)]="search"
+          maxlength="100"
+          autocomplete="off"
+          class="min-w-0 flex-1"
+          [attr.aria-label]="'ConversationShare.Search' | translate"
+          [placeholder]="'ConversationShare.Search' | translate"
+        />
+        <button z-button zType="outline" type="submit" [zDisabled]="loading() || busy()">
+          {{ 'ConversationShare.SearchAction' | translate }}
+        </button>
+      </form>
+      @if (loading()) {
+        <p role="status" class="text-sm text-muted-foreground">{{ 'ConversationShare.Loading' | translate }}</p>
+      }
+      @if (page(); as result) {
+        <div class="max-w-full overflow-x-auto rounded-lg border border-border" [attr.aria-busy]="loading()">
+          <table class="w-full min-w-[42rem] text-left text-sm">
+            <caption class="sr-only">
+              {{
+                'ConversationShare.ManagementTitle' | translate
+              }}
+            </caption>
+            <thead class="border-b border-border text-muted-foreground">
+              <tr>
+                <th scope="col" class="px-4 py-3 font-medium">{{ 'ConversationShare.Name' | translate }}</th>
+                <th scope="col" class="px-3 py-3 font-medium">{{ 'ConversationShare.Type' | translate }}</th>
+                <th scope="col" class="px-3 py-3 font-medium">{{ 'ConversationShare.Access' | translate }}</th>
+                <th scope="col" class="px-3 py-3 font-medium">{{ 'ConversationShare.DateShared' | translate }}</th>
+                <th scope="col" class="px-3 py-3 font-medium">{{ 'ConversationShare.DateExpires' | translate }}</th>
+                <th scope="col" class="px-3 py-3">
+                  <span class="sr-only">{{ 'ConversationShare.Revoke' | translate }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (row of result.items; track row.id) {
+                <tr [attr.data-share-id]="row.id">
+                  <td class="max-w-72 px-4 py-3">
+                    @if (row.url && row.status === 'active') {
+                      <a
+                        [href]="row.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [title]="row.title"
+                        class="line-clamp-2 break-words underline underline-offset-4 focus-visible:outline-ring"
+                      >
+                        {{ row.title || ('ConversationShare.Untitled' | translate) }}
+                      </a>
+                    } @else {
+                      <span class="line-clamp-2 break-words">{{
+                        row.title || ('ConversationShare.Untitled' | translate)
+                      }}</span>
+                    }
+                    @if (row.status !== 'active') {
+                      <p class="mt-1 text-xs text-muted-foreground">
+                        {{ 'ConversationShare.Status.' + row.status | translate }}
+                      </p>
+                    }
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-muted-foreground">
+                    {{ 'ConversationShare.Chat' | translate }}
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3">
+                    {{ 'ConversationShare.Audience.' + row.audience | translate }}
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-muted-foreground">
+                    {{ row.createdAt | date: 'yyyy-MM-dd' }}
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-muted-foreground">
+                    {{ row.expiresAt | date: 'yyyy-MM-dd' }}
+                  </td>
+                  <td class="px-3 py-3" xpDialogActionGroup="inline">
+                    <div class="flex items-center gap-1">
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        [zDisabled]="busy() || loading() || row.status !== 'active' || !row.url"
+                        [attr.aria-label]="('ConversationShare.CopyLink' | translate) + ': ' + row.title"
+                        [title]="'ConversationShare.CopyLink' | translate"
+                        (click)="copy(row)"
+                      >
+                        <z-icon zType="copy" aria-hidden="true" />
+                      </button>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        [zDisabled]="busy() || loading()"
+                        [attr.aria-label]="('ConversationShare.Revoke' | translate) + ': ' + row.title"
+                        (click)="confirmRevoke(row)"
+                      >
+                        <z-icon zType="trash" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-10 text-center text-muted-foreground">
+                    {{ (search ? 'ConversationShare.NoMatches' : 'ConversationShare.NoShares') | translate }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm" xpDialogActionGroup="inline">
+          <span class="text-muted-foreground">{{
+            'ConversationShare.Total' | translate: { count: result.total }
+          }}</span>
+          <div class="flex items-center gap-2">
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              [zDisabled]="loading() || busy() || offset() === 0"
+              (click)="load(offset() - pageSize)"
+            >
+              {{ 'ConversationShare.Previous' | translate }}
+            </button>
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              [zDisabled]="loading() || busy() || offset() + pageSize >= result.total"
+              (click)="load(offset() + pageSize)"
+            >
+              {{ 'ConversationShare.Next' | translate }}
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+  <footer xpDialogFooter>
+    @if (pending()) {
+      <button z-button zType="outline" type="button" [zDisabled]="busy()" (click)="pending.set(null)">
+        {{ 'XP.ACTIONS.Cancel' | translate }}
+      </button>
+      <button z-button zType="destructive" type="button" [zDisabled]="busy()" [zLoading]="busy()" (click)="revoke()">
+        {{ 'ConversationShare.ConfirmRevoke' | translate }}
+      </button>
+    } @else {
+      <button z-button zType="outline" type="button" [zDisabled]="loading() || busy()" (click)="load(0, true)">
+        {{ 'ConversationShare.Refresh' | translate }}
+      </button>
+      <button
+        z-button
+        zType="destructive"
+        type="button"
+        [zDisabled]="loading() || busy() || !page()?.totalAll"
+        (click)="confirmRevoke('all')"
+      >
+        {{ 'ConversationShare.RevokeAll' | translate }}
+      </button>
+    }
+  </footer>
+</section>
