@@ -36,6 +36,24 @@ zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 z
 
 只有 zard 没有合适组件，或当前模块已有稳定封装时，才直接写 Tailwind token class。
 
+## Dialog 底部操作栏间距
+
+底部操作栏是横向条形区域，上下留白应小于左右留白。两个方向都使用 Tailwind 间距刻度，默认组合为 `px-4 py-2.5`，不把某张截图中的像素值作为固定标准。
+
+| 项目               | 标准                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| 操作栏上下 padding | `py-2.5`，随 Tailwind `--spacing` 和宿主密度缩放                                                        |
+| 操作栏左右 padding | 默认 `px-4`，与 Header / Body 内容边缘对齐；独立布局可保留与内容一致的 `px-5` / `px-6`                  |
+| Angular / React    | `xpDialogFooter`、`DialogFooter`、`AlertDialogFooter` 采用同一组合 `px-4 py-2.5`                        |
+| 内容间距           | Header / Body 采用间距刻度 4；操作栏使用 `gap-2`；窄屏允许换行，不通过增加外层 padding 或压缩按钮来适配 |
+| 按钮高度           | Angular 普通操作 **36px**，workflow 操作 **40px**，粗指针触屏操作至少 **44px**                          |
+
+操作栏高度由内容、上下 padding 和分隔线自然决定，不规定固定总高度。多行说明和换行按钮允许增加高度。容器间距随密度缩放，按钮和输入控件仍保留共享组件规定的尺寸与触屏目标。
+
+Angular 使用 `xpDialogFooter`，间距由 `packages/ui/src/lib/components/dialog/dialog-frame.variants.ts` 管理；Header / Body 的共享边距变量也取自 Tailwind 间距刻度 4。React 使用 `DialogFooter` / `AlertDialogFooter`。业务模板不覆盖共享 footer 的 padding，也不使用 `p-4`、`p-6` 等四边等距写法；禁止将 `py-[10px]` 之类的固定像素值与 `px-4` 混用。确需独立布局的旧弹层保留与内容对齐的横向间距，纵向同样使用 `py-2.5`。
+
+这条规则针对 **Dialog 容器间距**，与按钮自身的几何尺寸和文字尺寸无关，也不用于页面底栏、表格分页或普通卡片。
+
 ## zard Core Tokens
 
 这些 token 是新页面默认选择。
@@ -236,6 +254,7 @@ Flow、agent graph、node canvas 不是 zard core 覆盖的 UI primitive，应�
 - 普通正文是否使用 `text-foreground`，而不是 `text-primary`。
 - 弱文本是否使用 `text-muted-foreground`。
 - zard card/popover/menu/select/dialog 是否使用 zard 组件或 zard core token。
+- Dialog 底部操作栏是否采用 `py-2.5`、左右与内容区对齐的 Tailwind 间距，且没有固定像素混用或业务层 padding 覆盖。
 - 按钮是否使用 `z-button` variant，而不是手写 `components-button-*`。
 - 表单是否使用 `z-form` 和 zard input/select/checkbox/radio/switch。
 - focus 是否走 `ring-ring` / `border-ring`。
