@@ -15,6 +15,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { Store } from '../state'
 import { API_PREFIX } from '../state/constants'
 import { injectFetchEventSource } from './fetch-event-source'
+import { coordinateNotificationStream } from './notification-stream-coordinator'
 
 @Injectable({ providedIn: 'root' })
 export class UserNotificationsService {
@@ -45,8 +46,17 @@ export class UserNotificationsService {
   private attempts = 0
   private streamStartedAt = 0
   private streamActivityAt = 0
-  private readonly activation = () => {
-    if (document.visibilityState === 'visible') this.scheduleRefresh()
+  private coordination: (() => void) | null = null
+  private connectionGeneration = 0
+  private pageActive = true
+  private readonly activation = () => this.updateActivity()
+  private readonly pageHide = () => {
+    this.pageActive = false
+    this.updateActivity()
+  }
+  private readonly pageShow = () => {
+    this.pageActive = true
+    this.updateActivity()
   }
   private readonly storageChanged = () => {
     this.loadPending()
@@ -55,6 +65,7 @@ export class UserNotificationsService {
 
   start() {
     if (this.scopeSubscription) return
+    this.pageActive = true
     this.scopeSubscription = combineLatest([this.store.user$, this.store.activeScope$])
       .pipe(
         map(([user, scope]) =>
@@ -72,8 +83,7 @@ export class UserNotificationsService {
       )
       .subscribe((identity) => {
         this.generation++
-        this.events?.unsubscribe()
-        clearTimeout(this.retryTimer)
+        this.pauseStream()
         clearTimeout(this.refreshTimer)
         this.accountKey = identity ? JSON.stringify(JSON.parse(identity).slice(0, 3)) : ''
         this.refreshTimer = null
@@ -88,25 +98,27 @@ export class UserNotificationsService {
         this.pending = new Set()
         this.loadPending()
         if (identity) {
-          this.connect(this.generation)
-          this.scheduleRefresh()
+          this.updateActivity()
         }
       })
     this.timer = setInterval(() => this.scheduleRefresh(), 90000)
     document.addEventListener('visibilitychange', this.activation)
     window.addEventListener('storage', this.storageChanged)
+    window.addEventListener('pagehide', this.pageHide)
+    window.addEventListener('pageshow', this.pageShow)
   }
 
   stop() {
     this.generation++
     this.scopeSubscription?.unsubscribe()
     this.scopeSubscription = null
-    this.events?.unsubscribe()
+    this.pauseStream()
     clearInterval(this.timer)
-    clearTimeout(this.retryTimer)
     clearTimeout(this.refreshTimer)
     document.removeEventListener('visibilitychange', this.activation)
     window.removeEventListener('storage', this.storageChanged)
+    window.removeEventListener('pagehide', this.pageHide)
+    window.removeEventListener('pageshow', this.pageShow)
     this.snapshot.set(null)
     this.identity.set('')
     this.refreshTimer = null
@@ -118,27 +130,73 @@ export class UserNotificationsService {
     )
   }
 
-  private connect(generation: number) {
-    if (!this.identity() || this.unsupported || generation !== this.generation) return
+  private isActive() {
+    return this.pageActive && document.visibilityState === 'visible' && !!this.identity() && !this.unsupported
+  }
+
+  private pauseStream() {
+    this.connectionGeneration++
+    this.coordination?.()
+    this.coordination = null
+    this.events?.unsubscribe()
+    clearTimeout(this.retryTimer)
+    clearTimeout(this.refreshTimer)
+    this.refreshTimer = null
+    this.streamActivityAt = 0
+  }
+
+  private updateActivity() {
+    if (!this.isActive()) {
+      this.pauseStream()
+      return
+    }
+    if (!this.coordination) {
+      this.streamStartedAt = Date.now()
+      this.attempts = 0
+      const generation = this.connectionGeneration
+      const invalidate = () => {
+        if (generation !== this.connectionGeneration || !this.isActive()) return
+        this.conversations.refreshUnread()
+        this.streamActivityAt = Date.now()
+        this.scheduleRefresh()
+      }
+      this.coordination = coordinateNotificationStream(
+        this.identity(),
+        (publish) => {
+          this.connect(generation, () => {
+            publish()
+            invalidate()
+          })
+          return () => {
+            this.events?.unsubscribe()
+            clearTimeout(this.retryTimer)
+          }
+        },
+        invalidate
+      )
+    }
+    this.scheduleRefresh()
+  }
+
+  private connect(generation: number, invalidate: () => void) {
+    if (!this.isActive() || generation !== this.connectionGeneration) return
     this.streamStartedAt = Date.now()
     this.streamActivityAt = 0
     const reconnect = () => {
       this.streamActivityAt = 0
-      if (generation !== this.generation || this.unsupported) return
+      if (generation !== this.connectionGeneration || !this.isActive()) return
       this.retryTimer = setTimeout(
-        () => this.connect(generation),
+        () => this.connect(generation, invalidate),
         Math.min(30000, 1000 * 2 ** Math.min(this.attempts++, 5)) + Math.random() * 500
       )
     }
     this.events = this.stream({ url: `${API_PREFIX}/user-notifications/stream`, method: 'GET' }).subscribe({
       next: (message) => {
-        if (generation !== this.generation) return
+        if (generation !== this.connectionGeneration || !this.isActive()) return
         try {
           if (!notificationChangeSchema.safeParse(JSON.parse(message.data)).success) return
-          this.conversations.refreshUnread()
-          this.streamActivityAt = Date.now()
           this.attempts = 0
-          this.scheduleRefresh()
+          invalidate()
         } catch {
           // Unknown events and transport heartbeats do not invalidate a snapshot.
         }
@@ -149,7 +207,7 @@ export class UserNotificationsService {
   }
 
   scheduleRefresh() {
-    if (this.refreshTimer || !this.identity() || this.unsupported) return
+    if (this.refreshTimer || !this.isActive()) return
     this.refreshTimer = setTimeout(
       () => {
         this.refreshTimer = null
@@ -160,6 +218,7 @@ export class UserNotificationsService {
   }
 
   async refresh() {
+    if (!this.isActive()) return
     if (this.fetching) {
       this.dirty = true
       return
@@ -169,6 +228,7 @@ export class UserNotificationsService {
     this.fetching = true
     try {
       for (const id of [...this.pending]) {
+        if (!this.isActive() || generation !== this.generation) return
         try {
           await firstValueFrom(this.http.put(`${API_PREFIX}/announcements/${id}/dismissal`, {}))
         } catch (error) {
@@ -178,6 +238,7 @@ export class UserNotificationsService {
         this.pending.delete(id)
         this.removePending(id)
       }
+      if (!this.isActive() || generation !== this.generation) return
       const response = await firstValueFrom(
         this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, { params: { client: 'web' } })
       )
@@ -192,7 +253,7 @@ export class UserNotificationsService {
       if (generation === this.generation && error instanceof HttpErrorResponse && error.status === 404) {
         this.supported.set(false)
         this.unsupported = true
-        this.events?.unsubscribe()
+        this.pauseStream()
         this.snapshot.set(null)
       }
     } finally {

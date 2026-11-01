@@ -7,7 +7,11 @@ import { Store } from '../state'
 import { UserNotificationsService } from './user-notifications.service'
 import { ChatConversationService } from './chat-conversation.service'
 
-const mockStream = new Subject<{ data: string }>()
+let mockStream = new Subject<{ data: string }>()
+jest.mock('./notification-stream-coordinator', () => ({
+  coordinateNotificationStream: (_identity: string, start: (publish: () => void) => () => void) =>
+    start(() => undefined)
+}))
 jest.mock('./fetch-event-source', () => ({ injectFetchEventSource: () => () => mockStream }))
 async function advance(milliseconds = 0) {
   jest.advanceTimersByTime(milliseconds)
@@ -47,12 +51,17 @@ describe('User notification client isolation and recovery', () => {
   let user: BehaviorSubject<{ id: string; tenantId: string }>
   let scope: BehaviorSubject<{ level: RequestScopeLevel; organizationId?: string }>
   beforeEach(() => {
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    mockStream = new Subject<{ data: string }>()
     refreshUnread.mockClear()
     jest.useFakeTimers()
     localStorage.clear()
     jest.spyOn(Math, 'random').mockReturnValue(0)
     user = new BehaviorSubject({ id: 'user-a', tenantId: 'tenant-a' })
-    scope = new BehaviorSubject({ level: RequestScopeLevel.ORGANIZATION, organizationId: 'org-a' })
+    scope = new BehaviorSubject<{ level: RequestScopeLevel; organizationId?: string }>({
+      level: RequestScopeLevel.ORGANIZATION,
+      organizationId: 'org-a'
+    })
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -140,6 +149,59 @@ describe('User notification client isolation and recovery', () => {
     http.expectOne((request) => request.url.endsWith('/sync')).flush({ ...snapshot(), announcements: [] })
     await advance()
     expect(Object.keys(localStorage).some((key) => key.endsWith(id))).toBe(false)
+  })
+  it('releases the stream while hidden and reconciles on visibility and bfcache restoration', async () => {
+    service.start()
+    service.start()
+    await advance(251)
+    http.expectOne((request) => request.url.endsWith('/sync')).flush(snapshot())
+    await advance()
+    expect(mockStream.observers).toHaveLength(1)
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockStream.observers).toHaveLength(0)
+    await advance(180000)
+    http.expectNone((request) => request.url.endsWith('/sync'))
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockStream.observers).toHaveLength(1)
+    await advance(251)
+    http.expectOne((request) => request.url.endsWith('/sync')).flush(snapshot())
+    await advance()
+    window.dispatchEvent(new Event('pagehide'))
+    expect(mockStream.observers).toHaveLength(0)
+    await advance(180000)
+    http.expectNone((request) => request.url.endsWith('/sync'))
+    window.dispatchEvent(new Event('pageshow'))
+    expect(mockStream.observers).toHaveLength(1)
+    await advance(251)
+    http.expectOne((request) => request.url.endsWith('/sync')).flush(snapshot())
+    await advance()
+  })
+  it('cancels a pending reconnect when hidden and reconnects on return', async () => {
+    service.start()
+    await advance(251)
+    http.expectOne((request) => request.url.endsWith('/sync')).flush(snapshot())
+    await advance()
+    mockStream.error(new Error('Disconnected'))
+    mockStream = new Subject<{ data: string }>()
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    await advance(31000)
+    expect(mockStream.observers).toHaveLength(0)
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockStream.observers).toHaveLength(1)
+    await advance(251)
+    http.expectOne((request) => request.url.endsWith('/sync')).flush(snapshot())
+    await advance()
+  })
+  it('never opens a stream or polls when started in a hidden page', async () => {
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    service.start()
+    await advance(180000)
+    expect(mockStream.observers).toHaveLength(0)
+    http.expectNone((request) => request.url.endsWith('/sync'))
   })
   it('stops polling an old server and resumes when the identity changes', async () => {
     service.start()
