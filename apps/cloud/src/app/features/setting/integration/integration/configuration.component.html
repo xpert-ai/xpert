@@ -329,3 +329,11 @@
 @if (loading()) {
   <xp-spin class="absolute left-0 top-0 h-full w-full"></xp-spin>
 }
+
+@if (!qrOrganizationId() && integration()?.id) {
+  <xp-integration-sharing
+    class="mt-6 block max-w-4xl"
+    [integrationId]="integration().id"
+    [sharing]="integration().sharing"
+  />
+}

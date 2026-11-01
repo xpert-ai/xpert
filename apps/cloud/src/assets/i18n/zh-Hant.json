@@ -7104,7 +7104,30 @@
       "SelectProvider": "選擇一個提供商",
       "ConfirmDeleteIntegration": "確定刪除此集成",
       "WebhookUrl": "回調地址",
-      "AddIntegrationHelp": "了解更多關於自定義集成的信息"
+      "AddIntegrationHelp": "了解更多關於自定義集成的信息",
+      "Sharing": {
+        "Title": "組織使用授權",
+        "Hint": "授權僅開放使用能力，不開放密鑰、編輯或刪除權限。",
+        "ReviewRequired": "此集成尚未設定共享授權。請檢查已有組織綁定，再按實際用途開放。",
+        "private": "不向組織開放",
+        "all-organizations": "開放給本租戶全部組織",
+        "selected-organizations": "開放給指定組織",
+        "Organizations": "允許使用的組織",
+        "Usages": "允許的用途",
+        "configuration": "應用配置與帳號授權入口",
+        "invoke": "調用服務或傳送訊息",
+        "bind": "綁定 Assistant 訊息入口",
+        "RevokeHint": "收回授權後，組織的新選擇、綁定和執行將被拒絕。已有配置會保留，恢復授權後可重新使用。",
+        "Save": "保存使用授權",
+        "Saving": "正在保存…",
+        "Saved": "使用授權已更新",
+        "Loading": "正在加載組織…",
+        "Retry": "重試",
+        "TenantSource": "租戶授權集成",
+        "OrganizationSource": "本組織集成",
+        "Unavailable": "目前無法使用或未獲授權，請聯絡管理員",
+        "EmptyOrganizations": "暫無可用的活躍組織。"
+      }
     },
     "ViewExtension": {
       "DetailTabHint": "這裡將通過平台聲明式視圖系統展示此集成的擴展信息。",

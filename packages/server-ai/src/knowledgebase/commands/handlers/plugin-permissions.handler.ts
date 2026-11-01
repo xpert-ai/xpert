@@ -45,7 +45,8 @@ export class PluginPermissionsHandler implements ICommandHandler<PluginPermissio
         if (integrationPermission && command.context.integrationId) {
             let integration: IIntegration = null
             try {
-                integration = await this.integrationService.findOne(command.context.integrationId)
+                integration = await this.integrationService.findOneInOrganizationOrTenant(command.context.integrationId)
+                if (!integration) throw new Error('Integration unavailable')
             } catch (error) {
                 throw new BadRequestException(
                     t('server-ai:Error.IntegrationNotFound', { id: command.context.integrationId })

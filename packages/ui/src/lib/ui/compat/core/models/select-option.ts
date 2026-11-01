@@ -32,6 +32,7 @@ export enum TreeSelectionMode {
  */
 export type TSelectOption<T = string | number | boolean, K = string> = {
   key?: K
+  disabled?: boolean
   value: T
 
   label?: TI18N | string
