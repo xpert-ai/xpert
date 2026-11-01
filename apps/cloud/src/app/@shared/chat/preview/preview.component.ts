@@ -1,3 +1,4 @@
+import { toXpertOpenerPrompt } from '@xpert-ai/contracts'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
@@ -339,9 +340,9 @@ export class ChatConversationPreviewComponent {
   readonly opener = computed(() => this.features()?.opener)
   readonly starters = computed(() => {
     if (this.opener()?.enabled) {
-      return this.opener()?.questions
+      return this.opener()?.questions?.map(toXpertOpenerPrompt)
     }
-    return this.xpert()?.starters
+    return this.xpert()?.starters?.map(toXpertOpenerPrompt)
   })
   readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
   readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)

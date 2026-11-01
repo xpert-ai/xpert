@@ -59,7 +59,13 @@ const snapshotSchema = z
         .transform((value) => value ?? undefined),
       features: z
         .object({
-          opener: z.object({ enabled: z.boolean(), message: z.string(), questions: z.array(z.string()) }).optional(),
+          opener: z
+            .object({
+              enabled: z.boolean(),
+              message: z.string(),
+              questions: z.array(z.union([z.string(), z.object({ label: z.string(), prompt: z.string() })]))
+            })
+            .optional(),
           frequentQuestions: z.object({ enabled: z.boolean() }).optional()
         })
         .nullish()

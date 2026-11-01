@@ -278,9 +278,9 @@
             @for (starter of starters(); track starter) {
               <div
                 class="max-w-full px-2 py-1 border-[0.5px] border-solid border-divider-deep rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
-                (click)="sendMessage(starter)"
+                (click)="sendMessage(starter.prompt)"
               >
-                {{ starter }}
+                {{ starter.label }}
               </div>
             }
           </div>

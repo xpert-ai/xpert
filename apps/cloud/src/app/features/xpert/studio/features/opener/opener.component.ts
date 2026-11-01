@@ -2,7 +2,8 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
 
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, OverlayAnimations } from '@xpert-ai/headless-ui'
+import { toXpertOpenerPrompt, type TXpertOpenerQuestion } from '@xpert-ai/contracts'
+import { attrModel, OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
@@ -24,6 +25,11 @@ export class XpertStudioFeaturesOpenerComponent {
   readonly message = attrModel(this.opener, 'message')
   readonly questions = attrModel(this.opener, 'questions')
 
+  readonly questionPrompt = toXpertOpenerPrompt
+  questionLabel(question: TXpertOpenerQuestion) {
+    return typeof question === 'string' ? '' : question.label
+  }
+
   addQuestion() {
     if (this.questions()?.length >= 10) return
     this.questions.update((questions) => {
@@ -38,15 +44,17 @@ export class XpertStudioFeaturesOpenerComponent {
     })
   }
 
-  updateQuestion(index: number, value: string) {
+  updateQuestion(index: number, field: 'label' | 'prompt', value: string) {
     this.questions.update((questions) => {
       questions = questions ?? []
-      questions[index] = value
+      const current = questions[index]
+      const next = { label: this.questionLabel(current), prompt: toXpertOpenerPrompt(current).prompt, [field]: value }
+      questions[index] = next.label ? next : next.prompt
       return [...questions]
     })
   }
 
-  drop(event: CdkDragDrop<string[]>) {
+  drop(event: CdkDragDrop<TXpertOpenerQuestion[]>) {
     if (event.previousContainer === event.container) {
       this.questions.update((questions) => {
         questions = Array.from(questions ?? [])

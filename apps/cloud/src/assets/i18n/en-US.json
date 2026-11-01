@@ -724,6 +724,8 @@
       "Opener": "Conversation opener",
       "OpenerTip": "Greet users and suggest questions when a conversation starts.",
       "WelcomeMessage": "Welcome message",
+      "QuestionLabel": "Display name (optional)",
+      "QuestionPrompt": "Full message",
       "StarterQuestions": "Starter questions",
       "QuestionsLimit": "Up to 10 questions. Drag or use the arrows to reorder.",
       "Question": "Question",

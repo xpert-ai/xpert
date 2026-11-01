@@ -1,5 +1,5 @@
 import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
-import type { IXpert } from '@xpert-ai/contracts'
+import { toXpertOpenerPrompt, type IXpert, type TXpertOpenerQuestion } from '@xpert-ai/contracts'
 
 /** Manual configuration remains authoritative; generated questions only fill unused slots. */
 export function buildXpertStartScreen(
@@ -21,17 +21,19 @@ export function buildXpertStartScreen(
   ]
     .find((value) => typeof value === 'string' && !!value.trim())
     ?.trim()
-  const questions: string[] = []
+  const questions: Array<{ label: string; prompt: string }> = []
   const seen = new Set<string>()
-  const append = (question: string) => {
-    const text = question.trim().replace(/\s+/g, ' ')
-    const key = text.toLowerCase()
-    if (!text || seen.has(key)) return
+  const append = (question: TXpertOpenerQuestion) => {
+    const item = toXpertOpenerPrompt(question)
+    const key = item.prompt.trim().replace(/\s+/g, ' ').toLowerCase()
+    if (!key || seen.has(key)) return
     seen.add(key)
-    questions.push(text)
+    // Structured prompts are author instructions: preserve formatting and content verbatim.
+    const prompt = typeof question === 'string' ? item.prompt.trim().replace(/\s+/g, ' ') : item.prompt
+    questions.push({ label: item.label.trim() || prompt, prompt })
   }
   for (const question of (opener?.enabled ? opener.questions : xpert.starters) ?? []) {
-    if (typeof question === 'string') append(question)
+    append(question)
   }
   for (const question of automaticQuestions) {
     if (questions.length >= 5) break
@@ -41,6 +43,6 @@ export function buildXpertStartScreen(
 
   return {
     ...(greeting ? { greeting } : {}),
-    prompts: questions.map((question) => ({ label: question, prompt: question }))
+    prompts: questions
   }
 }

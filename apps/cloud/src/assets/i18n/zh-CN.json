@@ -474,6 +474,8 @@
       "Opener": "对话开场白",
       "OpenerTip": "在新对话中展示欢迎语和引导问题。",
       "WelcomeMessage": "欢迎语",
+      "QuestionLabel": "显示名称（可选）",
+      "QuestionPrompt": "完整发送指令",
       "StarterQuestions": "开场问题",
       "QuestionsLimit": "最多 10 个问题，拖动或使用箭头调整顺序。",
       "Question": "问题",

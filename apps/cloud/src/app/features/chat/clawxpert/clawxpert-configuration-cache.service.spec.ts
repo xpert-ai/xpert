@@ -30,7 +30,11 @@ describe('ClawXpertConfigurationCache', () => {
         title: 'My assistant',
         starters: ['Hello'],
         features: {
-          opener: { enabled: true, message: 'Welcome back', questions: ['Start a task'] },
+          opener: {
+            enabled: true,
+            message: 'Welcome back',
+            questions: ['Start a task', { label: 'Sales', prompt: 'Read recipe.\nSave draft; do not publish.' }]
+          },
           frequentQuestions: { enabled: true },
           suggestion: { enabled: false, prompt: '' },
           textToSpeech: { enabled: false },
@@ -49,7 +53,11 @@ describe('ClawXpertConfigurationCache', () => {
       title: 'My assistant',
       starters: ['Hello'],
       features: {
-        opener: { enabled: true, message: 'Welcome back', questions: ['Start a task'] },
+        opener: {
+          enabled: true,
+          message: 'Welcome back',
+          questions: ['Start a task', { label: 'Sales', prompt: 'Read recipe.\nSave draft; do not publish.' }]
+        },
         frequentQuestions: { enabled: true }
       },
       avatar: { emoji: { id: 'wave' } },
@@ -58,7 +66,7 @@ describe('ClawXpertConfigurationCache', () => {
     })
     const raw = localStorage.getItem(getClawXpertConfigurationCacheKey(scope))
     expect(raw).not.toContain('do-not-cache')
-    expect(raw).not.toContain('draft')
+    expect(JSON.parse(raw).xpert).not.toHaveProperty('draft')
   })
 
   it('isolates users and organizations and does not cache unknown owners', () => {

@@ -48,6 +48,15 @@ export type TXpertTitleFeature = {
   instruction?: string
 }
 
+/** A short display label can accompany the complete message sent by a starter. */
+export type TXpertOpenerQuestion = string | { label: string; prompt: string }
+
+export function toXpertOpenerPrompt(question: TXpertOpenerQuestion): { label: string; prompt: string } {
+  return typeof question === 'string'
+    ? { label: question, prompt: question }
+    : { label: question.label, prompt: question.prompt }
+}
+
 export type TXpertFeatures = {
   realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceFeature
   /** Generate start-screen questions from recurring intents in conversation history. */
@@ -58,7 +67,7 @@ export type TXpertFeatures = {
   opener: {
     enabled: boolean
     message: string
-    questions: string[]
+    questions: TXpertOpenerQuestion[]
   }
 
   suggestion: {
