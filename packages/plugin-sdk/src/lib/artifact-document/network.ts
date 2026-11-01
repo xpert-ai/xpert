@@ -22,6 +22,7 @@ const origins = z.array(origin).max(16)
 
 export const artifactDocumentNetworkPolicy = z
   .object({
+    mode: z.enum(['restricted', 'unrestricted']).optional(),
     scripts: origins.optional(),
     styles: origins.optional(),
     fonts: origins.optional(),
@@ -32,6 +33,21 @@ export type ArtifactDocumentNetworkPolicy = z.output<typeof artifactDocumentNetw
 
 export function artifactDocumentCsp(input?: ArtifactDocumentNetworkPolicy): string {
   const policy = artifactDocumentNetworkPolicy.parse(input ?? {})
+  if (policy.mode === 'unrestricted')
+    return [
+      'default-src * data: blob:',
+      "script-src * data: blob: 'unsafe-inline'",
+      "style-src * data: blob: 'unsafe-inline'",
+      'img-src * data: blob:',
+      'font-src * data: blob:',
+      'connect-src * data: blob: ws: wss:',
+      'media-src * data: blob:',
+      'frame-src * data: blob:',
+      'worker-src * data: blob:',
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'none'"
+    ].join('; ')
   const sources = (values?: string[]) => (values?.length ? ` ${[...new Set(values)].join(' ')}` : '')
   return [
     "default-src 'none'",
@@ -60,6 +76,7 @@ export function isArtifactDocumentResourceAllowed(
   } catch {
     return false
   }
+  if (policy.mode === 'unrestricted') return ['http:', 'https:', 'ws:', 'wss:', 'data:', 'blob:'].includes(url.protocol)
   if (url.protocol !== 'https:' || url.username || url.password) return false
   const allowed =
     resourceType === 'script'
