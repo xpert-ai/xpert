@@ -13,6 +13,20 @@ export const mapQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(50).default(20)
 })
 export type MapQuery = z.infer<typeof mapQuerySchema>
+export const mapOptionsQuerySchema = z.object({
+    operation: z.literal('options'),
+    kind: z.enum(['projects', 'conversations']),
+    projectId: z.string().uuid().nullable().optional(),
+    search: z.string().trim().max(200).default(''),
+    offset: z.coerce.number().int().nonnegative().default(0),
+    limit: z.coerce.number().int().min(1).max(50).default(20)
+})
+export type MapOptionsQuery = z.infer<typeof mapOptionsQuerySchema>
+export const mapOptionsPageSchema = z.object({
+    options: z.array(z.object({ value: z.string(), label: z.string() })),
+    nextOffset: z.number().int().nonnegative().nullable()
+})
+export type MapOptionsPage = z.infer<typeof mapOptionsPageSchema>
 export const mapActionSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('create'),
