@@ -18,18 +18,20 @@
     ></div>
 
     <div class="relative mx-auto max-w-[1500px] px-6 py-8 lg:px-10">
-      <nav class="flex items-center gap-2 text-sm text-muted-foreground">
-        <a
-          routerLink="/explore"
-          [queryParams]="{ tab: 'agent-square', catalog: 'applications' }"
-          class="transition hover:text-foreground"
-          >{{ 'XP.Explore.Application.Marketplace' | translate: { Default: 'Application marketplace' } }}</a
-        >
-        <z-icon zType="chevron-right" zSize="sm" />
-        <span class="text-foreground">{{ appDetail.application.displayName | i18n }}</span>
-      </nav>
+      <header class="flex flex-wrap items-center justify-between gap-3">
+        <nav class="flex min-w-0 max-w-full items-center gap-2 text-base font-medium text-muted-foreground">
+          <a
+            routerLink="/explore"
+            [queryParams]="{ tab: 'agent-square', catalog: 'applications' }"
+            class="shrink-0 transition hover:text-foreground"
+            >{{ 'XP.Explore.Application.Marketplace' | translate: { Default: 'Application marketplace' } }}</a
+          >
+          <z-icon zType="chevron-right" />
+          <span class="truncate text-foreground">{{ appDetail.application.displayName | i18n }}</span>
+        </nav>
+        <xp-explore-scope class="ml-auto max-w-full" [compact]="true" />
+      </header>
 
-      <xp-explore-scope class="mt-6 block" />
       <section class="mt-10 grid gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div class="min-w-0">
           <header class="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -56,30 +58,6 @@
                 {{ appDetail.application.displayName | i18n }}
               </h1>
               <p class="mt-3 text-lg text-muted-foreground">{{ presentation()?.tagline | i18n }}</p>
-              @if (installationScopes().length > 1) {
-                <fieldset
-                  class="mt-5 flex flex-wrap items-center gap-3"
-                  [disabled]="initializing() || configuringToolsets() || discarding()"
-                >
-                  <legend class="mb-2 text-sm font-medium">
-                    {{ 'XP.Explore.Application.InstallationTarget' | translate }}
-                  </legend>
-                  @for (scope of installationScopes(); track scope) {
-                    <label
-                      class="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm focus-within:ring-2 focus-within:ring-ring"
-                    >
-                      <input
-                        type="radio"
-                        name="installationScope"
-                        [value]="scope"
-                        [checked]="application()?.scope === scope"
-                        (change)="selectInstallationScope(scope)"
-                      />
-                      {{ scopeLabel(scope) }}
-                    </label>
-                  }
-                </fieldset>
-              }
               @if (application()?.scope === 'personal') {
                 <p class="mt-3 text-sm text-muted-foreground">
                   {{ 'XP.Explore.Application.PersonalDataScope' | translate }}
@@ -91,11 +69,39 @@
                   {{ 'XP.Explore.Application.SetupExplanation' | translate }}
                 </p>
               }
-              <div class="mt-6 flex flex-wrap gap-3">
-                <button z-button type="button" (click)="primaryAction()" [zDisabled]="status() === 'initializing'">
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                @if (installationScopes().length > 1) {
+                  <div
+                    role="group"
+                    class="flex max-w-full items-center gap-2"
+                    [attr.aria-label]="'XP.Explore.Application.InstallationTarget' | translate"
+                  >
+                    <span class="shrink-0 text-sm text-muted-foreground">
+                      {{ 'XP.Explore.Application.InstallationTarget' | translate }}
+                    </span>
+                    <z-select
+                      class="w-28 min-w-0"
+                      [attr.aria-label]="'XP.Explore.Application.InstallationTarget' | translate"
+                      [ngModel]="application()?.scope"
+                      (ngModelChange)="selectInstallationScope($event)"
+                      [zDisabled]="initializing() || configuringToolsets() || discarding()"
+                    >
+                      @for (scope of installationScopes(); track scope) {
+                        <z-select-item [zValue]="scope">{{ scopeLabel(scope) }}</z-select-item>
+                      }
+                    </z-select>
+                  </div>
+                }
+                <button
+                  z-button
+                  zSize="lg"
+                  type="button"
+                  (click)="primaryAction()"
+                  [zDisabled]="status() === 'initializing'"
+                >
                   {{ primaryActionLabel() }}
                 </button>
-                <button z-button zType="outline" type="button" (click)="setupOpen.set(true)">
+                <button z-button zType="outline" zSize="lg" type="button" (click)="setupOpen.set(true)">
                   {{ 'XP.Explore.Application.ViewSetupDetails' | translate: { Default: 'View setup details' } }}
                 </button>
               </div>

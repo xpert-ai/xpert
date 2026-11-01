@@ -22,7 +22,8 @@ jest.mock('@xpert-ai/headless-ui', () => ({
   ZardAccordionImports: [],
   ZardAlertDialogService: class ZardAlertDialogService {},
   ZardButtonComponent: class ZardButtonComponent {},
-  ZardIconComponent: class ZardIconComponent {}
+  ZardIconComponent: class ZardIconComponent {},
+  ZardSelectImports: []
 }))
 jest.mock('../../setting/plugins/marketplace/marketplace-mcp-provider.component', () => ({
   PluginMarketplaceMcpProviderComponent: class PluginMarketplaceMcpProviderComponent {}

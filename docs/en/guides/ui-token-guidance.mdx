@@ -1,0 +1,301 @@
+---
+title: 'UI Token Usage Guide'
+---
+
+## Purpose
+
+This guide helps you choose UI tokens when building new pages and components or redesigning existing pages. It is not a token mapping reference.
+
+Identify the purpose of the UI region and component before choosing existing tokens. As a rule, do not add tokens, hard-code colors from screenshots, or bypass the zard component system.
+
+## Selection priority
+
+1. zard/ui components and zard core tokens.
+2. Cloud/Xpert business component tokens.
+
+Use zard for basic UI semantics that it already covers. Use Cloud tokens for business states, data visualization, flows, analytical grids, application shells, and other areas that zard does not cover.
+
+## Primary sources
+
+- `packages/ui/src/styles.css`: the zard/ui token contract.
+- `packages/ui/src/lib/components/**`: the actual semantics of zard component variants.
+- `apps/cloud/src/styles/theme/theme.tokens.css`: Cloud business component and theme tokens.
+- `apps/cloud/src/styles/theme/theme.primary.css`: Cloud/Tailwind compatibility color scales derived from zard `--primary`.
+- `apps/cloud/src/styles/theme/theme.tailwind.css`: Tailwind v4 output for Cloud tokens.
+- `tailwind.theme.vars.js`: the source of workspace Tailwind utility registrations.
+
+## Basic rules
+
+Prefer zard components for new pages:
+
+- Use `z-button` for buttons.
+- Use `z-form`, `z-input`, `z-select`, `z-checkbox`, `z-radio`, and `z-switch` for forms.
+- Use `z-card` for cards.
+- Use the corresponding zard components for overlays, menus, popovers, and tooltips.
+- Prefer existing zard components for badges, tabs, segmented controls, tables, trees, pagination, and similar UI elements.
+
+Write Tailwind token classes directly only when zard has no suitable component or the current module already has an established wrapper.
+
+## General UI layout and spacing principles
+
+These principles apply throughout the interface; component standards define specific dimensions:
+
+1. Horizontal text controls generally use less vertical than horizontal padding; square controls and content containers follow their own geometry.
+2. Use the Tailwind spacing scale for padding and gaps, align related content edges, and avoid redundant padding or mixed fixed-pixel spacing.
+3. Reuse shared size/density variants. Keep equivalent controls consistent in height, typography, icon slots, and state colors.
+4. Let long content and narrow layouts wrap naturally; preserve readable text and touch targets instead of forcing fixed heights.
+
+## Dialog footer spacing
+
+A footer action bar is a horizontal region, so its vertical padding should be smaller than its horizontal padding. Use the Tailwind spacing scale on both axes, with `px-4 py-2.5` as the default. Do not turn pixel measurements from a particular screenshot into a fixed standard.
+
+| Property                  | Standard                                                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vertical footer padding   | `py-2.5`, scaled with Tailwind `--spacing` and the host density                                                                                      |
+| Horizontal footer padding | `px-4` by default, aligned with the Header / Body content edges; independent layouts may retain `px-5` / `px-6` when aligned with their content      |
+| Angular / React           | `xpDialogFooter`, `DialogFooter`, and `AlertDialogFooter` use the same `px-4 py-2.5` combination                                                     |
+| Content spacing           | Header / Body use spacing step 4; the footer uses `gap-2`; allow wrapping on narrow screens instead of increasing outer padding or shrinking buttons |
+| Button height             | Angular standard actions are **36px**, workflow actions are **40px**, and coarse-pointer touch actions are at least **44px**                         |
+
+Content, vertical padding, and separators determine the footer height naturally; do not set a fixed total height. Multiline descriptions and wrapped buttons may increase its height. Container spacing scales with density, while buttons and inputs retain the dimensions and touch targets defined by the shared components.
+
+In Angular, use `xpDialogFooter`, whose spacing is managed in `packages/ui/src/lib/components/dialog/dialog-frame.variants.ts`; the shared Header / Body padding variable also uses Tailwind spacing step 4. In React, use `DialogFooter` / `AlertDialogFooter`. Business templates must not override shared footer padding or use uniform padding such as `p-4` or `p-6`. Do not mix fixed pixel values such as `py-[10px]` with `px-4`. Legacy overlays that require independent layouts retain horizontal spacing aligned with their content and also use `py-2.5` vertically.
+
+The numeric conventions above apply to **Dialog container spacing**, managed separately from button geometry and typography. Page footers, table pagination, and ordinary cards also follow the general spacing principles, but use their own component standards rather than copying Dialog padding values.
+
+## zard core tokens
+
+These tokens are the default choice for new pages.
+
+| Context                          | Token / class                                              | Usage                                                                        |
+| -------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Base page background             | `bg-background` / `--background`                           | Page root containers and ordinary content backgrounds                        |
+| Default page text                | `text-foreground` / `--foreground`                         | Body text, headings, and ordinary icons                                      |
+| Card background                  | `bg-card` / `--card`                                       | zard cards or card-like surfaces                                             |
+| Card text                        | `text-card-foreground` / `--card-foreground`               | Default text inside cards                                                    |
+| Overlay background               | `bg-popover` / `--popover`                                 | Menus, select panels, popovers, and dialog surfaces                          |
+| Overlay text                     | `text-popover-foreground` / `--popover-foreground`         | Default text inside overlays                                                 |
+| Primary action                   | `bg-primary`, `text-primary` / `--primary`                 | Primary buttons, link variants, and primary action emphasis                  |
+| Primary action text              | `text-primary-foreground` / `--primary-foreground`         | Text on primary surfaces                                                     |
+| Secondary action background      | `bg-secondary` / `--secondary`                             | Secondary buttons and subtle action surfaces                                 |
+| Secondary action text            | `text-secondary-foreground` / `--secondary-foreground`     | Text on secondary surfaces                                                   |
+| Subtle background                | `bg-muted` / `--muted`                                     | Ghost hover states, explanatory blocks, and subdued regions                  |
+| Subtle text                      | `text-muted-foreground` / `--muted-foreground`             | Descriptions, metadata, and placeholder-like text                            |
+| Item hover / selected background | `bg-accent` / `--accent`                                   | Hover or selected states for menu/select items                               |
+| Item hover / selected text       | `text-accent-foreground` / `--accent-foreground`           | Foreground on accent surfaces                                                |
+| Destructive action               | `bg-destructive`, `text-destructive` / `--destructive`     | Deletion, dangerous actions, and error states in controls                    |
+| Destructive action text          | `text-destructive-foreground` / `--destructive-foreground` | Foreground on destructive surfaces                                           |
+| Ordinary border                  | `border-border` / `--border`                               | Ordinary UI borders for cards, panels, lists, and separators                 |
+| Input control border             | `border-input` / `--input`                                 | Borders for inputs, selects, textareas, and controls                         |
+| Focus ring                       | `ring-ring`, `border-ring` / `--ring`                      | Focus-visible states and active controls                                     |
+| Base radius                      | `--radius`                                                 | The zard radius system; prefer component defaults or Tailwind rounded tokens |
+
+Do not use `text-primary` as the main color for ordinary body text. Use `text-foreground` instead.
+
+## Pages and layouts
+
+| Region                         | Recommended tokens                                   | Notes                                                                                  |
+| ------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Page root container            | `bg-background text-foreground`                      | Default combination for new pages                                                      |
+| Page heading                   | `text-foreground`                                    | Do not use `text-primary` for headings                                                 |
+| Subtitle / description         | `text-muted-foreground`                              | Page descriptions, help text, and metadata                                             |
+| Ordinary separator             | `border-border`                                      | Ordinary borders between page sections                                                 |
+| Empty state background         | `bg-muted` or the component default                  | Prefer component styles for zard empty states/cards                                    |
+| Subtle page section background | `bg-muted` / `bg-secondary`                          | Ordinary subdued backgrounds; consult Cloud tokens for business-specific surfaces      |
+| Application shell/body         | `bg-background`, or `bg-background-body` when needed | Use zard for ordinary new pages; reserve `background-body` for Cloud shell backgrounds |
+
+Do not apply card tokens to page sections just to give them a background. Use cards for actual cards, repeated items, and tool panels.
+
+## Cards, panels, and overlays
+
+| Context                        | Recommended tokens                                       | Notes                                                                              |
+| ------------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| zard card                      | `z-card` or `bg-card text-card-foreground border-border` | Default choice for cards on new pages                                              |
+| Repeated item card             | `bg-card text-card-foreground border-border`             | List cards, resource cards, and configuration cards                                |
+| Menu/select/popover/dialog     | `bg-popover text-popover-foreground border-border`       | Use popover tokens consistently for overlay surfaces                               |
+| Toolbar / lightweight panel    | `bg-background border-border` or `bg-muted`              | First determine whether a panel is needed                                          |
+| Cloud business panel           | `bg-components-panel-bg border-components-panel-border`  | Only for Cloud business panels that zard surfaces cannot adequately represent      |
+| Cloud business card background | `bg-components-card-bg`                                  | Only for explicit business visual requirements; not the default for new zard cards |
+
+For menus, select content, popovers, and dialogs, prefer `popover` rather than `components-panel-bg`.
+
+## Text and icons
+
+| Context                                                     | Recommended tokens                        | Notes                                                   |
+| ----------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| Main headings, body text, and primary icons                 | `text-foreground`                         | Default foreground for new zard pages                   |
+| Secondary descriptions, metadata, and placeholder-like text | `text-muted-foreground`                   | General subdued text                                    |
+| Default card text                                           | `text-card-foreground`                    | Inside card surfaces                                    |
+| Default popover text                                        | `text-popover-foreground`                 | Inside overlays                                         |
+| Links or link buttons                                       | `text-primary` or `z-button zType="link"` | Express actions/links, not ordinary body text           |
+| Destructive text                                            | `text-destructive`                        | Deletion, dangerous actions, and error messages         |
+| Success text                                                | `text-text-success`                       | zard has no success token; use the Cloud business token |
+| Warning text                                                | `text-text-warning`                       | zard has no warning token; use the Cloud business token |
+| Cloud brand / business emphasis                             | `text-text-accent`                        | Different from zard's `accent` for item hover states    |
+| Highlight background                                        | `bg-text-highlight-bg`                    | Text matches and highlighted passages                   |
+
+`text-text-primary` is a Cloud business text token, not the default body text token for new zard pages. Use `text-foreground` for default body text on new pages.
+
+## Buttons and actions
+
+Prefer the `zType` variants of `z-button`; do not write custom button colors.
+
+| Context             | Recommended usage              | Notes                                                 |
+| ------------------- | ------------------------------ | ----------------------------------------------------- |
+| Primary page action | `z-button zType="default"`     | Maps to `bg-primary text-primary-foreground`          |
+| Secondary action    | `z-button zType="secondary"`   | Uses secondary semantics                              |
+| Low-emphasis action | `z-button zType="ghost"`       | Hover follows the zard muted/accent system            |
+| Outlined button     | `z-button zType="outline"`     | Borders and hover follow the zard variant             |
+| Dangerous action    | `z-button zType="destructive"` | Deletion, removal, and dangerous actions              |
+| Text link action    | `z-button zType="link"`        | A link action, not ordinary text                      |
+| Icon-only action    | `z-button zSize="icon"`        | Do not define custom icon button dimensions or colors |
+
+Do not use `components-button-*` directly on new pages unless building a custom non-zard button or an explicit Cloud business component visual.
+
+## Forms and input controls
+
+Prefer the `z-form` system and zard form controls.
+
+| Context                     | Recommended token / class                                    | Notes                                               |
+| --------------------------- | ------------------------------------------------------------ | --------------------------------------------------- |
+| Default input/select border | `border-input`                                               | zard input/select default                           |
+| Focus state                 | `border-ring ring-ring`                                      | Do not add a separate focus color                   |
+| Placeholder                 | `placeholder:text-muted-foreground`                          | zard input default                                  |
+| Disabled state              | The component's disabled variant                             | Do not define custom disabled colors                |
+| Invalid / error state       | `border-destructive`, `ring-destructive`, `text-destructive` | zard error states in controls                       |
+| Help text                   | `text-muted-foreground`                                      | Form descriptions                                   |
+| Success / warning help text | `text-text-success` / `text-text-warning`                    | Business validation states that zard does not cover |
+
+Do not apply `components-input-*` directly to zard inputs/selects. These tokens are reserved for custom non-zard controls or explicit Cloud business component visuals.
+
+## Lists, menus, and selection items
+
+| Context              | Recommended tokens                             | Notes                                               |
+| -------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| Menu/select content  | `bg-popover text-popover-foreground`           | Overlay container                                   |
+| Default item text    | `text-popover-foreground` or `text-foreground` | Choose according to the container surface           |
+| Item hover           | `bg-accent text-accent-foreground`             | Default zard menu/select semantics                  |
+| Selected item        | `bg-accent text-accent-foreground`             | zard selected-state semantics                       |
+| Disabled item        | The zard disabled variant                      | Do not define custom disabled colors                |
+| Ordinary list border | `border-border`                                | General border                                      |
+| List metadata        | `text-muted-foreground`                        | Timestamps, descriptions, and secondary information |
+
+Do not use Cloud's `components-list-option-*` as the list/menu default on new pages. Use these tokens only when custom non-zard list controls need explicit business visuals.
+
+Horizontal text menu items use less vertical than horizontal padding. Use the Tailwind spacing scale on both axes; do not use uniform `p-*` padding or mix in fixed pixel padding.
+
+| Context                                            | Spacing standard                                                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Menu items in sidebar hover / pinned panels        | `px-3 py-1.5 min-h-9`, covering Bosi, module navigation, Assistants, projects, workspaces, conversations, and search results                 |
+| General dropdown menus                             | Managed by the shared menu variant; existing `px-3 py-2` retains its density and also keeps vertical padding smaller than horizontal padding |
+| Sidebar menu items on coarse-pointer touch devices | Retain the same padding and use `pointer-coarse:min-h-[44px]` to preserve the touch target                                                   |
+
+Do not reduce only `py-*` while retaining a fixed `h-*` or excessive `min-h-*` that makes the item taller. Check the rendered height. Multiline items with descriptions grow naturally. Icon-only buttons in the collapsed sidebar remain square; section headings, empty states, and outer menu containers are not governed by the menu item spacing rule.
+
+Text menu items in sidebar hover / pinned panels use **20px icons, 24px × 24px slots, and `gap-2.5` between icon and text**. This applies to Bosi, module navigation, Assistant actions and Views, projects, workspaces, group chats, conversations, and search results:
+
+- For font icons, use `inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none` to control the slot and glyph sizes separately.
+- For SVG / image icons, use `size-[20px]` inside an `inline-flex size-[24px] shrink-0 items-center justify-center` wrapper. Do not stretch the SVG to fill the 24px slot. Set `[size]="20"` explicitly on Assistant View `xp-icon` instances instead of using the plugin's declared default size.
+- Assistant identity avatars also occupy 24px slots while retaining the avatar component's own text and emoji proportions. Menu icon slots must not shrink; text starts at the same horizontal position even when long titles are truncated.
+- Cloud uses a 14px root font size, so use these fixed icon dimensions to avoid `size-5` / `size-6` shrinking to 17.5px / 21px. Padding and gaps continue to use the Tailwind spacing scale. This standard does not apply to panel header buttons, trailing status indicators, or icon-only buttons in the collapsed sidebar.
+
+## Badges, statuses, and labels
+
+zard badges provide default, secondary, destructive, and outline variants. Business statuses require Cloud status tokens.
+
+| Context                 | Recommended token / component             | Notes                                                                   |
+| ----------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
+| Ordinary badge          | `z-badge` default/secondary/outline       | Use a zard variant                                                      |
+| Destructive badge       | `z-badge zType="destructive"`             | Dangerous/error badges                                                  |
+| Running status          | `--color-status-running-*`                | Running states, including background, foreground, indicator, and border |
+| Success status          | `--color-status-success-*`                | Success states                                                          |
+| Warning status          | `--color-status-warning-*`                | Warning states                                                          |
+| Error status            | `--color-status-error-*`                  | Error states                                                            |
+| Neutral status          | `--color-status-neutral-*`                | Neutral states                                                          |
+| Upward / downward trend | `--color-trend-up` / `--color-trend-down` | Trend colors                                                            |
+
+Destructive actions and error statuses have different semantics. Use zard destructive styling for delete buttons and Cloud status error styling for error status label backgrounds.
+
+## Tables, data grids, and analytical views
+
+Prefer zard/table components and core tokens for ordinary tables. Use Cloud data tokens for analytical grids, BI tables, and data selection states.
+
+| Context                         | Recommended tokens                         | Notes                             |
+| ------------------------------- | ------------------------------------------ | --------------------------------- |
+| Ordinary table background       | `bg-background` or the component default   | Ordinary zard tables              |
+| Ordinary table border           | `border-border`                            | General border                    |
+| Subtle table header background  | `bg-muted`                                 | Ordinary subdued headers          |
+| Row hover                       | The zard table default or `bg-muted`       | Ordinary tables                   |
+| Analytical row hover            | `--color-analytical-grid-row-hover-bg`     | Analytical grids only             |
+| Analytical striped row          | `--color-analytical-grid-row-striped-bg`   | Analytical grids only             |
+| Analytical selection background | `--color-analytical-grid-selection-bg`     | Analytical grid selection         |
+| Analytical selection border     | `--color-analytical-grid-selection-border` | Analytical grid selection borders |
+| Analytical header               | `--color-analytical-grid-header-bg`        | Analytical grid headers           |
+
+## Flows and node canvases
+
+Flows, agent graphs, and node canvases are not UI primitives covered by zard core. Use the existing Cloud flow tokens.
+
+| Context                    | Token                                    |
+| -------------------------- | ---------------------------------------- |
+| Canvas background elements | `--color-flow-background-element`        |
+| Canvas grid / lines        | `--color-flow-background-line`           |
+| Selection area             | `--color-flow-selection-area`            |
+| Node background            | `--color-flow-node-bg`                   |
+| Node border                | `--color-flow-node-border`               |
+| Node text                  | `--color-flow-node-text`                 |
+| Connection                 | `--color-flow-connection`                |
+| Snap connection            | `--color-flow-connection-snap`           |
+| Connection gradient start  | `--color-flow-connection-gradient-start` |
+| Connection gradient end    | `--color-flow-connection-gradient-end`   |
+| Selected node border       | `--color-flow-node-selected-border`      |
+| Minimap background         | `--color-flow-minimap-bg`                |
+| Minimap node               | `--color-flow-minimap-node`              |
+| Selected minimap node      | `--color-flow-minimap-node-selected`     |
+| Minimap viewport           | `--color-flow-minimap-view`              |
+| Team group background      | `--color-flow-team-group-bg`             |
+
+## Cloud shell and business panels
+
+Prefer zard tokens for ordinary content regions on new pages. The following tokens are reserved for the Cloud application shell, business panels, custom non-zard components, or explicit business scenarios.
+
+| Context                                      | Recommended tokens                                     |
+| -------------------------------------------- | ------------------------------------------------------ |
+| Cloud application body/shell                 | `bg-background-body`                                   |
+| Subtle Cloud business background             | `bg-background-default-subtle`                         |
+| Cloud panel background                       | `bg-components-panel-bg`                               |
+| Translucent / blurred Cloud panel background | `bg-components-panel-bg-blur`                          |
+| Cloud panel border                           | `border-components-panel-border`                       |
+| Cloud dropzone background                    | `bg-components-dropzone-bg`                            |
+| Selected option card border                  | `border-components-option-card-option-selected-border` |
+| Keyboard key background                      | `bg-components-kbd-bg-white`                           |
+
+Before using these tokens, confirm that the region is not already the responsibility of a zard card, popover, menu, select, dialog, button, or input.
+
+## Checklist for new pages
+
+Before submitting a new page, check that:
+
+- The page root uses `bg-background text-foreground` or inherits the existing shell.
+- Ordinary body text uses `text-foreground`, not `text-primary`.
+- Subtle text uses `text-muted-foreground`.
+- Cards, popovers, menus, selects, and dialogs use zard components or zard core tokens.
+- Each region uses spacing suited to its purpose, content direction, and interaction density; content edges and group spacing are consistent, and control dimensions and interaction targets remain independently defined.
+- Dialog footers use `py-2.5` and horizontal padding from the Tailwind spacing scale aligned with the content, without mixing fixed pixel padding or overriding it in business templates.
+- Horizontal menu items have less vertical than horizontal padding, their rendered height matches the intended menu density, and touch targets are preserved.
+- Leading icons in sidebar text menus are 20px inside 24px slots, with text aligned consistently across font / SVG / image icons and custom View icons.
+- Buttons use `z-button` variants rather than custom `components-button-*` styles.
+- Forms use `z-form` and zard input/select/checkbox/radio/switch controls.
+- Focus styling uses `ring-ring` / `border-ring`.
+- Destructive actions use zard `destructive`.
+- Running, success, warning, error, and other statuses use Cloud `status-*` tokens.
+- Flows, analytical grids, and trends use their corresponding Cloud business tokens.
+- No hard-coded colors or new tokens have been added, and existing zard component semantics have not been bypassed.
+
+## Conclusion
+
+Token selection boundaries for new pages:
+
+- zard tokens cover general components and UI primitives.
+- Cloud tokens cover Xpert business components, data states, analytical grids, flows, and the application shell.
+- Choose tokens by the purpose of the page region and component, not by color similarity.

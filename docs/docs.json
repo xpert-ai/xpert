@@ -96,6 +96,7 @@
                   "en/guides/runtime-user-input",
                   "en/guides/handoff",
                   "en/guides/icon-schema",
+                  "en/guides/ui-token-guidance",
                   "en/guides/release",
                   "en/guides/message-assembly-v2"
                 ]
@@ -229,6 +230,7 @@
                   "zh-Hans/guides/conversation-goal-architecture",
                   "zh-Hans/guides/handoff",
                   "zh-Hans/guides/icon-schema",
+                  "zh-Hans/guides/ui-token-guidance",
                   "zh-Hans/guides/release",
                   "zh-Hans/guides/message-assembly-v2",
                   "zh-Hans/guides/follow-up-architecture",

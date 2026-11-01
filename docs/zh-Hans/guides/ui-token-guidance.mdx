@@ -36,6 +36,15 @@ zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 z
 
 只有 zard 没有合适组件，或当前模块已有稳定封装时，才直接写 Tailwind token class。
 
+## 通用 UI 布局与间距原则
+
+以下原则适用于整个界面，具体尺寸由组件规格决定：
+
+1. 横向文字控件通常上下留白小于左右；方形控件和内容容器按自身结构处理。
+2. padding 和 gap 使用 Tailwind 间距刻度，相关内容边缘对齐，避免重复留白或混用固定像素间距。
+3. 复用共享 size／density variant，同类控件保持高度、字号、图标占位和状态颜色一致。
+4. 长内容和窄屏自然换行，保留可读字号与触控区域，不用固定高度强行压缩。
+
 ## Dialog 底部操作栏间距
 
 底部操作栏是横向条形区域，上下留白应小于左右留白。两个方向都使用 Tailwind 间距刻度，默认组合为 `px-4 py-2.5`，不把某张截图中的像素值作为固定标准。
@@ -52,7 +61,7 @@ zard 已覆盖的基础 UI 语义，必须以 zard 为准。Cloud token 用于 z
 
 Angular 使用 `xpDialogFooter`，间距由 `packages/ui/src/lib/components/dialog/dialog-frame.variants.ts` 管理；Header / Body 的共享边距变量也取自 Tailwind 间距刻度 4。React 使用 `DialogFooter` / `AlertDialogFooter`。业务模板不覆盖共享 footer 的 padding，也不使用 `p-4`、`p-6` 等四边等距写法；禁止将 `py-[10px]` 之类的固定像素值与 `px-4` 混用。确需独立布局的旧弹层保留与内容对齐的横向间距，纵向同样使用 `py-2.5`。
 
-这条规则针对 **Dialog 容器间距**，与按钮自身的几何尺寸和文字尺寸无关，也不用于页面底栏、表格分页或普通卡片。
+上述数值约定针对 **Dialog 容器间距**，与按钮自身的几何尺寸和文字尺寸分开管理。页面底栏、表格分页和普通卡片同样遵循通用间距原则，但采用各自的组件规格，不直接照搬 Dialog 的 padding 数值。
 
 ## zard Core Tokens
 
@@ -173,6 +182,23 @@ Angular 使用 `xpDialogFooter`，间距由 `packages/ui/src/lib/components/dial
 
 不要把 Cloud 的 `components-list-option-*` 当作新页面 list/menu 默认值。只有非 zard 自定义列表控件需要明确业务视觉时再用。
 
+横向文字菜单项遵循“上下 padding 小于左右 padding”，两个方向都使用 Tailwind 间距刻度，不使用四边等距的 `p-*`，也不混入固定像素 padding。
+
+| 场景                          | 间距标准                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| 侧栏浮层 / 固定面板中的菜单项 | `px-3 py-1.5 min-h-9`，适用于 Bosi、模块导航、助手、项目、工作空间、会话和搜索结果 |
+| 通用下拉菜单                  | 由共享 menu variant 管理；已有 `px-3 py-2` 保留其密度，同样满足纵向小于横向        |
+| 粗指针触屏的侧栏菜单项        | 保持相同 padding，使用 `pointer-coarse:min-h-[44px]` 确保触控区域                  |
+
+不要只减小 `py-*`，却保留会撑高菜单项的固定 `h-*` 或过大的 `min-h-*`；应检查实际渲染高度。带描述的多行菜单自然增高。折叠侧栏中的纯图标按钮保持方形；分组标题、空状态和菜单外层容器不按菜单项规则调整。
+
+侧栏浮层 / 固定面板的文字菜单统一使用 **20px 图标、24px × 24px 占位容器、`gap-2.5` 图文间距**。适用于 Bosi、模块导航、助手操作与 View、项目、工作空间、群聊、会话及搜索结果：
+
+- 字体图标使用 `inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none`，占位与字形尺寸分别控制。
+- SVG / 图片图标使用 `size-[20px]`，外层用 `inline-flex size-[24px] shrink-0 items-center justify-center`；不能直接把 SVG 撑满 24px 占位。Assistant View 的 `xp-icon` 显式设置 `[size]="20"`，不沿用插件声明的默认尺寸。
+- 助手身份头像占位也为 24px，保留头像组件自己的文字和 emoji 比例。菜单图标不能挤压占位，长标题截断后仍保持文字左边缘一致。
+- Cloud 根字号为 14px，因此图标使用上述固定尺寸，避免 `size-5` / `size-6` 缩小为 17.5px / 21px；padding 和 gap 仍使用 Tailwind 间距刻度。此标准不套用于面板标题栏按钮、行尾状态标记或折叠侧栏的纯图标按钮。
+
 ## Badge、状态和标签
 
 zard 的 badge 覆盖 default、secondary、destructive、outline。业务状态需要 Cloud status token。
@@ -254,7 +280,10 @@ Flow、agent graph、node canvas 不是 zard core 覆盖的 UI primitive，应�
 - 普通正文是否使用 `text-foreground`，而不是 `text-primary`。
 - 弱文本是否使用 `text-muted-foreground`。
 - zard card/popover/menu/select/dialog 是否使用 zard 组件或 zard core token。
+- 各区域是否按用途、内容方向和交互密度选择留白，内容边缘及分组间距是否一致，是否保留独立的控件尺寸与交互区域。
 - Dialog 底部操作栏是否采用 `py-2.5`、左右与内容区对齐的 Tailwind 间距，且没有固定像素混用或业务层 padding 覆盖。
+- 横向菜单项的上下 padding 是否小于左右 padding，实际高度是否符合菜单密度，触屏目标是否保留。
+- 侧栏文字菜单的前置图标是否为 20px、占位是否为 24px，字体 / SVG / 图片与自定义 View 图标的文字起点是否一致。
 - 按钮是否使用 `z-button` variant，而不是手写 `components-button-*`。
 - 表单是否使用 `z-form` 和 zard input/select/checkbox/radio/switch。
 - focus 是否走 `ring-ring` / `border-ring`。

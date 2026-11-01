@@ -4,7 +4,7 @@
   [attr.data-conversation-id]="conversation().id"
 >
   <a
-    class="flex min-w-0 flex-1 h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="flex min-w-0 flex-1 min-h-9 pointer-coarse:min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [routerLink]="route()"
     [queryParamsHandling]="preserveQueryParams() ? 'preserve' : null"
     [attr.aria-current]="active() ? 'page' : null"

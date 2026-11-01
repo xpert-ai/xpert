@@ -30,11 +30,11 @@
       @if (!browsing()) {
         <button
           type="button"
-          class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg"
+          class="mb-2 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg"
           (click)="browsing.set(true)"
         >
           <i
-            class="ri-arrow-left-line inline-flex size-[18px] shrink-0 items-center justify-center text-[18px] leading-none"
+            class="ri-arrow-left-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
           ></i
           >{{ 'XP.Sidebar.ChooseWorkspace' | translate }}
         </button>
@@ -43,12 +43,12 @@
         <button
           type="button"
           data-sidebar-panel-action
-          class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none enabled:hover:bg-hover-bg enabled:hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          class="flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none enabled:hover:bg-hover-bg enabled:hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           [disabled]="!canWriteWorkspace()"
           (click)="openEnvironments()"
         >
           <i
-            class="ri-code-box-line inline-flex size-[18px] shrink-0 items-center justify-center text-[18px] leading-none"
+            class="ri-code-box-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
           ></i
           >{{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }}
         </button>
@@ -75,7 +75,7 @@
       @for (workspace of filteredWorkspaces(query); track workspace.id) {
         <li class="min-w-0">
           <a
-            class="flex min-h-10 min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="flex min-h-9 pointer-coarse:min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             [routerLink]="['/xpert/w', workspace.id]"
             routerLinkActive="bg-components-list-option-active-bg text-text-primary!"
             ariaCurrentWhenActive="page"
@@ -83,7 +83,7 @@
             (click)="selectWorkspace()"
           >
             <i
-              class="ri-apps-line inline-flex size-[18px] shrink-0 items-center justify-center text-[18px] leading-none"
+              class="ri-apps-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
               aria-hidden="true"
             ></i>
             <span class="min-w-0 flex-1 truncate">{{ workspace.name }}</span>
@@ -105,11 +105,11 @@
     @if (!query?.trim() && (showAll() || state().items.length > recentWorkspaces().length)) {
       <button
         type="button"
-        class="mt-1 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="mt-1 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         (click)="showAll.set(!showAll())"
       >
         <i
-          class="inline-flex size-[18px] shrink-0 items-center justify-center text-[18px] leading-none"
+          class="inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
           [class]="showAll() ? 'ri-history-line' : 'ri-layout-grid-line'"
           aria-hidden="true"
         ></i>
