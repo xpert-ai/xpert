@@ -15,7 +15,7 @@
       <input
         z-input
         [disabled]="disabled()"
-        class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
+        class="ml-4 block w-24 shrink-0"
         [max]="parameter.max"
         [min]="parameter.min"
         [step]="numericStep()"
@@ -40,7 +40,7 @@
       <input
         z-input
         [disabled]="disabled()"
-        class="shrink-0 block ml-4 pl-3 w-24 h-8 text-[13px] text-gra-900"
+        class="ml-4 block w-24 shrink-0"
         [max]="sliderMaximum()"
         [min]="parameter.min"
         [step]="1"
@@ -64,22 +64,22 @@
 
     @default {
       @if (parameter.options) {
-        <select
-          [disabled]="disabled()"
-          class="xp-input w-36 h-full border-0 pl-3 pr-4 sm:text-sm sm:leading-6 focus-visible:outline-none focus-visible:bg-components-list-option-active-bg group-hover:bg-hover-bg cursor-pointer"
+        <z-select
+          [zDisabled]="disabled()"
+          class="w-36"
           [ngModel]="value$()"
           (ngModelChange)="updateValue($event)"
           [ngModelOptions]="{ standalone: true }"
         >
           @for (option of parameter.options; track option) {
-            <option [value]="option" class="px-2 py-1 rounded-lg hover:bg-hover-bg">{{ option }}</option>
+            <z-select-item [zValue]="option">{{ option }}</z-select-item>
           }
-        </select>
+        </z-select>
       } @else {
         <input
           z-input
           [disabled]="disabled()"
-          class="w-full ml-4 flex items-center h-8 text-[13px] text-gra-900"
+          class="ml-4 w-full"
           [ngModel]="value$()"
           (ngModelChange)="updateValue($event)"
           [ngModelOptions]="{ standalone: true }"

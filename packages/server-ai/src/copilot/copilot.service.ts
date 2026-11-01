@@ -1,4 +1,7 @@
-import { AiProviderRole, AIPermissionsEnum, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
+import { ConnectionReferencesService } from './connection-references.service'
+import { BadRequestException } from '@nestjs/common'
+import { t } from 'i18next'
+import { LegacyProviderRole, AIPermissionsEnum, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
 import {
@@ -21,15 +24,13 @@ import { Copilot } from './copilot.entity'
 import { CopilotDto } from './dto'
 import { usesOrganizationCredentials } from './utils'
 
-export const ProviderRolePriority = [
-    AiProviderRole.Embedding,
-    AiProviderRole.Secondary,
-    AiProviderRole.Primary,
-    AiProviderRole.Reasoning
-]
-
 @Injectable()
 export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> {
+    async connectionReferences(id: string) {
+        await this.findOne(id)
+        return this.references.inspect(id)
+    }
+
     @Inject(ConfigService)
     private readonly configService: ConfigService
 
@@ -44,7 +45,8 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         private readonly queryBus: QueryBus,
         private readonly copilotProviderService: CopilotProviderService,
         private readonly membershipService: MembershipService,
-        private readonly modelAccessService: ModelAccessService
+        private readonly modelAccessService: ModelAccessService,
+        private readonly references: ConnectionReferencesService
     ) {
         super(repository)
     }
@@ -75,14 +77,6 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 
         return copilots
     }
-
-    /**
-     *
-     */
-    // async findOneByRole(role: AiProviderRole, tenantId: string, organizationId: string): Promise<Copilot> {
-    // 	const items = await this.findAllAvailablesCopilots(tenantId, organizationId, { role })
-    // 	return items.length ? items[0] : null
-    // }
 
     /**
      * Find all copilots in organization or tenant globally
@@ -235,13 +229,13 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         }
     }
 
-    async enableRole(role: AiProviderRole) {
+    async enableRole(role: LegacyProviderRole) {
         const result = await this.findOneOrFailByWhereOptions({ role })
         const copilot = result.success
             ? await this.update(result.record.id, { enabled: true })
             : await this.create({ role, enabled: true })
 
-        if (role === AiProviderRole.Primary) {
+        if (role === 'primary') {
             await this.initializeOrganizationMembership()
         }
 
@@ -272,6 +266,8 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 
     async update(id: string, entity: DeepPartial<ICopilot>) {
         const copilot = await this.findOne(id)
+        if (entity.enabled === false && copilot.enabled && (await this.references.inspect(id)).defaults)
+            throw new BadRequestException(t('server-ai:Error.ModelDefaultInUse'))
         const wasEnabled = copilot.enabled
         assign(copilot, entity)
         const saved = await this.repository.save(copilot)

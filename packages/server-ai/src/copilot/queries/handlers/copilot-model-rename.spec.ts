@@ -70,7 +70,8 @@ describe('configured model lifecycle and selector catalog', () => {
                     getProviderSchema: () => ({ provider: provider.providerName })
                 })
             } as never,
-            access as never
+            access as never,
+            { resolve: async () => ({ configured: false, binding: null }) } as never
         )
         Object.defineProperty(handler, 'configService', { value: { get: () => 'http://localhost:3000' } })
         const catalog = async () =>

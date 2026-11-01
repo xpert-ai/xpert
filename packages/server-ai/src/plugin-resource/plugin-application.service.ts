@@ -12,7 +12,7 @@ import { PluginApplicationSuiteService } from './plugin-application-suite.servic
 import { applicationModelOptions } from './application-models'
 import {
     AiModelTypeEnum,
-    AiProviderRole,
+    DefaultModelRole,
     ICopilot,
     IPluginApplicationInstallation,
     KnowledgeGraphStatus,
@@ -51,7 +51,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { CopilotOneByRoleQuery } from '../copilot/queries'
+import { ResolveDefaultModelQuery } from '../copilot/queries'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import { Xpert } from '../xpert/xpert.entity'
@@ -623,10 +623,10 @@ export class PluginApplicationService {
         const primaryModelAvailable = !modelRequirements.primary || primaryModels.length > 0
         const [defaultEmbeddingModelId, defaultVisionModelId] = await Promise.all([
             modelRequirements.embedding
-                ? this.defaultModelOptionId(AiProviderRole.Embedding, embeddingModels)
+                ? this.defaultModelOptionId(DefaultModelRole.Embedding, embeddingModels)
                 : Promise.resolve(null),
             modelRequirements.vision
-                ? this.defaultModelOptionId(AiProviderRole.Primary, visionModels)
+                ? this.defaultModelOptionId(DefaultModelRole.Primary, visionModels)
                 : Promise.resolve(null)
         ])
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
@@ -866,7 +866,7 @@ export class PluginApplicationService {
 
     /** Resolves the configured organization role default only when it remains an authorized setup option. */
     private async defaultModelOptionId(
-        role: AiProviderRole,
+        role: DefaultModelRole,
         options: PluginApplicationModelOption[]
     ): Promise<string | null> {
         const tenantId = RequestContext.currentTenantId()
@@ -874,8 +874,8 @@ export class PluginApplicationService {
         if (!tenantId || !organizationId || !options.length) {
             return null
         }
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
-            new CopilotOneByRoleQuery(tenantId, organizationId, role)
+        const copilot = await this.queryBus.execute<ResolveDefaultModelQuery, ICopilot | null>(
+            new ResolveDefaultModelQuery(tenantId, organizationId, role)
         )
         const copilotId = copilot?.id?.trim()
         const model = copilot?.copilotModel?.model?.trim()

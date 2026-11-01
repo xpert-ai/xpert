@@ -1,6 +1,6 @@
 import { Component, computed, forwardRef, input, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { ZardSelectImports, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { isOutputTokenParameter, ParameterRule, ParameterType } from '@xpert-ai/contracts'
 
 /**
@@ -8,7 +8,7 @@ import { isOutputTokenParameter, ParameterRule, ParameterType } from '@xpert-ai/
  */
 @Component({
   standalone: true,
-  imports: [FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
+  imports: [...ZardSelectImports, FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
   selector: 'copilot-model-parameter-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],

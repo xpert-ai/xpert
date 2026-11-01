@@ -8,7 +8,7 @@ import {
     BosiSetup,
     LanguagesEnum,
     XpertAgentExecutionStatusEnum,
-    AiProviderRole,
+    DefaultModelRole,
     ICopilot,
     TXpertChatSendRequest,
     TXpertChatRetryRequest
@@ -45,7 +45,7 @@ import { ThreadCreateCommand } from '../../ai/commands/thread-create.command'
 import { RunCreateStreamCommand } from '../../ai/commands/run-create-stream.command'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
-import { CopilotOneByRoleQuery } from '../../copilot/queries/get-one-by-role.query'
+import { ResolveDefaultModelQuery } from '../../copilot/queries/resolve-default-model.query'
 
 /** Whitelist client progress fields; never serialize the persistence checkpoint directly. */
 function publicProgress(progress?: BosiBootstrapProgress | null): BosiSetup['progress'] {
@@ -128,8 +128,10 @@ export class BosiBootstrapService {
         )
         const setup = await this.capabilities.setup(template, this.language(), selected)
         const scope = this.scope()
-        const primary = await this.queries.execute<CopilotOneByRoleQuery, ICopilot>(
-            new CopilotOneByRoleQuery(scope.tenantId, scope.organizationId, AiProviderRole.Primary, ['copilotModel'])
+        const primary = await this.queries.execute<ResolveDefaultModelQuery, ICopilot>(
+            new ResolveDefaultModelQuery(scope.tenantId, scope.organizationId, DefaultModelRole.Primary, [
+                'copilotModel'
+            ])
         )
         setup.defaultModelId = setup.models.find(
             (item) =>
