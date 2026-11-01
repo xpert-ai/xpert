@@ -25,6 +25,16 @@
       }
       <div class="flex flex-col">
         <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
+        <div class="text-xs text-muted-foreground">
+          {{
+            (option.disabled
+              ? 'XP.Integration.Sharing.Unavailable'
+              : option.scopeLevel === 'tenant'
+                ? 'XP.Integration.Sharing.TenantSource'
+                : 'XP.Integration.Sharing.OrganizationSource'
+            ) | translate
+          }}
+        </div>
         <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
           {{ option.description | i18n }}
         </div>

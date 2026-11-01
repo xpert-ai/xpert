@@ -45,3 +45,24 @@ it('accepts typed creation effects and rejects malformed classifications', () =>
     })
   ).toBeNull()
 })
+
+it('opens the exact dashboard version in its Assistant ChatKit Project', async () => {
+  const navigate = jest.fn(async () => true)
+  await navigateProjectEntry({ navigate } as Pick<Router, 'navigate'> as Router, {
+    kind: 'assistant',
+    xpertId: 'assistant',
+    slug: 'dashboard-author',
+    projectId: 'project',
+    viewKey: 'live-dashboard__live-dashboard',
+    selectionId: 'exact-object',
+    parameters: { mode: 'published', versionId: 'exact-version' }
+  })
+  expect(navigate).toHaveBeenCalledWith(['/chat/x', 'dashboard-author', 'p', 'project', 'c'], {
+    queryParams: {
+      view: 'live-dashboard__live-dashboard',
+      viewSelection: 'exact-object',
+      viewProject: 'project',
+      viewParameters: '{"mode":"published","versionId":"exact-version"}'
+    }
+  })
+})

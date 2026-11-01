@@ -1,4 +1,5 @@
 import {
+    AiModelTypeEnum,
     IMembershipAllowedModel,
     IMembershipModelMultiplier,
     IMembershipRateLimit,
@@ -32,6 +33,10 @@ import {
 } from 'class-validator'
 
 class MembershipAllowedModelDto implements IMembershipAllowedModel {
+    @IsOptional()
+    @IsEnum(AiModelTypeEnum)
+    modelType?: AiModelTypeEnum
+
     @IsString()
     @IsNotEmpty()
     @MaxLength(100)

@@ -69,6 +69,11 @@
         "Notification_denied": "You do not have access to this notification operation.",
         "Notification_conflict": "This announcement changed. Reload before saving.",
         "Notification_unavailable": "This notification is no longer available.",
+        "ArtifactApplicationPublicationRequired": "Publish this artifact through its application draft workflow.",
+        "ArtifactContentAccessDenied": "You cannot access this artifact content.",
+        "ArtifactContentTooLarge": "Artifact content must be a file no larger than 50 MB.",
+        "ArtifactContentChanged": "Artifact content has changed. Save a verified snapshot again.",
+        "ArtifactContentReferenceInvalid": "The artifact file reference is invalid.",
         "PluginMarketplaceDetailUnavailable": "This package could not be found or accessed. It may be private or unavailable in the configured registry. Check the package name, or contact your administrator to confirm package availability and access.",
         "PluginMarketplaceLookupFailed": "A marketplace source could not be loaded. Try again, or contact your administrator to check source availability and access.",
         "AgentTasksUnfinished": "Agent execution stopped with unfinished tasks and no approval or pause request.",
@@ -1296,9 +1301,21 @@
         "ApplicationUpdateFailed": "The update stopped. Completed steps are saved. Resume after resolving the resource or permission issue; concurrent edits or changed templates require review.",
         "ApplicationUpdateDraftPending": "The suite contains unpublished drafts. Publish or resolve them before updating the application.",
         "ArtifactCopyDenied": "This artifact type cannot be copied into another project.",
+        "ModelDefaultInvalid": "Invalid model configuration. Select a connection and model again.",
+        "ModelDefaultUnavailable": "The selected model is unavailable. Check credentials, connection and enabled models.",
+        "ModelParametersRequired": "The target model requires additional parameters.",
+        "ModelCapabilitiesIncompatible": "The target model lacks capabilities of the source model.",
+        "ModelReplacementNarrowScope": "More than 500 assistants match. Select a workspace and retry.",
+        "ModelReplacementConflict": "The draft has changed. Preview again.",
+        "ModelReplacementFailed": "The operation failed. Check permissions and target model availability.",
+        "ModelDefaultInUse": "This connection is still used by default models. Update the defaults first.",
         "UnsafeTemplateSyncPath": "Cannot synchronize template path {{file}}: symbolic links and special files are not supported.",
         "InvalidTemplateSyncManifest": "Template synchronization manifest {{file}} is invalid. Restore it from a backup before retrying; no template assets were changed.",
-        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation."
+        "TemplateSyncConcurrentChange": "Template asset {{file}} changed during synchronization. The local content was preserved; retry the operation.",
+        "IntegrationSharingAdminRequired": "Only a tenant administrator can manage integration sharing",
+        "IntegrationUnavailable": "Integration is unavailable or unauthorized",
+        "IntegrationSharingOrganizationInvalid": "Select active organizations in the current tenant",
+        "IntegrationSharingInvalid": "Invalid integration access policy or query"
     },
     "Mcp": {
         "Test": {
@@ -1483,6 +1500,10 @@
     "TemplateUpgradeReleaseNotes": "Template upgrade",
     "TemplateRollbackReleaseNotes": "Restore previous template content",
     "TemplateCommunityPublisher": "Community publisher",
+    "UserInput": {
+        "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
+        "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
+    },
     "TemplateSync": {
         "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",
         "Conflict": "Preserved local template {{file}}: modified content, removed entry, or no historical hash. Review and merge the current built-in version manually.",

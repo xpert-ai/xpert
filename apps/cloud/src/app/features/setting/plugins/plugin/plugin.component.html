@@ -1,74 +1,126 @@
 @if (plugin(); as plugin) {
-  <xp-plugin [plugin]="displayPlugin()" [installed]="installed()" (pluginNameClick)="openPluginPage($event)">
-    <div class="flex h-5 justify-between items-center gap-2">
-      <div class="flex items-center space-x-1 text-text-tertiary">
-        <i class="ri-import-line shrink-0"></i>
-        <div class="system-xs-regular font-mono">
-          @if (plugin.downloads?.lastMonth) {
-            {{ plugin.downloads?.lastMonth | number }}
-          } @else {
-            **
+  @if (presentation() === 'provider') {
+    <article
+      class="group/provider relative flex h-full min-w-0 flex-col gap-4 overflow-hidden rounded-xl border border-border bg-background p-4 transition-shadow hover:shadow-sm"
+    >
+      <div class="flex min-w-0 items-center gap-3">
+        <xp-icon [icon]="displayPlugin().icon" size="32" class="flex size-10 shrink-0 items-center justify-center" />
+        <div class="min-w-0">
+          <h3 class="truncate text-base font-semibold" [title]="plugin.displayName | i18n">
+            {{ plugin.displayName | i18n }}
+          </h3>
+          <p class="flex items-center gap-1 truncate text-xs text-text-tertiary">
+            <span class="truncate">{{ plugin.author.name }}</span>
+            @if (plugin.downloads?.lastMonth != null) {
+              <span>·</span><i class="ri-download-2-line" aria-hidden="true"></i
+              ><span>{{ plugin.downloads.lastMonth | number }}</span>
+            }
+          </p>
+        </div>
+      </div>
+      <p class="line-clamp-2 min-h-10 text-sm text-text-tertiary" [title]="plugin.description | i18n">
+        {{ plugin.description | i18n }}
+      </p>
+      @if (systemPluginUnavailableInCurrentScope()) {
+        <p class="text-xs text-text-tertiary">{{ 'XP.Plugin.SystemPluginTenantScopeRequired' | translate }}</p>
+      }
+      <div
+        class="absolute inset-x-0 bottom-0 flex gap-2 bg-gradient-to-t from-background from-75% to-transparent px-4 pb-4 pt-2 opacity-0 transition-opacity group-hover/provider:opacity-100 group-focus-within/provider:opacity-100 pointer-coarse:opacity-100"
+      >
+        <button
+          z-button
+          class="min-w-0 flex-1 pointer-coarse:min-h-[44px]"
+          [zDisabled]="!canInstall()"
+          (click)="install()"
+          [attr.aria-label]="('XP.Plugin.Install' | translate) + ' · ' + (plugin.displayName | i18n)"
+        >
+          {{ (installed() ? 'XP.Plugin.Installed' : 'XP.Plugin.Install') | translate }}
+        </button>
+        <button
+          z-button
+          zType="outline"
+          class="min-w-0 flex-1 gap-1 pointer-coarse:min-h-[44px]"
+          [zDisabled]="detailLoading()"
+          (click)="viewDetails()"
+          [attr.aria-label]="('XP.Plugin.Details' | translate) + ' · ' + (plugin.displayName | i18n)"
+        >
+          {{ 'XP.Plugin.Details' | translate }}<i class="ri-arrow-right-up-line" aria-hidden="true"></i>
+        </button>
+      </div>
+    </article>
+  } @else {
+    <xp-plugin [plugin]="displayPlugin()" [installed]="installed()" (pluginNameClick)="openPluginPage($event)">
+      <div class="flex h-5 justify-between items-center gap-2">
+        <div class="flex items-center space-x-1 text-text-tertiary">
+          <i class="ri-import-line shrink-0"></i>
+          <div class="system-xs-regular font-mono">
+            @if (plugin.downloads?.lastMonth) {
+              {{ plugin.downloads?.lastMonth | number }}
+            } @else {
+              **
+            }
+          </div>
+        </div>
+        <div class="flex min-w-0 items-center gap-1">
+          @if (plugin.sourceName) {
+            <span
+              class="system-2xs-medium truncate rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary"
+            >
+              @if (plugin.sourceNameI18nKey) {
+                {{ plugin.sourceNameI18nKey | translate: { Default: plugin.sourceName } }}
+              } @else {
+                {{ plugin.sourceName }}
+              }
+            </span>
+          }
+          @if (plugin.contributions?.length) {
+            <span class="system-2xs-medium rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary">
+              {{
+                'XP.Plugin.ContentCount'
+                  | translate
+                    : { Default: plugin.contributions.length + ' contents', count: plugin.contributions.length }
+              }}
+            </span>
           }
         </div>
       </div>
-      <div class="flex min-w-0 items-center gap-1">
-        @if (plugin.sourceName) {
-          <span
-            class="system-2xs-medium truncate rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary"
-          >
-            @if (plugin.sourceNameI18nKey) {
-              {{ plugin.sourceNameI18nKey | translate: { Default: plugin.sourceName } }}
-            } @else {
-              {{ plugin.sourceName }}
-            }
-          </span>
-        }
-        @if (plugin.contributions?.length) {
-          <span class="system-2xs-medium rounded-full bg-components-input-bg-normal px-2 py-0.5 text-text-tertiary">
-            {{
-              'XP.Plugin.ContentCount'
-                | translate: { Default: plugin.contributions.length + ' contents', count: plugin.contributions.length }
-            }}
-          </span>
-        }
-      </div>
-    </div>
-  </xp-plugin>
+    </xp-plugin>
 
-  <div
-    class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient"
-  >
-    @if (!systemPluginUnavailableInCurrentScope()) {
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
-        [disabled]="installed()"
-        (click)="install()"
-      >
-        @if (installed()) {
-          {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
-        } @else {
-          {{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}
-        }
-      </button>
-    }
-    @if (hasMarketplaceDetails()) {
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-medium flex-1 shrink-0 gap-0.5"
-        (click)="viewDetails()"
-        [disabled]="detailLoading()"
-      >
-        {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
-        <i class="ri-list-check-3"></i>
-      </button>
-    } @else if (plugin.source?.url) {
-      <a target="_blank" [href]="plugin.source?.url" class="block flex-1 shrink-0">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
-          {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
-          <i class="ri-corner-right-up-line"></i>
+    <div
+      class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl px-4 pb-4 pt-8 group-hover:flex bg-hero-gradient"
+    >
+      @if (!systemPluginUnavailableInCurrentScope()) {
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-primary btn-medium flex-1 shrink-0 gap-0.5"
+          [disabled]="installed()"
+          (click)="install()"
+        >
+          @if (installed()) {
+            {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
+          } @else {
+            {{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}
+          }
         </button>
-      </a>
-    }
-  </div>
+      }
+      @if (hasMarketplaceDetails()) {
+        <button
+          type="button"
+          class="btn disabled:btn-disabled btn-secondary btn-medium flex-1 shrink-0 gap-0.5"
+          (click)="viewDetails()"
+          [disabled]="detailLoading()"
+        >
+          {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
+          <i class="ri-list-check-3"></i>
+        </button>
+      } @else if (plugin.source?.url) {
+        <a target="_blank" [href]="plugin.source?.url" class="block flex-1 shrink-0">
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5">
+            {{ 'XP.Plugin.Details' | translate: { Default: 'Details' } }}
+            <i class="ri-corner-right-up-line"></i>
+          </button>
+        </a>
+      }
+    </div>
+  }
 }

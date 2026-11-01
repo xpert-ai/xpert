@@ -1,4 +1,4 @@
-import { CallbackManager, type Callbacks } from '@langchain/core/callbacks/manager'
+import { CallbackManager, type CallbackManagerForToolRun, type Callbacks } from '@langchain/core/callbacks/manager'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import type { Serialized } from '@langchain/core/load/serializable'
 import { ToolMessage } from '@langchain/core/messages'
@@ -505,14 +505,7 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                     undefined
                 )
                 const serializedTool = serializeToolForCallbacks(request.tool, request.toolCall.name)
-                const runManager = await callbackManager?.handleToolStart(
-                    serializedTool,
-                    JSON.stringify(request.toolCall),
-                    request.toolCall.id,
-                    undefined,
-                    runtimeConfig.tags,
-                    runtimeConfig.metadata
-                )
+                let runManager: CallbackManagerForToolRun | undefined
                 const shouldEmitToolMessages = config.emitToolMessages === true
                 const createdAt = new Date()
                 const displayConfig: ClientToolDisplayConfig = {
@@ -550,6 +543,17 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                         ? await options.resolveClientToolMessage(clientMessage, request.toolCall, executeClientTool)
                         : clientMessage
 
+                    // A checkpoint suspends this attempt; no server tool work remains in flight.
+                    // Start receipts only after every input gate has returned, otherwise replay
+                    // reuses an unsettled tool-call ID and is rejected as duplicate work.
+                    runManager = await callbackManager?.handleToolStart(
+                        serializedTool,
+                        JSON.stringify(request.toolCall),
+                        request.toolCall.id,
+                        undefined,
+                        runtimeConfig.tags,
+                        runtimeConfig.metadata
+                    )
                     const toolMessage = toToolMessage(message, request.toolCall)
                     const preparedToolMessage = options.transformToolMessage
                         ? await options.transformToolMessage(toolMessage, request.toolCall)

@@ -39,7 +39,7 @@ import {
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   CopilotServerService,
-  AiProviderRole,
+  DefaultModelRole,
   ICopilot
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
@@ -222,7 +222,7 @@ export class XpertStudioPanelAgentComponent {
   readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
   readonly fileUnderstandingEnabled = computed(() => this.agentOptions()?.fileUnderstanding?.enabled !== false)
   readonly embeddingCopilot = toSignal(
-    this.copilotServer.getAvailableByRole(AiProviderRole.Embedding).pipe(catchError(() => of(null as ICopilot | null))),
+    this.copilotServer.getDefaultModel(DefaultModelRole.Embedding).pipe(catchError(() => of(null as ICopilot | null))),
     { initialValue: undefined as ICopilot | null | undefined }
   )
   readonly fileUnderstandingEmbeddingReady = computed(() => {

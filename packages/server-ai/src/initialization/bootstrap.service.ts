@@ -1,6 +1,6 @@
 import {
     AiModelTypeEnum,
-    AiProviderRole,
+    DefaultModelRole,
     AssistantBindingScope,
     AssistantCode,
     ICopilotWithProvider,
@@ -27,7 +27,7 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
-import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
+import { ResolveDefaultModelQuery, FindCopilotModelsQuery } from '../copilot/queries'
 import { SkillRepositoryIndexService } from '../skill-repository'
 import { SkillPackageService } from '../skill-package'
 import { XpertImportCommand, XpertService } from '../xpert'
@@ -710,7 +710,7 @@ export class ServerAIBootstrapService {
         }
 
         const primaryCopilot = await this.queryBus.execute(
-            new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Primary)
+            new ResolveDefaultModelQuery(tenantId, organizationId, DefaultModelRole.Primary)
         )
         const primaryModel = primaryCopilot?.copilotModel
         if (

@@ -53,7 +53,7 @@ jest.mock('echarts/core', () => ({
 type BlankSpecContext = {
   component: XpertNewBlankComponent
   copilotServer: {
-    enableCopilot: jest.Mock
+    prepareDefaultModelSetup: jest.Mock
     getAllInOrg: jest.Mock
     getCopilotModels: jest.Mock
     refresh: jest.Mock
@@ -690,7 +690,8 @@ async function createComponent(
     refresh$: copilotRefresh$,
     getCopilotModels: jest.fn(() => of(copilotModels)),
     getAllInOrg: jest.fn(() => of({ items: copilots })),
-    enableCopilot: jest.fn((role: AiProviderRole) => {
+    getDefaultModelSetup: jest.fn(() => of(copilots[0] ?? null)),
+    prepareDefaultModelSetup: jest.fn((role: AiProviderRole) => {
       const primary = copilots.find((item) => item.role === role)
       copilots = primary
         ? copilots.map((item) => (item === primary ? { ...item, enabled: true } : item))
@@ -873,7 +874,7 @@ describe('XpertNewBlankComponent', () => {
     await fixture.whenStable()
     await flushPromises()
 
-    expect(copilotServer.enableCopilot).toHaveBeenCalledWith(AiProviderRole.Primary)
+    expect(copilotServer.prepareDefaultModelSetup).toHaveBeenCalledWith(AiProviderRole.Primary)
     expect(copilotServer.refresh).toHaveBeenCalled()
     expect(component.primaryCopilot()?.enabled).toBe(true)
   })
@@ -944,7 +945,7 @@ describe('XpertNewBlankComponent', () => {
 
     await component.onAgentStepChange({ selectedIndex: component.agentModelProviderStepIndex() } as any)
 
-    expect(copilotServer.enableCopilot).not.toHaveBeenCalled()
+    expect(copilotServer.prepareDefaultModelSetup).not.toHaveBeenCalled()
   })
 
   it('keeps the original Agent wizard steps when ClawXpert already has an available LLM provider', async () => {

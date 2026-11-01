@@ -100,6 +100,37 @@ function fixture() {
 }
 
 describe('Artifact ownership and resource authorization', () => {
+    it('expands only an explicitly opted-in authenticated share, retaining source ACL and draft protection', async () => {
+        let allowed = false
+        const policies = { authorize: jest.fn(async () => {}), allowsProjectLinkAudience: jest.fn(() => allowed) }
+        const projects = {
+            listReadable: jest.fn(async () => []),
+            assertEdit: jest.fn(async () => {
+                throw new ForbiddenException()
+            })
+        }
+        const resources = { authorize: jest.fn(async () => {}) }
+        const access = new ArtifactContentAccess(resources as never, projects as never, policies as never)
+        const artifact = {
+            ...source,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            projectId: 'project',
+            userId: null,
+            authorizationProviderKey: 'pages'
+        }
+        const link = { accessMode: 'organization_all' as const, versionMode: 'version' as const }
+        await expect(access.assertSharedRead(artifact, actor, link)).rejects.toBeInstanceOf(ForbiddenException)
+        allowed = true
+        await access.assertSharedRead(artifact, actor, link)
+        expect(resources.authorize).toHaveBeenCalledWith(expect.objectContaining({ operation: 'read', actor }))
+        await expect(access.assert(artifact, actor, 'read')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(access.assert(artifact, actor, 'read', 'draft')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(access.assert(artifact, actor, 'write')).rejects.toBeInstanceOf(ForbiddenException)
+        resources.authorize.mockRejectedValueOnce(new ForbiddenException())
+        await expect(access.assertSharedRead(artifact, actor, link)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
     it('keeps provider-protected personal artifacts owned by their user', async () => {
         const f = fixture()
         const artifact = await f.api().createArtifact({ source, authorizationProviderKey: 'pages' })

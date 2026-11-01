@@ -11,6 +11,8 @@ export class AssistantBindingXpertDTO {
     @Expose() title: IXpert['title']
     @Expose() titleCN: IXpert['titleCN']
     @Expose() description: IXpert['description']
+    @Expose() starters: IXpert['starters']
+    @Expose() features?: Partial<Pick<NonNullable<IXpert['features']>, 'opener' | 'frequentQuestions'>>
     @Expose() avatar: IXpert['avatar']
     @Expose() version: IXpert['version']
     @Expose() latest: IXpert['latest']
@@ -37,6 +39,20 @@ export class AssistantBindingXpertDTO {
         this.title = xpert.title
         this.titleCN = xpert.titleCN
         this.description = xpert.description
+        this.starters = xpert.starters?.slice()
+        const opener = xpert.features?.opener
+        const frequentQuestions = xpert.features?.frequentQuestions
+        this.features =
+            opener || frequentQuestions
+                ? {
+                      opener: opener && {
+                          enabled: opener.enabled,
+                          message: opener.message,
+                          questions: opener.questions?.slice()
+                      },
+                      frequentQuestions: frequentQuestions && { enabled: frequentQuestions.enabled }
+                  }
+                : undefined
         this.avatar = xpert.avatar
         this.version = xpert.version
         this.latest = xpert.latest
@@ -70,7 +86,11 @@ export class AssistantBindingXpertDTO {
                       },
                       workspaceScope: workspaceScope && {
                           mode: workspaceScope.mode,
-                          onMissing: workspaceScope.onMissing
+                          onMissing: workspaceScope.onMissing,
+                          projectType: workspaceScope.projectType && {
+                              applicationKey: workspaceScope.projectType.applicationKey,
+                              projectTypeKey: workspaceScope.projectType.projectTypeKey
+                          }
                       }
                   }
                 : undefined

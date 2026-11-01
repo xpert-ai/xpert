@@ -1,6 +1,7 @@
 import {
   AiModelTypeEnum,
   FetchFrom,
+  ModelFeature,
   ICopilotProviderModel,
   ProviderModel,
   ProviderModelCatalog
@@ -103,5 +104,24 @@ describe('unified provider model list', () => {
     expect(rows[0].configuredModel).toBeUndefined()
     expect(catalog.custom).toEqual([imported])
     expect(providerModelRows()).toEqual([])
+  })
+  it('uses explicit capability and context metadata for the account-style table', () => {
+    const rows = providerModelRows({
+      discoverySupported: false,
+      builtin: [{ ...builtin, features: [ModelFeature.TOOL_CALL], model_properties: { context_size: '196608' } }],
+      custom: []
+    })
+    expect(rows[0]).toMatchObject({
+      modelType: AiModelTypeEnum.LLM,
+      features: [ModelFeature.TOOL_CALL],
+      contextSize: 196608
+    })
+    const custom = providerModelRows({
+      discoverySupported: false,
+      builtin: [],
+      custom: [{ ...imported, modelProperties: { context_size: -1 } }]
+    })
+    expect(custom[0].contextSize).toBeUndefined()
+    expect(custom[0].features).toEqual([])
   })
 })

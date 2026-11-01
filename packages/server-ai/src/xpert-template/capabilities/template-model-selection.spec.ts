@@ -78,7 +78,9 @@ describe('Template installation model resolution', () => {
     it.each([undefined, { model: '' }, { model: 'denied', modelType: AiModelTypeEnum.LLM }])(
         'keeps model selection available when the Primary default is invalid: %j',
         async (copilotModel) => {
-            queries.execute.mockResolvedValue([{ ...connection, role: AiProviderRole.Primary, copilotModel }])
+            queries.execute.mockResolvedValue([
+                { ...connection, role: AiProviderRole.Primary, defaultModels: { primary: copilotModel } }
+            ])
             expect(await setup()).toMatchObject({ canInstall: true, requiresModel: true, defaultModelId: undefined })
             expect((await install()).team.copilotModel).toEqual(selected)
         }
@@ -86,9 +88,7 @@ describe('Template installation model resolution', () => {
 
     it('preselects an authorized tenant default and resolves it on the server without exposing its options', async () => {
         const options = { temperature: 0.2 }
-        queries.execute.mockResolvedValue([
-            { ...connection, role: AiProviderRole.Primary, copilotModel: { ...selected, options } }
-        ])
+        queries.execute.mockResolvedValue([{ ...connection, defaultModels: { primary: { ...selected, options } } }])
         const result = await setup()
         expect(result.defaultModelId).toBe('tenant-connection/tool-model')
         expect(result.models[0].copilotModel.options).toBeUndefined()
@@ -97,7 +97,7 @@ describe('Template installation model resolution', () => {
         expect(draft.team.copilotModel).toEqual({ ...selected, options })
     })
 
-    it('skips incomplete organization defaults and prefers a valid organization default over tenant defaults', async () => {
+    it('uses only the resolved organization default even when legacy tenant and local selections exist', async () => {
         queries.execute.mockResolvedValue([
             { ...connection, role: AiProviderRole.Primary, copilotModel: selected },
             { ...connection, id: 'a-empty', organizationId: 'organization', role: AiProviderRole.Primary },
@@ -106,7 +106,8 @@ describe('Template installation model resolution', () => {
                 id: 'z-valid',
                 organizationId: 'organization',
                 role: AiProviderRole.Primary,
-                copilotModel: selected
+                copilotModel: selected,
+                defaultModels: { primary: { ...selected, copilotId: 'z-valid' } }
             }
         ])
         expect((await setup()).defaultModelId).toBe('z-valid/tool-model')
@@ -129,7 +130,7 @@ describe('Template installation model resolution', () => {
             if (source === 'existing') draft.team.copilotModel = { ...selected, options }
             else
                 queries.execute.mockResolvedValue([
-                    { ...connection, role: AiProviderRole.Primary, copilotModel: { ...selected, options } }
+                    { ...connection, defaultModels: { primary: { ...selected, options } } }
                 ])
             await service.prepareInstallation(template, draft, LanguagesEnum.English, [], selected, [])
             expect(draft.team.copilotModel).toEqual({ ...selected, options })
@@ -146,7 +147,7 @@ describe('Template installation model resolution', () => {
             {
                 ...connection,
                 role: AiProviderRole.Primary,
-                copilotModel: { model: 'text-only' },
+                defaultModels: { primary: { ...selected, model: 'text-only' } },
                 providerWithModels: {
                     ...connection.providerWithModels,
                     models: [connection.providerWithModels.models[1]]
@@ -170,7 +171,7 @@ describe('Template installation model resolution', () => {
             {
                 ...connection,
                 role: AiProviderRole.Primary,
-                copilotModel: { model: 'text-only' }
+                defaultModels: { primary: { ...selected, model: 'text-only' } }
             }
         ])
         const result = await setup(source)

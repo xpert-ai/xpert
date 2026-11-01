@@ -130,20 +130,19 @@
                 [zStatus]="form.controls.name.invalid && form.controls.name.touched ? 'error' : undefined"
               />
             </z-form-field>
-            @if (!selected()) {
-              <z-form-field>
-                <label z-form-label for="analytics-visibility">{{ 'XP.Analytics.Visibility' | translate }}</label>
-                <z-select
-                  id="analytics-visibility"
-                  formControlName="visibility"
-                  [attr.aria-label]="'XP.Analytics.Visibility' | translate"
-                >
-                  <z-select-item zValue="private">{{ 'XP.Analytics.Private' | translate }}</z-select-item>
-                  <z-select-item zValue="organization">{{ 'XP.Analytics.Organization' | translate }}</z-select-item>
-                </z-select>
-              </z-form-field>
-            }
+            <z-form-field>
+              <label z-form-label for="analytics-visibility">{{ 'XP.Analytics.Visibility' | translate }}</label>
+              <z-select
+                id="analytics-visibility"
+                formControlName="visibility"
+                [attr.aria-label]="'XP.Analytics.Visibility' | translate"
+              >
+                <z-select-item zValue="private">{{ 'XP.Analytics.Private' | translate }}</z-select-item>
+                <z-select-item zValue="organization">{{ 'XP.Analytics.Organization' | translate }}</z-select-item>
+              </z-select>
+            </z-form-field>
           </div>
+          <p class="text-sm text-muted-foreground">{{ 'XP.Analytics.VisibilityHelp' | translate }}</p>
           <z-alert [zDescription]="'XP.Analytics.ConnectionHelp' | translate" />
           <button z-button zType="outline" type="button" class="self-start" (click)="toggleAdvanced()">
             <z-icon zType="code" />{{ 'XP.Analytics.ToggleJson' | translate }}

@@ -1,9 +1,12 @@
-import { Logger } from '@nestjs/common'
+import { usesModelScopedCredentials } from '@xpert-ai/contracts'
+import { t } from 'i18next'
+import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { AIProvidersService, AiProviderCredentialsValidateCommand } from '../../../ai-model'
 import { CopilotProvider } from '../../copilot-provider.entity'
 import { CopilotProviderService } from '../../copilot-provider.service'
 import { CopilotProviderUpsertCommand } from '../upsert.command'
+import { snapshotEnabledModels } from '../../models/enabled-models'
 
 @CommandHandler(CopilotProviderUpsertCommand)
 export class CopilotProviderUpsertHandler implements ICommandHandler<CopilotProviderUpsertCommand> {
@@ -17,8 +20,17 @@ export class CopilotProviderUpsertHandler implements ICommandHandler<CopilotProv
 
     public async execute(command: CopilotProviderUpsertCommand): Promise<CopilotProvider> {
         const entity = command.entity
-        if (entity.providerName) {
-            this.providersService.getProvider(entity.providerName, true)
+        const strategy = entity.providerName ? this.providersService.getProvider(entity.providerName, true) : null
+        if (command.connectionName !== undefined) {
+            if (!strategy) throw new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+            if (usesModelScopedCredentials(strategy.getProviderSchema())) {
+                if (entity.credentials && Object.keys(entity.credentials).length) {
+                    throw new BadRequestException(t('server-ai:Error.ProviderCredentialCheckInvalid'))
+                }
+                entity.credentials = undefined
+            } else if (!entity.credentials) {
+                throw new BadRequestException(t('server-ai:Error.ProviderCredentialCheckInvalid'))
+            }
         }
 
         // Check authorization
@@ -31,6 +43,25 @@ export class CopilotProviderUpsertHandler implements ICommandHandler<CopilotProv
                 )
             )
         }
+
+        if (!entity.id) {
+            // A validated shared credential makes the current preset catalog selectable immediately.
+            // Store a snapshot so later catalog updates do not override the user's model selection.
+            entity.options = {
+                ...entity.options,
+                enabledModels:
+                    entity.credentials && strategy && !usesModelScopedCredentials(strategy.getProviderSchema())
+                        ? snapshotEnabledModels(
+                              { options: { ...entity.options, enabledModels: undefined } },
+                              strategy.getProviderModels() ?? [],
+                              []
+                          )
+                        : []
+            }
+        }
+
+        if (command.connectionName !== undefined)
+            return this.service.saveNamedConnection(entity, command.connectionName)
 
         if (entity.id) {
             await this.service.update(entity.id, entity)
