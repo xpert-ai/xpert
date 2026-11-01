@@ -8,6 +8,7 @@
  * Requires Node.js 20+ on the sandbox host.
  */
 
+import { resolve } from 'node:path'
 import type {
   EditOperation,
   EditResult,
@@ -31,6 +32,8 @@ import {
 
 import { editCommandResult, sequentialFileEdits } from './file-edits'
 import { buildEditCommand } from './file-edit-command'
+import { buildListDirCommand } from './directory-listing-command'
+import { workspaceRelativeDisplayPath } from './workspace-path-display'
 
 const MAX_LINE_LENGTH = 500
 const MAX_GREP_LINE_LENGTH = 2000
@@ -190,116 +193,6 @@ try {
 } catch (e) {
   console.error('Error: ' + e.message);
   process.exit(1);
-}
-"`
-}
-
-const INDENTATION_SPACES = 2
-const MAX_ENTRY_LENGTH = 500
-
-/**
- * Node.js command template for recursive directory listing with depth control.
- */
-function buildListDirCommand(dirPath: string, offset: number, limit: number, depth: number): string {
-  const pathB64 = utf8ToBase64(dirPath)
-  const safeOffset = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 25
-  const safeDepth = Number.isFinite(depth) && depth > 0 ? Math.floor(depth) : 2
-
-  return `node -e "
-const fs = require('fs');
-const path = require('path');
-
-const dirPath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
-const offset = ${safeOffset};
-const limit = ${safeLimit};
-const maxDepth = ${safeDepth};
-const INDENTATION_SPACES = ${INDENTATION_SPACES};
-const MAX_ENTRY_LENGTH = ${MAX_ENTRY_LENGTH};
-
-if (!path.isAbsolute(dirPath)) {
-  console.error('Error: dir_path must be an absolute path');
-  process.exit(1);
-}
-
-if (!fs.existsSync(dirPath)) {
-  console.error('Error: Directory not found');
-  process.exit(1);
-}
-
-if (!fs.statSync(dirPath).isDirectory()) {
-  console.error('Error: Path is not a directory');
-  process.exit(1);
-}
-
-function collectEntries(currentPath, relativePrefix, remainingDepth, entries) {
-  if (remainingDepth === 0) return;
-
-  try {
-    const dirEntries = fs.readdirSync(currentPath, { withFileTypes: true });
-    const sortedEntries = dirEntries
-      .map(entry => {
-        const fullPath = path.join(currentPath, entry.name);
-        const relativePath = path.join(relativePrefix, entry.name);
-        const displayName = entry.name.length > MAX_ENTRY_LENGTH
-          ? entry.name.substring(0, MAX_ENTRY_LENGTH)
-          : entry.name;
-
-        let kind = 'file';
-        if (entry.isSymbolicLink()) kind = 'symlink';
-        else if (entry.isDirectory()) kind = 'directory';
-
-        return {
-          fullPath,
-          relativePath,
-          displayName,
-          kind,
-          depth: relativePrefix.split(path.sep).filter(Boolean).length
-        };
-      })
-      .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-
-    for (const entry of sortedEntries) {
-      entries.push(entry);
-      if (entry.kind === 'directory' && remainingDepth > 1) {
-        collectEntries(entry.fullPath, entry.relativePath, remainingDepth - 1, entries);
-      }
-    }
-  } catch (e) {
-    // Skip unreadable directories
-  }
-}
-
-const allEntries = [];
-collectEntries(dirPath, '', maxDepth, allEntries);
-
-if (allEntries.length === 0) {
-  console.log('Absolute path: ' + dirPath);
-  console.log('(Empty directory)');
-  process.exit(0);
-}
-
-const startIndex = offset - 1;
-if (startIndex >= allEntries.length) {
-  console.error('Error: offset exceeds directory entry count');
-  process.exit(1);
-}
-
-const endIndex = Math.min(startIndex + limit, allEntries.length);
-const selectedEntries = allEntries.slice(startIndex, endIndex);
-
-console.log('Absolute path: ' + dirPath);
-
-for (const entry of selectedEntries) {
-  const indent = ' '.repeat(entry.depth * INDENTATION_SPACES);
-  let name = entry.displayName;
-  if (entry.kind === 'directory') name += '/';
-  else if (entry.kind === 'symlink') name += '@';
-  console.log(indent + name);
-}
-
-if (endIndex < allEntries.length) {
-  console.log('More than ' + limit + ' entries found');
 }
 "`
 }
@@ -736,7 +629,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    * @param offset - 1-indexed entry number to start from (default: 1)
    * @param limit - Maximum number of entries to return (default: 25)
    * @param depth - Maximum depth to traverse (default: 2)
-   * @returns Human-readable directory tree with indentation
+   * @returns Directory tree whose entries are relative to the sandbox working directory
    */
   async listDir(dirPath: string, offset: number = 1, limit: number = 25, depth: number = 2): Promise<string> {
     if (offset < 1) {
@@ -751,11 +644,12 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
       return 'Error: depth must be greater than zero'
     }
 
-    const command = buildListDirCommand(dirPath, offset, limit, depth)
+    const displayPath = workspaceRelativeDisplayPath(this.workingDirectory, dirPath)
+    const command = buildListDirCommand(dirPath, displayPath, offset, limit, depth)
     const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      return result.output || `Error: Failed to list directory '${dirPath}'`
+      return result.output || `Error: Failed to list directory '${displayPath}'`
     }
 
     return result.output
@@ -825,10 +719,11 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
   }
 
   /**
-   * Search file contents for a regex pattern, returning human-readable output.
+   * Search file contents for a regex pattern, returning workspace-relative path labels.
    */
-  async grep(pattern: string, path: string = '/', include: string | null = null): Promise<string> {
-    const result = await this.grepRaw(pattern, path, include)
+  async grep(pattern: string, path: string = this.workingDirectory, include: string | null = null): Promise<string> {
+    const displayPath = workspaceRelativeDisplayPath(this.workingDirectory, path)
+    const result = await this.grepRaw(pattern, resolve(this.workingDirectory, displayPath), include)
 
     if (typeof result === 'string') {
       return result
@@ -838,7 +733,12 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
       return 'No matches found'
     }
 
-    return formatGrepOutput(result)
+    return formatGrepOutput(
+      result.map((match) => ({
+        ...match,
+        path: workspaceRelativeDisplayPath(this.workingDirectory, match.path)
+      }))
+    )
   }
 
   /**
@@ -869,16 +769,24 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
   }
 
   /**
-   * Find files matching a glob pattern, returning human-readable output.
+   * Find files matching a glob pattern, returning workspace-relative paths.
    */
-  async glob(pattern: string, path: string = '/'): Promise<string> {
-    const files = await this.globInfo(pattern, path)
+  async glob(pattern: string, path: string = this.workingDirectory): Promise<string> {
+    const displayPath = workspaceRelativeDisplayPath(this.workingDirectory, path)
+    const searchPath = resolve(this.workingDirectory, displayPath)
+    const files = await this.globInfo(pattern, searchPath)
 
     if (files.length === 0) {
       return 'No files found'
     }
 
-    return formatGlobOutput(files, pattern)
+    return formatGlobOutput(
+      files.map((file) => ({
+        ...file,
+        path: workspaceRelativeDisplayPath(this.workingDirectory, resolve(searchPath, file.path))
+      })),
+      pattern
+    )
   }
 
   /**

@@ -1,0 +1,135 @@
+---
+title: 'Workspace File Tools'
+description: 'Find, read and edit files in the current file workspace with consistent relative paths and recovery after failed edits.'
+---
+
+Workspace file tools let an agent list directories, find and read text files, and create, append or edit files through the platform's `SandboxFile` middleware. Use them to maintain HTML pages, scripts, configuration and text documents.
+
+Every Agent tool path is relative to the current Assistant's file workspace. File paths returned by directory listing and search can be reused directly for reading or editing, without knowing the server or container directory.
+
+## Enablement and scope
+
+The Assistant must enable the sandbox feature and include the `SandboxFile` middleware. A sandbox backend must also be available at runtime. Adding the tools does not enable Sandbox automatically or grant additional file access.
+
+A file workspace means the Volume containing runtime files and its sandbox mapping. It is separate from the `XpertWorkspace` authoring container for Assistants, skills and connectors. The current Project or Assistant execution context determines file ownership; a path argument cannot select another user's, Project's or Assistant's directory.
+
+## Available operations
+
+| Tool                      | Purpose                                   | Main arguments and behavior                                                                                                            |
+| ------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `sandbox_list_dir`        | List a directory and its descendants      | Requires `dir_path`; `offset` starts at 1, `limit` defaults to 25 and `depth` defaults to 2.                                           |
+| `sandbox_glob`            | Find files by name pattern                | Requires `pattern`, such as `*.md`; optional `path` defaults to the workspace root.                                                    |
+| `sandbox_grep`            | Search text with a regular expression     | Requires `pattern`; accepts optional `path` and an `include` file pattern. Results contain file paths, line numbers and matching text. |
+| `sandbox_read_file`       | Read text with line numbers               | Requires `file_path`; `offset` defaults to 1 and `limit` to 2000. Supports `slice` and `indentation` modes.                            |
+| `sandbox_write_file`      | Create a new file                         | Accepts `file_path` and `content`; fails if the file exists to avoid overwriting an editing copy.                                      |
+| `sandbox_append_file`     | Append text                               | Accepts `file_path` and `content`; creates the file if it does not exist.                                                              |
+| `sandbox_edit_file`       | Replace exact text                        | Accepts `file_path`, `old_string`, `new_string` and optional `replace_all`.                                                            |
+| `sandbox_multi_edit_file` | Apply sequential replacements to one file | Accepts `file_path` and `edits`; each entry uses `oldString`, `newString` and optional `replaceAll`.                                   |
+
+Write and append arguments must be one object with `content` as a single string, including an empty string. Content arrays, aliases such as `html`, and undeclared fields are rejected. Edit and multi-edit also reject undeclared fields, including inside each batch entry.
+
+## Consistent relative paths
+
+File paths have at most 1024 characters and use `/` separators. Unicode names and spaces inside names are supported. Segments cannot be empty or contain `.` or `..` as a complete segment, surrounding whitespace, backslashes or control characters. Absolute paths and Windows drive paths are rejected.
+
+Directory arguments follow the same rules, with `.` for the workspace root and an optional trailing `/`. One trailing `/` is removed, so `./` also denotes the root. File arguments do not accept these directory forms.
+
+| Input                                      | Result                                             |
+| ------------------------------------------ | -------------------------------------------------- |
+| `reports/summary.md`                       | Valid file path.                                   |
+| `资料/项目说明.md`                         | Valid Unicode file path.                           |
+| `reports/`                                 | Valid directory argument, normalized to `reports`. |
+| `.` or `./`                                | Workspace root for directory tools.                |
+| `/workspace/reports/summary.md`            | Invalid: absolute path.                            |
+| `../summary.md` or `reports/../summary.md` | Invalid: parent traversal.                         |
+| `reports//summary.md` or `./reports`       | Invalid: empty or embedded `.` segment.            |
+| ` reports/summary.md`                      | Invalid: surrounding whitespace in a segment.      |
+
+Paths returned by `sandbox_list_dir`, `sandbox_glob` and `sandbox_grep` are relative to the **workspace root**, even when searching a nested directory. Do not prepend the search directory again or add a host absolute path.
+
+Directory listings retain indentation, a `/` suffix for directories and an `@` marker for symbolic links. Recursive listing does not descend into those symbolic links. Empty directories still return a relative directory header and an empty-directory message. Formatting changes only tool-owned path labels, never file contents or matched text.
+
+## Read a file directly from a directory listing
+
+Assume `reports/README.md` already exists in the workspace. Call `sandbox_list_dir`:
+
+```json
+{
+  "dir_path": "reports/",
+  "depth": 1,
+  "limit": 25
+}
+```
+
+The result contains complete workspace-relative paths:
+
+```text
+Workspace-relative directory: reports
+reports/README.md
+reports/archive/
+```
+
+Pass the file path unchanged to `sandbox_read_file`:
+
+```json
+{
+  "file_path": "reports/README.md",
+  "offset": 1,
+  "limit": 20
+}
+```
+
+For a filename search, call `sandbox_glob` with `{"pattern":"*.md","path":"reports"}`. Content search also returns workspace-relative paths, but reading requires only the file path, without line numbers, the header colon or matching text. Directory and symbolic-link display markers are not part of a file name either.
+
+## Edit results and failure recovery
+
+Read the current content before replacing text, and use an exact match that uniquely identifies the intended location. For `sandbox_edit_file`, `oldLines` and `newLines` measure argument sizes; `changed`, `diff.removed` and `diff.added` describe actual changes. Identical replacements can succeed with `changed=false`. A `diffUnavailable` result means changes could not be measured, not that no changes occurred.
+
+`BaseSandbox.multiEdit` saves each step sequentially and applies the next step to the updated content. If a later step fails, earlier successful edits remain saved; the operation does not roll back the entire batch. Its optional `progress` field contains:
+
+| Field                | Meaning                               |
+| -------------------- | ------------------------------------- |
+| `mode: "sequential"` | Steps execute and persist in order.   |
+| `appliedEdits`       | Number of successfully applied edits. |
+| `failedEdit`         | One-based index of the failed step.   |
+
+Other backends may omit `progress`; do not infer applied counts or rollback when it is absent. When a structured mutation result contains an `error`, the middleware also supplies a relative-path `recovery.read` call and recovery instructions. This does not convert failure into success. Transport exceptions propagate.
+
+| Problem                                                   | Recovery                                                                                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Path argument fails validation                            | Use a workspace-relative path; use `.` to list the root. Keep path validation in place.                                        |
+| File creation reports an existing file                    | Read and edit the existing file, or choose a new path for an independent file.                                                 |
+| Replacement text is missing or ambiguous                  | Reread the file and select unique exact text from its current contents.                                                        |
+| A batch fails partway through or its outcome is uncertain | Reread the current file, verify its state and apply only the remaining changes.                                                |
+| Sandbox is disabled or access is denied                   | Check Assistant features, the runtime backend and resource authorization. Changing paths does not resolve missing permissions. |
+
+## File changes and business saves
+
+File tools persist workspace files. For Artifact-based features such as Live Dashboard, writing HTML does not save a dashboard draft or publish a version. The business plugin must still select the correct target, validate the content and return a successful, revision-bearing receipt through its own save workflow.
+
+Plugins should consume platform files through `WorkspaceFilesRuntimeCapability` and reuse `SandboxFile` writers. Business file selection, content validation, draft saving and publication rules remain owned by the business plugin.
+
+## Plugin and backend integration
+
+The SDK exports `workspaceRelativeFilePathSchema` and `workspaceRelativeDirectoryPathSchema` for the shared input contract. Argument validation does not replace host authorization, filesystem containment or symbolic-link protection.
+
+The four mutating file tools declare mutation intent through `workspaceFileMutationMetadata`:
+
+```ts
+metadata: workspaceFileMutationMetadata
+// { workspaceFileOperation: { type: 'mutation', pathArgument: 'file_path' } }
+```
+
+A plugin can call `workspaceFileMutationPath(tool.metadata, toolCall.args)` to obtain a validated relative path. Other tools may declare their own argument name through `pathArgument`. Missing or malformed metadata, non-mutation operations and invalid paths return `undefined`. Do not infer file mutation from tool names, display text or file extensions.
+
+Mutation intent describes an attempted operation. A plugin may mark an already registered file as potentially changed before execution, but must inspect the result and actual file content before confirming a business save.
+
+Backends still resolve actual filesystem paths internally. Structured APIs `lsInfo`, `globInfo` and `grepRaw` retain their respective internal path contracts; do not assume they share the text format presented to the Agent.
+
+After sandbox acquisition, if the actual Provider differs from the requested Provider, the platform uses the acquired Provider's workspace mapper. This also covers hosts that select a default Provider. Graph compilation and execution use the mapped working directory; server-side file access retains the Volume path and authorization scope. Mapping does not change sandbox lifecycle ownership or add automatic selection to hosts that require an explicit Provider.
+
+## Related features
+
+- [Volume / Workspace Architecture](./volume-workspace-architecture): file ownership, runtime paths and authorization boundaries.
+- [Agent Middleware](./agent-middleware): configure tools and execution behavior for an Assistant.
+- [Dashboard Lifecycle and Sharing](./artifacts-dashboard/lifecycle-and-sharing): draft saving and publication after file authoring.
