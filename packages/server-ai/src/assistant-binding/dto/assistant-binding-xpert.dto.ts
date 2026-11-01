@@ -1,4 +1,4 @@
-import type { IXpert } from '@xpert-ai/contracts'
+import { toXpertOpenerPrompt, type IXpert } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 /** Public catalog metadata only; authoring graphs and workspace membership never belong in this response. */
@@ -48,7 +48,9 @@ export class AssistantBindingXpertDTO {
                       opener: opener && {
                           enabled: opener.enabled,
                           message: opener.message,
-                          questions: opener.questions?.slice()
+                          questions: opener.questions?.map((question) =>
+                              typeof question === 'string' ? question : toXpertOpenerPrompt(question)
+                          )
                       },
                       frequentQuestions: frequentQuestions && { enabled: frequentQuestions.enabled }
                   }

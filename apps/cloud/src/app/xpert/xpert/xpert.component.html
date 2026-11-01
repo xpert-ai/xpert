@@ -71,10 +71,10 @@
               @if (statement) {
                 <button
                   class="relative flex w-40 flex-col gap-2 rounded-2xl border border-divider-subtle bg-components-card-bg px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition hover:bg-hover-bg"
-                  (click)="chatInput.ask(statement)"
+                  (click)="chatInput.ask(statement.prompt)"
                 >
                   <div class="line-clamp-3 max-w-full text-balance font-light text-text-secondary break-word">
-                    {{ statement }}
+                    {{ statement.label }}
                   </div>
                 </button>
               }

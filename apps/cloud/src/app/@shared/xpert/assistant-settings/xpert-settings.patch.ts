@@ -52,7 +52,16 @@ export function applyXpertSettingsChanges(
       const b = before.conversation,
         a = after.conversation
       team.features = features()
-      if (!isEqual(b.opener, a.opener)) team.features.opener = { ...team.features.opener, ...delta(b.opener, a.opener) }
+      if (!isEqual(b.opener, a.opener)) {
+        const change = delta(b.opener, a.opener)
+        team.features.opener = {
+          ...team.features.opener,
+          ...change,
+          questions: change.questions
+            ? change.questions.map(({ label, prompt }) => (label.trim() ? { label: label.trim(), prompt } : prompt))
+            : team.features.opener.questions
+        }
+      }
       if (!isEqual(b.suggestion, a.suggestion))
         team.features.suggestion = { ...team.features.suggestion, ...delta(b.suggestion, a.suggestion) }
       if (!isEqual(b.title, a.title))

@@ -136,6 +136,32 @@ describe('unified Assistant settings draft merge', () => {
   })
 })
 
+describe('opener settings round trip', () => {
+  it('keeps full instructions paired with labels through edits and reordering', () => {
+    const draft = draftFixture()
+    const prompt = 'Read recipe.\n  Validate two filters.\nDo not publish.  '
+    draft.team.features = {
+      opener: { enabled: true, message: 'Hi', questions: [{ label: 'Sales', prompt }, 'Simple question'] },
+      suggestion: { enabled: false, prompt: '' },
+      textToSpeech: { enabled: false },
+      speechToText: { enabled: false }
+    }
+    const form = createXpertSettingsForm(draft.team)
+    const before = form.getRawValue()
+    const questions = form.controls.conversation.controls.opener.controls.questions
+    const first = questions.at(0)
+    questions.removeAt(0)
+    questions.push(first)
+    first.controls.label.setValue('Regional sales · Beginner')
+    const result = applyXpertSettingsChanges(draft, before, form.getRawValue(), 'conversation')
+    expect(result.team.features.opener.questions).toEqual([
+      'Simple question',
+      { label: 'Regional sales · Beginner', prompt }
+    ])
+    expect(createXpertSettingsForm(result.team).getRawValue().conversation.opener.questions[1].prompt).toBe(prompt)
+  })
+})
+
 describe('settings validation', () => {
   it('does not expose concurrency even when a legacy assistant contains it', () => {
     const agentConfig = { recursionLimit: 30, maxConcurrency: 1 }

@@ -1,3 +1,4 @@
+import { toXpertOpenerPrompt } from '@xpert-ai/contracts'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -120,9 +121,9 @@ export class XpertChatAppComponent {
   readonly opener = computed(() => this.features()?.opener)
   readonly starters = computed(() => {
     if (this.opener()?.enabled) {
-      return this.opener()?.questions
+      return this.opener()?.questions?.map(toXpertOpenerPrompt)
     }
-    return this.xpert()?.starters
+    return this.xpert()?.starters?.map(toXpertOpenerPrompt)
   })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)

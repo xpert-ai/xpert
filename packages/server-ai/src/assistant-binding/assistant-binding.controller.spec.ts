@@ -23,7 +23,12 @@ describe('assistant binding catalog response', () => {
             createdById: 'owner',
             starters: ['Use my data'],
             features: {
-                opener: { enabled: true, message: 'Create a dashboard', questions: ['Try a demo'], internal },
+                opener: {
+                    enabled: true,
+                    message: 'Create a dashboard',
+                    questions: ['Try a demo', { label: 'Sales', prompt: 'Full instruction', internal }],
+                    internal
+                },
                 frequentQuestions: { enabled: true, internal },
                 suggestion: { enabled: true, prompt: internal },
                 textToSpeech: { enabled: true, copilotModel: { config: internal } }
@@ -83,7 +88,11 @@ describe('assistant binding catalog response', () => {
                 latest: true,
                 starters: ['Use my data'],
                 features: {
-                    opener: { enabled: true, message: 'Create a dashboard', questions: ['Try a demo'] },
+                    opener: {
+                        enabled: true,
+                        message: 'Create a dashboard',
+                        questions: ['Try a demo', { label: 'Sales', prompt: 'Full instruction' }]
+                    },
                     frequentQuestions: { enabled: true }
                 },
                 businessArea: { id: 'area', name: 'Sales' },

@@ -397,6 +397,8 @@
       "Opener": "对话开场白",
       "OpenerTip": "在新对话中展示欢迎语和引导问题。",
       "WelcomeMessage": "欢迎语",
+      "QuestionLabel": "顯示名稱（可選）",
+      "QuestionPrompt": "完整傳送指令",
       "StarterQuestions": "开场问题",
       "QuestionsLimit": "最多 10 个问题，拖动或使用箭头调整顺序。",
       "Question": "问题",
