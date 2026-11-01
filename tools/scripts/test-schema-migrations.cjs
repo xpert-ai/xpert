@@ -408,7 +408,13 @@ async function main() {
       }
     }
     console.log('PASS development and production API initialization preserve all SQL-managed constraints')
-    await host.query('DROP TABLE xpert_schema_migrations,xpert_schema_migration_checksums')
+    // Re-adopt the legacy baseline without erasing newer migrations that already ran.
+    // The independent legacy fixture below covers installations with no migration history.
+    const baselineNames = hostBundle.migrations
+      .filter((migration) => migration.baseline)
+      .map((migration) => migration.name)
+    await host.query('DELETE FROM xpert_schema_migrations WHERE name = ANY($1::text[])', [baselineNames])
+    await host.query('DELETE FROM xpert_schema_migration_checksums WHERE name = ANY($1::text[])', [baselineNames])
     await synchronizeWithMigrations(host, hostBundle, 'baseline')
     await synchronizeWithMigrations(host, hostBundle)
     await synchronizeWithMigrations(host, hostBundle, 'verify')
