@@ -1,4 +1,6 @@
 import { RuntimeResourceCommandsService } from './commands/runtime-resource-commands.service'
+import { RuntimeResourceCatalogCache } from './catalog/runtime-catalog.cache'
+import { RuntimeCatalogSubscriber } from './catalog/runtime-catalog.subscriber'
 import { ResourceSkillInstructionsHandler } from './commands/resource-skill-instructions.handler'
 import {
     AuthorizeTemplateExecutionHandler,
@@ -42,6 +44,8 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
     ],
     controllers: [AgentPluginController, AgentPluginMaintenanceController],
     providers: [
+        RuntimeResourceCatalogCache,
+        RuntimeCatalogSubscriber,
         RuntimeResourceCommandsService,
         ResourceSkillInstructionsHandler,
         ResolveTemplateExecutionHandler,

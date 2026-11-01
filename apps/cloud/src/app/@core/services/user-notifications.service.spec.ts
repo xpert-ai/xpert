@@ -5,6 +5,7 @@ import { BehaviorSubject, Subject } from 'rxjs'
 import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { Store } from '../state'
 import { UserNotificationsService } from './user-notifications.service'
+import { ChatConversationService } from './chat-conversation.service'
 
 const mockStream = new Subject<{ data: string }>()
 jest.mock('./fetch-event-source', () => ({ injectFetchEventSource: () => () => mockStream }))
@@ -41,10 +42,12 @@ const snapshot = () => ({
 })
 
 describe('User notification client isolation and recovery', () => {
+  const refreshUnread = jest.fn()
   let service: UserNotificationsService, http: HttpTestingController
   let user: BehaviorSubject<{ id: string; tenantId: string }>
   let scope: BehaviorSubject<{ level: RequestScopeLevel; organizationId?: string }>
   beforeEach(() => {
+    refreshUnread.mockClear()
     jest.useFakeTimers()
     localStorage.clear()
     jest.spyOn(Math, 'random').mockReturnValue(0)
@@ -55,6 +58,7 @@ describe('User notification client isolation and recovery', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         UserNotificationsService,
+        { provide: ChatConversationService, useValue: { refreshUnread } },
         { provide: Store, useValue: { user$: user, activeScope$: scope } }
       ]
     })
@@ -77,8 +81,10 @@ describe('User notification client isolation and recovery', () => {
     mockStream.next({ data: 'invalid' })
     await advance(40000)
     http.expectNone((request) => request.url.endsWith('/sync'))
+    expect(refreshUnread).not.toHaveBeenCalled()
     const previousSync = Date.now()
     mockStream.next({ data: JSON.stringify({ schemaVersion: 1, type: 'sync.required', eventId: id }) })
+    expect(refreshUnread).toHaveBeenCalledTimes(1)
     expect(service.canShowLiveHint(previousSync)).toBe(true)
     expect(service.canShowLiveHint(0)).toBe(false)
     await advance(251)

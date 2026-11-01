@@ -1,4 +1,6 @@
 import { Permissions } from '@xpert-ai/server-core'
+import { unreadSnapshot, unreadSyncSchema } from './unread-sync'
+import type { z } from 'zod/v3'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     ChatConversationEntry,
@@ -113,6 +115,35 @@ export class ChatConversationController {
         return this.organizationScopeService.run(organizationId, () =>
             this.service.getUnreadByXperts(body?.xpertIds ?? [])
         )
+    }
+
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    @Post('unread/xperts/sync')
+    async syncUnreadByXperts(
+        @Body(
+            new ZodValidationPipe(
+                unreadSyncSchema,
+                () => new BadRequestException(t('server-ai:Error.InvalidUnreadSyncRequest'))
+            )
+        )
+        body: z.output<typeof unreadSyncSchema>,
+        @Res({ passthrough: true }) response: Response,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, async () => {
+            const snapshot = unreadSnapshot(await this.service.getUnreadByXperts(body.xpertIds), [
+                RequestContext.currentTenantId(),
+                RequestContext.getOrganizationId(),
+                RequestContext.currentUserId()
+            ])
+            response.setHeader('Cache-Control', 'private, no-store')
+            if (body.version === snapshot.version) {
+                response.status(HttpStatus.NO_CONTENT)
+                return
+            }
+            response.status(HttpStatus.OK)
+            return snapshot
+        })
     }
 
     @ApiOperation({ summary: 'Find by id' })

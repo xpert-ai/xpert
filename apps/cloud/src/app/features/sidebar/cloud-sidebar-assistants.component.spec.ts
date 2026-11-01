@@ -138,7 +138,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     onRefresh: jest.Mock
   }
   let conversationService: {
-    getUnreadByXperts: jest.Mock
+    watchUnreadByXperts: jest.Mock
     getSidebarConversations: jest.Mock
     unreadRefresh$: Subject<void>
     sidebarRefresh$: Subject<{ xpertId: string }>
@@ -215,7 +215,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       )
     }
     conversationService = {
-      getUnreadByXperts: jest.fn(() => of([])),
+      watchUnreadByXperts: jest.fn(() => of([])),
       getSidebarConversations: jest.fn(() => of({ items: [], total: 0 })),
       unreadRefresh$: new Subject<void>(),
       sidebarRefresh$: new Subject<{ xpertId: string }>()
@@ -450,7 +450,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   it('renders the latest conversation title in the assistant description row', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
+    conversationService.watchUnreadByXperts.mockReturnValue(
       of([
         {
           xpertId: 'other-xpert',

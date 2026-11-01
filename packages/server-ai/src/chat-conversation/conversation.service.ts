@@ -373,6 +373,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     FROM unread_messages
                     ORDER BY "xpertId", "createdAt" DESC, "messageId" DESC
                 ),
+                activity AS (
+                    SELECT "xpertId", BOOL_OR(status IN ('busy', 'pausing')) AS "hasActiveRuns"
+                    FROM scoped_conversations
+                    GROUP BY "xpertId"
+                ),
                 latest_conversations AS (
                     SELECT DISTINCT ON ("xpertId")
                         "xpertId",
@@ -390,6 +395,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 )
                 SELECT
                     latest_conversations."xpertId" AS "xpertId",
+                    activity."hasActiveRuns" AS "hasActiveRuns",
                     COALESCE(counts."unreadMessages", 0) AS "unreadMessages",
                     COALESCE(counts."unreadConversations", 0) AS "unreadConversations",
                     latest."latestUnreadAt" AS "latestUnreadAt",
@@ -401,6 +407,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     latest_conversations."latestConversationTitle" AS "latestConversationTitle",
                     latest_conversations."latestConversationStatus" AS "latestConversationStatus"
                 FROM latest_conversations
+                INNER JOIN activity ON activity."xpertId" = latest_conversations."xpertId"
                 LEFT JOIN counts
                     ON counts."xpertId" = latest_conversations."xpertId"
                 LEFT JOIN latest
@@ -409,6 +416,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             params
         )) as Array<{
             xpertId: string
+            hasActiveRuns?: boolean
             unreadMessages: string | number
             unreadConversations: string | number
             latestUnreadAt?: Date | string | null
@@ -423,6 +431,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
         return rows.map((row) => ({
             xpertId: row.xpertId,
+            hasActiveRuns: row.hasActiveRuns ?? false,
             unreadMessages: Number(row.unreadMessages) || 0,
             unreadConversations: Number(row.unreadConversations) || 0,
             latestUnreadAt: row.latestUnreadAt ?? null,

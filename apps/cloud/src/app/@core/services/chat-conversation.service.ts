@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject, NgZone } from '@angular/core'
+import { observeConversationUnread } from './conversation-unread-observer'
+import type { IChatConversationUnreadSnapshot } from '@xpert-ai/contracts'
 import type { ChatConversationEntry } from '@xpert-ai/contracts'
 import {
   API_PREFIX,
@@ -14,12 +16,13 @@ import {
   TFileDirectory,
   toHttpParams
 } from '@cloud/app/@core/state'
-import { Subject, switchMap, take, tap, timeout } from 'rxjs'
+import { Subject, switchMap, take, tap, timeout, Observable } from 'rxjs'
 import { TFile } from '../types'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
+  readonly #zone = inject(NgZone)
   readonly #unreadRefresh = new Subject<void>()
   readonly unreadRefresh$ = this.#unreadRefresh.asObservable()
   readonly #sidebarRefresh = new Subject<{ xpertId: string; conversationId: string; deleted: boolean }>()
@@ -182,6 +185,28 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
         )
       ),
       timeout(15_000)
+    )
+  }
+
+  watchUnreadByXperts(xpertIds: string[]) {
+    return this.selectOrganizationId().pipe(
+      switchMap(
+        () =>
+          new Observable<IChatConversationUnreadXpertSummary[]>((subscriber) =>
+            this.#zone.runOutsideAngular(() =>
+              observeConversationUnread(
+                (version) =>
+                  this.httpClient
+                    .post<IChatConversationUnreadSnapshot | null>(this.apiBaseUrl + '/unread/xperts/sync', {
+                      xpertIds,
+                      ...(version ? { version } : {})
+                    })
+                    .pipe(timeout(15_000)),
+                this.unreadRefresh$
+              ).subscribe(subscriber)
+            )
+          )
+      )
     )
   }
 

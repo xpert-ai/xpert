@@ -379,6 +379,7 @@ describe('ChatConversationService workspace files', () => {
         repository.query.mockResolvedValue([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: '2',
                 unreadConversations: '1',
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
@@ -428,6 +429,7 @@ describe('ChatConversationService workspace files', () => {
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: 2,
                 unreadConversations: 1,
                 latestUnreadAt: '2026-06-21T00:00:00.000Z',
@@ -446,6 +448,7 @@ describe('ChatConversationService workspace files', () => {
         repository.query.mockResolvedValue([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: '0',
                 unreadConversations: '0',
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
@@ -461,6 +464,7 @@ describe('ChatConversationService workspace files', () => {
         expect(result).toEqual([
             {
                 xpertId: 'xpert-1',
+                hasActiveRuns: false,
                 unreadMessages: 0,
                 unreadConversations: 0,
                 latestUnreadAt: null,

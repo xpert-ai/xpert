@@ -353,12 +353,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseStart: () => {
+      this.#conversationService.refreshUnread()
       this.#responseActive.set(true)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('busy')
       }
     },
     onResponseEnd: () => {
+      this.#conversationService.refreshUnread()
       const threadId = this.activeChatkitThreadId()
       if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
       this.#responseActive.set(false)

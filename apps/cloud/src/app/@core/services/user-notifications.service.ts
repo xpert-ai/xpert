@@ -10,6 +10,7 @@ import {
   notificationChangeSchema
 } from '@xpert-ai/contracts'
 import { combineLatest, firstValueFrom, Subscription } from 'rxjs'
+import { ChatConversationService } from './chat-conversation.service'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { Store } from '../state'
 import { API_PREFIX } from '../state/constants'
@@ -17,6 +18,7 @@ import { injectFetchEventSource } from './fetch-event-source'
 
 @Injectable({ providedIn: 'root' })
 export class UserNotificationsService {
+  private readonly conversations = inject(ChatConversationService)
   private readonly http = inject(HttpClient)
   private readonly store = inject(Store)
   private readonly stream = injectFetchEventSource()
@@ -133,6 +135,7 @@ export class UserNotificationsService {
         if (generation !== this.generation) return
         try {
           if (!notificationChangeSchema.safeParse(JSON.parse(message.data)).success) return
+          this.conversations.refreshUnread()
           this.streamActivityAt = Date.now()
           this.attempts = 0
           this.scheduleRefresh()

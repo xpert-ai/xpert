@@ -272,6 +272,7 @@ export function configureConversationDetailTests() {
     getById: jest.Mock
     resolveWorkbenchNavigation: jest.Mock
     markRead: jest.Mock
+    refreshUnread: jest.Mock
     getFile: jest.Mock
     downloadFile: jest.Mock
   }
@@ -416,6 +417,7 @@ export function configureConversationDetailTests() {
         })
       ),
       markRead: jest.fn(() => of({})),
+      refreshUnread: jest.fn(),
       getFile: jest.fn(() =>
         of({
           filePath: '/workspace/report.pdf',

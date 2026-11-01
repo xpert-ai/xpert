@@ -363,12 +363,14 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
     const runtimeInput = getRuntimeInput()
     conversationService.markRead.mockClear()
 
+    conversationService.refreshUnread.mockClear()
     runtimeInput.onResponseStart?.()
     runtimeInput.onResponseEnd?.()
     await settle(fixture)
 
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(1, 'busy')
     expect(facade.patchActiveConversationStatus).toHaveBeenNthCalledWith(2, 'idle')
+    expect(conversationService.refreshUnread).toHaveBeenCalledTimes(2)
     expect(conversationService.markRead).toHaveBeenCalledWith('conversation-1')
   })
   it('asks the facade to resolve the preferred conversation entry when the route has no thread id', async () => {
