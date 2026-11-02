@@ -67,9 +67,11 @@ export class RuntimeMessageAccessService {
         )
             throw runtimeMessageError('Invalid')
         const [user, membership] = await Promise.all([
-            this.dataSource
-                .getRepository(User)
-                .findOne({ where: { id: scope.userId, tenantId: scope.tenantId }, relations: ['role'] }),
+            this.dataSource.getRepository(User).findOne({
+                where: { id: scope.userId, tenantId: scope.tenantId },
+                // Background target authorization reads current grants from RequestContext.
+                relations: ['role', 'role.rolePermissions']
+            }),
             this.dataSource.getRepository(UserOrganization).findOne({
                 where: {
                     tenantId: scope.tenantId,
