@@ -1,5 +1,40 @@
 # @xpert-ai/xpert-ui
 
+## 3.30.0
+
+### Minor Changes
+
+- 785f4db: Add a Growth tree view to Conversation Map for discussion forks, Agent delegation, and recorded tool activity, with tapered branches, a floating activity inspector, and centered canvas fitting. Unify map perspectives under one tab and add searchable project and conversation selectors with server-side pagination and cached scroll positions. Preserve authorization and historical snapshot boundaries, and provide English and Chinese feature guides.
+- fa765b0: Manage model providers through named connections, typed model catalogs, compact configuration dialogs, and an inline plugin marketplace. Keep connection identity and model type visible in Assistant selection and membership configuration.
+
+  Separate default model purposes from provider connections, add defaults for common media and retrieval model types, and migrate valid legacy defaults without changing credentials or existing Assistant bindings. Retain compatibility reads for unmigrated defaults.
+
+  Add previewable, reversible bulk model replacement for editable Assistant drafts, and validate destination parameters when switching models so incompatible settings are not retained.
+
+### Patch Changes
+
+- d573a89: Allow Analytics Definition owners to publish or revoke organization visibility for immutable script and declared-file snapshots. Keep private source restrictions in discovery and revalidate the current viewer's upstream access on execution.
+
+  Support provider-opted-in repair of legacy Artifact file bindings when sharing, validating source identity, every saved payload and existing link policy while preserving ownership and versions. Report unavailable authenticated presentation support separately from missing or inaccessible content.
+
+- 1a7ca04: Share one notification SSE connection per authenticated scope across visible pages, relay invalidations between pages, and release connections and retries when a page becomes inactive. Refresh notifications after visibility or page restoration and retain polling when cross-page coordination is unavailable.
+
+  Make development route preloading opt-in to reduce contention with API requests and component compilation while preserving production preloading and explicit opt-outs.
+
+- ce1e7c3: Disable Pet in the Claw Xpert conversation shell using the existing `pet: false`
+  option, hiding both Pet and the minimize-to-Pet action.
+- 98c31e4: Export OpenAICompatibleEmbeddings for model plugins to reuse authoritative per-request usage callbacks. Preserve transport batching/retry behavior, capture provider usage before vectors discard it, and keep accounting callback failures outside the transport retry loop.
+- f5eec71: Include authorized conversation metadata in thread reads and message counts in activity snapshots so ChatKit can reuse its history baseline. Reuse ChatKit's loaded context in the Cloud host instead of fetching messages again. Read task summaries without synchronous legacy backfill writes and cache unchanged message projections by caller and message revision while rechecking file relations.
+- d7ce6da: Add explicit tenant integration grants for selected or all organizations, separated into configuration, invocation, and Assistant binding purposes. Enforce the same policy during discovery and runtime consumption without exposing credentials or widening management access.
+
+  Provide tenant authorization controls, scope labels, and disabled unavailable selections in Cloud. Supply the persisted Assistant scope when publishing triggers, and expose usage-aware integration reads to plugins.
+
+  Coordinate deployment with the WeCom plugin update for xpert-ai/xpert#1269. Apply the integration sharing schema through the normal schema-sync deployment gate; existing tenant integrations remain private until an administrator grants access.
+
+- e193f4f: Default tenant-scoped integration creation to manual configuration and explain that QR authorization requires an organization. Provide an organization switcher before the QR flow and clarify ownership of the resulting integration.
+- 9957882: Update ChatKit UI to 0.21.1 and shared types to 0.20.1, including the UI's Xpert SDK 0.20.1 dependency. Align workspace, API, Web and Desktop dependency locks for the latest chat header, compact composer, follow-up queue and conversation loading improvements.
+- 84156d0: Update ChatKit Angular to 0.18.1, types to 0.20.0, UI to 0.21.0, web component to 0.19.1, and web shared to 0.18.2. Align workspace, API, web, and desktop dependency locks with these releases.
+
 ## 3.29.1
 
 ### Patch Changes
