@@ -1,3 +1,4 @@
+import { usesRuntimePresentation } from './runtime-presentation'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Assistant } from '@langchain/langgraph-sdk'
@@ -32,7 +33,7 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { CommandBus } from '@nestjs/cqrs'
 import { GetRuntimeCapabilitiesCommand } from '../xpert/runtime-capabilities/get-runtime-capabilities.command'
-import { normalizeContextSize, RequestContext } from '@xpert-ai/plugin-sdk'
+import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
 import { t } from 'i18next'
@@ -104,7 +105,7 @@ export class AssistantsController {
         const sourceXpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
         })
-        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) && parseQueryBoolean(isDraft)) {
+        if (usesRuntimePresentation() && parseQueryBoolean(isDraft)) {
             throw new ForbiddenException(t('server-ai:Error.ApplicationAuthoringDenied'))
         }
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
@@ -158,7 +159,7 @@ function transformAssistant(xpert: IXpert) {
     )
     const config = omitBy(
         {
-            ...(!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW)
+            ...(usesRuntimePresentation()
                 ? { options: appUserRuntimeAssistant(xpert).options }
                 : pick(xpert, 'agentConfig', 'options', 'summarize', 'memory', 'features')),
             configurable: Object.keys(configurable).length ? configurable : undefined

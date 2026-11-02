@@ -22,7 +22,8 @@ import {
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
 import { RequestContext, type OrganizationRuntimeActor } from '@xpert-ai/plugin-sdk'
-import { UserOrganization } from '@xpert-ai/server-core'
+import { assistantRuntimeCredential, UserOrganization } from '@xpert-ai/server-core'
+import { applyAssistantRuntimeCredential } from './assistant-runtime-compatibility'
 import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { isSameXpertFamily } from './xpert-family'
@@ -381,6 +382,16 @@ export class PublishedXpertAccessService {
         resourceParentId?: string,
         actor?: OrganizationRuntimeActor
     ) {
+        const credential = actor || resourceParentId ? null : assistantRuntimeCredential(RequestContext.currentUser())
+        if (credential) {
+            const query = applyAssistantRuntimeCredential(this.repository.createQueryBuilder('xpert'), credential)
+            this.applyPublishedFilters(query, options?.where)
+            this.applySearchFilter(query, options?.search)
+            Object.entries(options?.order ?? {}).forEach(([field, direction]) =>
+                query.addOrderBy(`xpert.${field}`, direction?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC')
+            )
+            return query
+        }
         const publicXpertId = actor ? null : this.currentPublicXpertId()
         if (publicXpertId) {
             return this.buildPublicXpertBoundQuery(publicXpertId, options)
@@ -718,11 +729,15 @@ export class PublishedXpertAccessService {
         }
 
         const userXpertId = this.currentUserXpertId()
+        const credential = assistantRuntimeCredential(RequestContext.currentUser())
         const delegated = publishedAgentDelegation()
         if (delegated?.xpertId === id && delegated.requesterXpertId !== id) {
             // Internal delegation also applies to authenticated web/background runs.
             // It never broadens a client secret's original Assistant audience.
             if (userXpertId && delegated.requesterXpertId !== userXpertId) {
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            }
+            if (credential && (!credential.allowed || credential.assistantId !== delegated.requesterXpertId)) {
                 throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             }
             await this.getAccessiblePublishedResource(id, delegated.requesterXpertId)
@@ -734,6 +749,16 @@ export class PublishedXpertAccessService {
             throw new ForbiddenException('You do not have access to this assistant.')
         }
 
+        if (credential) {
+            if (
+                !credential.allowed ||
+                credential.assistantId !== id ||
+                !(await this.buildAccessibleQuery({ where: { id } }).getCount())
+            ) {
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            }
+            return this.getPublishedXpertInTenant(id, options)
+        }
         const xpert = await this.getPublishedXpertInTenant(id, options)
         if (userXpertId) {
             const source = this.currentApiPrincipal()?.grantSource
@@ -742,11 +767,12 @@ export class PublishedXpertAccessService {
             }
             // Project/conversation provenance is revalidated by ApiKeyOrClientSecretAuthGuard.
             // Apply delivery restrictions without substituting catalog access for that grant.
-            const query = this.repository.createQueryBuilder('xpert')
+            const query = this.repository
+                .createQueryBuilder('xpert')
                 .where('xpert.id = :id AND xpert.tenantId = :tenantId', { id, tenantId: xpert.tenantId })
                 .andWhere('xpert.publishAt IS NOT NULL')
             applyAppPlatformPublishedFilter(query, xpert.tenantId, xpert.organizationId, this.currentAccessUserId())
-            if (!await query.getCount()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             // SecretTokenStrategy restores the issuing user and the immutable
             // tenant/organization scope. Matching the exact token audience is
             // the capability grant used by ChatKit metadata and runtime reads.
@@ -778,13 +804,17 @@ export class PublishedXpertAccessService {
     private async assertCurrentUserAccess(id: string, xpert: Xpert) {
         const userId = this.currentAccessUserId()
 
-        if (!xpert.organizationId && (RequestContext.isTenantScope() || isTenantSharedXpertWorkspace(xpert.workspace))) {
+        if (
+            !xpert.organizationId &&
+            (RequestContext.isTenantScope() || isTenantSharedXpertWorkspace(xpert.workspace))
+        ) {
             const tenantId = this.currentTenantId()
-            const query = this.repository.createQueryBuilder('xpert')
+            const query = this.repository
+                .createQueryBuilder('xpert')
                 .where('xpert.id = :id AND xpert.tenantId = :tenantId', { id, tenantId })
                 .andWhere('xpert.organizationId IS NULL AND xpert.publishAt IS NOT NULL')
             applyAppPlatformPublishedFilter(query, tenantId, RequestContext.getOrganizationId(), userId)
-            if (!await query.getCount()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             return xpert
         }
 

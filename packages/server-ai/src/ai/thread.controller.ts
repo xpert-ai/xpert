@@ -602,7 +602,7 @@ function transformRun(execution: TAgentExecutionRunSummary) {
         updated_at: execution.updatedAt.toISOString(),
         status: execution.status,
         metadata: {
-            ...(!RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {} : execution.metadata),
+            ...(usesRuntimePresentation() ? {} : execution.metadata),
             agentRun: toAgentRunSummary(execution)
         } as Metadata
     } as Run

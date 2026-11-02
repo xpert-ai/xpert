@@ -4,7 +4,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 beforeEach(() => jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true))
 afterEach(() => jest.restoreAllMocks())
 
-import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { IApiPrincipal, UserType, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 
 jest.mock('../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class {}
@@ -59,14 +59,47 @@ function createController(
 }
 
 describe('AssistantsController', () => {
+    it('keeps technical credentials on published presentation even with authoring role permissions', async () => {
+        const principal: IApiPrincipal = {
+            id: 'technical',
+            tenantId: 'tenant',
+            type: UserType.COMMUNICATION,
+            principalType: 'api_key',
+            apiKeyUserId: 'technical',
+            resourceScope: { kind: 'assistant', xpertId: 'assistant' },
+            apiKey: { token: 'fixture', tenantId: 'tenant', userId: 'technical' }
+        }
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue(principal)
+        const access = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'assistant',
+                graph: { nodes: [], connections: [] },
+                options: { secret: 'configuration' },
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+        }
+        const commands = { execute: jest.fn() }
+        const controller = new AssistantsController(access as never, commands as never, {} as never)
+        await expect(controller.getRuntimeCapabilities('assistant', true)).rejects.toMatchObject({ status: 403 })
+        expect(commands.execute).not.toHaveBeenCalled()
+        expect(JSON.stringify(await controller.getOne('assistant'))).not.toContain('configuration')
+    })
     it('rejects draft capabilities without authoring visibility while retaining published access', async () => {
         jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
-        const access = { getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'assistant', graph: { nodes: [], connections: [] } }) }
+        const access = {
+            getAccessiblePublishedXpert: jest
+                .fn()
+                .mockResolvedValue({ id: 'assistant', graph: { nodes: [], connections: [] } })
+        }
         const commands = { execute: jest.fn().mockResolvedValue({ skills: [], plugins: [] }) }
         const controller = new AssistantsController(access as never, commands as never, {} as never)
         await expect(controller.getRuntimeCapabilities('assistant', true)).rejects.toMatchObject({ status: 403 })
         expect(commands.execute).not.toHaveBeenCalled()
-        await expect(controller.getRuntimeCapabilities('assistant', false)).resolves.toEqual({ skills: [], plugins: [] })
+        await expect(controller.getRuntimeCapabilities('assistant', false)).resolves.toEqual({
+            skills: [],
+            plugins: []
+        })
         expect(commands.execute).toHaveBeenCalledTimes(1)
     })
 

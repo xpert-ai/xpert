@@ -3,9 +3,17 @@ import { SelectQueryBuilder } from 'typeorm'
 import { Xpert } from './xpert.entity'
 
 /** Resource grants remain necessary. The App's installed template suite defines its runtime Assistants. */
-export function applyAppPlatformPublishedFilter(query: SelectQueryBuilder<Xpert>, tenantId: string, organizationId: string, userId: string, resourceParentId?: string) {
-  // Delegated reads must still bind parent and child to the same assigned installation.
-  const target = resourceParentId ? `EXISTS (
+export function applyAppPlatformPublishedFilter(
+    query: SelectQueryBuilder<Xpert>,
+    tenantId: string,
+    organizationId: string | null,
+    userId: string,
+    resourceParentId?: string,
+    organizationSource: 'context' | 'resource' = 'context'
+) {
+    // Delegated reads must still bind parent and child to the same assigned installation.
+    const target = resourceParentId
+        ? `EXISTS (
     SELECT 1 FROM xpert parent WHERE parent.id = :platformParent
       AND parent."tenantId" = delivery."tenantId" AND parent."organizationId" = delivery."organizationId"
       AND parent."workspaceId"::text = installation."workspaceId"
@@ -15,8 +23,10 @@ export function applyAppPlatformPublishedFilter(query: SelectQueryBuilder<Xpert>
     JOIN xpert child ON child.id::text = resource.value
     WHERE (resource.key = 'assistant' OR resource.key LIKE 'role:%')
       AND (child.id = xpert.id OR (child.slug IS NOT NULL AND child.slug = xpert.slug))
-  )` : `(exported.id = xpert.id OR (exported.slug IS NOT NULL AND exported.slug = xpert.slug))`
-  query.andWhere(`(
+  )`
+        : `(exported.id = xpert.id OR (exported.slug IS NOT NULL AND exported.slug = xpert.slug))`
+    query.andWhere(
+        `(
     NOT EXISTS (SELECT 1 FROM app_platform_delivery enrollment
       WHERE enrollment."userId" = :platformUser AND enrollment."tenantId" = :platformTenant)
     OR EXISTS (
@@ -26,7 +36,7 @@ export function applyAppPlatformPublishedFilter(query: SelectQueryBuilder<Xpert>
       CROSS JOIN LATERAL jsonb_array_elements(delivery.configuration->'definition'->'apps') entry
       CROSS JOIN LATERAL jsonb_each_text(installation."resourceRefs"::jsonb) visible(key, id)
       JOIN xpert exported ON exported.id::text = visible.id
-      WHERE delivery."tenantId" = :platformTenant AND delivery."organizationId" = :platformOrganization
+      WHERE delivery."tenantId" = :platformTenant AND delivery."organizationId" = ${organizationSource === 'resource' ? 'xpert."organizationId"' : ':platformOrganization'}
         AND delivery."userId" = :platformUser AND delivery."readyAt" IS NOT NULL
         AND EXISTS (SELECT 1 FROM "user" actor JOIN role_permission permission
           ON permission."roleId" = actor."roleId" AND permission."tenantId" = actor."tenantId"
@@ -42,6 +52,13 @@ export function applyAppPlatformPublishedFilter(query: SelectQueryBuilder<Xpert>
         AND xpert."workspaceId"::text = installation."workspaceId"
         AND ${target}
     )
-  )`, { platformUser: userId, platformTenant: tenantId, platformOrganization: organizationId,
-    platformParent: resourceParentId, platformChatPermission: AIPermissionsEnum.CHAT_VIEW })
+  )`,
+        {
+            platformUser: userId,
+            platformTenant: tenantId,
+            platformOrganization: organizationId,
+            platformParent: resourceParentId,
+            platformChatPermission: AIPermissionsEnum.CHAT_VIEW
+        }
+    )
 }
