@@ -1,5 +1,22 @@
 # @xpert-ai/server-ai
 
+## 3.30.1
+
+### Patch Changes
+
+- d798a82: Fill task responsibility from the executing Assistant automatically: use the selected group expert, or the current Assistant for an unassigned external Runtime task. Default creation to the current Assistant and commit dispatch assignment with the attempt while preserving revision and replay checks.
+
+    Normalize historical group experts to their current Assistant identity for task responsibility while preserving the selected Runtime version.
+
+- 7b7be77: Restore current role permissions for background result delivery and attached task control so authorized failed invocations can settle. Preserve safe authorization failure reasons without exposing exception payloads, and retain revocation and target access checks.
+    - @xpert-ai/server-auth@3.30.1
+    - @xpert-ai/server-common@3.30.1
+    - @xpert-ai/server-config@3.30.1
+    - @xpert-ai/contracts@3.30.1
+    - @xpert-ai/plugin-sdk@3.30.1
+    - @xpert-ai/server-core@3.30.1
+    - @xpert-ai/desktop-protocol@0.4.4
+
 ## 3.30.0
 
 ### Minor Changes

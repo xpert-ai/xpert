@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.30.1
+
+### Patch Changes
+
+- @xpert-ai/contracts@3.30.1
+
 ## 3.30.0
 
 ### Minor Changes

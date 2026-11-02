@@ -1,5 +1,11 @@
 # @xpert-ai/desktop
 
+## 0.3.17
+
+### Patch Changes
+
+- @xpert-ai/desktop-protocol@0.4.4
+
 ## 0.3.16
 
 ### Patch Changes
