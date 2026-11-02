@@ -1,5 +1,7 @@
 # @xpert-ai/contracts
 
+## 3.30.1
+
 ## 3.30.0
 
 ### Minor Changes

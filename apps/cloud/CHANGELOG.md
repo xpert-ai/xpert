@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.30.1
+
+### Patch Changes
+
+- d7a5f46: Detect deployed web builds independently of login, offer a dismissible bottom-left update notice and an About update action, and revalidate entry resources while retiring legacy Angular service workers.
+
 ## 3.30.0
 
 ### Minor Changes
