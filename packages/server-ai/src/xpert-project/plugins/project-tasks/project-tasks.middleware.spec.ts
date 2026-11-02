@@ -97,7 +97,7 @@ describe('built-in Project Tasks Plugin', () => {
         )
         expect(dispatchCustomEvent).not.toHaveBeenCalled()
     })
-    it('is discovered as a selectable built-in middleware with seven localized tools', () => {
+    it('is discovered as a selectable built-in middleware with localized tools', () => {
         const { registry, strategy, context } = fixture()
         expect(registry.get(PROJECT_TASKS_MIDDLEWARE)).toBe(strategy)
         expect(registry.listRegistrations()[0].source.kind).toBe('builtin')
@@ -113,11 +113,12 @@ describe('built-in Project Tasks Plugin', () => {
     it('keeps tool schemas discoverable without a project, but rejects every execution before service access', async () => {
         const { strategy, context, permission, execute, tasks } = fixture()
         const middleware = strategy.createMiddleware({}, { ...context, projectId: undefined })
-        const inputs = [
-            {},
-            createInput(),
-            { tasks: [{ id: randomUUID(), steps: [] }] },
-            {
+        const inputs = {
+            [ProjectToolEnum.ListTasks]: {},
+            [ProjectToolEnum.CreateTasks]: createInput(),
+            [ProjectToolEnum.UpdateTasks]: { tasks: [{ id: randomUUID(), steps: [] }] },
+            [ProjectToolEnum.UpdatePlan]: { taskId: randomUUID(), expectedRevision: 1 },
+            [ProjectToolEnum.DecideTask]: {
                 taskId: randomUUID(),
                 expectedRevision: 1,
                 implementationExecutionId: randomUUID(),
@@ -127,12 +128,14 @@ describe('built-in Project Tasks Plugin', () => {
                 rationale: 'Inspected the current implementation',
                 checks: ['Verified test evidence']
             },
-            dispatchInput(),
-            { taskId: randomUUID() },
-            {}
-        ]
-        for (let index = 0; index < middleware.tools.length; index++) {
-            await expect(middleware.tools[index].invoke(inputs[index])).rejects.toThrow()
+            [ProjectToolEnum.DispatchTask]: dispatchInput(),
+            [ProjectToolEnum.GetTask]: { taskId: randomUUID() },
+            [ProjectToolEnum.ListRuntimes]: {},
+            [ProjectToolEnum.ListExperts]: {}
+        }
+        for (const name of Object.values(ProjectToolEnum)) {
+            const tool = middleware.tools.find((item) => item.name === name)
+            await expect(tool.invoke(inputs[name])).rejects.toMatchObject({ status: 403 })
         }
         expect(permission).not.toHaveBeenCalled()
         expect(execute).not.toHaveBeenCalled()
@@ -149,7 +152,8 @@ describe('built-in Project Tasks Plugin', () => {
             [ProjectToolEnum.ListTasks, { projectId: randomUUID() }],
             [ProjectToolEnum.CreateTasks, { tasks: [{ ...createInput().tasks[0], status: 'done' }] }],
             [ProjectToolEnum.UpdateTasks, { tasks: [{ id: randomUUID(), steps: [], invocationId: randomUUID() }] }],
-            [ProjectToolEnum.GetTask, { taskId: randomUUID(), userId: randomUUID() }]
+            [ProjectToolEnum.GetTask, { taskId: randomUUID(), userId: randomUUID() }],
+            [ProjectToolEnum.ListExperts, { xpertId: randomUUID() }]
         ] as const) {
             await expect(middleware.tools.find((tool) => tool.name === name).invoke(input)).rejects.toThrow()
         }

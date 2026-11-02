@@ -19,6 +19,47 @@ function runtimeTools(...args: Parameters<typeof createProjectRuntimeTools>): St
     return createProjectRuntimeTools(...args)
 }
 
+describe('Project expert discovery tool', () => {
+    it('exposes the current private-conversation expert without accepting model-supplied identity', async () => {
+        const context = {
+            projectId: randomUUID(),
+            conversationId: randomUUID(),
+            executionId: randomUUID(),
+            xpertId: randomUUID(),
+            agentKey: 'plugin_developer',
+            threadId: 'private-thread'
+        }
+        const expert = {
+            assigneeXpertId: context.xpertId,
+            name: 'developer',
+            title: 'Plugin developer',
+            isCurrent: true
+        }
+        const currentExpert = { xpertId: context.xpertId, agentKey: context.agentKey, assigneeXpertId: context.xpertId }
+        const execute = jest.fn(async () => ({ currentExpert, experts: [expert] }))
+        const commands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute })
+        const permission = jest.fn()
+        const discovery = runtimeTools(context, commands, permission).find(
+            (tool) => tool.name === 'project_list_experts'
+        )
+        expect(discovery).toBeDefined()
+        await expect(discovery.invoke({}, { configurable: { tool_call_id: 'discover' } })).resolves.toEqual({
+            currentExpert,
+            experts: [expert]
+        })
+        expect(execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                projectId: context.projectId,
+                caller: expect.objectContaining({ xpertId: context.xpertId, conversationId: context.conversationId })
+            })
+        )
+        for (const field of ['projectId', 'xpertId', 'userId', 'tenantId', 'organizationId']) {
+            await expect(discovery.invoke({ [field]: randomUUID() })).rejects.toThrow()
+        }
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+})
+
 describe('Project general-agent Runtime tools', () => {
     it.each([false, true])('preserves a committed delegation when card emission fails: %s', async (failCard) => {
         const emit = jest.mocked(dispatchCustomEvent)

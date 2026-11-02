@@ -12,6 +12,7 @@ import { ProjectTaskRuntimeContextService } from './project-task-runtime-context
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { ProjectTaskDecisionService } from './project-task-decision.service'
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
+import { ListProjectExpertsHandler } from './list-project-experts.command'
 
 @CommandHandler(UpdateProjectTaskPlanCommand)
 export class UpdateProjectTaskPlanHandler implements ICommandHandler<UpdateProjectTaskPlanCommand> {
@@ -61,5 +62,6 @@ export const ProjectTaskRuntimeHandlers = [
     DecideProjectTaskHandler,
     DispatchProjectTaskHandler,
     GetProjectRuntimeTaskHandler,
-    ListProjectRuntimeBindingsHandler
+    ListProjectRuntimeBindingsHandler,
+    ListProjectExpertsHandler
 ]

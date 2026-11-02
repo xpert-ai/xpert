@@ -2,6 +2,9 @@ import { XpertProjectTaskService } from './project-task.service'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
+import { XpertProjectXpertBindingService } from './project-xpert-binding.service'
+import { Xpert } from '../../xpert/xpert.entity'
+import { Repository } from 'typeorm'
 
 function fixture(
     task: {
@@ -27,7 +30,15 @@ function fixture(
                     : { save: jest.fn(async (value) => value) }
     }
     Object.assign(service, {
-        repository: { ...tasks, manager: { transaction: async (operation) => operation(manager) } }
+        repository: { ...tasks, manager: { transaction: async (operation) => operation(manager) } },
+        xpertBindings: new XpertProjectXpertBindingService(
+            Object.assign(Object.create(Repository.prototype) as Repository<Xpert>, {
+                findOne: jest.fn(async ({ where }) =>
+                    members.includes(where.id) ? Object.assign(new Xpert(), { id: where.id, latest: true }) : null
+                )
+            }),
+            Object.create(Repository.prototype) as Repository<XpertProject>
+        )
     })
     return service
 }

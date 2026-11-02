@@ -77,7 +77,7 @@ export const createCreateTasksTool = ({
                                         .uuid()
                                         .optional()
                                         .describe(
-                                            'Responsible project-member Assistant ID. May be omitted for planning; required before delegation.'
+                                            'Responsible Assistant assigneeXpertId from project_list_experts. May be omitted for planning; required before delegation.'
                                         ),
                                     requirements: z
                                         .array(z.string().trim().min(1).max(4000))

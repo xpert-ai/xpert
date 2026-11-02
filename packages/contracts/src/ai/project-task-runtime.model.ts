@@ -2,6 +2,25 @@ import { agentOutputDeliverySchema } from './agent-output-delivery.model'
 import { z } from 'zod/v3'
 import { agentInvocationStatusSchema } from './agent-runtime.model'
 
+/** A published, Project-bound Assistant the current actor can run. This is not a Runtime binding. */
+export interface ProjectTaskExpert {
+  assigneeXpertId: string
+  name: string
+  title?: string
+  isCurrent: boolean
+}
+
+export interface ProjectTaskExperts {
+  /** Exact trusted execution identity; null for the Project general agent. */
+  currentExpert: {
+    xpertId: string
+    agentKey: string
+    /** Canonical assignable Assistant ID, or null when current access no longer permits assignment. */
+    assigneeXpertId: string | null
+  } | null
+  experts: ProjectTaskExpert[]
+}
+
 export const projectTaskSpecificationDigestSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/)
 
 /** Only requirements belong here; status, progress, assignment and generic revision do not. */

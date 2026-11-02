@@ -23,6 +23,7 @@ import {
 import { ProjectTaskCaller, projectTaskCallerSchema } from '../../../runtime/project-task-dispatch.schema'
 import { projectTaskRuntimeError } from '../../../runtime/project-task-runtime.errors'
 import { ProjectToolEnum } from '../constants'
+import { ListProjectExpertsCommand } from '../../../runtime/list-project-experts.command'
 
 // Checkpoint replay can use a new Agent run. Keep identity tied to the persisted tool call,
 // not the current executionId or mutable arguments; changed arguments must still conflict.
@@ -131,7 +132,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.DispatchTask,
                 schema: projectTaskDispatchToolInputSchema,
                 description:
-                    'Explicitly delegate an existing task using its latest revision from project_get_task. Requirements and an explicit responsible project-member Assistant must be defined. If unassigned, update assigneeXpertId with project_update_tasks, then read the latest revision before retrying. Caller and executor identities never default task ownership. For a group member, use the target object returned by project_list_task_runtimes and omit bindingId and delivery; the member returns ordinary Assistant output. For an external Runtime use bindingId and omit target. Only external Runtimes support file delivery: use delivery={mode:"files",paths:["relative/path"]}, with exact project-relative paths and no wildcards. If paths are decided during execution, use delivery={mode:"files"} and require file result items. delivery is an optional object, never a string. The platform manages operation identity and retry deduplication. After an uncertain outcome inspect project_get_task instead of dispatching again. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; Runtime success does not accept the task.'
+                    'Explicitly delegate an existing task using its latest revision from project_get_task. Requirements and an explicit responsible Project Assistant must be defined. If unassigned, use project_list_experts to discover assigneeXpertId, assign it with project_update_tasks, then read the latest revision before retrying. Caller and executor identities never default task ownership. For a group member, use the target object returned by project_list_task_runtimes and omit bindingId and delivery; the member returns ordinary Assistant output. For an external Runtime use bindingId and omit target. Only external Runtimes support file delivery: use delivery={mode:"files",paths:["relative/path"]}, with exact project-relative paths and no wildcards. If paths are decided during execution, use delivery={mode:"files"} and require file result items. delivery is an optional object, never a string. The platform manages operation identity and retry deduplication. After an uncertain outcome inspect project_get_task instead of dispatching again. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; Runtime success does not accept the task.'
             }
         ),
         tool(
@@ -155,7 +156,19 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.ListRuntimes,
                 schema: z.object({}).strict(),
                 description:
-                    'List authorized Runtime bindings and Project-bound group members. For a group member, assign the task to its assigneeXpertId and dispatch using its target object; for a Runtime binding use bindingId. Supply exactly one of target or bindingId.'
+                    'List authorized Runtime bindings and Project-bound group members. This is not the Project expert directory; use project_list_experts to discover responsible Assistants, including yourself. For a group member, assign the task to its assigneeXpertId and dispatch using its target object; for a Runtime binding use bindingId. Supply exactly one of target or bindingId.'
+            }
+        ),
+        tool(
+            async (_, config) => {
+                await assertPermission('edit')
+                return commandBus.execute(new ListProjectExpertsCommand(context.projectId, caller(config)))
+            },
+            {
+                name: ProjectToolEnum.ListExperts,
+                schema: z.object({}).strict(),
+                description:
+                    'Read your trusted currentExpert identity and the assignable Project experts, including yourself when authorized. The Project general agent has currentExpert=null. Use an expert assigneeXpertId in project_create_tasks or project_update_tasks, then project_get_task for the latest revision before project_dispatch_task. Human member IDs, execution identities and Runtime binding IDs are not assignee IDs. A null currentExpert.assigneeXpertId means the current expert is not assignable. This lookup never changes membership, assigns tasks or starts execution.'
             }
         )
     ]

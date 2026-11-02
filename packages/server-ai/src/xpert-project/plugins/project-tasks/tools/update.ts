@@ -58,7 +58,7 @@ export const createUpdateTasksTool = ({
                                         .uuid()
                                         .optional()
                                         .describe(
-                                            'Explicit responsible project-member Assistant ID; never a runtime/provider ID'
+                                            'Responsible Assistant assigneeXpertId from project_list_experts; never a human member or Runtime ID'
                                         ),
                                     status: z
                                         .enum([
@@ -104,7 +104,7 @@ export const createUpdateTasksTool = ({
                 })
                 .strict(),
             description:
-                'Update task step status or explicitly assign a responsible project-member Assistant. Set assigneeXpertId before delegating an unassigned task, then read its latest revision with project_get_task. Assignment does not start execution.'
+                'Update task step status or explicitly assign a responsible Project Assistant. Use project_list_experts to discover assignable experts, including yourself. Set assigneeXpertId before delegating an unassigned task, then read its latest revision with project_get_task. Assignment does not start execution.'
         }
     )
     return updateTasksTool
