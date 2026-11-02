@@ -63,7 +63,11 @@ runtime inputs are stricter: changes under `.deploy/nsjail-runner/` (except
 README/CHANGELOG/AGENTS and `test_*.py` files) require a matching image release
 declaration. Its shared Compute Runtime manifest/smoke, Runner Host and embedded
 Compute Definition also require a Runner image release. Both Git hooks and CI reject a missing declaration, including
-deletions and renames. A pending NsJail note can authorize subsequent repairs.
+deletions and renames. CI can reuse a pending NsJail note for subsequent repairs.
+Local hooks require a **new** note in each runtime-changing commit or outgoing
+push batch, unless the update consumes notes with a valid version bump. An old
+note left on `develop` may already have been consumed on `main`, so it cannot
+safely declare a new runtime change for the next merge.
 The exact NsJail image is checked for isolation and managed `.apps` protection
 before it is saved for publication.
 
@@ -222,8 +226,18 @@ Stage both the shared package note and the required application notes; an unstag
 fix cannot satisfy the check. Deletion-only version commits are checked as well.
 Initial commits without a release baseline follow CI's skip behavior.
 
+When changing required image runtime inputs, stage a **new** Changeset naming
+the affected application in the same commit. Keeping, editing or renaming an old
+pending note does not satisfy this check, even if it still authorizes a candidate
+on the current branch. This prevents a runtime change from passing locally only
+because `develop` retains notes already consumed on `main`. Normal version
+releases that consume notes and bump the application version remain valid;
+documentation and unit-test-only changes do not need new notes.
+
 `pre-push` checks the full outgoing update of existing `main` and `develop` branches.
 This covers automatic merges and batches of commits that may bypass `pre-commit`.
+The fresh runtime note may be in any commit within that outgoing update, allowing
+a later declaration to repair an earlier omitted one before pushing.
 Both hooks run locally without fetching, installing dependencies, building images,
 or publishing. Commits without release metadata changes skip the planner. CI keeps
 the authoritative check, since local hooks can be disabled or bypassed.

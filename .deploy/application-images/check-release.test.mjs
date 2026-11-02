@@ -91,6 +91,105 @@ test('staged NsJail runtime changes cannot skip the release check or use an unst
   )
 })
 
+test('runtime repairs cannot reuse a branch note consumed on main or an unstaged replacement', async (t) => {
+  const f = fixture(t)
+  f.note('old-nsjail', [jail.name])
+  const before = f.commit()
+  f.git('checkout', '-qb', 'main')
+  f.git('rm', '.changeset/old-nsjail.md')
+  f.version(jail.manifest, '1.0.1')
+  const main = f.commit()
+  f.git('update-ref', 'refs/remotes/origin/main', main)
+  f.git('checkout', '-q', 'develop')
+  f.write('.deploy/nsjail-runner/runner.py', 'bounded workspace')
+  f.git('add', '.deploy/nsjail-runner/runner.py')
+  const staged = f.git('diff', '--cached', '--binary')
+  await assert.rejects(f.check, /need a new Changeset in this update:[\s\S]*@xpert-ai\/nsjail-runner/)
+  f.note('fresh-nsjail', [jail.name])
+  await assert.rejects(f.check, /need a new Changeset/)
+  assert.equal(f.git('diff', '--cached', '--binary'), staged)
+  assert.equal(f.git('rev-parse', 'HEAD'), before)
+  f.git('add', '.changeset/fresh-nsjail.md')
+  const { plan } = await f.check()
+  assert.deepEqual(plan.matrix.include[0].changesets, ['.changeset/fresh-nsjail.md'])
+})
+
+test('required runtime edits, deletions and renames need fresh notes even without a local main baseline', async (t) => {
+  for (const change of ['edit', 'delete', 'rename', 'shared']) {
+    await t.test(change, async (t) => {
+      const f = fixture(t)
+      f.note('old-nsjail', [jail.name])
+      f.write('.deploy/nsjail-runner/runner.py', 'original')
+      f.commit()
+      if (change === 'delete') f.git('rm', '.deploy/nsjail-runner/runner.py')
+      else if (change === 'rename') f.git('mv', '.deploy/nsjail-runner/runner.py', '.deploy/nsjail-runner/runtime.py')
+      else
+        f.write(
+          change === 'shared'
+            ? 'packages/sandbox-runtime/images/browser/runtime/runner-host.mjs'
+            : '.deploy/nsjail-runner/runner.py',
+          'runtime change'
+        )
+      f.git('add', '.')
+      await assert.rejects(f.check, /need a new Changeset/)
+      f.note('new-nsjail', [jail.name])
+      f.git('add', '.changeset/new-nsjail.md')
+      assert.equal((await f.check()).skipped, false)
+    })
+  }
+})
+
+test('editing or renaming an old runtime note cannot replace a fresh declaration', async (t) => {
+  const f = fixture(t)
+  f.note('old-nsjail', [jail.name])
+  f.commit()
+  f.write('.deploy/nsjail-runner/runner.py', 'runtime change')
+  f.write('.changeset/old-nsjail.md', `---\n'${jail.name}': patch\n---\nUpdated old declaration.\n`)
+  f.git('add', '.')
+  await assert.rejects(f.check, /need a new Changeset/)
+  f.note('old-nsjail', [jail.name])
+  f.git('mv', '.changeset/old-nsjail.md', '.changeset/renamed-nsjail.md')
+  f.git('add', '.')
+  await assert.rejects(f.check, /need a new Changeset/)
+})
+
+test('runtime version releases can consume notes without adding a replacement', async (t) => {
+  const f = fixture(t)
+  f.note('nsjail', [jail.name])
+  const before = f.commit()
+  f.git('rm', '.changeset/nsjail.md')
+  f.version(jail.manifest, '1.0.1')
+  f.write('.deploy/nsjail-runner/runner.py', 'versioned runtime')
+  f.git('add', '.')
+  assert.equal((await f.check()).plan.matrix.include[0].versioned, true)
+  const [plan] = await checkPushReleases(f.push(before, f.commit(), 'refs/heads/main'), { cwd: f.cwd })
+  assert.equal(plan.matrix.include[0].stable, true)
+})
+
+test('runtime documentation and unit tests do not need a fresh release note', async (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/README.md', 'documentation')
+  f.write('.deploy/nsjail-runner/test_runner.py', 'test change')
+  f.git('add', '.')
+  assert.equal((await f.check()).skipped, true)
+})
+
+test('pre-push rejects reuse of old runtime notes across a batch and accepts a committed repair', async (t) => {
+  const f = fixture(t)
+  f.note('old-nsjail', [jail.name])
+  const before = f.commit()
+  f.write('.deploy/nsjail-runner/runner.py', 'runtime change')
+  f.commit()
+  f.write('README.md', 'unrelated later change')
+  const after = f.commit()
+  for (const ref of ['refs/heads/develop', 'refs/heads/main'])
+    await assert.rejects(() => checkPushReleases(f.push(before, after, ref), { cwd: f.cwd }), /need a new Changeset/)
+  f.note('new-nsjail', [jail.name])
+  await assert.rejects(() => checkPushReleases(f.push(before, after), { cwd: f.cwd }), /need a new Changeset/)
+  const [plan] = await checkPushReleases(f.push(before, f.commit()), { cwd: f.cwd })
+  assert.deepEqual(plan.matrix.include[0].changesets, ['.changeset/new-nsjail.md'])
+})
+
 test('pre-push checks source-only NsJail changes across the complete outgoing batch', async (t) => {
   const f = fixture(t)
   f.write('.deploy/nsjail-runner/network.py', 'runtime fix')
@@ -313,8 +412,7 @@ test('pre-push covers complete outgoing batches, including previously committed 
   assert.deepEqual(await checkPushReleases(f.push(f.initial, '0'.repeat(40)), { cwd: f.cwd }), [])
 })
 
-test('the actual hooks block incomplete declarations before formatting or pushing', (t) => {
-  const f = fixture(t)
+function enableHooks(f) {
   mkdirSync(path.join(f.cwd, '.deploy/application-images'), { recursive: true })
   f.write('.deploy/application-images/check-release.mjs', readFileSync(script, 'utf8'))
   symlinkSync(
@@ -330,6 +428,37 @@ test('the actual hooks block incomplete declarations before formatting or pushin
     path.join(f.cwd, '.deploy/application-images/release-baseline.mjs')
   )
   f.git('config', 'core.hooksPath', hooks)
+}
+
+test('the actual hooks reject old runtime notes before formatting or pushing', (t) => {
+  const f = fixture(t)
+  enableHooks(f)
+  f.note('old-nsjail', [jail.name])
+  const before = f.commit()
+  f.write('.deploy/nsjail-runner/runner.py', 'runtime repair')
+  f.git('add', '.deploy/nsjail-runner/runner.py')
+  const result = spawnSync('git', ['commit', '-m', 'Runtime repair without a new note'], {
+    cwd: f.cwd,
+    encoding: 'utf8'
+  })
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /need a new Changeset[\s\S]*@xpert-ai\/nsjail-runner/)
+  assert.match(result.stderr, /Stage a new Changeset/)
+  assert.doesNotMatch(result.stdout + result.stderr, /format:fix/)
+  assert.equal(f.git('rev-parse', 'HEAD'), before)
+  const push = spawnSync('sh', [path.join(hooks, 'pre-push'), 'origin'], {
+    cwd: f.cwd,
+    encoding: 'utf8',
+    input: f.push(before, f.commit())
+  })
+  assert.equal(push.status, 1)
+  assert.match(push.stderr, /need a new Changeset/)
+  assert.match(push.stderr, /Commit a new Changeset/)
+})
+
+test('the actual hooks block incomplete declarations before formatting or pushing', (t) => {
+  const f = fixture(t)
+  enableHooks(f)
   f.note('shared', [contracts, api.name])
   f.git('add', '.changeset')
   const result = spawnSync('git', ['commit', '-m', 'Incomplete release'], { cwd: f.cwd, encoding: 'utf8' })

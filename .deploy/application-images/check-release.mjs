@@ -1,6 +1,7 @@
 // Invariants: commit checks read only staged blobs and reuse the CI release policy.
 // An unreferenced snapshot preserves merge ancestry without changing branches or staged contents.
 // Push checks cover the complete update, including commits created by automatic merges.
+// Required runtime changes need fresh notes: old branch notes may be consumed on main.
 import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -49,6 +50,25 @@ async function planner() {
   }
 }
 
+function checkFreshRuntimeChangesets({ cwd, before, after, files, plan }) {
+  const required = services.filter((service) => requiresImageRelease(service, files))
+  if (!required.length) return
+  const added = new Set(
+    git(cwd, 'diff', '--find-renames', '--diff-filter=A', '--name-only', '-z', before, after, '--', '.changeset')
+      .split('\0')
+      .filter(Boolean)
+  )
+  const missing = required.filter((service) => {
+    const image = plan.matrix.include.find((entry) => entry.name === service.name)
+    return !image?.versioned && !image?.changesets.some((file) => added.has(file))
+  })
+  if (missing.length)
+    throw new Error(
+      `Required image runtime changes need a new Changeset in this update:\n${missing.map((service) => service.name).join('\n')}\n` +
+        'Existing pending Changesets may already be consumed on main; editing or renaming them does not count.'
+    )
+}
+
 export async function checkStagedRelease({ cwd = process.cwd() } = {}) {
   const files = git(cwd, 'diff', '--cached', '--name-only', '--no-renames', '-z').split('\0').filter(Boolean)
   if (!relevant(files)) return { skipped: true, reason: 'No staged release metadata changes' }
@@ -95,6 +115,7 @@ export async function checkStagedRelease({ cwd = process.cwd() } = {}) {
     mainSha: resolveCommit(cwd, 'refs/remotes/origin/main') ?? resolveCommit(cwd, 'refs/heads/main'),
     ...releaseBaseline({ cwd, after })
   })
+  checkFreshRuntimeChangesets({ cwd, before, after, files, plan })
   return { skipped: false, plan }
 }
 
@@ -110,17 +131,17 @@ export async function checkPushReleases(input, { cwd = process.cwd(), remote = '
     const files = git(cwd, 'diff', '--name-only', '--no-renames', '-z', before, after).split('\0').filter(Boolean)
     if (!relevant(files)) continue
     const releasePlan = await planner()
-    results.push(
-      releasePlan({
-        cwd,
-        before,
-        after,
-        event: 'push',
-        ref,
-        mainSha: resolveCommit(cwd, `refs/remotes/${remote}/main`),
-        ...releaseBaseline({ cwd, after })
-      })
-    )
+    const plan = releasePlan({
+      cwd,
+      before,
+      after,
+      event: 'push',
+      ref,
+      mainSha: resolveCommit(cwd, `refs/remotes/${remote}/main`),
+      ...releaseBaseline({ cwd, after })
+    })
+    checkFreshRuntimeChangesets({ cwd, before, after, files, plan })
+    results.push(plan)
   }
   return results
 }
