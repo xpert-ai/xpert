@@ -50,6 +50,12 @@ import { resolvePluginLevel } from './plugin-instance.entity'
 import { getCodePackageDir, getCodeRuntimeName, getCodeWorkspacePath } from './source-config'
 import { findWorkspacePluginDirectory } from './plugin-sdk-versioning'
 import { getPluginScopeLogLabel, resolvePluginScope } from './plugin-scope'
+import {
+	validatePluginEntityTableNames,
+	registerPluginEntityOwnership,
+	assertCompatiblePluginEntities
+} from './plugin-entity-policy'
+import { assertPluginArtifactNamespaceAvailable } from './plugin-install-policy'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -591,6 +597,13 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					`Tenant-level plugin "${plugin.meta?.name ?? name}" must be loaded from its tenant-global scope`
 				)
 			}
+			if (plugin.meta.artifactNamespace) {
+				assertPluginArtifactNamespaceAvailable(loaded, {
+					artifactNamespace: plugin.meta.artifactNamespace,
+					pluginName: plugin.meta.name,
+					packageName: name
+				})
+			}
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 
@@ -602,6 +615,21 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				scopeKey
 			})
 			const mod = await runPluginStartupStep(name, 'register', () => plugin.register(ctx))
+			const entities = getEntitiesFromPlugins([mod])
+			const entityNamespace = validatePluginEntityTableNames({
+				pluginName: plugin.meta.name,
+				entities,
+				artifactNamespace: plugin.meta.artifactNamespace,
+				level: resolvedLevel
+			})
+			if (entities.length && entityNamespace) {
+				registerPluginEntityOwnership(entities, {
+					pluginName: normalizePluginName(name),
+					artifactNamespace: entityNamespace,
+					version: plugin.meta.version
+				})
+				assertCompatiblePluginEntities(getEntitiesFromPlugins(modules), entities)
+			}
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
 			tagModuleWithPluginScope(mod, scopeKey, normalizePluginName(name), plugin.meta.version)

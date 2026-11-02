@@ -1,5 +1,5 @@
 import { ModuleRef } from '@nestjs/core'
-import { DataSource, QueryRunner } from 'typeorm'
+import { DataSource, Entity, QueryRunner } from 'typeorm'
 import { withSchemaLock } from '../database/schema-migration'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
@@ -8,15 +8,17 @@ import { loadPlugin } from './plugin-loader'
 jest.mock('./plugin-loader', () => ({ loadPlugin: jest.fn() }))
 jest.mock('./plugin-orm-metadata', () => ({
 	collectPluginOrmMetadata: jest.fn(),
-	validatePluginEntityTableNames: jest.fn()
+	validatePluginEntityTableNames: jest.fn(jest.requireActual('./plugin-entity-policy').validatePluginEntityTableNames)
 }))
 jest.mock('../database/schema-migration', () => ({ withSchemaLock: jest.fn() }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
 	GLOBAL_ORGANIZATION_SCOPE: 'global',
-	createPluginLogger: jest.fn(() => ({}))
+	createPluginLogger: jest.fn(() => ({})),
+	isPluginArtifactNamespace: (value: unknown) => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value)
 }))
-jest.mock('typeorm', () => ({ DataSource: jest.fn() }))
+jest.mock('typeorm', () => ({ ...jest.requireActual('typeorm'), DataSource: jest.fn() }))
 
+@Entity('plugin_test_entity')
 class PluginEntity {}
 class PluginModule {}
 class PluginSubscriber {
@@ -58,7 +60,8 @@ describe('plugin schema preflight', () => {
 			meta: {
 				name: input.pluginName,
 				version: '1.0.0',
-				level: 'organization',
+				level: 'tenant',
+				artifactNamespace: 'test',
 				category: 'middleware',
 				displayName: 'Test',
 				description: 'Test plugin',
@@ -84,6 +87,24 @@ describe('plugin schema preflight', () => {
 			expect(validatePluginEntityTableNames).toHaveBeenCalled()
 			expect(DataSource).not.toHaveBeenCalled()
 			expect(migration.synchronize).not.toHaveBeenCalled()
+		}
+	)
+
+	it.each(['missing-namespace', 'organization-level', 'namespace-mismatch'])(
+		'rejects invalid entity schema preflight before opening a database connection (%s)',
+		async (variant) => {
+			const plugin = await loadPlugin(input.pluginName)
+			if (variant === 'missing-namespace') plugin.meta.artifactNamespace = undefined
+			if (variant === 'organization-level') plugin.meta.level = 'organization'
+			jest.mocked(collectPluginOrmMetadata).mockReturnValue({ entities: [PluginEntity], subscribers: [] })
+			await expect(
+				service.synchronize({
+					...input,
+					...(variant === 'namespace-mismatch' ? { artifactNamespace: 'other' } : {})
+				})
+			).rejects.toThrow()
+			expect(DataSource).not.toHaveBeenCalled()
+			expect(withSchemaLock).not.toHaveBeenCalled()
 		}
 	)
 

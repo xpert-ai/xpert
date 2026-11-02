@@ -1,3 +1,4 @@
+import { isPluginArtifactNamespace } from '@xpert-ai/plugin-sdk'
 import type { DataSource } from 'typeorm'
 import type { EntityMetadata } from 'typeorm/metadata/EntityMetadata'
 
@@ -16,7 +17,10 @@ export function scopePluginSchemaSynchronization(
 		}
 	}
 
-	const prefix = artifactNamespace ? `plugin_${artifactNamespace}_` : 'plugin_'
+	if (owned.size && !isPluginArtifactNamespace(artifactNamespace)) {
+		throw new Error('Plugin schema synchronization requires an explicit artifactNamespace.')
+	}
+	const prefix = `plugin_${artifactNamespace}_`
 	for (const metadata of owned) {
 		if (!metadata.tableName.startsWith(prefix)) {
 			throw new Error(
