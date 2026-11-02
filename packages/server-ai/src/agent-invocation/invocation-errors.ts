@@ -1,5 +1,6 @@
 import { HttpException } from '@nestjs/common'
 import { t } from 'i18next'
+import { z } from 'zod/v3'
 /** Only host preflight may assert this: no executor has received task input or a launch receipt. */
 export class AgentInvocationNotStartedError extends Error {}
 /** Authorization failures must stop the run, not become an ordinary retryable tool result. */
@@ -55,4 +56,19 @@ export class AgentInvocationError extends HttpException {
     constructor(readonly code: AgentInvocationErrorCode) {
         super(t(`server-ai:Error.AgentInvocation${code}`, { defaultValue: `Agent invocation: ${code}` }), status[code])
     }
+}
+
+/** Persist only host-defined codes/statuses; exception messages and response bodies may contain secrets. */
+export function invocationFailureReason(error: unknown): string | null {
+    if (error instanceof AgentInvocationAuthorizationError) {
+        return `authorization_failed:${invocationFailureCause(error.cause) ?? 'unavailable'}`
+    }
+    return invocationFailureCause(error)
+}
+
+function invocationFailureCause(error: unknown): string | null {
+    if (error instanceof AgentInvocationError) return `invocation_${error.code}`
+    if (error instanceof HttpException) return `http_${error.getStatus()}`
+    if (error instanceof z.ZodError) return 'invalid_payload'
+    return null
 }

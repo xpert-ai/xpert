@@ -1,4 +1,5 @@
 import { isRuntimeMessageBlocked } from './runtime-message.errors'
+import { invocationFailureReason } from '../../agent-invocation/invocation-errors'
 import { HandoffOutboxAdapters } from '../outbox-adapters.service'
 import { Injectable, Logger } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
@@ -84,9 +85,11 @@ export class RuntimeMessageTransportService {
             await repo.update(owned, { nextAttemptAt: new Date(Date.now() + 30_000), lastError: null })
         } catch (error) {
             const denied = isRuntimeMessageBlocked(error)
+            const failure = denied ? 'access_or_target_changed' : 'transport_unavailable'
+            const reason = invocationFailureReason(error)
             await repo.update(owned, {
                 state: denied ? 'blocked' : row.attempts >= 19 ? 'failed' : 'pending',
-                lastError: denied ? 'access_or_target_changed' : 'transport_unavailable',
+                lastError: reason ? `${failure}:${reason}` : failure,
                 nextAttemptAt: new Date(Date.now() + Math.min(300_000, 5_000 * 2 ** Math.min(row.attempts, 6)))
             })
         } finally {
