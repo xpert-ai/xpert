@@ -1,4 +1,5 @@
-import { Component, computed, effect, HostListener, inject, model, signal, viewChild } from '@angular/core'
+import { Component, computed, DestroyRef, effect, HostListener, inject, model, signal, viewChild } from '@angular/core'
+import { PageLeaveService } from '../../../../@core/services/page-leave.service'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { NgxPermissionsService } from 'ngx-permissions'
@@ -186,6 +187,7 @@ export class XpEditUserComponent {
   })
 
   constructor() {
+    inject(PageLeaveService).register(() => this.canLeave(), inject(DestroyRef))
     effect(
       () => {
         const requestedTab = this.queryTab()
