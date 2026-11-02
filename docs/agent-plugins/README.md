@@ -18,6 +18,8 @@ Non-assistant-role packages can also expose templates as [task sub-agents](./TEM
 
 Packages are organization-scoped. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
 
+Git imports fetch one snapshot without its full history. When a subdirectory is selected, imports request `blob:none` partial fetching and configure sparse checkout before checkout, so only that directory's file contents are fetched from servers supporting object filtering, including GitHub. Commit and directory-tree metadata are still downloaded. This also applies to the official `agent-plugins` batch and version updates. Root imports retain the complete snapshot; a Git server that ignores filtering can still transfer the full snapshot. Each operation uses a temporary checkout, with no persistent repository cache.
+
 ## Workspace editor additions in Desktop
 
 Discover & add > Plugins uses a searchable workspace combobox containing only current-organization workspaces the actor can edit. It adds already imported organization packages without opening the administrator page. Required logical expert references must be mapped to accessible published experts before adding.
