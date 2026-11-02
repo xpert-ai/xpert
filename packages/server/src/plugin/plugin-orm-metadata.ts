@@ -42,15 +42,30 @@ export function collectPluginOrmMetadata(plugins?: Array<Type<any> | DynamicModu
 
 export function mergeEntityClasses(coreEntities: Array<Type<any>>, pluginEntities: Array<Type<any>>): Array<Type<any>> {
 	const registeredEntities = [...coreEntities]
+	const tables = new Map(getMetadataArgsStorage().tables.map((table) => [table.target, table]))
 
 	for (const pluginEntity of pluginEntities) {
 		if (registeredEntities.includes(pluginEntity)) {
 			continue
 		}
 
-		if (registeredEntities.some((entity) => entity.name === pluginEntity.name)) {
+		// Scoped installations retain their own constructors; class names are not global identities.
+		// Protect host tables using explicit mappings, with name checks for implicit table names.
+		const pluginTable = tables.get(pluginEntity)
+		if (
+			coreEntities.some((entity) => {
+				const coreTable = tables.get(entity)
+				if (pluginTable?.name && coreTable?.name) {
+					return (
+						pluginTable.name === coreTable.name &&
+						(!pluginTable.schema || !coreTable.schema || pluginTable.schema === coreTable.schema)
+					)
+				}
+				return entity.name === pluginEntity.name
+			})
+		) {
 			throw new ConflictException({
-				message: `Entity conflict: ${pluginEntity.name} conflicts with registered entities.`
+				message: `Entity conflict: ${pluginEntity.name} conflicts with a core entity.`
 			})
 		}
 
