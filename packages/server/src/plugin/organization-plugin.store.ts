@@ -33,6 +33,9 @@ export interface OrganizationPluginStoreOptions {
 }
 
 export interface InstallOrganizationPluginsOptions extends OrganizationPluginStoreOptions {
+	runtimeName?: string
+	/** Immutable runtime directories are selected by the committed database row, never legacy discovery. */
+	publishManifest?: boolean
 	/** npm registry override when installing plugins */
 	registry?: string
 	/** Whether to pass --legacy-peer-deps, default true to match existing behaviour */
@@ -89,7 +92,8 @@ type WorkspaceStageState = {
 	relativeDistPath: string | null
 }
 
-export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
+export const DEFAULT_ORG_PLUGIN_ROOT =
+	getConfig().assetOptions.pluginPath ?? path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
 const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
 const WORKSPACE_STAGE_STATE_SCHEMA_VERSION = 1 as const
@@ -530,7 +534,10 @@ function getPluginDirName(pluginName: string) {
 }
 
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
-	const rootDir = opts?.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins')
+	const rootDir =
+		opts?.rootDir ??
+		getConfig().assetOptions.pluginPath ??
+		path.join(getConfig().assetOptions.serverRoot, 'plugins')
 	const scope = resolvePluginScope({
 		tenantId: opts?.tenantId,
 		organizationId,
@@ -819,12 +826,13 @@ export async function installOrganizationPlugins(
 		await fs.promises.mkdir(root, { recursive: true })
 		for (const plugin of plugins) {
 			await installRegistryArtifact({
-				pluginDir: getOrganizationPluginPath(organizationId, plugin, opts),
+				pluginDir: getOrganizationPluginPath(organizationId, opts.runtimeName ?? plugin, opts),
 				plugin,
 				registry: opts.registry,
 				legacyPeerDeps: opts.legacyPeerDeps,
 				lease
 			})
+			if (opts.publishManifest === false) continue
 			await updatePluginManifest(
 				getOrganizationManifestPath(organizationId, opts),
 				(current) => [...current, plugin],
@@ -839,7 +847,12 @@ export function withOrganizationPluginStoreLock<T>(
 	opts: OrganizationPluginStoreOptions,
 	action: Parameters<typeof withPluginStoreLock<T>>[1]
 ) {
-	return withPluginStoreLock(opts.rootDir ?? path.join(getConfig().assetOptions.serverRoot, 'plugins'), action)
+	return withPluginStoreLock(
+		opts.rootDir ??
+			getConfig().assetOptions.pluginPath ??
+			path.join(getConfig().assetOptions.serverRoot, 'plugins'),
+		action
+	)
 }
 
 export async function removeOrganizationManifestPlugins(

@@ -1,3 +1,4 @@
+import { AppPlatformService } from '../../@core/services/app-platform.service'
 import { HttpClient } from '@angular/common/http'
 import { ReactiveFormsModule } from '@angular/forms'
 import { TestBed } from '@angular/core/testing'
@@ -29,6 +30,7 @@ describe('UserLoginComponent', () => {
       declarations: [UserLoginComponent],
       imports: [ReactiveFormsModule],
       providers: [
+        { provide: AppPlatformService, useValue: { branding: () => null } },
         {
           provide: HttpClient,
           useValue: {

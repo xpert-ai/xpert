@@ -1,7 +1,7 @@
 import { KBDocumentStatusEnum, KnowledgeWikiIdentityDescriptor } from '@xpert-ai/contracts'
 import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiSourceMapResult, KnowledgeWikiSourceState } from './entities'
 import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
 import { KnowledgeIdentityService } from '../identity/knowledge-identity.service'

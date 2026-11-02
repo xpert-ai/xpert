@@ -1,14 +1,21 @@
+import { EndpointPermissionInterceptor } from '../../../server/src/shared/guards/endpoint-permission.interceptor'
+import { FakeListChatModel } from '@langchain/core/utils/testing'
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages'
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import {
     AiModelTypeEnum,
+    AIPermissionsEnum,
+    ICopilotModel,
     IModelAccessResolution,
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum,
-    ModelGatewayCallStatusEnum
+    ModelGatewayCallStatusEnum,
+    ModelGatewayUsageSourceEnum,
+    ParameterType,
+    type ParameterRule
 } from '@xpert-ai/contracts'
 import {
     AIModelProviderRegistry,
@@ -32,6 +39,7 @@ import { AIModelGetProviderHandler } from '../ai-model/queries/handlers/get-prov
 import { CopilotGetOneQuery } from '../copilot/queries/get-one.query'
 import { GetCopilotProviderModelQuery } from '../copilot-provider/queries/get-model.query'
 import { AgentMiddlewareModelRuntimeService } from '../shared/agent/middleware-runtime/model-runtime.service'
+import { FakeStreamingChatModel } from '../shared/agent/fake-streaming-chat-model'
 import { runWithCapturedRequestContext } from '../shared/request-context'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
@@ -75,6 +83,7 @@ async function createFixture(
         tenantId?: string
         organizationId?: string | null
         registerProvider?: boolean
+        parameterRules?: ParameterRule[]
     } = {}
 ) {
     const tenantId = options.tenantId ?? 'tenant-1'
@@ -86,7 +95,7 @@ async function createFixture(
         scopes.push({ stage, ...currentScope() })
         requestIds.push(RequestContext.currentRequestContext()?.reqId)
     }
-    const model = {
+    const model = Object.assign(new FakeStreamingChatModel({ sleep: 0 }), {
         invoke: jest.fn<Promise<AIMessage>, [unknown, { signal: AbortSignal }]>(async () => {
             await Promise.resolve()
             recordScope('invoke')
@@ -97,7 +106,7 @@ async function createFixture(
             recordScope('stream')
             yield new AIMessageChunk('Hello')
         })
-    }
+    })
     const provider: IAIModelProviderStrategy = {
         name: 'xirang',
         validateCredentials: jest.fn(),
@@ -105,14 +114,14 @@ async function createFixture(
         getBaseUrl: jest.fn(),
         getAuthorization: jest.fn(),
         getModels: jest.fn(),
-        getModelInstance: jest.fn(async () => {
+        getModelInstance: jest.fn(async (_type: AiModelTypeEnum, _configuration: ICopilotModel) => {
             recordScope('provider')
-            return model as never
+            return model
         }),
         getProviderModels: jest.fn(() => []),
         getProviderSchema: jest.fn(),
         getProviderServerPath: jest.fn(),
-        getModelManager: jest.fn().mockReturnValue({ getParameterRules: () => [] })
+        getModelManager: jest.fn().mockReturnValue({ getParameterRules: () => options.parameterRules ?? [] })
     }
     const registry = new AIModelProviderRegistry(new DiscoveryService(new ModulesContainer()), new Reflector())
     if (options.registerProvider !== false) {
@@ -151,15 +160,20 @@ async function createFixture(
         undefined,
         undefined
     )
+    const callRepository = {
+        findOne: jest.fn(async () => call),
+        save: jest.fn(async (value: ModelGatewayCall) => value)
+    }
+    const membershipService = { recordGatewayUsage: jest.fn() }
     const service = new ModelGatewayService(
         undefined,
         undefined,
         undefined,
+        callRepository as never,
         undefined,
         undefined,
         undefined,
-        undefined,
-        undefined,
+        membershipService as never,
         runtime as never,
         undefined
     )
@@ -169,7 +183,21 @@ async function createFixture(
         organizationId: organizationId ?? 'key-org',
         userId
     })
-    const identity = { apiKey, user: Object.assign(new User(), { id: userId, tenantId }) }
+    const identity = {
+        apiKey,
+        user: Object.assign(new User(), {
+            id: userId,
+            tenantId,
+            roleId: 'role',
+            role: {
+                id: 'role',
+                name: 'GATEWAY_USER',
+                rolePermissions: [
+                    { tenantId, roleId: 'role', permission: AIPermissionsEnum.MODEL_GATEWAY_USE, enabled: true }
+                ]
+            }
+        })
+    }
     const publication = Object.assign(new ModelGatewayPublication(), {
         id: 'publication-1',
         tenantId,
@@ -202,7 +230,9 @@ async function createFixture(
         id: 'call-1',
         requestId: 'request-1',
         startedAt: new Date(),
-        status: ModelGatewayCallStatusEnum.Started
+        status: ModelGatewayCallStatusEnum.Started,
+        chargedPoints: 0,
+        excessPoints: 0
     })
     jest.spyOn(service, 'authenticate').mockResolvedValue(identity)
     jest.spyOn(service, 'requireCallablePublication').mockImplementation(async () => {
@@ -245,6 +275,9 @@ async function createFixture(
         registry,
         provider,
         model,
+        call,
+        callRepository,
+        membershipService,
         scopes,
         requestIds,
         request,
@@ -266,6 +299,7 @@ async function startHttpFixture(fixture: Awaited<ReturnType<typeof createFixture
     app.use(legacyContext.use.bind(legacyContext))
     app.use(pluginContext.use.bind(pluginContext))
     app.useGlobalGuards(new AuthGuard(new Reflector()), new PluginScopeGuard(new Reflector()))
+    app.useGlobalInterceptors(new EndpointPermissionInterceptor(new Reflector()))
     app.setGlobalPrefix('api')
     await app.listen(0, '127.0.0.1')
     const baseUrl = await app.getUrl()
@@ -282,6 +316,191 @@ async function startHttpFixture(fixture: Awaited<ReturnType<typeof createFixture
 }
 
 describe('OpenAI gateway authenticated model context', () => {
+    const thinkingRule: ParameterRule = {
+        name: 'enable_thinking',
+        label: { en_US: 'Thinking' },
+        type: ParameterType.BOOLEAN,
+        default: true
+    }
+
+    it.each([false, true])('maps VS Code reasoning effort before inference (stream=%s)', async (stream) => {
+        const f = await createFixture({ parameterRules: [thinkingRule] })
+        const http = await startHttpFixture(f)
+        try {
+            for (const effort of ['none', 'high'] as const) {
+                const response = await http.chat({ stream, reasoning_effort: effort })
+                await response.text()
+                expect(response.status).toBe(stream ? 200 : 201)
+                const configuration = jest.mocked(f.provider.getModelInstance).mock.calls.at(-1)?.[1]
+                expect(configuration?.options).toMatchObject({ enable_thinking: effort !== 'none' })
+                expect(configuration?.options).not.toHaveProperty('reasoning_effort')
+            }
+            const response = await http.chat({ stream })
+            await response.text()
+            expect(response.status).toBe(stream ? 200 : 201)
+            expect(jest.mocked(f.provider.getModelInstance).mock.calls.at(-1)?.[1].options).toMatchObject({
+                enable_thinking: true
+            })
+        } finally {
+            await http.app.close()
+            await f.module.close()
+        }
+    })
+
+    const effortRule: ParameterRule = {
+        name: 'reasoning_effort',
+        label: { en_US: 'Reasoning effort' },
+        type: ParameterType.STRING,
+        options: ['low', 'medium', 'high'],
+        default: 'medium'
+    }
+
+    it('retains declared native effort levels instead of reducing them to a boolean', async () => {
+        const f = await createFixture({ parameterRules: [effortRule] })
+        const http = await startHttpFixture(f)
+        try {
+            for (const effort of ['low', 'high']) {
+                const response = await http.chat({ reasoning_effort: effort })
+                await response.text()
+                expect(response.status).toBe(201)
+                expect(jest.mocked(f.provider.getModelInstance).mock.calls.at(-1)?.[1].options).toMatchObject({
+                    reasoning_effort: effort
+                })
+            }
+        } finally {
+            await http.app.close()
+            await f.module.close()
+        }
+    })
+
+    it.each([
+        { parameterRules: [], stream: false },
+        { parameterRules: [], stream: true },
+        { parameterRules: [thinkingRule, effortRule], stream: false },
+        { parameterRules: [thinkingRule, effortRule], stream: true }
+    ])(
+        'rejects unsupported effort with zero usage (stream=$stream, rules=$parameterRules)',
+        async ({ parameterRules, stream }) => {
+            const f = await createFixture({ parameterRules })
+            jest.mocked(f.service.finishCall).mockRestore()
+            const http = await startHttpFixture(f)
+            try {
+                const response = await http.chat({ stream, reasoning_effort: 'none' })
+                expect(response.status).toBe(400)
+                expect(await response.json()).toMatchObject({ error: { type: 'invalid_request_error' } })
+                expect(f.provider.getModelInstance).not.toHaveBeenCalled()
+                expect(f.callRepository.save).toHaveBeenCalledTimes(1)
+                expect(f.call).toMatchObject({
+                    status: ModelGatewayCallStatusEnum.Failed,
+                    usageSource: ModelGatewayUsageSourceEnum.None,
+                    totalTokens: 0,
+                    chargedPoints: 0,
+                    settlementContext: null
+                })
+                expect(f.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
+            } finally {
+                await http.app.close()
+                await f.module.close()
+            }
+        }
+    )
+
+    it.each([
+        { reasoning_effort: 'auto' },
+        { reasoning_effort: null },
+        { thinking: { type: 'enabled' }, reasoning_effort: 'none' },
+        { thinking: { type: 'disabled' }, reasoning_effort: 'high' }
+    ])('rejects invalid or conflicting controls before admission (%j)', async (body) => {
+        const f = await createFixture({ parameterRules: [thinkingRule] })
+        const http = await startHttpFixture(f)
+        try {
+            const response = await http.chat(body)
+            expect(response.status).toBe(400)
+            expect(await response.json()).toMatchObject({ error: { type: 'invalid_request_error' } })
+            expect(f.service.startCall).not.toHaveBeenCalled()
+            expect(f.provider.getModelInstance).not.toHaveBeenCalled()
+        } finally {
+            await http.app.close()
+            await f.module.close()
+        }
+    })
+
+    it.each([false, true])('applies thinking before model construction over HTTP (stream=%s)', async (stream) => {
+        const f = await createFixture({ parameterRules: [thinkingRule] })
+        const http = await startHttpFixture(f)
+        try {
+            for (const type of ['disabled', 'enabled'] as const) {
+                const response = await http.chat({ stream, thinking: { type } })
+                await response.text()
+                expect(response.status).toBe(stream ? 200 : 201)
+                expect(f.provider.getModelInstance).toHaveBeenLastCalledWith(
+                    AiModelTypeEnum.LLM,
+                    expect.objectContaining({
+                        options: expect.objectContaining({ enable_thinking: type === 'enabled' })
+                    }),
+                    expect.anything()
+                )
+            }
+            const response = await http.chat({ stream })
+            await response.text()
+            expect(response.status).toBe(stream ? 200 : 201)
+            expect(f.provider.getModelInstance).toHaveBeenLastCalledWith(
+                AiModelTypeEnum.LLM,
+                expect.objectContaining({ options: expect.objectContaining({ enable_thinking: true }) }),
+                expect.anything()
+            )
+        } finally {
+            await http.app.close()
+            await f.module.close()
+        }
+    })
+
+    it.each([false, true])(
+        'finalizes unsupported thinking with zero usage before inference (stream=%s)',
+        async (stream) => {
+            const f = await createFixture()
+            jest.mocked(f.service.finishCall).mockRestore()
+            const http = await startHttpFixture(f)
+            try {
+                const response = await http.chat({ stream, thinking: { type: 'disabled' } })
+                expect(response.status).toBe(400)
+                expect(await response.json()).toMatchObject({ error: { type: 'invalid_request_error' } })
+                expect(f.provider.getModelInstance).not.toHaveBeenCalled()
+                expect(f.model.invoke).not.toHaveBeenCalled()
+                expect(f.model.stream).not.toHaveBeenCalled()
+                expect(f.callRepository.save).toHaveBeenCalledTimes(1)
+                expect(f.call).toMatchObject({
+                    status: ModelGatewayCallStatusEnum.Failed,
+                    usageSource: ModelGatewayUsageSourceEnum.None,
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    totalTokens: 0,
+                    chargedPoints: 0,
+                    excessPoints: 0,
+                    settlementContext: null
+                })
+                expect(f.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
+            } finally {
+                await http.app.close()
+                await f.module.close()
+            }
+        }
+    )
+
+    it('rejects invalid thinking at the HTTP boundary before starting a billable call', async () => {
+        const f = await createFixture({ parameterRules: [thinkingRule] })
+        const http = await startHttpFixture(f)
+        try {
+            const response = await http.chat({ thinking: { type: 'enabled', budget_tokens: 1024 } })
+            expect(response.status).toBe(400)
+            expect(await response.json()).toMatchObject({ error: { type: 'invalid_request_error' } })
+            expect(f.service.startCall).not.toHaveBeenCalled()
+        } finally {
+            await http.app.close()
+            await f.module.close()
+        }
+    })
+
     beforeEach(() => setDefaultTenantId('default-tenant'))
     afterEach(() => {
         jest.restoreAllMocks()
@@ -388,6 +607,25 @@ describe('OpenAI gateway authenticated model context', () => {
                 expect(fixture.scopes).toContainEqual({ stage, ...fixture.expected() })
             }
             expect(fixture.service.authenticate).toHaveBeenCalledWith('Bearer fixture-key')
+            expect(fixture.service.authenticate).toHaveBeenCalledTimes(2)
+        } finally {
+            await http.app.close()
+            await fixture.module.close()
+        }
+    })
+
+    it('enforces effective gateway permissions after key authentication on every HTTP request', async () => {
+        const fixture = await createFixture()
+        const http = await startHttpFixture(fixture)
+        try {
+            for (const enabled of [true, false, true]) {
+                fixture.identity.user.role.rolePermissions[0].enabled = enabled
+                const response = await http.models()
+                expect(response.status).toBe(enabled ? 200 : 403)
+                await response.json()
+            }
+            expect(fixture.service.authenticate).toHaveBeenCalledTimes(3)
+            expect(fixture.service.listAccessiblePublications).toHaveBeenCalledTimes(2)
         } finally {
             await http.app.close()
             await fixture.module.close()

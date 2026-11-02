@@ -53,6 +53,13 @@ export const createUpdateTasksTool = ({
                                 .object({
                                     id: z.string().uuid().optional().describe(`Project task id`),
                                     name: z.string().trim().min(1).max(200).optional().describe(`Task name`),
+                                    assigneeXpertId: z
+                                        .string()
+                                        .uuid()
+                                        .optional()
+                                        .describe(
+                                            'Explicit responsible project-member Assistant ID; never a runtime/provider ID'
+                                        ),
                                     status: z
                                         .enum([
                                             'todo',
@@ -86,6 +93,7 @@ export const createUpdateTasksTool = ({
                                                 .strict()
                                         )
                                         .max(100)
+                                        .optional()
                                 })
                                 .strict()
                                 .refine((task) => Boolean(task.id || task.name), 'Provide a task id or name')
@@ -95,7 +103,8 @@ export const createUpdateTasksTool = ({
                         .describe('Tasks to update status')
                 })
                 .strict(),
-            description: 'Update step status of tasks in project.'
+            description:
+                'Update task step status or explicitly assign a responsible project-member Assistant. Set assigneeXpertId before delegating an unassigned task, then read its latest revision with project_get_task. Assignment does not start execution.'
         }
     )
     return updateTasksTool

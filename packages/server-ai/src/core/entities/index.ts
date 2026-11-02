@@ -1,3 +1,6 @@
+import { USER_NOTIFICATION_ENTITIES } from '../../user-notification/notification.entities'
+import { ModelReplacementOperation } from '../../xpert/model-replacement/operation.entity'
+import { CopilotRoleDefault } from '../../copilot/role-defaults/role-default.entity'
 import { ArtifactReference } from '../../artifacts/library/artifact-reference.entity'
 import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
 import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
@@ -152,6 +155,11 @@ import {
     AgentResourceBinding,
     PluginResourceInstallation,
     PluginApplicationInstallation,
+    AppPlatformDelivery,
+    AppPlatformStorageObject,
+    AppPlatformStorageRoot,
+    PlatformResourceBinding,
+    PlatformToolsetBinding,
     McpRuntimeInstanceEntity,
     AssistantBinding,
     AssistantBindingUserPreference,
@@ -175,6 +183,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ...USER_NOTIFICATION_ENTITIES,
     ContentResourceEntry,
     ContentResourceOperation,
     ContentEditorPreference,
@@ -259,6 +268,8 @@ export const ALL_AI_ENTITIES = [
     ChatMessageFeedback,
     FileAsset,
     Copilot,
+    CopilotRoleDefault,
+    ModelReplacementOperation,
     CopilotModel,
     CopilotKnowledge,
     CopilotOrganization,
@@ -321,6 +332,11 @@ export const ALL_AI_ENTITIES = [
     AgentResourceBinding,
     PluginResourceInstallation,
     PluginApplicationInstallation,
+    AppPlatformDelivery,
+    AppPlatformStorageObject,
+    AppPlatformStorageRoot,
+    PlatformResourceBinding,
+    PlatformToolsetBinding,
     McpRuntimeInstanceEntity,
     AssistantBinding,
     AssistantBindingUserPreference,

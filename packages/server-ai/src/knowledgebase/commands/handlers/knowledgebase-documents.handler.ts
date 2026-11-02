@@ -35,7 +35,7 @@ import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowl
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
 import { VolumeSubtreeClient } from '../../../shared/volume/volume-subtree'
 import { KnowledgeWorkAreaResolver } from '../../../shared/volume/work-area'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import {
     CreateKnowledgebaseDocumentsCommand,
     CreateKnowledgebaseFolderCommand,

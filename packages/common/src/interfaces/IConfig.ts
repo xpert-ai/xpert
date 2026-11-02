@@ -2,6 +2,7 @@ import { DynamicModule, Type } from '@nestjs/common'
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'
 // import { PluginDefinition } from 'apollo-server-core';
 import { ILogger } from './ILogger'
+import type { AppPlatformConfiguration } from '@xpert-ai/contracts'
 
 export interface IGraphqlOptions {
   path: string
@@ -20,6 +21,8 @@ export interface IAssetOptions {
   dataPath: string
   /** Optional package root; defaults to dataPath/agent-plugins. */
   agentPluginPath?: string
+  /** Optional isolated runtime/staging root for installed plugins. */
+  pluginPath?: string
 }
 export interface IApiServerOptions {
   host?: string
@@ -41,7 +44,16 @@ export interface IAuthOptions {
   jwtSecret: string
 }
 
+export interface IBillingConfiguration {
+  /** Membership points currently settle in CNY. Other settlement currencies require a points-policy migration. */
+  settlementCurrency: 'CNY'
+  /** Units of the settlement currency per one unit of each source currency. Decimal strings preserve configuration precision. */
+  exchangeRates: Record<string, string>
+}
+
 export interface IPluginConfig {
+  appPlatform?: AppPlatformConfiguration | null
+  billing?: IBillingConfiguration
   /** Cloud URL, inherited from the existing CLIENT_BASE_URL setting. */
   clientBaseUrl?: string
   managedQueueOptions?: {

@@ -6,7 +6,9 @@ import {
 	IUser,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { ConflictException, Logger } from '@nestjs/common'
+import { getConfig } from '@xpert-ai/server-config'
+import { BadRequestException, ConflictException, Logger } from '@nestjs/common'
+import { t } from 'i18next'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from 'eventemitter2'
 import { OrganizationCreateCommand } from '../../../organization/commands'
@@ -30,6 +32,12 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 
 	public async execute(command: AuthTrialCommand): Promise<IUser> {
 		const { input, languageCode } = command
+		if (getConfig().appPlatform) {
+			if (typeof input.user?.email !== 'string' || !input.user.email.trim()) {
+				throw new BadRequestException(t('server-ai:Error.ApplicationEmailRequired'))
+			}
+			input.user.email = input.user.email.trim().toLowerCase()
+		}
 
 		this.logger.debug(`Create trial user '${input.user?.email}'`)
 
@@ -56,8 +64,23 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 		}
 
 		const role = await this.roleService.findOne({
-			where: { name: RolesEnum.TRIAL }
+			where: { tenantId: tenant.id, name: getConfig().appPlatform ? RolesEnum.APP_USER : RolesEnum.TRIAL }
 		})
+		if (getConfig().appPlatform) {
+			return this.authService.signup({
+				user: {
+					...(success ? { id: record.id } : {}),
+					email: input.user.email.trim().toLowerCase(),
+					firstName: input.user.firstName,
+					lastName: input.user.lastName,
+					tenantId: tenant.id,
+					roleId: role.id
+				},
+				password: input.password,
+				referralCode: input.referralCode,
+				originalUrl: input.originalUrl
+			}, languageCode)
+		}
 		if (success) {
 			this.logger.debug(`Found TRIAL role and clear recreate user '${record.email}'`)
 			if (record.emailVerification) {

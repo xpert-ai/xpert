@@ -41,7 +41,9 @@ describe('ToolRuntimeService', () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ToolRuntimeService,
-                { provide: getRepositoryToken(XpertToolset), useValue: { find } },
+                { provide: getRepositoryToken(XpertToolset), useValue: {
+                    find, manager: { getRepository: () => ({ findOneBy: jest.fn().mockResolvedValue(null) }) }
+                } },
                 { provide: getRepositoryToken(McpCapabilityCatalog), useValue: { find: findCapabilities } },
                 { provide: CommandBus, useValue: { execute: commandExecute } },
                 { provide: QueryBus, useValue: { execute: jest.fn() } },

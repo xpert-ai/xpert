@@ -1,3 +1,5 @@
+import { RuntimeResourceCatalogCache } from './catalog/runtime-catalog.cache'
+import type { Cache } from 'cache-manager'
 import type { AgentPluginInstallationsService } from './agent-plugin-installations.service'
 jest.mock('./agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
 import { ModuleRef } from '@nestjs/core'
@@ -115,7 +117,12 @@ describe('runtime resource authorization and persistence', () => {
                 catalogPackages: jest.fn().mockResolvedValue([]),
                 catalogConnectorReferences: jest.fn().mockResolvedValue(new Map()),
                 reference: jest.fn().mockResolvedValue(null)
-            } as unknown as AgentPluginInstallationsService
+            } as unknown as AgentPluginInstallationsService,
+            new RuntimeResourceCatalogCache({
+                get: async () => {
+                    throw new Error('cache offline')
+                }
+            } as unknown as Cache)
         )
     })
     afterEach(() => jest.restoreAllMocks())

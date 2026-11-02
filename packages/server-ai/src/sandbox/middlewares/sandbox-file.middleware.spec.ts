@@ -195,6 +195,62 @@ describe('SandboxFileMiddleware', () => {
         }
     })
 
+    it.each([
+        { name: 'sandbox_list_dir', argument: 'dir_path', valid: {} },
+        { name: 'sandbox_glob', argument: 'path', valid: { pattern: '*.md' } },
+        { name: 'sandbox_grep', argument: 'path', valid: { pattern: 'recipe' } }
+    ])('validates $name discovery paths before backend access', async ({ name, argument, valid }) => {
+        const created = await createFileTools()
+        const operation = created.tools.find((tool) => tool.name === name)
+        const backend = { workingDirectory: '/workspace', listDir: jest.fn(), glob: jest.fn(), grep: jest.fn() }
+        const config = { configurable: { sandbox: { backend } } }
+        for (const path of ['/workspace/.xpert/skills', '../other', 'data/../other', 'data//nested', ' data']) {
+            await expect(operation.invoke({ ...valid, [argument]: path }, config)).rejects.toThrow()
+        }
+        for (const method of [backend.listDir, backend.glob, backend.grep]) expect(method).not.toHaveBeenCalled()
+    })
+
+    it('resolves only the directory argument and preserves reusable relative listing output', async () => {
+        const created = await createFileTools()
+        const list = created.tools.find((tool) => tool.name === 'sandbox_list_dir')
+        const read = created.tools.find((tool) => tool.name === 'sandbox_read_file')
+        const file = '.xpert/skills/production-quality/README.md'
+        const output = `Workspace-relative directory: .xpert/skills/production-quality\n${file}\n`
+        const backend = {
+            workingDirectory: '/workspace/project',
+            listDir: jest.fn().mockResolvedValue(output),
+            read: jest.fn().mockResolvedValue('L1: Production quality')
+        }
+        const config = { configurable: { sandbox: { backend } } }
+        expect(
+            await list.invoke({ dir_path: '.xpert/skills/production-quality/', offset: 2, limit: 3, depth: 1 }, config)
+        ).toBe(output)
+        expect(backend.listDir).toHaveBeenLastCalledWith('/workspace/project/.xpert/skills/production-quality', 2, 3, 1)
+        const listedFile = output.split('\n')[1]
+        expect(await read.invoke({ file_path: listedFile }, config)).toBe('L1: Production quality')
+        expect(backend.read).toHaveBeenCalledWith(
+            `/workspace/project/${file}`,
+            undefined,
+            undefined,
+            undefined,
+            undefined
+        )
+        await list.invoke({ dir_path: '.' }, config)
+        expect(backend.listDir).toHaveBeenLastCalledWith('/workspace/project', undefined, undefined, undefined)
+    })
+
+    it('uses the workspace root for omitted search paths', async () => {
+        const created = await createFileTools()
+        const backend = { workingDirectory: '/workspace/project', glob: jest.fn(), grep: jest.fn() }
+        const config = { configurable: { sandbox: { backend } } }
+        await created.tools.find((tool) => tool.name === 'sandbox_glob').invoke({ pattern: '*.md' }, config)
+        await created.tools
+            .find((tool) => tool.name === 'sandbox_grep')
+            .invoke({ pattern: 'recipe', path: './' }, config)
+        expect(backend.glob).toHaveBeenCalledWith('*.md', '/workspace/project')
+        expect(backend.grep).toHaveBeenCalledWith('recipe', '/workspace/project', undefined)
+    })
+
     it('returns edit size and actual diff without rejecting unchanged replacements', async () => {
         const created = await createFileTools()
         const operation = created.tools.find((tool) => tool.name === 'sandbox_edit_file')

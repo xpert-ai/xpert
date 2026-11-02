@@ -5,7 +5,7 @@ import path from 'node:path'
 import { KnowledgeUploadSessionsService } from './knowledge-upload-sessions.service'
 import { VolumeHandle, type VolumeScope } from '../../shared/volume/volume'
 
-jest.mock('../knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: { currentTenantId: () => 'tenant' },
     RuntimeCapabilityProvider: () => () => undefined,

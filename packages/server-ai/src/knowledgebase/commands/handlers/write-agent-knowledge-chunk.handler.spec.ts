@@ -11,7 +11,7 @@ jest.mock('../../../knowledge-document/document.service', () => ({
     KnowledgeDocumentService: class KnowledgeDocumentService {}
 }))
 
-jest.mock('../../knowledgebase.service', () => ({
+jest.mock('../../management/knowledgebase.service', () => ({
     KnowledgebaseService: class KnowledgebaseService {}
 }))
 

@@ -21,7 +21,7 @@ import type {
     KnowledgebaseProvisioningPermission,
     KnowledgebaseProvisioningSpec
 } from '@xpert-ai/plugin-sdk'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { CopilotWithProviderDto } from '../../../copilot/dto'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../../../copilot/queries/copilot-model-find.query'
 import { EnsureKnowledgebasesCommand } from '../ensure-knowledgebases.command'

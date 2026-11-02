@@ -1,3 +1,9 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+
+// Existing orchestration scenarios use an authoring principal; restricted projection has separate coverage.
+beforeEach(() => jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true))
+afterEach(() => jest.restoreAllMocks())
+
 import { ChatMessageDTO } from './conversation.dto'
 import { instanceToPlain } from 'class-transformer'
 

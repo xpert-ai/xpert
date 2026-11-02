@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { TEnterpriseH5IdentityGrant } from '@xpert-ai/contracts'
 import { Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post, UseInterceptors } from '@nestjs/common'
@@ -7,6 +9,7 @@ import { EnterpriseChatkitSessionService, EnterpriseH5Xpert } from './enterprise
 @ApiTags('Xpert')
 @UseInterceptors(TransformInterceptor)
 @Controller('xpert')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class EnterpriseChatkitController {
     constructor(private readonly enterpriseChatkitSessionService: EnterpriseChatkitSessionService) {}
 

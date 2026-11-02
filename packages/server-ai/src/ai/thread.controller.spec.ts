@@ -1,3 +1,9 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+
+// Existing orchestration scenarios use an authoring principal; restricted projection has separate coverage.
+beforeEach(() => jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true))
+afterEach(() => jest.restoreAllMocks())
+
 import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/read-thread-control-view.query'
 jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({
@@ -8,6 +14,7 @@ jest.mock('../chat-conversation/thread-run-control.service', () => ({
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
+    Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,

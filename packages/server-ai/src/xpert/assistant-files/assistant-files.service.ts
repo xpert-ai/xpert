@@ -1,4 +1,5 @@
 import { initializeTemplateFiles } from '../../shared/volume/initialize-template-files'
+import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -44,10 +45,13 @@ export class AssistantFilesService {
             save: async (path: string, content: string) => (await client('write')).saveFile('', path, content),
             saveBinary: async (path: string, content: Buffer) =>
                 (await client('write')).saveBinaryFile('', path, content),
-            uploadToFolder: async (path: string, file: { originalname: string; buffer: Buffer; mimetype?: string }) =>
-                (await client('write')).uploadFile('', path, file),
+            uploadToFolder: async (path: string, file: { originalname: string; buffer: Buffer; mimetype?: string }) => {
+                await assertAppPlatformUpload(this.commandBus, file.buffer.length)
+                return (await client('write')).uploadFile('', path, file)
+            },
             delete: async (path: string) => (await client('delete')).deleteFile('', path),
             upload: async (file: Express.Multer.File): Promise<IArtifactWorkspaceFileReference> => {
+                await assertAppPlatformUpload(this.commandBus, file.buffer.length)
                 const { scope, initialFiles } = await authorize('write')
                 const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
                 // This entry already chose runtime or Studio authority. Do not re-enter runtime ACL for drafts.

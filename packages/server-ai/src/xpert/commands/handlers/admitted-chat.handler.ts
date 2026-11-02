@@ -11,9 +11,9 @@ export class AdmittedXpertChatHandler extends XpertChatHandler {
         return this.admission.run(
             command.request,
             { ...command.options, automatic: command.options?.messageEnvelope?.source.type === 'runtime' },
-            (id) =>
+            (id, request) =>
                 super.execute(
-                    new XpertChatCommand(command.request, {
+                    new XpertChatCommand(request ?? command.request, {
                         ...command.options,
                         ...(id ? { execution: { ...command.options?.execution, id } } : {})
                     })

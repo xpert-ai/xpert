@@ -12,7 +12,7 @@ import {
     KnowledgeWikiTaxonomyOutput
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiPage,
     KnowledgeWikiPageVersion,

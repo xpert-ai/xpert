@@ -5,7 +5,7 @@ import type {
     TemplateDependencyLock,
     TXpertTemplate
 } from '@xpert-ai/contracts'
-import type { RuntimeComponent } from '../../plugin-resource/plugin-resource-installer.service'
+import type { RuntimeComponent } from '../../plugin-resource/installation/plugin-resource-installer.service'
 
 /** Scope is taken from RequestContext by the package owner, never supplied by callers. */
 export class AgentPluginTemplatesCommand extends Command<TXpertTemplate[]> {
@@ -38,7 +38,7 @@ export class AssertAgentPluginTemplateDependencyCommand extends Command<void> {
 }
 
 export class InstallAgentPluginTemplateResourcesCommand extends Command<
-    import('../../plugin-resource/plugin-resource-installer.service').PluginResourceInstallResult
+    import('../../plugin-resource/installation/plugin-resource-installer.service').PluginResourceInstallResult
 > {
     constructor(
         readonly assistant: import('@xpert-ai/contracts').IXpert,

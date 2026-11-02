@@ -115,6 +115,16 @@ function dispatchMouseEvent(target: EventTarget, type: string, clientX: number, 
 }
 
 describe('ZardSliderComponent', () => {
+  it('does not commit a value merely by tabbing through a thumb', async () => {
+    const fixture = TestBed.createComponent(ReactiveHostComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const thumb: HTMLElement = fixture.nativeElement.querySelector('[role="slider"]')
+    thumb.dispatchEvent(new FocusEvent('focus'))
+    thumb.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+    expect(fixture.componentInstance.changeEnds).toEqual([])
+  })
+
   it('emits continuous valueChange and a single changeEnd while dragging', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [ReactiveHostComponent]

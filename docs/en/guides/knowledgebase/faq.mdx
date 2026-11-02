@@ -1,0 +1,87 @@
+---
+title: 'FAQ knowledgebases'
+description: 'Create, maintain and retrieve structured FAQ entries with scoped indexes and access controls'
+---
+
+An FAQ knowledgebase manages structured entries containing a standard question, similar questions, negative questions and answer blocks. Retrieval returns the complete answer content and citations identify the FAQ entry.
+
+## Creation and configuration
+
+Select the FAQ type (`type: faq`) when creating a knowledgebase, then configure models, vector storage, retrieval and FAQ settings. FAQ does not use document parsing, general-purpose chunking or Graph retrieval, and cannot enable Wiki.
+
+The following settings are creation-only. Existing knowledgebases show them as read-only, and the server rejects updates to `faqConfig`:
+
+| Field                                  | Values                              | Default and effect                                                                           |
+| -------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `indexMode`                            | `question_only` / `question_answer` | Questions only by default; the latter also indexes answers                                   |
+| `questionIndexMode`                    | `combined` / `separate`             | Separately encodes standard and similar questions by default; combined mode uses joined text |
+| `negativeMatchMode`                    | `exact` / `semantic`                | Exact exclusion by default; semantic mode requires thresholds                                |
+| `semanticThreshold` / `semanticMargin` | Numbers                             | Required for semantic mode; see [semantic exclusion](./faq-semantic-exclusion)               |
+
+Historical records without a negative matching mode use `exact`. They are not automatically upgraded to semantic matching.
+
+## Managing entries
+
+The management UI supports search, editing, enabling/disabling, deletion, import preview, append/replace imports, CSV/JSON export and reprocessing. Updates and deletions check the entry `version`; refresh before resubmitting after a version conflict.
+
+| Content            | Limit                                     |
+| ------------------ | ----------------------------------------- |
+| Standard question  | 500 characters                            |
+| Similar questions  | 10 questions, 500 characters each         |
+| Negative questions | 10 questions, 500 characters each         |
+| Answers            | 5 text blocks, 10,000 characters in total |
+| Import file        | 10 MiB; CSV/JSON                          |
+
+Duplicate detection and exact matching use Unicode NFKC, whitespace normalization and case normalization. A negative question excludes only its own FAQ, not all knowledgebase results.
+
+## Storage and indexing
+
+A managed document holds the entries of an FAQ knowledgebase. Each business chunk is the stable identity of one FAQ. Search vectors are derived records: an entry may have several vectors, and model token limits may produce additional physical segments.
+
+- Keyword projections include all positive questions and, when configured, answers.
+- Vector projections combine or separately encode questions according to `questionIndexMode`; answer indexing follows `indexMode`.
+- Negative questions never enter positive Vector/Keyword projections. Semantic comparison vectors use a separate cache.
+- Persistence and positive-index synchronization distinguish ready, pending and failed records. Disabled or unready entries are not returned by retrieval.
+- Replace imports prepare new data before switching active content. Cleanup and compensation maintain consistency between business entries and vector identities.
+
+Semantic prewarming failures do not roll back successful FAQ writes. Positive indexing still depends on the Embedding service; this does not guarantee successful writes during a complete model outage.
+
+## Retrieval and citations
+
+FAQ supports Vector, Keyword and Hybrid. The default is Hybrid with Weighted RRF: Vector weight 0.7, Keyword weight 0.3 and Graph weight 0.
+
+Multiple vector hits are deduplicated by the stable FAQ identity. Separate encoding expands candidate windows so one FAQ's vectors do not consume the result set. Exact or semantic exclusion runs before complete-answer materialization and final reranking. Semantic mode also performs bounded candidate replenishment, documented on its feature page.
+
+Agents receive complete FAQ content rather than index projection text. Citations carry the FAQ identity so Cloud can locate the entry. An expired citation must not invalidate the already loaded list.
+
+## Management API and authorization
+
+Endpoints are under `/api/knowledgebase/:knowledgebaseId/faqs`:
+
+| Method and suffix                      | Operation                                          |
+| -------------------------------------- | -------------------------------------------------- |
+| `GET /`, `GET /:faqId`                 | List and read                                      |
+| `POST /`, `PUT /:faqId`                | Create and update                                  |
+| `DELETE /:faqId?version=...`           | Versioned deletion                                 |
+| `POST /import/preview`, `POST /import` | Preview and append/replace import                  |
+| `GET /import-template`, `GET /export`  | Download a template or export all/selected entries |
+
+These are management endpoints. The Controller currently requires `KNOWLEDGEBASE_EDIT`, and the service additionally checks knowledgebase scope and resource access. Assistant runtime retrieval is a separate authorized path; consuming knowledge does not grant FAQ management access.
+
+## Implementation map
+
+- Contracts: `packages/contracts/src/ai/knowledge-faq.model.ts` and `knowledgebase.model.ts`.
+- Entries, projections and validation: `packages/server-ai/src/knowledgebase/faq/`.
+- Creation and update boundaries: `packages/server-ai/src/knowledgebase/management/`.
+- Candidate restoration and final processing: `packages/server-ai/src/knowledgebase/retrieval/` and `queries/handlers/`.
+
+## Verification scope
+
+The repository includes configuration, projection, CRUD, concurrent-version, citation and retrieval tests. Implemented functionality does not establish target-environment acceptance. Verify:
+
+- Real PostgreSQL Keyword indexes and PGVector/Milvus multi-vector writes/deletes, concurrency and failure compensation.
+- Candidate expansion, latency and ranking for long answers with many derived vectors.
+- Browser creation, editing, enable/disable, append/replace imports, reprocessing and citation navigation.
+- Operational rebuild and recovery after compensation failures.
+
+The completed implementation plan has been removed. Git history retains decisions and test records; this page does not mark unexecuted deployment checks as passed.

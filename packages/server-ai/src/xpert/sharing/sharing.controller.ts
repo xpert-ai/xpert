@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -12,6 +14,7 @@ import {
 } from './sharing.schema'
 const invalid = () => new BadRequestException(t('server-ai:Error.AssistantSharingInvalidInput'))
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AssistantSharingController {
     constructor(private readonly sharing: AssistantSharingService) {}
     @Get(':id/sharing')

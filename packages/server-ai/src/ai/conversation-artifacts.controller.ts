@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
@@ -13,6 +15,7 @@ import { ReadConversationArtifactCommand } from '../chat-conversation/commands/r
 @Public()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('conversations/:conversationId/artifacts')
 export class ConversationArtifactsController {
     constructor(private readonly commandBus: CommandBus) {}

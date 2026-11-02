@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TenantPermissionGuard, UUIDValidationPipe } from '@xpert-ai/server-core'
@@ -7,6 +9,7 @@ import { XpertService } from './xpert.service'
 @ApiBearerAuth()
 @UseGuards(TenantPermissionGuard)
 @Controller('tag-usage')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertTagUsageController {
     constructor(private readonly service: XpertService) {}
 

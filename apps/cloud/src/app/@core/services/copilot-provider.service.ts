@@ -12,6 +12,7 @@ import {
   ProviderCredentialValidationCapabilities,
   ProviderCredentialValidationResult
 } from '@xpert-ai/contracts'
+import { EnabledModelSelection } from '@xpert-ai/contracts'
 import { API_PREFIX } from '../state'
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +36,10 @@ export class CopilotProviderService extends OrganizationBaseCrudService<ICopilot
     return this.httpClient.get<ProviderModelCatalog>(this.apiBaseUrl + `/${providerId}/model`)
   }
 
+  saveEnabledModels(providerId: string, models: EnabledModelSelection[]) {
+    return this.httpClient.put<EnabledModelSelection[]>(`${this.apiBaseUrl}/${providerId}/enabled-models`, { models })
+  }
+
   discoverModels(providerId: string) {
     return this.httpClient.get<ModelDiscoveryResult>(`${this.apiBaseUrl}/${providerId}/model-discovery`)
   }
@@ -54,7 +59,7 @@ export class CopilotProviderService extends OrganizationBaseCrudService<ICopilot
 
   saveCredentials(
     providerId: string | undefined,
-    input: ProviderCredentialCheckInput & { providerName: string; copilotId: string }
+    input: Partial<ProviderCredentialCheckInput> & { providerName: string; copilotId?: string; connectionName?: string }
   ) {
     return providerId
       ? this.httpClient.put<ICopilotProvider>(`${this.apiBaseUrl}/${providerId}`, input)

@@ -118,10 +118,17 @@ export class FakeRedis {
 						return -1
 				}
 			}
+			const change = JSON.parse(options.arguments[0])
+			const publicationKey = change.publicationId
+				? JSON.stringify([change.requirements[0].scopeKey, change.requirements[0].pluginName])
+				: undefined
+			if (publicationKey) {
+				const receipt = (await this.hGetAll(options.keys[2]))[publicationKey]
+				if (receipt && JSON.parse(receipt).id === change.publicationId) return JSON.parse(receipt).generation
+			}
 			const generationKey = options.keys[0]
 			const generation = Number.parseInt(this.values.get(generationKey) ?? '0', 10) + 1
 			this.values.set(generationKey, `${generation}`)
-			const change = JSON.parse(options.arguments[0])
 			change.generation = generation
 			const prefix = options.arguments[1]
 			const ttlMs = Number.parseInt(options.arguments[2], 10) * 1_000
@@ -140,6 +147,12 @@ export class FakeRedis {
 				.filter(([key]) => key !== 'generation' && key !== 'status')
 				.map(([, value]) => JSON.parse(value))
 			await this.set(`${prefix}${generation}:requirements`, JSON.stringify(plugins), { EX: ttlMs / 1_000 })
+			if (publicationKey)
+				await this.hSet(
+					options.keys[2],
+					publicationKey,
+					JSON.stringify({ id: change.publicationId, generation })
+				)
 			await this.onGenerationPublished?.(generation)
 			return generation
 		}

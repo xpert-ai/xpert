@@ -10,6 +10,14 @@ let defaultConfig: IPluginConfig = defaultConfiguration;
  */
 export function setConfig(providedConfig: Partial<IPluginConfig>): void {
 	defaultConfig = deepMerge(defaultConfig, providedConfig);
+	// A product version is one immutable snapshot, never a recursive merge of two definitions.
+	if (Object.prototype.hasOwnProperty.call(providedConfig, 'appPlatform')) {
+		defaultConfig.appPlatform = providedConfig.appPlatform;
+	}
+	// Replace the rate table so removing a currency cannot leave a stale conversion active.
+	if (Object.prototype.hasOwnProperty.call(providedConfig, 'billing')) {
+		defaultConfig.billing = providedConfig.billing;
+	}
 }
 
 /**

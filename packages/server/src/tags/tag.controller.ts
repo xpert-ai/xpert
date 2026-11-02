@@ -13,6 +13,7 @@ import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
 @ApiTags('Tags')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
 export class TagController extends CrudController<Tag> {
 	constructor(
 		private readonly tagService: TagService,

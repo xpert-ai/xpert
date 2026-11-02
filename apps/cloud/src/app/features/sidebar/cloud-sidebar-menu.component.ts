@@ -15,7 +15,8 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { injectWorkspace, injectWorkspaceId } from '@cloud/app/@core/state'
 import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { isNil } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, isNil } from '@xpert-ai/contracts'
+import { Store } from '../../@core/state'
 import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
@@ -90,10 +91,19 @@ export class CloudSidebarMenuComponent {
     ),
     { initialValue: this.#router.url }
   )
+  private readonly store = inject(Store)
+  private readonly rolePermissions = toSignal(this.store.userRolePermissions$)
+  readonly canViewChat = computed(() => {
+    this.rolePermissions()
+    return this.store.hasPermission(AIPermissionsEnum.CHAT_VIEW)
+  })
   readonly groups = computed(() => {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
-    const groups = addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus()))
+    this.rolePermissions()
+    let groups = buildCloudSidebarMenuGroups(this.menus(), this.canViewChat())
+    if (!this.store.hasPermission(AIPermissionsEnum.XPERT_EDIT)) return groups
+    groups = addWorkspaceExpertSkillsConnectorsMenuItem(groups)
     return this.assistants()?.isClawXpertConfigured() ? addWorkspaceMoreMenuItem(groups, workspaceId) : groups
   })
 

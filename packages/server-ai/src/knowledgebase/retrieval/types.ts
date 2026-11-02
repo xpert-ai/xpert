@@ -8,7 +8,7 @@ import {
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { PreparedKnowledgeFilter } from '../filter'
-import type { KnowledgeDocumentStore } from '../vector-store'
+import type { KnowledgeDocumentStore } from '../embedding/vector-store'
 import type { FAQRetrievalBudget } from '../faq/faq-retrieval-budget'
 import type { TDocChunkMetadata } from '../../knowledge-document/types'
 

@@ -1,3 +1,4 @@
+import { PluginPublicationRecovery } from './installation/plugin-publication-recovery.service'
 import { runPluginStartupStep } from './plugin-startup-step'
 import { SetupPluginsCatalog } from './setup/setup-plugins.catalog'
 import { SetupPluginsController } from './setup/setup-plugins.controller'
@@ -72,6 +73,7 @@ import { Integration } from '../integration/integration.entity'
 		LOADED_PLUGINS
 	],
 	providers: [
+		PluginPublicationRecovery,
 		SetupPluginsService,
 		SetupPluginsStore,
 		SetupPluginsCatalog,

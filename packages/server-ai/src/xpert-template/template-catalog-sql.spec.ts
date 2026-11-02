@@ -3,7 +3,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AgentPluginInstallationsService } from '../agent-plugin/agent-plugin-installations.service'
 import { AgentPluginConnectorService } from '../agent-plugin/agent-plugin-connector.service'
 import { AgentPluginPackage, AgentResourceBinding } from '../agent-plugin/agent-plugin.entity'
-import { PluginResourceInstallerService } from '../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../plugin-resource/installation/plugin-resource-installer.service'
 import { TemplatePublicationEntity } from './lifecycle/template-publication.entity'
 import { TemplatePublicationStore } from './lifecycle/template-publication.store'
 
@@ -12,7 +12,7 @@ jest.mock('../agent-plugin/agent-plugin.entity', () => ({
     AgentResourceBinding: class {}
 }))
 jest.mock('../agent-plugin/agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../plugin-resource/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../plugin-resource/installation/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))
 jest.mock('../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 jest.mock('./lifecycle/template-publication.entity', () => ({ TemplatePublicationEntity: class {} }))

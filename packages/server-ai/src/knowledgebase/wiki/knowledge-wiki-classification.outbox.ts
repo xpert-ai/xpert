@@ -2,7 +2,7 @@
 import type { KnowledgeWikiPageClassificationInput } from '@xpert-ai/contracts'
 import { EntityManager } from 'typeorm'
 import { v5 as uuidv5 } from 'uuid'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob } from './entities'
 import {
     createKnowledgeWikiConfigFingerprint,

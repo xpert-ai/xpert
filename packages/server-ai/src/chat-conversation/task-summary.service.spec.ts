@@ -7,7 +7,7 @@ import { ChatTaskSummaryService } from './task-summary.service'
 import type { ChatConversation } from './conversation.entity'
 
 describe('ChatTaskSummaryService', () => {
-    it('backfills legacy messages without events and returns three-item previews with totals', async () => {
+    it('projects legacy messages without writes and returns three-item previews with totals', async () => {
         const legacyMessage = {
             id: 'legacy-1',
             conversationId: 'conversation-1',
@@ -16,6 +16,7 @@ describe('ChatTaskSummaryService', () => {
             updatedAt: new Date('2026-07-13T00:00:00.000Z')
         }
         const messages = [
+            legacyMessage,
             {
                 id: 'message-2',
                 taskSummary: {
@@ -42,29 +43,12 @@ describe('ChatTaskSummaryService', () => {
                 updatedAt: new Date('2026-07-13T05:00:00.000Z')
             }
         ]
-        let backfillReadCount = 0
         const messageService = {
-            findAllInOrganizationOrTenant: jest.fn(
-                (options: { where?: { taskSummary?: unknown }; select?: string[] }) => {
-                    if (options.where && 'taskSummary' in options.where) {
-                        backfillReadCount += 1
-                        return Promise.resolve({
-                            items:
-                                backfillReadCount === 1
-                                    ? [
-                                          {
-                                              ...legacyMessage,
-                                              conversationId: options.select?.includes('conversationId')
-                                                  ? legacyMessage.conversationId
-                                                  : undefined
-                                          }
-                                      ]
-                                    : [],
-                            total: backfillReadCount === 1 ? 1 : 0
-                        })
-                    }
-                    return Promise.resolve({ items: messages, total: messages.length })
-                }
+            findAllInOrganizationOrTenant: jest.fn(() =>
+                Promise.resolve({
+                    items: messages.map((message) => ({ ...message, conversationId: 'conversation-1' })),
+                    total: messages.length
+                })
             ),
             filterAuthorizedFileRelations: jest.fn((message, conversationId) => {
                 if (message.conversationId !== conversationId) throw new Error('Conversation scope missing')
@@ -146,25 +130,9 @@ describe('ChatTaskSummaryService', () => {
 
         expect(messageService.findAllInOrganizationOrTenant).toHaveBeenNthCalledWith(
             1,
-            expect.objectContaining({
-                select: [
-                    'id',
-                    'conversationId',
-                    'content',
-                    'references',
-                    'thirdPartyMessage',
-                    'createdAt',
-                    'updatedAt'
-                ],
-                take: 100
-            })
+            expect.objectContaining({ select: expect.not.arrayContaining(['content']) })
         )
-        expect(messageService.save).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'legacy-1',
-                taskSummary: expect.objectContaining({ version: 1 })
-            })
-        )
+        expect(messageService.save).not.toHaveBeenCalled()
         expect(messageService.filterAuthorizedFileRelations).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'legacy-1' }),
             'conversation-1'
@@ -207,13 +175,11 @@ describe('ChatTaskSummaryService', () => {
             updatedAt: '2026-07-13T03:00:00.000Z'
         })
         const messageService = {
-            findAllInOrganizationOrTenant: jest
-                .fn()
-                .mockResolvedValueOnce({ items: [], total: 0 })
-                .mockResolvedValueOnce({
-                    items: [{ id: 'message-1', taskSummary: { version: 1, outputs } }],
-                    total: 1
-                }),
+            findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({
+                items: [{ id: 'message-1', taskSummary: { version: 1, outputs } }],
+                total: 1
+            }),
+            filterAuthorizedFileRelations: jest.fn(async (message) => message),
             save: jest.fn()
         }
         const service = new ChatTaskSummaryService(
@@ -237,48 +203,46 @@ describe('ChatTaskSummaryService', () => {
 
     it('re-extracts outputs and sources from messages with an incomplete persisted summary', async () => {
         const messageService = {
-            findAllInOrganizationOrTenant: jest
-                .fn()
-                .mockResolvedValueOnce({ items: [], total: 0 })
-                .mockResolvedValueOnce({
-                    items: [
-                        {
-                            id: 'message-1',
-                            taskSummary: { version: 1 },
-                            content: [
-                                {
-                                    type: 'component',
-                                    data: {
-                                        artifact: {
-                                            files: [
-                                                {
-                                                    fileName: 'generated-video.mp4',
-                                                    workspacePath: 'files/videos/generated-video.mp4',
-                                                    mimeType: 'video/mp4'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                },
-                                {
-                                    type: 'component',
-                                    data: {
-                                        tool: 'web_search',
-                                        status: 'success',
-                                        output: [
-                                            'Title: Research report',
-                                            'URL: https://example.com/research-report',
-                                            'Published: 2026-07-13'
-                                        ].join('\n')
+            findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({
+                items: [
+                    {
+                        id: 'message-1',
+                        taskSummary: { version: 1 },
+                        content: [
+                            {
+                                type: 'component',
+                                data: {
+                                    artifact: {
+                                        files: [
+                                            {
+                                                fileName: 'generated-video.mp4',
+                                                workspacePath: 'files/videos/generated-video.mp4',
+                                                mimeType: 'video/mp4'
+                                            }
+                                        ]
                                     }
                                 }
-                            ],
-                            createdAt: new Date('2026-07-13T05:00:00.000Z'),
-                            updatedAt: new Date('2026-07-13T05:00:00.000Z')
-                        }
-                    ],
-                    total: 1
-                }),
+                            },
+                            {
+                                type: 'component',
+                                data: {
+                                    tool: 'web_search',
+                                    status: 'success',
+                                    output: [
+                                        'Title: Research report',
+                                        'URL: https://example.com/research-report',
+                                        'Published: 2026-07-13'
+                                    ].join('\n')
+                                }
+                            }
+                        ],
+                        createdAt: new Date('2026-07-13T05:00:00.000Z'),
+                        updatedAt: new Date('2026-07-13T05:00:00.000Z')
+                    }
+                ],
+                total: 1
+            }),
+            filterAuthorizedFileRelations: jest.fn(async (message) => message),
             save: jest.fn()
         }
         const service = new ChatTaskSummaryService(
@@ -378,6 +342,7 @@ function createEmptyService() {
     return new ChatTaskSummaryService(
         {
             findAllInOrganizationOrTenant: jest.fn(() => Promise.resolve({ items: [], total: 0 })),
+            filterAuthorizedFileRelations: jest.fn(async (message) => message),
             save: jest.fn()
         } as never,
         { getByConversationId: jest.fn(() => Promise.resolve(null)) } as never,

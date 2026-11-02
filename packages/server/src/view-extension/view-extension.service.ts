@@ -22,6 +22,7 @@ import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-d
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
 import { identifyViewRequest } from './view-request-metrics'
+import { presentViewActionResult } from './view-action-presentation'
 import {
 	buildBaseViewHostContext,
 	isSupportedRemoteComponentRuntime,
@@ -246,7 +247,7 @@ export class ViewExtensionService {
 			await this.cacheService.invalidateView(context, viewKey)
 		}
 
-		return result
+		return presentViewActionResult(result)
 	}
 
 	async executeFileAction(
@@ -302,7 +303,7 @@ export class ViewExtensionService {
 			await this.cacheService.invalidateView(context, viewKey)
 		}
 
-		return result
+		return presentViewActionResult(result)
 	}
 
 	async resolveViewFileAccessContext(

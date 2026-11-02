@@ -1,6 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import {
   GENERAL_PROJECT_TYPE,
+  AIPermissionsEnum,
   resolveI18nText,
   type XpertProjectTypeRef,
   type XpertProjectTypeSummary,
@@ -54,6 +55,16 @@ import { XpertProjectApiService, type XpertProjectListQuery } from './project-ap
   host: { class: 'block h-full w-full min-w-0' }
 })
 export class XpertProjectListComponent implements OnInit {
+  private readonly store = inject(Store)
+  private readonly rolePermissions = toSignal(this.store.userRolePermissions$)
+  readonly canCreate = computed(() => {
+    this.rolePermissions()
+    return this.store.hasPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
+  })
+  readonly canAuthor = computed(() => {
+    this.rolePermissions()
+    return this.store.hasPermission(AIPermissionsEnum.XPERT_EDIT)
+  })
   readonly facade = inject(XpertProjectFacade)
   readonly #organizationId = toSignal(inject(Store).selectOrganizationId())
   readonly #dialog = inject(Dialog)

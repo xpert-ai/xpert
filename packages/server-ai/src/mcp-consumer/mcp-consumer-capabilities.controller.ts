@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseGuards, UseInterceptors } from '@nestjs/common'
 import { TransformInterceptor } from '@xpert-ai/server-core'
 import { WorkspaceGuard } from '../xpert-workspace/guards/workspace.guard'
@@ -5,6 +7,7 @@ import { McpConsumerCapabilitiesService } from './mcp-consumer-capabilities.serv
 
 @UseInterceptors(TransformInterceptor)
 @Controller('mcp-consumer')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpConsumerCapabilitiesController {
     constructor(private readonly service: McpConsumerCapabilitiesService) {}
 

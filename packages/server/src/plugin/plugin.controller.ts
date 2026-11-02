@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	BadRequestException,
 	Body,
@@ -75,6 +77,7 @@ type ParsedJsonObject = {
 @ApiTags('Plugin')
 // @UseGuards(OrganizationPermissionGuard)
 @Controller('plugin')
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class PluginController {
 	constructor(
 		@Inject(LOADED_PLUGINS)

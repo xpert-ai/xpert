@@ -1,0 +1,86 @@
+---
+title: 'Knowledgebase Wiki'
+description: 'Generate evidence-backed pages, manage rebuilds and restrict searchable versions'
+---
+
+Wiki is a derived knowledge layer for Standard document knowledgebases. It generates summary, entity, concept and index pages from published sources, exposing browsing, evidence, links, backlinks and searchable projections. Source documents and RAG remain independent capabilities; Wiki does not replace the original content.
+
+## Enabling and configuring Wiki
+
+Only Standard knowledgebases support Wiki; FAQ and External types do not. Current behavior uses the knowledgebase's Wiki configuration and existing access controls without an additional organization-level Wiki feature grant. The separate feature gate described in the old plan is no longer an enabling prerequisite.
+
+Settings include:
+
+- `enabled`: whether Wiki is enabled.
+- `extractionGranularity`: extraction granularity.
+- `contentGenerationRequirements`: page-generation instructions.
+- `extractionFocus`: extraction priorities.
+- Optional `wikiModel`: preferred for Wiki, with fallback to `chatModel`.
+
+Enabling requires a usable model. **A knowledgebase with documents cannot directly toggle Wiki on or off.** Model or generation-setting changes may require rebuilding; paid rebuilding of non-empty knowledgebases requires `confirmModelCharges`. Configuration fingerprints include the effective model, generation settings and generator revision to prevent reuse of incompatible results.
+
+Configuration uses a dedicated update endpoint. Generic knowledgebase updates do not accept arbitrary Wiki configuration, models or server-owned build state. Server-computed management capabilities control rebuild and retry actions in the UI.
+
+## Content and state
+
+| Object                  | Responsibility                                                   |
+| ----------------------- | ---------------------------------------------------------------- |
+| Canonical page          | Stable identity, type, name and active version                   |
+| Page version            | Immutable page content                                           |
+| Contribution / evidence | Source contributions and traceable evidence                      |
+| Source state            | Eligibility, content hash, retraction and cleanup state          |
+| Projection              | System-managed searchable content, not another content authority |
+| Job / model invocation  | Asynchronous work, retries, calls and usage records              |
+
+Knowledgebase build states include `disabled`, `indexing`, `ready`, `failed` and `rebuild_required`. Availability is separate: `unavailable`, `ready` or `degraded`. Build progress and whether any pages remain serviceable are different facts.
+
+Reading content requires a serviceable page, active version and projection with valid source evidence. Managers may inspect diagnostic records for unready pages, but diagnostics do not expose unserviceable version bodies. Internal version storage is not a general user-facing history replay feature.
+
+## Generation, concurrency and recovery
+
+```text
+Source publication → source-map → page-reduce → finalize → active version and search projection
+Source invalidation → retract → immediately remove affected content from service → cleanup/recompute
+```
+
+Persistent jobs, queues, dispatchers/reconcilers and leases coordinate generation. Source revision, hashes, configuration and publication epochs reject stale results. Page publication validates current state.
+
+When a source changes, affected pages/projections become unserviceable before background vector cleanup and recomputation or archival from remaining sources. Graph or Wiki failures do not relabel successful source-document RAG processing as unfinished.
+
+Model calls use the platform model runtime with authorization and usage ownership. Rebuilds and retries can incur additional model charges. A successful queue job does not establish that all pages or a deployment have passed acceptance.
+
+## Browsing, retrieval and citations
+
+The browser exposes serviceable pages, evidence, links and backlinks. Retrieval has an independent content selector:
+
+| `contentScope` | Meaning                                    |
+| -------------- | ------------------------------------------ |
+| `all`          | Original content and eligible Wiki content |
+| `original`     | Original content only                      |
+| `wiki`         | Wiki content only                          |
+
+Wiki-only retrieval requires enabled Wiki and rejects Graph mode and Knowledge Filter configuration. Mixed-scope requests with Knowledge Filter skip Wiki projections; a page aggregated from multiple sources cannot be assumed to satisfy arbitrary source predicates.
+
+Candidates revalidate active versions, projection state, source eligibility and content hashes. Multiple sections of one page collapse to the highest-scoring hit. Wiki citations retain page/version/section identity rather than pretending to be ordinary source chunks.
+
+## API and access
+
+Management endpoints are under `/api/knowledgebase/:knowledgebaseId/wiki`:
+
+| Method and suffix                      | Operation                       |
+| -------------------------------------- | ------------------------------- |
+| `GET /status`, `GET /documents/status` | Knowledgebase and source status |
+| `PUT /config`                          | Update Wiki settings            |
+| `POST /rebuild`                        | Start a rebuild                 |
+| `POST /jobs/:jobId/retry`              | Retry a job                     |
+| `GET /pages`, `GET /pages/:pageId`     | List and read pages             |
+
+The current Controller requires `KNOWLEDGEBASE_EDIT`; services additionally enforce knowledgebase read/write/management scope. Runtime retrieval has its own authorized entry. Assistant access does not grant direct access to Wiki management endpoints.
+
+## Implementation and remaining boundaries
+
+Entities, generation, browsing, configuration and retrieval validation live in `packages/server-ai/src/knowledgebase/wiki/`. Derived-index flows in `packages/server-ai/src/knowledge-document/` connect source publication and retraction.
+
+Current deletion retracts Wiki sources, but this is not the complete typed HTTP 202 hard-delete saga described in the original plan. Full cleanup of historical model outputs, versions and inputs, unified pending/failed/retry client behavior and recovery acceptance remain separate work to verify.
+
+The unfinished 202 flow, cross-store cleanup and client recovery are tracked in the [durable deletion proposal](/en/proposals/knowledgebase-durable-deletion). The combined plan has been removed; this page maintains implemented Wiki behavior. Documentation changes do not establish real database, vector backend, model, queue-recovery or browser acceptance and do not enable deployment features.

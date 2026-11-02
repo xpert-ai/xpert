@@ -2,7 +2,12 @@ import type { Signal } from '@angular/core'
 import type { WorkbenchAssistantConversationResolution } from '@xpert-ai/contracts'
 import type { WorkbenchChatFacade } from '../../../workbench-chat/workbench-chat.facade'
 
-export const CONVERSATION_DETAIL_RELATIONS = ['messages']
+export const CONVERSATION_DETAIL_RELATIONS: string[] = []
+
+export type LoadedChatkitConversation = Pick<
+  import('@xpert-ai/contracts').IChatConversation,
+  'id' | 'threadId' | 'title' | 'projectId' | 'xpertId' | 'status'
+> & { from?: string }
 
 export type WorkbenchConversationChatkitScope = WorkbenchAssistantConversationResolution & {
   hostRouteKey: string

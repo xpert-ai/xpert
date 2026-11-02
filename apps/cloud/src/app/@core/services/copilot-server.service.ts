@@ -8,12 +8,14 @@ import { BehaviorSubject, filter, firstValueFrom, Observable, shareReplay, switc
 import { API_COPILOT, API_XPERT_ROLE } from '../constants/app.constants'
 import {
   AiModelTypeEnum,
-  AiProviderRole,
+  LegacyProviderRole,
+  DefaultModelRole,
   IAiProviderEntity,
   ICopilot,
   ICopilotWithProvider,
   ParameterRule
 } from '../types'
+import { RoleDefaultInput, RoleDefaultSetting } from '@xpert-ai/contracts'
 
 type StatisticsFilters = {
   model?: string | null
@@ -49,15 +51,45 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     this.refresh$.next(true)
   }
 
+  getConnectionReferences(id: string) {
+    return this.httpClient.get<{ defaults: number; bindings: number; drafts: number }>(
+      `${this.apiBaseUrl}/${id}/references`
+    )
+  }
+
+  getRoleDefaults() {
+    return this.httpClient.get<RoleDefaultSetting[]>(`${this.apiBaseUrl}/role-defaults`)
+  }
+
+  saveRoleDefaults(defaults: RoleDefaultInput[]) {
+    return this.httpClient.put<RoleDefaultSetting[]>(`${this.apiBaseUrl}/role-defaults`, { defaults })
+  }
+
   getCopilots() {
     return this.copilots$
   }
 
-  getAvailableByRole(role: AiProviderRole) {
+  getDefaultModel(role: DefaultModelRole) {
     return this.refresh$.pipe(
       switchMap(() => this.selectOrganizationId()),
-      switchMap(() => this.httpClient.get<ICopilot | null>(this.apiBaseUrl + `/availables/${role}`))
+      switchMap(() => this.httpClient.get<ICopilot | null>(this.apiBaseUrl + `/default-models/${role}`))
     )
+  }
+
+  /** @deprecated Use getDefaultModel. */
+  getAvailableByRole(role: DefaultModelRole) {
+    return this.getDefaultModel(role)
+  }
+
+  getDefaultModelSetup(role: DefaultModelRole) {
+    return this.refresh$.pipe(
+      switchMap(() => this.selectOrganizationId()),
+      switchMap(() => this.httpClient.get<ICopilot | null>(`${this.apiBaseUrl}/default-models/${role}/setup`))
+    )
+  }
+
+  prepareDefaultModelSetup(role: DefaultModelRole) {
+    return this.httpClient.post<ICopilot | null>(`${this.apiBaseUrl}/default-models/${role}/setup`, {})
   }
 
   getAiProviders() {
@@ -157,11 +189,13 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     })
   }
 
-  enableCopilot(role: AiProviderRole) {
+  /** @deprecated Only for legacy connection setup clients. */
+  enableCopilot(role: LegacyProviderRole) {
     return this.httpClient.post(this.apiBaseUrl + `/enable/${role}`, {})
   }
 
-  disableCopilot(role: AiProviderRole) {
+  /** @deprecated Disable a connection by ID or configure a default as disabled. */
+  disableCopilot(role: LegacyProviderRole) {
     return this.httpClient.post(this.apiBaseUrl + `/disable/${role}`, {})
   }
 

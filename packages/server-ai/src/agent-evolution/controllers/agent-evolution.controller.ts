@@ -29,6 +29,7 @@ import {
 @ApiTags('Agent Evolution')
 @ApiBearerAuth()
 @Controller()
+@Permissions(AIPermissionsEnum.EVOLUTION_VIEW)
 export class AgentEvolutionController {
     constructor(
         private readonly service: AgentEvolutionService,

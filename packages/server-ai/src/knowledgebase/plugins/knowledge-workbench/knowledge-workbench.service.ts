@@ -25,12 +25,12 @@ import { In, ILike, IsNull, Raw } from 'typeorm'
 import { GetKnowledgebaseDocumentStatusCommand, UploadKnowledgebaseDocumentFileCommand } from '../../commands'
 import { KnowledgeSearchQuery } from '../../queries'
 import { KnowledgeSearchResult } from '../../queries/knowledge-search.query'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
 import { sortChunksByDocumentOrder } from '../../../knowledge-document/document-chunk-order'
 import { KnowledgeGraphNodeDetailQuery, KnowledgeGraphViewQuery } from '../../../graphrag/queries'
-import { addKnowledgebaseCitationLink } from '../../citation'
+import { addKnowledgebaseCitationLink } from '../../retrieval/citation'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_PAGE_SIZE = 20

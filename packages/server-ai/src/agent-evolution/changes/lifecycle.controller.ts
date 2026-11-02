@@ -14,6 +14,7 @@ import { changeError } from './change.errors'
 
 @Controller('changes')
 @UseGuards(PermissionGuard)
+@Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
 export class EvolutionLifecycleController {
     constructor(
         private readonly lifecycle: EvolutionLifecycleService,

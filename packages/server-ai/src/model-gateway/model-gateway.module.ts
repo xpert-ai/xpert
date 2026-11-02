@@ -1,3 +1,4 @@
+import { ModelGatewayAuthGuard } from './gateway-auth.guard'
 import { TenantSetting, User } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -29,7 +30,7 @@ import { ModelGatewayOpenAIController } from './openai.controller'
         CqrsModule
     ],
     controllers: [ModelGatewayController, ModelGatewayOpenAIController],
-    providers: [ModelGatewayService],
+    providers: [ModelGatewayService, ModelGatewayAuthGuard],
     exports: [ModelGatewayService]
 })
 export class ModelGatewayModule {}

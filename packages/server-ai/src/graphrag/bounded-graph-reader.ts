@@ -11,7 +11,7 @@ import {
     type KnowledgeGraphReadScope
 } from '@xpert-ai/plugin-sdk'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
-import type { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import type { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgeDocument } from '../knowledge-document/document.entity'
 import {
     KnowledgeGraphEntity,

@@ -113,11 +113,21 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 Rationale: keep simple cases concise, and complex cases structured and maintainable.
 
+### UI Layout and Spacing
+
+- Horizontal text controls generally use less vertical than horizontal padding; square controls and content containers follow their own geometry.
+- Use the Tailwind spacing scale for padding and gaps, align related content edges, and avoid redundant padding or mixed fixed-pixel spacing.
+- Reuse shared size/density variants. Keep equivalent controls consistent in height, typography, icon slots, and state colors.
+- Let long content and narrow layouts wrap naturally; preserve readable text and touch targets instead of forcing fixed heights.
+
+Component standards: `docs/en/guides/ui-token-guidance.mdx` and `docs/zh-Hans/guides/ui-token-guidance.mdx`. Keep both versions aligned.
+
 ### Dialog Styling
 
 - Golden rule: Angular CDK Dialogs use `backdropClass: 'backdrop-blur-xs-black'` and `panelClass: 'xp-overlay-pane-dialog'`; introduce another semantic panel class only for a genuinely different treatment.
 - Dialog component roots own content sizing and layout only. Do not repeat the panel's clipping, radius, background, foreground, border/ring, outline, or shadow utilities at call sites or on the component root.
 - New and migrated Dialogs opt into `xpDialogLayout="standard|wide"` and compose `xpDialogHeader`, `xpDialogHeading`, `xpDialogDescription`, `xpDialogBody` and `xpDialogFooter`. These shared regions own typography, spacing, scrolling and the muted footer surface; business templates own content and layout only. Use `xpDialogCloseButton` for the corner button's placement; retain its explicit close behavior. Do not confuse it with the existing `xpDialogClose` result/close directive.
+- Apply the general UI layout and spacing principles to Dialog footer bars: use `px-4 py-2.5` by default, align horizontal padding with the header/body, and use the shared spacing scale for header/body padding and gaps. Keep footer geometry in shared styles, including React `DialogFooter` / `AlertDialogFooter`, without business-template padding overrides. Narrow/wrapped footers retain `py-2.5` and grow with their content while preserving action heights and touch targets.
 - Dialog actions inherit geometry from the nearest Header / Footer or explicit `xpDialogActionGroup="header|inline|footer"`. Normal groups are 36px; `xpDialogPurpose="workflow"` makes the whole footer group 40px. A footer alone does not imply larger buttons. Coarse-pointer actions and single-line fields are at least 44px. Keep geometry in `dialog-action.variants.ts` and `dialog-frame.variants.ts`; do not set action size variants, height/min-height, padding or minimum widths in business templates. Buttons declare visual intent (`zType`), behavior/state and icon shape (`zSize="icon"`). Use natural text width and equal heights within each group; distinguish priority through color. Keep loading labels/icons mounted so the shared loading indicator does not change width.
 - Within an opted-in Dialog, single-line `z-input`, select triggers and normal actions share 36px / 14px sizing. Textareas and multi-selects retain content-driven height; dropdown options and body tools are not action groups. Do not mark the entire Dialog as an action group. Verify computed dimensions of adjacent fields and buttons, loading states, long translations and narrow screens together. The 14px Cloud root must not silently shrink Dialog typography or targets; preserve scoped tokens instead of changing the global root.
 - Dialog actions use an 8px radius, 10px horizontal padding for text buttons and a 6px icon/text gap, defined once in the shared action variants. Projected content inherits the gap; icon-only actions keep their square target. Keep the application font stack and 14px / 500 action typography.

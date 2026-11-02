@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { UUIDValidationPipe } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -109,6 +111,7 @@ function writeDownload(response: Response, file: { content: Buffer; contentType:
 @ApiTags('KnowledgeFAQ')
 @ApiBearerAuth()
 @Controller(':knowledgebaseId/faqs')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeFAQController {
     constructor(private readonly service: KnowledgeFAQService) {}
 

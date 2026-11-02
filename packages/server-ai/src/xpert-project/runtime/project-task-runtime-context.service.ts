@@ -88,6 +88,10 @@ export class ProjectTaskRuntimeContextService {
         return scope
     }
 
+    async assertResponsibleAssistant(scope: AgentInvocationScope, assigneeXpertId: string) {
+        await this.access.assertCanUseXpert(scope.projectId, assigneeXpertId, scope)
+    }
+
     actor() {
         const actor = {
             tenantId: RequestContext.currentTenantId(),

@@ -1,3 +1,5 @@
+import { CqrsModule } from '@nestjs/cqrs'
+import { FileStorageQuotaPolicy } from './file-storage-quota.policy'
 import { FileStorageProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { NestModule, MiddlewareConsumer, Module, forwardRef } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
@@ -7,8 +9,14 @@ import { FileStorageRegistryBridge } from './file-storage-registry.bridge'
 import { LocalProvider } from './providers'
 
 @Module({
-	imports: [forwardRef(() => TenantSettingModule), DiscoveryModule],
-	providers: [TenantSettingsMiddleware, FileStorageProviderRegistry, FileStorageRegistryBridge, LocalProvider],
+	imports: [forwardRef(() => TenantSettingModule), DiscoveryModule, CqrsModule],
+	providers: [
+		FileStorageQuotaPolicy,
+		TenantSettingsMiddleware,
+		FileStorageProviderRegistry,
+		FileStorageRegistryBridge,
+		LocalProvider
+	],
 	exports: [FileStorageProviderRegistry, FileStorageRegistryBridge]
 })
 export class FileStorageModule implements NestModule {

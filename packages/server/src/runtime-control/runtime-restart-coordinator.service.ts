@@ -193,19 +193,22 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 					state: 'loaded'
 				}
 			],
-			`Activate ${input.pluginName}@${input.version ?? 'latest'} in ${input.scopeKey}`
+			`Activate ${input.pluginName}@${input.version ?? 'latest'} in ${input.scopeKey}`,
+			input.publicationId
 		)
 	}
 
 	async recordPluginRequirements(
 		requirements: IRuntimePluginRequirement[],
-		reason: string
+		reason: string,
+		publicationId?: string
 	): Promise<PluginRuntimeChangeResult> {
 		let generation: number
 		try {
 			generation = await this.generations.publish({
 				generation: 0,
 				requirements: mergeRuntimeRequirements(requirements),
+				...(publicationId ? { publicationId } : {}),
 				source: 'plugin-change',
 				reason
 			})

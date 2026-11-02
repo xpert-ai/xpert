@@ -1,4 +1,4 @@
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { environment } from '@xpert-ai/server-config'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: jest.requireActual('../../../plugin-sdk/src/lib/core/context/request-context').RequestContext,
@@ -7,7 +7,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     TextSplitterRegistry: class TextSplitterRegistry {},
     mergeParentChildChunks: jest.fn((_pages, chunks) => chunks)
 }))
-jest.mock('../knowledgebase/knowledgebase.service', () => ({
+jest.mock('../knowledgebase/management/knowledgebase.service', () => ({
     KnowledgebaseService: class KnowledgebaseService {}
 }))
 jest.mock('../shared/volume/work-area', () => ({

@@ -1,4 +1,5 @@
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
+import { readPdfTextPages } from './pdf-text-pages'
 import { Injectable, Logger } from '@nestjs/common'
 import { FileStorage } from '@xpert-ai/server-core'
 import path from 'node:path'
@@ -50,7 +51,8 @@ export class PdfFileParser implements FileParser {
 
     async parse(source: FileParseSource): Promise<ParsedFileResult> {
         const loader = new PDFLoader(source.filePath)
-        const docs = await loader.load()
+        let docs = await loader.load()
+        if (!docs.some((doc) => doc.pageContent.trim())) docs = await readPdfTextPages(source.filePath)
         const text = docs.map((doc) => doc.pageContent).join('\n\n')
         const pageTextArtifacts = docs.map((doc, index) => ({
             kind: 'page_text' as const,

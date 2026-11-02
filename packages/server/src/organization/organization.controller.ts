@@ -14,6 +14,7 @@ import { OrganizationService } from './organization.service'
 
 @ApiTags('Organization')
 @Controller()
+@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 export class OrganizationController extends CrudController<Organization> {
 	constructor(private readonly organizationService: OrganizationService, private readonly commandBus: CommandBus) {
 		super(organizationService)

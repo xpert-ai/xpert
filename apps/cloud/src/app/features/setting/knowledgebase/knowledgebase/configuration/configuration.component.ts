@@ -85,7 +85,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
   // readonly copilotOptions = computed(() =>
   //   this.copilots()?.map((copilot) => {
   //     const provider = AI_PROVIDERS[copilot.provider]
-  //     const roleName = upperFirst(copilot.role || AiProviderRole.Primary)
+  //     const roleName = upperFirst(copilot.role || DefaultModelRole.Primary)
   //     return {
   //       key: copilot.id,
   //       caption:

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -41,6 +43,7 @@ import { assertMcpOAuthEnabled } from './mcp-oauth-feature'
 @UseGuards(RoleGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
 @UsePipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }))
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpPublicationManagementController {
     constructor(
         private readonly publications: McpPublicationService,

@@ -1,3 +1,4 @@
+import { toSignal } from '@angular/core/rxjs-interop'
 import {
   ZardButtonComponent,
   XpDialogFrameImports,
@@ -22,9 +23,9 @@ import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
-  AiProviderRole,
+  CopilotServerService,
+  DefaultModelRole,
   getErrorMessage,
-  injectCopilots,
   injectToastr,
   injectXperts,
   IXpert,
@@ -79,7 +80,6 @@ export class XpertProjectInstallComponent {
   readonly xpertService = inject(XpertAPIService)
   readonly #toastr = injectToastr()
   readonly myXperts = injectXperts()
-  readonly #copilots = injectCopilots()
 
   readonly #refreshWS = signal(0)
   readonly #workspaceRs = myRxResource({
@@ -116,9 +116,8 @@ export class XpertProjectInstallComponent {
 
   readonly #loading = signal(false)
 
-  readonly primaryCopilot = computed(
-    () => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel
-  )
+  readonly resolvedDefault = toSignal(inject(CopilotServerService).getDefaultModel(DefaultModelRole.Primary))
+  readonly primaryCopilot = computed(() => this.resolvedDefault()?.copilotModel)
 
   // From Marketplace
   readonly #templateRs = myRxResource({

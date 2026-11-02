@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { ChatMessageFeedbackRatingEnum } from '@xpert-ai/contracts'
 import {
     PaginationParams,
@@ -39,6 +41,7 @@ type FeedbackMutationBody = {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class ChatMessageFeedbackController {
     readonly #logger = new Logger(ChatMessageFeedbackController.name)
 

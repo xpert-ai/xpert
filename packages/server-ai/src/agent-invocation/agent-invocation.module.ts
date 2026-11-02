@@ -46,6 +46,7 @@ import { InvocationActivityService } from './activity/activity.service'
 import { ExecutionReaderService } from './execution-view/execution-reader.service'
 import { CodingExecutionProvider } from './execution-view/coding-execution.provider'
 import { InvocationCardProvider } from './execution-view/invocation-card.provider'
+import { ReadTrailActivityHandler } from './execution-view/read-trail-activity.handler'
 
 @Module({
     imports: [
@@ -73,6 +74,7 @@ import { InvocationCardProvider } from './execution-view/invocation-card.provide
         RuntimeDeploymentsService,
         TaskControlCoordinator,
         InvocationActivityService,
+        ReadTrailActivityHandler,
         ExecutionReaderService,
         CodingExecutionProvider,
         InvocationCardProvider,

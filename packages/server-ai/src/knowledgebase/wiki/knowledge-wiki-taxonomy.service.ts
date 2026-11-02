@@ -9,7 +9,7 @@ import {
     KnowledgeWikiTaxonomyClassificationInput,
     KnowledgeWikiPendingPublication
 } from '@xpert-ai/contracts'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPageVersion } from './entities'
 import { KnowledgeWikiFolder, KnowledgeWikiPlacement } from './entities/knowledge-wiki-organization.entity'
 import { enqueueWikiPageClassification } from './knowledge-wiki-classification.outbox'

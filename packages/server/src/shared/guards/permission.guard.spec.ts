@@ -4,8 +4,7 @@ import { CommandBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { IUser } from '@xpert-ai/contracts'
 import { applyTokenPermissionCeiling } from '../../auth/strategies/jwt-permissions'
-import { RequestContext } from '../../core/context'
-import { CheckRolePermissionCommand } from '../../role-permission/commands'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { PermissionGuard } from './permission.guard'
 
 describe('PermissionGuard current policy', () => {
@@ -19,6 +18,7 @@ describe('PermissionGuard current policy', () => {
 		getAllAndOverride.mockReturnValue(['DATA_SOURCE_VIEW'])
 		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
 			id: 'user',
+			tenantId: 'tenant',
 			roleId: 'role',
 			role: {
 				rolePermissions: [{ tenantId: 'tenant', roleId: 'role', permission: 'DATA_SOURCE_VIEW', enabled: true }]
@@ -41,6 +41,7 @@ describe('PermissionGuard current policy', () => {
 		for (const granted of [true, false, true]) {
 			jest.mocked(RequestContext.currentUser).mockReturnValue({
 				id: 'user',
+				tenantId: 'tenant',
 				roleId: 'role',
 				role: {
 					rolePermissions: [
@@ -55,14 +56,14 @@ describe('PermissionGuard current policy', () => {
 
 	it.each(['user', 'tenant', 'role'])('fails closed without %s context', async (missing) => {
 		if (missing === 'user') jest.mocked(RequestContext.currentUser).mockReturnValue(null)
-		if (missing === 'tenant') jest.mocked(RequestContext.currentTenantId).mockReturnValue(null)
-		if (missing === 'role') jest.mocked(RequestContext.currentRoleId).mockReturnValue(null)
+		if (missing === 'tenant') RequestContext.currentUser().tenantId = null
+		if (missing === 'role') RequestContext.currentUser().roleId = null
 		expect(await guard.canActivate(context)).toBe(false)
 		expect(execute).not.toHaveBeenCalled()
 	})
 
 	it('skips permission checks for routes without required permissions', async () => {
-		getAllAndOverride.mockReturnValue([])
+		getAllAndOverride.mockReturnValue(undefined)
 		expect(await guard.canActivate(context)).toBe(true)
 		expect(execute).not.toHaveBeenCalled()
 	})
@@ -109,29 +110,25 @@ describe('PermissionGuard current policy', () => {
 	})
 
 	it.each([undefined, null])(
-		'queries current policy when authentication leaves permissions %s',
+		'denies without widening grants when authentication leaves permissions %s',
 		async (rolePermissions) => {
 			jest.mocked(RequestContext.currentUser).mockReturnValue({
 				id: 'user',
+				tenantId: 'tenant',
 				roleId: 'role',
 				role: { rolePermissions }
 			} as IUser)
 			for (const granted of [true, false, true]) {
 				execute.mockResolvedValue(granted)
-				expect(await guard.canActivate(context)).toBe(granted)
+				expect(await guard.canActivate(context)).toBe(false)
 			}
-			expect(execute).toHaveBeenCalledTimes(3)
-			expect(execute).toHaveBeenLastCalledWith(
-				new CheckRolePermissionCommand('tenant', 'role', ['DATA_SOURCE_VIEW'], true)
-			)
+			expect(execute).not.toHaveBeenCalled()
 		}
 	)
 
-	it('does not reuse a prior authorization when the policy lookup fails', async () => {
-		jest.mocked(RequestContext.currentUser).mockReturnValue({ id: 'user', roleId: 'role' } as IUser)
-		execute.mockResolvedValueOnce(true).mockRejectedValueOnce(new Error('policy unavailable'))
-		expect(await guard.canActivate(context)).toBe(true)
-		await expect(guard.canActivate(context)).rejects.toThrow('policy unavailable')
+	it('rejects an explicit empty declaration', async () => {
+		getAllAndOverride.mockReturnValue([])
+		expect(await guard.canActivate(context)).toBe(false)
 	})
 
 	it('does not fall back to the database for loaded empty permissions', async () => {

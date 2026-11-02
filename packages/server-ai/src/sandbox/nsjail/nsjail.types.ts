@@ -1,5 +1,6 @@
 import type { ExecuteResponse, FileOperationError } from '@xpert-ai/plugin-sdk'
 import type { TSandboxManagedServiceStatus, TSandboxManagedServiceTransportMode } from '@xpert-ai/contracts'
+import type { SandboxStorageAllowance } from '@xpert-ai/server-core'
 
 export const NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION = 2
 export const NSJAIL_RUNNER_APP_DATA_PROTOCOL_VERSION = 3
@@ -15,6 +16,7 @@ export type NsjailRunnerHealth = {
     capabilities: {
         projectContentReadOnly: boolean
         appDataProtection: boolean
+        storageBudget?: boolean
     }
 }
 
@@ -30,6 +32,7 @@ export type NsjailExecutionRequest = {
     command: string
     maxOutputBytes: number
     timeoutMs: number
+    storageBudget?: SandboxStorageAllowance
 }
 
 export type NsjailExecutionResult = ExecuteResponse

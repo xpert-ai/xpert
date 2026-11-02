@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { I18nObject, LanguagesEnum, TChatOptions } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -43,6 +45,7 @@ import { createXpertTaskRunAsProposalValidationPipe, XpertTaskRunAsProposalDTO }
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertTaskController extends CrudController<XpertTask> {
     readonly #logger = new Logger(XpertTaskController.name)
 

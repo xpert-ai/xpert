@@ -1,3 +1,4 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { IXpertTable, PermissionsEnum } from '@xpert-ai/contracts'
 import { CrudController, PermissionGuard, Permissions, TransformInterceptor } from '@xpert-ai/server-core'
 import {
@@ -24,6 +25,7 @@ import { XpertTableService } from './xpert-table.service'
 @ApiTags('XpertTable')
 @UseInterceptors(TransformInterceptor)
 @Controller('xpert-table')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertTableController extends CrudController<XpertTable> {
     readonly #logger = new Logger(XpertTableController.name)
     constructor(

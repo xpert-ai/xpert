@@ -42,6 +42,7 @@ import { RequestContext } from '../core/context'
 @UseGuards(TenantPermissionGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 export class UserOrganizationController extends CrudController<UserOrganization> {
 	constructor(
 		private readonly userOrganizationService: UserOrganizationService,

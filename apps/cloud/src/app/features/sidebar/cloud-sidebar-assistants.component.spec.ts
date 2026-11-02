@@ -138,7 +138,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     onRefresh: jest.Mock
   }
   let conversationService: {
-    getUnreadByXperts: jest.Mock
+    watchUnreadByXperts: jest.Mock
     getSidebarConversations: jest.Mock
     unreadRefresh$: Subject<void>
     sidebarRefresh$: Subject<{ xpertId: string }>
@@ -155,6 +155,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     featureContextHydrated$: ReturnType<typeof of<boolean>>
     featureContextHydrated: boolean
     hasFeatureEnabled: jest.Mock
+    userRolePermissions$: BehaviorSubject<unknown[]>
     hasPermission: jest.Mock
   }
   let scopeService: {
@@ -214,7 +215,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       )
     }
     conversationService = {
-      getUnreadByXperts: jest.fn(() => of([])),
+      watchUnreadByXperts: jest.fn(() => of([])),
       getSidebarConversations: jest.fn(() => of({ items: [], total: 0 })),
       unreadRefresh$: new Subject<void>(),
       sidebarRefresh$: new Subject<{ xpertId: string }>()
@@ -254,6 +255,7 @@ describe('CloudSidebarAssistantsComponent', () => {
       hasFeatureEnabled: jest.fn((feature: string) =>
         [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT].includes(feature as AiFeatureEnum)
       ),
+      userRolePermissions$: new BehaviorSubject<unknown[]>([]),
       hasPermission: jest.fn((permission: string) => permission === 'XPERT_EDIT')
     }
     scopeService = {
@@ -448,7 +450,7 @@ describe('CloudSidebarAssistantsComponent', () => {
   })
 
   it('renders the latest conversation title in the assistant description row', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
+    conversationService.watchUnreadByXperts.mockReturnValue(
       of([
         {
           xpertId: 'other-xpert',

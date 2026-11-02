@@ -32,7 +32,9 @@ describe('ToolRuntimeService sandbox propagation', () => {
             schema: JSON.stringify({ servers: { sales: { type: MCPServerType.STDIO, command: 'python3' } } })
         })
         const service = new ToolRuntimeService(
-            { find: jest.fn().mockResolvedValue([toolset]) } as unknown as Repository<XpertToolset>,
+            { find: jest.fn().mockResolvedValue([toolset]), manager: {
+                getRepository: () => ({ findOneBy: jest.fn().mockResolvedValue(null) })
+            } } as unknown as Repository<XpertToolset>,
             null,
             { execute: jest.fn() } as unknown as CommandBus,
             { execute: jest.fn() } as unknown as QueryBus,

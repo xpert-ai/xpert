@@ -16,9 +16,9 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { Brackets, FindOptionsWhere, ILike, In, IsNull, Not, Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgebaseDetailDTO } from '../dto'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,

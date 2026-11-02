@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { McpAppHistoryQuery, mcpAppHistoryQuerySchema } from '../mcp-app-runtime/mcp-app-history.schema'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
@@ -8,6 +10,7 @@ import { McpAppReviveQuery, McpAppsService } from './mcp-apps.service'
 @ApiTags('MCP Apps')
 @ApiBearerAuth()
 @Controller('mcp-apps')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpAppsController {
     constructor(private readonly service: McpAppsService) {}
 

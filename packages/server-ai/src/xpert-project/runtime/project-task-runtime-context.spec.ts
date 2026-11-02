@@ -69,6 +69,15 @@ describe('Project task caller authorization', () => {
             commands
         }
     }
+    it('revalidates the explicit responsible Assistant using the captured actor scope', async () => {
+        const f = await fixture()
+        const scope = await f.service.resolve(f.projectId, f.caller)
+        const assignee = randomUUID()
+        await f.service.assertResponsibleAssistant(scope, assignee)
+        expect(f.access.assertCanUseXpert).toHaveBeenLastCalledWith(f.projectId, assignee, scope)
+        f.access.assertCanUseXpert.mockRejectedValueOnce(new Error('Not a project member'))
+        await expect(f.service.assertResponsibleAssistant(scope, assignee)).rejects.toThrow('Not a project member')
+    })
     it('derives the scope from the authenticated actor and owned execution, never model input', async () => {
         const f = await fixture()
         expect(await f.service.resolve(f.projectId, f.caller)).toEqual({

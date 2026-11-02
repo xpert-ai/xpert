@@ -1,3 +1,4 @@
+import { AssertAppPlatformUploadCommand } from '../../shared/app-platform-resource-policy'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { WorkflowNodeTypeEnum, XpertTypeEnum, type XpertViewHostContext } from '@xpert-ai/contracts'
 import { type ViewHostResolution } from '@xpert-ai/server-core'
@@ -331,10 +332,80 @@ describe('AgentViewHostDefinition', () => {
         }
     )
 
+    it.each([undefined, 'uploads'])(
+        'rejects an oversized View file before workspace resolution (%s)',
+        async (workspaceUploadPath) => {
+            const volume = { resolve: jest.fn() }
+            const definition = createDefinition(
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                volume as never,
+                createProfileIdentity(),
+                createApplicationRuntime()
+            )
+            const failure = new Error('upload limit exceeded')
+            const execute = jest.fn().mockRejectedValueOnce(failure)
+            Object.assign(definition, { commandBus: { execute } })
+            await expect(
+                definition.prepareFileAction(
+                    {
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        userId: 'user-1',
+                        hostType: 'agent',
+                        hostId: 'agent-1',
+                        slots: []
+                    },
+                    { input: { workspaceUploadPath } },
+                    { originalname: 'note.md', buffer: Buffer.from('actual bytes'), size: 1 }
+                )
+            ).rejects.toBe(failure)
+            expect(execute).toHaveBeenCalledTimes(1)
+            expect(execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(12))
+            expect(volume.resolve).not.toHaveBeenCalled()
+        }
+    )
+
+    it('passes an admitted direct file action to its provider without changing the input', async () => {
+        const volume = { resolve: jest.fn() }
+        const definition = createDefinition(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            volume as never,
+            createProfileIdentity(),
+            createApplicationRuntime()
+        )
+        const request = { input: { businessField: 'value' } }
+        await expect(
+            definition.prepareFileAction(
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    hostType: 'agent',
+                    hostId: 'agent-1',
+                    slots: []
+                },
+                request,
+                { buffer: Buffer.alloc(0), size: 100 }
+            )
+        ).resolves.toBe(request)
+        expect(definition['commandBus'].execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(0))
+        expect(volume.resolve).not.toHaveBeenCalled()
+    })
+
     it('rejects uploads before resolving a read-only or archived Project volume', async () => {
         const volume = { resolve: jest.fn() }
         const access = { assertCanEdit: jest.fn().mockRejectedValue(new ForbiddenException()) }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             {} as never,
             {} as never,
             {} as never,
@@ -701,6 +772,7 @@ describe('AgentViewHostDefinition', () => {
                 } as any
             )
 
+            expect(commands.execute).toHaveBeenNthCalledWith(1, new AssertAppPlatformUploadCommand(12))
             expect(commands.execute).toHaveBeenCalledWith(
                 new ResolveAssistantFileAccessCommand('agent-host-1', 'write', 'runtime')
             )

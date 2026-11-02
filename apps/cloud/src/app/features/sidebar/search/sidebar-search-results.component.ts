@@ -24,7 +24,7 @@ import { SidebarSearchContext, SidebarSearchPage, SidebarSearchSource } from './
       </h3>
       @for (item of page().items; track item.id) {
         <a
-          class="flex min-h-10 min-w-0 items-center gap-2.5 rounded-lg px-3 py-2 text-base text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="flex min-h-9 pointer-coarse:min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           [routerLink]="item.route"
           [queryParams]="item.queryParams"
           [title]="item.title"
@@ -66,7 +66,7 @@ import { SidebarSearchContext, SidebarSearchPage, SidebarSearchSource } from './
       @if (!loading() && !error() && hasMore()) {
         <button
           type="button"
-          class="mx-3 rounded-lg px-2 py-2 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+          class="mx-3 min-h-9 rounded-lg px-3 py-1.5 pointer-coarse:min-h-[44px] text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary"
           (click)="loadMore()"
         >
           {{ 'XP.Sidebar.Search.More' | translate }}

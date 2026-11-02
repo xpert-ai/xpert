@@ -1,7 +1,6 @@
-import { Component, inject, input } from '@angular/core'
-import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { Component, computed, forwardRef, input, signal } from '@angular/core'
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
+import { ZardSelectImports, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { isOutputTokenParameter, ParameterRule, ParameterType } from '@xpert-ai/contracts'
 
 /**
@@ -9,27 +8,52 @@ import { isOutputTokenParameter, ParameterRule, ParameterType } from '@xpert-ai/
  */
 @Component({
   standalone: true,
-  imports: [FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
+  imports: [...ZardSelectImports, FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
   selector: 'copilot-model-parameter-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => ModelParameterInputComponent), multi: true }],
+  host: { '(focusout)': 'onTouched()' }
 })
-export class ModelParameterInputComponent {
+export class ModelParameterInputComponent implements ControlValueAccessor {
   eParameterType = ParameterType
-
-  protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
 
   readonly parameter = input<ParameterRule>()
 
-  readonly value$ = this.cva.value$
+  readonly value$ = signal<unknown>(null)
+  readonly numericValue = computed(() => this.finiteNumber(this.value$()))
+  readonly disabled = signal(false)
+  private onChange: (value: unknown) => void = () => undefined
+  onTouched: () => void = () => undefined
+
+  writeValue(value: unknown) {
+    this.value$.set(value)
+  }
+  registerOnChange(fn: (value: unknown) => void) {
+    this.onChange = fn
+  }
+  registerOnTouched(fn: () => void) {
+    this.onTouched = fn
+  }
+  setDisabledState(disabled: boolean) {
+    this.disabled.set(disabled)
+  }
 
   updateValue(value: unknown) {
     this.value$.set(value)
+    // Commit synchronously before a blur-triggered Save click.
+    this.onChange(value)
   }
 
   updateNumericValue(value: unknown, type: ParameterType.FLOAT | ParameterType.INT) {
-    this.updateValue(this.normalizeNumericValue(value, type))
+    this.updateValue(this.normalizeNumericValue(value, type) ?? null)
+  }
+
+  numericStep(): number {
+    const precision = this.parameter()?.precision
+    if (typeof precision !== 'number' || !Number.isFinite(precision) || precision < 0) return 0.01
+    // Rules use decimal places; older common rules specify the fractional step directly.
+    return precision > 0 && precision < 1 ? precision : 10 ** -precision
   }
 
   sliderMaximum(): number | undefined {

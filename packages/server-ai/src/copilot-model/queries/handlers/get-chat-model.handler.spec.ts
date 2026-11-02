@@ -317,6 +317,21 @@ describe('CopilotModelGetChatModelHandler', () => {
         })
     })
 
+    it('omits explicitly unset optional defaults on repeated creation from the same saved model', async () => {
+        const rules: ParameterRule[] = [
+            { name: 'temperature', label: { en_US: 'Temperature' }, type: ParameterType.FLOAT, default: 0.7 }
+        ]
+        const { getModelInstance, handler, query } = createFixture([], AiModelTypeEnum.LLM, rules, {
+            temperature: null
+        })
+        await handler.execute(query)
+        await handler.execute(query)
+        for (const [, configuration] of getModelInstance.mock.calls) {
+            expect(configuration.options?.temperature).toBeUndefined()
+        }
+        expect(query.copilotModel.options.temperature).toBeNull()
+    })
+
     it('resolves missing parameter defaults before creating the model instance', async () => {
         const rules: ParameterRule[] = [
             {

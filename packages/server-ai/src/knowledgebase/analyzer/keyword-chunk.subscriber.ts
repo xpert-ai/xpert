@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, OnModuleDestroy } from '@nestjs/common
 import { DataSource, EntitySubscriberInterface, InsertEvent, UpdateEvent } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgeDocumentChunk } from '../../knowledge-document/chunk/chunk.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeKeywordAnalyzerService } from './keyword-analyzer.service'
 
 @Injectable()

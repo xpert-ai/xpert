@@ -1,4 +1,4 @@
-import { AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilotTokenUsage } from '@xpert-ai/contracts'
+import { LegacyProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilotTokenUsage } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
@@ -28,7 +28,8 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
     @IsString()
     @IsOptional()
     @Column({ type: 'varchar', nullable: true, length: 10 })
-    role: AiProviderRole
+    /** @deprecated Used only by legacy default migration/setup. */
+    role: LegacyProviderRole
 
     @ApiPropertyOptional({ type: () => Boolean })
     @IsBoolean()

@@ -18,6 +18,18 @@ describe('Artifact document resource policy', () => {
     expect(csp).not.toContain('unsafe-eval')
     expect(renderArtifactDocument('<html><body>Example</body></html>', 'a'.repeat(32), [], policy)).toContain(csp)
   })
+  it('opens document networking only when the trusted host explicitly requests it', () => {
+    const open = { mode: 'unrestricted' as const }
+    const csp = artifactDocumentCsp(open)
+    expect(csp).toContain("script-src * data: blob: 'unsafe-inline'")
+    expect(csp).toContain('connect-src * data: blob: ws: wss:')
+    expect(csp).toContain("object-src 'none'")
+    for (const type of ['script', 'stylesheet', 'font', 'image', 'fetch', 'xhr', 'document', 'websocket'])
+      expect(isArtifactDocumentResourceAllowed(open, type, 'https://any.example.test/resource')).toBe(true)
+    expect(isArtifactDocumentResourceAllowed(open, 'fetch', 'http://localhost:8099/test')).toBe(true)
+    expect(isArtifactDocumentResourceAllowed(open, 'fetch', 'file:///etc/passwd')).toBe(false)
+    expect(artifactDocumentCsp()).toContain("connect-src 'none'")
+  })
   it.each([
     '*',
     'http://cdn.example.com',

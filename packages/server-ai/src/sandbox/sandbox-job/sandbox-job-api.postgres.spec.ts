@@ -23,6 +23,7 @@ import { SandboxRuntimeBindingSelector } from './sandbox-runtime-binding-selecto
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 import { sandboxTestEntities } from './testing/postgres-entities'
 
+const storageBudgetCommands = { execute: async () => null }
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
 integration('Sandbox public API with persistent settlement', () => {
@@ -181,7 +182,8 @@ integration('Sandbox public API with persistent settlement', () => {
             new SandboxJobCapacityService(store.jobs),
             volumes as never,
             control,
-            store
+            store,
+            storageBudgetCommands as never
         )
     })
     afterEach(async () => {

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { IStorageFile } from '@xpert-ai/contracts'
 import {
 	BadRequestException,
@@ -26,6 +28,7 @@ import { getStorageFileFromAsset } from '../file/file-upload/types'
 
 @ApiTags('StorageFile')
 @Controller()
+@Permissions(PermissionsEnum.FILE_STORAGE_VIEW)
 export class StorageFileController {
 	constructor(
 		private readonly storageFileService: StorageFileService,

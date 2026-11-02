@@ -14,6 +14,8 @@ export interface NativeAgentCallScope {
     scope: Omit<AgentInvocationScope, 'parentExecutionId'>
     signal?: AbortSignal
     authorize(): Promise<void>
+    /** Host-only delegation scope, entered after the invocation authorizes the target. */
+    run?<T>(operation: () => Promise<T>): Promise<T>
 }
 
 export function wrapNativeAgentInvocation<Input, Output>(
@@ -45,10 +47,11 @@ export function wrapNativeAgentInvocation<Input, Output>(
             execute: async (invocationId) => {
                 let output: Output
                 try {
-                    output = await graph.invoke(state, {
+                    const invoke = () => graph.invoke(state, {
                         ...config,
                         configurable: { ...config.configurable, agentInvocationId: invocationId }
                     })
+                    output = await (context.run ? context.run(invoke) : invoke())
                 } catch (error) {
                     if (error instanceof ExecutionCancelledError) return { status: 'cancelled', error: error.message }
                     throw error

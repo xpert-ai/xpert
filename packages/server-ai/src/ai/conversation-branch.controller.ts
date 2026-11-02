@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Body, Controller, Param, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -18,6 +20,7 @@ import { ConversationDTO } from './dto/conversation.dto'
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('conversations')
 export class ConversationBranchController {
     constructor(private readonly commands: CommandBus) {}

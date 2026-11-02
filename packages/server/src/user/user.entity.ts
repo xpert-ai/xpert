@@ -46,6 +46,11 @@ import { EmailVerification } from './email-verification/email-verification.entit
 
 @Entity('user')
 export class User extends TenantBaseEntity implements IUser {
+	@Column({ type: 'boolean', default: true })
+	@IsOptional()
+	@IsBoolean()
+	isActive: boolean
+
 	@Column({
 		type: 'enum',
 		enum: UserType,

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -14,6 +16,7 @@ import {
 const invalid = () => new BadRequestException(t('server-ai:Error.TemplateInstallationInvalid'))
 
 @Controller('xpert-template-installations')
+@Permissions(AIPermissionsEnum.APPLICATION_INSTALL)
 export class TemplateInstallationController {
     constructor(private readonly installations: TemplateInstallationService) {}
 

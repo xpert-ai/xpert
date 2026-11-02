@@ -9,7 +9,8 @@
 import type { TaskControlRef, TaskControlContext, TaskControlPolicy } from '../../execution-control'
 export type LaneName = 'main' | 'subagent' | 'cron' | 'nested'
 
-export type RunSource = 'chat' | 'xpert' | 'lark' | 'analytics' | 'api'
+/** Producer attribution used by routing rules; plugins may supply their own stable identifier. */
+export type RunSource = 'chat' | 'xpert' | 'lark' | 'analytics' | 'api' | (string & {})
 
 export interface RunMetadata {
   runId: string

@@ -1,7 +1,7 @@
 import { INestApplication, ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { PluginApplicationController } from '../plugin-application.controller'
-import { PluginApplicationService } from '../plugin-application.service'
+import { PluginApplicationController } from '../application/plugin-application.controller'
+import { PluginApplicationService } from '../application/plugin-application.service'
 
 // Exercise the actual Nest boundary: method calls alone cannot test Zod wiring.
 describe('application update HTTP boundary', () => {

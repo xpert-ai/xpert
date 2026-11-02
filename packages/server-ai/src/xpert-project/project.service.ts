@@ -58,6 +58,7 @@ import { ConnectorService } from '../connector/connector.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { createProjectWithAssistants } from './services/project-creation'
+import { withAppPlatformProjectLimit } from '../shared/app-platform-resource-policy'
 import { ensureManagedProject } from './services/project-managed-provisioning'
 
 @Injectable()
@@ -111,15 +112,17 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         roots: IXpert[],
         ...options: unknown[]
     ): Promise<XpertProject> {
-        return createProjectWithAssistants(
-            {
-                repository: this.repository,
-                bindings: this.xpertBindingService,
-                create: (input) => super.create(input, ...options),
-                initialize: (project) => this.contentService.initialize(project)
-            },
-            entity,
-            roots
+        return withAppPlatformProjectLimit(this.repository, () =>
+            createProjectWithAssistants(
+                {
+                    repository: this.repository,
+                    bindings: this.xpertBindingService,
+                    create: (input) => super.create(input, ...options),
+                    initialize: (project) => this.contentService.initialize(project)
+                },
+                entity,
+                roots
+            )
         )
     }
 

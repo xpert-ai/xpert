@@ -1,4 +1,5 @@
 import { dirname, join } from 'node:path'
+import { In } from 'typeorm'
 import { runtimeTemplateDescriptors, type RuntimeTemplateDescriptor } from './templates/runtime-template'
 import { connectorMcpAuth, matchesPortableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
@@ -8,7 +9,8 @@ import type { RuntimeResourceSkillSource } from './runtime-resource-context'
 // A reference is not an authorization grant. Resolve the actor and scope again on every run/call.
 import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
-import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import { RuntimeResourceCatalogCache, type RuntimeCatalogInventory } from './catalog/runtime-catalog.cache'
 import type {
     IWFNMiddleware,
     IXpert,
@@ -58,7 +60,8 @@ export class RuntimeResourceService {
     constructor(
         private readonly plugins: AgentPluginService,
         private readonly modules: ModuleRef,
-        private readonly installations: AgentPluginInstallationsService
+        private readonly installations: AgentPluginInstallationsService,
+        private readonly catalogCache: RuntimeResourceCatalogCache
     ) {}
 
     private async assistant(id: string, projectId?: string | null) {
@@ -84,43 +87,163 @@ export class RuntimeResourceService {
             search?: string
             kind?: RuntimeResourceKind
             purpose?: RuntimeResourceCatalogPurpose
+            references?: RuntimeResourcesSelection['resources']
             offset?: number
             limit?: number
         }
     ): Promise<RuntimeResourceCatalog> {
         const assistant = await this.assistant(assistantId, query.projectId)
+        if (query.references) return this.selectedCatalog(assistantId, assistant, query.references, query.projectId)
+        const principal = RequestContext.currentApiPrincipal()
+        const key = await this.catalogCache.key({
+            ...resourceScope(),
+            userId: RequestContext.currentUserId(),
+            roleId: RequestContext.currentRoleId(),
+            language: RequestContext.getLanguageCode(),
+            principal: principal && {
+                type: principal.principalType,
+                binding: principal.clientSecretBindingType,
+                resourceScope: principal.resourceScope,
+                owner: principal.ownerUserId,
+                apiKeyId: principal.apiKey?.id,
+                requestedUser: principal.requestedUserId,
+                grantSource: principal.grantSource
+            },
+            assistantId,
+            workspaceId: assistant.workspaceId,
+            publishedAt: assistant.publishAt,
+            updatedAt: assistant.updatedAt,
+            projectId: query.projectId,
+            kind: query.kind
+        })
+        return this.catalogCache.page(key, query, async () => {
+            const inventory = await this.catalogCache.inventory(key, () => this.catalogInventory(assistant, query.kind))
+            return this.catalogPage(assistantId, assistant, inventory, query)
+        })
+    }
+
+    private async selectedCatalog(
+        assistantId: string,
+        assistant: IXpert,
+        references: RuntimeResourcesSelection['resources'],
+        projectId?: string
+    ): Promise<RuntimeResourceCatalog> {
+        if (!references.length) return { items: [], total: 0 }
+        const scope = resourceScope()
+        const requested = new Set(references.map((item) => `${item.bindingId}:${item.version}`))
+        const [managed, installed] = await Promise.all([
+            this.plugins.bindings.find({
+                where: { ...scope, id: In(references.map((item) => item.bindingId)), enabled: true }
+            }),
+            this.installations.selectedCatalog(references, assistant.workspaceId)
+        ])
+        const bindings = new Map<string, RuntimeResourceBinding>()
+        for (const binding of [
+            ...managed.filter((item) => item.definition.kind !== 'agent_plugin'),
+            ...installed.map((item) => item.binding)
+        ]) {
+            if (
+                requested.has(`${binding.id}:${binding.version}`) &&
+                binding.enabled &&
+                (binding.definition.kind === 'agent_plugin' || binding.workspaceIds.includes(assistant.workspaceId))
+            )
+                bindings.set(binding.id, binding)
+        }
+        if (bindings.size < references.length) {
+            const allManaged = await this.plugins.bindings.find({ where: scope })
+            for (const kind of ['middleware', 'external_xpert'] as const) {
+                for (const binding of await this.discover(assistant, allManaged, kind)) {
+                    if (requested.has(`${binding.id}:${binding.version}`) && !bindings.has(binding.id))
+                        bindings.set(binding.id, binding)
+                }
+                if (bindings.size === references.length) break
+            }
+        }
+        const packages = new Map(installed.map(({ binding, pkg }) => [binding.id, pkg]))
+        const connectors = await this.installations.catalogConnectorReferences(installed, assistant)
+        const items: RuntimeResourceCatalogItem[] = []
+        for (const reference of references) {
+            const binding = bindings.get(reference.bindingId)
+            if (!binding) continue
+            const pkg = packages.get(binding.id)
+            const item = await this.describe(binding, assistant, pkg, pkg ? connectors.get(pkg.id) : undefined)
+            if (binding.definition.kind !== 'agent_plugin') {
+                try {
+                    await this.resolve(assistantId, { revision: 0, resources: [reference] }, projectId)
+                } catch (error) {
+                    if (
+                        !(
+                            error instanceof ForbiddenException ||
+                            error instanceof BadRequestException ||
+                            error instanceof ConflictException
+                        )
+                    )
+                        throw error
+                    item.status = 'unavailable'
+                }
+            }
+            items.push(item)
+        }
+        await this.describeMiddlewareViews(items, [...bindings.values()], assistantId, projectId)
+        return { items, total: items.length }
+    }
+
+    private async catalogInventory(assistant: IXpert, kind?: RuntimeResourceKind): Promise<RuntimeCatalogInventory> {
         const managed =
-            query.kind === 'agent_plugin'
+            kind === 'agent_plugin'
                 ? []
                 : await this.plugins.bindings.find({
                       where: resourceScope(),
                       order: { title: 'ASC', id: 'ASC' }
                   })
         const installed =
-            !query.kind || query.kind === 'agent_plugin'
-                ? await this.installations.catalogInventory(assistant.workspaceId)
-                : []
+            !kind || kind === 'agent_plugin' ? await this.installations.catalogInventory(assistant.workspaceId) : []
         const bindings = [
             ...managed.filter((binding) => binding.definition.kind !== 'agent_plugin'),
             ...installed.map(({ binding }) => binding)
         ]
-        const inventory = new Map(installed.map(({ binding, pkg }) => [binding.id, pkg]))
         const candidates: RuntimeResourceBinding[] = bindings.filter((binding) => {
-            const pkg = inventory.get(binding.id)
             return (
                 binding.enabled &&
                 !binding.supersededById &&
                 !isResourceInGraph(binding, assistant) &&
                 (binding.definition.kind === 'agent_plugin' || binding.workspaceIds.includes(assistant.workspaceId)) &&
-                (!query.kind || binding.definition.kind === query.kind) &&
-                (query.purpose === 'selection' || pkg?.descriptor.extension?.role !== 'assistant')
+                (!kind || binding.definition.kind === kind)
             )
         })
-        const discovered = await this.discover(assistant, bindings, query.kind, true)
+        const discovered = await this.discover(assistant, bindings, kind, true)
+        return {
+            bindings,
+            discovered,
+            candidates,
+            assistantPackages: installed
+                .filter(({ pkg }) => pkg?.descriptor.extension?.role === 'assistant')
+                .map(({ binding }) => binding.id)
+        }
+    }
+
+    private async catalogPage(
+        assistantId: string,
+        assistant: IXpert,
+        inventory: RuntimeCatalogInventory,
+        query: {
+            projectId?: string
+            search?: string
+            purpose?: RuntimeResourceCatalogPurpose
+            offset?: number
+            limit?: number
+        }
+    ): Promise<RuntimeResourceCatalog> {
+        const { bindings, discovered } = inventory
+        const candidates = inventory.candidates.filter(
+            (binding) => query.purpose === 'selection' || !inventory.assistantPackages.includes(binding.id)
+        )
         const matching = [...candidates, ...discovered].filter(
             (binding) =>
                 !query.search ||
-                `${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
+                `${binding.title} ${typeof binding.description === 'string' ? binding.description : Object.values(binding.description ?? {}).join(' ')}`
+                    .toLowerCase()
+                    .includes(query.search.toLowerCase())
         )
         matching.sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id))
         const offset = query.offset ?? 0

@@ -6,7 +6,7 @@ import {
     TXpertTeamDraft,
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { t } from 'i18next'
@@ -14,6 +14,7 @@ import { ModelAccessService } from '../model-access'
 import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
 import { buildMiddlewareModelTargetCatalog, MiddlewareModelTargetCatalog } from './copilot-model-sync.util'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
+import { currentServiceOperation } from '../shared/service-operation'
 
 type DraftModelReference = {
     label: string
@@ -35,7 +36,12 @@ export class XpertModelAccessValidator {
         if (!context?.tenantId || !context.xpertId) {
             return []
         }
-        const userId = context.creatorId ?? RequestContext.currentUserId()
+        const maintenance = currentServiceOperation()
+        // A scoped delivery publishes on behalf of its beneficiary; the technical creator has no trial balance.
+        const userId = maintenance && context.creatorId === maintenance.actorId &&
+            context.tenantId === maintenance.tenantId && context.organizationId === maintenance.organizationId
+            ? maintenance.subjectId
+            : context.creatorId ?? RequestContext.currentUserId()
         if (!userId) {
             return []
         }

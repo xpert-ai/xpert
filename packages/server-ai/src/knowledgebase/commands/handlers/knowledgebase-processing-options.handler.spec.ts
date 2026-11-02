@@ -1,7 +1,7 @@
-jest.mock('../../knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../../management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({ IntegrationService: class {} }))
 import type { IntegrationService } from '@xpert-ai/server-core'
-import type { KnowledgebaseService } from '../../knowledgebase.service'
+import type { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { GetKnowledgebaseProcessingOptionsHandler } from './knowledgebase-processing-options.handler'
 
 function fixture(config = {}) {

@@ -33,6 +33,7 @@ import {
 @ApiTags('UserGroup')
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 export class UserGroupController {
 	constructor(private readonly service: UserGroupService) {}
 

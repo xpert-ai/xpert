@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     Body,
     Controller,
@@ -12,7 +14,8 @@ import {
     UseInterceptors
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { TSandboxManagedServiceStartInput } from '@xpert-ai/contracts'
+import { TSandboxManagedServiceStartInput, ISandboxManagedService } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Request, Response } from 'express'
 import { SandboxManagedServiceService } from '../sandbox/sandbox-managed-service.service'
@@ -28,6 +31,7 @@ import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantThreadScopeGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('sandbox/threads/:threadId/services')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class SandboxRuntimeController {
     constructor(
         private readonly services: SandboxManagedServiceService,
@@ -36,17 +40,19 @@ export class SandboxRuntimeController {
     ) {}
 
     @Get()
-    list(@Param('threadId') threadId: string, @Query('organizationId') organizationId?: string) {
-        return this.run(organizationId, () => this.services.listByThreadId(threadId))
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    async list(@Param('threadId') threadId: string, @Query('organizationId') organizationId?: string) {
+        return (await this.run(organizationId, () => this.services.listByThreadId(threadId))).map(publicService)
     }
 
     @Get(':serviceId')
-    get(
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    async get(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,
         @Query('organizationId') organizationId?: string
     ) {
-        return this.run(organizationId, () => this.services.getByThreadId(threadId, serviceId))
+        return publicService(await this.run(organizationId, () => this.services.getByThreadId(threadId, serviceId)))
     }
 
     @Post('start')
@@ -89,6 +95,7 @@ export class SandboxRuntimeController {
     }
 
     @Post(':serviceId/preview-session')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async previewSession(
         @Param('threadId') threadId: string,
         @Param('serviceId') serviceId: string,
@@ -115,4 +122,13 @@ export class SandboxRuntimeController {
             throw error
         }
     }
+}
+
+function publicService(service: ISandboxManagedService) {
+    return !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {
+        id: service.id, conversationId: service.conversationId, name: service.name,
+        status: service.status, actualPort: service.actualPort, previewPath: service.previewPath,
+        previewUrl: service.previewUrl, transportMode: service.transportMode,
+        startedAt: service.startedAt, stoppedAt: service.stoppedAt
+    } : service
 }

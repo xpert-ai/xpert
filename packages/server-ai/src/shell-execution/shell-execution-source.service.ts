@@ -51,7 +51,6 @@ export class ShellExecutionSourceService {
             !child ||
             !parent ||
             !profile ||
-            context.actorUserId !== context.billableUserId ||
             shell.parentExecutionId !== parent.id ||
             parent.status !== XpertAgentExecutionStatusEnum.RUNNING ||
             !shell.runner ||

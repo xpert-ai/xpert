@@ -157,6 +157,7 @@ const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertController extends CrudController<Xpert> {
     readonly #logger = new Logger(XpertController.name)
     constructor(

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { DataSource, EntitySchema } from 'typeorm'
 import { DocumentMetadata, IKnowledgebase, KnowledgebaseTypeEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import { BUILTIN_GLOBAL_SCOPE, IKeywordAnalyzerStrategy, KeywordAnalyzerRegistry } from '@xpert-ai/plugin-sdk'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { KnowledgeDocumentChunk } from '../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocumentSubscriber } from '../../knowledge-document/document.subscriber'
@@ -17,7 +17,7 @@ import { KeywordKnowledgeCandidateRetriever } from '../retrieval/keyword-knowled
 import { KnowledgeSearchQuery } from '../queries/knowledge-search.query'
 import { KnowledgeSearchQueryHandler } from '../queries/handlers/knowledge-search.handler'
 import { GraphKnowledgeCandidateRetriever, LegacyWeightedFusion, WeightedRrfFusion } from '../retrieval'
-import { KnowledgebaseService } from '../knowledgebase.service'
+import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { KnowledgeRetrievalBatch } from '../retrieval/types'
 import {
     KnowledgeKeywordIndexService,

@@ -78,6 +78,55 @@ describe('ModelGatewayAdminComponent', () => {
     expect(component.maxConcurrentRequestsCtrl.value).toBe(DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS)
   })
 
+  it('loads, edits and clears the external API base URL through the settings form', async () => {
+    const settings = {
+      storeBodies: false,
+      bodyRetentionDays: 7,
+      requestsPerMinute: 60,
+      maxConcurrentRequests: 5,
+      externalApiBaseUrl: 'http://10.0.0.15:8088/api/openai/v1'
+    }
+    gatewayService.getSettings.mockReturnValue(of(settings))
+    gatewayService.updateSettings.mockImplementation((input) => of(input))
+    const component = TestBed.runInInjectionContext(() => new ModelGatewayAdminComponent())
+    await component.load()
+    const control = component.settingsForm.get('externalApiBaseUrl')!
+    expect(control?.value).toBe(settings.externalApiBaseUrl)
+    control.setValue('https://api.example.com/api/openai/v1')
+    await component.saveSettings()
+    expect(gatewayService.updateSettings).toHaveBeenLastCalledWith({
+      ...settings,
+      externalApiBaseUrl: 'https://api.example.com/api/openai/v1'
+    })
+    control.setValue('')
+    await component.saveSettings()
+    expect(gatewayService.updateSettings).toHaveBeenLastCalledWith({ ...settings, externalApiBaseUrl: '' })
+    expect(component.settingsForm.pristine).toBe(true)
+  })
+
+  it('prevents saving invalid external URLs while accepting empty and private HTTP URLs', async () => {
+    const component = TestBed.runInInjectionContext(() => new ModelGatewayAdminComponent())
+    const control = component.settingsForm.get('externalApiBaseUrl')!
+    expect(control).not.toBeNull()
+    for (const value of [
+      'not a url',
+      'ftp://example.com',
+      'https://user:secret@example.com',
+      'https://example.com?key=x',
+      'https://example.com#hash'
+    ]) {
+      control.setValue(value)
+      await component.saveSettings()
+      expect(control.invalid).toBe(true)
+      expect(control.touched).toBe(true)
+    }
+    expect(gatewayService.updateSettings).not.toHaveBeenCalled()
+    for (const value of ['', 'http://10.0.0.15:8088/api/openai/v1', 'https://gateway.example/api/openai/v1/']) {
+      control.setValue(value)
+      expect(control.valid).toBe(true)
+    }
+  })
+
   it('rejects invalid retention days and fractional request limits', () => {
     const component = TestBed.runInInjectionContext(() => new ModelGatewayAdminComponent())
 
@@ -120,6 +169,7 @@ describe('ModelGatewayAdminComponent', () => {
     await component.saveSettings()
 
     expect(gatewayService.updateSettings).toHaveBeenCalledWith({
+      externalApiBaseUrl: '',
       storeBodies: true,
       bodyRetentionDays: 30,
       requestsPerMinute: 120,

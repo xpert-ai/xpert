@@ -6,7 +6,7 @@ import {
 } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { randomUUID } from 'node:crypto'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { KnowledgeGraphIndexJob } from './entities'
 import { TKnowledgeGraphEnqueueInput } from './types'
 

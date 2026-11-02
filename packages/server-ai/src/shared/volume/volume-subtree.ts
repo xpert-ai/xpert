@@ -201,8 +201,7 @@ export class VolumeSubtreeClient {
             }
 
             const nextBuffer = Buffer.from(content ?? '', 'utf8')
-            await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, nextBuffer, {
-                boundaryRoot: this.volume.serverRoot,
+            await this.volume.writeFile(openedFile.volumeRelativePath, nextBuffer, {
                 beforeCommit: () => this.options?.beforeMutation?.(openedFile.volumeRelativePath, false),
                 assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
             })
@@ -226,8 +225,7 @@ export class VolumeSubtreeClient {
                 )
             }
 
-            await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, content, {
-                boundaryRoot: this.volume.serverRoot,
+            await this.volume.writeFile(openedFile.volumeRelativePath, content, {
                 beforeCommit: () => this.options?.beforeMutation?.(openedFile.volumeRelativePath, false),
                 assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
             })
@@ -259,12 +257,14 @@ export class VolumeSubtreeClient {
             assertPublicWorkspacePath(relativeFilePath)
             const volumePath = [subtreeRoot.filePath, relativeFilePath].filter(Boolean).join('/')
             await this.options?.beforeMutation?.(volumePath, false)
-            await VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
-                boundaryRoot: this.volume.serverRoot,
-                beforeCommit: () => this.options?.beforeMutation?.(volumePath, false),
-                assertCanWrite: (canonicalRelativePath, fileStat) =>
-                    this.assertMutationAllowed(canonicalRelativePath, fileStat)
-            })
+            await this.volume.withWriteBudget(relative(this.volume.serverRoot, volumePath), file.buffer, () =>
+                VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
+                    boundaryRoot: this.volume.serverRoot,
+                    beforeCommit: () => this.options?.beforeMutation?.(volumePath, false),
+                    assertCanWrite: (canonicalRelativePath, fileStat) =>
+                        this.assertMutationAllowed(canonicalRelativePath, fileStat)
+                })
+            )
         } finally {
             await subtreeRoot.fileHandle.close()
         }
@@ -281,10 +281,12 @@ export class VolumeSubtreeClient {
                 )
             }
             await this.options?.beforeMutation?.([subtreeRoot.filePath, relativePath].filter(Boolean).join('/'), true)
-            await VolumeHandle.removePath(subtreeRoot.descriptorPath, relativePath, {
-                boundaryRoot: this.volume.serverRoot,
-                assertCanRemove: (canonicalRelativePath) => this.assertMutationAllowed(canonicalRelativePath)
-            })
+            await this.volume.withRemovalBudget(() =>
+                VolumeHandle.removePath(subtreeRoot.descriptorPath, relativePath, {
+                    boundaryRoot: this.volume.serverRoot,
+                    assertCanRemove: (canonicalRelativePath) => this.assertMutationAllowed(canonicalRelativePath)
+                })
+            )
         } catch (error) {
             if (error instanceof BadRequestException || error instanceof ForbiddenException) {
                 throw error

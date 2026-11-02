@@ -5,7 +5,7 @@ import type { FindOptionsWhere } from 'typeorm'
 import { KnowledgeDocumentChunk } from '../../../knowledge-document/chunk/chunk.entity'
 import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
-import { AGENT_WRITER_SYSTEM_MANAGED_TYPE } from '../../agent-knowledge-writer.constants'
+import { AGENT_WRITER_SYSTEM_MANAGED_TYPE } from '../../writer/agent-knowledge-writer.constants'
 import { DeleteAgentKnowledgeChunksCommand } from '../delete-agent-knowledge-chunks.command'
 
 @Injectable()

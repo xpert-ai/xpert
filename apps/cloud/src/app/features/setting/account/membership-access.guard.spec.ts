@@ -66,14 +66,16 @@ describe('modelAccessAccountGate', () => {
   const urlTree = {} as UrlTree
   const createUrlTree = jest.fn(() => urlTree)
   const user$ = of({ type: 'user' })
+  const hasPermission = jest.fn()
 
   beforeEach(() => {
     createUrlTree.mockClear()
+    hasPermission.mockReset().mockReturnValue(false)
     TestBed.configureTestingModule({
       providers: [
         {
           provide: Store,
-          useValue: { user$ }
+          useValue: { user$, hasPermission }
         },
         {
           provide: Router,
@@ -87,17 +89,30 @@ describe('modelAccessAccountGate', () => {
     TestBed.resetTestingModule()
   })
 
-  it('allows regular users to open available models', async () => {
+  it.each([AIPermissionsEnum.COPILOT_VIEW, AIPermissionsEnum.COPILOT_EDIT])(
+    'allows users granted %s to open available models',
+    async (granted) => {
+      hasPermission.mockImplementation((permission) => permission === granted)
+      const result = TestBed.runInInjectionContext(() =>
+        modelAccessAccountGate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
+      ) as Observable<boolean | UrlTree>
+
+      await expect(firstValueFrom(result)).resolves.toBe(true)
+    }
+  )
+
+  it('redirects regular users without model permissions', async () => {
     const result = TestBed.runInInjectionContext(() =>
       modelAccessAccountGate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)
     ) as Observable<boolean | UrlTree>
 
-    await expect(firstValueFrom(result)).resolves.toBe(true)
+    await expect(firstValueFrom(result)).resolves.toBe(urlTree)
+    expect(createUrlTree).toHaveBeenCalledWith(['/settings/account/profile'])
   })
 
   it('redirects technical users away from available models', async () => {
     TestBed.overrideProvider(Store, {
-      useValue: { user$: of({ type: 'communication' }) }
+      useValue: { user$: of({ type: 'communication' }), hasPermission: () => true }
     })
 
     const result = TestBed.runInInjectionContext(() =>

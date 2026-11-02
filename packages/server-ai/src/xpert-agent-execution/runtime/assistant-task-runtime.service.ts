@@ -62,7 +62,6 @@ import {
     type ResolvedExternalAssistantBinding
 } from '../../xpert/external-assistant-binding'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
-import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
 
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
@@ -466,7 +465,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         // Resolve portable plugin skill references before creating any task rows.
         // This keeps invalid or cross-Agent selections from leaving partial runs.
         const resolvedAssistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
-            xpertId,
+            xpert,
             agentKey,
             input.selectedSkillRefs
         )
@@ -684,17 +683,13 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         const requesterXpertId = normalizeOptionalString(requesterXpertIdValue)
         const requesterAgentKey = normalizeOptionalString(requesterAgentKeyValue)
         if (!requesterXpertId || !requesterAgentKey) return []
-        const requester = await this.queryBus.execute<FindXpertQuery, IXpert>(
-            new FindXpertQuery({ id: requesterXpertId }, { relations: ['agent'] })
-        )
+        const requester = await this.queryBus.execute(new GetAccessiblePublishedXpertQuery(requesterXpertId, ['agent']))
         if (requester.agent?.key !== requesterAgentKey) return []
         const targetIds = directExternalAssistantIds(requester, requesterAgentKey)
         const candidates = await Promise.all(
             targetIds.map(async (id) => {
                 try {
-                    return await this.queryBus.execute<FindXpertQuery, IXpert>(
-                        new FindXpertQuery({ id }, { relations: ['agent'] })
-                    )
+                    return await this.queryBus.execute(new GetAccessiblePublishedXpertQuery(id, ['agent'], requester.id))
                 } catch {
                     return null
                 }
@@ -710,7 +705,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
      * only after proving that the target Agent directly owns those skills.
      */
     private async resolveAssistantTaskSkillSelection(
-        xpertId: string,
+        xpert: IXpert,
         requestedAgentKey: string | undefined,
         references: AgentMiddlewareAssistantTaskInput['selectedSkillRefs']
     ): Promise<{ workspaceId: string; skillIds: string[] } | undefined> {
@@ -731,9 +726,6 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         if (normalizedReferences.length > 12) {
             throw new Error('Assistant Task selectedSkillRefs cannot contain more than 12 skills')
         }
-        const xpert = await this.queryBus.execute<FindXpertQuery, IXpert>(
-            new FindXpertQuery({ id: xpertId }, { relations: ['agent'] })
-        )
         const runtimeXpert = figureOutXpert(xpert, false)
         const agentKey = requestedAgentKey || runtimeXpert.agent?.key
         const workspaceId = runtimeXpert.workspaceId?.trim()

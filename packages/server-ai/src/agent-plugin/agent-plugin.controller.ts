@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { I18nLang } from 'nestjs-i18n'
 import { DefaultAgentPluginsService } from './defaults/default-agent-plugins.service'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
@@ -60,6 +62,7 @@ export function parseResourceInput<T>(schema: z.ZodType<T>, input: unknown): T {
 }
 
 @Controller('agent-plugins')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AgentPluginController {
     constructor(
         @Inject('XpertAgentPluginService') private readonly service: AgentPluginService,

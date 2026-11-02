@@ -40,13 +40,18 @@ export class ModelExecutionChatService {
         const { grant } = identity
         const parameters = executionChatParameters(model.parameters, parsed.options)
         const requestedOutput = parameters.max_tokens
-        if (requestedOutput !== undefined && (!Number.isSafeInteger(requestedOutput) || requestedOutput <= 0))
+        if (requestedOutput != null && (!Number.isSafeInteger(requestedOutput) || requestedOutput <= 0))
             throw executionError('Invalid')
         const outputReservation = requestedOutput ?? model.outputTokenLimit ?? 0
         const lifetime = executionRequestLifetime(grant, abort)
         try {
             await runWithCapturedRequestContext(identity.snapshot, async () => {
-                const resolution = await this.assistants.authorize(identity.actor, grant.context.xpertId, model)
+                const resolution = await this.assistants.authorize(
+                    identity.actor,
+                    grant.context.xpertId,
+                    model,
+                    grant.context.billableUserId
+                )
                 let call: ModelGatewayCall
                 await executeGatewayChat({
                     response,
@@ -54,7 +59,7 @@ export class ModelExecutionChatService {
                     parsed: {
                         ...parsed,
                         // Constructor parameters have already been merged; bind only invocation-owned options.
-                        options: { stop: parsed.options.stop, seed: parameters.seed }
+                        options: { stop: parsed.options.stop, seed: parameters.seed ?? undefined }
                     },
                     signal: abort.signal,
                     onActivity: lifetime.activity,
@@ -73,7 +78,12 @@ export class ModelExecutionChatService {
                             )
                             if (!fresh || !fresh.protocols.includes(protocol)) throw executionError('Model')
                             assertRequestCapabilities(parsed, fresh.capabilities)
-                            await this.assistants.authorize(identity.actor, grant.context.xpertId, fresh)
+                            await this.assistants.authorize(
+                                identity.actor,
+                                grant.context.xpertId,
+                                fresh,
+                                grant.context.billableUserId
+                            )
                             abort.signal.throwIfAborted()
                             await this.admission.dispatch(call, grant)
                         },
@@ -92,7 +102,9 @@ export class ModelExecutionChatService {
                                     usageCallback,
                                     skipTokenRecord: true,
                                     modelAccessOverride: resolution,
-                                    expectedExecutionModel: model
+                                    expectedExecutionModel: model,
+                                    enableThinking: parsed.options.enable_thinking,
+                                    reasoningEffort: parsed.options.reasoning_effort
                                 },
                                 {
                                     tenantId: grant.tenantId,

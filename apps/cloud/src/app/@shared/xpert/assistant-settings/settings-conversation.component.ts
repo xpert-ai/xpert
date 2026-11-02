@@ -1,6 +1,7 @@
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
-import { FormControl, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
+import { createOpenerQuestionForm } from './xpert-settings.form'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
@@ -57,12 +58,23 @@ import { XpertSettingsEditor } from './xpert-settings.editor'
             >
               <i class="ri-draggable" aria-hidden="true"></i>
             </button>
-            <input
-              z-input
-              class="min-w-0 flex-1"
-              [attr.aria-label]="('XP.XpertSettings.Question' | translate) + ' ' + (index + 1)"
-              [formControl]="question"
-            />
+            <div class="min-w-0 flex-1 space-y-2">
+              <input
+                z-input
+                class="w-full"
+                [attr.aria-label]="('XP.XpertSettings.QuestionLabel' | translate) + ' ' + (index + 1)"
+                [placeholder]="'XP.XpertSettings.QuestionLabel' | translate"
+                [formControl]="question.controls.label"
+              />
+              <textarea
+                z-input
+                class="w-full resize-y"
+                rows="2"
+                [attr.aria-label]="('XP.XpertSettings.QuestionPrompt' | translate) + ' ' + (index + 1)"
+                [placeholder]="'XP.XpertSettings.QuestionPrompt' | translate"
+                [formControl]="question.controls.prompt"
+              ></textarea>
+            </div>
             <button
               type="button"
               class="rounded p-1 hover:bg-hover-bg disabled:opacity-30"
@@ -133,9 +145,9 @@ export class SettingsConversationComponent {
   readonly form = this.editor.form.controls.conversation.controls
   readonly questions = this.form.opener.controls.questions
   addQuestion() {
-    if (this.questions.length < 10) this.questions.push(new FormControl('', { nonNullable: true }))
+    if (this.questions.length < 10) this.questions.push(createOpenerQuestionForm())
   }
-  dropQuestion(event: CdkDragDrop<FormControl<string>[]>) {
+  dropQuestion(event: CdkDragDrop<ReturnType<typeof createOpenerQuestionForm>[]>) {
     this.moveQuestion(event.previousIndex, event.currentIndex)
   }
   moveQuestion(from: number, to: number) {

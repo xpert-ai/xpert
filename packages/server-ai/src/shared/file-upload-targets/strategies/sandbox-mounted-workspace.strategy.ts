@@ -12,14 +12,17 @@ import path from 'path'
 import { urlJoin } from '@xpert-ai/server-common'
 import { isProjectGovernedContentPath, VolumeHandle } from '../../volume'
 import { normalizeFileName, normalizeRelativePath } from '../utils'
+import { CommandBus } from '@nestjs/cqrs'
+import { CheckStorageQuotaCommand } from '@xpert-ai/server-core'
 
 @Injectable()
 @FileUploadTargetStrategy('sandbox:mounted_workspace')
 export class SandboxMountedWorkspaceTargetStrategy implements IFileUploadTargetStrategy<IUploadFileSandboxTarget> {
+    constructor(private readonly commands: CommandBus) {}
     async upload(
         source: TResolvedFileUploadSource,
         target: IUploadFileSandboxTarget,
-        _context: TFileUploadContext
+        context: TFileUploadContext
     ): Promise<IFileAssetDestination> {
         if (!target.workspacePath) {
             throw new Error('Sandbox mounted workspace path is required')
@@ -37,6 +40,13 @@ export class SandboxMountedWorkspaceTargetStrategy implements IFileUploadTargetS
                 : ''
             const boundaryRelativePath = normalizeRelativePath(workspaceRelativePath, filePath)
             assertPublicWorkspacePath(boundaryRelativePath)
+            await this.commands.execute(
+                new CheckStorageQuotaCommand({
+                    kind: 'write',
+                    scope: { kind: 'user', ...context.request, tenantId: context.request.tenantId },
+                    growthBytes: source.buffer.byteLength
+                })
+            )
             await VolumeHandle.writeFile(root.descriptorPath, boundaryRelativePath, source.buffer, {
                 boundaryRoot: root.descriptorPath,
                 assertCanWrite: (canonicalRelativePath, fileStat) => {

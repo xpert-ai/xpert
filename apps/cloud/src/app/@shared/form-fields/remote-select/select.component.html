@@ -60,7 +60,7 @@
     z-button
     zType="ghost"
     class="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-    [disabled]="disabled()"
+    [zDisabled]="disabled()"
     (click)="$event.stopPropagation(); refresh()"
   >
     <z-icon zType="refresh"></z-icon>
@@ -126,7 +126,9 @@
         <li
           class="flex items-start gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [cdkOption]="option.value"
-          (click)="selectOption(trigger)"
+          [cdkOptionDisabled]="option.disabled === true"
+          [attr.aria-disabled]="option.disabled === true"
+          (click)="!option.disabled && selectOption(trigger)"
         >
           <input
             type="checkbox"

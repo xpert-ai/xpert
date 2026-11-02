@@ -1,3 +1,4 @@
+import { assertAuthoringUser } from '../shared/authoring-access'
 import { IUser, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import {
     PaginationParams,
@@ -40,6 +41,7 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
     }
 
     async createWorkspace(input: XpertWorkspaceCreateInput) {
+        assertAuthoringUser()
         const ownerId = RequestContext.currentUserId()
         if (!ownerId) {
             throw new BadRequestException('User scope is required to create a workspace.')
@@ -67,13 +69,7 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
         options?: PaginationParams<XpertWorkspace>,
         purpose: TXpertWorkspaceAccessPurpose = 'runtime'
     ) {
-        const workspaces = await this.workspaceAccessService.findAccessibleWorkspaces(options?.order, { purpose })
-        const items = await Promise.all(
-            workspaces.map(async (item) => {
-                const access = await this.workspaceAccessService.buildAccess(item)
-                return access.workspace
-            })
-        )
+        const items = await this.workspaceAccessService.findAccessibleWorkspaces(options?.order, { purpose })
 
         return {
             items,

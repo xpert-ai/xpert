@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
-import { mapPageSchema, type MapAction, type MapPage, type MapQuery } from '../../../schema'
+import {
+    mapPageSchema,
+    mapOptionsPageSchema,
+    type MapAction,
+    type MapPage,
+    type MapQuery,
+    type MapOptionsQuery
+} from '../../../schema'
 import { configureDebug, debug } from './debug'
 const hostSchema = z.object({
     channel: z.literal('xpertai.remote_component'),
@@ -26,13 +33,28 @@ const hostSchema = z.object({
 export const prefsSchema = z.object({
     projectId: z.string().nullable().optional(),
     search: z.string().max(200).optional(),
-    mode: z.enum(['tree', 'graph', 'list']).default('tree'),
+    mode: z.enum(['tree', 'graph', 'list', 'growth']).default('tree'),
+    mapMode: z.enum(['tree', 'graph']).optional(),
+    trailConversationId: z.string().uuid().optional(),
+    trailThreadId: z.string().min(1).max(100).optional(),
+    trailMessageId: z.string().uuid().optional(),
     direction: z.enum(['TB', 'LR']).default('TB'),
     style: z.enum(['compact', 'summary']).default('compact'),
     showHistory: z.boolean().default(false),
     showShared: z.boolean().default(false)
 })
 export type Prefs = z.infer<typeof prefsSchema>
+/** Keep legacy mode values in links; the UI groups tree and graph under one Map entry. */
+export function preferredMapMode(prefs: Prefs): 'tree' | 'graph' {
+    return prefs.mode === 'tree' || prefs.mode === 'graph' ? prefs.mode : (prefs.mapMode ?? 'tree')
+}
+export function mergePrefs(prefs: Prefs, patch: Partial<Prefs>): Prefs {
+    const next = { ...prefs, ...patch }
+    return {
+        ...next,
+        mapMode: next.mode === 'tree' || next.mode === 'graph' ? next.mode : (patch.mapMode ?? preferredMapMode(prefs))
+    }
+}
 export const navigationSchema = z.object({
     target: z.literal('assistant.conversation'),
     conversationId: z.string(),
@@ -147,6 +169,12 @@ export async function act(input: MapAction) {
     return z
         .object({ success: z.literal(true), data: z.unknown() })
         .parse(await request('executeAction', { actionKey: 'act', input })).data
+}
+export async function readOptions(query: Omit<MapOptionsQuery, 'operation' | 'limit'>) {
+    return z
+        .object({ item: mapOptionsPageSchema })
+        .parse(await request('requestData', { query: { parameters: { ...query, operation: 'options', limit: 20 } } }))
+        .item
 }
 export async function navigate(target: Navigation, copy = false) {
     const reply = z.object({ success: z.boolean(), message: z.string().optional(), code: z.string().optional() }).parse(

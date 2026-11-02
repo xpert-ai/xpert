@@ -329,9 +329,11 @@
         </z-card-content>
       </z-card>
     </z-tab>
-    <z-tab [label]="'XP.BillingSettings.ToolUsage' | translate" bodyClass="pt-6">
-      <ng-template zTabContent><xp-execution-usage /></ng-template>
-    </z-tab>
+    @if (canInspectExecutions()) {
+      <z-tab [label]="'XP.BillingSettings.ToolUsage' | translate" bodyClass="pt-6">
+        <ng-template zTabContent><xp-execution-usage /></ng-template>
+      </z-tab>
+    }
   </z-tab-group>
 </div>
 

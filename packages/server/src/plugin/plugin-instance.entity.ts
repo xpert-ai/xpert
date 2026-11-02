@@ -1,3 +1,4 @@
+import type { PluginRuntimePublication } from './installation/plugin-publication'
 import {
 	IPlugin,
 	PLUGIN_CONFIGURATION_STATUS,
@@ -29,6 +30,9 @@ export function isRestartRequiredPluginLevel(level?: string | null): boolean {
 @Entity('plugin_instance')
 @Index(['scopeKey', 'pluginName'], { unique: true })
 @Index(['tenantId', 'organizationId', 'pluginName'], { unique: true })
+@Index('IDX_plugin_instance_pending_publication', ['updatedAt'], {
+	where: '"runtimePublication" IS NOT NULL'
+})
 @Index('IDX_plugin_instance_tenant_level_plugin_name', ['pluginName'], {
 	unique: true,
 	where: `"level" = 'tenant'`
@@ -66,6 +70,10 @@ export class PluginInstance extends TenantOrganizationBaseEntity implements IPlu
 
 	@Column({ type: 'boolean', default: false })
 	pendingRestart?: boolean
+
+	/** Durable publication intent, committed in the same row as the bootable installation. */
+	@Column({ type: 'jsonb', nullable: true })
+	runtimePublication?: PluginRuntimePublication | null
 
 	@ApiProperty({ type: () => Object, required: false })
 	@Column({ type: 'jsonb', nullable: true })

@@ -14,7 +14,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
 import { capabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { PluginTemplateInstallCommand } from '../commands/install-template.command'
-import { PluginResourceInstallResult } from '../plugin-resource-installer.service'
+import { PluginResourceInstallResult } from '../installation/plugin-resource-installer.service'
 import { TemplateInstallationEntity } from './template-installation.entity'
 import { TemplateInstallationLocks } from './template-installation-locks'
 import { InstallationInput, InstallationList } from './template-installation.schema'

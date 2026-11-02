@@ -75,6 +75,35 @@ export async function upgradeBuiltinTemplateCatalog(builtinRoot: string, externa
     }
 }
 
+/** Include distribution-provided descriptors in the official hash baseline. */
+export async function readBuiltinTemplateCatalog(builtinRoot: string): Promise<UpgradeCatalog> {
+    const catalog = await readCatalog(join(builtinRoot, 'templates.json'))
+    const extensionPath = join(builtinRoot, 'catalog-extensions.json')
+    if (!(await exists(extensionPath))) return catalog
+    const extensions: unknown = JSON.parse(await fs.readFile(extensionPath, 'utf8'))
+    if (!Array.isArray(extensions) || !extensions.every(isCatalogExtension)) {
+        throw new Error(t('server-ai:Error.InvalidTemplateCatalogUpgrade', { filePath: extensionPath }))
+    }
+    for (const extension of extensions) {
+        const source = await readCatalog(join(builtinRoot, extension.source))
+        for (const [locale, group] of Object.entries(source.templates)) {
+            for (const entry of group.recommendedApps.filter(({ id }) => extension.ids.includes(id))) {
+                const target = catalog.templates[locale] ?? { recommendedApps: [] }
+                if (!target.recommendedApps.some(({ id }) => id === entry.id)) target.recommendedApps.push(entry)
+                catalog.templates[locale] = target
+                if (
+                    source.details &&
+                    Object.prototype.hasOwnProperty.call(source.details, entry.id) &&
+                    !Object.prototype.hasOwnProperty.call(catalog.details ?? {}, entry.id)
+                ) {
+                    catalog.details = { ...catalog.details, [entry.id]: Reflect.get(source.details, entry.id) }
+                }
+            }
+        }
+    }
+    return catalog
+}
+
 type CatalogExtension = { migration: string; ids: string[]; source: string }
 function isCatalogExtension(value: unknown): value is CatalogExtension {
     return (

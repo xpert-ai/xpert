@@ -37,6 +37,14 @@ export class ThreadActivityService {
                   select: ['executionId', 'updatedAt']
               })
             : []
+        const messageVersions = new Map<string, { count: number; revision: string }>()
+        for (const message of revisions) {
+            const current = messageVersions.get(message.executionId) ?? { count: 0, revision: '' }
+            current.count += 1
+            const revision = message.updatedAt.toISOString()
+            if (revision > current.revision) current.revision = revision
+            messageVersions.set(message.executionId, current)
+        }
         const result: ThreadActivitySnapshot = {
             version: 1,
             threadId,
@@ -45,12 +53,8 @@ export class ThreadActivityService {
                 status: run.status,
                 updatedAt: run.updatedAt.toISOString(),
                 createdAt: run.createdAt.toISOString(),
-                messageRevision:
-                    revisions
-                        .filter((message) => message.executionId === run.id)
-                        .map((message) => message.updatedAt.toISOString())
-                        .sort()
-                        .at(-1) ?? ''
+                messageCount: messageVersions.get(run.id)?.count ?? 0,
+                messageRevision: messageVersions.get(run.id)?.revision ?? ''
             })),
             cards: []
         }

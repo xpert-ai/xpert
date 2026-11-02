@@ -9,7 +9,7 @@ import { t } from 'i18next'
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { AgentPluginConnectorService } from '../agent-plugin-connector.service'
 import { connectorMcpAuth } from '../agent-plugin-mcp'
-import { PluginResourceInstallerService } from '../../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../../plugin-resource/installation/plugin-resource-installer.service'
 import { InstallAgentPluginTemplateResourcesCommand } from './agent-plugin-template.command'
 
 @CommandHandler(InstallAgentPluginTemplateResourcesCommand)

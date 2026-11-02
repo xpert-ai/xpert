@@ -5,6 +5,8 @@ import { getRepositoryToken } from '@nestjs/typeorm'
 import { ContentDocument } from '../../content-resource/documents/entities'
 import { ContentFileOwnershipService } from './content-file-ownership.service'
 import { StrategyBus } from '@xpert-ai/plugin-sdk'
+import { FileUploadTargetsModule } from '../file-upload-targets/file-upload-targets.module'
+import { SandboxMountedWorkspaceTargetStrategy } from '../file-upload-targets/strategies/sandbox-mounted-workspace.strategy'
 import {
     LOCAL_SHELL_SANDBOX_PROVIDER_TYPE,
     LocalShellWorkspacePathMapper,
@@ -27,12 +29,13 @@ describe('VolumeModule', () => {
     })
 
     it('boots in Nest and discovers the built-in local workspace mapper', async () => {
-        const moduleRef = await Test.createTestingModule({ imports: [TestStrategyBusModule, VolumeModule] })
+        const moduleRef = await Test.createTestingModule({ imports: [TestStrategyBusModule, VolumeModule, FileUploadTargetsModule] })
             .overrideProvider(getRepositoryToken(ContentDocument))
             .useValue({ find: jest.fn(async () => []) })
             .compile()
         await moduleRef.init()
         expect(moduleRef.get(ContentFileOwnershipService)).toBeInstanceOf(ContentFileOwnershipService)
+        expect(moduleRef.get(SandboxMountedWorkspaceTargetStrategy)).toBeInstanceOf(SandboxMountedWorkspaceTargetStrategy)
         expect(moduleRef.get(XpertWorkAreaResolver)).toBeInstanceOf(XpertWorkAreaResolver)
         expect(moduleRef.get(XpertWorkAreaExtensionRegistry)).toBeInstanceOf(XpertWorkAreaExtensionRegistry)
 

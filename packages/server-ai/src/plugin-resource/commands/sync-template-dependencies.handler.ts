@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { XpertService } from '../../xpert/xpert.service'
-import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
 import { PluginTemplateSyncDependenciesCommand } from './sync-template-dependencies.command'
 import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 

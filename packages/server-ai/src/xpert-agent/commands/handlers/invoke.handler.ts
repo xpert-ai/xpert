@@ -71,6 +71,7 @@ import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { ThreadRunControlService } from '../../../chat-conversation/thread-run-control.service'
 import { threadGraphRevision, legacyThreadGraphRevision } from '../../../chat-conversation/thread-graph-revision'
 import { isThreadPause } from '../../../shared/agent/thread-pause'
+import { toolApprovalTasks } from './tool-approval-tasks'
 import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 import {
     bindExecutionContextObservable,
@@ -472,6 +473,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
+        // Leave maxConcurrency unset: the official scheduler can drop queued
+        // Send tasks at 1, including values persisted by older Assistants (#1251).
         const runConfig = {
             version: 'v2' as const,
             configurable: {
@@ -498,7 +501,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 subscriber
             },
             recursionLimit,
-            maxConcurrency: team.agentConfig?.maxConcurrency,
             metadata: {
                 agentKey: agent.key,
                 executionId: execution.id,
@@ -592,18 +594,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     }
 
                     // Interrupted event
-                    if (state.tasks?.length) {
-                        // Resumed dynamic tools can have interrupts with an empty `next` list.
-                        // Explicit unfinished interrupts take precedence; completed parallel tasks remain excluded.
-                        const pendingTasks = state.tasks.filter(
+                    const pendingTasks = toolApprovalTasks(state, graph.interruptBefore)
+                    if (
+                        !pendingTasks.length &&
+                        state.tasks?.some(
                             (task) =>
-                                task.result === undefined &&
-                                (task.interrupts?.some((item) => !isThreadPause(item.value)) ||
-                                    (!task.interrupts?.length && state.next.includes(task.name)))
+                                task.result === undefined && task.interrupts?.some((item) => isThreadPause(item.value))
                         )
-                        if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
-                        // Has bugs
-                        console.error(`Interrupting for tool calls:`, state.tasks)
+                    )
+                        throw new NodeInterrupt({ type: 'thread_pause' })
+                    if (pendingTasks.length) {
+                        const checkpoint = (await this.checkpointSaver.getTuple(state.config))?.checkpoint
                         await this.threadRunControl?.stageInput(
                             threadId,
                             execution.id,
@@ -617,7 +618,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                                 pendingTasks,
                                 state.values,
                                 options.isDraft,
-                                options.projectId
+                                options.projectId,
+                                checkpoint
                             )
                         )
                         subscriber.next({

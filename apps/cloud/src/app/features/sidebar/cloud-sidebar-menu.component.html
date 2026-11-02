@@ -2,42 +2,44 @@
   @for (group of groups(); track group.key) {
     <section class="cloud-sidebar-menu__group" [attr.data-group]="group.key">
       @if (group.key === 'work') {
-        <button
-          type="button"
-          class="cloud-sidebar-menu__item"
-          [class.is-active]="bosiActive()"
-          aria-label="Bosi"
-          data-sidebar-panel-title="Bosi"
-          [xpSidebarPanelTrigger]="bosiPanel"
-          xpSidebarPanelKey="bosi"
-          (panelSelected)="openBosi($event)"
-        >
-          <span class="cloud-sidebar-menu__icon"><z-icon zType="ri-home-5-line" /></span>
-          @if (!collapsed()) {
-            <span class="cloud-sidebar-menu__title">Bosi</span>
-          }
-        </button>
-        <ng-template #bosiPanel let-query>
-          @for (item of group.items; track trackMenuItem($index, item)) {
-            @if (visibleChildren(item).length) {
-              <h3 class="mb-1 mt-4 px-3 text-sm font-medium text-muted-foreground">
-                {{ 'XP.Sidebar.Resources' | translate }}
-              </h3>
-              @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
-                @if (matchesQuery(child, query)) {
-                  <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: child }" />
-                }
-              }
-            } @else if (matchesQuery(item, query)) {
-              <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: item }" />
+        @if (group.items.length) {
+          <button
+            type="button"
+            class="cloud-sidebar-menu__item"
+            [class.is-active]="bosiActive()"
+            aria-label="Bosi"
+            data-sidebar-panel-title="Bosi"
+            [xpSidebarPanelTrigger]="bosiPanel"
+            xpSidebarPanelKey="bosi"
+            (panelSelected)="openBosi($event)"
+          >
+            <span class="cloud-sidebar-menu__icon"><z-icon zType="ri-home-5-line" /></span>
+            @if (!collapsed()) {
+              <span class="cloud-sidebar-menu__title">Bosi</span>
             }
-          }
-          <xp-cloud-sidebar-recent-tasks [panelMode]="true" [query]="query" />
-        </ng-template>
+          </button>
+          <ng-template #bosiPanel let-query>
+            @for (item of group.items; track trackMenuItem($index, item)) {
+              @if (visibleChildren(item).length) {
+                <h3 class="mb-1 mt-4 px-3 text-sm font-medium text-muted-foreground">
+                  {{ 'XP.Sidebar.Resources' | translate }}
+                </h3>
+                @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
+                  @if (matchesQuery(child, query)) {
+                    <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: child }" />
+                  }
+                }
+              } @else if (matchesQuery(item, query)) {
+                <ng-container [ngTemplateOutlet]="bosiItem" [ngTemplateOutletContext]="{ $implicit: item }" />
+              }
+            }
+            <xp-cloud-sidebar-recent-tasks [panelMode]="true" [query]="query" />
+          </ng-template>
+        }
         <xp-cloud-sidebar-assistants
           class="cloud-sidebar-menu__assistant-list"
           [collapsed]="collapsed()"
-          [enabled]="group.items.length > 0"
+          [enabled]="canViewChat()"
           [embedded]="true"
         />
       } @else {
@@ -111,7 +113,7 @@
 <ng-template #bosiItem let-item>
   <button
     type="button"
-    class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [class]="isActive(item) ? 'bg-components-list-option-active-bg font-medium text-text-primary!' : ''"
     [routerLink]="routerLinkFor(item)"
     [attr.data-onboarding-target]="item.data.onboardingTarget || null"
@@ -119,7 +121,9 @@
     (click)="onMenuClick($event, item)"
   >
     @if (item.icon) {
-      <z-icon class="size-[18px] text-[18px]" [zType]="item.icon" />
+      <span class="inline-flex size-[24px] shrink-0 items-center justify-center" aria-hidden="true">
+        <z-icon class="size-[20px] text-[20px] leading-none" [zType]="item.icon" />
+      </span>
     }
     <span class="truncate">{{ menuTitleKey(item) | translate: { Default: item.title } }}</span>
   </button>

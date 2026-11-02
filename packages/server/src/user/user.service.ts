@@ -1,4 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { t } from 'i18next'
 import { createHash } from 'node:crypto'
 import {
 	BadRequestException,
@@ -681,6 +682,10 @@ export class UserService extends TenantAwareCrudService<User> {
 			PermissionsEnum.ALL_ORG_EDIT,
 			PermissionsEnum.SUPER_ADMIN_EDIT
 		])
+		if (entity.isActive !== undefined) {
+			if (!canManageUsers) throw new ForbiddenException()
+			if (typeof entity.isActive !== 'boolean') throw new BadRequestException(t('server-ai:Error.ApplicationProfileInvalid'))
+		}
 
 		if (!isSelf && !canManageUsers) {
 			throw new ForbiddenException()

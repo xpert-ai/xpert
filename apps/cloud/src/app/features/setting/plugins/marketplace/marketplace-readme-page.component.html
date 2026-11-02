@@ -18,21 +18,24 @@
           <span>{{ 'XP.Plugin.LoadingPluginDetails' | translate: { Default: 'Loading plugin details...' } }}</span>
         </div>
       </div>
-    } @else if (error()) {
+    } @else if (error(); as error) {
       <div
+        role="alert"
         class="flex min-h-[360px] flex-col items-center justify-center gap-4 rounded-lg border border-divider-regular px-6 text-center"
       >
-        <i class="ri-error-warning-line text-3xl text-text-destructive"></i>
+        <i aria-hidden="true" class="ri-error-warning-line text-3xl text-text-destructive"></i>
         <div class="text-lg font-semibold text-text-primary">
-          {{ 'XP.Plugin.LoadPluginDetailsFailed' | translate: { Default: 'Failed to load plugin details' } }}
+          {{ 'XP.Plugin.DetailUnavailableTitle' | translate }}
         </div>
         <div class="max-w-2xl break-words text-sm text-text-tertiary">
-          {{ error() }}
+          {{ error.messageKey | translate }}
         </div>
-        <button z-button type="button" zType="secondary" (click)="reload()">
-          <i class="ri-refresh-line"></i>
-          {{ 'XP.Plugin.Refresh' | translate: { Default: 'Refresh' } }}
-        </button>
+        @if (error.retryable) {
+          <button z-button type="button" zType="secondary" (click)="reload()">
+            <i aria-hidden="true" class="ri-refresh-line"></i>
+            {{ 'XP.Plugin.RetryDetails' | translate }}
+          </button>
+        }
       </div>
     } @else if (detail(); as detail) {
       <header class="flex flex-wrap items-start justify-between gap-5 border-b border-divider-regular pb-6">

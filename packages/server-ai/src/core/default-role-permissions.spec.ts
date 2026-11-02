@@ -10,6 +10,8 @@ describe('AI default role permissions', () => {
             [
                 AIPermissionsEnum.COPILOT_EDIT,
                 AIPermissionsEnum.MEMBERSHIP_USE,
+                AIPermissionsEnum.XPERT_VIEW,
+                AIPermissionsEnum.APPLICATION_INSTALL,
                 AIPermissionsEnum.XPERT_EDIT,
                 AIPermissionsEnum.CHAT_VIEW,
                 AIPermissionsEnum.XPERT_PROJECT_VIEW,

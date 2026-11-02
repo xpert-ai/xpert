@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { getErrorMessage, keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import {
@@ -67,6 +69,7 @@ import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertToolsetController extends CrudController<XpertToolset> {
     readonly #logger = new Logger(XpertToolsetController.name)
 

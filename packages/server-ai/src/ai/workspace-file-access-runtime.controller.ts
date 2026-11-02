@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Body, Controller, Delete, Get, Head, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
@@ -30,6 +32,7 @@ import { sendImagePreview } from '../workspace-file-access/image-preview/image-p
 @Public()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('workspace-files/view-sessions')
 export class WorkspaceFileAccessRuntimeController {
     constructor(

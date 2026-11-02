@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { z } from 'zod/v3'
@@ -11,6 +13,7 @@ import {
 import { definitionError } from './analytics-definition.errors'
 const invalid = () => definitionError('invalid')
 @Controller('analytics/definitions')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class AnalyticsDefinitionController {
     constructor(private readonly service: AnalyticsDefinitionService) {}
     @Get('providers') catalog() {

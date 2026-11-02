@@ -28,6 +28,7 @@ import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
 @ApiTags('OrganizationContact')
 @UseGuards(TenantPermissionGuard)
 @Controller()
+@Permissions(PermissionsEnum.ORG_CONTACT_EDIT)
 export class OrganizationContactController extends CrudController<OrganizationContact> {
 	constructor(
 		private readonly organizationContactService: OrganizationContactService,

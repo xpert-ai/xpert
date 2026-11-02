@@ -1,0 +1,83 @@
+---
+title: 'Durable knowledgebase deletion'
+description: 'Proposed HTTP 202 deletion, cross-store cleanup, recovery and client integration'
+---
+
+**Status: proposed, not delivered.** Wiki generation, browsing, configuration and retrieval are implemented; see [Wiki features](/en/guides/knowledgebase/wiki). This proposal extracts the unfinished durable document/knowledgebase hard-delete flow and source-consistency conditions required before exposing deletion/recovery capabilities.
+
+## Current behavior and objective
+
+Current document deletion retracts Wiki sources and cleans some derived data, but still uses direct deletion. Some Graph cleanup failures log a warning and continue. Existing deletion/publication entities and receipt contracts do not establish complete HTTP 202 endpoints, workers, recovery APIs or client integration.
+
+Separate acceptance from completed cleanup: the acceptance transaction immediately denies reads and further publication, while a recoverable process cleans relational data, vector stores and derived files. Failures retain an authorized status and retry record.
+
+This proposal does not rebuild Wiki Map/Reduce or restore the removed organization-level Wiki feature gate. Source governance must continue even when Wiki generation is disabled.
+
+## Proposed APIs and contracts
+
+These are target interfaces, not currently delivered APIs. Reuse and reconcile existing shared contracts. States and recovery actions require explicit types rather than error-message inference.
+
+| Target endpoint                                                  | Behavior                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------- |
+| `DELETE /api/knowledge-document/:id?version=...`                 | Accept/reuse a document intent and return a 202 receipt |
+| `DELETE /api/knowledge-document/bulk`                            | Separate receipts preserving mixed outcomes             |
+| `GET /api/knowledgebase/:id/document-deletions`                  | Bounded pending/failed/recent-completed discovery       |
+| `GET /api/knowledgebase/:id/document-deletions/:intentId`        | Status, failed stage and recovery action                |
+| `POST /api/knowledgebase/:id/document-deletions/:intentId/retry` | Resume idempotently from missing cleanup receipts       |
+| `DELETE /api/knowledgebase/:id?version=...`                      | Accept/reuse knowledgebase deletion with a 202 receipt  |
+| `GET /api/knowledgebase-deletions/:intentId`                     | Status independent of a deleted knowledgebase row       |
+| `POST /api/knowledgebase-deletions/:intentId/retry`              | Retry knowledgebase cleanup                             |
+
+Receipts include intent ID, target ID snapshot, state, acceptance/completion times, failed stage, translatable error code and `canRetry`. Define version checks and retry idempotency explicitly; duplicate requests must not create cleanup storms.
+
+## Execution stages
+
+1. **Accept and invalidate.** In one transaction, authorize writes/management, check versions, create/reuse the intent, advance publication epoch, close writer/publication gates and make affected content, pages, projections and deterministic indexes unserviceable.
+2. **Quiesce writers.** Coordinate document, Workflow, Graph, Wiki and Embedding workers. Register external-write attempts and exact keys. Lease expiry alone does not prove an old write has stopped.
+3. **Purge readable derivatives.** Remove or redact source-bearing historical Wiki versions, Map/Reduce inputs/outputs, model output, contributions, evidence, links, relational chunks, derived artifacts and vectors across active/staged/superseded/failed states.
+4. **Maintain shared objects.** Shared Graph/Wiki objects retain only remaining eligible contributions and explicit manual overlays. Invalidate affected index pages first, then rebuild only from currently serviceable pages.
+5. **Verify completion.** Require successful external-cleanup receipts, no unresolved old writers and no residual content before deleting source rows and updating counts idempotently. Knowledgebase deletion removes pipeline and knowledgebase rows last.
+
+Distinguish at least pending/running/failed/completed, with typed stages such as quiescing and purge. Do not offer false cancellation after irreversible cleanup begins. Unknown writer outcomes remain recoverable failures, not completed deletions.
+
+## Concurrency, storage and access
+
+- Publication uses conditional updates against epoch, source hash, configuration and attempt state. Late workers cannot republish deleted content; compensate already-written staged keys.
+- Cleanup manifests use exact keys and verified ownership, never broad prefixes that could delete other resources.
+- Hard delete does not delete shared original `StorageFile` objects by default. Purge only derivatives with exclusive ownership evidence; other document/FileAsset references remain usable.
+- Intents retain tenant, organization, knowledgebase/target snapshots and authorization audit information. Status/retry still authorize the current principal after target rows disappear; deletion-time snapshots are not permanent access tokens.
+- Discovery bounds pagination, status and recent-completed windows. Ordinary readers do not gain historical document IDs, internal failure stages or retry rights.
+- Completed tombstones retain content-free audit data without names, paths or body text. The original 90-day retention is a deployment-policy candidate whose configuration and cleanup must be specified during implementation.
+
+## Soft-delete and recovery prerequisites
+
+Reuse and validate existing Graph contributions. Table existence does not establish safe behavior across every read path. Before enabling soft delete/recovery, verify source eligibility, shared canonical-field recomputation, vector fingerprint checks and list/detail/mentions/statistics paths.
+
+Recovery regenerates contributions from current source content rather than marking old contributions eligible. Rebuild historical mixed-provenance fields when they cannot be separated; do not preserve untraceable extracted content as manual overlays. Keep unsupported entry points restricted; UI hiding is not backend enforcement.
+
+## Clients and rollout
+
+Cloud, Workflow, plugin runtime and other first-party callers must understand typed 202 responses: show deletion in progress, preserve intent-level retry on failure and update lists/counts only on completion. Discovery restores state after refresh or re-entry. Bulk mixed results remain independent.
+
+The server computes capabilities such as `canManageDocumentDeletions`; clients cannot persist them as permission grants. A later management-discovery 403 closes only the management overlay and does not clear ordinary lists. Third parties requiring synchronous completion need a versioned compatibility path.
+
+Use explicit schema migrations. Deploy contract/client compatibility before activating workers and endpoints. Define retries, timeouts, alerts, manual recovery and backups; automatic schema synchronization is not a migration design.
+
+## Acceptance and fault injection
+
+- Duplicate, concurrent and partially failed bulk deletes reuse correct intents; status remains available after target-row removal.
+- Unique-source deletion hides bodies, titles, links, old versions and vectors at acceptance; completion requires physical-cleanup evidence.
+- Interrupt processes before/after database commits, vector writes/deletes, derivative-file writes and cleanup acknowledgments; restart from persistent receipts.
+- Pause an old-epoch writer, accept deletion, then release it. It cannot resurrect content or let an indeterminate outcome appear completed.
+- Preserve shared StorageFiles, shared Graph entities, remaining Wiki sources and manual content.
+- Test cross-tenant/organization/knowledgebase access, revocation, read-only users, refreshed pending/failed state, mixed batches and third-party compatibility.
+- Record real PostgreSQL, PGVector/Milvus, queue, storage and browser acceptance separately; mocks and compilation are not substitutes.
+
+## Implementation entry points
+
+- `packages/server-ai/src/knowledge-document/deletion/`, `document-publication.ts` and `derived-index-publication.service.ts`: existing entities, publication and source integration.
+- `packages/server-ai/src/knowledge-document/document.service.ts` and `document.controller.ts`: current direct-delete entries.
+- `packages/server-ai/src/knowledgebase/management/knowledgebase.service.ts`: knowledgebase lifecycle.
+- `packages/server-ai/src/knowledgebase/wiki/` and `packages/server-ai/src/graphrag/`: source retraction, historical content and projection cleanup.
+
+The combined Wiki plan has been removed; Git history retains its design. This proposal lists unfinished integration and acceptance targets, not changes already made to APIs or stored data.

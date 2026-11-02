@@ -131,6 +131,45 @@ describe('one Analytics Runtime for governed sources', () => {
 			expect.objectContaining({ actor, source: ref, options: { private: 'secret' } })
 		)
 	})
+	it('retains source-specific sharing restrictions without weakening a private provider', async () => {
+		const registry = app.get(AnalyticsProviderRegistry)
+		const register = list.mockReturnValue([
+			{
+				...provider,
+				descriptor: {
+					...provider.descriptor,
+					sharing: { mode: 'viewer_permissions' }
+				}
+			}
+		])
+		const restricted = {
+			...provider.descriptor,
+			sharing: { mode: 'owner_only' as const, reasonCode: 'ANALYTICS_DEFINITION_PRIVATE' }
+		}
+		const service = new AnalyticsRuntimeService(registry, [
+			{
+				kind: 'definition',
+				resolve,
+				list: async () => [{ source, name: 'Private script', providers: [restricted] }]
+			}
+		])
+		expect((await service.list(actor))[0].providers[0].sharing).toEqual(restricted.sharing)
+		register.mockReturnValue([{ ...provider, descriptor: restricted }])
+		const publicSource = new AnalyticsRuntimeService(registry, [
+			{
+				kind: 'definition',
+				resolve,
+				list: async () => [
+					{
+						source,
+						name: 'Public source',
+						providers: [{ ...provider.descriptor, sharing: { mode: 'viewer_permissions' } }]
+					}
+				]
+			}
+		])
+		expect((await publicSource.list(actor))[0].providers[0].sharing?.mode).toBe('owner_only')
+	})
 	it.each([
 		{ ...binding, source: { kind: 'definition', definitionId: uuid } },
 		{ ...binding, dataSourceId: uuid },

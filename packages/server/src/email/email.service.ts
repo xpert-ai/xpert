@@ -164,6 +164,8 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
             },
             // if you want to send emails in development or test environments, set options.send to true.
             send: true,
+            // API delivery must not wait for a desktop preview process in development.
+            preview: false,
             transport: smtpConfig,
             i18n: {},
             views: {

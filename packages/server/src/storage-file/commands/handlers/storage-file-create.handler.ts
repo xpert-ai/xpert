@@ -1,10 +1,10 @@
 import { IStorageFile } from '@xpert-ai/contracts'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, HttpException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import * as fsp from 'fs/promises'
 import moment from 'moment'
 import { dirname, join, resolve } from 'path'
-import { RequestContext } from '../../../core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileStorage } from '../../../file'
 import { StorageFileService } from '../../storage-file.service'
 import { StorageFileCreateCommand } from '../storage-file-create.command'
@@ -30,17 +30,17 @@ export class StorageFileCreateHandler implements ICommandHandler<StorageFileCrea
 			const provider = new FileStorage().getProvider()
 			const relativePath = join('files', RequestContext.currentTenantId(), fileNameString)
 
-			// 获取绝对路径（如果你上传需要本地路径）
+			// Resolve the local upload destination.
 			const fullPath = resolve(provider.config.rootPath, relativePath)
-			// 确保目录存在
+			// Create the destination directory before writing.
 			await fsp.mkdir(dirname(fullPath), { recursive: true })
 
-			// 上传文件内容（假设 file.url 是临时地址或可访问的路径）
+			// Store the file using the configured provider.
 			const storedFile = await provider.putFile(file.contents, relativePath)
 
 			const { key, url: storedUrl, size, mimetype, encoding } = storedFile
 
-			// 保存文件元信息到 storageFileService
+			// Persist metadata for subsequent access and usage measurement.
 			const createdStorageFile = await this.fileService.create({
 				file: key,
 				url: storedUrl,
@@ -54,6 +54,7 @@ export class StorageFileCreateHandler implements ICommandHandler<StorageFileCrea
 
 			return createdStorageFile
 		} catch (error) {
+			if (error instanceof HttpException) throw error
 			throw new BadRequestException(error, `Can'\t create storage file`)
 		}
 	}

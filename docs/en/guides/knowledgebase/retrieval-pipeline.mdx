@@ -1,0 +1,142 @@
+---
+title: 'Retrieval and fusion'
+description: 'Vector, Keyword, Graph, fusion modes, index requirements and final processing'
+---
+
+A shared query entry orchestrates Vector, Keyword and Graph candidates for internal knowledgebases, followed by fusion, visibility checks, materialization and final reranking. External knowledgebases retain their integration protocol and do not automatically participate in internal fusion.
+
+## Retrieval modes
+
+Request retrieval settings can override knowledgebase defaults. Compatibility resolution preserves historical configuration. Do not configure a new knowledgebase's default retrieval solely by changing the old `graphRag.mode` field.
+
+| Mode                                  | Execution                                                             |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `vector`                              | Active vector-store search and relational restoration                 |
+| `keyword`                             | PostgreSQL Keyword retrieval                                          |
+| `graph`                               | GraphRAG retrieval                                                    |
+| `hybrid` with missing/`legacy` fusion | Historical weighted Vector + Graph behavior                           |
+| `hybrid` with `weighted_rrf`          | Rank-based fusion of participating Vector, Graph and Keyword branches |
+
+FAQ supports only Vector, Keyword and Hybrid; see [FAQ defaults](./faq). `contentScope` independently selects original/Wiki content; see [Wiki constraints](./wiki).
+
+## Fusion and failures
+
+Legacy Fusion preserves historical deduplication, branch scores, Graph weighting and stable ordering. Adding Keyword does not automatically enable three-way retrieval for old configurations. Legacy Hybrid may fall back to Vector when Graph fails and records the reason; Graph-only failures produce errors.
+
+Weighted RRF sums rank contributions:
+
+```text
+rrfScore(document) = Σ weight(source) / (rankConstant + rank(source, document))
+```
+
+- The default `rankConstant` is 60. Ordinary defaults are Vector 0.65, Graph 0.35 and Keyword 0.3; FAQ has its own defaults.
+- Zero-weight branches do not run. Graph also depends on the knowledgebase's enabled Graph capability.
+- Stable document/chunk identities drive deduplication. Scores are not normalized by list length, and weights need not sum to 1.
+- A participating branch failure is explicit, not an empty successful batch.
+- RRF scores are not vector similarity. The old vector-similarity threshold cannot be applied directly; final rerank thresholds use a separate score domain.
+
+Retriever and Fusion boundaries are internal server interfaces, not new Plugin SDK extension points. Fusion is pure computation: it does not query databases, call models, retry operations or choose the final Top K.
+
+## Keyword retrieval
+
+New knowledgebases bind Basic (Unicode) by default or may select an Analyzer declared by an installed plugin. Documents and queries use the same source and revision. Adding content locks the selection; ordinary updates cannot unlock it.
+
+Historical `keywordAnalyzer = NULL` knowledgebases retain the PostgreSQL `simple` full-text and `pg_trgm` path without automatic index rewriting. Keywords shorter than three Unicode characters do not use wildcard trigram substring queries.
+
+The Analyzer path maintains body `keywordVector` and title `keywordTitleVector` values:
+
+- Strict matching runs first; bounded relaxation occurs only when candidates are insufficient. Identifiers retain required terms.
+- Title matching selects one eligible representative chunk per document, preferring a body-hit chunk when available. A title hit does not guarantee that the selected paragraph contains the answer.
+- Strict/relaxed, title/body and parent-collapse replenishment share one budget. The logical target is `min(4 × finalTopK, 400)`, with at most 400 raw candidates; FAQ outer rounds share that cap.
+- Application document/chunk writes maintain Analyzer terms while PostgreSQL maintains indexes. Direct SQL edits bypass that maintenance and are not a supported business-write path.
+
+## PostgreSQL prerequisites
+
+Keyword requires PostgreSQL. The index-status service does not create indexes or silently scan whole tables when indexes are absent. Deployment migrations must prepare the relevant columns, extension and indexes and verify `indisready` and `indisvalid`.
+
+| Path                         | Index name                                    |
+| ---------------------------- | --------------------------------------------- |
+| Legacy body full-text        | `IDX_knowledge_document_chunk_content_fts`    |
+| Legacy body trigram          | `IDX_knowledge_document_chunk_content_trgm`   |
+| Legacy document-name trigram | `IDX_knowledge_document_name_trgm`            |
+| Analyzer body                | `IDX_knowledge_document_chunk_keyword_vector` |
+| Analyzer title               | `IDX_knowledge_document_keyword_title_vector` |
+
+Trigram requires `pg_trgm`. Analyzer retrieval requires both body and title indexes. Manage the reference DDL below through deployment migrations; concurrent index creation cannot run inside a normal transaction block. Historical documents without generated title vectors may still have body-only recall; automatic backfilling is not promised.
+
+### Reference index DDL
+
+Prepare `keywordVector` and nullable `keywordTitleVector` columns through deployment migrations first, then create indexes for the relevant path. Execute each `CREATE INDEX CONCURRENTLY` outside a transaction. `IF NOT EXISTS` does not repair an existing invalid index.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_fts"
+ON "knowledge_document_chunk" USING gin (to_tsvector('simple', COALESCE("pageContent", '')));
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_trgm"
+ON "knowledge_document_chunk" USING gin ("pageContent" gin_trgm_ops);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_name_trgm"
+ON "knowledge_document" USING gin ("name" gin_trgm_ops);
+
+-- Required for knowledgebases using Basic (Unicode) or a plugin analyzer.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_keyword_vector"
+ON "knowledge_document_chunk" USING gin ("keywordVector");
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_keyword_title_vector"
+ON "knowledge_document" USING gin ("keywordTitleVector");
+```
+
+Check readiness and also confirm that existing index definitions match:
+
+```sql
+SELECT c.relname AS index_name, i.indisready, i.indisvalid
+FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+WHERE c.relname IN (
+  'IDX_knowledge_document_chunk_content_fts',
+  'IDX_knowledge_document_chunk_content_trgm',
+  'IDX_knowledge_document_name_trgm',
+  'IDX_knowledge_document_chunk_keyword_vector',
+  'IDX_knowledge_document_keyword_title_vector'
+);
+```
+
+## Shared boundaries and final processing
+
+Every branch respects tenant, organization, knowledgebase, enabled state and supported filters. The server prepares fixed, request and Agent dynamic predicates before dispatch; retrievers cannot broaden them. Unsupported mode/backend combinations fail explicitly.
+
+The query entry owns current FAQ restoration and negative exclusion, Wiki serviceability, table context where applicable, full-result materialization, final reranking, thresholds, logging, cross-knowledgebase aggregation and Top K. Agent-facing results are documents, not interchangeable raw branch scores.
+
+Diagnostics distinguish branch failures, missing indexes, filters, candidate counts, fallback and fusion mode. Too few results can reflect scope, negative exclusion, budgets or final thresholds, rather than simply an empty model response.
+
+## Code organization
+
+The root of `packages/server-ai/src/knowledgebase/` retains only its public `index.ts`:
+
+| Directory                         | Responsibility                                                      |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `management/`                     | Public Service facade, Controller, Module and configuration updates |
+| `persistence/`                    | Knowledgebase entity and subscriber                                 |
+| `embedding/`                      | Model resolution, vector storage and rebuilding                     |
+| `retrieval/`, `queries/handlers/` | Candidates, fusion and query orchestration                          |
+| `parser/`, `filter/`              | Parser settings and structured filters                              |
+| `task/`, `pipeline/`              | Processing tasks, pipelines and external knowledgebase operations   |
+| `access/`, `lifecycle/`           | Access projections and shared-resource lifecycle                    |
+| `faq/`, `wiki/`                   | Type-specific capabilities                                          |
+| `writer/`, `shared/`, `testing/`  | Writer middleware, shared contracts and test fixtures               |
+
+The split preserves the public `KnowledgebaseService` entry. Internal operations receive explicit dependencies rather than using a public service locator or a second runtime module-registration mechanism.
+
+## Verification scope
+
+The repository includes retriever, Fusion, authorization, Keyword-index, FAQ/Wiki and finalization tests. These pages describe current implementation. Historical test results apply to their recorded environment and version, not target-database, real-model quality or end-to-end retrieval acceptance.
+
+Implementation covers candidate separation, Legacy/Weighted RRF, Keyword and explicit configuration opt-in. Target environments still require index, real-query and quality checks:
+
+- Fix knowledgebase, query, Top K, filters and thresholds when comparing identities, ordering, scores and diagnostics with the legacy path.
+- Cover Vector, Graph, Keyword, Hybrid, empty results, branch failures, filters and final reranking.
+- Evaluate recall and latency with Chinese keywords, English identifiers, exact codes, FAQ questions and Wiki titles/bodies.
+- Confirm explicit missing-index failures, correct document/title updates, configured weights and zero-weight behavior.
+
+The completed implementation plan has been removed; Git history retains staged records. Implemented functionality does not mean all deployment acceptance has passed.

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../../shared/decorators/permissions'
 import { ITenantSetting, RolesEnum } from '@xpert-ai/contracts'
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -14,6 +16,7 @@ import { TenantSettingMutationGuard } from './tenant-setting-mutation.guard'
 @Controller()
 @UseGuards(TenantPermissionGuard, RoleGuard, TenantSettingMutationGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class TenantSettingController extends CrudController<TenantSetting> {
 	constructor(
 		private readonly tenantSettingService: TenantSettingService,

@@ -5,7 +5,7 @@ import { KBDocumentStatusEnum, KnowledgeIdentityDecision } from '@xpert-ai/contr
 import { DataSource, EntityManager } from 'typeorm'
 import { v5 as uuidv5 } from 'uuid'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     identityFingerprint,
     identityScope,

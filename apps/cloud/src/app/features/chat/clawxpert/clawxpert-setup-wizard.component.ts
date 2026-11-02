@@ -11,7 +11,7 @@ import {
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
 import { injectPluginAPI, IPluginDescriptor } from '@cloud/app/@core/state'
-import { AiProviderRole } from '@xpert-ai/contracts'
+import { DefaultModelRole } from '@xpert-ai/contracts'
 import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
 import {
   AiFeatureEnum,
@@ -374,18 +374,11 @@ export class ClawXpertSetupWizardComponent {
       .map((item) => item.template)
   })
   readonly selectedRecommendedTemplateCount = computed(() => this.selectedRecommendedTemplates().length)
-  readonly orgCopilots = toSignal(
-    this.#copilotServer.refresh$.pipe(
-      switchMap(() => this.#copilotServer.getAllInOrg()),
-      map(({ items }) => items ?? []),
-      catchError(() => of([] as ICopilot[]))
-    ),
-    {
-      initialValue: [] as ICopilot[]
-    }
-  )
-  readonly primaryCopilot = computed(
-    () => this.orgCopilots().find((item) => item.role === AiProviderRole.Primary) ?? null
+  readonly primaryCopilot = toSignal(
+    this.#copilotServer
+      .getDefaultModelSetup(DefaultModelRole.Primary)
+      .pipe(catchError(() => of<ICopilot | null>(null))),
+    { initialValue: null }
   )
   readonly showModelProviderForm = computed(() => !!this.primaryCopilot()?.enabled)
 
@@ -626,7 +619,7 @@ export class ClawXpertSetupWizardComponent {
 
     this.enablingPrimaryCopilot.set(true)
     try {
-      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
+      await firstValueFrom(this.#copilotServer.prepareDefaultModelSetup(DefaultModelRole.Primary))
       this.#copilotServer.refresh()
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))

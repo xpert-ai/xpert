@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { Environment } from './environment.entity'
@@ -8,6 +10,7 @@ import { EnvironmentPublicDTO } from './dto'
 
 @ApiTags('Environment')
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class EnvironmentController extends CrudController<Environment> {
     constructor(readonly service: EnvironmentService) {
         super(service)

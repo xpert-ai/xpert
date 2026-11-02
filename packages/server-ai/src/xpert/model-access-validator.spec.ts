@@ -1,8 +1,9 @@
-import { AiModelTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { AiModelTypeEnum, UserType, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException } from '@nestjs/common'
 import { XpertModelAccessValidator, collectDraftModelReferences } from './model-access-validator'
 import { XpertDraftValidateEvent } from './types'
+import { runWithServiceOperation } from '../shared/service-operation'
 
 describe('XpertModelAccessValidator', () => {
     afterEach(() => {
@@ -203,6 +204,40 @@ describe('XpertModelAccessValidator', () => {
                 )
             )
         ).rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    it.each(['matching', 'creator', 'organization', 'tenant', 'request'])('binds maintenance model validation only to the exact %s scope', async (kind) => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(kind === 'request' ? 'other-actor' : 'actor')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'actor', tenantId: 'tenant', type: UserType.COMMUNICATION })
+        const access = { canUseCatalogModel: jest.fn().mockResolvedValue(true) }
+        const validator = new XpertModelAccessValidator(access as never, { getMiddlewareStrategies: () => [] } as never)
+        const creatorId = kind === 'creator' ? 'other-creator' : 'actor'
+        await runWithServiceOperation({ tenantId: 'tenant', organizationId: 'organization', actorId: 'actor',
+            subjectId: 'beneficiary', application: { pluginName: 'plugin', appName: 'app' }
+        }, () => validator.handle(new XpertDraftValidateEvent({
+            team: { copilotModel: { copilotId: 'copilot', model: 'model', modelType: AiModelTypeEnum.LLM } },
+            nodes: [], connections: []
+        } as never, { tenantId: kind === 'tenant' ? 'other-tenant' : 'tenant',
+            organizationId: kind === 'organization' ? 'other-organization' : 'organization', xpertId: 'assistant', creatorId })))
+        expect(access.canUseCatalogModel).toHaveBeenCalledWith(expect.objectContaining({
+            userId: kind === 'matching' ? 'beneficiary' : creatorId
+        }))
+    })
+
+    it('does not bypass a beneficiary model denial during maintenance', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('actor')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'actor', tenantId: 'tenant', type: UserType.COMMUNICATION })
+        const access = { canUseCatalogModel: jest.fn().mockResolvedValue(false) }
+        const validator = new XpertModelAccessValidator(access as never, { getMiddlewareStrategies: () => [] } as never)
+        await expect(runWithServiceOperation({ tenantId: 'tenant', organizationId: 'organization', actorId: 'actor',
+            subjectId: 'beneficiary', application: { pluginName: 'plugin', appName: 'app' }
+        }, () => validator.handle(new XpertDraftValidateEvent({
+            team: { copilotModel: { copilotId: 'copilot', model: 'model', modelType: AiModelTypeEnum.LLM } }, nodes: [], connections: []
+        } as never, { tenantId: 'tenant', organizationId: 'organization', xpertId: 'assistant', creatorId: 'actor' })))).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('rejects a configured model without an explicit model type', async () => {

@@ -1,3 +1,4 @@
+import { NotificationProvider } from './notifications/NotificationProvider'
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
 import type { ConversationNotice, DesktopLastSession } from './assistant-list-types'
@@ -275,113 +276,124 @@ export function App() {
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
       <div className={settings ? 'hidden' : 'contents'} inert={settings}>
         {state.profile ? (
-          <VoiceProvider
-            key={`${binding}:${state.config.apiUrl}`}
-            onOpen={(target) => {
-              selectBot(target.botId, target.threadId)
-              if (target.conversationId)
-                setInitialVoice({ assistantId: target.assistantId, conversationId: target.conversationId })
+          <NotificationProvider
+            key={binding}
+            suspended={settings || catalog || createGroup}
+            activeThreadId={!selectedGroup && !settings && !catalog ? (notice?.threadId ?? initialThread) : null}
+            onOpen={async (item) => {
+              const target = bots.find((bot) => (bot.assistantId || bot.id) === item.action.assistantId)
+              if (!target || !item.action.threadId) throw new Error('Unavailable result')
+              selectBot(target.id, item.action.threadId)
             }}
           >
-            <div className="flex h-full">
-              <AssistantPreviewScope key={binding}>
-                <Sidebar
-                  key={binding}
-                  state={state}
-                  bots={bots}
-                  selected={selectedGroup ? null : selected}
-                  selectedGroup={selectedGroup}
-                  groupRevision={groupRevision}
-                  onSelectGroup={(id) => {
-                    navigationVersion.current++
-                    selectedRef.current = null
-                    setSelectedGroup(id)
-                  }}
-                  onCreateGroup={() => setCreateGroup(true)}
-                  pending={pending}
-                  error={error}
-                  onSelect={selectBot}
-                  notice={notice}
-                  onBotSaved={async (id) => {
-                    await loadBots()
-                    selectBot(id)
-                  }}
-                  onRefresh={() => void loadBots()}
-                  onRefreshOrganizations={async () => {
-                    try {
-                      setState(await invoke('refreshProfile'))
-                    } catch (error) {
-                      if (error instanceof HostError && error.status === 409) return
-                      setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                      if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
-                    }
-                  }}
-                  onSettings={() => openSettings()}
-                  onBrowse={() => setCatalog(true)}
-                  onLogout={signOut}
-                  onOrganization={async (id) => {
-                    request.current++
-                    setBots([])
-                    setSelected(null)
-                    setPending(true)
-                    try {
-                      setState(await invoke('selectOrganization', id))
-                    } catch (error) {
-                      setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                      setPending(false)
-                    }
-                  }}
-                />
-              </AssistantPreviewScope>
-              <main className="flex min-w-0 flex-1 flex-col">
-                {!selectedGroup && !bosiReady && navigationReady && state.profile.organizationId ? (
-                  <BosiOnboarding
+            <VoiceProvider
+              key={`${binding}:${state.config.apiUrl}`}
+              onOpen={(target) => {
+                selectBot(target.botId, target.threadId)
+                if (target.conversationId)
+                  setInitialVoice({ assistantId: target.assistantId, conversationId: target.conversationId })
+              }}
+            >
+              <div className="flex h-full">
+                <AssistantPreviewScope key={binding}>
+                  <Sidebar
                     key={binding}
-                    organizationId={state.profile.organizationId}
-                    onReady={async (id, threadId) => {
-                      if (bindingRef.current !== binding) return
-                      const navigation = navigationVersion.current
+                    state={state}
+                    bots={bots}
+                    selected={selectedGroup ? null : selected}
+                    selectedGroup={selectedGroup}
+                    groupRevision={groupRevision}
+                    onSelectGroup={(id) => {
+                      navigationVersion.current++
+                      selectedRef.current = null
+                      setSelectedGroup(id)
+                    }}
+                    onCreateGroup={() => setCreateGroup(true)}
+                    pending={pending}
+                    error={error}
+                    onSelect={selectBot}
+                    notice={notice}
+                    onBotSaved={async (id) => {
                       await loadBots()
-                      if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
-                      selectBot(id, threadId)
-                      setBosiReady(true)
+                      selectBot(id)
+                    }}
+                    onRefresh={() => void loadBots()}
+                    onRefreshOrganizations={async () => {
+                      try {
+                        setState(await invoke('refreshProfile'))
+                      } catch (error) {
+                        if (error instanceof HostError && error.status === 409) return
+                        setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                        if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
+                      }
+                    }}
+                    onSettings={() => openSettings()}
+                    onBrowse={() => setCatalog(true)}
+                    onLogout={signOut}
+                    onOrganization={async (id) => {
+                      request.current++
+                      setBots([])
+                      setSelected(null)
+                      setPending(true)
+                      try {
+                        setState(await invoke('selectOrganization', id))
+                      } catch (error) {
+                        setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                        setPending(false)
+                      }
                     }}
                   />
-                ) : bot || selectedGroup ? (
-                  <ChatPanel
-                    key={binding}
-                    groupId={selectedGroup}
-                    selectionVersion={selectionVersion}
-                    initialThread={initialThread}
-                    initialVoice={initialVoice}
-                    onConversationRead={onConversationRead}
-                    onSessionChange={rememberSession}
-                    bot={bot}
-                    config={{ ...state.config, appearance, locale }}
-                    dark={dark}
-                    onAppearanceSaved={loadBots}
-                  />
-                ) : (
-                  <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">
-                    <BotIcon className="mb-5 size-10 text-primary" />
-                    <h1 className="text-xl font-semibold">
-                      {pending ? t('Getting your Bots ready') : t('Start with a Bot')}
-                    </h1>
-                    <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
-                      {pending
-                        ? t('Connecting to your Xpert workspace…')
-                        : t('Choose a Bot from the sidebar, or add experts, apps and assistants from the catalog.')}
-                    </p>
-                    {!pending && (
-                      <Button variant="outline" className="mt-6" onClick={() => setCatalog(true)}>
-                        {t('Discover & add')}
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </main>
-            </div>
-          </VoiceProvider>
+                </AssistantPreviewScope>
+                <main className="flex min-w-0 flex-1 flex-col">
+                  {!selectedGroup && !bosiReady && navigationReady && state.profile.organizationId ? (
+                    <BosiOnboarding
+                      key={binding}
+                      organizationId={state.profile.organizationId}
+                      onReady={async (id, threadId) => {
+                        if (bindingRef.current !== binding) return
+                        const navigation = navigationVersion.current
+                        await loadBots()
+                        if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
+                        selectBot(id, threadId)
+                        setBosiReady(true)
+                      }}
+                    />
+                  ) : bot || selectedGroup ? (
+                    <ChatPanel
+                      key={binding}
+                      groupId={selectedGroup}
+                      selectionVersion={selectionVersion}
+                      initialThread={initialThread}
+                      initialVoice={initialVoice}
+                      onConversationRead={onConversationRead}
+                      onSessionChange={rememberSession}
+                      bot={bot}
+                      config={{ ...state.config, appearance, locale }}
+                      dark={dark}
+                      onAppearanceSaved={loadBots}
+                    />
+                  ) : (
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">
+                      <BotIcon className="mb-5 size-10 text-primary" />
+                      <h1 className="text-xl font-semibold">
+                        {pending ? t('Getting your Bots ready') : t('Start with a Bot')}
+                      </h1>
+                      <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+                        {pending
+                          ? t('Connecting to your Xpert workspace…')
+                          : t('Choose a Bot from the sidebar, or add experts, apps and assistants from the catalog.')}
+                      </p>
+                      {!pending && (
+                        <Button variant="outline" className="mt-6" onClick={() => setCatalog(true)}>
+                          {t('Discover & add')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </main>
+              </div>
+            </VoiceProvider>
+          </NotificationProvider>
         ) : (
           <Login state={state} onLogin={setState} onSettings={() => openSettings('connection')} />
         )}

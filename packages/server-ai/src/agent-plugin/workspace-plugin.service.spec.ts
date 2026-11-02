@@ -10,14 +10,14 @@ import { AgentPluginController } from './agent-plugin.controller'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
-import { PluginResourceInstallerService } from '../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../plugin-resource/installation/plugin-resource-installer.service'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { importedPluginBinding } from './installed-plugin-catalog'
 
 jest.mock('./agent-plugin.entity', () => ({ AgentPluginPackage: class {}, AgentResourceBinding: class {} }))
 jest.mock('../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
 jest.mock('../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))
-jest.mock('../plugin-resource/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
+jest.mock('../plugin-resource/installation/plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('./agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
 
 describe('workspace editor Agent Plugins', () => {

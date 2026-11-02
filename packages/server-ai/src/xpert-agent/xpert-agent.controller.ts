@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { LanguagesEnum, TXpertAgentChatRequest } from '@xpert-ai/contracts'
 import { getErrorMessage, keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import { CrudController, TimeZone, TransformInterceptor } from '@xpert-ai/server-core'
@@ -29,6 +31,7 @@ import { EnvironmentService } from '../environment'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class XpertAgentController extends CrudController<XpertAgent> {
     readonly #logger = new Logger(XpertAgentController.name)
 

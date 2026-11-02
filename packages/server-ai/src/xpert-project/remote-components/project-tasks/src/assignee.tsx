@@ -1,4 +1,3 @@
-import { executionProviderLabel } from './execution-provider'
 import { useState } from 'react'
 import { Bot } from 'lucide-react'
 import { cn } from '@xpert-ai/shadcn-ui'
@@ -38,15 +37,7 @@ export function Assignee({
     onLane?: () => void
 }) {
     const [failedUrl, setFailedUrl] = useState<string | null>(null)
-    const runtime = [...attempts]
-        .sort((a, b) => b.attempt - a.attempt)
-        .find((attempt) => attempt.invocationId && attempt.runtimeProvider)
-    const fallback = runtime
-        ? (executionProviderLabel(runtime) ?? t.unassigned)
-        : attempts.some((attempt) => attempt.runtimeProvider === 'pipeline-service')
-          ? t.serviceExecutor
-          : t.unassigned
-    const name = owner(task, fallback, t.unnamedAssistant)
+    const name = owner(task, t.unassigned, t.unnamedAssistant)
     const avatar = task.assigneeAvatar
     const emoji = avatarEmoji(avatar?.emoji?.unified)
     return (

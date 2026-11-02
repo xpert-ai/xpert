@@ -1,4 +1,4 @@
-import { applicationInstallationIdentity } from '../application-scope'
+import { applicationInstallationIdentity } from '../application/application-scope'
 // Invariants: preparation and discard lock the scoped installation row. Workspace creation
 // and its installation reference commit together; configuration never publishes an Assistant.
 // Credentials remain in the existing toolset APIs. Closing setup never deletes configuration.

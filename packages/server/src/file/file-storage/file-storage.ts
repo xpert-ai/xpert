@@ -1,3 +1,4 @@
+import type { StorageBudgetOwner } from '../../shared/storage-budget.command'
 import { FileStorageOption, FileStorageProviderEnum } from '@xpert-ai/contracts'
 import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
@@ -15,7 +16,10 @@ export class FileStorage {
 		dest: ''
 	}
 
-	constructor(option?: FileStorageOption) {
+	constructor(
+		option?: FileStorageOption,
+		private readonly owner?: StorageBudgetOwner
+	) {
 		this.initProvider()
 		this.setConfig(option)
 	}
@@ -69,13 +73,13 @@ export class FileStorage {
 		const registry = FileStorageRegistryBridge.getRegistry()
 		if (registry) {
 			try {
-				return registry.get(`${this.config.provider}`)
+				return FileStorageRegistryBridge.wrap(registry.get(`${this.config.provider}`), this.owner)
 			} catch (error) {
 				// Fall back to built-in providers so bootstrap/tests without Nest context keep working.
 			}
 		}
 
-		return this.providers[this.config.provider]
+		return FileStorageRegistryBridge.wrap(this.providers[this.config.provider], this.owner)
 	}
 
 	initProvider() {

@@ -1,3 +1,4 @@
+import { Permissions } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
@@ -15,6 +16,7 @@ import { pipelineBindingsPageInput, pipelineCatalogQuery } from './pipeline-bind
 const invalid = () => new BadRequestException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
 @Controller()
 @UseGuards(XpertProjectGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
 export class ProjectPipelineCatalogController {
     constructor(private readonly catalog: ProjectPipelineCatalogService) {}
     private context(projectId: string) {

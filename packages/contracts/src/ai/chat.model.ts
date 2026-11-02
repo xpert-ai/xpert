@@ -1,5 +1,9 @@
 import type { TChatConversationStatus } from './chat-activity.model'
-export type { TChatConversationStatus, IChatConversationUnreadXpertSummary } from './chat-activity.model'
+export type {
+  TChatConversationStatus,
+  IChatConversationUnreadXpertSummary,
+  IChatConversationUnreadSnapshot
+} from './chat-activity.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
@@ -164,6 +168,11 @@ export type TChatThreadMetadata = {
   [key: string]: unknown
 }
 export type TToolCallType = 'agent' | 'tool'
+/**
+ * Conversation origin: built-in values and stable identifiers supplied by channel plugins.
+ * Keep legacy values for stored conversations and editor completion; adding a channel
+ * must not require a platform release. Attribution does not grant execution permissions.
+ */
 export type TChatFrom =
   | 'platform'
   | 'webapp'
@@ -177,6 +186,7 @@ export type TChatFrom =
   | 'dingtalk'
   | 'wecom'
   | 'wechat'
+  | (string & {})
 
 /**
  * Operation for interrupt

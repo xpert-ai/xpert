@@ -54,6 +54,25 @@ describe('runtime resource catalog HTTP query', () => {
         revision: 0,
         resources: [{ bindingId: '11111111-1111-4111-8111-111111111111', version: 'a'.repeat(64) }]
     }
+    it('accepts a bounded exact selection without scanning candidate pages', async () => {
+        const query = new URLSearchParams({ purpose: 'selection', references: JSON.stringify(selection.resources) })
+        expect((await fetch(`${url}?${query}`)).status).toBe(200)
+        expect(service.catalog).toHaveBeenCalledWith('assistant', {
+            purpose: 'selection',
+            references: selection.resources,
+            offset: 0,
+            limit: 50
+        })
+    })
+    it.each([
+        { purpose: 'browse', references: JSON.stringify(selection.resources) },
+        { purpose: 'selection', references: 'invalid' },
+        { purpose: 'selection', references: JSON.stringify([...selection.resources, ...selection.resources]) },
+        { purpose: 'selection', references: JSON.stringify(selection.resources), offset: '100' }
+    ])('rejects malformed or paginated exact-selection lookups', async (query) => {
+        expect((await fetch(`${url}?${new URLSearchParams(query)}`)).status).toBe(400)
+        expect(service.catalog).not.toHaveBeenCalled()
+    })
     const post = (body: unknown) =>
         fetch(`${url}/commands`, {
             method: 'POST',

@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import {
 	IPluginRuntimeConvergenceStatus,
 	IPluginRuntimeSnapshot,
@@ -31,6 +33,7 @@ import { RuntimeControlService } from './runtime-control.service'
 @ApiTags('System Runtime')
 @Controller('system/runtime')
 @UseGuards(TenantPermissionGuard)
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class RuntimeControlController {
 	constructor(private readonly runtimeControl: RuntimeControlService) {}
 

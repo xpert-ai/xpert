@@ -1,3 +1,9 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+
+// Existing orchestration scenarios use an authoring principal; restricted projection has separate coverage.
+beforeEach(() => jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true))
+afterEach(() => jest.restoreAllMocks())
+
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 
 jest.mock('../assistant-binding/assistant-binding.service', () => ({
@@ -53,6 +59,17 @@ function createController(
 }
 
 describe('AssistantsController', () => {
+    it('rejects draft capabilities without authoring visibility while retaining published access', async () => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const access = { getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'assistant', graph: { nodes: [], connections: [] } }) }
+        const commands = { execute: jest.fn().mockResolvedValue({ skills: [], plugins: [] }) }
+        const controller = new AssistantsController(access as never, commands as never, {} as never)
+        await expect(controller.getRuntimeCapabilities('assistant', true)).rejects.toMatchObject({ status: 403 })
+        expect(commands.execute).not.toHaveBeenCalled()
+        await expect(controller.getRuntimeCapabilities('assistant', false)).resolves.toEqual({ skills: [], plugins: [] })
+        expect(commands.execute).toHaveBeenCalledTimes(1)
+    })
+
     it('forwards Project scope when loading runtime capabilities', async () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn(async () => ({

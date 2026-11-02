@@ -79,6 +79,18 @@
 
     @if (user()) {
       <div class="header-user-menu__items flex flex-col justify-start items-stretch gap-0 p-1">
+        @if (notifications.supported() !== false) {
+          <button
+            class="flex items-center justify-between px-3 rounded-lg hover:bg-hover-bg"
+            cdkMenuItem
+            (click)="notifications.open()"
+          >
+            {{ 'XP.Notifications.Title' | translate }}
+            @if (notifications.unread()) {
+              <span class="text-xs">{{ notifications.unread() }}</span>
+            }
+          </button>
+        }
         <div
           class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
@@ -125,16 +137,18 @@
           </div>
         }
 
-        <div
-          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
-          cdkMenuItem
-          (click)="onEntryGuideClick()"
-        >
-          <div class="font-normal text-text-primary">
-            {{ 'XP.Chat.ClawXpert.Onboarding' | translate: { Default: 'Onboarding' } }}
+        @if (canUseEntryGuide()) {
+          <div
+            class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+            cdkMenuItem
+            (click)="onEntryGuideClick()"
+          >
+            <div class="font-normal text-text-primary">
+              {{ 'XP.Chat.ClawXpert.Onboarding' | translate: { Default: 'Onboarding' } }}
+            </div>
+            <i class="ri-guide-line"></i>
           </div>
-          <i class="ri-guide-line"></i>
-        </div>
+        }
 
         <a
           class="flex items-center w-full px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"

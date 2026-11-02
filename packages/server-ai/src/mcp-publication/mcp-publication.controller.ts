@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Public } from '@xpert-ai/server-core'
 import { All, Body, Controller, Param, Req, Res } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
@@ -7,6 +9,7 @@ import { McpPublicationRuntimeService } from './mcp-publication-runtime.service'
 @ApiTags('MCP Publication runtime')
 @Public()
 @Controller('mcp/p')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpPublicationController {
     constructor(private readonly runtime: McpPublicationRuntimeService) {}
 

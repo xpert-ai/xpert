@@ -1,5 +1,7 @@
 {
 	"Error": {
+		"PluginPublicationPending": "A previous plugin installation is awaiting runtime publication. Please retry shortly.",
+		"PluginCommittedArtifactMissing": "The committed artifact for plugin {{plugin}} is missing or incomplete. Restore the artifact before restarting.",
 		"PluginRuntimePolicyInvalid": "Plugin runtimePolicy must declare install, update and uninstall as hot or restart.",
 		"PluginRuntimePolicyChanged": "Plugin runtime policy changed during installation. Retry with the current package metadata.",
 		"PluginAppDataNamespaceUnavailable": "A loaded plugin with a registered application namespace is required.",

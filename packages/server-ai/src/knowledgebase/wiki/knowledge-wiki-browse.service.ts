@@ -8,7 +8,7 @@ import type {
     KnowledgeWikiTaxonomy,
     KnowledgeWikiTaxonomyQuery
 } from '@xpert-ai/contracts'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import { KnowledgeWikiPage, KnowledgeWikiPageVersion, KnowledgeWikiPageLinkEntity } from './entities'
 import { KnowledgeWikiPlacement, KnowledgeWikiFolder } from './entities/knowledge-wiki-organization.entity'
 import { KnowledgeWikiOrganizationService } from './knowledge-wiki-organization.service'

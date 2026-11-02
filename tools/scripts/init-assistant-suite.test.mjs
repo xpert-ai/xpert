@@ -157,7 +157,7 @@ async function fixture(t, { existing = true } = {}) {
         node.entity = { avatar: null, promptTemplates: null, outputVariables: null, ...node.entity }
       }
       team.options = team.draft.team.options
-      team.copilotModel = team.draft.team.copilotModel
+      team.copilotModel = { referencedId: null, ...team.draft.team.copilotModel }
       team.draft = null
       team.version = String(Number(team.version || 0) + 1)
       team.environmentId = body.environmentId

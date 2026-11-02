@@ -1,0 +1,142 @@
+---
+title: '知识库检索与融合'
+description: 'Vector、Keyword、Graph、融合模式、索引要求及最终处理'
+---
+
+内置知识库由统一查询入口协调 Vector、Keyword、Graph 候选检索，再进行融合、可见性检查、结果物化和最终重排。外部知识库沿独立集成协议调用，不自动加入内置分支融合。
+
+## 检索模式
+
+请求级检索设置可覆盖知识库默认设置；旧数据仍通过兼容解析使用原有配置。不要只修改旧 `graphRag.mode` 来配置新知识库的默认检索。
+
+| 模式                            | 执行                                        |
+| ------------------------------- | ------------------------------------------- |
+| `vector`                        | 活动向量库检索与关系数据回填                |
+| `keyword`                       | PostgreSQL Keyword 检索                     |
+| `graph`                         | GraphRAG 检索                               |
+| `hybrid` + 缺省/`legacy` fusion | 保持 Vector + Graph 的历史加权行为          |
+| `hybrid` + `weighted_rrf`       | 按启用分支的排名融合 Vector、Graph、Keyword |
+
+FAQ 只支持 Vector、Keyword、Hybrid，默认配置见 [FAQ](./faq)。`contentScope` 独立控制原始/Wiki 内容，限制见 [Wiki](./wiki)。
+
+## 融合与失败语义
+
+Legacy Fusion 保留已有去重、分支分数、Graph 权重和稳定排序语义。旧配置不会因为新增 Keyword 而自动变成三路检索。Legacy Hybrid 在 Graph 分支失败时可回退到 Vector，并记录降级原因；Graph-only 失败则报告错误。
+
+Weighted RRF 按各分支排名累加贡献：
+
+```text
+rrfScore(document) = Σ weight(source) / (rankConstant + rank(source, document))
+```
+
+- 默认 `rankConstant` 为 60；普通知识库默认权重为 Vector 0.65、Graph 0.35、Keyword 0.3，FAQ 使用自己的默认值。
+- 分支权重为 0 时不发起该路调用；Graph 还取决于知识库是否启用了 Graph 能力。
+- 按稳定文档/分块身份去重，不按列表长度归一化得分，也不要求权重之和为 1。
+- 参与分支失败会明确失败，不能把失败当作空候选继续融合。
+- RRF 得分不是向量相似度，不能直接套用旧向量相似度阈值；最终 rerank 阈值使用独立分数域。
+
+Retriever 与 Fusion 是服务端内部边界，不是新增 Plugin SDK 扩展点。Fusion 只做计算，不访问数据库、调用模型或负责重试和最终 Top K。
+
+## Keyword 路径
+
+新建知识库默认绑定 Basic (Unicode) Analyzer，也可以选择已安装插件声明的 Analyzer。文档和查询使用同一来源与 revision；加入内容后选择被锁定，普通更新不能解除锁定。
+
+历史 `keywordAnalyzer = NULL` 的知识库继续使用 PostgreSQL `simple` 全文与 `pg_trgm` 路径，不自动重写历史索引。短于 3 个 Unicode 字符的关键词不使用通配 trigram 子串查询。
+
+Analyzer 路径维护正文 `keywordVector` 和标题 `keywordTitleVector`：
+
+- 先执行严格查询，候选不足时才允许有限放宽；标识符保留必要词项。
+- 标题分支每篇文档选择一个符合范围及过滤条件的代表块，优先使用该文档已有正文命中的块。标题命中不保证选中的段落恰好包含答案。
+- 严格/放宽、标题/正文和父子补取共享候选预算。逻辑目标为 `min(4 × finalTopK, 400)`，原始候选最多 400；FAQ 外层多轮补取也共用该上限。
+- 应用的文档/分块写入维护 Analyzer 词项，PostgreSQL 维护索引。直接 SQL 修改正文或标题绕过应用维护，不属于支持的业务写入方式。
+
+## PostgreSQL 前置条件
+
+Keyword 仅支持 PostgreSQL。索引检查服务不创建索引，也不会在缺少索引时静默全表扫描。部署迁移需要准备所用路径的列、扩展及索引，并验证 `indisready` 与 `indisvalid`。
+
+| 路径                  | 索引名称                                      |
+| --------------------- | --------------------------------------------- |
+| Legacy 正文全文       | `IDX_knowledge_document_chunk_content_fts`    |
+| Legacy 正文 trigram   | `IDX_knowledge_document_chunk_content_trgm`   |
+| Legacy 文档名 trigram | `IDX_knowledge_document_name_trgm`            |
+| Analyzer 正文         | `IDX_knowledge_document_chunk_keyword_vector` |
+| Analyzer 标题         | `IDX_knowledge_document_keyword_title_vector` |
+
+Trigram 路径需要 `pg_trgm`。Analyzer 路径要求正文与标题索引都就绪。以下索引参考 DDL 应由部署迁移管理；并发创建索引不能放在普通事务块中。历史未生成标题向量的文档仍可能只有正文召回，不承诺自动回填。
+
+### 索引参考 DDL
+
+先通过部署迁移准备 `keywordVector` 与 nullable `keywordTitleVector` 列，再按使用路径创建索引。以下每条 `CREATE INDEX CONCURRENTLY` 必须在事务外单独执行；`IF NOT EXISTS` 不会修复已有但无效的索引。
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_fts"
+ON "knowledge_document_chunk" USING gin (to_tsvector('simple', COALESCE("pageContent", '')));
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_trgm"
+ON "knowledge_document_chunk" USING gin ("pageContent" gin_trgm_ops);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_name_trgm"
+ON "knowledge_document" USING gin ("name" gin_trgm_ops);
+
+-- Required for knowledgebases using Basic (Unicode) or a plugin analyzer.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_keyword_vector"
+ON "knowledge_document_chunk" USING gin ("keywordVector");
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_keyword_title_vector"
+ON "knowledge_document" USING gin ("keywordTitleVector");
+```
+
+检查就绪状态；已有索引还应核对定义是否匹配：
+
+```sql
+SELECT c.relname AS index_name, i.indisready, i.indisvalid
+FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+WHERE c.relname IN (
+  'IDX_knowledge_document_chunk_content_fts',
+  'IDX_knowledge_document_chunk_content_trgm',
+  'IDX_knowledge_document_name_trgm',
+  'IDX_knowledge_document_chunk_keyword_vector',
+  'IDX_knowledge_document_keyword_title_vector'
+);
+```
+
+## 统一边界和最终处理
+
+每路候选都受租户、组织、知识库、启用状态及所支持过滤范围约束。固定、请求和 Agent 动态过滤由服务端准备后交给各分支，分支不能扩大查询范围；不支持的模式或后端组合明确报错。
+
+查询入口继续负责 FAQ 当前内容恢复与反例排除、Wiki 可服务性校验、适用路径的表格上下文、完整结果物化、最终重排、阈值、日志、跨库汇总与 Top K。最终结果是可供 Agent 消费的文档，而不是可混用的各路原始分数。
+
+诊断区分分支失败、索引缺失、过滤状态、候选数、降级和融合模式。返回数量不足可能来自范围过滤、反例排除、预算或最终阈值，不能一律判断为模型无结果。
+
+## 代码组织
+
+`packages/server-ai/src/knowledgebase/` 根部仅保留公共 `index.ts`，主要职责如下：
+
+| 子目录                            | 职责                                              |
+| --------------------------------- | ------------------------------------------------- |
+| `management/`                     | 公共 Service facade、Controller、Module、配置更新 |
+| `persistence/`                    | 知识库实体和订阅器                                |
+| `embedding/`                      | 模型解析、向量存储与重建                          |
+| `retrieval/`、`queries/handlers/` | 候选、融合及查询编排                              |
+| `parser/`、`filter/`              | 解析设置与结构化过滤                              |
+| `task/`、`pipeline/`              | 处理任务、管线和外部知识库操作                    |
+| `access/`、`lifecycle/`           | 访问投影与共享资源生命周期                        |
+| `faq/`、`wiki/`                   | 类型专属能力                                      |
+| `writer/`、`shared/`、`testing/`  | 写入中间件、共享合同和测试夹具                    |
+
+拆分保留 `KnowledgebaseService` 对外入口。内部 operations 对象接收明确依赖，不通过公共 service locator 获取任意服务，也不新增一套运行时模块注册。
+
+## 验证范围
+
+仓库包含候选检索、Fusion、权限范围、Keyword 索引、FAQ/Wiki 及最终处理测试。功能说明以当前实现为准；历史测试结果只覆盖记录中的环境与版本，不能代替目标数据库、真实模型效果和端到端检索验收。
+
+功能实现已覆盖候选拆分、Legacy/Weighted RRF、Keyword 及显式启用配置。目标环境仍需验证索引就绪、真实查询和质量：
+
+- 固定知识库、query、Top K、过滤和阈值，对比 Legacy 与升级路径的稳定身份、顺序、分数及诊断。
+- 覆盖 Vector、Graph、Keyword、Hybrid、空结果、分支失败、过滤和最终重排。
+- 用中文关键词、英文标识符、精确编号、FAQ 问句及 Wiki 标题/正文样例评估召回与延迟。
+- 确认缺失索引明确失败，文档/标题更新后索引内容正确，多路权重与零权重行为符合配置。
+
+原实施计划已删除，阶段记录可从 Git 历史查询；功能已实现不意味着以上部署验收已全部通过。

@@ -3,6 +3,7 @@ import { CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import {
     AiModelTypeEnum,
+    AIPermissionsEnum,
     IApiPrincipal,
     IUser,
     RolesEnum,
@@ -65,7 +66,15 @@ describe('Speech-to-text Assistant authority integration', () => {
     })
 
     beforeEach(async () => {
-        actor = { id: 'recipient', tenantId: 'tenant-1', role: { name: RolesEnum.VIEWER } } as IUser
+        actor = {
+            id: 'recipient',
+            tenantId: 'tenant-1',
+            role: {
+                id: 'viewer-role',
+                name: RolesEnum.VIEWER,
+                rolePermissions: [{ permission: AIPermissionsEnum.CHAT_VIEW, enabled: true }]
+            }
+        } as IUser
         principal = null
         groupGrant = true
         jest.spyOn(RequestContext, 'currentTenantId').mockImplementation(() => actor.tenantId)
@@ -261,6 +270,25 @@ describe('Speech-to-text Assistant authority integration', () => {
             ForbiddenException
         )
         actor = { ...actor, id: 'author' }
+        await expect(speech.transcribeUploadedFile(file, { xpertId: assistant.id, isDraft: true })).rejects.toThrow(
+            ForbiddenException
+        )
+        actor = {
+            ...actor,
+            role: {
+                ...actor.role,
+                rolePermissions: [
+                    ...actor.role.rolePermissions,
+                    {
+                        permission: AIPermissionsEnum.XPERT_VIEW,
+                        enabled: true,
+                        roleId: actor.role.id,
+                        role: actor.role
+                    },
+                    { permission: AIPermissionsEnum.XPERT_EDIT, enabled: true, roleId: actor.role.id, role: actor.role }
+                ]
+            }
+        }
         await expect(
             module.get(QueryBus).execute(new ResolveSpeechAssistantQuery(assistant.id, { isDraft: true }))
         ).resolves.toMatchObject({ features: { speechToText: { copilotModel: { model: 'draft-speech' } } } })

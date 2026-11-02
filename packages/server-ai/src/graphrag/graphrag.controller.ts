@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -10,13 +12,14 @@ import { KnowledgeGraphEntity } from './entities'
 import { GraphragService } from './graphrag.service'
 import { GraphDocumentProgressService } from './document-progress.service'
 import { CommandBus } from '@nestjs/cqrs'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgeGraphRetryDocumentCommand } from './commands'
 
 @ApiTags('KnowledgeGraph')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller(':id/graph')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class GraphragController {
     constructor(
         private readonly service: GraphragService,

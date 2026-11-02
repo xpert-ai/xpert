@@ -88,8 +88,10 @@ describe('persisted execution boundaries', () => {
         expect(() => executionUsageFactSchema.parse({ ...fact, context: { ...fact.context, source } })).toThrow()
     })
 
-    it('rejects incomplete or redirected billing identity at the persistence boundary', () => {
-        expect(() => executionContextSchema.parse({ ...context, billableUserId: randomUUID() })).toThrow()
+    it('validates independent actor and payer identities and rejects incomplete context', () => {
+        const billableUserId = randomUUID()
+        expect(executionContextSchema.parse({ ...context, billableUserId }).billableUserId).toBe(billableUserId)
+        expect(() => executionContextSchema.parse({ ...context, billableUserId: '' })).toThrow()
         expect(() => executionContextSchema.parse({ ...context, environment: { type: 'computer' } })).toThrow()
         expect(() => executionContextSchema.parse({ ...context, supplierKey: 'must-not-be-persisted' })).toThrow()
     })

@@ -22,8 +22,8 @@ class RunnerHealthContractTest(unittest.TestCase):
             runner.health_response(),
             {
                 "status": "ok",
-                "protocolVersion": 3,
-                "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
+                "protocolVersion": 4,
+                "capabilities": {"projectContentReadOnly": True, "appDataProtection": True, "storageBudget": True},
             },
         )
 

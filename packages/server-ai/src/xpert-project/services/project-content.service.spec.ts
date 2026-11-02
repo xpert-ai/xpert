@@ -3,6 +3,7 @@ import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'fs/promi
 import { tmpdir } from 'os'
 import path from 'path'
 import { VolumeClient, VolumeHandle } from '../../shared/volume'
+import { commandVolumeWriteBudget } from '../../shared/volume/volume-write-budget'
 import { XpertProjectContentService } from './project-content.service'
 
 describe('XpertProjectContentService', () => {
@@ -41,6 +42,38 @@ describe('XpertProjectContentService', () => {
         } as never)
 
         await expect(readFile(path.join(root, 'project.md'), 'utf8')).resolves.toBe('Legacy instruction')
+    })
+
+    it('preserves Project content when storage admission rejects instructions, skills and manifest writes', async () => {
+        const commands = { execute: jest.fn().mockResolvedValue(null) }
+        const volume = new VolumeHandle(
+            { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1' },
+            root,
+            root,
+            '',
+            root,
+            commandVolumeWriteBudget(commands as never)
+        )
+        const project = { id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' }
+        const service = new XpertProjectContentService(
+            { resolve: () => volume } as never,
+            {
+                assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }),
+                assertCanRead: jest.fn().mockResolvedValue({ project, role: 'editor' })
+            } as never,
+            {} as never,
+            {} as never
+        )
+        await service.updateInstructions('project-1', 'original')
+        await service.writeSkillFile('project-1', 'skills/pdf/SKILL.md', '# PDF')
+        const failure = new Error('storage allowance exceeded')
+        commands.execute.mockRejectedValue(failure)
+        await expect(service.updateInstructions('project-1', 'larger replacement')).rejects.toBe(failure)
+        await expect(service.writeSkillFile('project-1', 'skills/pdf/SKILL.md', '# Replaced PDF')).rejects.toBe(failure)
+        await expect(service.setSkillEnabled('project-1', 'pdf', false)).rejects.toBe(failure)
+        await expect(readFile(path.join(root, 'project.md'), 'utf8')).resolves.toBe('original')
+        await expect(readFile(path.join(root, 'skills/pdf/SKILL.md'), 'utf8')).resolves.toBe('# PDF')
+        await expect(readFile(path.join(root, 'skills/.project-skills.json'))).rejects.toMatchObject({ code: 'ENOENT' })
     })
 
     it('recognizes only project.md and the skills subtree as governed content', () => {

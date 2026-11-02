@@ -12,6 +12,30 @@ function rule(input: Partial<ParameterRule> & Pick<ParameterRule, 'name' | 'type
 }
 
 describe('model parameter options', () => {
+  it('persists explicitly cleared optional values but omits them from runtime options', () => {
+    const rules = [
+      rule({ name: 'temperature', type: ParameterType.FLOAT, default: 0.7 }),
+      rule({ name: 'top_p', type: ParameterType.FLOAT }),
+      rule({ name: 'max_tokens', type: ParameterType.INT, required: true, default: 8192 })
+    ]
+    const saved = resolveModelParameterOptions(
+      { temperature: null, top_p: null, max_tokens: null, removed_parameter: null },
+      rules,
+      { preserveUnset: true }
+    )
+    expect(saved).toEqual({ temperature: null, top_p: null, max_tokens: 8192, removed_parameter: null })
+    expect(resolveModelParameterOptions(JSON.parse(JSON.stringify(saved)), rules)).toEqual({ max_tokens: 8192 })
+  })
+
+  it('leaves missing optional parameters without defaults absent', () => {
+    expect(
+      resolveModelParameterOptions(undefined, [
+        rule({ name: 'temperature', type: ParameterType.FLOAT }),
+        rule({ name: 'enable_thinking', type: ParameterType.BOOLEAN })
+      ])
+    ).toBeUndefined()
+  })
+
   it('fills each missing default without replacing saved values', () => {
     const options = resolveModelParameterOptions({ temperature: 0.3 }, [
       rule({ name: 'temperature', type: ParameterType.FLOAT, default: 0.7 }),

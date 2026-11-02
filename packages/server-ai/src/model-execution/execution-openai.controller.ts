@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, HttpException, Post, Req, Res } from '@nestjs/common'
 import { Public } from '@xpert-ai/server-core'
 import type { Request, Response } from 'express'
@@ -8,6 +10,7 @@ import { ModelExecutionChatService } from './execution-chat.service'
 
 @Public()
 @Controller('model-execution/openai/v1')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelExecutionOpenAIController {
     constructor(
         private readonly grants: ModelExecutionGrantService,

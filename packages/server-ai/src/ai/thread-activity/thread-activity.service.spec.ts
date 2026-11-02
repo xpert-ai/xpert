@@ -90,7 +90,8 @@ describe('thread activity discovery', () => {
                     status: 'success',
                     createdAt: '2026-10-06T00:00:00.000Z',
                     updatedAt: '2026-10-06T00:00:00.000Z',
-                    messageRevision: '2026-10-06T00:00:00.000Z'
+                    messageRevision: '2026-10-06T00:00:00.000Z',
+                    messageCount: 1
                 }
             ],
             cards: [f.projected]

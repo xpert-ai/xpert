@@ -6,7 +6,9 @@ import { PublishedXpertAccessService } from '../published-xpert-access.service'
 export class GetAccessiblePublishedXpertQuery extends Query<IXpert> {
     constructor(
         readonly xpertId: string,
-        readonly relations?: string[]
+        readonly relations?: string[],
+        /** Internal binding inspection retains the requester's credential audience. */
+        readonly resourceParentId?: string
     ) {
         super()
     }
@@ -17,6 +19,8 @@ export class GetAccessiblePublishedXpertHandler implements IQueryHandler<GetAcce
     constructor(private readonly access: PublishedXpertAccessService) {}
 
     execute(query: GetAccessiblePublishedXpertQuery): Promise<IXpert> {
+        if (query.resourceParentId)
+            return this.access.getAccessiblePublishedResource(query.xpertId, query.resourceParentId)
         return this.access.getAccessiblePublishedXpert(query.xpertId, { relations: query.relations })
     }
 }

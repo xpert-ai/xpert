@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { IApiKey } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
@@ -18,7 +20,7 @@ import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
 import { In } from 'typeorm'
 import { KnowledgeDocument } from '../core/entities/internal'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
-import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 
@@ -31,6 +33,7 @@ import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('knowledges')
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgesController {
     readonly #logger = new Logger(KnowledgesController.name)
 

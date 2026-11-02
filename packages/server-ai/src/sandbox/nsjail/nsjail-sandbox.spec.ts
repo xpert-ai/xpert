@@ -18,6 +18,32 @@ function waitForPolling(): Promise<void> {
 }
 
 describe('NsjailSandbox', () => {
+    it('requires a quota-capable runner and forwards the remaining account allowance', async () => {
+        const allowance = { maxWorkspaceBytes: 12, maxTemporaryBytes: 16 }
+        const getHealth = jest.fn().mockResolvedValue({ capabilities: { storageBudget: false } })
+        const execute = jest.fn().mockResolvedValue({ exitCode: 0, output: 'ok' })
+        const sandbox = createSandbox({ getHealth, execute } as unknown as NsjailRunnerClient)
+        sandbox.bindStorageBudget((operation) => operation(allowance))
+        await expect(sandbox.execute('write')).rejects.toMatchObject({ status: 503 })
+        expect(execute).not.toHaveBeenCalled()
+        getHealth.mockResolvedValue({ capabilities: { storageBudget: true } })
+        await sandbox.execute('write')
+        expect(execute).toHaveBeenCalledWith('a'.repeat(32), 'write', undefined, allowance)
+        execute.mockRejectedValue(new NsjailRunnerRequestError('Storage limit exceeded', 507))
+        await expect(sandbox.execute('overflow')).rejects.toMatchObject({ status: 413, response: { code: 'application_storage_limit' } })
+    })
+
+    it('blocks unbounded terminals and service proxying for a managed account', async () => {
+        const createTerminal = jest.fn(), proxyService = jest.fn()
+        const sandbox = createSandbox({ createTerminal, proxyService,
+            getHealth: jest.fn().mockResolvedValue({ capabilities: { storageBudget: true } }) } as unknown as NsjailRunnerClient)
+        sandbox.bindStorageBudget((operation) => operation({ maxWorkspaceBytes: 12, maxTemporaryBytes: 16 }))
+        await expect(sandbox.open({ cols: 80, onExit: jest.fn(), onOutput: jest.fn(), rows: 24 })).rejects.toMatchObject({ status: 403 })
+        await expect(sandbox.proxyServiceRequest({} as never)).rejects.toMatchObject({ status: 403 })
+        expect(createTerminal).not.toHaveBeenCalled()
+        expect(proxyService).not.toHaveBeenCalled()
+    })
+
     it('reports lost services without recreating a missing runtime during discovery', async () => {
         const createRuntime = jest.fn()
         const listServices = jest

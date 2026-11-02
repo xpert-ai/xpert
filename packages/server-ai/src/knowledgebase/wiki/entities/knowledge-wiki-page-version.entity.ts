@@ -1,7 +1,7 @@
 import { KnowledgeWikiPageStatus, KnowledgeWikiProjectionStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 import { KnowledgeWikiPage } from './knowledge-wiki-page.entity'
 
 @Entity('knowledge_wiki_page_version')

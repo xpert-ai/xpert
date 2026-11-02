@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { executionRequestLifetime } from './execution-request-lifetime'
 import { inheritNativeParameters } from './execution-model-parameters'
 import { z } from 'zod/v3'
@@ -29,6 +31,7 @@ import { executionError } from './execution-errors'
 
 @Public()
 @Controller('model-execution')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelExecutionNativeController {
     private readonly logger = new Logger(ModelExecutionNativeController.name)
     constructor(
@@ -105,7 +108,12 @@ export class ModelExecutionNativeController {
             parsed.model = model.model
             lifetime = executionRequestLifetime(grant, abort)
             await runWithCapturedRequestContext(identity.snapshot, async () => {
-                const resolution = await this.assistants.authorize(identity.actor, grant.context.xpertId, model)
+                const resolution = await this.assistants.authorize(
+                    identity.actor,
+                    grant.context.xpertId,
+                    model,
+                    grant.context.billableUserId
+                )
                 const client = await this.providers.client(grant.tenantId, model, protocol)
                 const call = await this.admission.begin(
                     grant,
@@ -122,7 +130,12 @@ export class ModelExecutionNativeController {
                         (item) => item.id === model.id && item.protocols.includes(protocol)
                     )
                     if (!fresh) throw executionError('Model')
-                    await this.assistants.authorize(identity.actor, grant.context.xpertId, fresh)
+                    await this.assistants.authorize(
+                        identity.actor,
+                        grant.context.xpertId,
+                        fresh,
+                        grant.context.billableUserId
+                    )
                     abort.signal.throwIfAborted()
                     await this.admission.dispatch(call, grant)
                     const headers: Record<string, string> = {}

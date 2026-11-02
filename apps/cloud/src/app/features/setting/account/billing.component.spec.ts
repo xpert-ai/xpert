@@ -91,7 +91,7 @@ describe('personal billing settings', () => {
       providers: [
         { provide: MembershipService, useValue: membership },
         { provide: ToastrService, useValue: { error: jest.fn() } },
-        { provide: Store, useValue: { selectOrganizationId: () => new BehaviorSubject('org-a') } },
+        { provide: Store, useValue: { userRolePermissions$: new BehaviorSubject([]), hasPermission: () => true, selectOrganizationId: () => new BehaviorSubject('org-a') } },
         { provide: CopilotUsageService, useValue: usage }
       ]
     })

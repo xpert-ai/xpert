@@ -20,9 +20,15 @@ export const membershipPlanAccountGate: CanActivateFn = () => {
 export const modelAccessAccountGate: CanActivateFn = () => {
   const router = inject(Router)
 
-  return inject(Store).user$.pipe(
+  const store = inject(Store)
+  return store.user$.pipe(
     take(1),
-    map((user) => (user?.type === UserType.COMMUNICATION ? router.createUrlTree(['/settings/account/profile']) : true))
+    map((user) =>
+      user?.type === UserType.COMMUNICATION ||
+      !(store.hasPermission(AIPermissionsEnum.COPILOT_VIEW) || store.hasPermission(AIPermissionsEnum.COPILOT_EDIT))
+        ? router.createUrlTree(['/settings/account/profile'])
+        : true
+    )
   )
 }
 

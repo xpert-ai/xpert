@@ -1,0 +1,95 @@
+---
+title: 'Document parsing'
+description: 'Format-specific parser selection, configuration inheritance and reprocessing'
+---
+
+Knowledgebases select an actual parser for each file format and pass converted text, structure and assets into chunking and indexing. The host owns discovery, configuration and validation. Plugins provide external parsers; supported formats are never inferred from a plugin's name.
+
+## User workflow
+
+1. Select a parser for each format that needs an override in knowledgebase parsing settings.
+2. Configure its schema-defined parameters and an accessible integration when required.
+3. Upload or bulk-import files. Each file resolves its own format-specific parser.
+4. Inspect parsing output and diagnostics before chunking, indexing and retrieval.
+5. Explicitly reparse existing documents when they need new settings.
+
+A plugin must be installed, actually loaded and declare the relevant format. Available choices and runtime requirements come from the deployed provider metadata.
+
+## Configuration inheritance
+
+Ordinary document entry points resolve configuration in this order:
+
+```text
+Explicit document override → knowledgebase format setting → system default
+```
+
+Knowledgebase settings use `parserConfig.parsers[format]`. A selection contains `transformerType`, optional `transformerIntegration` and `transformer` parameters.
+
+```json
+{
+  "parserConfig": {
+    "parsers": {
+      "docx": { "transformerType": "builtin" },
+      "pdf": null
+    }
+  }
+}
+```
+
+`builtin` selects the built-in parser. Format keys are canonical file extensions. `null` explicitly restores system defaults, including overriding legacy PDF settings. The old `pdfParser` is still resolved through compatibility rules when the corresponding new setting is absent. Changing a provider clears obsolete provider parameters and incompatible integration references.
+
+An explicitly configured pipeline-node parser remains authoritative for that node; knowledgebase defaults must not unconditionally replace it.
+
+## Built-in and plugin parsers
+
+The built-in entry preserves existing format-specific processing, including default PDF behavior and spreadsheet records. External examples include MinerU, PaddleOCR-VL, MarkItDown, PDFium, AnyDoc and OpenDataLoader PDF. This list does not mean every deployment has those plugins installed.
+
+| Boundary                      | Behavior                                                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Format discovery              | Lists only formats declared by providers                                                                          |
+| Integrations and parameters   | Validated on save and checked again at execution                                                                  |
+| Unavailable explicit provider | Reports missing installation/configuration, denied access or execution failure; no silent parser substitution     |
+| Runtime                       | Uses the provider's declared runtime, services and models rather than guessing dependencies                       |
+| Output                        | Adapts to host documents, assets and available structural evidence; capabilities depend on actual provider output |
+
+The relevant plugin and deployment must prepare Python, Node, Java or OCR dependencies. Host support for invoking a parser does not establish that a target environment has a working plugin package and runtime image.
+
+## Tables, images and structure
+
+Native Excel/CSV record mode preserves header, selected-field, row-processing and table-metadata semantics. A Markdown-only parser cannot be treated as providing the same structured spreadsheet behavior.
+
+Image understanding and file parsing are separate stages. OCR/VLM, scanned-page transcription and ordinary image descriptions depend on parser output and image configuration; adding a parser does not imply repeating recognition. Page, image and source evidence flow with conversion output. Chunkers do not invent missing layout evidence from names.
+
+## Reparsing, rechunking and caches
+
+- Knowledgebase-setting changes mainly affect subsequent imports and do not automatically rebuild existing documents.
+- Reparsing executes conversion again and may call external services or models.
+- Rechunking reuses saved parsing output. Missing snapshots are handled by the relevant entry point's validation; an external parse must not be disguised as chunking-only work.
+- Effective parser configuration and provider identity distinguish conversion results so changed settings cannot accidentally reuse old output.
+- Transform snapshots and chunking caches are separate layers. [Chunking](./chunking) records effective strategy, algorithm revision and source ranges.
+
+## Implementation map
+
+| Location                                                                      | Responsibility                                         |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `packages/server-ai/src/knowledgebase/parser/parser-settings.service.ts`      | Settings, provider validation and preview coordination |
+| `packages/server-ai/src/knowledge-document/parser-config.ts`                  | Inheritance, defaults and compatibility normalization  |
+| `packages/server-ai/src/knowledge-document/commands/handlers/load.handler.ts` | Document-processing entry                              |
+| `packages/server-ai/src/knowledge-document/transform-snapshot.service.ts`     | Transform snapshots                                    |
+| `packages/server-ai/src/knowledgebase/plugins/transformer-common/`            | Built-in conversion                                    |
+| `packages/plugin-sdk/src/lib/rag/`                                            | Provider extension contracts                           |
+
+## Deployment and verification scope
+
+Validate declared formats, integration authorization, runtime health and real-file output for each installed provider. Cover mixed-format batches, document overrides, missing plugins, timeouts, cache invalidation and rechunking separately.
+
+Implementation and host integration are present. Plugin/runtime-image release, deployment binding, service/model connectivity and real-content acceptance remain separate target-environment checks; installation records or local builds cannot replace them.
+
+Key checks include:
+
+- AnyDoc's declared formats, scanned-page transcription and asset mapping; OpenDataLoader PDF's managed Java environment, OCR dependencies and parsing output.
+- Native/scanned PDFs, DOCX, Markdown/TXT and other formats actually supported by the selected plugin, checking text, pages, images, tables and source evidence.
+- Mixed batches, document overrides, reparsing, rechunking and temporary-resource cleanup after cancellation/failure.
+- Correct target-model selection and business-quality recognition for vision-dependent paths.
+
+The completed plan has been removed. Git history retains cross-repository delivery and historical samples. Historical PR status is not evidence of current release availability.

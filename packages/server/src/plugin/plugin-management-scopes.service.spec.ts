@@ -56,21 +56,19 @@ describe('PluginManagementService', () => {
 			}),
 			expect.anything()
 		)
-		expect(pluginInstanceService.uninstallByPackageName).toHaveBeenCalledWith(
-			'tenant-other',
-			'__global__',
-			'@xpert-ai/plugin-tenant-global',
-			{
-				scopeKey: 'tenant:tenant-other:global',
-				cause: 'refresh'
-			}
-		)
+		expect(pluginInstanceService.detachRuntime).toHaveBeenCalledWith('tenant:tenant-other:global', [
+			'@xpert-ai/plugin-tenant-global'
+		])
+
 		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				tenantId: 'tenant-other',
 				organizationId: '__global__',
 				scopeKey: 'tenant:tenant-other:global',
 				pluginName: '@xpert-ai/plugin-tenant-global'
+			}),
+			expect.objectContaining({
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
 			})
 		)
 	})
@@ -114,14 +112,7 @@ describe('PluginManagementService', () => {
 		expect(loadPlugin).not.toHaveBeenCalled()
 		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect(pluginInstanceService.removePlugins).toHaveBeenCalledWith(
-			'org-1',
-			['@xpert-ai/plugin-system-demo'],
-			expect.objectContaining({
-				tenantId: 'tenant-1',
-				defaultTenantId: 'tenant-1'
-			})
-		)
+		expect(pluginInstanceService.removePlugins).not.toHaveBeenCalled()
 	})
 
 	it('keeps the post-load system-level guard as a defensive fallback', async () => {
@@ -146,14 +137,7 @@ describe('PluginManagementService', () => {
 
 		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect(pluginInstanceService.removePlugins).toHaveBeenCalledWith(
-			'org-1',
-			['@xpert-ai/plugin-system-demo'],
-			expect.objectContaining({
-				tenantId: 'tenant-1',
-				defaultTenantId: 'tenant-1'
-			})
-		)
+		expect(pluginInstanceService.removePlugins).not.toHaveBeenCalled()
 	})
 
 	it.each([undefined, { install: 'hot', update: 'restart', uninstall: 'restart' }])(
@@ -203,6 +187,9 @@ describe('PluginManagementService', () => {
 				level: 'system',
 				pendingRestart: false,
 				meta: expect.objectContaining({ name: '@xpert-ai/plugin-meetings' })
+			}),
+			expect.objectContaining({
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
 			})
 		)
 	})
@@ -272,13 +259,18 @@ describe('PluginManagementService', () => {
 				pluginName: '@xpert-ai/plugin-system-demo',
 				level: 'system'
 			}),
-			{ syncLoadedConfig: false }
+			{
+				syncLoadedConfig: false,
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
+			}
 		)
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-system-demo',
-			version: '1.0.0',
-			scopeKey: 'system:global'
-		})
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-system-demo',
+				version: '1.0.0',
+				scopeKey: 'system:global'
+			})
+		)
 	})
 
 	it('stages tenant-level plugins in the owning tenant global scope', async () => {
@@ -336,13 +328,18 @@ describe('PluginManagementService', () => {
 				scopeKey: 'tenant:tenant-bom:global',
 				level: 'tenant'
 			}),
-			{ syncLoadedConfig: false }
+			{
+				syncLoadedConfig: false,
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
+			}
 		)
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-bom',
-			version: '1.0.0',
-			scopeKey: 'tenant:tenant-bom:global'
-		})
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-bom',
+				version: '1.0.0',
+				scopeKey: 'tenant:tenant-bom:global'
+			})
+		)
 		expect(loadPlugin).not.toHaveBeenCalled()
 		expect(lazyLoader.load).not.toHaveBeenCalled()
 	})
@@ -432,16 +429,21 @@ describe('PluginManagementService', () => {
 		expect(stagedPlugin.runtimeName).not.toBe('@xpert-ai/plugin-system-demo@runtime__active')
 		expect(stagedPlugin.sourceConfig).toEqual({
 			workspacePath: '/tmp/workspaces/plugin-system-demo',
-			runtimeName: stagedPlugin.runtimeName
+			runtimeName: stagedPlugin.runtimeName,
+			immutableRuntime: true
 		})
 		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				sourceConfig: {
 					workspacePath: '/tmp/workspaces/plugin-system-demo',
-					runtimeName: stagedPlugin.runtimeName
+					runtimeName: stagedPlugin.runtimeName,
+					immutableRuntime: true
 				}
 			}),
-			{ syncLoadedConfig: false }
+			{
+				syncLoadedConfig: false,
+				publicationLease: expect.objectContaining({ assertOwned: expect.any(Function) })
+			}
 		)
 		expect(pluginInstanceService.uninstallByPackageName).not.toHaveBeenCalled()
 		expect(pluginInstanceService.removePlugins).not.toHaveBeenCalled()

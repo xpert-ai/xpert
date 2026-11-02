@@ -23,6 +23,7 @@ import { MembershipService } from './membership.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
 export class MembershipController {
     constructor(private readonly service: MembershipService) {}
 

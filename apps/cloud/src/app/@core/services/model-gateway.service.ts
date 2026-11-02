@@ -9,6 +9,7 @@ import {
   IModelGatewayCall,
   IModelGatewayCallBody,
   IModelGatewayCatalog,
+  IModelGatewayClientConfig,
   IPagination,
   IUserModelGrant,
   TModelGatewayApiKeyCreateInput,
@@ -24,6 +25,10 @@ export class ModelGatewayService {
 
   getCatalog() {
     return this.#http.get<IModelGatewayCatalog>(`${API_MODEL_GATEWAY}/catalog`)
+  }
+
+  getClientConfig() {
+    return this.#http.get<IModelGatewayClientConfig>(`${API_MODEL_GATEWAY}/client-config`)
   }
 
   createRequest(input: TModelGatewayExternalRequestCreateInput) {

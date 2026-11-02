@@ -76,7 +76,9 @@ export const createCreateTasksTool = ({
                                         .string()
                                         .uuid()
                                         .optional()
-                                        .describe('Project expert id responsible for execution'),
+                                        .describe(
+                                            'Responsible project-member Assistant ID. May be omitted for planning; required before delegation.'
+                                        ),
                                     requirements: z
                                         .array(z.string().trim().min(1).max(4000))
                                         .min(1)
@@ -107,7 +109,7 @@ export const createCreateTasksTool = ({
                 })
                 .strict(),
             description:
-                'Create project tasks in todo and return their IDs and revisions. Assignment records responsibility; it does not start execution. Use project_dispatch_task to explicitly delegate.'
+                'Create project tasks in todo and return their IDs and revisions. Assignment records responsibility; it does not start execution. Unassigned planning tasks must be explicitly assigned to a project-member Assistant before delegation. Use project_dispatch_task to explicitly delegate.'
         }
     )
     return createTasksTool

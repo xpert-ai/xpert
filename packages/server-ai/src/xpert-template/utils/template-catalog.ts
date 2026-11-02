@@ -9,7 +9,7 @@ import {
 } from '@xpert-ai/contracts'
 import type { LoadedPluginRecord } from '@xpert-ai/server-core'
 import * as path from 'node:path'
-import { resolvePluginApplicationConfigAssets } from '../../plugin-resource/plugin-application-assets'
+import { resolvePluginApplicationConfigAssets } from '../../plugin-resource/application/plugin-application-assets'
 import { normalizePluginPackageName, TXpertTemplateDescriptor } from '../plugin-template-descriptor'
 import { exportedXpertTemplateCategory, fallbackLanguage } from '../template.constants'
 import type {

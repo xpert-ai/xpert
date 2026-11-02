@@ -10,6 +10,8 @@ module.exports = {
     '**/pipeline/*.spec.ts',
     '**/pipeline/*.spec.tsx',
     '**/execution-summary.spec.ts',
+    '**/assignee.spec.tsx',
+    '**/gantt.spec.tsx',
     '**/view-state.spec.ts'
   ],
   transform: {

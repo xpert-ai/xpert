@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Put, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common'
 import { RolesEnum } from '@xpert-ai/contracts'
 import { RoleGuard, Roles } from '@xpert-ai/server-core'
@@ -8,6 +10,7 @@ import { UpdateMcpSourceConfigurationInput } from './configuration.dto'
 @UseGuards(RoleGuard)
 @Roles(RolesEnum.SUPER_ADMIN)
 @UsePipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }))
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class McpSourceConfigurationController {
     constructor(private readonly configurations: McpSourceConfigurationService) {}
 

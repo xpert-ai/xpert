@@ -10,6 +10,8 @@ export enum UserType {
 }
 
 export interface IUser extends IBasePerTenantEntityModel {
+  /** Administrators may suspend sign-in and subsequent execution without deleting account data. */
+  isActive?: boolean
   thirdPartyId?: string
   name?: string
   firstName?: string

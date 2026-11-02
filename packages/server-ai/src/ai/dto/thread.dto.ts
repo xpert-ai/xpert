@@ -1,3 +1,4 @@
+import { ConversationDTO } from './conversation.dto'
 import { publicRunControl, PublicRunControl } from '../../chat-conversation/control-view/public-run-control'
 import type { ThreadControlView } from '@xpert-ai/contracts'
 import { RUN_LEASE_KEY } from '../../chat-conversation/thread-run-lease'
@@ -53,6 +54,10 @@ export class ThreadDTO {
 
     @Expose()
     controlView?: ThreadControlView
+
+    /** Authorized metadata shared by ChatKit history consumers; no messages or checkpoints. */
+    @Expose()
+    conversation?: ConversationDTO
 
     @Expose()
     operation?: TSensitiveOperation | null

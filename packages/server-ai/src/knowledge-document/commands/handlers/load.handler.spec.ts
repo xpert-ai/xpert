@@ -3,7 +3,7 @@ import { IKnowledgeDocument, KBDocumentCategoryEnum, KBDocumentStatusEnum } from
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { KnowledgeDocLoadCommand } from '../load.command'
 import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
-import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../../knowledgebase/management/knowledgebase.service'
 import { KnowledgeDocLoadHandler } from './load.handler'
 import { RecursiveCharacterStrategy } from '../../../knowledgebase/plugins/textsplitter-common/recursive-character.strategy'
 import { countTextTokens } from '@xpert-ai/plugin-sdk'

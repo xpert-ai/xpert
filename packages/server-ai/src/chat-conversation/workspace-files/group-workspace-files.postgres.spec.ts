@@ -1,7 +1,7 @@
 // Real HTTP routes, CQRS group policy, PostgreSQL membership/bindings and temporary-file I/O.
 // Passport authentication and unrelated Assistant/Project ACL providers are test doubles.
 import { INestApplication, ForbiddenException } from '@nestjs/common'
-import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
+import { CommandBus, CqrsModule, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Reflector } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -29,6 +29,8 @@ import { ChatConversationService } from '../conversation.service'
 import type { ChatConversationReadState } from '../conversation-read-state.entity'
 import type { ChatMessageService } from '../../chat-message/chat-message.service'
 import type { ChatConversationThreadService } from '../conversation-thread.service'
+import { ConversationEnvironmentFilesModule } from './conversation-environment-files.module'
+import { AssertUserXpertGrantQuery } from '../../../../server/src/secret-token/assert-user-xpert-grant.query'
 
 jest.mock('../../chat-message/chat-message.service', () => ({ ChatMessageService: class {} }))
 jest.mock('../../copilot-store', () => ({ CreateCopilotStoreCommand: class {} }))
@@ -44,6 +46,12 @@ class AuthenticatedFilesGuard extends WorkbenchFilesAuthGuard {
     protected override authenticateClientSecret() {
         return true
     }
+}
+
+// Authentication is a fixture; domain file access must still reject this Assistant-only audience.
+@QueryHandler(AssertUserXpertGrantQuery)
+class FixtureAssistantGrantHandler {
+    async execute() {}
 }
 
 const id = { type: 'uuid' as const, primary: true, generated: 'uuid' as const }
@@ -167,9 +175,10 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         await db.query(`CREATE SCHEMA "${schema}"`)
         await db.synchronize()
         const module = await Test.createTestingModule({
-            imports: [CqrsModule],
+            imports: [CqrsModule, ConversationEnvironmentFilesModule],
             controllers: [WorkbenchFilesController],
             providers: [
+                FixtureAssistantGrantHandler,
                 GroupAccessService,
                 ResolveGroupRuntimeAccessHandler,
                 AssistantFileAccessService,
@@ -198,9 +207,9 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         })
             .overrideGuard(WorkbenchFilesAuthGuard)
             .useFactory({
-                inject: [Reflector, CommandBus],
-                factory: (reflector: Reflector, commands: CommandBus) =>
-                    new AuthenticatedFilesGuard(reflector, db.getRepository(ChatConversation), commands)
+                inject: [Reflector, CommandBus, QueryBus],
+                factory: (reflector: Reflector, commands: CommandBus, queries: QueryBus) =>
+                    new AuthenticatedFilesGuard(reflector, db.getRepository(ChatConversation), commands, queries)
             })
             .compile()
         files = module.get(ChatConversationService)

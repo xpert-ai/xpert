@@ -460,7 +460,7 @@ export function TriggerWizard({
               </p>
             )}
           </div>
-          <footer className="flex shrink-0 items-center justify-between gap-3 border-t px-6 py-4">
+          <footer className="flex shrink-0 items-center justify-between gap-3 border-t px-6 py-2.5">
             {saved ? (
               <Button type="button" className="ml-auto" onClick={onSaved}>
                 {t('Done')}

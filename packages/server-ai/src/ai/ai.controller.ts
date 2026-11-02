@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,
@@ -22,6 +24,7 @@ import { GetAiProviderCredentialsQuery } from '../copilot-provider/queries'
 @ApiTags('AI/Chat')
 @ApiBearerAuth()
 @Controller()
+@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class AIController {
 	readonly #logger = new Logger(AIController.name)
 
@@ -107,7 +110,7 @@ failed: ${error.message}`)
 				const headers = {
 					'content-type': response.headers.get('content-type'),
 					'cache-control': 'no-cache',
-					'connection': 'keep-alive',
+					connection: 'keep-alive',
 				}
 				if (response.headers.get('transfer-encoding')) {
 					headers['transfer-encoding'] = response.headers.get('transfer-encoding')

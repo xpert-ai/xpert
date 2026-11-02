@@ -70,7 +70,7 @@ export class XpertProjectContentService {
     async updateInstructions(projectId: string, content: string) {
         const { project } = await this.accessService.assertCanEdit(projectId)
         const volume = await this.initialize(project)
-        await VolumeHandle.writeFile(volume.serverRoot, 'project.md', content ?? '', { encoding: 'utf8' })
+        await volume.writeFile('project.md', content ?? '', { encoding: 'utf8' })
         return { content: content ?? '' }
     }
 
@@ -252,7 +252,7 @@ export class XpertProjectContentService {
         const volume = await this.initialize(project)
         await this.findSkillFiles(volume.serverRoot)
         const normalizedPath = normalizeProjectSkillContentPath(filePath)
-        await VolumeHandle.writeFile(volume.serverRoot, normalizedPath, content ?? '', { encoding: 'utf8' })
+        await volume.writeFile(normalizedPath, content ?? '', { encoding: 'utf8' })
         return { path: normalizedPath, content: content ?? '' }
     }
 
@@ -313,14 +313,9 @@ export class XpertProjectContentService {
     }
 
     private writeManifest(volume: VolumeHandle, manifest: ProjectSkillManifest) {
-        return VolumeHandle.writeFile(
-            volume.serverRoot,
-            PROJECT_SKILL_MANIFEST_PATH,
-            JSON.stringify(manifest, null, 2),
-            {
-                encoding: 'utf8'
-            }
-        )
+        return volume.writeFile(PROJECT_SKILL_MANIFEST_PATH, JSON.stringify(manifest, null, 2), {
+            encoding: 'utf8'
+        })
     }
 }
 
@@ -383,11 +378,13 @@ async function copyStagedProjectSkill(
     }
 
     const targetRoot = `skills/${skillId}`
-    await VolumeHandle.removePath(volume.serverRoot, targetRoot, { boundaryRoot: volume.serverRoot }).catch(
-        (error: unknown) => {
+    await volume
+        .withRemovalBudget(() =>
+            VolumeHandle.removePath(volume.serverRoot, targetRoot, { boundaryRoot: volume.serverRoot })
+        )
+        .catch((error: unknown) => {
             if (!isNodeError(error) || error.code !== 'ENOENT') throw error
-        }
-    )
+        })
     await VolumeHandle.ensureDirectory(volume.serverRoot, targetRoot, volume.serverRoot)
     for (const entry of entries) {
         const targetPath = path.posix.join(targetRoot, entry.relativePath)
@@ -400,9 +397,7 @@ async function copyStagedProjectSkill(
                 if (!fileStat.isFile() || fileStat.nlink !== 1) {
                     throw new ProjectContentIntegrityError(`skills/${skillId}/${entry.relativePath}`, 'invalid_file')
                 }
-                await VolumeHandle.writeFile(volume.serverRoot, targetPath, await opened.readFile(), {
-                    boundaryRoot: volume.serverRoot
-                })
+                await volume.writeFile(targetPath, await opened.readFile())
             } finally {
                 await opened.close()
             }

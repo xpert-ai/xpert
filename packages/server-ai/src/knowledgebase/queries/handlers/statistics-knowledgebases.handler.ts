@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
-import { Knowledgebase } from '../../knowledgebase.entity'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
 import { StatisticsKnowledgebasesQuery } from '../statistics-knowledgebases.query'
 
 @QueryHandler(StatisticsKnowledgebasesQuery)

@@ -63,6 +63,8 @@ export interface PluginMarketplaceAppModelRequirements {
   embedding?: boolean
   vision?: boolean
   speechToText?: boolean
+  /** Exact auxiliary models used by App tools that do not follow the primary model selection. */
+  auxiliary?: Array<{ provider: string; model: string; modelType: AiModelTypeEnum }>
   embeddingLabel?: string | I18nObject
   visionLabel?: string | I18nObject
 }
@@ -93,6 +95,10 @@ export interface PluginMarketplaceAppAssistantSuite {
  * The host only executes this contract from a loaded plugin contribution.
  */
 export interface PluginMarketplaceAppConfig {
+  /** Explicit public binding contract; the owning App retains shared resource lifecycle. */
+  resources?: {
+    knowledgebases?: { exports?: string[]; imports?: string[] }
+  }
   /** A single scope or ordered choices. The first choice is the backward-compatible default. */
   scope: PluginApplicationScope | PluginApplicationScope[]
   assistantTemplateKey: string

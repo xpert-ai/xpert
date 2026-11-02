@@ -1,0 +1,83 @@
+---
+title: '知识库持久化删除与来源清理提案'
+description: '待实现的 HTTP 202 删除流程、跨存储清理、恢复与客户端接线'
+---
+
+**状态：待实施提案。** Wiki 生成、浏览、配置和检索已实现，见[Wiki 功能](/zh-Hans/guides/knowledgebase/wiki)。本文从原 Wiki 计划抽出尚未完整接通的文档/知识库持久化硬删除流程，以及启用删除/恢复能力前必须满足的来源一致性条件。
+
+## 当前行为与目标
+
+当前文档删除会撤回 Wiki 来源并清理部分派生数据，但仍走直接删除入口；Graph 清理存在记录 warning 后继续的路径。已有 deletion/publication 实体和 receipt 合同不等于已经接通完整 HTTP 202、后台执行器、恢复 API 和所有客户端。
+
+目标是把“接受删除”与“所有要求的清理已完成”分开：接受事务立即禁止读取和后续发布，跨数据库、向量库和派生文件的清理由可恢复流程执行。任何阶段失败，都保留可授权查询和重试的记录。
+
+本提案不重新实现 Wiki Map/Reduce，也不重新引入已经移除的组织级 Wiki feature gate。来源治理不能因 Wiki 当前关闭而停止。
+
+## 拟议 API 与合同
+
+以下是目标接口，不能作为当前已发布 API 使用。复用已有公共合同并校准其字段；状态及恢复动作使用显式类型，不从错误文本推断。
+
+| 目标接口                                                         | 行为                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------- |
+| `DELETE /api/knowledge-document/:id?version=...`                 | 接受或复用文档 intent，返回 202 receipt           |
+| `DELETE /api/knowledge-document/bulk`                            | 每个文档独立 receipt，保留混合结果                |
+| `GET /api/knowledgebase/:id/document-deletions`                  | 有界查询 pending/failed/recent-completed 管理状态 |
+| `GET /api/knowledgebase/:id/document-deletions/:intentId`        | 状态、失败阶段和恢复动作                          |
+| `POST /api/knowledgebase/:id/document-deletions/:intentId/retry` | 从缺失清理凭证处幂等继续                          |
+| `DELETE /api/knowledgebase/:id?version=...`                      | 接受或复用库级删除，返回 202 receipt              |
+| `GET /api/knowledgebase-deletions/:intentId`                     | 不依赖已删除知识库行的状态查询                    |
+| `POST /api/knowledgebase-deletions/:intentId/retry`              | 库级失败恢复                                      |
+
+Receipt 至少包含 intent ID、目标 ID 快照、状态、接受/完成时间、失败阶段、可翻译错误码及 `canRetry`。文档/库级版本校验与重试幂等性必须明确；重复请求不创建清理风暴。
+
+## 执行阶段
+
+1. **接受与失效。** 在同一事务校验写/管理权限与版本，创建或复用 intent，递增 publication epoch，关闭写入/发布入口，并使受影响正文、页面、投影和确定性索引不可服务。
+2. **等待写入收口。** 协调文档、Workflow、Graph、Wiki 和 Embedding worker；登记各次外部写入 attempt 和精确 key。不能仅凭 lease 到期认定旧写入已经停止。
+3. **清理可读派生内容。** 删除或清空携带来源内容的 Wiki 历史版本、Map/Reduce 输入输出、模型输出、贡献、证据、链接、关系 chunks、派生 artifacts 和向量，覆盖 active/staged/superseded/failed 状态。
+4. **维护共享对象。** Graph/Wiki 共享实体只保留其余有效来源及明确的人工 overlay；受影响索引页面先失效，后续仅从当前可服务页面重建。
+5. **终局复核与完成。** 确认所有外部清理有成功 receipt、无未决旧写入和残留后，再删除源关系行并幂等更新计数。库级删除最后才删除 pipeline 和知识库行。
+
+状态至少区分 pending/running/failed/completed，具体 quiescing/purge 等阶段另用类型化步骤表达。进入不可逆清理后不能提供虚假的取消；无法确定旧 writer 结果时保持可恢复失败态。
+
+## 并发、存储和权限约束
+
+- 每次发布以 epoch、来源哈希、配置和 attempt 状态做条件更新；晚到 worker 不得重新发布已删除内容，已写入的 staged key 要补偿清理。
+- 清理清单使用精确 key 和已验证的归属，禁止依赖模糊前缀删除其他资源。
+- 默认硬删除不删除共享原始 `StorageFile`；仅清理有独占所有权证明的派生文件。其他文档或 FileAsset 引用必须继续可用。
+- Intent 自带租户、组织、知识库/目标 ID 快照和授权审计信息；状态/重试在关系行消失后仍校验当前主体权限，删除时快照不能变成永久访问令牌。
+- 管理发现接口有分页、状态和近期完成时间窗上限。普通 reader 不获得历史文档 ID、内部失败阶段或重试权限。
+- Completed tombstone 只保留无内容的审计信息，不留名称、路径或正文。原方案的 90 天保留期作为部署策略候选，实施时明确配置和清理方式。
+
+## 软删除与恢复前置条件
+
+已有 Graph contribution 机制应复用并验证，不能把“表已存在”视为所有读取路径均已安全。开放软删除/恢复前，必须验证来源资格、共享 canonical 字段重算、向量 fingerprint 校验以及列表/详情/mentions/统计等全部读取路径。
+
+恢复从当前源内容重新生成贡献，不直接把旧贡献改回 eligible。历史混合来源字段无法拆分时先重建，不能借人工 overlay 名义保留无来源的旧提取内容。无法满足这些条件时继续限制相应入口，不通过 UI 隐藏代替后端约束。
+
+## 客户端与发布
+
+Cloud、Workflow、插件运行时及其他一方删除调用先支持 typed 202：pending 时显示“正在删除”，failed 时保留 intent 级重试，completed 后更新列表与计数。刷新或重新进入后通过 discovery 恢复状态；批量混合结果不能互相覆盖。
+
+服务端返回 `canManageDocumentDeletions` 等能力，客户端不得将其回写为权限。详情加载后若管理状态请求收到 403，仅关闭管理 overlay，不清空普通列表。现有第三方若要求同步完成语义，需要版本化兼容，不静默改变合同。
+
+Schema 变更采用显式迁移；先部署合同/客户端兼容，再接通执行器和入口。上线前定义 worker 重试、超时、告警、人工恢复与备份策略；不要用自动 schema 同步代替迁移设计。
+
+## 验收与故障注入
+
+- 重复单删、并发删除和批量部分失败复用正确 intent；状态查询在目标行删除后仍有效。
+- 唯一来源删除后，正文、标题、链接、旧版本和向量从接受时起不可见；完成前物理清理得到证据。
+- 在数据库提交、向量写入/删除、派生文件写入及清理确认前后分别中断进程，重启能从持久化凭证继续。
+- 暂停持有旧 epoch 的 worker，接受删除后放行；它不能复活内容，结果不明时流程不能误报完成。
+- 共享 StorageFile、共享 Graph 实体、剩余 Wiki 来源和人工内容不被误删。
+- 越租户/组织/知识库访问、撤权、只读用户、刷新后的 pending/failed、批量混合状态及第三方兼容分别验证。
+- 真实 PostgreSQL、PGVector/Milvus、队列、文件存储和浏览器验收分别记录，不用 mock 或编译成功替代。
+
+## 实现入口
+
+- `packages/server-ai/src/knowledge-document/deletion/`、`document-publication.ts`、`derived-index-publication.service.ts`：已有实体、发布和来源衔接。
+- `packages/server-ai/src/knowledge-document/document.service.ts`、`document.controller.ts`：现有直接删除入口。
+- `packages/server-ai/src/knowledgebase/management/knowledgebase.service.ts`：库级生命周期。
+- `packages/server-ai/src/knowledgebase/wiki/` 与 `packages/server-ai/src/graphrag/`：来源撤回、历史内容及投影清理。
+
+原整体 Wiki 计划已移除，历史设计保留在 Git 中；本提案只列未完成收口与验收目标，不宣称已经改变删除 API 或执行过数据清理。

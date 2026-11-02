@@ -1,7 +1,7 @@
 import { QueryBus } from '@nestjs/cqrs'
 import { KnowledgeGraphStatus } from '@xpert-ai/contracts'
 import { KnowledgeGraphEntitySearchQuery, KnowledgeGraphViewQuery } from '../../../graphrag/queries'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeGraphFilterScopeService } from '../../filter'
 import { KnowledgeGraphExploreQuery } from '../knowledge-graph-explore.query'
 import { KnowledgeGraphExploreHandler } from './knowledge-graph-explore.handler'

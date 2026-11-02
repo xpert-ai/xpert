@@ -1,0 +1,71 @@
+# 默认角色权限表（自动生成）
+
+由权限目录与核心／AI 默认分配生成，不代表数据库当前授权。权限职责参见 [AI 权限注释](../packages/contracts/src/ai/role-permissions.ts)。
+
+运行 `node tools/scripts/generate-permission-reference.cjs` 更新；加 `--check` 检查漂移。
+
+| Permission                      | 模块     | 状态       | SUPER_ADMIN | ADMIN | AI_BUILDER | VIEWER | APP_USER | APPLICATION_PROVISIONER | TRIAL |
+| ------------------------------- | -------- | ---------- | ----------- | ----- | ---------- | ------ | -------- | ----------------------- | ----- |
+| `ANNOUNCEMENT_MANAGE`           | members  | 已定义     | ✓           | —     | —          | —      | —        | —                       | —     |
+| `PROFILE_EDIT`                  | personal | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
+| `ADMIN_DASHBOARD_VIEW`          | members  | 旧权限     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
+| `ORG_EMPLOYEES_VIEW`            | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_EMPLOYEES_EDIT`            | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_TAGS_EDIT`                 | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_USERS_VIEW`                | members  | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
+| `ORG_USERS_EDIT`                | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_INVITE_VIEW`               | members  | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
+| `ORG_INVITE_EDIT`               | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | ✓     |
+| `ALL_ORG_VIEW`                  | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ALL_ORG_EDIT`                  | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `APPROVALS_POLICY_VIEW`         | other    | 已定义     | —           | —     | —          | —      | —        | —                       | —     |
+| `APPROVALS_POLICY_EDIT`         | other    | 已定义     | —           | —     | —          | —      | —        | —                       | —     |
+| `CHANGE_SELECTED_ORGANIZATION`  | members  | 旧权限     | ✓           | ✓     | ✓          | ✓      | —        | —                       | ✓     |
+| `CHANGE_ROLES_PERMISSIONS`      | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `SUPER_ADMIN_EDIT`              | members  | 已定义     | ✓           | —     | —          | —      | —        | —                       | —     |
+| `PUBLIC_PAGE_EDIT`              | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `VIEW_ALL_EMAILS`               | data     | 旧权限     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `VIEW_ALL_EMAIL_TEMPLATES`      | data     | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_HELP_CENTER_EDIT`          | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_CONTACT_EDIT`              | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ORG_CONTACT_VIEW`              | other    | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
+| `ORG_DEMO_EDIT`                 | members  | 旧权限     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `INTEGRATION_EDIT`              | data     | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | ✓     |
+| `INTEGRATION_VIEW`              | data     | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | ✓     |
+| `DATA_SOURCE_VIEW`              | data     | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | ✓     |
+| `DATA_SOURCE_EDIT`              | data     | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | ✓     |
+| `BUSINESS_AREA_VIEW`            | data     | 已定义     | ✓           | ✓     | ✓          | ✓      | —        | —                       | ✓     |
+| `BUSINESS_AREA_MANAGE`          | data     | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | ✓     |
+| `BUSINESS_AREA_ASSIGN`          | data     | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | ✓     |
+| `FILE_STORAGE_VIEW`             | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `SMS_GATEWAY_VIEW`              | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `CUSTOM_SMTP_VIEW`              | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `VIEW_ALL_ACCOUNTING_TEMPLATES` | other    | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `ACCESS_DELETE_ACCOUNT`         | members  | 旧权限     | ✓           | —     | —          | —      | —        | —                       | —     |
+| `ACCESS_DELETE_ALL_DATA`        | members  | 已定义     | ✓           | —     | —          | —      | —        | —                       | —     |
+| `REFERRAL_VIEW`                 | members  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `KNOWLEDGEBASE_EDIT`            | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | ✓                       | —     |
+| `COPILOT_VIEW`                  | ai       | 旧权限     | ✓           | ✓     | ✓          | ✓      | —        | —                       | —     |
+| `COPILOT_EDIT`                  | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | ✓     |
+| `MODEL_USAGE_MONITOR`           | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |
+| `MEMBERSHIP_EDIT`               | billing  | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `MEMBERSHIP_USE`                | billing  | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
+| `MODEL_ACCESS_REQUEST_VIEW`     | ai       | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `MODEL_ACCESS_REQUEST_EDIT`     | ai       | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `MODEL_GATEWAY_USE`             | ai       | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `MODEL_GATEWAY_MANAGE`          | ai       | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `BILLING_PRODUCT_EDIT`          | billing  | 待业务接入 | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `BILLING_REFUND`                | billing  | 待业务接入 | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `PAYMENT_PROVIDER_EDIT`         | billing  | 待业务接入 | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `XPERT_VIEW`                    | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | ✓                       | ✓     |
+| `XPERT_WORKSPACE_MANAGE`        | ai       | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `XPERT_EDIT`                    | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | ✓                       | ✓     |
+| `APPLICATION_USE`               | ai       | 已定义     | —           | —     | —          | —      | ✓        | —                       | —     |
+| `APPLICATION_INSTALL`           | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | ✓                       | ✓     |
+| `XPERT_PROJECT_VIEW`            | projects | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
+| `XPERT_PROJECT_CREATE`          | projects | 已定义     | ✓           | ✓     | ✓          | —      | ✓        | —                       | ✓     |
+| `XPERT_PROJECT_EDIT`            | projects | 已定义     | ✓           | ✓     | ✓          | —      | ✓        | —                       | ✓     |
+| `XPERT_PROJECT_MANAGE`          | projects | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
+| `CHAT_VIEW`                     | ai       | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
+| `EVOLUTION_VIEW`                | ai       | 已定义     | ✓           | ✓     | ✓          | ✓      | —        | —                       | —     |
+| `EVOLUTION_MANAGE`              | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |

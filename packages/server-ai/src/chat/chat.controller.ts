@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { BaseMessage, mapChatMessagesToStoredMessages } from '@langchain/core/messages'
 import { LanguagesEnum, TChatOptions, TChatRequest, UploadedFile } from '@xpert-ai/contracts'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
@@ -27,6 +29,7 @@ import { ChatCommand, SpeechToTextCommand, SynthesizeCommand } from './commands'
 @ApiTags('Chat')
 @ApiBearerAuth()
 @Controller('chat')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class ChatController {
     readonly #logger = new Logger(ChatController.name)
     constructor(

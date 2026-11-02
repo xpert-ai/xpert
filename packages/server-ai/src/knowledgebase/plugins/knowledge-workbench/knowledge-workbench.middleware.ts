@@ -7,7 +7,7 @@ import {
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
-import { KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION } from '../../citation'
+import { KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION } from '../../retrieval/citation'
 import {
     KNOWLEDGE_WORKBENCH_FEATURE,
     KNOWLEDGE_WORKBENCH_ICON,

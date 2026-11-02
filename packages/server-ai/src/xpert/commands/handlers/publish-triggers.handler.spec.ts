@@ -28,7 +28,12 @@ describe('XpertPublishTriggersHandler', () => {
         const trigger = triggerNode('schedule', { enabled: true, cron: '0 8 * * *', task: 'Briefing' }, 0)
         ;(trigger.entity as IWFNTrigger).config.additionalInstructions = 'Focus on blockers'
         const graph: TXpertGraph = { nodes: [trigger], connections: [] }
-        await handler.execute(new XpertPublishTriggersCommand({ id: 'assistant', graph } as IXpert, { strict: true }))
+        await handler.execute(
+            new XpertPublishTriggersCommand(
+                { id: 'assistant', tenantId: 'tenant', organizationId: 'organization', graph } as IXpert,
+                { strict: true }
+            )
+        )
         const state = { [STATE_VARIABLE_HUMAN]: { input: 'Briefing', context: 'keep' }, other: 'unchanged' }
         await callback({ state })
         expect(commandBus.execute.mock.calls[0][0].state).toEqual({
@@ -38,7 +43,11 @@ describe('XpertPublishTriggersHandler', () => {
         expect(state[STATE_VARIABLE_HUMAN].input).toBe('Briefing')
         expect(graph.nodes[0].entity).not.toHaveProperty('prompt')
         expect(triggerRegistry.get().publish).toHaveBeenCalledWith(
-            { xpertId: 'assistant', config: { enabled: true, cron: '0 8 * * *', task: 'Briefing' } },
+            {
+                xpertId: 'assistant',
+                scope: { tenantId: 'tenant', organizationId: 'organization' },
+                config: { enabled: true, cron: '0 8 * * *', task: 'Briefing' }
+            },
             expect.any(Function)
         )
     })

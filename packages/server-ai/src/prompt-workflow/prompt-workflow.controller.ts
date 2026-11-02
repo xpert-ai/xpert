@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { PromptWorkflowInput, TXpertCommandProfile } from '@xpert-ai/contracts'
 import { Body, Controller, Get, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -10,6 +12,7 @@ import { PromptWorkflowService } from './prompt-workflow.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('prompt-workflow')
+@Permissions(AIPermissionsEnum.XPERT_EDIT)
 export class PromptWorkflowController {
     constructor(private readonly service: PromptWorkflowService) {}
 

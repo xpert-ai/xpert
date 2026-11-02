@@ -1,4 +1,5 @@
 export * from './task-control.model'
+export * from './app-platform'
 export * from './execution-control-admission.schema'
 export * from './types'
 export * from './ai/sandbox-execution-control.schema'
@@ -66,6 +67,7 @@ export * from './analytics-query.model'
 export * from './analytics-source.model'
 export * from './data-source-type.model'
 export * from './integration.model'
+export * from './integration-sharing.model'
 export * from './invite.model'
 export * from './organization-projects.model'
 export * from './password-reset.model'
@@ -121,6 +123,7 @@ export * from './desktop-shell.model'
 export * from './ai/agent-output-delivery.model'
 
 export * from './ai/execution-activity.model'
+export * from './ai/conversation-trail.model'
 
 export * from './setup-plugins'
 
@@ -145,3 +148,5 @@ export * from './ai/thread-control-view.schema'
 export * from './ai/thread-control-projection.model'
 export * from './ai/mcp-operation.model'
 export * from './ai/mcp-task.schema'
+
+export * from './user-notification.schema'

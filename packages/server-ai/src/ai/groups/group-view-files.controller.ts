@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
@@ -24,6 +26,7 @@ import { sendImagePreview } from '../../workspace-file-access/image-preview/imag
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/workbench/workspace-files/view-sessions')
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class GroupViewFilesController {
     constructor(
         private readonly scope: GroupWorkbenchGuard,

@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     Body,
@@ -31,6 +33,7 @@ export class ProjectPipelinePortfolioGuard implements CanActivate {
 
 @Controller()
 @UseGuards(ProjectPipelinePortfolioGuard)
+@Permissions(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 export class ProjectPipelinePortfolioController {
     constructor(private readonly portfolio: ProjectPipelinePortfolioService) {}
 

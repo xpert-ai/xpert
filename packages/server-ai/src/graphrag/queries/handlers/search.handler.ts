@@ -6,7 +6,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { TDocChunkMetadata } from '../../../knowledge-document/types'
 import { KnowledgeGraphFilterScope, KnowledgeGraphFilterScopeService } from '../../../knowledgebase/filter'
-import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../../knowledgebase/management/knowledgebase.service'
 import { TKnowledgeGraphSearchInput, TKnowledgeGraphSearchResult } from '../../types'
 import { KnowledgeGraphSearchQuery } from '../knowledge-graph-search.query'
 

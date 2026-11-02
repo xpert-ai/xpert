@@ -1,7 +1,7 @@
 import { QueryBus } from '@nestjs/cqrs'
 import { KnowledgeGraphIndexJobStatus } from '@xpert-ai/contracts'
 import { EntityManager, Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { KnowledgeIdentityObservation } from '../knowledgebase/identity/knowledge-identity-observation.entity'
 import { KnowledgeIdentityService } from '../knowledgebase/identity/knowledge-identity.service'
 import {

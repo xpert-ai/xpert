@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { Knowledgebase } from '../../knowledgebase.entity'
-import { KnowledgebaseService } from '../../knowledgebase.service'
+import { Knowledgebase } from '../../persistence/knowledgebase.entity'
+import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgebaseGetOneQuery } from '../get-one.query'
 
 @QueryHandler(KnowledgebaseGetOneQuery)

@@ -5,6 +5,23 @@ import { AiModelTypeEnum, ModelExecutionModel } from '@xpert-ai/contracts'
 import { ModelGatewayCall } from '../model-gateway/model-gateway-call.entity'
 import { ModelExecutionGrant } from './execution.entity'
 import { ModelExecutionAdmissionService } from './execution-admission.service'
+import { executionErrorMessage } from './execution-errors'
+
+// Keep mutable admission fields independent without structuredClone's cross-realm prototypes in Jest.
+function copyGrant(grant: ModelExecutionGrant): ModelExecutionGrant {
+    return Object.assign(new ModelExecutionGrant(), grant, {
+        context: { ...grant.context, source: { ...grant.context.source } },
+        limits: { ...grant.limits }
+    })
+}
+
+function expectBudgetRejections(attempts: PromiseSettledResult<ModelGatewayCall>[]) {
+    for (const attempt of attempts) {
+        if (attempt.status === 'rejected') {
+            expect(attempt.reason).toMatchObject({ status: 429, message: executionErrorMessage('Budget') })
+        }
+    }
+}
 
 // Explicitly opt into an expendable database. Never initialize against the application database.
 const url = process.env.XPERT_EXECUTION_TEST_DATABASE_URL
@@ -112,6 +129,13 @@ integration('execution admission / PostgreSQL', () => {
                 maxDurationSeconds: 600
             }
         })
+        grant.context = {
+            ...grant.context,
+            tenantId: grant.tenantId,
+            runtimeOrganizationId: grant.organizationId,
+            actorUserId: grant.ownerId,
+            billableUserId: grant.ownerId
+        }
         await database.getRepository(ModelExecutionGrant).save(grant)
     })
     afterAll(async () => {
@@ -126,7 +150,10 @@ integration('execution admission / PostgreSQL', () => {
         expect(small.reservedTokens).toBe(25)
         const larger = await service.begin(grant, model, 20, 130)
         expect(larger.reservedTokens).toBe(150)
-        await expect(service.begin(grant, model, 20, 6)).rejects.toThrow()
+        await expect(service.begin(grant, model, 20, 6)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
     })
 
     it('keeps a live long request and only recovers it after its grant is no longer live', async () => {
@@ -156,7 +183,10 @@ integration('execution admission / PostgreSQL', () => {
         await database.getRepository(ModelExecutionGrant).save(grant)
         const call = await service.begin(grant, model, 65536, 40000)
         await expect(service.dispatch(call, grant)).resolves.toBeUndefined()
-        await expect(service.begin(grant, model, 65536, 40000)).rejects.toMatchObject({ status: 429 })
+        await expect(service.begin(grant, model, 65536, 40000)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('RateLimit')
+        })
     })
 
     it('shares one parent budget across simultaneous CLI children and retains completed sibling consumption', async () => {
@@ -173,17 +203,21 @@ integration('execution admission / PostgreSQL', () => {
         await database.getRepository(ModelExecutionGrant).save(grant)
         const siblings = await Promise.all(
             Array.from({ length: 4 }, async () => {
-                const sibling = Object.assign(new ModelExecutionGrant(), structuredClone(grant), { id: randomUUID() })
+                const sibling = Object.assign(copyGrant(grant), { id: randomUUID() })
                 await database.getRepository(ModelExecutionGrant).save(sibling)
                 return sibling
             })
         )
         const attempts = await Promise.allSettled(siblings.map((item) => service.begin(item, model, 20, 80)))
         expect(attempts.filter((item) => item.status === 'fulfilled')).toHaveLength(2)
+        expectBudgetRejections(attempts)
         await database.query(
             'UPDATE model_gateway_call SET status=\'completed\', "totalTokens"=100, "reservedTokens"=0'
         )
-        await expect(service.begin(grant, model, 20, 80)).rejects.toThrow()
+        await expect(service.begin(grant, model, 20, 80)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
         grant.context.source = { ...grant.context.source, parentExecutionId: randomUUID() }
         await database.getRepository(ModelExecutionGrant).save(grant)
         await expect(service.begin(grant, model, 20, 80)).resolves.toBeDefined()
@@ -200,15 +234,19 @@ integration('execution admission / PostgreSQL', () => {
         }
         await database.getRepository(ModelExecutionGrant).save(grant)
         await service.begin(grant, model, 20, 80)
-        const sibling = Object.assign(new ModelExecutionGrant(), structuredClone(grant), { id: randomUUID() })
+        const sibling = Object.assign(copyGrant(grant), { id: randomUUID() })
         await database.getRepository(ModelExecutionGrant).save(sibling)
         sibling.limits.tokenBudget = 100
-        await expect(service.begin(sibling, model, 20, 80)).rejects.toThrow()
+        await expect(service.begin(sibling, model, 20, 80)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
     })
 
     it('serializes simultaneous requests before reserving a finite grant budget', async () => {
         const attempts = await Promise.allSettled(Array.from({ length: 8 }, () => service.begin(grant, model, 20, 80)))
         expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(2)
+        expectBudgetRejections(attempts)
         const calls = await database.getRepository(ModelGatewayCall).find()
         expect(calls.reduce((sum, call) => sum + call.reservedTokens, 0)).toBe(200)
         expect(new Set(calls.map((call) => call.requestId)).size).toBe(2)
@@ -220,21 +258,29 @@ integration('execution admission / PostgreSQL', () => {
         const second = Object.assign(new ModelExecutionGrant(), grant, { id: randomUUID() })
         await database.getRepository(ModelExecutionGrant).save(second)
         await service.begin(second, model, 20, 80)
-        await expect(service.begin(second, model, 20, 80)).rejects.toThrow()
+        await expect(service.begin(second, model, 20, 80)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
         expect(await database.getRepository(ModelGatewayCall).count()).toBe(3)
     })
     it('rechecks revocation inside the admission transaction', async () => {
         await database.query("UPDATE model_execution_grant SET status='revoked'")
-        await expect(service.begin(grant, model, 20, 80)).rejects.toThrow()
+        await expect(service.begin(grant, model, 20, 80)).rejects.toMatchObject({
+            status: 403,
+            message: executionErrorMessage('Denied')
+        })
         expect(await database.getRepository(ModelGatewayCall).count()).toBe(0)
     })
     it('keeps independent users and their budgets separate during simultaneous admission', async () => {
         const second = Object.assign(new ModelExecutionGrant(), grant, { id: randomUUID(), ownerId: randomUUID() })
+        second.context = { ...grant.context, actorUserId: second.ownerId, billableUserId: second.ownerId }
         await database.getRepository(ModelExecutionGrant).save(second)
         const attempts = await Promise.allSettled(
             [grant, second].flatMap((payer) => Array.from({ length: 5 }, () => service.begin(payer, model, 20, 80)))
         )
         expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(4)
+        expectBudgetRejections(attempts)
         for (const payer of [grant, second]) {
             const calls = await database.getRepository(ModelGatewayCall).findBy({ userId: payer.ownerId })
             expect(calls).toHaveLength(2)
@@ -246,13 +292,100 @@ integration('execution admission / PostgreSQL', () => {
             id: randomUUID(),
             organizationId: randomUUID()
         })
+        second.context = { ...grant.context, runtimeOrganizationId: second.organizationId }
         await database.getRepository(ModelExecutionGrant).save(second)
         const attempts = await Promise.allSettled(
             [grant, second].flatMap((scope) => Array.from({ length: 3 }, () => service.begin(scope, model, 20, 80)))
         )
         expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(3)
+        expectBudgetRejections(attempts)
         const calls = await database.getRepository(ModelGatewayCall).find()
         expect(calls.reduce((total, call) => total + call.reservedTokens, 0)).toBe(300)
+    })
+    it('shares one payer budget across technical Assistants while retaining each execution actor', async () => {
+        const payer = randomUUID()
+        grant.context.billableUserId = payer
+        await database.getRepository(ModelExecutionGrant).save(grant)
+        const second = Object.assign(copyGrant(grant), {
+            id: randomUUID(),
+            ownerId: randomUUID(),
+            organizationId: randomUUID()
+        })
+        second.context.actorUserId = second.ownerId
+        second.context.runtimeOrganizationId = second.organizationId
+        await database.getRepository(ModelExecutionGrant).save(second)
+        const attempts = await Promise.allSettled(
+            [grant, second].flatMap((actor) => Array.from({ length: 3 }, () => service.begin(actor, model, 20, 80)))
+        )
+        expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(3)
+        expectBudgetRejections(attempts)
+        const calls = await database.getRepository(ModelGatewayCall).find()
+        expect(calls.reduce((total, call) => total + call.reservedTokens, 0)).toBe(300)
+        for (const call of calls) expect(call.userId).toBe(call.grantId === grant.id ? grant.ownerId : second.ownerId)
+    })
+    it.each(['maxConcurrentRequests', 'requestsPerMinute'] as const)(
+        'shares %s across different Assistants with the same payer',
+        async (limit) => {
+            grant.context.billableUserId = randomUUID()
+            grant.limits[limit] = 1
+            await database.getRepository(ModelExecutionGrant).save(grant)
+            const second = Object.assign(copyGrant(grant), {
+                id: randomUUID(),
+                ownerId: randomUUID()
+            })
+            second.context.actorUserId = second.ownerId
+            await database.getRepository(ModelExecutionGrant).save(second)
+            await service.begin(grant, model, 20, 80)
+            await expect(service.begin(second, model, 20, 80)).rejects.toMatchObject({
+                status: 429,
+                message: executionErrorMessage('RateLimit')
+            })
+        }
+    )
+    it('keeps different payers separate even when the technical execution actor is the same', async () => {
+        grant.context.billableUserId = randomUUID()
+        const second = Object.assign(copyGrant(grant), { id: randomUUID() })
+        second.context.billableUserId = randomUUID()
+        await database.getRepository(ModelExecutionGrant).save([grant, second])
+        const attempts = await Promise.allSettled(
+            [grant, second].flatMap((payer) => Array.from({ length: 3 }, () => service.begin(payer, model, 20, 80)))
+        )
+        expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(4)
+        expectBudgetRejections(attempts)
+    })
+    it('rejects a forged payer before reserving or dispatching an attempt', async () => {
+        const call = await service.begin(grant, model, 20, 80)
+        const forged = copyGrant(grant)
+        forged.context.billableUserId = randomUUID()
+        await expect(service.begin(forged, model, 20, 80)).rejects.toMatchObject({
+            status: 403,
+            message: executionErrorMessage('Denied')
+        })
+        await expect(service.dispatch(call, forged)).rejects.toMatchObject({
+            status: 403,
+            message: executionErrorMessage('Denied')
+        })
+        expect(await database.getRepository(ModelGatewayCall).count()).toBe(1)
+        expect(
+            (await database.getRepository(ModelGatewayCall).findOneByOrFail({ id: call.id })).dispatchedAt
+        ).toBeNull()
+    })
+    it('serializes one parent budget even if sibling grants have different frozen payers', async () => {
+        grant.context.source = {
+            type: 'shell_execution',
+            executionId: randomUUID(),
+            shellExecutionId: randomUUID(),
+            parentExecutionId: randomUUID(),
+            generation: 1,
+            profileRevision: '1'
+        }
+        grant.limits.tokenBudget = 100
+        const second = Object.assign(copyGrant(grant), { id: randomUUID() })
+        second.context.billableUserId = randomUUID()
+        await database.getRepository(ModelExecutionGrant).save([grant, second])
+        const attempts = await Promise.allSettled([grant, second].map((item) => service.begin(item, model, 20, 80)))
+        expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1)
+        expectBudgetRejections(attempts)
     })
     it('persists the dispatch fence exactly once', async () => {
         const call = await service.begin(grant, model, 20, 80)
@@ -265,7 +398,10 @@ integration('execution admission / PostgreSQL', () => {
     it('rejects revocation between admission and upstream dispatch', async () => {
         const call = await service.begin(grant, model, 20, 80)
         await database.query("UPDATE model_execution_grant SET status='revoked'")
-        await expect(service.dispatch(call, grant)).rejects.toThrow()
+        await expect(service.dispatch(call, grant)).rejects.toMatchObject({
+            status: 403,
+            message: executionErrorMessage('Denied')
+        })
         expect(
             (await database.getRepository(ModelGatewayCall).findOneByOrFail({ id: call.id })).dispatchedAt
         ).toBeNull()
@@ -275,7 +411,10 @@ integration('execution admission / PostgreSQL', () => {
         await database.getRepository(ModelExecutionGrant).update(grant.id, {
             limits: { ...grant.limits, tokenBudget: 99 }
         })
-        await expect(service.begin(grant, model, 20, 80)).rejects.toThrow()
+        await expect(service.begin(grant, model, 20, 80)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
         expect(await database.getRepository(ModelGatewayCall).count()).toBe(0)
     })
 
@@ -291,7 +430,10 @@ integration('execution admission / PostgreSQL', () => {
     it('rechecks tightened budgets after admission and before dispatch', async () => {
         const call = await service.begin(grant, model, 20, 80)
         grant.limits.tokenBudget = 99
-        await expect(service.dispatch(call, grant)).rejects.toThrow()
+        await expect(service.dispatch(call, grant)).rejects.toMatchObject({
+            status: 429,
+            message: executionErrorMessage('Budget')
+        })
         expect(
             (await database.getRepository(ModelGatewayCall).findOneByOrFail({ id: call.id })).dispatchedAt
         ).toBeNull()

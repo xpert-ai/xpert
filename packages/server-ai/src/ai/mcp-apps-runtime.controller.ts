@@ -1,3 +1,5 @@
+import { Permissions } from '@xpert-ai/server-core'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { McpAppHistoryQuery, mcpAppHistoryQuerySchema } from '../mcp-app-runtime/mcp-app-history.schema'
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
@@ -10,6 +12,7 @@ import { McpAppReviveQuery, McpAppsService } from '../xpert-toolset/mcp-apps.ser
 @ApiBearerAuth()
 @Public()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 @Controller('mcp-apps')
 export class McpAppsRuntimeController {
     constructor(private readonly service: McpAppsService) {}

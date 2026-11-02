@@ -1,3 +1,4 @@
+import { upgradeApplicationPermissions } from './application-permission-upgrade'
 import { Injectable, BadRequestException, NotAcceptableException, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository, UpdateResult } from 'typeorm'
@@ -57,6 +58,7 @@ export class RolePermissionService extends TenantAwareCrudService<RolePermission
 			{ permission: 'MEMBERSHIP_PURCHASE' },
 			{ permission: AIPermissionsEnum.MEMBERSHIP_USE }
 		)
+		await upgradeApplicationPermissions(this.rolePermissionRepository)
 	}
 
 	public async updatePermission(

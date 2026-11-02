@@ -1,6 +1,8 @@
 import { AbstractControl, FormArray, FormControl, FormGroup, Validators, type ValidatorFn } from '@angular/forms'
 import {
   DEFAULT_XPERT_AGENT_RECURSION_LIMIT,
+  toXpertOpenerPrompt,
+  type TXpertOpenerQuestion,
   type ITag,
   type IXpert,
   type TAvatar,
@@ -21,6 +23,11 @@ export const modelIdentity = (value: TCopilotModel | null | undefined) =>
 export const modelValidator: ValidatorFn = (control) => (modelIdentity(control.value) ? null : { modelRequired: true })
 export const integerValidator: ValidatorFn = (control) =>
   control.value == null || Number.isInteger(control.value) ? null : { integer: true }
+
+export function createOpenerQuestionForm(question: TXpertOpenerQuestion = '') {
+  const value = toXpertOpenerPrompt(question)
+  return new FormGroup({ label: text(typeof question === 'string' ? '' : value.label), prompt: text(value.prompt) })
+}
 
 export function createXpertSettingsForm(team: Partial<IXpert>) {
   const features = team.features
@@ -48,7 +55,7 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
     opener: new FormGroup({
       enabled: toggle(features?.opener?.enabled),
       message: text(features?.opener?.message),
-      questions: new FormArray((features?.opener?.questions ?? []).map((question) => text(question)))
+      questions: new FormArray((features?.opener?.questions ?? []).map(createOpenerQuestionForm))
     }),
     frequentQuestions: toggle(features?.frequentQuestions?.enabled),
     suggestion: new FormGroup({
@@ -118,14 +125,12 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
       : null
   })
   const runtime = new FormGroup({
-    maxConcurrency: number(team.agentConfig?.maxConcurrency ?? null, 1, 100),
     recursionLimit: number(
       team.agentConfig?.recursionLimit ?? DEFAULT_XPERT_AGENT_RECURSION_LIMIT,
       RECURSION_LIMIT_RANGE.min,
       RECURSION_LIMIT_RANGE.max
     )
   })
-  runtime.controls.maxConcurrency.addValidators(integerValidator)
   runtime.controls.recursionLimit.addValidators([Validators.required, integerValidator])
   memory.controls.reply.controls.scoreThreshold.addValidators(Validators.required)
   memory.controls.longTerm.controls.afterSeconds.addValidators([Validators.required, integerValidator])

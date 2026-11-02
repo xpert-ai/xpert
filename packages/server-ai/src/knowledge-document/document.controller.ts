@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { KnowledgeDocumentBulkCreateInput } from '@xpert-ai/contracts'
 import { KnowledgeDocumentImportService, parseDocumentImport } from './document-import.service'
 import {
@@ -71,7 +73,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
-import type { TVectorSearchParams } from '../knowledgebase/vector-store'
+import type { TVectorSearchParams } from '../knowledgebase/embedding/vector-store'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import {
@@ -187,6 +189,7 @@ function requireKnowledgebaseId(value: unknown): string {
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeDocumentController extends CrudController<KnowledgeDocument> {
     readonly #logger = new Logger(KnowledgeDocumentController.name)
 

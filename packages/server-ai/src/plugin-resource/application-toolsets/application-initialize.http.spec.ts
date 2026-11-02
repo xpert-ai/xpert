@@ -1,8 +1,8 @@
 import { INestApplication, ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { init } from 'i18next'
-import { PluginApplicationController } from '../plugin-application.controller'
-import { PluginApplicationService } from '../plugin-application.service'
+import { PluginApplicationController } from '../application/plugin-application.controller'
+import { PluginApplicationService } from '../application/plugin-application.service'
 
 describe('application initialize HTTP validation', () => {
     const service = {

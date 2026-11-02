@@ -272,7 +272,9 @@ describe('XpertProjectService managed provisioning', () => {
             organizationId: 'org-1'
         })
         jest.spyOn(harness.service, 'findOne').mockResolvedValue(source)
-        Object.assign(harness.repository.manager, { getRepository: () => ({ find: async () => [] }) })
+        Object.assign(harness.repository.manager, {
+            getRepository: () => ({ find: async () => [], findOneBy: async () => null })
+        })
         const result = await harness.service.duplicate(source.id)
         expect(result.xperts.map((member) => member.id)).toEqual([root.id, child.id])
         expect(source.xperts).toEqual([root])
@@ -519,7 +521,10 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
             })
         )
     )
-    Object.assign(repository.manager, { transaction })
+    Object.assign(repository.manager, {
+        transaction,
+        getRepository: () => ({ findOneBy: async () => null })
+    })
     const content = {
         initialize: jest.fn<Promise<void>, [XpertProject]>().mockResolvedValue(undefined),
         readInstructions: jest.fn().mockResolvedValue({ content: 'Instructions' })

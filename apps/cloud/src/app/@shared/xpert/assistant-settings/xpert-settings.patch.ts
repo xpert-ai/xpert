@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash-es'
-import type { TXpertFeatures, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { normalizeXpertAgentConfig, type TXpertFeatures, type TXpertTeamDraft } from '@xpert-ai/contracts'
 import { clearLegacyInheritedPrimaryAgentModel } from './primary-agent-model.util'
 import type { XpertDraftSettingsSection } from './xpert-settings.types'
 import type { XpertSettingsValue } from './xpert-settings.form'
@@ -52,7 +52,16 @@ export function applyXpertSettingsChanges(
       const b = before.conversation,
         a = after.conversation
       team.features = features()
-      if (!isEqual(b.opener, a.opener)) team.features.opener = { ...team.features.opener, ...delta(b.opener, a.opener) }
+      if (!isEqual(b.opener, a.opener)) {
+        const change = delta(b.opener, a.opener)
+        team.features.opener = {
+          ...team.features.opener,
+          ...change,
+          questions: change.questions
+            ? change.questions.map(({ label, prompt }) => (label.trim() ? { label: label.trim(), prompt } : prompt))
+            : team.features.opener.questions
+        }
+      }
       if (!isEqual(b.suggestion, a.suggestion))
         team.features.suggestion = { ...team.features.suggestion, ...delta(b.suggestion, a.suggestion) }
       if (!isEqual(b.title, a.title))
@@ -122,10 +131,8 @@ export function applyXpertSettingsChanges(
     case 'runtime': {
       const b = before.runtime,
         a = after.runtime
-      if (b.maxConcurrency !== a.maxConcurrency || b.recursionLimit !== a.recursionLimit) {
-        team.agentConfig = { ...team.agentConfig }
-        if (b.maxConcurrency !== a.maxConcurrency) team.agentConfig.maxConcurrency = a.maxConcurrency ?? undefined
-        if (b.recursionLimit !== a.recursionLimit) team.agentConfig.recursionLimit = a.recursionLimit
+      if (b.recursionLimit !== a.recursionLimit) {
+        team.agentConfig = normalizeXpertAgentConfig({ ...team.agentConfig, recursionLimit: a.recursionLimit })
       }
       // Provider changes are composed together with capabilities on explicit save.
       break

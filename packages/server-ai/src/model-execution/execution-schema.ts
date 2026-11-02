@@ -40,7 +40,6 @@ export const executionContextSchema = z
         tool: executionToolSchema
     })
     .strict()
-    .refine((context) => context.actorUserId === context.billableUserId)
 export const executionModelSchema = z
     .object({
         id: name,

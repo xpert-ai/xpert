@@ -27,6 +27,7 @@ import { ModelAccessRequestWithdrawDto } from '../model-access/dto'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('model-gateway')
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelGatewayController {
     constructor(
         private readonly service: ModelGatewayService,
@@ -36,6 +37,11 @@ export class ModelGatewayController {
     @Get('catalog')
     getCatalog() {
         return this.modelAccessService.getExternalCatalog()
+    }
+
+    @Get('client-config')
+    getClientConfig() {
+        return this.service.getClientConfig()
     }
 
     @Post('requests')
@@ -95,7 +101,7 @@ export class ModelGatewayController {
     @Put('admin/settings')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MODEL_GATEWAY_MANAGE)
-    @UseValidationPipe()
+    @UseValidationPipe({ transform: true })
     updateSettings(@Body() input: ModelGatewaySettingsUpdateDto) {
         return this.service.updateSettings(input)
     }

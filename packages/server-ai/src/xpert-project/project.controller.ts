@@ -1,3 +1,4 @@
+import { runtimeProject } from './dto/runtime-project'
 import { z } from 'zod/v3'
 import { XpertProjectPlanningController } from './project-planning.controller'
 import { XpertProjectTypeService } from './services/project-type.service'
@@ -236,13 +237,14 @@ export class XpertProjectController extends XpertProjectPlanningController {
                 t('server-ai:Error.ProjectXpertIdRequired', { defaultValue: 'A Project Xpert ID is required' })
             )
         }
-        return this.service.findAvailableForXpert({
+        const page = await this.service.findAvailableForXpert({
             xpertId: xpertId.trim(),
             filter: { applicationKey, projectTypeKey, search, unclassified: unclassified === 'true' },
             status,
             skip: Math.max(Number(skip) || 0, 0),
             take: Math.min(Math.max(Number(take) || 25, 1), 100)
         })
+        return { ...page, items: page.items.map(runtimeProject) }
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
@@ -341,13 +343,14 @@ export class XpertProjectController extends XpertProjectPlanningController {
         @Query('projectTypeKey') projectTypeKey?: string,
         @Query('search') search?: string,
         @Query('unclassified') unclassified?: string
-    ): Promise<IPagination<XpertProject>> {
-        return this.service.findAllMy(params, {
+    ) {
+        const result = await this.service.findAllMy(params, {
             applicationKey,
             projectTypeKey,
             search,
             unclassified: unclassified === 'true'
         })
+        return { ...result, items: result.items.map(runtimeProject) }
     }
 
     @Get(':id')
@@ -357,7 +360,7 @@ export class XpertProjectController extends XpertProjectPlanningController {
         const project = await this.service.findOne(id, {
             relations: ['createdBy', 'owner', 'members', 'xperts', 'copilotModel']
         })
-        return new XpertProjectDto(project)
+        return runtimeProject(new XpertProjectDto(project))
     }
 
     @Post(':id/duplicate')
@@ -958,39 +961,4 @@ export class XpertProjectController extends XpertProjectPlanningController {
         await this.service.removeAttachments(id, [file])
     }
 
-    // @UseGuards(XpertProjectGuard)
-    // @Get(':id/vcs')
-    // async getVCS(@Param('id') id: string): Promise<IXpertProjectVCS> {
-    // 	const integration = await this.service.findOne(id, { relations: ['vcs'] })
-    // 	return integration.vcs
-    // }
-
-    // @UseGuards(XpertProjectGuard)
-    // @Put(':id/vcs')
-    // async updateVCS(@Param('id') id: string, @Body() entity: Partial<IXpertProjectVCS>): Promise<IXpertProjectVCS> {
-    // 	return this.service.updateVCS(id, entity)
-    // }
-
-    // @Public()
-    // @Get(':id/github-installation')
-    // async GithubInstallation(@Param('id') id: string, @Res() res: Response) {
-    // 	const project = await this.service.findOne(id, { relations: ['vcs'] })
-    // 	if (!project.vcs?.auth) {
-    // 		throw new BadRequestException('User is not authorized to access this resource')
-    // 	}
-    // 	const result = await this.githubService.installation(project.vcs.integrationId, project.vcs.auth)
-    // 	if (result.redirect) {
-    // 		return res.redirect(result.redirect)
-    // 	}
-    // }
-
-    // @UseGuards(XpertProjectGuard)
-    // @Get(':id/github-installations')
-    // async getGithubInstallations(@Param('id') id: string) {
-    // 	const project = await this.service.findOne(id, { relations: ['vcs'] })
-    // 	if (!project.vcs?.auth) {
-    // 		throw new BadRequestException('User is not authorized to access this resource')
-    // 	}
-    // 	return this.githubService.getInstallations(project.vcs.auth)
-    // }
 }

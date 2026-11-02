@@ -1,5 +1,7 @@
+import { evaluatePermissions } from '@xpert-ai/server-core'
 import { GatewayAdmissionPolicy } from './gateway-admission-policy'
 import { createGatewayChatModel } from './model-gateway-client'
+import type { RequestReasoningControls } from '../shared/agent/middleware-runtime/request-reasoning'
 import {
     userName,
     resolveKeyExpiration,
@@ -24,6 +26,8 @@ import {
     ILLMUsage,
     IModelAccessResolution,
     IModelGatewayAdminSettings,
+    IModelGatewayClientConfig,
+    MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING,
     IModelGatewayApiKeyCreated,
     ModelAccessUnavailableReasonEnum,
     ModelGatewayApiKeyLifetimeEnum,
@@ -126,18 +130,27 @@ export class ModelGatewayService {
     ) {}
     async getSettings(): Promise<IModelGatewayAdminSettings> {
         const tenantId = requireTenantScope()
-        const [settings, limits] = await Promise.all([
+        const [settings, limits, externalApiBaseUrl] = await Promise.all([
             this.getOrCreateSettings(tenantId),
-            new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(tenantId)
+            new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(tenantId),
+            this.getExternalApiBaseUrl(tenantId)
         ])
         return {
             ...settings,
-            ...limits
+            ...limits,
+            externalApiBaseUrl
         }
     }
     async updateSettings(input: TModelGatewaySettingsUpdateInput): Promise<IModelGatewayAdminSettings> {
         const tenantId = requireTenantScope()
         const settings = await this.getOrCreateSettings(tenantId)
+        if (input.externalApiBaseUrl !== undefined) {
+            const where = { tenantId, name: MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING }
+            const setting =
+                (await this.tenantSettingRepository.findOne({ where })) ?? this.tenantSettingRepository.create(where)
+            setting.value = input.externalApiBaseUrl ?? ''
+            await this.tenantSettingRepository.save(setting)
+        }
         settings.storeBodies = input.storeBodies
         settings.bodyRetentionDays = input.bodyRetentionDays ?? settings.bodyRetentionDays
         const [saved] = await Promise.all([
@@ -146,10 +159,23 @@ export class ModelGatewayService {
         ])
         return {
             ...saved,
+            externalApiBaseUrl: await this.getExternalApiBaseUrl(tenantId),
             requestsPerMinute: input.requestsPerMinute,
             maxConcurrentRequests: input.maxConcurrentRequests
         }
     }
+    async getClientConfig(): Promise<IModelGatewayClientConfig> {
+        requireUserId()
+        return { externalApiBaseUrl: await this.getExternalApiBaseUrl(currentScope().tenantId) }
+    }
+
+    private async getExternalApiBaseUrl(tenantId: string): Promise<string | null> {
+        const setting = await this.tenantSettingRepository.findOne({
+            where: { tenantId, name: MODEL_GATEWAY_EXTERNAL_API_BASE_URL_SETTING }
+        })
+        return setting?.value || null
+    }
+
     async listMyKeys() {
         const scope = currentScope()
         const userId = requireUserId()
@@ -307,9 +333,17 @@ export class ModelGatewayService {
             where: { tenantId: key.tenantId, id: key.userId },
             relations: ['role', 'role.rolePermissions']
         })
-        if (!user) {
+        if (!user || user.isActive === false) {
             throw new UnauthorizedException(
                 modelGatewayMessage('ModelGatewayApiKeyOwnerMissing', 'API key owner no longer exists.')
+            )
+        }
+        if (!evaluatePermissions(user, [AIPermissionsEnum.MODEL_GATEWAY_USE]).allowed) {
+            throw new ForbiddenException(
+                modelGatewayMessage(
+                    'ModelGatewayPermissionRequired',
+                    'Your role is not allowed to use the external model API.'
+                )
             )
         }
         key.lastUsedAt = new Date()
@@ -388,9 +422,10 @@ export class ModelGatewayService {
     async createChatModel(
         publication: ModelGatewayPublication,
         resolution: IModelAccessResolution,
-        usageCallback: (usage: ILLMUsage) => void
+        usageCallback: (usage: ILLMUsage) => void,
+        reasoning?: RequestReasoningControls
     ) {
-        return createGatewayChatModel(this.runtimeService, publication, resolution, usageCallback)
+        return createGatewayChatModel(this.runtimeService, publication, resolution, usageCallback, reasoning)
     }
 
     async startCall(input: {
@@ -527,26 +562,27 @@ export class ModelGatewayService {
         input.usage.exchangeRate = cnySettlement?.exchangeRate ?? null
         // Unknown pricing is not a free call. Preserve the completed inference and its billing context.
         const awaitingPrice = input.usage.totalTokens > 0 && !cnySettlement
-        const settlementResult = awaitingPrice
-            ? { chargedPoints: current.chargedPoints, excessPoints: current.excessPoints }
-            : await this.membershipService.recordGatewayUsage({
-                  tenantId: current.tenantId,
-                  organizationId: current.organizationId ?? null,
-                  copilotOrganizationId: input.resolution.organizationId ?? null,
-                  userId: current.userId,
-                  provider: current.provider,
-                  model: current.model,
-                  tokenUsed: input.usage.totalTokens,
-                  priceAmount: input.usage.priceAmount,
-                  priceCurrency: input.usage.priceCurrency,
-                  settlementAmount: cnySettlement?.amount,
-                  settlementCurrency: cnySettlement?.currency,
-                  exchangeRate: cnySettlement?.exchangeRate,
-                  copilotId: input.resolution.copilotId,
-                  modelAccess: input.resolution,
-                  gatewayRequestId: current.requestId,
-                  gatewayApiKeyId: current.apiKeyId
-              })
+        const settlementResult =
+            awaitingPrice || input.usage.source === ModelGatewayUsageSourceEnum.None
+                ? { chargedPoints: current.chargedPoints, excessPoints: current.excessPoints }
+                : await this.membershipService.recordGatewayUsage({
+                      tenantId: current.tenantId,
+                      organizationId: current.organizationId ?? null,
+                      copilotOrganizationId: input.resolution.organizationId ?? null,
+                      userId: current.userId,
+                      provider: current.provider,
+                      model: current.model,
+                      tokenUsed: input.usage.totalTokens,
+                      priceAmount: input.usage.priceAmount,
+                      priceCurrency: input.usage.priceCurrency,
+                      settlementAmount: cnySettlement?.amount,
+                      settlementCurrency: cnySettlement?.currency,
+                      exchangeRate: cnySettlement?.exchangeRate,
+                      copilotId: input.resolution.copilotId,
+                      modelAccess: input.resolution,
+                      gatewayRequestId: current.requestId,
+                      gatewayApiKeyId: current.apiKeyId
+                  })
         const completedAt = retryingSettlement && current.completedAt ? current.completedAt : new Date()
         current.status = awaitingPrice
             ? ModelGatewayCallStatusEnum.SettlementPending

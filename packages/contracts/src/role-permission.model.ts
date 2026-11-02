@@ -27,6 +27,7 @@ export interface IRolePermissionUpdateInput {
 }
 
 export enum PermissionsEnum {
+  ANNOUNCEMENT_MANAGE = 'ANNOUNCEMENT_MANAGE',
   PROFILE_EDIT = 'PROFILE_EDIT',
   ADMIN_DASHBOARD_VIEW = 'ADMIN_DASHBOARD_VIEW',
   ORG_EMPLOYEES_VIEW = 'ORG_EMPLOYEES_VIEW',
@@ -96,7 +97,11 @@ export const PermissionGroups = {
     AIPermissionsEnum.BILLING_PRODUCT_EDIT,
     AIPermissionsEnum.BILLING_REFUND,
     AIPermissionsEnum.PAYMENT_PROVIDER_EDIT,
+    AIPermissionsEnum.XPERT_VIEW,
+    AIPermissionsEnum.XPERT_WORKSPACE_MANAGE,
     AIPermissionsEnum.XPERT_EDIT,
+    AIPermissionsEnum.APPLICATION_USE,
+    AIPermissionsEnum.APPLICATION_INSTALL,
     AIPermissionsEnum.XPERT_PROJECT_VIEW,
     AIPermissionsEnum.XPERT_PROJECT_CREATE,
     AIPermissionsEnum.XPERT_PROJECT_EDIT,
@@ -117,6 +122,7 @@ export const PermissionGroups = {
 
   //Readonly permissions, are only enabled for admin role
   ADMINISTRATION: [
+    PermissionsEnum.ANNOUNCEMENT_MANAGE,
     PermissionsEnum.ORG_USERS_VIEW,
     PermissionsEnum.ORG_USERS_EDIT,
     PermissionsEnum.ALL_ORG_VIEW,

@@ -22,7 +22,8 @@ import {
   ZardAccordionImports,
   ZardAlertDialogService,
   ZardButtonComponent,
-  ZardIconComponent
+  ZardIconComponent,
+  ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceMcpProviderComponent } from '../../setting/plugins/marketplace/marketplace-mcp-provider.component'
 import {
@@ -54,6 +55,7 @@ import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app
     ...ZardAccordionImports,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardSelectImports,
     PluginMarketplaceMcpProviderComponent,
     ApplicationToolsetsComponent,
     ExploreScopeComponent

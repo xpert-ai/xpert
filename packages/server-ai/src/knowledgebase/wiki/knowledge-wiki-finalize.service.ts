@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { DataSource, IsNull, Not, Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiPage,

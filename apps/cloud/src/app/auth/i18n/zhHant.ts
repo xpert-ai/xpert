@@ -31,6 +31,8 @@ export const ZhHant = {
     RegisterFail: '註冊失敗，請稍後重試。',
     Varify: '驗證',
     VarifyEmailSuccess: '郵箱驗證成功, 請前往登錄',
+    VerifyEmailInvalidLink: '驗證連結無效或已過期，請開啟郵件中最新的驗證連結。',
+    VerifyEmailFailed: '郵箱驗證失敗，請稍後重試。',
     Required: '必填',
     AtLeast8Characters: '至少 8 個字符',
     Mismatch: '密碼不匹配',

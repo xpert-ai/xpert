@@ -3,7 +3,7 @@ jest.mock('i18next', () => ({ t: (key: string, options?: { reason?: string }) =>
 // Each suite owns an isolated schema and real package directories; no platform data is accessed.
 jest.mock('../agent-plugin.entity', () => ({ AgentPluginPackage: class {}, AgentResourceBinding: class {} }))
 jest.mock('../agent-plugin-connector.service', () => ({ AgentPluginConnectorService: class {} }))
-jest.mock('../../plugin-resource/plugin-resource-installer.service', () => ({
+jest.mock('../../plugin-resource/installation/plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class {}
 }))
 jest.mock('../../skill-package/skill-package.entity', () => ({ SkillPackage: class {} }))
@@ -23,7 +23,7 @@ import { AgentPluginPackage, AgentResourceBinding } from '../agent-plugin.entity
 import { AgentPluginService } from '../agent-plugin.service'
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { AgentPluginConnectorService } from '../agent-plugin-connector.service'
-import { PluginResourceInstallerService } from '../../plugin-resource/plugin-resource-installer.service'
+import { PluginResourceInstallerService } from '../../plugin-resource/installation/plugin-resource-installer.service'
 import { DefaultAgentPluginsStore } from '../defaults/default-agent-plugins.store'
 import { DefaultAgentPluginsService } from '../defaults/default-agent-plugins.service'
 import { DefaultAgentPluginsImporter } from '../defaults/default-agent-plugins.importer'

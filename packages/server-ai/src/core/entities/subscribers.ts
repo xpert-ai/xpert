@@ -2,7 +2,7 @@ import { ChatConversationSubscriber } from '../../chat-conversation/conversation
 import { ChatMessageSubscriber } from '../../chat-message/chat-message.subscriber'
 import { CopilotModelSubscriber } from '../../copilot-model/copilot-model.subscriber'
 import { KnowledgeDocumentSubscriber } from '../../knowledge-document/document.subscriber'
-import { KnowledgebaseSubscriber } from '../../knowledgebase/knowledgebase.subscriber'
+import { KnowledgebaseSubscriber } from '../../knowledgebase/persistence/knowledgebase.subscriber'
 import { XpertProjectTaskSubscriber } from '../../xpert-project/entities/project-task.subscriber'
 import { XpertProjectSubscriber } from '../../xpert-project/project.subscriber'
 import { XpertToolSubscriber } from '../../xpert-tool/xpert-tool.subscriber'

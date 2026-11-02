@@ -56,6 +56,7 @@ import { CreateInviteDTO } from './dto';
 @ApiTags('Invite')
 @UseInterceptors(TransformInterceptor)
 @Controller()
+@Permissions(PermissionsEnum.ORG_INVITE_EDIT)
 export class InviteController {
 	constructor(
 		private readonly inviteService: InviteService,

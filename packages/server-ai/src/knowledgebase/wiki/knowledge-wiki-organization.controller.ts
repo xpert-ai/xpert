@@ -1,3 +1,5 @@
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -29,6 +31,7 @@ import {
 
 @Controller(':knowledgebaseId/wiki')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgeWikiOrganizationController {
     constructor(
         private readonly organization: KnowledgeWikiOrganizationService,

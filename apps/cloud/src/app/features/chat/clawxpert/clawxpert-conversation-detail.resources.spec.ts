@@ -15,6 +15,15 @@ import {
 } from './clawxpert-conversation-detail.test-setup'
 
 function openResource(resource: ChatTaskSummaryResourceReference) {
+  getRuntimeInput().onThreadLoadEnd?.({
+    threadId: 'thread-1',
+    conversation: {
+      id: 'conversation-1',
+      threadId: 'thread-1',
+      xpertId: 'assistant-1',
+      from: 'platform'
+    }
+  })
   getRuntimeInput().onEffect?.({ name: CHATKIT_TASK_SUMMARY_OPEN_RESOURCE_EFFECT, data: { resource } })
 }
 

@@ -10,7 +10,11 @@ export const createDefinitionSchema = z
     })
     .strict() as z.ZodType<AnalyticsDefinitionCreate>
 export const publishDefinitionSchema = z
-    .object({ expectedCurrentVersionId: z.string().uuid(), options: analyticsOptionsSchema })
+    .object({
+        expectedCurrentVersionId: z.string().uuid(),
+        options: analyticsOptionsSchema,
+        visibility: z.enum(['private', 'organization']).optional()
+    })
     .strict() as z.ZodType<AnalyticsDefinitionPublish>
 export const definitionStatusSchema = z.object({ status: z.enum(['active', 'archived']) }).strict()
 export const definitionPageSchema = z

@@ -2,7 +2,7 @@ import { AIPermissionsEnum, XpertViewSlot } from '@xpert-ai/contracts'
 import { ViewHostDefinition, ViewHostDefinitionContract } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/server-core'
-import { KnowledgebaseService } from '../../knowledgebase/knowledgebase.service'
+import { KnowledgebaseService } from '../../knowledgebase/management/knowledgebase.service'
 
 @Injectable()
 @ViewHostDefinition('knowledgebase')

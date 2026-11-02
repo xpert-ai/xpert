@@ -1,8 +1,22 @@
+import { authenticateGatewayRequest, ModelGatewayAuthGuard } from './gateway-auth.guard'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from '@xpert-ai/server-core'
 import { executeGatewayChat } from './chat-execution'
 // Invariants: client scope headers do not select the gateway's tenant or organization.
 // Resolve access in the API key scope, then run the model in its publication scope.
 // Preserve both host and plugin contexts through streaming and usage settlement.
-import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Post, Req, Res } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Get,
+    HttpException,
+    HttpStatus,
+    NotFoundException,
+    Post,
+    Req,
+    Res,
+    UseGuards
+} from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -22,13 +36,15 @@ import { modelGatewayMessage } from './model-gateway.i18n'
 @ApiTags('OpenAI-compatible model gateway')
 @Public()
 @Controller('openai/v1')
+@UseGuards(ModelGatewayAuthGuard)
+@Permissions(AIPermissionsEnum.MODEL_GATEWAY_USE)
 export class ModelGatewayOpenAIController {
     constructor(private readonly service: ModelGatewayService) {}
 
     @Get('models')
     async models(@Req() request: Request) {
         try {
-            const identity = await this.service.authenticate(request.headers.authorization)
+            const identity = await authenticateGatewayRequest(request, this.service)
             const items = await this.runWithModelContext(identity, identity.apiKey.organizationId, () =>
                 this.service.listAccessiblePublications(identity)
             )
@@ -51,7 +67,7 @@ export class ModelGatewayOpenAIController {
         const execution = this.createExecutionSignal(request, response)
         try {
             const parsed = parseOpenAIChatRequest(body)
-            const identity = await this.service.authenticate(request.headers.authorization)
+            const identity = await authenticateGatewayRequest(request, this.service)
             return await this.runWithModelContext(identity, identity.apiKey.organizationId, async () => {
                 const callable = await this.service.requireCallablePublication(identity, parsed.model)
                 return this.runWithModelContext(identity, callable.publication.organizationId, () =>
@@ -111,7 +127,10 @@ export class ModelGatewayOpenAIController {
                         requestBody: body
                     })),
                 createModel: (callback) =>
-                    this.service.createChatModel(callable.publication, callable.resolution, callback),
+                    this.service.createChatModel(callable.publication, callable.resolution, callback, {
+                        enableThinking: parsed.options.enable_thinking,
+                        reasoningEffort: parsed.options.reasoning_effort
+                    }),
                 settle: ({ usage, responseBody, error }) =>
                     this.settleCall({ call, resolution: callable.resolution, usage, responseBody, error })
             }

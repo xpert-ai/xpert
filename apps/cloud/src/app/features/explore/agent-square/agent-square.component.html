@@ -1,5 +1,4 @@
 <section class="space-y-6">
-  <xp-explore-scope />
   <ng-template #catalogNavigation>
     <header class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <nav
@@ -418,7 +417,7 @@
             </button>
           }
         } @else {
-          @for (category of businessCategories; track category) {
+          @for (category of visibleBusinessCategories(); track category) {
             <button
               type="button"
               [class]="

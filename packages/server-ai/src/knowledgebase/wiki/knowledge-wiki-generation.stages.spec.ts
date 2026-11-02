@@ -4,7 +4,7 @@ import { Queue } from 'bull'
 import i18next from 'i18next'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,

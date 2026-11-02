@@ -13,7 +13,7 @@ import {
     XpertTemplateSetup,
     resolveI18nText
 } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -35,6 +35,7 @@ import { findAvailableLlmSelection, findDefaultLlmSelection } from '../../copilo
 
 @Injectable()
 export class AssistantCapabilityService {
+    private readonly logger = new Logger(AssistantCapabilityService.name)
     constructor(
         private readonly registry: AssistantCapabilityProviderRegistry,
         private readonly queries: QueryBus,
@@ -206,12 +207,26 @@ export class AssistantCapabilityService {
             sandboxProviders,
             draft
         )
-        if (!check.canInstall) throw new BadRequestException(check.reason)
+        if (!check.canInstall) {
+            this.logger.warn({
+                phase: 'template_model_preflight',
+                eligibleModels: check.models.length,
+                requiredFeatures: check.requiredModelFeatures
+            })
+            throw new BadRequestException(check.reason)
+        }
         if (!check.requiresModel) return
         const preferred =
             findAvailableLlmSelection(copilots, draft.team.copilotModel) ?? findDefaultLlmSelection(copilots)
         const choice = model !== undefined ? findAvailableLlmSelection(copilots, model) : preferred
-        if (!choice) throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
+        if (!choice) {
+            this.logger.warn({
+                phase: 'template_model_selection',
+                eligibleModels: check.models.length,
+                explicitSelection: model !== undefined
+            })
+            throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
+        }
         // The selector returns only model identity; retain server-side options when that identity is unchanged.
         draft.team.copilotModel =
             model?.options === undefined &&

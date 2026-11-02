@@ -1,5 +1,5 @@
 import type { Repository } from 'typeorm'
-import { Knowledgebase } from '../knowledgebase.entity'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiPage,

@@ -48,6 +48,15 @@ export type TXpertTitleFeature = {
   instruction?: string
 }
 
+/** A short display label can accompany the complete message sent by a starter. */
+export type TXpertOpenerQuestion = string | { label: string; prompt: string }
+
+export function toXpertOpenerPrompt(question: TXpertOpenerQuestion): { label: string; prompt: string } {
+  return typeof question === 'string'
+    ? { label: question, prompt: question }
+    : { label: question.label, prompt: question.prompt }
+}
+
 export type TXpertFeatures = {
   realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceFeature
   /** Generate start-screen questions from recurring intents in conversation history. */
@@ -58,7 +67,7 @@ export type TXpertFeatures = {
   opener: {
     enabled: boolean
     message: string
-    questions: string[]
+    questions: TXpertOpenerQuestion[]
   }
 
   suggestion: {
@@ -437,7 +446,11 @@ export type TXpertAgentConfig = {
    * Maximum number of times a call can recurse. If not provided, defaults to 1000.
    */
   recursionLimit?: number
-  /** Maximum number of parallel calls to make. */
+  /**
+   * @deprecated Silently ignored. LangGraph.js can drop queued tasks when set to 1
+   * (langchain-ai/langgraphjs#2656). Retained for plugin and imported-template compatibility;
+   * Assistant execution uses LangGraph's default scheduler without this option.
+   */
   maxConcurrency?: number
   /**
    * Timeout for this call in milliseconds.
@@ -514,13 +527,17 @@ export function getXpertAgentRecursionLimit(agentConfig?: { recursionLimit?: num
     : DEFAULT_XPERT_AGENT_RECURSION_LIMIT
 }
 
+type AgentConfigInput = { recursionLimit?: number | null; maxConcurrency?: unknown }
+
 export function normalizeXpertAgentConfig(): { recursionLimit: number }
-export function normalizeXpertAgentConfig<T extends { recursionLimit?: number | null }>(
+export function normalizeXpertAgentConfig<T extends AgentConfigInput>(
   agentConfig: T
-): Omit<T, 'recursionLimit'> & { recursionLimit: number }
-export function normalizeXpertAgentConfig<T extends { recursionLimit?: number | null }>(agentConfig?: T | null) {
+): Omit<T, 'recursionLimit' | 'maxConcurrency'> & { recursionLimit: number }
+export function normalizeXpertAgentConfig<T extends AgentConfigInput>(agentConfig?: T | null) {
+  // Legacy imports may carry this unsupported scheduler option (LangGraph.js #2656).
+  const { maxConcurrency: _maxConcurrency, ...config } = agentConfig ?? {}
   return {
-    ...(agentConfig ?? {}),
+    ...config,
     recursionLimit: getXpertAgentRecursionLimit(agentConfig)
   }
 }

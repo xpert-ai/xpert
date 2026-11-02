@@ -1,3 +1,5 @@
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators/permissions'
 import { IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts';
 import { Request } from 'express';
 import {
@@ -36,6 +38,7 @@ import {
 
 @ApiTags('Tenant')
 @Controller()
+@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class TenantController extends CrudController<Tenant> {
 	constructor(
 		private readonly tenantService: TenantService,
