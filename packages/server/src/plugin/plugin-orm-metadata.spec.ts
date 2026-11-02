@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common'
-import { Entity } from 'typeorm'
+import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 jest.mock('./plugin.helper', () => ({
 	getEntitiesFromPlugins: jest.fn(() => []),
@@ -36,6 +36,66 @@ describe('plugin orm metadata helpers', () => {
 		expect(() => mergeEntityClasses([CoreEntity], [ConflictingEntity as typeof CoreEntity])).toThrow(
 			ConflictException
 		)
+	})
+
+	it.each(['plugin_scoped_history', 'plugin_other_history'])(
+		'preserves scoped entity constructors when their class names match (%s)',
+		async (secondTable) => {
+			const createEntity = (table: string) => {
+				@Entity(table)
+				class SettingsHistory {
+					@PrimaryGeneratedColumn('uuid')
+					id: string
+
+					@Column({ type: 'uuid' })
+					organizationId: string
+				}
+				return SettingsHistory
+			}
+			const first = createEntity('plugin_scoped_history')
+			const second = createEntity(secondTable)
+			const entities = mergeEntityClasses([], [first, second, first])
+			expect(entities).toEqual([first, second])
+
+			class MetadataDataSource extends DataSource {
+				async prepareMetadata() {
+					await this.buildMetadatas()
+				}
+			}
+			const database = new MetadataDataSource({ type: 'postgres', entities })
+			await database.prepareMetadata()
+			expect(database.getMetadata(first).target).toBe(first)
+			expect(database.getMetadata(second).target).toBe(second)
+			expect(database.getMetadata(first).tableName).toBe('plugin_scoped_history')
+			expect(database.getMetadata(second).tableName).toBe(secondTable)
+		}
+	)
+
+	it('allows matching core and plugin class names with different explicit table mappings', () => {
+		const core = class LearningEventEntity {}
+		const plugin = class LearningEventEntity {}
+		Entity('agent_evolution_learning_event')(core)
+		Entity('plugin_learning_event')(plugin)
+		expect(mergeEntityClasses([core], [plugin])).toEqual([core, plugin])
+	})
+
+	it.each([undefined, 'public'])(
+		'rejects a plugin that maps to a core table with another class name (schema=%s)',
+		(schema) => {
+			class HostData {}
+			class PluginData {}
+			Entity('host_data', { schema })(HostData)
+			Entity('host_data', { schema: 'public' })(PluginData)
+			expect(() => mergeEntityClasses([HostData], [PluginData])).toThrow(ConflictException)
+		}
+	)
+
+	it('distinguishes explicit schemas when checking core table conflicts', () => {
+		const core = class History {}
+		const plugin = class History {}
+		Entity('history', { schema: 'host' })(core)
+		Entity('history', { schema: 'plugin' })(plugin)
+		expect(mergeEntityClasses([core], [plugin])).toEqual([core, plugin])
 	})
 
 	it('deduplicates plugin subscribers', () => {
