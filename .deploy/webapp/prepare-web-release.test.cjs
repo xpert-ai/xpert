@@ -6,7 +6,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 const { prepareWebRelease } = require('./prepare-web-release.cjs')
 
-test('one identity is shared by compiled Cloud, manifest and both entry pages; each build is unique', () => {
+test('Cloud updates work with the published ChatKit app without opting it into standalone updates', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-release-'))
   try {
     for (const [file, value] of Object.entries({
@@ -15,7 +15,6 @@ test('one identity is shared by compiled Cloud, manifest and both entry pages; e
       'node_modules/@xpert-ai/chatkit-ui/dist/app/index.html':
         '<head><script src="/assets/main-HASH.js"></script></head><div id="root"></div>',
       'node_modules/@xpert-ai/chatkit-ui/dist/app/assets/main-HASH.js': 'window.chatkit=true',
-      'node_modules/@xpert-ai/chatkit-ui/dist/app/xpert-web-update.json': '{"schemaVersion":1}',
       '.deploy/webapp/retire-service-worker.js': fs.readFileSync(
         path.join(__dirname, 'retire-service-worker.js'),
         'utf8'
@@ -28,7 +27,9 @@ test('one identity is shared by compiled Cloud, manifest and both entry pages; e
     const first = prepareWebRelease(root)
     const read = (file) => fs.readFileSync(path.join(root, '.cache/web-release', file), 'utf8')
     assert.deepEqual(JSON.parse(read('version.json')), first)
-    for (const file of ['version.ts', 'index.html', 'chatkit/index.html']) assert.ok(read(file).includes(first.buildId))
+    for (const file of ['version.ts', 'index.html']) assert.ok(read(file).includes(first.buildId))
+    assert.doesNotMatch(read('chatkit/index.html'), /xpert-web-(?:build|version)/)
+    assert.ok(!fs.existsSync(path.join(root, '.cache/web-release/chatkit/xpert-web-update.json')))
     assert.ok(read('chatkit/index.html').includes('/chatkit/assets/main-HASH.js'))
     assert.equal(read('chatkit/index.html').match(/href="\/assets\/chatkit-icons\/remixicon.css"/g).length, 1)
     assert.equal(read('chatkit/assets/main-HASH.js'), 'window.chatkit=true')
@@ -36,21 +37,20 @@ test('one identity is shared by compiled Cloud, manifest and both entry pages; e
     const second = prepareWebRelease(root)
     assert.equal(second.version, first.version)
     assert.notEqual(second.buildId, first.buildId)
-    const override = path.join(root, 'local-chatkit')
-    fs.mkdirSync(path.join(override, 'assets'), { recursive: true })
+    const installed = path.join(root, 'node_modules/@xpert-ai/chatkit-ui/dist/app')
+    fs.rmSync(path.join(installed, 'assets/main-HASH.js'))
     fs.writeFileSync(
-      path.join(override, 'index.html'),
-      '<head><meta name="xpert-web-build" content="old"><script src="/assets/new-CHUNK.js"></script></head>'
+      path.join(installed, 'index.html'),
+      '<head><meta name="xpert-web-build" content="old"><meta name="xpert-web-version" content="old"><script src="/assets/new-CHUNK.js"></script></head>'
     )
-    fs.writeFileSync(path.join(override, 'xpert-web-update.json'), '{"schemaVersion":1}')
-    fs.writeFileSync(path.join(override, 'assets/new-CHUNK.js'), 'window.localChatkit=true')
-    prepareWebRelease(root, 'local-build', override)
-    assert.equal(read('chatkit/assets/new-CHUNK.js'), 'window.localChatkit=true')
+    fs.writeFileSync(path.join(installed, 'xpert-web-update.json'), '{"schemaVersion":99}')
+    fs.writeFileSync(path.join(installed, 'assets/new-CHUNK.js'), 'window.chatkit=true')
+    prepareWebRelease(root, 'next-build')
+    assert.equal(read('chatkit/assets/new-CHUNK.js'), 'window.chatkit=true')
     assert.ok(!fs.existsSync(path.join(root, '.cache/web-release/chatkit/assets/main-HASH.js')))
-    assert.ok(read('chatkit/index.html').includes('local-build'))
+    assert.ok(read('index.html').includes('next-build'))
+    assert.doesNotMatch(read('chatkit/index.html'), /xpert-web-(?:build|version)/)
     assert.ok(read('chatkit/index.html').includes('href="/assets/chatkit-icons/remixicon.css"'))
-    assert.ok(!read('chatkit/index.html').includes('content="old"'))
-    assert.throws(() => prepareWebRelease(root, 'bad', path.join(root, '.cache/web-release/chatkit')), /separate/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

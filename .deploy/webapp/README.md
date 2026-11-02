@@ -79,8 +79,8 @@ node --test .deploy/webapp/prepare-chatkit-pets.test.cjs .deploy/webapp/dependen
 ## Web build updates
 
 `cloud:build` runs `prepare-web-release` to generate a new build ID in
-`.cache/web-release`. Cloud compiles that ID into its bundle; both entry HTML
-files and `/version.json` carry the same ID. Build output is not reused from Nx's
+`.cache/web-release`. Cloud compiles that ID into its bundle; its entry HTML
+and `/version.json` carry the same ID. Build output is not reused from Nx's
 cache because the manifest and loaded bundle must agree. Development `serve`
 also prepares these files, but automatic polling is enabled only in production.
 
@@ -98,31 +98,24 @@ WEB_UPDATE_NGINX_IMAGE=nginx:1.30.6 node --test .deploy/webapp/cache-policy.test
 corepack pnpm exec jest --config apps/cloud/jest.config.ts --runInBand --testPathPatterns=web-update
 ```
 
-The existing image check also verifies manifest/entry consistency, ChatKit update
-capability, response headers and missing bundles. Manual acceptance: leave build A open, deploy B,
+The existing image check also verifies Cloud manifest/entry consistency,
+response headers and missing bundles. Manual acceptance: leave build A open, deploy B,
 check the bottom-left notice, dismiss it, reopen About and update. Verify that
 login and the current URL survive, then repeat with offline checks and rollback.
 Already-open pages from before this feature need one initial refresh to acquire
 the detector. These checks do not establish deployment or customer acceptance.
 
-Standalone ChatKit updates need the matching `@xpert-ai/chatkit-ui` patch with
-`xpert-web-update.json` in `dist/app`. Publish that package and update Cloud and
-isolated Web dependency locks through the existing ChatKit dependency workflow
-before a normal release. Until then, the build warns when the installed package
-lacks this capability. For local integration without replacing installed packages:
+Standalone ChatKit update notices and its About update action are outside this
+release. Cloud uses the already-published ChatKit dependency pinned in the existing
+lockfiles; no companion ChatKit release or update-capability marker is required.
+The ChatKit entry is not stamped with update metadata, so its standalone detector
+stays off even if a later package includes one.
 
-```sh
-# Build the ChatKit worktree's UI app first, then from the Xpert checkout:
-CHATKIT_APP_SOURCE=/absolute/chatkit-worktree/packages/chatkit-ui/dist/app \
-  corepack pnpm exec nx build cloud --configuration=production
-```
-
-The preparation step stages the complete selected ChatKit app, rewrites its
-entry asset prefix and stamps the shared build identity. Angular and Docker both
+The preparation step stages the complete installed ChatKit app and rewrites its
+entry asset prefix. Angular and Docker both
 consume these staged files; Docker must not overwrite them with a different copy
 from node_modules. ChatKit assets remain available at both `/chatkit/assets` and
-the existing `/assets` path used by Vite's lazy preload map. The source override
-is local build integration, not publication.
+the existing `/assets` path used by Vite's lazy preload map.
 
 Release staging also uses the existing ChatKit icon stylesheet helper, preserving
 the local `/assets/chatkit-icons` font path after bundle URLs are rewritten.

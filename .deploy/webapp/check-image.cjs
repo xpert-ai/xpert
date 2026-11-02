@@ -51,11 +51,6 @@ async function main() {
     }
     docker('exec', name, 'nginx', '-t')
     const release = JSON.parse(fetchPage('/version.json'))
-    assert.equal(
-      JSON.parse(fetchPage('/chatkit/xpert-web-update.json')).schemaVersion,
-      1,
-      'ChatKit package must include standalone web-update support before release'
-    )
     assert.ok(typeof release.buildId === 'string' && release.buildId.length > 0, 'Build identity missing')
     assert.ok(typeof release.version === 'string', 'Display version missing')
     assert.match(headers('/version.json'), /Cache-Control: no-store/i)
@@ -64,18 +59,22 @@ async function main() {
       assert.match(headers(missing), /404 Not Found/, missing)
     }
     const checked = new Set()
-    for (const [pathname, marker] of [
-      ['/', '<xp-root'],
-      ['/explore', '<xp-root'],
-      ['/chatkit', 'id="root"'],
-      ['/chatkit/', 'id="root"']
+    for (const [pathname, marker, hasUpdateDetector] of [
+      ['/', '<xp-root', true],
+      ['/explore', '<xp-root', true],
+      ['/chatkit', 'id="root"', false],
+      ['/chatkit/', 'id="root"', false]
     ]) {
       const html = fetchPage(pathname).replace(/<!--[\s\S]*?-->/g, '')
       assert.ok(html.includes(marker), `${pathname}: application root missing`)
-      assert.ok(
-        html.includes(`name="xpert-web-build" content="${release.buildId}"`),
-        `${pathname}: build identity mismatch`
-      )
+      if (hasUpdateDetector) {
+        assert.ok(
+          html.includes(`name="xpert-web-build" content="${release.buildId}"`),
+          `${pathname}: build identity mismatch`
+        )
+      } else {
+        assert.doesNotMatch(html, /name="xpert-web-(?:build|version)"/, `${pathname}: standalone updates must stay off`)
+      }
       assert.match(headers(pathname), /Cache-Control: no-store/i, pathname)
       const assets = [...html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"[^>]*>/g)]
         .map((match) => new URL(match[1], `http://127.0.0.1${pathname}`))
