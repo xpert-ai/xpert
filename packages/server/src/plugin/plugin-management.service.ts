@@ -621,6 +621,13 @@ export class PluginManagementService {
 				) {
 					throw new BadRequestException(t('server:Error.PluginRuntimePolicyChanged'))
 				}
+				if (stagedPlugin.meta.artifactNamespace) {
+					assertPluginArtifactNamespaceAvailable(this.loadedPlugins, {
+						artifactNamespace: stagedPlugin.meta.artifactNamespace,
+						pluginName: stagedPlugin.meta.name,
+						packageName
+					})
+				}
 				await this.pluginSchemaSync.synchronize({
 					pluginName: packageName,
 					pluginBaseDir: stagedPluginBaseDir,
@@ -720,7 +727,6 @@ export class PluginManagementService {
 				)
 			}
 			const explicitArtifactNamespace = plugin.meta?.artifactNamespace ?? manifestArtifactNamespace ?? null
-			const artifactNamespace = explicitArtifactNamespace ?? derivePluginArtifactNamespace(pluginName)
 			if (explicitArtifactNamespace && !isPluginArtifactNamespace(explicitArtifactNamespace)) {
 				throw new BadRequestException(
 					`Plugin "${pluginName}" artifactNamespace must contain only lowercase letters, numbers, and underscores`
@@ -737,16 +743,11 @@ export class PluginManagementService {
 			for await (const dynamicModule of modules) {
 				this.logger.debug(`Loading plugin module for ${runtimePluginName} into scope ${scope.scopeKey}`)
 				const ormMetadata = collectPluginOrmMetadata([dynamicModule])
-				if (ormMetadata.entities.length && !explicitArtifactNamespace) {
-					this.logger.warn(
-						`Plugin "${pluginName}" declares TypeORM entities but does not declare artifactNamespace; using derived namespace "${artifactNamespace}" for v1 compatibility.`
-					)
-				}
 				validatePluginEntityTableNames({
 					pluginName,
 					entities: ormMetadata.entities,
-					artifactNamespace,
-					requireNamespaceMatch: Boolean(explicitArtifactNamespace)
+					artifactNamespace: plugin.meta.artifactNamespace,
+					level: resolvedLevel
 				})
 				const metadataRegistration = await registerPluginOrmMetadataInDataSource(this.dataSource, ormMetadata)
 				if (metadataRegistration.changed) {

@@ -6,6 +6,8 @@ jest.mock('./plugin.helper', () => ({
 	getSubscribersFromPlugins: jest.fn(() => [])
 }))
 
+import { registerPluginEntityOwnership } from './plugin-entity-policy'
+
 import {
 	getEntityTableName,
 	mergeEntityClasses,
@@ -54,6 +56,13 @@ describe('plugin orm metadata helpers', () => {
 			}
 			const first = createEntity('plugin_scoped_history')
 			const second = createEntity(secondTable)
+			for (const entity of [first, second]) {
+				registerPluginEntityOwnership([entity], {
+					pluginName: 'scoped',
+					artifactNamespace: 'scoped',
+					version: '1.0.0'
+				})
+			}
 			const entities = mergeEntityClasses([], [first, second, first])
 			expect(entities).toEqual([first, second])
 
@@ -115,7 +124,7 @@ describe('plugin orm metadata helpers', () => {
 				pluginName: '@xpert-ai/plugin-office-editor',
 				entities: [OfficeDocumentEntity],
 				artifactNamespace: 'office_editor',
-				requireNamespaceMatch: true
+				level: 'tenant'
 			})
 		).not.toThrow()
 
@@ -124,21 +133,70 @@ describe('plugin orm metadata helpers', () => {
 				pluginName: '@xpert-ai/plugin-office-editor',
 				entities: [OtherDocumentEntity],
 				artifactNamespace: 'office_editor',
-				requireNamespaceMatch: true
+				level: 'tenant'
 			})
 		).toThrow(BadRequestException)
 	})
 
-	it('allows legacy v1 entity table names when no namespace is explicitly declared', () => {
+	it.each([undefined, '', 'INVALID'])(
+		'rejects entity plugins without a valid explicit namespace (%s)',
+		(artifactNamespace) => {
+			expect(() =>
+				validatePluginEntityTableNames({
+					pluginName: 'legacy',
+					entities: [OtherDocumentEntity],
+					artifactNamespace,
+					level: 'tenant'
+				})
+			).toThrow(BadRequestException)
+		}
+	)
+
+	it('rejects organization-level entities even with a valid namespace', () => {
 		expect(() =>
 			validatePluginEntityTableNames({
-				pluginName: '@xpert-ai/plugin-other',
+				pluginName: 'legacy',
 				entities: [OtherDocumentEntity],
 				artifactNamespace: 'other',
-				requireNamespaceMatch: false
+				level: 'organization'
 			})
+		).toThrow('level=system or level=tenant')
+	})
+
+	it('does not require entity policy metadata for plugins without entities', () => {
+		expect(() =>
+			validatePluginEntityTableNames({ pluginName: 'middleware', entities: [], level: 'organization' })
 		).not.toThrow()
 	})
+
+	it.each(['unverified', 'other-plugin', 'other-version', 'other-schema'])(
+		'rejects conflicting physical tables (%s)',
+		(variant) => {
+			const create = (extra = false) => {
+				@Entity('plugin_owned_history')
+				class History {
+					@PrimaryGeneratedColumn('uuid') id: string
+				}
+				if (extra) Column({ type: 'text' })(History.prototype, 'extra')
+				return History
+			}
+			const first = create()
+			const second = create(variant === 'other-schema')
+			if (variant !== 'unverified') {
+				registerPluginEntityOwnership([first], {
+					pluginName: 'owned',
+					artifactNamespace: 'owned',
+					version: '1.0.0'
+				})
+				registerPluginEntityOwnership([second], {
+					pluginName: variant === 'other-plugin' ? 'other' : 'owned',
+					artifactNamespace: 'owned',
+					version: variant === 'other-version' ? '2.0.0' : '1.0.0'
+				})
+			}
+			expect(() => mergeEntityClasses([], [first, second])).toThrow(ConflictException)
+		}
+	)
 
 	it('refreshes metadata without repeating global DDL after plugin schema preflight', async () => {
 		const dataSource = {

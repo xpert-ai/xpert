@@ -5,6 +5,7 @@ import { markImmutableArtifact } from './installation/immutable-artifact'
 import 'reflect-metadata'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+	isPluginArtifactNamespace: jest.requireActual('@xpert-ai/plugin-sdk').isPluginArtifactNamespace,
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
@@ -83,6 +84,67 @@ describe('plugin helper registerPluginsAsync', () => {
 		jest.clearAllMocks()
 		loaded.length = 0
 		loadFailures.length = 0
+	})
+
+	it.each([
+		{ namespace: undefined, level: 'tenant', table: 'plugin_owned_history', expected: 'artifactNamespace' },
+		{
+			namespace: 'owned',
+			level: 'organization',
+			table: 'plugin_owned_history',
+			expected: 'level=system or level=tenant'
+		},
+		{
+			namespace: 'owned',
+			level: 'tenant',
+			table: 'plugin_other_history',
+			expected: 'required artifact namespace prefix'
+		}
+	])(
+		'rejects invalid persisted entity plugins at startup ($expected)',
+		async ({ namespace, level, table, expected }) => {
+			const { Entity } = jest.requireActual<typeof import('typeorm')>('typeorm')
+			class History {}
+			Entity(table)(History)
+			class EntityModule {}
+			Reflect.defineMetadata('plugin:entities', [History], EntityModule)
+			loadPlugin.mockResolvedValueOnce({
+				meta: { name: '@test/owned', version: '1.0.0', level, artifactNamespace: namespace },
+				register: () => ({ module: EntityModule })
+			})
+			const result = await registerPluginsAsync({
+				tenantId: 'tenant-test',
+				organizationId: level === 'tenant' ? GLOBAL_ORGANIZATION_SCOPE : 'org-test',
+				scopeKey: level === 'tenant' ? 'tenant:tenant-test:global' : 'org-test',
+				plugins: [{ name: '@test/owned', source: 'npm', level }]
+			})
+			expect(result.modules).toEqual([])
+			expect(result.errors).toEqual([expect.objectContaining({ error: expect.stringContaining(expected) })])
+			expect(loaded).toEqual([])
+		}
+	)
+
+	it('checks namespace ownership during startup before registering another plugin', async () => {
+		loaded.push({
+			name: '@test/first',
+			packageName: '@test/first',
+			scopeKey: 'tenant:first:global',
+			instance: { meta: { artifactNamespace: 'owned' } }
+		})
+		const register = jest.fn()
+		loadPlugin.mockResolvedValueOnce({
+			meta: { name: '@test/second', version: '1.0.0', level: 'tenant', artifactNamespace: 'owned' },
+			register
+		})
+		const result = await registerPluginsAsync({
+			tenantId: 'tenant-test',
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			scopeKey: 'tenant:tenant-test:global',
+			plugins: [{ name: '@test/second', source: 'npm', level: 'tenant' }]
+		})
+		expect(result.modules).toEqual([])
+		expect(result.errors).toEqual([expect.objectContaining({ error: expect.stringContaining('already used') })])
+		expect(register).not.toHaveBeenCalled()
 	})
 
 	it.each(['code', 'npm'] as const)(

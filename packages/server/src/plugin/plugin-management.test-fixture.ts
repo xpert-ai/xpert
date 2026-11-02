@@ -7,6 +7,11 @@ import type { PluginInstanceService } from './plugin-instance.service'
 import type { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import type { RuntimeControlService } from '../runtime-control/runtime-control.service'
 
+jest.mock('../runtime-control/runtime-control.service', () => ({
+	RuntimeControlService: class RuntimeControlService {}
+}))
+jest.mock('../managed-connection', () => ({ InstanceRegistryService: class InstanceRegistryService {} }))
+
 jest.mock('@xpert-ai/contracts', () => ({
 	PLUGIN_CONFIGURATION_STATUS: {
 		VALID: 'valid',
