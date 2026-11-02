@@ -33,6 +33,7 @@ import {
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
+import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
 import {
     createProjectTaskSpecificationSnapshot,
     parseProjectTaskSpecificationSnapshot
@@ -44,7 +45,8 @@ export class ProjectTaskDispatchService {
         @InjectRepository(XpertProjectTaskExecution) private readonly executions: Repository<XpertProjectTaskExecution>,
         private readonly context: ProjectTaskRuntimeContextService,
         private readonly factory: AgentInvocationFactoryService,
-        private readonly cards: ProjectTaskCardProvider
+        private readonly cards: ProjectTaskCardProvider,
+        private readonly xpertBindings: XpertProjectXpertBindingService
     ) {}
 
     async dispatch(
@@ -96,17 +98,23 @@ export class ProjectTaskDispatchService {
                 await this.context.assertResponsibleAssistant(scope, existing.xpertId)
                 return existing
             }
-            const task = await manager.getRepository(XpertProjectTask).findOne({
+            const tasks = manager.getRepository(XpertProjectTask)
+            let task = await tasks.findOne({
                 where: { ...where, id: input.taskId },
                 relations: ['steps']
             })
             if (!task) throw projectTaskRuntimeError('NotFound')
             assertOrdinaryTask(task)
-            // Planning may be unassigned; delegation requires an explicit, authorized responsible Assistant.
-            // Caller identity and runtime/provider names never supply ownership, including for historical tasks.
-            if (!task.assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
-            await this.context.assertResponsibleAssistant(scope, task.assigneeXpertId)
-            if (input.target && task.assigneeXpertId !== target.reference) throw projectTaskRuntimeError('Scope')
+            // Selecting a group executor also assigns it responsibility. External runtimes preserve an
+            // existing owner, defaulting an unassigned task to the trusted calling Assistant.
+            const selectedAssignee = input.target ? target.reference : task.assigneeXpertId
+            const assigneeXpertId =
+                selectedAssignee ??
+                (scope.callerXpertId
+                    ? (await this.xpertBindings.resolveCurrentById(scope.callerXpertId, scope))?.id
+                    : undefined)
+            if (!assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
+            await this.context.assertResponsibleAssistant(scope, assigneeXpertId)
             if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
             if (task.kind !== 'task' || !['todo', 'in_progress', 'blocked', 'review'].includes(task.status))
                 throw projectTaskRuntimeError('State')
@@ -176,6 +184,10 @@ export class ProjectTaskDispatchService {
                 })
             )
                 throw projectTaskRuntimeError('Busy')
+            if (task.assigneeXpertId !== assigneeXpertId) {
+                task.assigneeXpertId = assigneeXpertId
+                task = await tasks.save(task)
+            }
             const taskExecutionId = randomUUID()
             const intent = projectTaskDispatchIntentSchema.parse({
                 version: 1,

@@ -104,7 +104,7 @@ export const createUpdateTasksTool = ({
                 })
                 .strict(),
             description:
-                'Update task step status or explicitly assign a responsible project-member Assistant. Set assigneeXpertId before delegating an unassigned task, then read its latest revision with project_get_task. Assignment does not start execution.'
+                'Update task step status or explicitly assign a responsible Project Assistant. Omitted assigneeXpertId preserves responsibility. Unassigned tasks acquire the executing Assistant at dispatch: the selected group member or, for an external Runtime, the current Assistant. Read the latest revision with project_get_task before dispatch. Updating a task does not start execution.'
         }
     )
     return updateTasksTool

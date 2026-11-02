@@ -74,6 +74,46 @@ const dispatchInput = () => ({
 const createInput = () => ({ tasks: [{ name: 'Task', requirements: ['Evidence'], steps: [] }] })
 
 describe('built-in Project Tasks Plugin', () => {
+    it('does not use a human or stale Assistant identity as the Project general agent default', async () => {
+        const { strategy, context, tasks } = fixture()
+        context.xpertId = randomUUID()
+        tasks.createTask.mockImplementation(async (_projectId, input) => ({ ...input, id: randomUUID(), revision: 1 }))
+        const tool = strategy
+            .createMiddleware({}, context)
+            .tools.find((item) => item.name === ProjectToolEnum.CreateTasks)
+        await tool.invoke(createInput())
+        expect(tasks.createTask).toHaveBeenCalledWith(
+            context.projectId,
+            expect.objectContaining({ assigneeXpertId: undefined })
+        )
+        const override = { ...createInput(), defaultAssigneeXpertId: context.userId }
+        await expect(tool.invoke(override)).rejects.toThrow()
+        expect(tasks.createTask).toHaveBeenCalledTimes(1)
+    })
+    it('defaults task creation to the trusted Assistant while preserving an explicit owner', async () => {
+        const { strategy, context, tasks } = fixture()
+        context.callerType = 'xpert'
+        context.xpertId = randomUUID()
+        tasks.createTask.mockImplementation(async (_projectId, input) => ({ ...input, id: randomUUID(), revision: 1 }))
+        const tool = strategy
+            .createMiddleware({}, context)
+            .tools.find((item) => item.name === ProjectToolEnum.CreateTasks)
+        await tool.invoke(createInput())
+        expect(tasks.createTask).toHaveBeenLastCalledWith(
+            context.projectId,
+            expect.objectContaining({
+                assigneeXpertId: context.xpertId
+            })
+        )
+        const explicitOwner = randomUUID()
+        await tool.invoke({ tasks: [{ ...createInput().tasks[0], assigneeXpertId: explicitOwner }] })
+        expect(tasks.createTask).toHaveBeenLastCalledWith(
+            context.projectId,
+            expect.objectContaining({
+                assigneeXpertId: explicitOwner
+            })
+        )
+    })
     it('records task creation without a duplicate resource card or legacy Computer component', async () => {
         const { strategy, context, tasks } = fixture()
         const id = randomUUID()
@@ -97,13 +137,14 @@ describe('built-in Project Tasks Plugin', () => {
         )
         expect(dispatchCustomEvent).not.toHaveBeenCalled()
     })
-    it('is discovered as a selectable built-in middleware with seven localized tools', () => {
+    it('is discovered as a selectable built-in middleware with localized tools and no expert directory tool', () => {
         const { registry, strategy, context } = fixture()
         expect(registry.get(PROJECT_TASKS_MIDDLEWARE)).toBe(strategy)
         expect(registry.listRegistrations()[0].source.kind).toBe('builtin')
         expect(isUserAddableAgentMiddleware(strategy.meta)).toBe(true)
         const middleware = strategy.createMiddleware({}, context)
-        expect(middleware.tools.map((tool) => tool.name)).toEqual(strategy.getToolNames())
+        expect(middleware.tools.map((tool) => tool.name).sort()).toEqual(strategy.getToolNames().sort())
+        expect(strategy.getToolNames()).not.toContain('project_list_experts')
         for (const tool of middleware.tools) {
             expect(tool.metadata.toolName).toEqual({ en_US: expect.any(String), zh_Hans: expect.any(String) })
             expect(tool.verboseParsingErrors).toBe(true)
@@ -113,11 +154,12 @@ describe('built-in Project Tasks Plugin', () => {
     it('keeps tool schemas discoverable without a project, but rejects every execution before service access', async () => {
         const { strategy, context, permission, execute, tasks } = fixture()
         const middleware = strategy.createMiddleware({}, { ...context, projectId: undefined })
-        const inputs = [
-            {},
-            createInput(),
-            { tasks: [{ id: randomUUID(), steps: [] }] },
-            {
+        const inputs = {
+            [ProjectToolEnum.ListTasks]: {},
+            [ProjectToolEnum.CreateTasks]: createInput(),
+            [ProjectToolEnum.UpdateTasks]: { tasks: [{ id: randomUUID(), steps: [] }] },
+            [ProjectToolEnum.UpdatePlan]: { taskId: randomUUID(), expectedRevision: 1 },
+            [ProjectToolEnum.DecideTask]: {
                 taskId: randomUUID(),
                 expectedRevision: 1,
                 implementationExecutionId: randomUUID(),
@@ -127,12 +169,13 @@ describe('built-in Project Tasks Plugin', () => {
                 rationale: 'Inspected the current implementation',
                 checks: ['Verified test evidence']
             },
-            dispatchInput(),
-            { taskId: randomUUID() },
-            {}
-        ]
-        for (let index = 0; index < middleware.tools.length; index++) {
-            await expect(middleware.tools[index].invoke(inputs[index])).rejects.toThrow()
+            [ProjectToolEnum.DispatchTask]: dispatchInput(),
+            [ProjectToolEnum.GetTask]: { taskId: randomUUID() },
+            [ProjectToolEnum.ListRuntimes]: {}
+        }
+        for (const name of Object.values(ProjectToolEnum)) {
+            const tool = middleware.tools.find((item) => item.name === name)
+            await expect(tool.invoke(inputs[name])).rejects.toMatchObject({ status: 403 })
         }
         expect(permission).not.toHaveBeenCalled()
         expect(execute).not.toHaveBeenCalled()
@@ -211,10 +254,11 @@ describe('built-in Project Tasks Plugin', () => {
                 }
             }
         })
-        expect(middleware.tools.map((tool) => tool.name)).toEqual(
+        expect(middleware.tools.map((tool) => tool.name).sort()).toEqual(
             strategy
                 .getToolNames()
                 .filter((name) => name !== ProjectToolEnum.DispatchTask && name !== ProjectToolEnum.CreateTasks)
+                .sort()
         )
         expect(middleware.tools.every((tool) => tool.metadata.middlewareIcon === PROJECT_TASKS_ICON)).toBe(true)
     })

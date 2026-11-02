@@ -58,7 +58,13 @@ export class ProjectTasksMiddleware implements IAgentMiddlewareStrategy<z.output
         const edit = () => assertPermission('edit')
         const tools = [
             createListTasksTool({ projectId, service: this.tasks, assertPermission: view }),
-            createCreateTasksTool({ projectId, service: this.tasks, conversationId, assertPermission: edit }),
+            createCreateTasksTool({
+                projectId,
+                service: this.tasks,
+                conversationId,
+                defaultAssigneeXpertId: context.callerType === 'project_agent' ? undefined : context.xpertId,
+                assertPermission: edit
+            }),
             createUpdateTasksTool({ projectId, service: this.tasks, assertPermission: edit }),
             ...createProjectRuntimeTools(context, this.commandBus, assertPermission)
         ]
