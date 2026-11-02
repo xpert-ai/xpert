@@ -1,4 +1,4 @@
-import { HandoffMessage } from '@xpert-ai/plugin-sdk'
+import { HandoffMessage, getRequiredPermissionOperation } from '@xpert-ai/plugin-sdk'
 import { XPERT_HANDOFF_QUEUE_REALTIME } from './constants'
 import { HandoffQueueService } from './message-queue.service'
 
@@ -16,6 +16,35 @@ describe('HandoffQueueService route policy headers', () => {
         traceId: 'trace-id',
         payload: {},
         ...overrides
+    })
+
+    it('opts into producer deduplication under the existing enqueue permission', async () => {
+        const queueGateway = { enqueue: jest.fn().mockResolvedValue(undefined) }
+        const routeResolver = {
+            resolve: jest.fn().mockReturnValue({
+                queue: XPERT_HANDOFF_QUEUE_REALTIME,
+                lane: 'main',
+                policy: { lane: 'main' }
+            })
+        }
+        const service = new HandoffQueueService(
+            queueGateway as never,
+            routeResolver as never,
+            {} as never,
+            { producer: jest.fn().mockResolvedValue(undefined) } as never,
+            undefined as never,
+            undefined as never,
+            undefined as never
+        )
+        expect(getRequiredPermissionOperation(service.enqueueOnce, 'handoff')).toBe('enqueue')
+        await expect(service.enqueueOnce(createMessage(), { delayMs: 100 })).resolves.toEqual({ id: 'message-id' })
+        expect(queueGateway.enqueue).toHaveBeenCalledWith(
+            XPERT_HANDOFF_QUEUE_REALTIME,
+            expect.objectContaining({ id: 'message-id' }),
+            { delayMs: 100, deduplicate: true }
+        )
+        await expect(service.enqueueOnce(createMessage({ id: '' }))).rejects.toThrow(Error)
+        expect(queueGateway.enqueue).toHaveBeenCalledTimes(1)
     })
 
     it('writes total and idle timeout policy headers when absent', async () => {

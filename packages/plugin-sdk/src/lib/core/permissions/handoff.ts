@@ -37,5 +37,11 @@ export interface HandoffEnqueueAndWaitOptions extends HandoffEnqueueOptions {
  */
 export interface HandoffPermissionService {
   enqueue(message: HandoffMessage, options?: HandoffEnqueueOptions): Promise<{ id: string }>
+  /**
+   * Opt-in producer deduplication by tenant, organization, type and message ID in the resolved queue.
+   * Retains completed/failed jobs for at least 24 hours; does not guarantee exactly-once handler effects.
+   * Optional so plugins can detect older hosts. Callers must preserve the envelope and ID on retry.
+   */
+  enqueueOnce?(message: HandoffMessage, options?: HandoffEnqueueOptions): Promise<{ id: string }>
   enqueueAndWait(message: HandoffMessage, options?: HandoffEnqueueAndWaitOptions): Promise<ProcessResult>
 }

@@ -19,10 +19,15 @@ import {
     RequirePermissionOperation
 } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'crypto'
+import { t } from 'i18next'
 import { HandoffPendingResultService } from './pending-result.service'
 import { DEFAULT_HANDOFF_MAX_ATTEMPTS } from './constants'
 import { HandoffRouteResolution, HandoffRouteResolver } from './dispatcher/handoff-route-resolver.service'
-import { HandoffQueueEnqueueItem, HandoffQueueGatewayService } from './dispatcher/handoff-queue-gateway.service'
+import {
+    HandoffQueueEnqueueItem,
+    HandoffQueueEnqueueOptions,
+    HandoffQueueGatewayService
+} from './dispatcher/handoff-queue-gateway.service'
 
 @Injectable()
 export class HandoffQueueService implements HandoffPermissionService {
@@ -41,6 +46,20 @@ export class HandoffQueueService implements HandoffPermissionService {
         const route = this.routeResolver.resolve(message)
         const normalized = this.normalize(message, route)
         await this.addJob(normalized, route, options)
+        return { id: normalized.id }
+    }
+
+    @RequirePermissionOperation('handoff', 'enqueue')
+    async enqueueOnce(message: HandoffMessage, options?: HandoffEnqueueOptions): Promise<{ id: string }> {
+        if (!message.id?.trim())
+            throw new Error(
+                t('server-ai:Error.HandoffStableMessageIdRequired', {
+                    defaultValue: 'Idempotent Handoff enqueue requires a stable message ID'
+                })
+            )
+        const route = this.routeResolver.resolve(message)
+        const normalized = this.normalize(message, route)
+        await this.addJob(normalized, route, { ...options, deduplicate: true })
         return { id: normalized.id }
     }
 
@@ -199,7 +218,7 @@ export class HandoffQueueService implements HandoffPermissionService {
     private async addJob(
         message: HandoffMessage,
         route: HandoffRouteResolution,
-        options?: { delayMs?: number },
+        options?: HandoffQueueEnqueueOptions,
         drainOnPause = false
     ) {
         const queueItem = this.toQueueEnqueueItem(message, route, options)
@@ -234,7 +253,7 @@ export class HandoffQueueService implements HandoffPermissionService {
     private toQueueEnqueueItem(
         message: HandoffMessage,
         route: HandoffRouteResolution,
-        options?: { delayMs?: number }
+        options?: HandoffQueueEnqueueOptions
     ): HandoffQueueEnqueueItem {
         return {
             queueName: route.queue,
