@@ -42,6 +42,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 from network import EgressConfig, NetworkLease, NetworkManager
 from bounded_workspace import StorageBudget, StorageBudgetError, parse_budget, run_bounded
+from workspace_identity import WorkspaceIdentity
 
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
@@ -427,11 +428,10 @@ def project_content_mounts(workspace_path: pathlib.Path) -> tuple[tuple[pathlib.
 def prepare_app_data_mount(workspace_path: pathlib.Path) -> None:
     # Host-owned state is never mounted into the jail. Keep a fixed empty RO overlay
     # even before a plugin first writes, so already-running shells cannot access later data.
-    workspace_path = workspace_path.resolve(strict=True)
-    target = workspace_path / ".apps"
-    target.mkdir(mode=0o755, exist_ok=True)
-    if not stat.S_ISDIR(target.lstat().st_mode) or target.resolve(strict=True) != target:
-        raise RunnerError("Managed application directory must not be a symbolic link")
+    try:
+        WorkspaceIdentity(JAIL_UID, JAIL_GID).prepare_app_data(workspace_path)
+    except OSError as error:
+        raise RunnerError(f"Unable to prepare managed application storage: {error.strerror}") from error
 
 
 def validate_service_id(value: Any) -> str:
@@ -799,32 +799,12 @@ def is_protected_project_content_path(runtime: Runtime, parts: list[str]) -> boo
 def open_parent_dir(runtime: Runtime, parts: list[str], *, create: bool, workspace_path: pathlib.Path | None = None) -> tuple[int, str]:
     if not parts:
         raise RunnerError("Sandbox path must identify a file")
-    current_fd = os.open(workspace_path or runtime.workspace_path, os.O_RDONLY | os.O_DIRECTORY)
+    current_fd = os.open(workspace_path or runtime.workspace_path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    identity = WorkspaceIdentity(JAIL_UID, JAIL_GID)
     try:
         for part in parts[:-1]:
-            created = False
-            try:
-                next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current_fd)
-            except FileNotFoundError:
-                if not create:
-                    raise
-                try:
-                    os.mkdir(part, mode=0o755, dir_fd=current_fd)
-                    created = True
-                except FileExistsError:
-                    pass
-                next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current_fd)
-            if created:
-                try:
-                    os.fchown(next_fd, JAIL_UID, JAIL_GID)
-                    os.fchmod(next_fd, 0o755)
-                except Exception:
-                    os.close(next_fd)
-                    try:
-                        os.rmdir(part, dir_fd=current_fd)
-                    except OSError:
-                        pass
-                    raise
+            next_fd = (identity.open_directory(current_fd, part) if create else
+                       os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current_fd))
             os.close(current_fd)
             current_fd = next_fd
         return current_fd, parts[-1]
