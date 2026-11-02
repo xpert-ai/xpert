@@ -8,11 +8,13 @@ export const createCreateTasksTool = ({
     projectId,
     service,
     conversationId,
+    defaultAssigneeXpertId,
     assertPermission
 }: {
     projectId: string
     service: XpertProjectTaskService
     conversationId?: string
+    defaultAssigneeXpertId?: string
     assertPermission: () => Promise<unknown>
 }) => {
     const createTasksTool = tool(
@@ -28,7 +30,7 @@ export const createCreateTasksTool = ({
                     ...taskInput,
                     threadId: thread_id,
                     status: 'todo',
-                    assigneeXpertId: taskInput.assigneeXpertId,
+                    assigneeXpertId: taskInput.assigneeXpertId ?? defaultAssigneeXpertId,
                     steps: taskInput.steps?.map((step, i) => ({ ...step, stepIndex: i + 1, status: 'pending' }))
                 } as IXpertProjectTask)
                 tasks.push(task)
@@ -50,6 +52,7 @@ export const createCreateTasksTool = ({
                     revision: task.revision,
                     title: task.title || task.name,
                     status: task.status,
+                    assigneeXpertId: task.assigneeXpertId,
                     requirements: task.requirements ?? []
                 }))
             }
@@ -77,7 +80,7 @@ export const createCreateTasksTool = ({
                                         .uuid()
                                         .optional()
                                         .describe(
-                                            'Responsible project-member Assistant ID. May be omitted for planning; required before delegation.'
+                                            'Responsible Project Assistant ID. Defaults to the current Assistant when omitted; never use a human or Runtime binding ID.'
                                         ),
                                     requirements: z
                                         .array(z.string().trim().min(1).max(4000))
@@ -109,7 +112,7 @@ export const createCreateTasksTool = ({
                 })
                 .strict(),
             description:
-                'Create project tasks in todo and return their IDs and revisions. Assignment records responsibility; it does not start execution. Unassigned planning tasks must be explicitly assigned to a project-member Assistant before delegation. Use project_dispatch_task to explicitly delegate.'
+                'Create project tasks in todo and return their IDs and revisions. Omitted responsibility defaults to the current Assistant from trusted context; an explicit assigneeXpertId is preserved. A Project general agent has no Assistant identity to default. Creation records responsibility without starting execution. Use project_dispatch_task to explicitly delegate.'
         }
     )
     return createTasksTool
