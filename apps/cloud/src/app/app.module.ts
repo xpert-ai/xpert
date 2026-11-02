@@ -6,7 +6,6 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { BrowserModule, HammerModule } from '@angular/platform-browser'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { RouteReuseStrategy } from '@angular/router'
-import { ServiceWorkerModule } from '@angular/service-worker'
 import { Ability, PureAbility } from '@casl/ability'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -22,8 +21,7 @@ import {
   LanguageInterceptor,
   normalizeApiBaseUrl,
   TenantInterceptor,
-  TokenInterceptor,
-  UpdateService
+  TokenInterceptor
 } from './@core'
 import { AuthModule } from './@core/auth/auth.module'
 import { AppRoutingModule } from './app-routing.module'
@@ -62,13 +60,7 @@ function detectSubjectType(subject) {
       colorScheme: ['purple', 'teal', 'gray', 'gray', 'red', 'red', 'red'],
       enableSourceMaps: true
     }),
-    MonacoEditorModule.forRoot(),
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: false, // environment.production,
-      // Register the ServiceWorker as soon as the app is stable
-      // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
-    })
+    MonacoEditorModule.forRoot()
   ],
   providers: [
     provideArtifactPresentationCommands(),
@@ -87,7 +79,6 @@ function detectSubjectType(subject) {
         usePopover: false
       }
     },
-    // UpdateService,
     {
       provide: LOCALE_ID,
       useValue: LOCALE_DEFAULT

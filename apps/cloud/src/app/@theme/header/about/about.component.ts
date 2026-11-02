@@ -8,6 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, injectToastr, LANGUAGES, Store } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { DialogRef } from '@angular/cdk/dialog'
+import { WebUpdateService } from '../../../@core/services/web-update/web-update.service'
 import { environment } from '@cloud/environments/environment'
 
 @Component({
@@ -20,6 +21,11 @@ export class HeaderAboutComponent {
   languages = LANGUAGES
   ThemesEnum = ThemesEnum
   Version = environment.version
+  readonly webUpdate = inject(WebUpdateService)
+
+  constructor() {
+    void this.webUpdate.check()
+  }
 
   readonly #dialogRef = inject(DialogRef)
   readonly store = inject(Store)
