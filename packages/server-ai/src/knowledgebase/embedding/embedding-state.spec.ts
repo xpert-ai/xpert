@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import { ICopilotModel, KnowledgebaseStatusEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilotModel, KnowledgebaseStatusEnum } from '@xpert-ai/contracts'
 import {
     createEmbeddingCollectionName,
     createEmbeddingFingerprint,
@@ -194,6 +194,46 @@ describe('embedding-state', () => {
                 embeddingRebuildError: null
             })
         })
+
+        it.each([null, 'selected-binding'])(
+            'keeps the selected binding %s when the index fingerprint is unchanged',
+            (id) => {
+                const selectedModel = {
+                    copilotId: 'selected-connection',
+                    model: 'embedding-a',
+                    modelType: AiModelTypeEnum.TEXT_EMBEDDING
+                }
+                const result = resolveEmbeddingModelUpdateState(
+                    {
+                        copilotModel: { ...activeModel, copilotId: null },
+                        copilotModelId: activeModel.id,
+                        embeddingCollectionName: 'existing-index',
+                        embeddingModelFingerprint: 'same-fingerprint',
+                        embeddingDimensions: 1024,
+                        embeddingRevision: 3
+                    },
+                    {
+                        copilotModel: selectedModel,
+                        copilotModelId: id,
+                        collectionName: 'derived-index-name',
+                        fingerprint: 'same-fingerprint',
+                        dimensions: 1024
+                    }
+                )
+
+                expect(result).toMatchObject({
+                    status: KnowledgebaseStatusEnum.READY,
+                    copilotModel: selectedModel,
+                    copilotModelId: id,
+                    embeddingCollectionName: 'existing-index',
+                    embeddingModelFingerprint: 'same-fingerprint',
+                    embeddingDimensions: 1024,
+                    embeddingRevision: 3,
+                    pendingCopilotModel: null,
+                    rebuildTaskId: null
+                })
+            }
+        )
 
         it('rejects embedding model changes while rebuild is running', () => {
             expect(() =>
