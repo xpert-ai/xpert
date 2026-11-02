@@ -16,10 +16,14 @@ def main() -> None:
         workspace = pathlib.Path(temporary)
         os.chown(workspace, runner.JAIL_UID, runner.JAIL_GID)
         os.chmod(workspace, 0o755)
+        runner.prepare_app_data_mount(workspace)
         app = workspace / ".apps" / "meetings"
-        app.mkdir(parents=True)
+        subprocess.run([
+            'python3', '-c',
+            "import pathlib,sys; p=pathlib.Path(sys.argv[1]); p.mkdir(); (p/'secret.txt').write_text('host-only')",
+            str(app),
+        ], user=runner.JAIL_UID, group=runner.JAIL_GID, extra_groups=[], check=True, timeout=15)
         secret = app / "secret.txt"
-        secret.write_text("host-only")
         (workspace / "alias").symlink_to(".apps/meetings", target_is_directory=True)
         runtime = runner.Runtime("a" * 32, workspace, "/workspace")
         source = """
