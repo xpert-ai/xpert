@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.1
+
+### Patch Changes
+
+- c9d6119: Publish the NsJail runner with bounded workspace and temporary storage, including storage budget enforcement and its image acceptance checks.
+
 ## 0.4.0
 
 ### Minor Changes
