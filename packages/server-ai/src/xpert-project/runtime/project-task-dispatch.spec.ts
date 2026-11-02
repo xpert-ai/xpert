@@ -217,6 +217,83 @@ describe('explicit Project task delegation', () => {
         expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, currentId)
         expect(f.rows[0].projectedTaskRevision).toBe(2)
     })
+    it.each([
+        { owner: 'current', revision: 1 },
+        { owner: 'unassigned', revision: 2 },
+        { owner: 'another', revision: 2 }
+    ])(
+        'normalizes a historical group executor while preserving its Runtime version ($owner owner)',
+        async ({ owner, revision }) => {
+            const f = await fixture()
+            const currentId = randomUUID()
+            const historicalId = randomUUID()
+            if (owner === 'current') f.task.assigneeXpertId = currentId
+            if (owner === 'unassigned') f.task.assigneeXpertId = null
+            f.target.reference = historicalId
+            f.target.revision = '2'
+            f.target.provider = 'xpert-task'
+            f.target.configuration = {
+                executionContext: {
+                    type: 'group_member',
+                    groupId: randomUUID(),
+                    participantId: f.target.bindingId,
+                    sourceParticipantId: randomUUID(),
+                    projectId: f.scope.projectId
+                }
+            }
+            f.bindings.resolveCurrentById.mockResolvedValue({ id: currentId })
+            const input = {
+                ...f.input,
+                bindingId: undefined,
+                target: { type: 'group_member' as const, participantId: f.target.bindingId }
+            }
+            const first = await f.service.dispatch(f.scope.projectId, input, f.caller)
+            const replay = await f.service.dispatch(f.scope.projectId, input, f.caller)
+            expect(f.task.assigneeXpertId).toBe(currentId)
+            expect(f.task.revision).toBe(revision)
+            expect(f.rows).toHaveLength(1)
+            expect(f.rows[0]).toMatchObject({
+                xpertId: currentId,
+                projectedTaskRevision: revision,
+                dispatchIntent: { request: { target: { reference: historicalId, revision: '2' } } }
+            })
+            expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, currentId)
+            expect(f.start.mock.calls[0][0].target).toEqual(f.target)
+            expect(f.start.mock.calls[1][0]).toEqual(f.start.mock.calls[0][0])
+            expect(replay.taskExecutionId).toBe(first.taskExecutionId)
+        }
+    )
+    it.each([false, true])(
+        'rejects an unresolved group expert without falling back to another owner (unassigned: %s)',
+        async (unassigned) => {
+            const f = await fixture()
+            if (unassigned) f.task.assigneeXpertId = null
+            const originalOwner = f.task.assigneeXpertId
+            f.target.reference = randomUUID()
+            f.target.provider = 'xpert-task'
+            f.target.configuration = {
+                executionContext: {
+                    type: 'group_member',
+                    groupId: randomUUID(),
+                    participantId: f.target.bindingId,
+                    sourceParticipantId: randomUUID(),
+                    projectId: f.scope.projectId
+                }
+            }
+            f.bindings.resolveCurrentById.mockImplementation(async (id) => (id === f.target.reference ? null : { id }))
+            const input = {
+                ...f.input,
+                bindingId: undefined,
+                target: { type: 'group_member' as const, participantId: f.target.bindingId }
+            }
+            await expect(f.service.dispatch(f.scope.projectId, input, f.caller)).rejects.toMatchObject({ status: 409 })
+            expect(f.task.assigneeXpertId).toBe(originalOwner)
+            expect(f.task.revision).toBe(1)
+            expect(f.taskRepo.save).not.toHaveBeenCalled()
+            expect(f.rows).toHaveLength(0)
+            expect(f.start).not.toHaveBeenCalled()
+        }
+    )
     it.each(['revision', 'requirements', 'membership', 'unpublished'])(
         'does not save default responsibility when %s validation fails',
         async (reason) => {

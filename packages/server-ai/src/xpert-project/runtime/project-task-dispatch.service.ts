@@ -105,14 +105,15 @@ export class ProjectTaskDispatchService {
             })
             if (!task) throw projectTaskRuntimeError('NotFound')
             assertOrdinaryTask(task)
-            // Selecting a group executor also assigns it responsibility. External runtimes preserve an
-            // existing owner, defaulting an unassigned task to the trusted calling Assistant.
-            const selectedAssignee = input.target ? target.reference : task.assigneeXpertId
-            const assigneeXpertId =
-                selectedAssignee ??
-                (scope.callerXpertId
-                    ? (await this.xpertBindings.resolveCurrentById(scope.callerXpertId, scope))?.id
-                    : undefined)
+            // Responsibility uses the current Assistant identity; the Runtime target stays version-pinned.
+            // External runtimes preserve an existing owner, defaulting unassigned tasks to the caller.
+            let assigneeXpertId = task.assigneeXpertId
+            if (input.target || !assigneeXpertId) {
+                const selectedId = input.target ? target.reference : scope.callerXpertId
+                assigneeXpertId = selectedId
+                    ? (await this.xpertBindings.resolveCurrentById(selectedId, scope))?.id
+                    : undefined
+            }
             if (!assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
             await this.context.assertResponsibleAssistant(scope, assigneeXpertId)
             if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
