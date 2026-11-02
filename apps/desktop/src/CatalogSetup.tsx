@@ -396,6 +396,7 @@ export function CatalogSetup({
                   )}
                   <TemplateManifestDetails
                     readiness={preflight?.readiness}
+                    showTemplateSummary={!creation}
                     onManage={() => {
                       const target = { target: 'workspace.plugins.manage', organizationId, workspaceId }
                       if (window.xpertDesktop) void window.xpertDesktop.openPlatform(target)
