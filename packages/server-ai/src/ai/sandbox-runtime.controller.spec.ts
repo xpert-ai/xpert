@@ -15,6 +15,7 @@ import {
     IApiKey,
     ISecretToken,
     IUser,
+    UserType,
     SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
@@ -183,11 +184,20 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        actor.type = UserType.USER
         actor.role.name = RolesEnum.ADMIN
-        actor.role.rolePermissions = [AIPermissionsEnum.XPERT_PROJECT_CREATE, AIPermissionsEnum.CHAT_VIEW,
-            AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT].map(permission => ({
-                permission, enabled: true, tenantId: 'tenant', roleId: 'role', role: { id: 'role', name: RolesEnum.ADMIN }
-            }))
+        actor.role.rolePermissions = [
+            AIPermissionsEnum.XPERT_PROJECT_CREATE,
+            AIPermissionsEnum.CHAT_VIEW,
+            AIPermissionsEnum.XPERT_VIEW,
+            AIPermissionsEnum.XPERT_EDIT
+        ].map((permission) => ({
+            permission,
+            enabled: true,
+            tenantId: 'tenant',
+            roleId: 'role',
+            role: { id: 'role', name: RolesEnum.ADMIN }
+        }))
         tokens.clear()
         apiKeys.clear()
         apiKeys.set('sk-x-valid', {
@@ -221,10 +231,12 @@ describe('AI sandbox runtime HTTP authentication', () => {
             }
         })
         conversations.findOneBy.mockResolvedValue(null)
-        services.listByThreadId.mockImplementation(async () => ([{
-            actor: RequestContext.currentUserId(),
-            canCreate: RequestContext.hasPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
-        }]))
+        services.listByThreadId.mockImplementation(async () => [
+            {
+                actor: RequestContext.currentUserId(),
+                canCreate: RequestContext.hasPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
+            }
+        ])
         services.stopByThreadId.mockResolvedValue({ id: 'service', status: 'stopped' })
     })
 
@@ -249,6 +261,18 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     it('accepts an Assistant-bound API key', async () => {
         expect((await request(undefined, 'sk-x-valid')).status).toBe(200)
+        expect(services.listByThreadId).toHaveBeenCalledWith('thread')
+    })
+    it.each(['key', 'secret'])('accepts a bound technical %s without any role grants', async (kind) => {
+        actor.type = UserType.COMMUNICATION
+        actor.role.rolePermissions = []
+        apiKeys.get('sk-x-valid')!.userId = actor.id
+        if (kind === 'secret')
+            Object.assign(tokens.get('cs-x-valid')!, {
+                type: SecretTokenBindingType.API_KEY,
+                entityId: 'api-key'
+            })
+        expect((await request(undefined, kind === 'key' ? 'sk-x-valid' : 'cs-x-valid')).status).toBe(200)
         expect(services.listByThreadId).toHaveBeenCalledWith('thread')
     })
 
@@ -391,13 +415,28 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     it('allows application users to read preview status without commands, while denying service administration', async () => {
         actor.role.name = RolesEnum.APP_USER
-        actor.role.rolePermissions = actor.role.rolePermissions.filter((grant) =>
-            ![AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT].includes(grant.permission as AIPermissionsEnum))
-        services.listByThreadId.mockResolvedValue([{ id: 'service', conversationId: 'conversation', name: 'Preview',
-            status: 'running', command: 'private command', metadata: { environment: 'private' }, runtimeRef: 'private-runtime' }])
+        actor.role.rolePermissions = actor.role.rolePermissions.filter(
+            (grant) =>
+                ![AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT].includes(
+                    grant.permission as AIPermissionsEnum
+                )
+        )
+        services.listByThreadId.mockResolvedValue([
+            {
+                id: 'service',
+                conversationId: 'conversation',
+                name: 'Preview',
+                status: 'running',
+                command: 'private command',
+                metadata: { environment: 'private' },
+                runtimeRef: 'private-runtime'
+            }
+        ])
         const response = await request()
         expect(response.status).toBe(200)
-        expect(await response.json()).toEqual([{ id: 'service', conversationId: 'conversation', name: 'Preview', status: 'running' }])
+        expect(await response.json()).toEqual([
+            { id: 'service', conversationId: 'conversation', name: 'Preview', status: 'running' }
+        ])
         expect((await request('threads/thread/services/service/stop', 'cs-x-valid', 'POST')).status).toBe(403)
         expect(services.stopByThreadId).not.toHaveBeenCalled()
     })

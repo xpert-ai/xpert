@@ -347,13 +347,15 @@ describe('XpertWorkspaceAccessService', () => {
         })
     })
 
-    it('allows assistant api key principals to read and run their bound xpert workspace without a persisted xpert user', async () => {
+    it('allows only runtime access for a bound technical key without a persisted xpert user', async () => {
         const principal = {
             id: 'assistant-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
             resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
+                tenantId: 'tenant-1',
+                userId: 'assistant-user-1',
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
             },
@@ -364,6 +366,8 @@ describe('XpertWorkspaceAccessService', () => {
         ;(RequestContext.currentUser as jest.Mock).mockReturnValue(principal)
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(principal)
         xpertQueryBuilder.getRawOne.mockResolvedValue({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
             workspaceId: 'workspace-1'
         })
 
@@ -377,14 +381,14 @@ describe('XpertWorkspaceAccessService', () => {
         })
 
         await expect(service.getCapabilities(workspace)).resolves.toEqual({
-            canRead: true,
+            canRead: false,
             canRun: true,
             canWrite: false,
             canManage: false
         })
     })
 
-    it('uses persisted xpert user before the assistant api key principal user when both are available', async () => {
+    it('rejects a technical user that differs from the credential user even when it matches the persisted xpert user', async () => {
         const principal = {
             id: 'xpert-user-1',
             tenantId: 'tenant-1',
@@ -415,8 +419,8 @@ describe('XpertWorkspaceAccessService', () => {
         })
 
         await expect(service.getCapabilities(workspace)).resolves.toEqual({
-            canRead: true,
-            canRun: true,
+            canRead: false,
+            canRun: false,
             canWrite: false,
             canManage: false
         })

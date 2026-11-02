@@ -1,6 +1,7 @@
 // A committed claim reserves one execution. After `started`, recovery observes that execution only;
 // an ambiguous model run is never replayed as a new turn, even after a lease expires.
 import { sameInvocationData } from '../../agent-invocation/invocation-runtime'
+import { invocationFailureReason } from '../../agent-invocation/invocation-errors'
 import { t } from 'i18next'
 import { Injectable, Logger } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
@@ -118,9 +119,11 @@ export class RuntimeMessageContinuationService {
                 await this.recover(current)
             } else if (current?.state !== 'processed') {
                 const access = isRuntimeMessageBlocked(error)
+                const failure = access ? 'access_or_target_changed' : 'continuation_unavailable'
+                const reason = invocationFailureReason(error)
                 await repo.update(owned, {
                     state: access ? 'blocked' : current?.attempts >= 19 ? 'failed' : 'pending',
-                    lastError: access ? 'access_or_target_changed' : 'continuation_unavailable',
+                    lastError: reason ? `${failure}:${reason}` : failure,
                     attempts: (current?.attempts ?? 0) + 1,
                     nextAttemptAt: new Date(Date.now() + 30_000)
                 })

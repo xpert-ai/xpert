@@ -8,6 +8,7 @@ import { RouterModule } from '@nestjs/core'
 import { TenantModule } from '@xpert-ai/server-core'
 import { UserModule } from '@xpert-ai/server-core'
 import { CopilotController } from './copilot.controller'
+import { CopilotModelCatalogController } from './model-catalog/model-catalog.controller'
 import { Copilot } from './copilot.entity'
 import { QueryHandlers } from './queries/handlers/index'
 import { CopilotService } from './copilot.service'
@@ -33,7 +34,7 @@ import { CopilotRoleDefaultController } from './role-defaults/role-default.contr
         MembershipModule,
         ModelAccessModule
     ],
-    controllers: [CopilotRoleDefaultController, CopilotController],
+    controllers: [CopilotRoleDefaultController, CopilotModelCatalogController, CopilotController],
     providers: [
         ConnectionReferencesService,
         CopilotService,

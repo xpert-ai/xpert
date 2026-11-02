@@ -12,7 +12,7 @@ jest.mock('@cloud/app/@shared/knowledge', () => ({
 }))
 
 import { XpertNewKnowledgeComponent } from './new.component'
-import { VectorTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import type { ICopilotModel } from '@xpert-ai/contracts'
 
 describe('XpertNewKnowledgeComponent', () => {
@@ -91,6 +91,39 @@ describe('XpertNewKnowledgeComponent', () => {
     const api = TestBed.inject(KnowledgebaseService)
     expect(jest.mocked(api.updateWikiConfiguration).mock.calls[0][1].settings).not.toHaveProperty('vectorStore')
   })
+
+  it.each([null, undefined])(
+    'preserves explicit model selections when saving a legacy library with type %s',
+    async (type) => {
+      const component = createComponent({
+        knowledgebase: {
+          id: 'kb-legacy',
+          name: 'Documents',
+          type,
+          wikiConfig: null,
+          wikiStatus: 'disabled',
+          copilotModel: { id: 'old-embedding', copilotId: null, model: 'embedding' },
+          chatModel: { id: 'old-chat', copilotId: null, model: 'llm' }
+        }
+      })
+      const copilotModel = {
+        copilotId: 'embedding-connection',
+        model: 'embedding',
+        modelType: AiModelTypeEnum.TEXT_EMBEDDING
+      }
+      const chatModel = { copilotId: 'chat-connection', model: 'llm', modelType: AiModelTypeEnum.LLM }
+      component.copilotModel.set(copilotModel)
+      component.chatModel.set(chatModel)
+      await component.save()
+
+      const api = TestBed.inject(KnowledgebaseService)
+      expect(api.updateWikiConfiguration).toHaveBeenCalledTimes(1)
+      const [, input] = jest.mocked(api.updateWikiConfiguration).mock.calls[0]
+      expect(input).toMatchObject({ settings: { copilotModel, chatModel }, wikiConfig: { enabled: false } })
+      expect(input.settings).not.toHaveProperty('type')
+      expect(api.update).not.toHaveBeenCalled()
+    }
+  )
 
   it('requires semantic parameters and submits them only when creating a semantic FAQ library', () => {
     const component = createComponent({ workspaceId: 'workspace' })

@@ -4,13 +4,15 @@
  * PostgreSQL's session lock serializes this legacy adapter with host migrations.
  */
 import type { PluginMeta } from '@xpert-ai/contracts'
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { DataSource, MixedList } from 'typeorm'
 import { createPluginLogger, GLOBAL_ORGANIZATION_SCOPE, type PluginContext } from '@xpert-ai/plugin-sdk'
 import { withSchemaLock } from '../database/schema-migration'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
+import { registerPluginEntityOwnership } from './plugin-entity-policy'
 import { loadPlugin } from './plugin-loader'
+import { normalizePluginName } from './types'
 import { scopePluginSchemaSynchronization } from './plugin-schema-scope'
 import { registerAccountStorageRelations } from '../database/account-storage-guard'
 
@@ -65,16 +67,30 @@ export class PluginSchemaSyncService {
 		const module = plugin.register(context)
 		const ormMetadata = collectPluginOrmMetadata([module])
 
-		validatePluginEntityTableNames({
+		if (
+			ormMetadata.entities.length &&
+			input.artifactNamespace &&
+			input.artifactNamespace !== plugin.meta.artifactNamespace
+		) {
+			throw new BadRequestException(
+				`Plugin "${plugin.meta.name}" schema namespace does not match its runtime declaration.`
+			)
+		}
+		const artifactNamespace = validatePluginEntityTableNames({
 			pluginName: plugin.meta.name,
 			entities: ormMetadata.entities,
-			artifactNamespace: input.artifactNamespace ?? plugin.meta.artifactNamespace,
-			requireNamespaceMatch: Boolean(input.artifactNamespace ?? plugin.meta.artifactNamespace)
+			artifactNamespace: plugin.meta.artifactNamespace,
+			level: plugin.meta.level
 		})
 
 		// Providers without entities have no schema to apply. Synchronizing the host
 		// here would run unrelated DDL even when host migrations are managed externally.
-		if (!ormMetadata.entities.length) return plugin.meta
+		if (!ormMetadata.entities.length || !artifactNamespace) return plugin.meta
+		registerPluginEntityOwnership(ormMetadata.entities, {
+			pluginName: normalizePluginName(input.pluginName),
+			artifactNamespace,
+			version: plugin.meta.version
+		})
 
 		const entities = this.mergeTargets(this.dataSource.options.entities, ormMetadata.entities)
 		const migrationDataSource = new DataSource({
@@ -90,11 +106,7 @@ export class PluginSchemaSyncService {
 
 		try {
 			await migrationDataSource.initialize()
-			scopePluginSchemaSynchronization(
-				migrationDataSource,
-				ormMetadata.entities,
-				input.artifactNamespace ?? plugin.meta.artifactNamespace
-			)
+			scopePluginSchemaSynchronization(migrationDataSource, ormMetadata.entities, artifactNamespace)
 			if (migrationDataSource.options.type !== 'postgres') {
 				throw new Error('Plugin schema migrations require PostgreSQL')
 			}

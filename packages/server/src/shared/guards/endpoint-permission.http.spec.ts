@@ -10,7 +10,14 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
-import { AIPermissionsEnum, IUser, RolesEnum } from '@xpert-ai/contracts'
+import {
+	AIPermissionsEnum,
+	IApiPrincipal,
+	IUser,
+	RolesEnum,
+	SecretTokenBindingType,
+	UserType
+} from '@xpert-ai/contracts'
 import { Permissions } from '../decorators/permissions'
 import { Public } from '../decorators/public.decorator'
 import { EndpointPermissionInterceptor } from './endpoint-permission.interceptor'
@@ -108,7 +115,26 @@ class AccountController {
 @Injectable()
 class RouteAuthentication implements CanActivate {
 	canActivate(context: ExecutionContext) {
-		const request = context.switchToHttp().getRequest<{ user?: Partial<IUser> }>()
+		const request = context.switchToHttp().getRequest<{ user?: Partial<IUser>; headers: Record<string, string> }>()
+		if (request.headers['x-technical']) {
+			const principal: IApiPrincipal = {
+				id: 'technical',
+				tenantId: 'tenant',
+				type: UserType.COMMUNICATION,
+				principalType: request.headers['x-technical'] === 'secret' ? 'client_secret' : 'api_key',
+				clientSecretBindingType: SecretTokenBindingType.API_KEY,
+				apiKeyUserId: 'technical',
+				resourceScope: { kind: 'assistant', xpertId: 'assistant' },
+				apiKey: {
+					token: 'fixture',
+					userId: 'technical',
+					tenantId: 'tenant',
+					revokedAt: request.headers['x-technical-revoked'] ? new Date() : null
+				}
+			}
+			request.user = principal
+			return true
+		}
 		request.user = {
 			id: 'client-secret-user',
 			tenantId: 'tenant',
@@ -163,6 +189,18 @@ describe('role-independent HTTP permissions after authentication', () => {
 		origin = await app.getUrl()
 	})
 	afterAll(() => app.close())
+	it.each(['key', 'secret'])(
+		'accepts roleless technical %s runtime credentials without granting configuration access',
+		async (kind) => {
+			const headers = { 'x-technical': kind }
+			expect((await fetch(`${origin}/runtime/chat`, { headers })).status).toBe(200)
+			expect((await fetch(`${origin}/runtime/configuration`, { headers })).status).toBe(403)
+			expect(
+				(await fetch(`${origin}/runtime/chat`, { headers: { ...headers, 'x-technical-revoked': 'true' } }))
+					.status
+			).toBe(403)
+		}
+	)
 	it.each([RolesEnum.APP_USER, RolesEnum.ADMIN, 'BID_CUSTOMER'])(
 		'applies the same grants to %s',
 		async (authorization) => {

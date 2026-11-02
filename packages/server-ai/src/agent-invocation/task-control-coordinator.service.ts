@@ -1,6 +1,7 @@
 // Delivery leases coordinate replicas, but never grant permission to replay business work.
 // Native checkpoints and handler receipts prove local boundaries; remote unknown remains unknown.
 import { invocationCanRelease } from './invocation-control-evidence'
+import { invocationFailureReason } from './invocation-errors'
 import { Injectable, Logger } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { CommandBus } from '@nestjs/cqrs'
@@ -36,8 +37,11 @@ export class TaskControlCoordinator {
             await this.runtime.reconcileOwned((scope, work) => this.access.withControlActor(scope, work))
             for (const task of await this.tasks.due(['invocation', 'execution', 'handoff', 'managed-queue']))
                 await this.deliver(task)
-        } catch {
-            this.logger.warn('Task control scan deferred')
+        } catch (error) {
+            this.logger.warn({
+                message: 'Task control scan deferred',
+                reason: invocationFailureReason(error) ?? 'unavailable'
+            })
         } finally {
             this.scanning = false
         }
@@ -66,8 +70,14 @@ export class TaskControlCoordinator {
                     await this.tasks.receipt(task.id, 'completed')
             }
             await this.tasks.delivered(task.id, token, null)
-        } catch {
-            await this.tasks.delivered(task.id, token, 'control_unconfirmed', 5000)
+        } catch (error) {
+            const reason = invocationFailureReason(error)
+            await this.tasks.delivered(
+                task.id,
+                token,
+                reason ? `control_unconfirmed:${reason}` : 'control_unconfirmed',
+                5000
+            )
         }
     }
 

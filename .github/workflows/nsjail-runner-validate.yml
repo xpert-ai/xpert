@@ -113,6 +113,8 @@ jobs:
           done
           [[ "$(docker inspect --format '{{.State.Health.Status}}' xpert-nsjail-runner-ci)" == healthy ]]
           docker exec xpert-nsjail-runner-ci python3 /app/poc_validate.py
+          docker exec xpert-nsjail-runner-ci python3 /app/test_workspace_identity.py
+          docker exec xpert-nsjail-runner-ci python3 /app/verify_app_data.py
           docker exec xpert-nsjail-runner-ci python3 /app/verify_compute.py
           docker exec xpert-nsjail-runner-ci python3 /app/verify_documents.py
 

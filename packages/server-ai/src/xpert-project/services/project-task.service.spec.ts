@@ -2,6 +2,10 @@ import { XpertProjectTaskService } from './project-task.service'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
+import { XpertProjectXpertBindingService } from './project-xpert-binding.service'
+import { Xpert } from '../../xpert/xpert.entity'
+import { Repository } from 'typeorm'
+import { XpertTypeEnum } from '@xpert-ai/contracts'
 
 function fixture(
     task: {
@@ -12,14 +16,21 @@ function fixture(
         executions?: object[]
         assigneeXpertId?: string
     },
-    members: string[] = []
+    members: Array<string | Xpert> = [],
+    records = members.map((item) =>
+        typeof item === 'string' ? Object.assign(new Xpert(), { id: item, latest: true }) : item
+    )
 ) {
     const service = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
     const tasks = { find: jest.fn(async () => [task]), save: jest.fn(async (value) => value) }
     const manager = {
         getRepository: (entity: object) =>
             entity === XpertProject
-                ? { findOne: jest.fn(async () => ({ xperts: members.map((id) => ({ id })) })) }
+                ? {
+                      findOne: jest.fn(async () => ({
+                          xperts: members.map((item) => (typeof item === 'string' ? { id: item } : item))
+                      }))
+                  }
                 : entity === XpertProjectTask
                   ? tasks
                   : entity === XpertProjectTaskExecution
@@ -27,12 +38,48 @@ function fixture(
                     : { save: jest.fn(async (value) => value) }
     }
     Object.assign(service, {
-        repository: { ...tasks, manager: { transaction: async (operation) => operation(manager) } }
+        repository: { ...tasks, manager: { transaction: async (operation) => operation(manager) } },
+        xpertBindings: new XpertProjectXpertBindingService(
+            Object.assign(Object.create(Repository.prototype) as Repository<Xpert>, {
+                findOne: jest.fn(
+                    async ({ where }) =>
+                        records.find((item) =>
+                            where.id
+                                ? item.id === where.id
+                                : item.latest &&
+                                  item.slug === where.slug &&
+                                  item.type === where.type &&
+                                  item.workspaceId === where.workspaceId
+                        ) ?? null
+                )
+            }),
+            Object.create(Repository.prototype) as Repository<XpertProject>
+        )
     })
     return service
 }
 
 describe('XpertProjectTaskService.updateTaskSteps', () => {
+    it.each([false, true])(
+        'stores the current Assistant ID for a historical caller (historical Project binding: %s)',
+        async (historicalBinding) => {
+            const old = Object.assign(new Xpert(), {
+                id: 'old',
+                tenantId: 'tenant',
+                workspaceId: 'workspace',
+                slug: 'developer',
+                type: XpertTypeEnum.Agent,
+                latest: false,
+                publishAt: new Date()
+            })
+            const current = Object.assign(new Xpert(), old, { id: 'current', latest: true })
+            const task = { id: 'task', name: 'MVP 04', status: 'blocked', steps: [], assigneeXpertId: undefined }
+            const service = fixture(task, [historicalBinding ? old : current], [old, current])
+            await service.updateTaskSteps('project', 'thread', { id: task.id, assigneeXpertId: old.id })
+            expect(task.assigneeXpertId).toBe(current.id)
+            expect(task.status).toBe('blocked')
+        }
+    )
     it('assigns an explicit project member without starting execution and preserves assignment when omitted', async () => {
         const task = { id: 'task', name: 'Planning', status: 'todo', steps: [], assigneeXpertId: undefined }
         const service = fixture(task, ['member'])

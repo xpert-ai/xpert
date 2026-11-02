@@ -4,9 +4,11 @@
  * Without merging and rebuilding metadata first, repository access can fail with `EntityMetadataNotFoundError`.
  * Registration only refreshes metadata; the locked plugin schema preflight owns DDL.
  */
-import { BadRequestException, ConflictException, DynamicModule, Type } from '@nestjs/common'
+import { ConflictException, DynamicModule, Type } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, MixedList, getMetadataArgsStorage } from 'typeorm'
 import { getEntitiesFromPlugins, getSubscribersFromPlugins } from './plugin.helper'
+import { assertCompatiblePluginEntities } from './plugin-entity-policy'
+export { getEntityTableName, validatePluginEntityTableNames } from './plugin-entity-policy'
 
 type PluginOrmMetadata = {
 	entities: Array<Type<any>>
@@ -42,18 +44,37 @@ export function collectPluginOrmMetadata(plugins?: Array<Type<any> | DynamicModu
 
 export function mergeEntityClasses(coreEntities: Array<Type<any>>, pluginEntities: Array<Type<any>>): Array<Type<any>> {
 	const registeredEntities = [...coreEntities]
+	const tables = new Map(getMetadataArgsStorage().tables.map((table) => [table.target, table]))
 
 	for (const pluginEntity of pluginEntities) {
 		if (registeredEntities.includes(pluginEntity)) {
 			continue
 		}
 
-		if (registeredEntities.some((entity) => entity.name === pluginEntity.name)) {
+		// Class names are not global identities; shared tables require verified ownership.
+		// Protect host tables using explicit mappings, with name checks for implicit table names.
+		const pluginTable = tables.get(pluginEntity)
+		if (
+			coreEntities.some((entity) => {
+				const coreTable = tables.get(entity)
+				if (pluginTable?.name && coreTable?.name) {
+					return (
+						pluginTable.name === coreTable.name &&
+						(!pluginTable.schema || !coreTable.schema || pluginTable.schema === coreTable.schema)
+					)
+				}
+				return entity.name === pluginEntity.name
+			})
+		) {
 			throw new ConflictException({
-				message: `Entity conflict: ${pluginEntity.name} conflicts with registered entities.`
+				message: `Entity conflict: ${pluginEntity.name} conflicts with a core entity.`
 			})
 		}
 
+		assertCompatiblePluginEntities(
+			registeredEntities.filter((entity) => !coreEntities.includes(entity)),
+			[pluginEntity]
+		)
 		registeredEntities.push(pluginEntity)
 	}
 
@@ -67,52 +88,11 @@ export function mergeSubscriberClasses(
 	return Array.from(new Set([...coreSubscribers, ...pluginSubscribers]))
 }
 
-/**
- * Resolve the physical TypeORM table name declared by an entity class.
- * Namespace validation uses the decorator value instead of the class name.
- */
-export function getEntityTableName(entity: Type<any>) {
-	const table = getMetadataArgsStorage().tables.find((item) => item.target === entity)
-	return typeof table?.name === 'string' && table.name.trim() ? table.name.trim() : null
-}
-
-/**
- * Guard plugin entity tables before they are merged into the live DataSource.
- * Explicit namespaces require `plugin_<namespace>_`; legacy plugins still accept the base `plugin_` prefix.
- */
-export function validatePluginEntityTableNames(input: {
-	pluginName: string
-	entities: Array<Type<any>>
-	artifactNamespace?: string | null
-	requireNamespaceMatch?: boolean
-}) {
-	if (!input.entities.length) {
-		return
-	}
-
-	const prefix =
-		input.artifactNamespace && input.requireNamespaceMatch ? `plugin_${input.artifactNamespace}_` : 'plugin_'
-	const failures = input.entities
-		.map((entity) => ({
-			entityName: entity.name,
-			tableName: getEntityTableName(entity)
-		}))
-		.filter((item) => !item.tableName?.startsWith(prefix))
-
-	if (!failures.length) {
-		return
-	}
-
-	throw new BadRequestException({
-		message: `Plugin "${input.pluginName}" declares entity table names that do not match required artifact namespace prefix "${prefix}".`,
-		failures
-	})
-}
-
 export async function registerPluginOrmMetadataInDataSource(
 	dataSource: DataSource,
 	metadata: Partial<PluginOrmMetadata>
 ) {
+	assertCompatiblePluginEntities(normalizeTargets(dataSource.options.entities), metadata.entities ?? [])
 	const nextEntities = mergeTargets(dataSource.options.entities, metadata.entities ?? [])
 	const nextSubscribers = mergeTargets(dataSource.options.subscribers, metadata.subscribers ?? [])
 	const hasEntityChanges = nextEntities.length !== normalizeTargets(dataSource.options.entities).length

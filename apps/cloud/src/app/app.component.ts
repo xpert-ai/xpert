@@ -1,8 +1,10 @@
 import { Platform } from '@angular/cdk/platform'
 import { DOCUMENT } from '@angular/common'
-import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@angular/core'
+import { ChangeDetectionStrategy, Component, Inject, Renderer2, inject, effect } from '@angular/core'
 import { Title } from '@angular/platform-browser'
 import { AppService } from './app.service'
+
+import { WebUpdateService } from './@core/services/web-update/web-update.service'
 
 const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'system']
 
@@ -15,6 +17,7 @@ const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'system']
   providers: []
 })
 export class AppComponent {
+  private readonly webUpdate = inject(WebUpdateService)
   readonly isMobile$ = this.appService.isMobile
 
   constructor(
@@ -25,6 +28,7 @@ export class AppComponent {
     private platform: Platform,
     private title: Title
   ) {
+    this.webUpdate.start()
     effect(() => {
       const isMobile = this.isMobile$()
       const { primary } = this.appService.theme$()

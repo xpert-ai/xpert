@@ -290,7 +290,29 @@ describe('PluginManagementService', () => {
 		)
 	})
 
+	it.each([undefined, 'legacy'])(
+		'rejects legacy organization entity plugins before changing the DataSource (%s)',
+		async (artifactNamespace) => {
+			@Entity('plugin_legacy_history')
+			class LegacyHistory {}
+			getEntitiesFromPlugins.mockReturnValue([LegacyHistory])
+			getSubscribersFromPlugins.mockReturnValue([])
+			registerPluginsAsync.mockResolvedValue({ modules: [{ module: class LegacyModule {} }], errors: [] })
+			loadPlugin.mockResolvedValue({
+				meta: { name: '@test/legacy', version: '1.0.0', level: 'organization', artifactNamespace }
+			})
+			await expect(fixture.service.installPlugin({ pluginName: '@test/legacy' })).rejects.toThrow(
+				artifactNamespace ? 'level=system or level=tenant' : 'artifactNamespace'
+			)
+			expect(dataSource.setOptions).not.toHaveBeenCalled()
+			expect(lazyLoader.load).not.toHaveBeenCalled()
+		}
+	)
+
 	it('registers plugin orm metadata before lazy-loading plugin modules', async () => {
+		fixture.RequestContext.getScope.mockReturnValue({ tenantId: 'tenant-1', organizationId: '__global__' })
+		const runtimePolicy = { install: 'hot', update: 'restart', uninstall: 'restart' }
+		assertPluginSdkInstallCandidate.mockResolvedValue({ level: 'system', runtimePolicy })
 		@Entity('plugin_runtime_demo_runtime')
 		class RuntimeEntity {}
 		class RuntimeSubscriber {}
@@ -309,7 +331,9 @@ describe('PluginManagementService', () => {
 			meta: {
 				name: '@xpert-ai/plugin-runtime-demo',
 				version: '1.0.0',
-				level: 'organization'
+				level: 'system',
+				artifactNamespace: 'runtime_demo',
+				runtimePolicy
 			}
 		})
 		lazyLoader.load.mockResolvedValue({})
@@ -341,7 +365,7 @@ describe('PluginManagementService', () => {
 		)
 		expect(collectProvidersWithMetadata).toHaveBeenCalledWith(
 			{},
-			'org-1',
+			'system:global',
 			'@xpert-ai/plugin-runtime-demo',
 			expect.anything(),
 			expect.any(Set)

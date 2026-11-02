@@ -16,6 +16,7 @@ import { ProjectTaskDispatchService } from './project-task-dispatch.service'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { XpertProjectAccessService } from '../services/project-access.service'
+import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
 
 async function fixture() {
     const scope: AgentInvocationScope = {
@@ -91,7 +92,14 @@ async function fixture() {
             return query
         })
     }
-    const taskRepo = { findOne: jest.fn(async () => task), find: jest.fn(async () => []) }
+    const taskRepo = {
+        findOne: jest.fn(async () => task),
+        find: jest.fn(async () => []),
+        save: jest.fn(async (value: XpertProjectTask) => {
+            value.revision++
+            return value
+        })
+    }
     const projectRepo = { findOne: jest.fn(async () => ({ id: scope.projectId, status: 'active' })) }
     const invocationRepo = {
         find: jest.fn(async () => invocations),
@@ -132,6 +140,7 @@ async function fixture() {
         createCapturedApi: jest.fn(() => ({ start }))
     }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
+    const bindings = { resolveCurrentById: jest.fn(async (id: string) => ({ id })) }
     const module = await Test.createTestingModule({
         providers: [
             ProjectTaskDispatchService,
@@ -140,7 +149,8 @@ async function fixture() {
             { provide: XpertProjectAccessService, useValue: {} },
             { provide: getRepositoryToken(XpertProjectTaskExecution), useValue: { ...executionRepo, manager } },
             { provide: ProjectTaskRuntimeContextService, useValue: context },
-            { provide: AgentInvocationFactoryService, useValue: factory }
+            { provide: AgentInvocationFactoryService, useValue: factory },
+            { provide: XpertProjectXpertBindingService, useValue: bindings }
         ]
     }).compile()
     return {
@@ -153,6 +163,7 @@ async function fixture() {
         target,
         factory,
         context,
+        bindings,
         start,
         projectRepo,
         taskRepo,
@@ -163,29 +174,155 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('keeps an existing responsible Assistant when the caller delegates to an external Runtime', async () => {
+        const f = await fixture()
+        const owner = f.task.assigneeXpertId
+        await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(f.rows[0].xpertId).toBe(owner)
+        expect(f.task.assigneeXpertId).toBe(owner)
+        expect(f.taskRepo.save).not.toHaveBeenCalled()
+        expect(f.bindings.resolveCurrentById).not.toHaveBeenCalled()
+    })
+    it('defaults an unassigned group task to its executing expert', async () => {
+        const f = await fixture()
+        f.task.assigneeXpertId = null
+        f.target.reference = randomUUID()
+        f.target.provider = 'xpert-task'
+        f.target.configuration = {
+            executionContext: {
+                type: 'group_member',
+                groupId: randomUUID(),
+                participantId: f.target.bindingId,
+                sourceParticipantId: randomUUID(),
+                projectId: f.scope.projectId
+            }
+        }
+        const input = {
+            ...f.input,
+            bindingId: undefined,
+            target: { type: 'group_member' as const, participantId: f.target.bindingId }
+        }
+        await f.service.dispatch(f.scope.projectId, input, f.caller)
+        expect(f.task.assigneeXpertId).toBe(f.target.reference)
+        expect(f.rows[0].xpertId).toBe(f.target.reference)
+        expect(f.task.assigneeXpertId).not.toBe(f.scope.callerXpertId)
+    })
+    it('resolves a historical caller to its current published Assistant before filling the owner', async () => {
+        const f = await fixture()
+        const currentId = randomUUID()
+        f.task.assigneeXpertId = null
+        f.bindings.resolveCurrentById.mockResolvedValueOnce({ id: currentId })
+        await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(f.task.assigneeXpertId).toBe(currentId)
+        expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, currentId)
+        expect(f.rows[0].projectedTaskRevision).toBe(2)
+    })
+    it.each([
+        { owner: 'current', revision: 1 },
+        { owner: 'unassigned', revision: 2 },
+        { owner: 'another', revision: 2 }
+    ])(
+        'normalizes a historical group executor while preserving its Runtime version ($owner owner)',
+        async ({ owner, revision }) => {
+            const f = await fixture()
+            const currentId = randomUUID()
+            const historicalId = randomUUID()
+            if (owner === 'current') f.task.assigneeXpertId = currentId
+            if (owner === 'unassigned') f.task.assigneeXpertId = null
+            f.target.reference = historicalId
+            f.target.revision = '2'
+            f.target.provider = 'xpert-task'
+            f.target.configuration = {
+                executionContext: {
+                    type: 'group_member',
+                    groupId: randomUUID(),
+                    participantId: f.target.bindingId,
+                    sourceParticipantId: randomUUID(),
+                    projectId: f.scope.projectId
+                }
+            }
+            f.bindings.resolveCurrentById.mockResolvedValue({ id: currentId })
+            const input = {
+                ...f.input,
+                bindingId: undefined,
+                target: { type: 'group_member' as const, participantId: f.target.bindingId }
+            }
+            const first = await f.service.dispatch(f.scope.projectId, input, f.caller)
+            const replay = await f.service.dispatch(f.scope.projectId, input, f.caller)
+            expect(f.task.assigneeXpertId).toBe(currentId)
+            expect(f.task.revision).toBe(revision)
+            expect(f.rows).toHaveLength(1)
+            expect(f.rows[0]).toMatchObject({
+                xpertId: currentId,
+                projectedTaskRevision: revision,
+                dispatchIntent: { request: { target: { reference: historicalId, revision: '2' } } }
+            })
+            expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, currentId)
+            expect(f.start.mock.calls[0][0].target).toEqual(f.target)
+            expect(f.start.mock.calls[1][0]).toEqual(f.start.mock.calls[0][0])
+            expect(replay.taskExecutionId).toBe(first.taskExecutionId)
+        }
+    )
+    it.each([false, true])(
+        'rejects an unresolved group expert without falling back to another owner (unassigned: %s)',
+        async (unassigned) => {
+            const f = await fixture()
+            if (unassigned) f.task.assigneeXpertId = null
+            const originalOwner = f.task.assigneeXpertId
+            f.target.reference = randomUUID()
+            f.target.provider = 'xpert-task'
+            f.target.configuration = {
+                executionContext: {
+                    type: 'group_member',
+                    groupId: randomUUID(),
+                    participantId: f.target.bindingId,
+                    sourceParticipantId: randomUUID(),
+                    projectId: f.scope.projectId
+                }
+            }
+            f.bindings.resolveCurrentById.mockImplementation(async (id) => (id === f.target.reference ? null : { id }))
+            const input = {
+                ...f.input,
+                bindingId: undefined,
+                target: { type: 'group_member' as const, participantId: f.target.bindingId }
+            }
+            await expect(f.service.dispatch(f.scope.projectId, input, f.caller)).rejects.toMatchObject({ status: 409 })
+            expect(f.task.assigneeXpertId).toBe(originalOwner)
+            expect(f.task.revision).toBe(1)
+            expect(f.taskRepo.save).not.toHaveBeenCalled()
+            expect(f.rows).toHaveLength(0)
+            expect(f.start).not.toHaveBeenCalled()
+        }
+    )
+    it.each(['revision', 'requirements', 'membership', 'unpublished'])(
+        'does not save default responsibility when %s validation fails',
+        async (reason) => {
+            const f = await fixture()
+            f.task.assigneeXpertId = null
+            if (reason === 'revision') f.input.expectedRevision++
+            if (reason === 'requirements') f.task.requirements = []
+            if (reason === 'membership')
+                f.context.assertResponsibleAssistant.mockRejectedValueOnce(new Error('Revoked'))
+            if (reason === 'unpublished') f.bindings.resolveCurrentById.mockResolvedValueOnce(null)
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+            expect(f.task.assigneeXpertId).toBeNull()
+            expect(f.taskRepo.save).not.toHaveBeenCalled()
+            expect(f.rows).toHaveLength(0)
+            expect(f.start).not.toHaveBeenCalled()
+        }
+    )
     it.each(['codex-computer', 'opencode'])(
-        'requires explicit ownership before %s delegation and permits assignment then retry',
+        'defaults an unassigned task to the current Assistant before %s delegation and replays once',
         async (provider) => {
             const f = await fixture()
             f.target.provider = provider
             f.task.assigneeXpertId = null
-            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toMatchObject({
-                status: 409
-            })
-            expect(f.rows).toHaveLength(0)
-            expect(f.start).not.toHaveBeenCalled()
-            expect(f.task.assigneeXpertId).toBeNull()
-            // The caller is authorized but is never silently made responsible.
-            f.task.assigneeXpertId = randomUUID()
-            f.task.revision = 2
-            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
-            const input = { ...f.input, expectedRevision: 2 }
-            await f.service.dispatch(f.scope.projectId, input, f.caller)
-            await f.service.dispatch(f.scope.projectId, input, f.caller)
+            await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            await f.service.dispatch(f.scope.projectId, f.input, f.caller)
             expect(f.rows).toHaveLength(1)
-            expect(f.rows[0].xpertId).toBe(f.task.assigneeXpertId)
-            expect(f.rows[0].xpertId).not.toBe(f.scope.callerXpertId)
-            expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, f.task.assigneeXpertId)
+            expect(f.task.assigneeXpertId).toBe(f.scope.callerXpertId)
+            expect(f.rows[0].xpertId).toBe(f.scope.callerXpertId)
+            expect(f.context.assertResponsibleAssistant).toHaveBeenCalledWith(f.scope, f.scope.callerXpertId)
         }
     )
     it('does not infer ownership for the Project general agent or legacy unassigned attempts', async () => {
@@ -218,7 +355,7 @@ describe('explicit Project task delegation', () => {
         expect(f.rows).toHaveLength(1)
         expect(f.start).not.toHaveBeenCalled()
     })
-    it('requires exactly one target and the assigned group Assistant, preserving the task execution ledger', async () => {
+    it('updates responsibility to an explicitly selected group executor, preserving the task execution ledger', async () => {
         const f = await fixture()
         const target = { type: 'group_member' as const, participantId: f.target.bindingId }
         f.target.provider = 'xpert-task'
@@ -233,9 +370,9 @@ describe('explicit Project task delegation', () => {
         }
         await expect(f.service.dispatch(f.scope.projectId, { ...f.input, target }, f.caller)).rejects.toThrow()
         const input = { ...f.input, bindingId: undefined, target }
-        await expect(f.service.dispatch(f.scope.projectId, input, f.caller)).rejects.toThrow()
-        f.task.assigneeXpertId = f.target.reference
         const receipt = await f.service.dispatch(f.scope.projectId, input, f.caller)
+        expect(f.task.assigneeXpertId).toBe(f.target.reference)
+        expect(f.taskRepo.save).toHaveBeenCalledTimes(1)
         expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalled()
         expect(f.factory.resolveGroupTarget).toHaveBeenCalledWith(f.scope, target.participantId)
         expect(f.rows[0]).toMatchObject({

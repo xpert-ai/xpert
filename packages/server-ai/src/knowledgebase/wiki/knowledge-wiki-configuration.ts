@@ -1,8 +1,8 @@
 import {
     ICopilotModel,
     IKnowledgebase,
+    isDocumentKnowledgebaseType,
     KnowledgebaseWikiConfig,
-    KnowledgebaseTypeEnum,
     normalizeKnowledgebaseWikiConfig
 } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
@@ -32,7 +32,7 @@ export function prepareKnowledgeWikiConfiguration(
     chatModel: Knowledgebase['chatModel'] = current.chatModel
 ): Partial<Knowledgebase> {
     const knowledgebase = Object.assign(new Knowledgebase(), current, { chatModel })
-    if (knowledgebase.type !== KnowledgebaseTypeEnum.Standard) {
+    if (!isDocumentKnowledgebaseType(knowledgebase.type)) {
         throw new BadRequestException(
             t('server-ai:Error.KnowledgebaseWikiUnsupportedType', {
                 defaultValue: 'Wiki can only be enabled for standard knowledgebases'

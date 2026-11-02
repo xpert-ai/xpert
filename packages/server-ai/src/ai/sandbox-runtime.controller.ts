@@ -1,3 +1,4 @@
+import { usesRuntimePresentation } from './runtime-presentation'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
@@ -15,7 +16,6 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TSandboxManagedServiceStartInput, ISandboxManagedService } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Request, Response } from 'express'
 import { SandboxManagedServiceService } from '../sandbox/sandbox-managed-service.service'
@@ -125,10 +125,18 @@ export class SandboxRuntimeController {
 }
 
 function publicService(service: ISandboxManagedService) {
-    return !RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW) ? {
-        id: service.id, conversationId: service.conversationId, name: service.name,
-        status: service.status, actualPort: service.actualPort, previewPath: service.previewPath,
-        previewUrl: service.previewUrl, transportMode: service.transportMode,
-        startedAt: service.startedAt, stoppedAt: service.stoppedAt
-    } : service
+    return usesRuntimePresentation()
+        ? {
+              id: service.id,
+              conversationId: service.conversationId,
+              name: service.name,
+              status: service.status,
+              actualPort: service.actualPort,
+              previewPath: service.previewPath,
+              previewUrl: service.previewUrl,
+              transportMode: service.transportMode,
+              startedAt: service.startedAt,
+              stoppedAt: service.stoppedAt
+          }
+        : service
 }

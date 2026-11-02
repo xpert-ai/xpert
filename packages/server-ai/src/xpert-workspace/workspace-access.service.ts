@@ -22,6 +22,9 @@ import {
     WhereExpressionBuilder
 } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { assistantRuntimeCredential } from '@xpert-ai/server-core'
+import { Xpert } from '../xpert/xpert.entity'
+import { applyAssistantRuntimeCredential } from '../xpert/assistant-runtime-compatibility'
 import { XpertWorkspace } from './workspace.entity'
 import { currentServiceOperation, serviceWorkspaceScopeAllows } from '../shared/service-operation'
 
@@ -159,11 +162,22 @@ export class XpertWorkspaceAccessService {
         const capabilities = await this.getCapabilities(workspace)
         const isTenantShared = isTenantSharedXpertWorkspace(workspace)
         return {
-            workspace: {
-                ...workspace,
-                capabilities,
-                isTenantShared
-            },
+            workspace: assistantRuntimeCredential(RequestContext.currentUser())
+                ? Object.assign(new XpertWorkspace(), {
+                      id: workspace.id,
+                      name: workspace.name,
+                      description: workspace.description,
+                      tenantId: workspace.tenantId,
+                      organizationId: workspace.organizationId,
+                      status: workspace.status,
+                      capabilities,
+                      isTenantShared
+                  })
+                : {
+                      ...workspace,
+                      capabilities,
+                      isTenantShared
+                  },
             capabilities,
             isTenantShared
         }
@@ -179,6 +193,18 @@ export class XpertWorkspaceAccessService {
         options?: { includePublishedRunAccess?: boolean }
     ): Promise<TXpertWorkspaceCapabilities> {
         if (!serviceWorkspaceScopeAllows(workspace)) return this.emptyCapabilities()
+        if (assistantRuntimeCredential(RequestContext.currentUser())) {
+            const binding = await this.assistantRuntimeWorkspace()
+            return {
+                ...this.emptyCapabilities(),
+                canRun:
+                    !!binding &&
+                    workspace.id === binding.workspaceId &&
+                    workspace.tenantId === binding.tenantId &&
+                    (workspace.organizationId ?? null) === (binding.organizationId ?? null) &&
+                    workspace.status !== 'archived'
+            }
+        }
         const access = await this.getResourceAccess(workspace, options)
         return {
             canRead: access.canRead && RequestContext.hasPermission(AIPermissionsEnum.XPERT_VIEW),
@@ -339,8 +365,15 @@ export class XpertWorkspaceAccessService {
         const organizationId = RequestContext.getOrganizationId()
         const canManageWorkspaces = RequestContext.hasPermission(AIPermissionsEnum.XPERT_WORKSPACE_MANAGE)
         const userId = user.id
-        const apiKeyBoundWorkspaceId = await this.currentApiKeyBoundWorkspaceIdForUser(user)
         const isAuthoringPurpose = options?.purpose === 'authoring'
+        if (assistantRuntimeCredential(user)) {
+            const binding = isAuthoringPurpose ? null : await this.assistantRuntimeWorkspace()
+            if (binding)
+                query.andWhere('workspace.id = :runtimeWorkspaceId', { runtimeWorkspaceId: binding.workspaceId })
+            else query.andWhere('1 = 0')
+            return
+        }
+        const apiKeyBoundWorkspaceId = await this.currentApiKeyBoundWorkspaceIdForUser(user)
         if (user.type === UserType.COMMUNICATION && !RequestContext.currentApiPrincipal()) {
             const operation = currentServiceOperation()
             if (!operation) {
@@ -458,6 +491,19 @@ export class XpertWorkspaceAccessService {
         if (apiKeyBoundWorkspaceId) {
             query.orWhere('workspace.id = :apiKeyBoundWorkspaceId', { apiKeyBoundWorkspaceId })
         }
+    }
+
+    private async assistantRuntimeWorkspace() {
+        const credential = assistantRuntimeCredential(RequestContext.currentUser())
+        if (!credential?.allowed) return null
+        const query = this.workspaceRepository.manager
+            .createQueryBuilder(Xpert, 'xpert')
+            .select('xpert."workspaceId"', 'workspaceId')
+            .addSelect('xpert."tenantId"', 'tenantId')
+            .addSelect('xpert."organizationId"', 'organizationId')
+        return applyAssistantRuntimeCredential(query, credential)
+            .limit(1)
+            .getRawOne<{ workspaceId: string; tenantId: string; organizationId: string | null }>()
     }
 
     private async currentApiKeyBoundWorkspaceIdForUser(user?: IUser | null) {

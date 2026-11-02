@@ -107,10 +107,11 @@ export function resolveEmbeddingModelUpdateState(
     }
 
     if (current.embeddingCollectionName && current.embeddingModelFingerprint === target.fingerprint) {
+        // Reuse compatible vectors while persisting the explicitly selected connection.
         return {
             status: KnowledgebaseStatusEnum.READY,
-            copilotModel: current.copilotModel,
-            copilotModelId: current.copilotModelId ?? null,
+            copilotModel: target.copilotModel,
+            copilotModelId: target.copilotModelId ?? null,
             embeddingCollectionName: current.embeddingCollectionName,
             embeddingModelFingerprint: current.embeddingModelFingerprint,
             embeddingDimensions: current.embeddingDimensions ?? target.dimensions,

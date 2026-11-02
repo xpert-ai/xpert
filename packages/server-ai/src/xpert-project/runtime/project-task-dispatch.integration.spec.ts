@@ -3,6 +3,8 @@ import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
 import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
 import { XpertProjectTaskService } from '../services/project-task.service'
+import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
+import { Xpert } from '../../xpert/xpert.entity'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -166,6 +168,12 @@ integration('explicit task delegation / PostgreSQL', () => {
         Object.create(ProjectTaskRuntimeContextService.prototype) as ProjectTaskRuntimeContextService,
         { resolve: jest.fn(async () => structuredClone(scope)), assertResponsibleAssistant: jest.fn() }
     )
+    const bindings = Object.assign(
+        Object.create(XpertProjectXpertBindingService.prototype) as XpertProjectXpertBindingService,
+        {
+            resolveCurrentById: jest.fn(async (id: string) => Object.assign(new Xpert(), { id }))
+        }
+    )
     const migration = readFileSync(join(__dirname, '../migrations/20261006-project-task-runtime.sql'), 'utf8')
 
     beforeAll(async () => {
@@ -304,6 +312,7 @@ integration('explicit task delegation / PostgreSQL', () => {
         const registry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
         registry.register('test', strategy, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
         registry.register('opencode', strategy, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
+        registry.register('codex-computer', strategy, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
         const query = Object.assign(Object.create(QueryBus.prototype) as QueryBus, {
             execute: jest.fn(async () => ({
                 agent: {
@@ -337,7 +346,8 @@ integration('explicit task delegation / PostgreSQL', () => {
             database.getRepository(XpertProjectTaskExecution),
             context,
             factory,
-            cards
+            cards,
+            bindings
         )
     })
 
@@ -446,26 +456,63 @@ integration('explicit task delegation / PostgreSQL', () => {
         await expect(service.dispatch(scope.projectId, input, caller)).rejects.toThrow()
         expect(start).not.toHaveBeenCalled()
     })
-    it('keeps historical tasks unassigned until explicit assignment, then delegates and replays once', async () => {
+    it('fills the current Assistant for unassigned MVP 04, commits it before Codex launch and replays once', async () => {
         const tasks = database.getRepository(XpertProjectTask)
-        await tasks.update({ id: input.taskId }, { assigneeXpertId: null })
+        await tasks.update(
+            { id: input.taskId },
+            { title: 'MVP 04', status: 'blocked', assigneeXpertId: null, revision: 3 }
+        )
+        const runtimeBindings = database.getRepository(AgentRuntimeBindingEntity)
+        const binding = await runtimeBindings.findOneByOrFail({ id: input.bindingId })
+        binding.target.provider = 'codex-computer'
+        await runtimeBindings.save(binding)
         input.expectedRevision = (await tasks.findOneByOrFail({ id: input.taskId })).revision
-        await expect(service.dispatch(scope.projectId, input, caller)).rejects.toMatchObject({ status: 409 })
-        expect(await database.getRepository(XpertProjectTaskExecution).countBy({ taskId: input.taskId })).toBe(0)
-        expect((await tasks.findOneByOrFail({ id: input.taskId })).assigneeXpertId).toBeNull()
-        expect(start).not.toHaveBeenCalled()
-        const responsible = randomUUID()
-        await tasks.update({ id: input.taskId }, { assigneeXpertId: responsible })
-        input.expectedRevision = (await tasks.findOneByOrFail({ id: input.taskId })).revision
+        let taskAtLaunch: XpertProjectTask | undefined
+        let attemptsAtLaunch: number | undefined
+        start.mockImplementationOnce(async (_request, runtimeContext) => {
+            taskAtLaunch = await tasks.findOneByOrFail({ id: input.taskId })
+            attemptsAtLaunch = await database.getRepository(XpertProjectTaskExecution).countBy({ taskId: input.taskId })
+            return { status: 'running', handle: { sessionId: randomUUID(), runId: runtimeContext.invocationId } }
+        })
         const first = await service.dispatch(scope.projectId, input, caller)
+        expect(taskAtLaunch).toMatchObject({ assigneeXpertId: scope.callerXpertId, revision: 4 })
+        expect(attemptsAtLaunch).toBe(1)
         const replay = await service.dispatch(scope.projectId, input, caller)
         expect(replay.taskExecutionId).toBe(first.taskExecutionId)
         expect(start).toHaveBeenCalledTimes(1)
         expect(
             (await database.getRepository(XpertProjectTaskExecution).findOneByOrFail({ id: first.taskExecutionId }))
                 .xpertId
-        ).toBe(responsible)
-        expect((await tasks.findOneByOrFail({ id: input.taskId })).assigneeXpertId).toBe(responsible)
+        ).toBe(scope.callerXpertId)
+        expect((await tasks.findOneByOrFail({ id: input.taskId })).assigneeXpertId).toBe(scope.callerXpertId)
+        expect((await tasks.findOneByOrFail({ id: input.taskId })).revision).toBe(4)
+        const invocation = await database
+            .getRepository(AgentInvocationEntity)
+            .findOneByOrFail({ id: first.invocationId })
+        expect(invocation.invocation.request.target.provider).toBe('codex-computer')
+    })
+    it('rolls back the default owner and revision when reserving the attempt fails', async () => {
+        const tasks = database.getRepository(XpertProjectTask)
+        await tasks.update({ id: input.taskId }, { assigneeXpertId: null })
+        const before = await tasks.findOneByOrFail({ id: input.taskId })
+        input.expectedRevision = before.revision
+        const subscriber = {
+            listenTo: () => XpertProjectTaskExecution,
+            beforeInsert: () => {
+                throw new Error('Attempt persistence failed')
+            }
+        }
+        database.subscribers.push(subscriber)
+        try {
+            await expect(service.dispatch(scope.projectId, input, caller)).rejects.toThrow('Attempt persistence failed')
+        } finally {
+            database.subscribers.splice(database.subscribers.indexOf(subscriber), 1)
+        }
+        const after = await tasks.findOneByOrFail({ id: input.taskId })
+        expect(after.assigneeXpertId).toBeNull()
+        expect(after.revision).toBe(before.revision)
+        expect(await database.getRepository(XpertProjectTaskExecution).countBy({ taskId: input.taskId })).toBe(0)
+        expect(start).not.toHaveBeenCalled()
     })
     it('serializes simultaneous identical dispatches and launches the adapter once', async () => {
         const receipts = await Promise.all(
@@ -506,7 +553,8 @@ integration('explicit task delegation / PostgreSQL', () => {
             database.getRepository(XpertProjectTaskExecution),
             context,
             factory,
-            cards
+            cards,
+            bindings
         )
         const receipt = await service.dispatch(scope.projectId, input, caller)
         expect(receipt.invocationId).toBe(saved.invocationId)

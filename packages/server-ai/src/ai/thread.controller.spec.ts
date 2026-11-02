@@ -14,6 +14,7 @@ jest.mock('../chat-conversation/thread-run-control.service', () => ({
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
+    ...jest.requireActual('../../../server/src/api-key/assistant-runtime-compatibility'),
     Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},

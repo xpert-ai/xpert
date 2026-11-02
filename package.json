@@ -36,7 +36,7 @@
     "schema:baseline": "node tools/scripts/start-api.mjs --baseline",
     "test:start:api": "node --test tools/scripts/start-api.test.mjs",
     "start:nsjail:dev": "docker compose -f docker-compose.yml -f .deploy/nsjail-runner/docker-compose.nsjail.yml -f .deploy/nsjail-runner/docker-compose.nsjail.dev.yml up -d --build --no-deps nsjail-runner",
-    "test:nsjail-runner": "python3 .deploy/nsjail-runner/test_runner.py && python3 .deploy/nsjail-runner/test_compute.py && python3 .deploy/nsjail-runner/test_documents.py",
+    "test:nsjail-runner": "python3 .deploy/nsjail-runner/test_runner.py && python3 .deploy/nsjail-runner/test_compute.py && python3 .deploy/nsjail-runner/test_documents.py && python3 .deploy/nsjail-runner/test_workspace_identity.py && python3 .deploy/nsjail-runner/test_workspace_mounts.py",
     "start:api:debug": "nodemon --config nodemon-debug.json",
     "start:docs": "pnpm -C ./docs dev",
     "plugin:install:local": "node tools/scripts/install-local-plugin.mjs",

@@ -29,7 +29,6 @@ import {
     Controller,
     Get,
     HttpCode,
-    HttpException,
     HttpStatus,
     Inject,
     InternalServerErrorException,
@@ -275,28 +274,6 @@ export class CopilotController extends CrudController<Copilot> {
             new ListModelProvidersQuery()
         )
         return providers.map((_) => new AiProviderDto(_, this.baseUrl))
-    }
-
-    /**
-     * get models by model type
-     *
-     * @param type ModelType
-     * @returns
-     */
-    @Get('models')
-    async getModels(@Query('type') type: AiModelTypeEnum) {
-        try {
-            return await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-                new FindCopilotModelsQuery(type)
-            )
-        } catch (err) {
-            console.error(err)
-            if (err instanceof HttpException) {
-                throw err
-            } else {
-                throw new InternalServerErrorException(getErrorMessage(err))
-            }
-        }
     }
 
     @Get('membership-models')

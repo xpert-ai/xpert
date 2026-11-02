@@ -155,6 +155,13 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 		throw new PluginLoadError(modName, 'Module does not export a valid XpertPlugin')
 	}
 
+	if (sdkCompatibility?.artifactNamespace && sdkCompatibility.artifactNamespace !== plugin.meta.artifactNamespace) {
+		throw new PluginLoadError(
+			modName,
+			'Runtime artifactNamespace must match xpert.plugin.artifactNamespace in package.json'
+		)
+	}
+
 	if (!plugin.meta.level) {
 		const packageLevel = readPluginLevelFromPackageJson(modName, opts)
 		plugin.meta.level = packageLevel ?? plugin.meta.level

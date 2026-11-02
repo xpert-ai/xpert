@@ -27,6 +27,21 @@ describe('plugin loader', () => {
 		rmSync(rootDir, { recursive: true, force: true })
 	})
 
+	it.each([undefined, 'other'])('rejects a missing or mismatched runtime namespace (%s)', async (namespace) => {
+		const basedir = createPluginBaseDir(rootDir, '@test/namespace')
+		const pluginDir = join(basedir, 'node_modules', '@test', 'namespace')
+		writeFileSync(join(pluginDir, 'package.json'), JSON.stringify({ name: '@test/namespace', main: './index.cjs' }))
+		writeFileSync(
+			join(pluginDir, 'index.cjs'),
+			`module.exports = { meta: ${JSON.stringify({ name: '@test/namespace', version: '1.0.0', artifactNamespace: namespace })}, register() {} }`
+		)
+		pluginSdkVersioning.assertInstalledPluginSdkCompatibility.mockReturnValueOnce({
+			artifactNamespace: 'owned',
+			warnings: []
+		})
+		await expect(loadPlugin('@test/namespace', { basedir })).rejects.toThrow('Runtime artifactNamespace must match')
+	})
+
 	it('prefers staged src/index.ts for externally imported code plugins', async () => {
 		const basedir = createPluginBaseDir(rootDir, '@xpert-ai/plugin-code-demo')
 		const pluginDir = join(basedir, 'node_modules', '@xpert-ai', 'plugin-code-demo')

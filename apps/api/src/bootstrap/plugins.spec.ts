@@ -4,10 +4,13 @@ import {
   getEntitiesFromPlugins,
   loadOrganizationPluginConfigs,
   PluginStartupTimeoutError,
-  registerPluginsAsync
+  registerPluginsAsync,
+  registerAllEntities,
+  registerAllSubscribers
 } from '@xpert-ai/server-core'
 import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
-import { preBootstrapPlugins } from './index'
+import { preBootstrapApplicationConfig, preBootstrapPlugins } from './index'
+import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 jest.mock('@xpert-ai/server-config', () => ({ getConfig: jest.fn(), setConfig: jest.fn() }), { virtual: true })
 jest.mock('@xpert-ai/contracts', () => ({}), { virtual: true })
@@ -20,6 +23,8 @@ jest.mock(
     PluginStartupTimeoutError: class extends Error {},
     registerPluginsAsync: jest.fn(),
     getEntitiesFromPlugins: jest.fn(() => []),
+    registerAllEntities: jest.fn(),
+    registerAllSubscribers: jest.fn(),
     normalizePluginName: (name: string) => (name.lastIndexOf('@') > 0 ? name.slice(0, name.lastIndexOf('@')) : name)
   }),
   { virtual: true }
@@ -34,7 +39,7 @@ jest.mock(
 )
 jest.mock('./bootstrap.module', () => ({}))
 jest.mock('./session', () => ({}))
-jest.mock('chalk', () => ({}))
+jest.mock('chalk', () => ({ default: { yellow: (text: string) => text } }))
 
 const pluginName = '@xpert-ai/plugin-local-shell-sandbox'
 const loadConfigs = jest.mocked(loadOrganizationPluginConfigs)
@@ -200,5 +205,98 @@ describe('preBootstrapPlugins built-in plugins', () => {
     register.mockRejectedValueOnce(error)
     await expect(preBootstrapPlugins({ failOnPluginGroupError })).rejects.toBe(error)
     expect(setConfig).not.toHaveBeenCalled()
+  })
+})
+
+@Entity('plugin_fixture_projection')
+class ProjectionEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string
+
+  @Column({ type: 'uuid' })
+  tenantId: string
+
+  @Column({ type: 'uuid' })
+  organizationId: string
+}
+
+class ProjectionSubscriber {
+  listenTo() {
+    return ProjectionEntity
+  }
+}
+
+class MetadataDataSource extends DataSource {
+  async prepareMetadata() {
+    await this.buildMetadatas()
+  }
+}
+
+describe('final API bootstrap ORM configuration', () => {
+  class DiscoveredPlugin {}
+  class StalePlugin {}
+  const discoveredModules = [{ module: DiscoveredPlugin }]
+  let current: ReturnType<typeof getConfig>
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.spyOn(console, 'time').mockImplementation(() => undefined)
+    jest.spyOn(console, 'timeEnd').mockImplementation(() => undefined)
+    current = { dbConnectionOptions: { type: 'postgres', entities: [] } } as ReturnType<typeof getConfig>
+    jest.mocked(getConfig).mockImplementation(() => current)
+    jest.mocked(setConfig).mockImplementation((update) => {
+      current = {
+        ...current,
+        ...update,
+        dbConnectionOptions: { ...current.dbConnectionOptions, ...update.dbConnectionOptions }
+      } as ReturnType<typeof getConfig>
+    })
+    loadConfigs.mockResolvedValue([])
+    register.mockResolvedValue({
+      modules: [],
+      errors: [],
+      organizationId: 'global',
+      scopeKey: 'global',
+      tenantId: null
+    })
+    register.mockResolvedValueOnce({
+      modules: discoveredModules,
+      errors: [],
+      organizationId: 'global',
+      scopeKey: 'system:global',
+      tenantId: null
+    })
+    jest.mocked(getEntitiesFromPlugins).mockReturnValue([ProjectionEntity])
+    jest.mocked(registerAllEntities).mockResolvedValue([ProjectionEntity])
+    jest.mocked(registerAllSubscribers).mockResolvedValue([ProjectionSubscriber])
+  })
+
+  afterEach(() => jest.restoreAllMocks())
+
+  it.each([{}, { plugins: [{ module: StalePlugin }] }])(
+    'uses discovered plugins instead of the original configuration %j',
+    async (input) => {
+      const config = await preBootstrapApplicationConfig(input)
+      expect(registerAllEntities).toHaveBeenCalledWith(expect.objectContaining({ plugins: discoveredModules }))
+      expect(registerAllSubscribers).toHaveBeenCalledWith(expect.objectContaining({ plugins: discoveredModules }))
+      expect(config.dbConnectionOptions.subscribers).toEqual([ProjectionSubscriber])
+
+      // A declared projection must work without TypeOrmModule.forFeature auto-loading it.
+      const database = new MetadataDataSource({ type: 'postgres', entities: config.dbConnectionOptions.entities })
+      await database.prepareMetadata()
+      expect(database.getMetadata(ProjectionEntity).tableName).toBe('plugin_fixture_projection')
+      expect(database.getMetadata(ProjectionEntity).columns.map((column) => column.databaseName)).toEqual([
+        'id',
+        'tenantId',
+        'organizationId'
+      ])
+    }
+  )
+
+  it.each(['entities', 'subscribers'] as const)('does not continue with incomplete %s metadata', async (kind) => {
+    const registration = kind === 'entities' ? jest.mocked(registerAllEntities) : jest.mocked(registerAllSubscribers)
+    registration.mockRejectedValueOnce(new Error('ORM metadata conflict'))
+    await expect(preBootstrapApplicationConfig({})).rejects.toThrow('ORM metadata conflict')
+    expect(current.dbConnectionOptions.subscribers).toBeUndefined()
   })
 })

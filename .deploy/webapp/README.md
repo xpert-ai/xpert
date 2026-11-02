@@ -75,3 +75,52 @@ its contents change, and regenerate the workspace and isolated Web locks togethe
 ```sh
 node --test .deploy/webapp/prepare-chatkit-pets.test.cjs .deploy/webapp/dependencies.test.cjs
 ```
+
+## Web build updates
+
+`cloud:build` runs `prepare-web-release` to generate a new build ID in
+`.cache/web-release`. Cloud compiles that ID into its bundle; its entry HTML
+and `/version.json` carry the same ID. Build output is not reused from Nx's
+cache because the manifest and loaded bundle must agree. Development `serve`
+also prepares these files, but automatic polling is enabled only in production.
+
+HTML and the manifest use `no-store`. JS/CSS revalidate (`no-cache`), including
+runtime-substituted JS. Missing bundles return 404. `ngsw-worker.js` is a
+retirement worker at the historical URL and only removes Angular caches for its
+own scope; `ngsw.json` returns 404. Neither login nor business storage is cleared.
+
+Focused checks:
+
+```sh
+node --test .deploy/webapp/prepare-web-release.test.cjs
+# Use a locally available Nginx image with curl; this does not pull an image.
+WEB_UPDATE_NGINX_IMAGE=nginx:1.30.6 node --test .deploy/webapp/cache-policy.test.cjs
+corepack pnpm exec jest --config apps/cloud/jest.config.ts --runInBand --testPathPatterns=web-update
+```
+
+The existing image check also verifies Cloud manifest/entry consistency,
+response headers and missing bundles. Manual acceptance: leave build A open, deploy B,
+check the bottom-left notice, dismiss it, reopen About and update. Verify that
+login and the current URL survive, then repeat with offline checks and rollback.
+Already-open pages from before this feature need one initial refresh to acquire
+the detector. These checks do not establish deployment or customer acceptance.
+
+Standalone ChatKit update notices and its About update action are outside this
+release. Cloud uses the already-published ChatKit dependency pinned in the existing
+lockfiles; no companion ChatKit release or update-capability marker is required.
+The ChatKit entry is not stamped with update metadata, so its standalone detector
+stays off even if a later package includes one.
+
+The preparation step stages the complete installed ChatKit app and rewrites its
+entry asset prefix. Angular and Docker both
+consume these staged files; Docker must not overwrite them with a different copy
+from node_modules. ChatKit assets remain available at both `/chatkit/assets` and
+the existing `/assets` path used by Vite's lazy preload map.
+
+Release staging also uses the existing ChatKit icon stylesheet helper, preserving
+the local `/assets/chatkit-icons` font path after bundle URLs are rewritten.
+
+Full-page updates call the current user editor, integration editor and prompt
+workflow's existing leave checks, then ChatKit's `prepareLeave()`. Cancellation,
+errors or a 15-second timeout keep the page open. Native `beforeunload` protection
+remains in place for browser-level exits.

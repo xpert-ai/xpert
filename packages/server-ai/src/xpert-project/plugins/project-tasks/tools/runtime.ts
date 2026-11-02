@@ -131,7 +131,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.DispatchTask,
                 schema: projectTaskDispatchToolInputSchema,
                 description:
-                    'Explicitly delegate an existing task using its latest revision from project_get_task. Requirements and an explicit responsible project-member Assistant must be defined. If unassigned, update assigneeXpertId with project_update_tasks, then read the latest revision before retrying. Caller and executor identities never default task ownership. For a group member, use the target object returned by project_list_task_runtimes and omit bindingId and delivery; the member returns ordinary Assistant output. For an external Runtime use bindingId and omit target. Only external Runtimes support file delivery: use delivery={mode:"files",paths:["relative/path"]}, with exact project-relative paths and no wildcards. If paths are decided during execution, use delivery={mode:"files"} and require file result items. delivery is an optional object, never a string. The platform manages operation identity and retry deduplication. After an uncertain outcome inspect project_get_task instead of dispatching again. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; Runtime success does not accept the task.'
+                    'Explicitly delegate an existing task with defined requirements using its latest revision from project_get_task. The selected group member becomes the responsible Assistant. For an external Runtime, an existing owner is preserved and an unassigned task defaults to the current Assistant from trusted context. Responsibility and the attempt are saved atomically; a Project general agent without an Assistant identity must explicitly assign an owner for external execution. For a group member, use the target object returned by project_list_task_runtimes and omit bindingId and delivery; the member returns ordinary Assistant output. For an external Runtime use bindingId and omit target. Only external Runtimes support file delivery: use delivery={mode:"files",paths:["relative/path"]}, with exact project-relative paths and no wildcards. If paths are decided during execution, use delivery={mode:"files"} and require file result items. delivery is an optional object, never a string. The platform manages operation identity and retry deduplication. After an uncertain outcome inspect project_get_task instead of dispatching again. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; Runtime success does not accept the task.'
             }
         ),
         tool(
@@ -155,7 +155,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.ListRuntimes,
                 schema: z.object({}).strict(),
                 description:
-                    'List authorized Runtime bindings and Project-bound group members. For a group member, assign the task to its assigneeXpertId and dispatch using its target object; for a Runtime binding use bindingId. Supply exactly one of target or bindingId.'
+                    'List authorized Runtime bindings and Project-bound group members. For a group member, dispatch using its target object; the selected Assistant is automatically assigned responsibility. For a Runtime binding use bindingId; existing responsibility is preserved, otherwise the current Assistant becomes responsible. Supply exactly one of target or bindingId.'
             }
         )
     ]
