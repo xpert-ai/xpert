@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { IUser } from '@xpert-ai/contracts'
-import { Repository } from 'typeorm'
+import { FindOneOptions, FindOptionsWhere, Repository } from 'typeorm'
 import { User } from '../user.entity'
 import { executionIdentityError } from './execution-identity'
 
@@ -20,6 +20,9 @@ export function projectExecutionUser(user: IUser): IUser {
 		lastName: user.lastName,
 		username: user.username,
 		email: user.email,
+		emailVerified: user.emailVerified,
+		imageUrl: user.imageUrl,
+		timeZone: user.timeZone,
 		employeeId: user.employeeId ?? user.employee?.id,
 		role: user.role
 			? {
@@ -45,29 +48,36 @@ export class ExecutionUserLoader {
 
 	async load(userId: string, tenantId: string): Promise<IUser | null> {
 		if (!userId?.trim() || !tenantId?.trim()) return null
-		const user = await this.users.findOne({
-			where: { id: userId, tenantId },
-			relations: ['role', 'role.rolePermissions', 'employee'],
-			select: {
+		const user = await this.users.findOne(executionUserFindOptions({ id: userId, tenantId }))
+		return user ? projectExecutionUser(user) : null
+	}
+}
+
+export function executionUserFindOptions(where?: FindOptionsWhere<User>): FindOneOptions<User> {
+	return {
+		...(where ? { where } : {}),
+		relations: ['role', 'role.rolePermissions', 'employee'],
+		select: {
+			id: true,
+			tenantId: true,
+			type: true,
+			isActive: true,
+			roleId: true,
+			preferredLanguage: true,
+			firstName: true,
+			lastName: true,
+			username: true,
+			email: true,
+			emailVerified: true,
+			imageUrl: true,
+			timeZone: true,
+			employee: { id: true },
+			role: {
 				id: true,
 				tenantId: true,
-				type: true,
-				isActive: true,
-				roleId: true,
-				preferredLanguage: true,
-				firstName: true,
-				lastName: true,
-				username: true,
-				email: true,
-				employee: { id: true },
-				role: {
-					id: true,
-					tenantId: true,
-					name: true,
-					rolePermissions: { id: true, tenantId: true, roleId: true, permission: true, enabled: true }
-				}
+				name: true,
+				rolePermissions: { id: true, tenantId: true, roleId: true, permission: true, enabled: true }
 			}
-		})
-		return user ? projectExecutionUser(user) : null
+		}
 	}
 }

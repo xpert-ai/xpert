@@ -46,6 +46,14 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Controllers and business callers must invoke concrete business methods. Do not expose public `service<T>()`, `resources()` or similar getters that return underlying service instances and turn a business service into a general-purpose service locator.
 - Resolve circular dependencies by reviewing module boundaries, extracting cohesive shared capabilities, or moving operations to their owning domain. Do not use `strict: false` to conceal a dependency cycle. Verify module wiring with dependency-injection tests when changing these boundaries.
 
+### Background execution identity
+
+- Restore ordinary background actors with `ResolveExecutionIdentityCommand` from trusted persisted tenant / organization / user references, then enter `runWithExecutionIdentity`. Resolve again on each retry or scheduled run; never reuse an ORM user snapshot or fall back to ambient request identity.
+- Share the credential-free user projection with HTTP authentication. Missing role permissions are an incomplete identity, while an explicitly loaded empty list means no grants. Keep permission checks synchronous; do not add database access or global eager relations to hide missing projections.
+- Preserve Assistant, delegated credential and service-operation audiences in their dedicated adapters. Ordinary identity restoration does not grant resource access or replace credential expiry and domain policy checks. Do not mint or cast resolved identities in business code.
+- Low-level context construction is inventoried in `tools/scripts/execution-identity-adapters.json`. New adapters require an explicit reason and boundary tests. Run `corepack pnpm check:execution-identities` and `corepack pnpm test:execution-identities`; the pre-commit check reads the staged index.
+- Separate trusted task failure bookkeeping from business authorization. Scope terminal writes by persisted tenant, organization, resource, task token and revision; a stale worker must never reset a newer task or bypass authorization to change business data.
+
 ### Plugin SDK to platform runtime boundary
 
 - Decide whether to expose a Runtime Capability by its consumers: use it for APIs consumed by external plugins. Platform-internal services and factories use NestJS constructor injection and explicit module `imports`/`exports`; do not register them as Capabilities or export them from the plugin SDK merely to decouple internal modules or reuse functionality.

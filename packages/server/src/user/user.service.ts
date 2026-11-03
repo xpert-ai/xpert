@@ -1,3 +1,4 @@
+import { executionUserFindOptions, projectExecutionUser } from './execution-identity/execution-user-loader'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { t } from 'i18next'
 import { createHash } from 'node:crypto'
@@ -74,7 +75,6 @@ const CURRENT_USER_FEATURE_HYDRATION_ALLOWED_RELATIONS: ReadonlySet<string> = ne
 	...CURRENT_USER_BOOTSTRAP_RELATIONS,
 	...CURRENT_USER_FEATURE_RELATIONS
 ])
-const AUTHENTICATED_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
 type CurrentUserFeatureContext = {
 	tenantFeatureOrganizations: IFeatureOrganization[]
@@ -506,9 +506,8 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async getIfExists(id: string): Promise<User> {
-		return this.findOne(id, {
-			relations: [...AUTHENTICATED_USER_RELATIONS]
-		})
+		const user = await this.findOne(id, executionUserFindOptions())
+		return user ? new User(projectExecutionUser(user)) : null
 	}
 
 	async findOneByIdWithinTenant(id: string, tenantId: string, options?: Omit<FindOneOptions<User>, 'where'>) {
@@ -586,13 +585,8 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async getIfExistsThirdParty(thirdPartyId: string): Promise<User> {
-		return await this.repository
-			.createQueryBuilder('user')
-			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
-			.leftJoinAndSelect('user.role', 'role')
-			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
-			.leftJoinAndSelect('user.employee', 'employee')
-			.getOne()
+		const user = await this.repository.findOne(executionUserFindOptions({ thirdPartyId }))
+		return user ? new User(projectExecutionUser(user)) : null
 	}
 
 	async createOne(user: User): Promise<InsertResult> {
@@ -684,7 +678,8 @@ export class UserService extends TenantAwareCrudService<User> {
 		])
 		if (entity.isActive !== undefined) {
 			if (!canManageUsers) throw new ForbiddenException()
-			if (typeof entity.isActive !== 'boolean') throw new BadRequestException(t('server-ai:Error.ApplicationProfileInvalid'))
+			if (typeof entity.isActive !== 'boolean')
+				throw new BadRequestException(t('server-ai:Error.ApplicationProfileInvalid'))
 		}
 
 		if (!isSelf && !canManageUsers) {

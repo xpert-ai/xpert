@@ -1,7 +1,7 @@
 // Invariants: only host identity adapters mint execution identities. Serialized queue
 // payloads are references, never authenticated principals. Both context stores share one scope.
 import type { IUser } from '@xpert-ai/contracts'
-import { ForbiddenException, InternalServerErrorException } from '@nestjs/common'
+import { ForbiddenException, ServiceUnavailableException } from '@nestjs/common'
 import { runWithRequestContext as runWithPluginContext } from '@xpert-ai/plugin-sdk'
 import { runWithRequestContext as runWithLegacyContext } from '../../core/context/request-context.middleware'
 import { t } from 'i18next'
@@ -24,9 +24,19 @@ export type ResolvedExecutionIdentity = {
 
 export function executionIdentityError(incomplete = false) {
 	const body = incomplete
-		? { code: 'execution_identity_incomplete', message: t('server-ai:Error.ExecutionIdentityIncomplete') }
-		: { code: 'execution_identity_unavailable', message: t('server-ai:Error.ExecutionIdentityUnavailable') }
-	return incomplete ? new InternalServerErrorException(body) : new ForbiddenException(body)
+		? {
+				code: 'execution_identity_incomplete',
+				message: t('server-ai:Error.ExecutionIdentityIncomplete', {
+					defaultValue: 'Execution identity permissions were not loaded.'
+				})
+			}
+		: {
+				code: 'execution_identity_unavailable',
+				message: t('server-ai:Error.ExecutionIdentityUnavailable', {
+					defaultValue: 'The execution identity is no longer available in this scope.'
+				})
+			}
+	return incomplete ? new ServiceUnavailableException(body) : new ForbiddenException(body)
 }
 
 /** Host adapter boundary; business consumers use ResolveExecutionIdentityCommand. */

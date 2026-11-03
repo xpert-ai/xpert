@@ -153,4 +153,15 @@ describe('Execution identity boundary', () => {
 			await f.module.close()
 		}
 	})
+	it('rejects an ordinary user object at both the type and runtime boundary', async () => {
+		const task = jest.fn()
+		await expect(
+			runWithExecutionIdentity(
+				// @ts-expect-error Only the resolver can supply the branded identity contract.
+				{ user: { id: 'user' }, scope: { tenantId: 'tenant', userId: 'user', kind: 'user' } },
+				task
+			)
+		).rejects.toThrow()
+		expect(task).not.toHaveBeenCalled()
+	})
 })

@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, KnowledgebaseStatusEnum } from '@xpert-ai/contracts'
 import { runWithExecutionIdentity } from '@xpert-ai/server-core'
-import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm'
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm'
 import { Queue } from 'bull'
 import { KnowledgebaseRebuildOperations } from './knowledgebase-rebuild.operations'
 import { Knowledgebase } from '../persistence/knowledgebase.entity'
@@ -223,5 +223,33 @@ describe('Embedding rebuild lifecycle with actual workspace authorization', () =
         await expect(f.run(() => f.operations.processEmbeddingRebuildJob(data))).rejects.toThrow('membership revoked')
         expect(f.state.copilotModel.copilotId).toBeNull()
         expect(f.state.embeddingCollectionName).toBe('old-vectors')
+    })
+    it('clears an unchanged pending model under the same row lock without scheduling work', async () => {
+        const f = fixture()
+        f.state.status = KnowledgebaseStatusEnum.REBUILD_REQUIRED
+        f.state.pendingEmbeddingModelFingerprint = f.state.embeddingModelFingerprint
+        await f.run(() => f.operations.startEmbeddingRebuild('kb'))
+        expect(f.repository.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({ lock: { mode: 'pessimistic_write' } })
+        )
+        expect(f.state.status).toBe(KnowledgebaseStatusEnum.READY)
+        expect(f.state.embeddingCollectionName).toBe('old-vectors')
+        expect(f.state.pendingCopilotModelId).toBeNull()
+        expect(f.queue.add).not.toHaveBeenCalled()
+    })
+
+    it('does not clear a newer build after an unchanged-model request read stale state', async () => {
+        const f = fixture()
+        const stale = Object.assign(new Knowledgebase(), f.state, {
+            status: KnowledgebaseStatusEnum.REBUILD_REQUIRED,
+            pendingEmbeddingModelFingerprint: 'old'
+        })
+        // The authorized read precedes a concurrent claim; the locked read sees that claim.
+        f.repository.findOne.mockResolvedValueOnce(stale)
+        await expect(f.run(() => f.operations.startEmbeddingRebuild('kb'))).rejects.toThrow()
+        expect(f.repository.save).not.toHaveBeenCalled()
+        expect(f.state.status).toBe(KnowledgebaseStatusEnum.REBUILDING)
+        expect(f.state.rebuildTaskId).toBe('task-1')
+        expect(f.queue.add).not.toHaveBeenCalled()
     })
 })

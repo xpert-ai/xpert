@@ -3,6 +3,11 @@ on:
   pull_request:
     paths:
       - 'packages/server/**'
+      - 'packages/contracts/**'
+      - 'packages/plugin-sdk/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'git-hooks/pre-commit'
       - 'packages/server-ai/**'
       - 'tools/scripts/*execution-identit*'
       - '.github/workflows/execution-identity.yml'
@@ -18,3 +23,27 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile --ignore-scripts
       - run: corepack pnpm run test:execution-identities
       - run: corepack pnpm run check:execution-identities
+      - name: Verify shared identity and credential boundaries
+        run: >-
+          corepack pnpm exec jest --config packages/server/jest.config.ts --runInBand
+          --runTestsByPath
+          packages/server/src/user/user.service.spec.ts
+          packages/server/src/user/permissions/current-user-permissions.http.spec.ts
+          packages/server/src/user/execution-identity/execution-identity.spec.ts
+          packages/server/src/user/execution-identity/execution-user-loader.spec.ts
+          packages/server/src/user-organization/commands/handlers/resolve-user-organization-access.handler.spec.ts
+          packages/server/src/user/commands/handlers/resolve-runtime-user.handler.spec.ts
+          packages/server/src/auth/strategies/jwt-permissions.spec.ts
+          packages/server/src/managed-queue/managed-queue-identity.adapter.spec.ts
+          packages/server/src/managed-queue/managed-queue.processor.spec.ts
+      - name: Verify recovery and worker boundaries
+        run: >-
+          corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand
+          --runTestsByPath
+          packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild-recovery.http.spec.ts
+          packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild.operations.spec.ts
+          packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild-embedding.job.spec.ts
+          packages/server-ai/src/knowledge-document/questions/question-generation.job.spec.ts
+          packages/server-ai/src/handoff/runtime-messaging/runtime-reconciliation.integration.spec.ts
+          packages/server-ai/src/chat-conversation/summary.job.spec.ts
+          packages/server-ai/src/xpert-task/execution-identity/task-execution-identity.spec.ts

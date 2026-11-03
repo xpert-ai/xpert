@@ -112,14 +112,6 @@ export class KnowledgebaseRebuildOperations {
             throw new BadRequestException('Pending embedding model is required for rebuild')
         }
 
-        if (knowledgebase.pendingEmbeddingModelFingerprint === knowledgebase.embeddingModelFingerprint) {
-            assign(knowledgebase, {
-                ...this.clearPendingEmbeddingModelFields(),
-                status: KnowledgebaseStatusEnum.READY
-            })
-            return this.context.save(knowledgebase)
-        }
-
         if (
             knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_REQUIRED &&
             knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_FAILED
@@ -148,6 +140,10 @@ export class KnowledgebaseRebuildOperations {
                 )
             )
                 throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
+            if (current.pendingEmbeddingModelFingerprint === current.embeddingModelFingerprint) {
+                assign(current, { ...this.clearPendingEmbeddingModelFields(), status: KnowledgebaseStatusEnum.READY })
+                return repository.save(current)
+            }
             const revision = (current.pendingEmbeddingRevision ?? current.embeddingRevision ?? 0) + 1
             assign(current, {
                 status: KnowledgebaseStatusEnum.REBUILDING,
@@ -158,6 +154,7 @@ export class KnowledgebaseRebuildOperations {
             })
             return repository.save(current)
         })
+        if (saved.status === KnowledgebaseStatusEnum.READY) return saved
         const data: TKnowledgebaseRebuildEmbeddingJob = {
             userId: RequestContext.currentUserId(),
             tenantId: saved.tenantId,
