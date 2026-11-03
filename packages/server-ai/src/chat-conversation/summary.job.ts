@@ -54,7 +54,6 @@ export class ConversationSummaryProcessor {
             if (
                 (job.data.tenantId && job.data.tenantId !== conversation.tenantId) ||
                 (job.data.organizationId !== undefined && job.data.organizationId !== conversation.organizationId) ||
-                conversation.createdById !== userId ||
                 message.conversationId !== conversation.id
             ) {
                 throw new ForbiddenException(t('server-ai:Error.ExecutionIdentityUnavailable'))
@@ -68,6 +67,7 @@ export class ConversationSummaryProcessor {
                 })
             )
             await runWithExecutionIdentity(identity, async () => {
+                await this.service.assertAccess(conversation, 'contribute')
                 try {
                     const memoryKey = await this.commandBus.execute(
                         new XpertSummarizeMemoryCommand(
