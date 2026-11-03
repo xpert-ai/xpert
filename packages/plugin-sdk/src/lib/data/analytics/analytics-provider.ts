@@ -3,6 +3,7 @@ import type {
   AnalyticsSourceRef,
   AnalyticsConfigurationEntry,
   AnalyticsBinding,
+  AnalyticsField,
   AnalyticsProviderDescriptor,
   AnalyticsQueryRequest,
   AnalyticsSourceSummary,
@@ -36,10 +37,15 @@ export interface AnalyticsProviderContext {
   ancestry: readonly string[]
 }
 
+/** Source-declared metadata, never inferred from names or sampled cells. */
+export type AnalyticsResultColumn = { key: string } & Partial<
+  Pick<AnalyticsField, 'semanticRef' | 'logicalType' | 'role' | 'nullable' | 'label' | 'unit'>
+>
+
 /** Native-column result before host projection; cells already use canonical AnalyticsValue encodings. */
 export interface AnalyticsProviderResult {
-  /** Native row keys and optional exact semantic selectors; declare columns even for zero rows. */
-  columns: Array<{ key: string; semanticRef?: string }>
+  /** Declare columns even for zero rows. Optional metadata supports authoring; it never overrides Binding.output. */
+  columns: AnalyticsResultColumn[]
   /** Keys match columns[].key; the host maps them to Binding.output.fields[].id without coercion. */
   rows: Array<Record<string, AnalyticsValue>>
   /** Describe the actual result scope/counts; successful transport does not imply a complete result. */
