@@ -78,6 +78,15 @@ export class AssistantTriggerService {
             }))
     }
 
+    private scope(xpert: Xpert) {
+        return {
+            tenantId: xpert.tenantId,
+            organizationId: xpert.organizationId ?? null,
+            userId: RequestContext.currentUserId(),
+            workspaceId: xpert.workspaceId
+        }
+    }
+
     async list(id: string): Promise<AssistantTriggerSettings> {
         const xpert = await this.read(id)
         let canEdit = true
@@ -88,6 +97,29 @@ export class AssistantTriggerService {
             else throw error
         }
         const providers = this.providers()
+        const statuses = new Map<
+            string,
+            Awaited<ReturnType<NonNullable<ReturnType<WorkflowTriggerRegistry['get']>['assistantStatus']>>>
+        >()
+        for (const provider of providers) {
+            const strategy = this.registry.get(provider.name)
+            if (!strategy.assistantStatus) continue
+            const config =
+                (connectionTrigger(xpert.graph, provider.name)?.entity as IWFNTrigger | undefined)?.config ?? {}
+            try {
+                const status = await strategy.assistantStatus({ xpertId: xpert.id, scope: this.scope(xpert), config })
+                provider.available = status.available
+                statuses.set(provider.name, status)
+            } catch {
+                provider.available = false
+                statuses.set(provider.name, {
+                    available: false,
+                    connection: 'failed',
+                    lastActivityAt: null,
+                    lastRunAt: null
+                })
+            }
+        }
         const nodes =
             xpert.graph?.nodes.filter(
                 (node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
@@ -135,15 +167,20 @@ export class AssistantTriggerService {
                 )
                 .andWhere('conversation.from = :provider', { provider: trigger.from })
                 .getRawOne<{ activityAt: Date | string | null; runAt: Date | string | null }>()
+            const status = statuses.get(trigger.from)
             items.push({
                 key: node.key,
                 provider: trigger.from,
                 title: trigger.title || trigger.from,
                 enabled,
                 config,
-                connection,
-                lastActivityAt: last?.activityAt ? new Date(last.activityAt).toISOString() : null,
-                lastRunAt: last?.runAt ? new Date(last.runAt).toISOString() : null
+                connection: enabled && status ? status.connection : connection,
+                lastActivityAt: status
+                    ? status.lastActivityAt
+                    : last?.activityAt
+                      ? new Date(last.activityAt).toISOString()
+                      : null,
+                lastRunAt: status ? status.lastRunAt : last?.runAt ? new Date(last.runAt).toISOString() : null
             })
         }
         return {
@@ -189,7 +226,9 @@ export class AssistantTriggerService {
         for (const key of provider.schema.required ?? []) {
             if (config[key] === undefined || config[key] === null || config[key] === '') return invalidTrigger()
         }
-        const errors = await this.registry.get(input.provider).validate({ xpertId: xpert.id, config })
+        const errors = await this.registry
+            .get(input.provider)
+            .validate({ xpertId: xpert.id, scope: this.scope(xpert), config })
         if (errors?.some((error) => error.level !== 'warning')) return invalidTrigger()
     }
 
