@@ -36,20 +36,20 @@ import { t } from 'i18next'
 import { PaginationParams, TenantOrganizationAwareCrudService } from '../core/crud'
 import { IntegrationService } from '../integration'
 import { UserService } from '../user/user.service'
+import { ExecutionUserLoader, projectExecutionUser } from '../user/execution-identity/execution-user-loader'
 import type { User } from '../user/user.entity'
 import { buildApiKeyPrincipal } from './api-key-principal'
 import { ApiKey } from './api-key.entity'
 import { PersonalApiKeyCreate } from './personal-api-key/personal-api-key.schema'
 import { hashPersonalApiKey, PERSONAL_API_KEY_PREFIX } from './personal-api-key/personal-api-key-token'
 
-const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
-
 @Injectable()
 export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 	constructor(
 		@InjectRepository(ApiKey) repository: Repository<ApiKey>,
 		private readonly userService: UserService,
-		private readonly integrationService: IntegrationService
+		private readonly integrationService: IntegrationService,
+		private readonly executionUsers: ExecutionUserLoader
 	) {
 		super(repository)
 	}
@@ -213,6 +213,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 			apiKey.organizationId ||
 			!user?.id ||
 			user.type !== UserType.USER ||
+			user.isActive === false ||
 			user.deletedAt ||
 			user.id !== apiKey.userId ||
 			user.id !== apiKey.entityId ||
@@ -220,8 +221,8 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 			(requestedUserId != null && requestedUserId !== user.id)
 		)
 			throw new UnauthorizedException()
-		user.employeeId = user.employee?.id
-		return user
+		apiKey.user = projectExecutionUser(user)
+		return apiKey.user
 	}
 
 	/** Authentication rechecks revocation and expiry atomically when recording use. */
@@ -280,6 +281,8 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 			apiKey.user = apiKeyUser
 			apiKey.userId = apiKeyUser.id
 		}
+		// Creator relations are provenance, not an authenticated user snapshot.
+		if (apiKey.createdBy) apiKey.createdBy = { id: apiKey.createdBy.id, tenantId: apiKey.createdBy.tenantId }
 
 		const principalUser = options?.requestedUserId
 			? await this.resolveRequestedUser(apiKey, options.requestedUserId)
@@ -294,21 +297,8 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 	}
 
 	private async resolveApiKeyPrincipalUser(apiKey: IApiKey & { user?: IUser | null; createdBy?: IUser | null }) {
-		if (apiKey.user) {
-			return apiKey.user
-		}
-
-		if (apiKey.userId) {
-			try {
-				const user = await this.userService.findOneByIdWithinTenant(apiKey.userId, apiKey.tenantId, {
-					relations: [...REQUEST_CONTEXT_USER_RELATIONS]
-				})
-				apiKey.user = user
-				return user
-			} catch {
-				//
-			}
-		}
+		const boundUserId = apiKey.userId ?? apiKey.user?.id
+		if (boundUserId != null) return this.loadPrincipalUser(boundUserId, apiKey.tenantId)
 
 		if (apiKey.type === ApiKeyBindingType.INTEGRATION && apiKey.entityId) {
 			const integration = await this.integrationService.findOneByIdWithinTenant(
@@ -318,7 +308,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 					relations: ['user']
 				}
 			)
-			return this.integrationService.ensurePrincipalUser({
+			const user = await this.integrationService.ensurePrincipalUser({
 				id: integration.id!,
 				tenantId: integration.tenantId!,
 				organizationId: integration.organizationId,
@@ -327,17 +317,19 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 				userId: integration.userId,
 				user: integration.user
 			})
+			return this.loadPrincipalUser(user.id, apiKey.tenantId)
 		}
 
 		if (apiKey.type === ApiKeyBindingType.CLIENT && apiKey.entityId) {
-			return this.userService.ensureCommunicationUser({
+			const user = await this.userService.ensureCommunicationUser({
 				tenantId: apiKey.tenantId,
 				thirdPartyId: `client:${apiKey.entityId}`,
 				username: apiKey.name || apiKey.entityId
 			})
+			return this.loadPrincipalUser(user.id, apiKey.tenantId)
 		}
 
-		return apiKey.createdBy ?? null
+		return this.loadPrincipalUser(apiKey.createdById ?? apiKey.createdBy?.id, apiKey.tenantId)
 	}
 
 	private async resolveRequestedUser(apiKey: IApiKey & { user?: IUser | null }, requestedUserId: string) {
@@ -345,8 +337,14 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 			return apiKey.user
 		}
 
-		return this.userService.findOneByIdWithinTenant(requestedUserId, apiKey.tenantId, {
-			relations: [...REQUEST_CONTEXT_USER_RELATIONS]
-		})
+		return this.loadPrincipalUser(requestedUserId, apiKey.tenantId)
+	}
+
+	private async loadPrincipalUser(userId: string, tenantId: string): Promise<IUser> {
+		const user = await this.executionUsers.load(userId, tenantId)
+		if (!user || user.id !== userId || user.tenantId !== tenantId || user.isActive === false) {
+			throw new UnauthorizedException()
+		}
+		return user
 	}
 }

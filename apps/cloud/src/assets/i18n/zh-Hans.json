@@ -1111,6 +1111,8 @@
       "DirectQrSaveHint": "扫码连接后立即生效；其他触发器更改需发布助手后生效。"
     },
     "TagDirectory": {
+      "LoadFailed": "标签加载失败。",
+      "Retry": "重试",
       "KnowledgeCandidate": "知识库候选关联",
       "KnowledgeDocuments": "{{count}} 篇关联文档",
       "LoadingKnowledge": "正在加载知识库…",

@@ -5,7 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { ITag, TagCategoryEnum } from '@xpert-ai/contracts'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, of } from 'rxjs'
 import { TagService } from '../../../@core'
 import { TagSelectComponent } from './tag-select.component'
 
@@ -39,6 +39,7 @@ describe('TagSelectComponent catalog lifecycle', () => {
         {
           provide: TagService,
           useValue: {
+            getCatalogState: () => of({ tags: [], loading: false, error: null }),
             getCatalogByCategory: () => catalog
           }
         }
