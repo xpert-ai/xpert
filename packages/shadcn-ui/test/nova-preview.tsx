@@ -42,6 +42,7 @@ import {
   Switch,
   Tabs,
   TabsContent,
+  TabsHeader,
   TabsList,
   TabsTrigger,
   Toggle,
@@ -179,6 +180,27 @@ function Preview() {
             </TabsList>
             <TabsContent value="first">First content</TabsContent>
             <TabsContent value="second">Second content</TabsContent>
+          </Tabs>
+          <Tabs defaultValue="table" className="min-w-0">
+            <TabsHeader>
+              <TabsList variant="line" aria-label="Attached views" className="min-w-0 flex-1">
+                <TabsTrigger value="table">Table view</TabsTrigger>
+                <TabsTrigger value="timeline">Timeline view</TabsTrigger>
+              </TabsList>
+              <Button variant="ghost" size="icon" aria-label="Refresh views">
+                ↻
+              </Button>
+            </TabsHeader>
+            <TabsContent value="table">Table content</TabsContent>
+            <TabsContent value="timeline">Timeline content</TabsContent>
+          </Tabs>
+          <Tabs defaultValue="summary">
+            <TabsList variant="line" aria-label="Standalone views">
+              <TabsTrigger value="summary">Standalone summary</TabsTrigger>
+              <TabsTrigger value="detail">Standalone detail</TabsTrigger>
+            </TabsList>
+            <TabsContent value="summary">Summary content</TabsContent>
+            <TabsContent value="detail">Detail content</TabsContent>
           </Tabs>
           <Accordion type="single" collapsible>
             <AccordionItem value="details">

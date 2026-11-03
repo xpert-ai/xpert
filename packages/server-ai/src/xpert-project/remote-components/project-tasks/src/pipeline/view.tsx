@@ -9,7 +9,18 @@ import { PipelineAnalytics } from './analytics'
 import { PipelineAttentionList } from './attention-list'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, Workflow, Clock3 } from 'lucide-react'
-import { Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@xpert-ai/shadcn-ui'
+import {
+    Button,
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    TabsContent
+} from '@xpert-ai/shadcn-ui'
 import { saveTaskViewState, type Graph, type Node, type PipelineFocus } from '../bridge'
 import { dateTime } from '../i18n'
 import { pipelineTexts } from './i18n'
@@ -224,7 +235,15 @@ export function PipelineView({
         </div>
     )
     return (
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={t.title}>
+        <Tabs
+            value={mode}
+            onValueChange={(value) => {
+                if (value === 'stage' || value === 'time') setMode(value)
+            }}
+            className="min-h-0 min-w-0 flex-1 gap-0"
+            role="region"
+            aria-label={t.title}
+        >
             <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
                 <PipelineHeading
                     title={graph?.definition.title}
@@ -259,14 +278,16 @@ export function PipelineView({
                         }}
                     />
                 )}
-                <Button variant={mode === 'stage' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMode('stage')}>
-                    <Workflow />
-                    {t.stages}
-                </Button>
-                <Button variant={mode === 'time' ? 'secondary' : 'ghost'} size="sm" onClick={() => setMode('time')}>
-                    <Clock3 />
-                    {t.timeline}
-                </Button>
+                <TabsList aria-label={t.title}>
+                    <TabsTrigger value="stage">
+                        <Workflow />
+                        {t.stages}
+                    </TabsTrigger>
+                    <TabsTrigger value="time">
+                        <Clock3 />
+                        {t.timeline}
+                    </TabsTrigger>
+                </TabsList>
                 {graph && (
                     <Select
                         value={roundId || '__current'}
@@ -455,38 +476,40 @@ export function PipelineView({
                     {t[graph.runState]}
                 </p>
             )}
-            {mode !== 'stage' && status && <div className="flex shrink-0 border-b px-3 py-2">{status}</div>}
-            {!graph ? (
-                <div className="grid flex-1 place-content-center gap-2 p-8 text-center text-sm text-muted-foreground">
-                    <p>{!loaded || instanceId ? t.loading : t.empty}</p>
-                    {loaded && !instanceId && <p>{t.emptyHint}</p>}
-                </div>
-            ) : mode === 'stage' ? (
-                <Swimlane
-                    status={status}
-                    key={`${instanceId}:${roundId}:${lane}`}
-                    initialScroll={
-                        initialFocus.pipelineInstanceId === instanceId &&
-                        (initialFocus.pipelineRoundId ?? '') === roundId
-                            ? initialFocus
-                            : undefined
-                    }
-                    graph={graph}
-                    locale={locale}
-                    t={t}
-                    lane={lane}
-                    selected={selected}
-                    select={(node) => setSelected(node.id)}
-                    onLane={setDetailLane}
-                    selectedLane={selectedLane}
-                    onLaneSelect={(key) => setSelectedLane((current) => (current === key ? '' : key))}
-                    onlyBlocked={onlyBlocked}
-                    focusNode={selected ?? focusNode}
-                    onError={setError}
-                />
-            ) : (
-                <ExecutionTimeline graph={graph} locale={locale} t={t} lane={lane} now={now} onError={setError} />
-            )}
+            <TabsContent value={mode} className="flex min-h-0 min-w-0 flex-1 flex-col">
+                {mode !== 'stage' && status && <div className="flex shrink-0 border-b px-3 py-2">{status}</div>}
+                {!graph ? (
+                    <div className="grid flex-1 place-content-center gap-2 p-8 text-center text-sm text-muted-foreground">
+                        <p>{!loaded || instanceId ? t.loading : t.empty}</p>
+                        {loaded && !instanceId && <p>{t.emptyHint}</p>}
+                    </div>
+                ) : mode === 'stage' ? (
+                    <Swimlane
+                        status={status}
+                        key={`${instanceId}:${roundId}:${lane}`}
+                        initialScroll={
+                            initialFocus.pipelineInstanceId === instanceId &&
+                            (initialFocus.pipelineRoundId ?? '') === roundId
+                                ? initialFocus
+                                : undefined
+                        }
+                        graph={graph}
+                        locale={locale}
+                        t={t}
+                        lane={lane}
+                        selected={selected}
+                        select={(node) => setSelected(node.id)}
+                        onLane={setDetailLane}
+                        selectedLane={selectedLane}
+                        onLaneSelect={(key) => setSelectedLane((current) => (current === key ? '' : key))}
+                        onlyBlocked={onlyBlocked}
+                        focusNode={selected ?? focusNode}
+                        onError={setError}
+                    />
+                ) : (
+                    <ExecutionTimeline graph={graph} locale={locale} t={t} lane={lane} now={now} onError={setError} />
+                )}
+            </TabsContent>
             <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t.pan}</p>
             {graph && (
                 <LaneDetails
@@ -516,6 +539,6 @@ export function PipelineView({
                     onTask={onTask}
                 />
             )}
-        </section>
+        </Tabs>
     )
 }

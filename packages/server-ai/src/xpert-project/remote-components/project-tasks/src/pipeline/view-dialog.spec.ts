@@ -10,9 +10,23 @@ jest.mock('@xpert-ai/shadcn-ui', () => {
     const box = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children)
     const TabContext = React.createContext({ value: 'overview', select: (_value: string) => {} })
     return {
-        Tabs: ({ children }: { children: React.ReactNode }) => {
-            const [value, select] = React.useState('overview')
-            return React.createElement(TabContext.Provider, { value: { value, select } }, children)
+        Tabs: ({
+            children,
+            value,
+            defaultValue = 'overview',
+            onValueChange
+        }: {
+            children: React.ReactNode
+            value?: string
+            defaultValue?: string
+            onValueChange?: (value: string) => void
+        }) => {
+            const [localValue, select] = React.useState(defaultValue)
+            return React.createElement(
+                TabContext.Provider,
+                { value: { value: value ?? localValue, select: onValueChange ?? select } },
+                children
+            )
         },
         TabsList: box,
         TabsTrigger: ({ value, children }: { value: string; children: React.ReactNode }) => {
@@ -64,6 +78,7 @@ jest.mock('./bridge', () => ({ readPipeline: jest.fn(), readPipelineRounds: jest
 jest.mock('./navigation', () => ({ openProjectWorkspace: jest.fn() }))
 jest.mock('../execution-navigation', () => ({ openTaskExecution: jest.fn() }))
 jest.mock('./context', () => ({ usePipelineContext: () => undefined }))
+jest.mock('../view-visibility', () => ({ useViewVisible: () => true }))
 jest.mock('./node-diagnostics', () => ({ NodeDiagnostics: () => null }))
 jest.mock('./node-presentation', () => ({ NodePresentation: () => null }))
 jest.mock('./lane-details', () => ({ LaneDetails: () => null }))
@@ -165,11 +180,13 @@ it('keeps one workspace entry through repeated polling updates and removes it fo
             })
             expect(entries()).toHaveLength(1)
         }
-        const tabs = container.querySelectorAll<HTMLButtonElement>('[role=tab]')
+        const tabs = container.querySelectorAll<HTMLButtonElement>('[data-dialog] [role=tab]')
         await act(async () => {
             tabs[1].click()
         })
-        expect(container.querySelector('[role=tabpanel]:not([hidden])')?.textContent).toContain('本轮次暂无执行记录')
+        expect(container.querySelector('[data-dialog] [role=tabpanel]:not([hidden])')?.textContent).toContain(
+            '本轮次暂无执行记录'
+        )
         expect(entries()).toHaveLength(1)
         await act(async () => {
             jest.advanceTimersByTime(5000)
@@ -178,7 +195,9 @@ it('keeps one workspace entry through repeated polling updates and removes it fo
         await act(async () => {
             tabs[0].click()
         })
-        expect(container.querySelector('[role=tabpanel]:not([hidden])')?.textContent).toContain('基本信息')
+        expect(container.querySelector('[data-dialog] [role=tabpanel]:not([hidden])')?.textContent).toContain(
+            '基本信息'
+        )
         historical = true
         await act(async () => {
             jest.advanceTimersByTime(5000)

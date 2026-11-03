@@ -25,6 +25,16 @@ DOM ref forwarding (the upstream code targets React 19); Tabs
 continues forwarding `orientation` to Radix for vertical keyboard navigation.
 Dialog footer spacing follows the workspace standard described below.
 
+Horizontal page tabs that meet a divider compose `TabsHeader` with a direct
+`TabsList variant="line"` child and optional sibling actions. `TabsHeader` owns
+the divider, row height and indicator alignment. Keep its vertical padding at
+zero and do not wrap the list in an overflow container or override trigger
+offsets in consumers. The indicator stays inside the row and touches the divider.
+This is an explicit layout composition; standalone line Tabs, default segmented
+Tabs and vertical Tabs retain the upstream geometry. Preserve this composition
+when updating the preset and verify both alignment and clipping with the browser
+tests below.
+
 ## Theme and consumers
 
 Import `@xpert-ai/shadcn-ui/styles.css` in the consumer's Tailwind entry and scan

@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import test from 'node:test'
 import { chromium, expect } from '@playwright/test'
 import { startRemoteViewPreview } from '../remote-view-preview/preview-host.mjs'
+import { assertAttachedTabIndicator } from './tab-underline-assertions.mjs'
 process.env.TASKS_PREVIEW_SCENARIO = 'pipeline-managed'
 const { default: config } =
   await import('../../packages/server-ai/src/xpert-project/remote-components/project-tasks/preview.config.mjs')
@@ -109,6 +110,23 @@ test('built Project tasks uses standard dialogs with host themes, scrolling and 
         await page.screenshot({ path: resolve(output, `${scenario.name}-node.png`) })
         await dialog.getByRole('button', { name: 'Close', exact: true }).press('Escape')
         await expect(dialog).toHaveCount(0)
+
+        // Keep visibility and divider alignment in the same regression check.
+        for (const name of ['全部任务', '任务树', '甘特图', '状态看板', '流水线']) {
+          const tab = frame.getByRole('tab', { name, exact: true })
+          await tab.click()
+          await assertAttachedTabIndicator(tab)
+        }
+        const stage = frame.getByRole('tab', { name: '阶段泳道', exact: true })
+        await stage.focus()
+        await stage.press('ArrowRight')
+        const timeline = frame.getByRole('tab', { name: '执行时间轴', exact: true })
+        await expect(timeline).toBeFocused()
+        await expect(timeline).toHaveAttribute('aria-selected', 'true')
+        await assertAttachedTabIndicator(frame.getByRole('tab', { name: '流水线', exact: true }))
+        await timeline.press('ArrowLeft')
+        await expect(stage).toHaveAttribute('aria-selected', 'true')
+        await page.screenshot({ path: resolve(output, `${scenario.name}-tabs.png`) })
 
         // Native checkbox state must still feed the same configuration payload.
         await frame.getByRole('button', { name: '配置流水线', exact: true }).click()
