@@ -1,11 +1,10 @@
 import { InjectQueue, OnQueueFailed, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { UserService } from '@xpert-ai/server-core'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Job, Queue } from 'bull'
 import { KnowledgeTagService } from '../../knowledgebase/tags/knowledge-tag.service'
-import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { KnowledgeProcessingReadyService } from '../processing-lifecycle.module'
 import { normalizeAutomaticTagging } from './automatic-tagging'
 import {
@@ -42,7 +41,7 @@ export class KnowledgeAutoTaggingEnqueueHandler implements ICommandHandler<Knowl
 export class KnowledgeAutoTaggingConsumer {
     private readonly logger = new Logger(KnowledgeAutoTaggingConsumer.name)
     constructor(
-        private readonly users: UserService,
+        private readonly commandBus: CommandBus,
         private readonly tagging: KnowledgeAutomaticTaggingService,
         private readonly lifecycle: KnowledgeProcessingReadyService
     ) {}
@@ -50,15 +49,16 @@ export class KnowledgeAutoTaggingConsumer {
     @Process({ concurrency: 2 })
     async process(job: Job<KnowledgeAutoTaggingJob>) {
         await this.lifecycle.waitUntilReady()
-        const user = await this.users.findOne(job.data.userId, { relations: ['role'] })
-        return runWithCapturedRequestContext(
-            captureRequestContext({
-                user,
+        const identity = await this.commandBus.execute(
+            new ResolveExecutionIdentityCommand({
+                kind: 'user',
+                userId: job.data.userId,
                 tenantId: job.data.tenantId,
-                organizationId: job.data.organizationId,
-                language: user.preferredLanguage
-            }),
-            () => this.tagging.process(job.data.knowledgebaseId, job.data.documentId)
+                organizationId: job.data.organizationId
+            })
+        )
+        return runWithExecutionIdentity(identity, () =>
+            this.tagging.process(job.data.knowledgebaseId, job.data.documentId)
         )
     }
 

@@ -1,3 +1,5 @@
+import { ExecutionUserLoader } from './execution-identity/execution-user-loader'
+import { ResolveExecutionIdentityHandler } from './execution-identity/resolve-execution-identity.handler'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -32,6 +34,8 @@ import { CurrentUserPermissionsService } from './permissions/current-user-permis
 	],
 	controllers: [CurrentUserPermissionsController, UserDirectoryController, UserController],
 	providers: [
+		ExecutionUserLoader,
+		ResolveExecutionIdentityHandler,
 		CurrentUserPermissionsService,
 		UserDirectoryService,
 		UserService,

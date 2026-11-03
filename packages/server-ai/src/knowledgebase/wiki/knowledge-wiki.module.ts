@@ -1,3 +1,4 @@
+import { KnowledgeProcessingLifecycleModule } from '../../knowledge-document/processing-lifecycle.module'
 import { KnowledgeIdentityModule } from '../identity/knowledge-identity.module'
 import { KnowledgeWikiOrganizationService } from './knowledge-wiki-organization.service'
 import { KnowledgeWikiBrowseService } from './knowledge-wiki-browse.service'
@@ -60,6 +61,7 @@ import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-schedul
 
 @Module({
     imports: [
+        KnowledgeProcessingLifecycleModule,
         forwardRef(() => KnowledgeIdentityModule),
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgeWikiModule }]),
         TypeOrmModule.forFeature([

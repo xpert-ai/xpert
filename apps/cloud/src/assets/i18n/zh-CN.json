@@ -2749,6 +2749,8 @@
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "CheckEmbeddingRebuild": "检查重建状态",
+      "RetryEmbeddingRebuild": "重试向量重建",
       "KeywordAnalyzer": {
         "Label": "关键词分析器",
         "Legacy": "原有内置分析器",

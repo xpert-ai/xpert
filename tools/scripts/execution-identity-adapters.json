@@ -1,0 +1,22 @@
+{
+  "packages/server-ai/src/agent-invocation/invocation-monitor.service.ts": {
+    "calls": 2,
+    "reason": "Batch 2 migration: invocation recovery and Assistant audience adapter"
+  },
+  "packages/server-ai/src/chat-conversation/summary.job.ts": {
+    "calls": 2,
+    "reason": "Batch 2 migration: conversation summary"
+  },
+  "packages/server-ai/src/plugin-resource/app-platform/app-platform.worker.ts": {
+    "calls": 2,
+    "reason": "Application maintenance adapter verifies service-operation binding"
+  },
+  "packages/server-ai/src/xpert-task/xpert-task.service.ts": {
+    "calls": 4,
+    "reason": "Batch 2 migration: scheduled execution and auto-task recovery"
+  },
+  "packages/server/src/managed-queue/managed-queue.processor.ts": {
+    "calls": 2,
+    "reason": "Batch 2 migration: actor and credential delegation adapter"
+  }
+}

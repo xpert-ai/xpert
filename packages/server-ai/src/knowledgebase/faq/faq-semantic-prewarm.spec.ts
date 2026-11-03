@@ -1,3 +1,6 @@
+import { KnowledgeProcessingReadyService } from '../../knowledge-document/processing-lifecycle.module'
+import { CommandBus } from '@nestjs/cqrs'
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { IKnowledgebase, IKnowledgeFAQEntry, IUser } from '@xpert-ai/contracts'
 import type { UserService } from '@xpert-ai/server-core'
@@ -94,11 +97,18 @@ describe('FAQ semantic prewarm lifecycle', () => {
         }
         const chunks = { findAll: jest.fn(async () => ({ items: [chunk] })) }
         const semantic = { prewarm: jest.fn(async () => undefined) }
-        const users = { findOne: jest.fn(async () => ({ id: 'user', tenantId: 'tenant' }) as IUser) }
+        const users = {
+            execute: jest.fn(async () =>
+                executionIdentityFixture({ userId: 'user', tenantId: 'tenant', organizationId: 'org' })
+            )
+        }
+        const lifecycle = new KnowledgeProcessingReadyService()
+        lifecycle.onApplicationBootstrap()
         const processor = new FAQSemanticPrewarmProcessor(
             { assertKnowledgebaseWriteAccess: jest.fn(async () => kb) } as unknown as KnowledgebaseService,
             chunks as unknown as KnowledgeDocumentChunkService,
-            users as unknown as UserService,
+            users as unknown as CommandBus,
+            lifecycle,
             semantic as unknown as FAQSemanticService
         )
         const job = {
@@ -149,8 +159,8 @@ describe('FAQ semantic prewarm lifecycle', () => {
         const f = processorFixture()
         f.chunks.findAll.mockResolvedValueOnce({ items: [] })
         await f.processor.process(f.job)
-        f.users.findOne.mockResolvedValueOnce({ id: 'user', tenantId: 'other' } as IUser)
-        await f.processor.process(f.job)
+        f.users.execute.mockRejectedValueOnce(new Error('identity unavailable'))
+        await expect(f.processor.process(f.job)).rejects.toThrow('identity unavailable')
         expect(f.semantic.prewarm).not.toHaveBeenCalled()
     })
 })

@@ -222,6 +222,14 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     )
   }
 
+  recoverEmbeddingRebuild(id: string) {
+    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/recover-embedding-rebuild`, {})
+  }
+
+  retryEmbeddingRebuild(id: string) {
+    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/rebuild-embedding`, {})
+  }
+
   rebuildGraph(id: string) {
     return this.httpClient.post(this.apiBaseUrl + `/${id}/graph/rebuild`, {})
   }

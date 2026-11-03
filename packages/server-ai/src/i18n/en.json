@@ -58,6 +58,13 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "EmbeddingRebuildRecoveryInvalid": "Rebuild recovery does not accept task or scope overrides.",
+        "EmbeddingRebuildReceiptUnavailable": "The rebuild task could not be verified as finished. Check the task queue.",
+        "ExecutionIdentityUnavailable": "The execution identity is no longer available in this scope.",
+        "ExecutionIdentityIncomplete": "The execution identity could not be fully restored.",
+        "EmbeddingRebuildRecoveryRequired": "The rebuild has no live queue task. Retry the rebuild to recover.",
+        "EmbeddingRebuildStillActive": "The embedding rebuild is still queued or running.",
+        "EmbeddingRebuildStale": "The embedding rebuild task has been replaced.",
         "InvalidUnreadSyncRequest": "Invalid unread synchronization request.",
         "EndpointPermissionDenied": "You do not have permission to perform this operation.",
         "RequestScopeInvalid": "Invalid request scope.",

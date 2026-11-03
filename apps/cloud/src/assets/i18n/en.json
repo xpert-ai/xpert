@@ -6571,6 +6571,8 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "CheckEmbeddingRebuild": "Check rebuild status",
+      "RetryEmbeddingRebuild": "Retry vector rebuild",
       "KeywordAnalyzer": {
         "Label": "Keyword analyzer",
         "Legacy": "Legacy built-in analyzer",

@@ -665,6 +665,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return this.rebuildOperations().processEmbeddingRebuildJob(...args)
     }
 
+    recoverEmbeddingRebuild(id: string) {
+        return this.rebuildOperations().recoverEmbeddingRebuild(id)
+    }
+
     markEmbeddingRebuildFailed(
         ...args: Parameters<KnowledgebaseRebuildOperations['markEmbeddingRebuildFailed']>
     ): ReturnType<KnowledgebaseRebuildOperations['markEmbeddingRebuildFailed']> {
@@ -898,6 +902,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     private rebuildOperations(): KnowledgebaseRebuildOperations {
         return new KnowledgebaseRebuildOperations({
+            commandBus: this.commandBus,
             logger: this.#logger,
             assertKnowledgebaseWriteAccess: (...args) => this.assertKnowledgebaseWriteAccess(...args),
             createVectorStoreForModel: (...args) => this.createVectorStoreForModel(...args),

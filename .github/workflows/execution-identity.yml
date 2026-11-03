@@ -1,0 +1,20 @@
+name: Execution identity boundaries
+on:
+  pull_request:
+    paths:
+      - 'packages/server/**'
+      - 'packages/server-ai/**'
+      - 'tools/scripts/*execution-identit*'
+      - '.github/workflows/execution-identity.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile --ignore-scripts
+      - run: corepack pnpm run test:execution-identities
+      - run: corepack pnpm run check:execution-identities

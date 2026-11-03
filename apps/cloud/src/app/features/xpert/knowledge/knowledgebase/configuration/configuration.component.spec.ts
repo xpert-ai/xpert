@@ -26,7 +26,10 @@ describe('knowledgebase configuration save', () => {
     const api = {
       update: jest.fn(() => of(knowledgebase)),
       updateWikiConfiguration: jest.fn(() => of(knowledgebase)),
-      getGraphStatus: jest.fn(() => EMPTY)
+      getGraphStatus: jest.fn(() => EMPTY),
+      recoverEmbeddingRebuild: jest.fn(() => of(knowledgebase)),
+      retryEmbeddingRebuild: jest.fn(() => of(knowledgebase)),
+      getDetail: jest.fn(() => EMPTY)
     }
     const parent = { knowledgebase: signal(knowledgebase), refresh: jest.fn() }
     const toastr = { error: jest.fn(), success: jest.fn() }
@@ -79,5 +82,25 @@ describe('knowledgebase configuration save', () => {
     expect(toastr.error).toHaveBeenCalled()
     expect(toastr.success).not.toHaveBeenCalled()
     expect(component.loading()).toBe(false)
+  })
+  it('refreshes state after authorized recovery and surfaces a still-running refusal', () => {
+    const { component, api, parent, toastr } = createHarness()
+    component.recoverEmbeddingRebuild()
+    expect(api.recoverEmbeddingRebuild).toHaveBeenCalledWith('kb-1')
+    expect(parent.refresh).toHaveBeenCalledTimes(1)
+    api.recoverEmbeddingRebuild.mockReturnValue(throwError(() => new Error('still running')))
+    component.recoverEmbeddingRebuild()
+    expect(toastr.error).toHaveBeenCalled()
+    expect(component.loading()).toBe(false)
+    expect(parent.refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the pending rebuild retry endpoint without overwriting model configuration', () => {
+    const { component, api, parent } = createHarness()
+    component.retryEmbeddingRebuild()
+    expect(api.retryEmbeddingRebuild).toHaveBeenCalledWith('kb-1')
+    expect(api.update).not.toHaveBeenCalled()
+    expect(api.updateWikiConfiguration).not.toHaveBeenCalled()
+    expect(parent.refresh).toHaveBeenCalledTimes(1)
   })
 })
