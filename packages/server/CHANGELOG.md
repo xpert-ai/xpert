@@ -1,5 +1,18 @@
 # @xpert-ai/server-core
 
+## 3.30.2
+
+### Patch Changes
+
+- 0914ec7: Restore current execution permissions for scheduled tasks, conversation summaries, invocation recovery, group deliveries, runtime messages, content repair and application recovery. Keep managed queue delegation and Assistant audiences separate from human identity restoration.
+- 389dfb9: Share the complete, credential-free user projection across HTTP authentication, organization access and background execution. Preserve JWT permission ceilings, centralize CQRS startup readiness and enforce reviewed context adapters with staged AST checks and CI regression suites. Guard unchanged-model rebuild cleanup with the same transactional claim as new rebuilds.
+- 7c7788b: Restore current scoped execution identities centrally for knowledge workers. Record embedding rebuild failures independently of revoked business permissions, guard state changes by task revision, and provide authorized recovery and retry while retaining active vectors.
+- Updated dependencies [6296d57]
+    - @xpert-ai/contracts@3.30.2
+    - @xpert-ai/plugin-sdk@3.30.2
+    - @xpert-ai/server-common@3.30.2
+    - @xpert-ai/server-config@3.30.2
+
 ## 3.30.1
 
 ### Patch Changes
