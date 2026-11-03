@@ -1,5 +1,22 @@
 # @xpert-ai/headless-ui
 
+## 0.1.3
+
+### Patch Changes
+
+- fa765b0: Manage model providers through named connections, typed model catalogs, compact configuration dialogs, and an inline plugin marketplace. Keep connection identity and model type visible in Assistant selection and membership configuration.
+
+  Separate default model purposes from provider connections, add defaults for common media and retrieval model types, and migrate valid legacy defaults without changing credentials or existing Assistant bindings. Retain compatibility reads for unmigrated defaults.
+
+  Add previewable, reversible bulk model replacement for editable Assistant drafts, and validate destination parameters when switching models so incompatible settings are not retained.
+
+## 0.1.2
+
+### Patch Changes
+
+- 1f1c7b7: Explain unavailable plugin marketplace details without assuming that a package is nonexistent or private. Preserve structured lookup errors, localize access and availability guidance in English and Chinese, and offer retry for transient failures while keeping navigation back to the marketplace available.
+- 5449238: Reset generation parameters when changing model identities while retaining client retries and same-model overrides. Preserve numeric input drafts and commit edits before saving. Persist explicitly cleared optional parameters without restoring defaults or sending them in provider requests, including ModelExecution snapshots and native protocols.
+
 ## 0.1.1
 
 ### Patch Changes

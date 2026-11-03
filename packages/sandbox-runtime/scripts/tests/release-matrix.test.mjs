@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -100,6 +100,53 @@ test('suite patch synchronization keeps the matrix and runtime definitions align
   )
   assert.equal(definition.sandboxRuntimeVersion, '1.2.3')
   assert.equal(definition.expectedManifest.sandboxRuntimeVersion, '1.2.3')
+})
+
+async function snapshot(root) {
+  const files = new Map()
+  async function visit(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue
+      const file = path.join(directory, entry.name)
+      if (entry.isDirectory()) await visit(file)
+      else if (entry.isFile()) files.set(path.relative(root, file), await readFile(file))
+    }
+  }
+  await visit(root)
+  return files
+}
+
+test('synchronizing an unchanged suite preserves every file byte for release checks', async (t) => {
+  const root = await fixture(t)
+  const definition = path.join(
+    root,
+    '../server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
+  )
+  // Exercise valid formatting that differs from JSON.stringify, including compact arrays.
+  await writeFile(definition, `${JSON.stringify(await readJson(definition))}\n`)
+  const before = await snapshot(path.dirname(root))
+  run(root, 'sync-version.mjs')
+  assert.deepEqual(await snapshot(path.dirname(root)), before)
+  run(root, 'verify-catalog.mjs')
+})
+
+test('synchronization refreshes changed runner checksums and then becomes a no-op', async (t) => {
+  const root = await fixture(t)
+  const runner = path.join(root, 'images/browser/runtime/runner-host.mjs')
+  const definitionFile = path.join(
+    root,
+    '../server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json'
+  )
+  const before = await readJson(definitionFile)
+  await writeFile(runner, `${await readFile(runner, 'utf8')}\n// Updated runner fixture.\n`)
+  run(root, 'sync-version.mjs')
+  const after = await readJson(definitionFile)
+  assert.equal(after.sandboxRuntimeVersion, before.sandboxRuntimeVersion)
+  assert.notEqual(after.expectedManifest.runnerHostSha256, before.expectedManifest.runnerHostSha256)
+  run(root, 'verify-catalog.mjs')
+  const synchronized = await snapshot(path.dirname(root))
+  run(root, 'sync-version.mjs')
+  assert.deepEqual(await snapshot(path.dirname(root)), synchronized)
 })
 
 for (const family of ['document-node', 'document-java', 'document-python']) {

@@ -1,5 +1,147 @@
 # @xpert-ai/server-core
 
+## 3.30.1
+
+### Patch Changes
+
+- @xpert-ai/server-common@3.30.1
+- @xpert-ai/server-config@3.30.1
+- @xpert-ai/contracts@3.30.1
+- @xpert-ai/plugin-sdk@3.30.1
+
+## 3.30.0
+
+### Patch Changes
+
+- d573a89: Allow Analytics Definition owners to publish or revoke organization visibility for immutable script and declared-file snapshots. Keep private source restrictions in discovery and revalidate the current viewer's upstream access on execution.
+
+    Support provider-opted-in repair of legacy Artifact file bindings when sharing, validating source identity, every saved payload and existing link policy while preserving ownership and versions. Report unavailable authenticated presentation support separately from missing or inaccessible content.
+
+- d7ce6da: Add explicit tenant integration grants for selected or all organizations, separated into configuration, invocation, and Assistant binding purposes. Enforce the same policy during discovery and runtime consumption without exposing credentials or widening management access.
+
+    Provide tenant authorization controls, scope labels, and disabled unavailable selections in Cloud. Supply the persisted Assistant scope when publishing triggers, and expose usage-aware integration reads to plugins.
+
+    Coordinate deployment with the WeCom plugin update for xpert-ai/xpert#1269. Apply the integration sharing schema through the normal schema-sync deployment gate; existing tenant integrations remain private until an administrator grants access.
+
+- 96d24d3: Import CQRS in organization language, tag, email and runtime control modules so tenant scope guards can resolve CommandBus during API startup.
+- Updated dependencies [d573a89]
+- Updated dependencies [785f4db]
+- Updated dependencies [fa765b0]
+- Updated dependencies [98c31e4]
+- Updated dependencies [f5eec71]
+- Updated dependencies [d7ce6da]
+    - @xpert-ai/contracts@3.30.0
+    - @xpert-ai/plugin-sdk@3.30.0
+    - @xpert-ai/server-common@3.30.0
+    - @xpert-ai/server-config@3.30.0
+
+## 3.29.1
+
+### Patch Changes
+
+- 1f1c7b7: Explain unavailable plugin marketplace details without assuming that a package is nonexistent or private. Preserve structured lookup errors, localize access and availability guidance in English and Chinese, and offer retry for transient failures while keeping navigation back to the marketplace available.
+- Updated dependencies [ccc040b]
+- Updated dependencies [a870de9]
+- Updated dependencies [1f1c7b7]
+- Updated dependencies [5449238]
+    - @xpert-ai/contracts@3.29.1
+    - @xpert-ai/plugin-sdk@3.29.1
+    - @xpert-ai/server-common@3.29.1
+    - @xpert-ai/server-config@3.29.1
+
+## 3.29.0
+
+### Patch Changes
+
+- 78cd9c0: Add ArtifactTypeProvider contributions with loader-owned namespace, explicit installation binding, content validation, sharing restrictions, and snapshot or authenticated presentation modes. Persist typeBinding on Artifact and deny unbound or unavailable types without fallback. Reuse the existing Artifact runtime API and Presentation Provider protocol.
+
+    Implement conversation snapshots as a built-in Artifact plugin, retaining the ChatKit read-only message UI and source authorization. Add an isolated anonymous snapshot viewer without a query channel; keep authenticated queries scoped to the current viewer and matching plugin installation. Remove the previous host-only source-policy contract. Existing experimental untyped records are not automatically converted.
+
+- 78cd9c0: Add revocable, expiring conversation text snapshots with organization membership checks, opt-in public links, a full-width Cloud viewer using ChatKit's read-only message list, preview validation, and bearer-token log protection. Project and group conversations cannot be exported. The shared renderer receives only authorized text and theme data, without live conversation credentials.
+
+    Add a personal shared-links settings dialog with search, pagination, owner-only snapshot previews, and confirmed single/bulk revocation. Management excludes delegated Assistant credentials and preserves conversations and shares created after the reviewed cutoff.
+
+    Persist conversation exports through existing Artifact containers, immutable ArtifactVersions and revocable ArtifactLinks. Reopening and copying reuse the stored URL. Enforce conversation source availability and export restrictions on shared Artifact content entrypoints, including raw URLs. No separate ConversationShare entity or token-recovery migration is introduced.
+
+    Keep conversation rules in conversation-sharing as a built-in Artifact type plugin with Artifact-owned share queries. The conversation feature module registers its type and host view directly, without a separate built-in plugin aggregation module. Register through the SDK type protocol, persist the installation binding, and reject unavailable types without fallback. The former host-only source-policy interface is removed.
+
+    Use the existing CLIENT_BASE_URL for share and management URLs, exposed through the shared clientBaseUrl bootstrap setting. Conversation sharing requires no feature-specific deployment configuration. Public sharing is available by default but still requires explicit owner confirmation; the default audience remains organization-only with a seven-day expiry.
+
+- 3b03ad7: Delegate scoped database workbench discovery and location handling to registered plugins. Preserve actor authorization, source revision checks and independent connection cleanup without a built-in engine allowlist.
+
+    Breaking SDK change: remove the legacy SQL adapter, dialect validation and quoting exports. Database plugins now own these implementations; SQL consumers migrate to the plugin-repository sql-workbench helpers. Strategies explicitly declare workbench support and runners accept the requested DatabaseLocation. Upgrade the MySQL/Doris, PostgreSQL, HANA and DB Studio plugins together with this SDK; old plugins without the registration opt-in are unavailable to the scoped workbench until upgraded.
+
+- Updated dependencies [78cd9c0]
+- Updated dependencies [78cd9c0]
+- Updated dependencies [4b07221]
+- Updated dependencies [b459105]
+- Updated dependencies [78cd9c0]
+- Updated dependencies [3b03ad7]
+    - @xpert-ai/plugin-sdk@3.29.0
+    - @xpert-ai/contracts@3.29.0
+    - @xpert-ai/server-config@3.29.0
+    - @xpert-ai/server-common@3.29.0
+
+## 3.28.0
+
+### Patch Changes
+
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+    Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- a520041: Run registry plugin installation asynchronously with bounded execution and process-group cleanup. Serialize shared-store mutations across API replicas, validate legacy installations, publish complete artifacts and manifests atomically, and propagate staging failures before runtime activation. Keep admission deadlines and restart capacity checks intact; verify slow installations overlapping rolling restarts through readiness-aware ingress.
+- f9b312a: Add a Project-scoped content catalog with explicit model and edit-protocol compatibility, editor preferences, safe source fallback and revision-bound search projections. Resolve stable catalog identities to authorized plugin selections, permit on-demand Project editor discovery independently of Assistant tools, and authorize Project-owned Artifact drafts through current member rights.
+
+    Provide a reusable Assistant capability composition helper. Preserve unacknowledged and offline collaboration updates across reconnects, invalidate pre-archive CAS revisions on restore, and admit direct chat runs before persisting recovery checkpoints. Requires coordinated host, SDK, ChatKit and resource-plugin deployment.
+
+    Keep failed collaboration projections retryable: reject failed queue attempts, recover stale durable checkpoints after restart, and replay only the latest active document state without requiring an open browser.
+
+    Return explicit access/unavailability errors for stale client actions after a resource provider is uninstalled, while preserving authorized read-only source backups.
+
+    Reuse the shared I18nObject contract for content type and implementation labels instead of introducing a separate mandatory bilingual shape.
+
+    Persist credential-free, immutable create/copy intents and recover them after restart. Reconcile source projections and notify knowledge observers using current Project membership and Assistant access. Add revision-checked Artifact draft recycling that revokes shares atomically; restoring a draft never republishes previous links. Apply `20261026_content_operations.sql` before enabling the maintenance worker.
+
+- Updated dependencies [4995ec0]
+- Updated dependencies [9585d4e]
+- Updated dependencies [1c7c7dc]
+- Updated dependencies [15e3ad0]
+- Updated dependencies [7535029]
+- Updated dependencies [b21c640]
+- Updated dependencies [4820bf3]
+- Updated dependencies [4a22aea]
+- Updated dependencies [8741bfe]
+- Updated dependencies [47c4d17]
+- Updated dependencies [a520041]
+- Updated dependencies [f9b312a]
+- Updated dependencies [a724133]
+    - @xpert-ai/contracts@3.28.0
+    - @xpert-ai/plugin-sdk@3.28.0
+    - @xpert-ai/server-config@3.28.0
+    - @xpert-ai/server-common@3.28.0
+
+## 3.27.0
+
+### Patch Changes
+
+- 078e6fe: Allow trusted Artifact document hosts to opt into exact HTTPS origins for scripts, styles, fonts and images while preserving the offline default and blocking direct data requests, frames, workers and eval. Share resource checks between preview routing and the document CSP.
+
+    Preserve safe analytics error codes, failure stages, retryability and localized repair guidance in both HTTP responses and Agent tool errors. Distinguish read-only SQL rejection, parameter binding failures and output contract mismatches without exposing private provider errors. Add browser isolation coverage and regression cases for parameterized Doris month filters.
+
+- Updated dependencies [52a3241]
+- Updated dependencies [147683a]
+- Updated dependencies [d6efa08]
+- Updated dependencies [078e6fe]
+- Updated dependencies [c3509ee]
+- Updated dependencies [de45823]
+    - @xpert-ai/contracts@3.27.0
+    - @xpert-ai/plugin-sdk@3.27.0
+    - @xpert-ai/server-common@3.27.0
+    - @xpert-ai/server-config@3.27.0
+
 ## 3.26.2
 
 ### Patch Changes

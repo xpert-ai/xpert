@@ -1,5 +1,29 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.2
+
+### Patch Changes
+
+- 358591d: Initialize managed application and upload directories using the configured workspace UID/GID before they become visible. Safely recover the legacy root-owned `.apps` mountpoint without changing saved content, and verify concurrent non-root API access alongside sandbox isolation.
+
+## 0.4.1
+
+### Patch Changes
+
+- c9d6119: Publish the NsJail runner with bounded workspace and temporary storage, including storage budget enforcement and its image acceptance checks.
+
+## 0.4.0
+
+### Minor Changes
+
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+
+## 0.3.1
+
+### Patch Changes
+
+- Publish a develop candidate for the released NsJail runtime baseline synchronized from main, including the Compute and document runtime bindings and their image acceptance checks.
+
 ## 0.3.0
 
 ### Minor Changes

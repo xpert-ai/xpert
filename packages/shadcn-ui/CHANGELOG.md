@@ -1,5 +1,11 @@
 # @xpert-ai/shadcn-ui
 
+## 0.2.2
+
+### Patch Changes
+
+- 4b07221: Add the built-in administrator execution-observability plugin with an expandable Assistant/conversation timeline and five read-only analysis tools. Reuse scoped existing execution and usage records, preserve unknown lifecycle phases and costs, and ship shared shadcn/Tailwind remote assets without new tables.
+
 ## 0.2.1
 
 ### Patch Changes

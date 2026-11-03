@@ -1,5 +1,175 @@
 # @xpert-ai/xpert-ui
 
+## 3.30.1
+
+### Patch Changes
+
+- d7a5f46: Detect deployed web builds independently of login, offer a dismissible bottom-left update notice and an About update action, and revalidate entry resources while retiring legacy Angular service workers.
+
+## 3.30.0
+
+### Minor Changes
+
+- 785f4db: Add a Growth tree view to Conversation Map for discussion forks, Agent delegation, and recorded tool activity, with tapered branches, a floating activity inspector, and centered canvas fitting. Unify map perspectives under one tab and add searchable project and conversation selectors with server-side pagination and cached scroll positions. Preserve authorization and historical snapshot boundaries, and provide English and Chinese feature guides.
+- fa765b0: Manage model providers through named connections, typed model catalogs, compact configuration dialogs, and an inline plugin marketplace. Keep connection identity and model type visible in Assistant selection and membership configuration.
+
+  Separate default model purposes from provider connections, add defaults for common media and retrieval model types, and migrate valid legacy defaults without changing credentials or existing Assistant bindings. Retain compatibility reads for unmigrated defaults.
+
+  Add previewable, reversible bulk model replacement for editable Assistant drafts, and validate destination parameters when switching models so incompatible settings are not retained.
+
+### Patch Changes
+
+- d573a89: Allow Analytics Definition owners to publish or revoke organization visibility for immutable script and declared-file snapshots. Keep private source restrictions in discovery and revalidate the current viewer's upstream access on execution.
+
+  Support provider-opted-in repair of legacy Artifact file bindings when sharing, validating source identity, every saved payload and existing link policy while preserving ownership and versions. Report unavailable authenticated presentation support separately from missing or inaccessible content.
+
+- 1a7ca04: Share one notification SSE connection per authenticated scope across visible pages, relay invalidations between pages, and release connections and retries when a page becomes inactive. Refresh notifications after visibility or page restoration and retain polling when cross-page coordination is unavailable.
+
+  Make development route preloading opt-in to reduce contention with API requests and component compilation while preserving production preloading and explicit opt-outs.
+
+- ce1e7c3: Disable Pet in the Claw Xpert conversation shell using the existing `pet: false`
+  option, hiding both Pet and the minimize-to-Pet action.
+- 98c31e4: Export OpenAICompatibleEmbeddings for model plugins to reuse authoritative per-request usage callbacks. Preserve transport batching/retry behavior, capture provider usage before vectors discard it, and keep accounting callback failures outside the transport retry loop.
+- f5eec71: Include authorized conversation metadata in thread reads and message counts in activity snapshots so ChatKit can reuse its history baseline. Reuse ChatKit's loaded context in the Cloud host instead of fetching messages again. Read task summaries without synchronous legacy backfill writes and cache unchanged message projections by caller and message revision while rechecking file relations.
+- d7ce6da: Add explicit tenant integration grants for selected or all organizations, separated into configuration, invocation, and Assistant binding purposes. Enforce the same policy during discovery and runtime consumption without exposing credentials or widening management access.
+
+  Provide tenant authorization controls, scope labels, and disabled unavailable selections in Cloud. Supply the persisted Assistant scope when publishing triggers, and expose usage-aware integration reads to plugins.
+
+  Coordinate deployment with the WeCom plugin update for xpert-ai/xpert#1269. Apply the integration sharing schema through the normal schema-sync deployment gate; existing tenant integrations remain private until an administrator grants access.
+
+- e193f4f: Default tenant-scoped integration creation to manual configuration and explain that QR authorization requires an organization. Provide an organization switcher before the QR flow and clarify ownership of the resulting integration.
+- 9957882: Update ChatKit UI to 0.21.1 and shared types to 0.20.1, including the UI's Xpert SDK 0.20.1 dependency. Align workspace, API, Web and Desktop dependency locks for the latest chat header, compact composer, follow-up queue and conversation loading improvements.
+- 84156d0: Update ChatKit Angular to 0.18.1, types to 0.20.0, UI to 0.21.0, web component to 0.19.1, and web shared to 0.18.2. Align workspace, API, web, and desktop dependency locks with these releases.
+
+## 3.29.1
+
+### Patch Changes
+
+- ccc040b: Disable Assistant maxConcurrency customization and omit it from LangGraph execution. Retain the deprecated type field for plugin and external-template compatibility, accepting it without errors and silently ignoring it. Remove it from built-in templates and strip legacy values when saving drafts or publishing Assistants. Resolve approval tool calls by checkpoint identity across trailing tool results and repeated tool names, and distinguish unfinished work from approval stops.
+- a870de9: Allow channel plugins to supply stable chat source identifiers through the shared TChatFrom and RunSource contracts without adding each provider to the platform's literal list. Accept nonempty producer identifiers in handoff routing configuration while preserving exact source, tenant, and organization matching. Keep legacy source values and persisted conversation attribution unchanged, and let the agent chat dispatch contract inherit the shared source type. Existing channel plugins require no payload migration; new plugins need the updated contracts when compiling. Source attribution remains separate from execution identity and authorization.
+- 1b736d9: Do not expose unresolved saved model references as selectable provider models after rename or deletion. Preserve historical selections for explicit reselection, show an unavailable-model warning, and prevent saving an unavailable default model. Existing model-access revocation semantics are unchanged.
+- 1f1c7b7: Explain unavailable plugin marketplace details without assuming that a package is nonexistent or private. Preserve structured lookup errors, localize access and availability guidance in English and Chinese, and offer retry for transient failures while keeping navigation back to the marketplace available.
+- 5449238: Reset generation parameters when changing model identities while retaining client retries and same-model overrides. Preserve numeric input drafts and commit edits before saving. Persist explicitly cleared optional parameters without restoring defaults or sending them in provider requests, including ModelExecution snapshots and native protocols.
+
+## 3.29.0
+
+### Minor Changes
+
+- 78cd9c0: Expose project Artifact references through Content Catalog and the Artifact Library capability. Add authenticated read-only viewing, pinned version selection, reusable sharing and explicit copy policy without creating shares during collection or viewing.
+
+  Expose provider-owned localized Artifact type names in Spaces lists, cards and share management so shared conversations remain recognizable independently of the reference relationship.
+
+- 78cd9c0: Add ArtifactTypeProvider contributions with loader-owned namespace, explicit installation binding, content validation, sharing restrictions, and snapshot or authenticated presentation modes. Persist typeBinding on Artifact and deny unbound or unavailable types without fallback. Reuse the existing Artifact runtime API and Presentation Provider protocol.
+
+  Implement conversation snapshots as a built-in Artifact plugin, retaining the ChatKit read-only message UI and source authorization. Add an isolated anonymous snapshot viewer without a query channel; keep authenticated queries scoped to the current viewer and matching plugin installation. Remove the previous host-only source-policy contract. Existing experimental untyped records are not automatically converted.
+
+- 78cd9c0: Add revocable, expiring conversation text snapshots with organization membership checks, opt-in public links, a full-width Cloud viewer using ChatKit's read-only message list, preview validation, and bearer-token log protection. Project and group conversations cannot be exported. The shared renderer receives only authorized text and theme data, without live conversation credentials.
+
+  Add a personal shared-links settings dialog with search, pagination, owner-only snapshot previews, and confirmed single/bulk revocation. Management excludes delegated Assistant credentials and preserves conversations and shares created after the reviewed cutoff.
+
+  Persist conversation exports through existing Artifact containers, immutable ArtifactVersions and revocable ArtifactLinks. Reopening and copying reuse the stored URL. Enforce conversation source availability and export restrictions on shared Artifact content entrypoints, including raw URLs. No separate ConversationShare entity or token-recovery migration is introduced.
+
+  Keep conversation rules in conversation-sharing as a built-in Artifact type plugin with Artifact-owned share queries. The conversation feature module registers its type and host view directly, without a separate built-in plugin aggregation module. Register through the SDK type protocol, persist the installation binding, and reject unavailable types without fallback. The former host-only source-policy interface is removed.
+
+  Use the existing CLIENT_BASE_URL for share and management URLs, exposed through the shared clientBaseUrl bootstrap setting. Conversation sharing requires no feature-specific deployment configuration. Public sharing is available by default but still requires explicit owner confirmation; the default audience remains organization-only with a seven-day expiry.
+
+### Patch Changes
+
+- 4b07221: Add the built-in administrator execution-observability plugin with an expandable Assistant/conversation timeline and five read-only analysis tools. Reuse scoped existing execution and usage records, preserve unknown lifecycle phases and costs, and ship shared shadcn/Tailwind remote assets without new tables.
+- b459105: Preserve new messages sent after interrupted tool runs by checkpointing input identities and committing their consumption with model history. Keep new Send, checkpoint Resume/Retry, and tool/model loops distinct; preserve completed tool results and record unknown outcomes for missing results without rerunning old tools. Add graph-level regression coverage for interruption, repeated input text, recovery, middleware, and delegated input scope.
+- 3b03ad7: Delegate scoped database workbench discovery and location handling to registered plugins. Preserve actor authorization, source revision checks and independent connection cleanup without a built-in engine allowlist.
+
+  Breaking SDK change: remove the legacy SQL adapter, dialect validation and quoting exports. Database plugins now own these implementations; SQL consumers migrate to the plugin-repository sql-workbench helpers. Strategies explicitly declare workbench support and runners accept the requested DatabaseLocation. Upgrade the MySQL/Doris, PostgreSQL, HANA and DB Studio plugins together with this SDK; old plugins without the registration opt-in are unavailable to the scoped workbench until upgraded.
+
+- 03e933f: Update ChatKit UI to 0.20.0 for conversation sharing and workbench clipboard support, with matching build and deployment dependency locks.
+
+## 3.28.0
+
+### Minor Changes
+
+- f9b312a: Release the Project content catalog, compatible resource editor discovery, and durable resource lifecycle recovery in the API and Web applications. Deploy the matching contracts, plugin SDK, ChatKit, and resource plugins together, and apply the content operations schema migration before starting the maintenance worker.
+
+### Patch Changes
+
+- 59d850d: Consolidate daily navigation into Bosi and move assistant views, conversations, project/workspace navigation, and module sections into the shared sidebar panel. Preserve the Data & Ontology entry and the settings page layout. Keep pinned panels stable on hover and switch only on explicit selection, retain per-panel search and scroll, and clear scoped content when the user or organization changes. Preserve existing actions and permission checks, with accessible mobile, keyboard, and pointer navigation.
+
+  Align menu typography, row spacing and icon sizes across primary entries and panel content. Keep an open panel aligned with the sidebar when it expands, collapses or resizes.
+
+  Prevent the retained, hidden panel overlay from blocking sidebar clicks after repeated navigation and sidebar expansion.
+
+  Retain the existing workspace, project and plugin tabs alongside panel navigation, synchronized through the current route. Show assistant profile cards from the panel header avatar instead of a separate menu item, and remove the sidebar footer divider.
+
+  Unify navigation color hierarchy: secondary text and monochrome icons become primary on hover, keyboard focus or selection; titles and primary actions remain prominent, while section labels and metadata stay muted. Respect theme colors and reduced-motion preferences.
+
+  Center collapsed rail icons, the logo and account avatar across the full sidebar width. Hide the compact rail's scrollbar without disabling scrolling so long assistant lists cannot shift the icons. Round assistant panel avatars and unify menu icon columns, row spacing and secondary action spacing.
+
+  Show organization group conversations inline in the assistant directory, with collapse, shared search, creation and personal pin/archive controls. Add rounded avatars and name fallbacks to directory rows; discard group results and pending navigation when the account or organization changes.
+
+  Align conversation row icons and labels with the shared panel's action rows using the same icon column and spacing.
+
+  Make Assistant profile cards compact with content-driven height, a smaller header and avatar, tighter detail spacing, and larger corners. Show the full description once while retaining profile tabs and extension views.
+
+  Match collapsed project and workspace button widths to the icon rail. Navigate primary-menu clicks to their default authorized page while keeping hover as a preview. Open Assistant Remote Views in the ChatKit Workbench maximized, with layout state retained through URL history and manual restore.
+
+- 6d7a820: Keep routed Workbench layout notifications compatible with the published ChatKit types while retaining support for maximized and split layouts from newer ChatKit builds.
+- 869040b: Remove the legacy ClawXpert workbench section and split-layout controls so the embedded ChatKit fills the conversation page. Preserve authorized navigation and resource preview fallbacks.
+- f8fc2cb: Give the main content beside the platform sidebar rounded left corners and a subtle theme-aware shadow, consistently across expanded and collapsed sidebar states.
+- acc951f: Add a shared hover panel beside the collapsed desktop sidebar. Keep the panel mounted and positioned while switching main menus, with delayed dismissal, keyboard access, and existing click navigation preserved. Add a header with the current menu title, an expandable and clearable search field, and a pin toggle that reserves page space while keeping the icon rail. Animate panel entrance and pin transitions, respecting reduced motion. Pinned panels fill the page height and share the page's outer rounded surface without the floating card shadow or gaps. Hovering other main menus preserves the pinned menu and search until the panel is unpinned. Allow pointer and keyboard width resizing only while pinned, remember the preferred width locally for both modes, and constrain it to the viewport. Panel content and search results will be connected separately.
+- 4995ec0: Publish the shared Computer Codex isolation-policy contract, launch-conflict and environment-unavailable errors, and matching metric events. Update bundled cloud-coding guidance and Codex profile revision 7 to inherit the host policy and distinguish model availability from command readiness.
+
+  The managed Computer launcher, command preflight and seccomp changes are implemented and released by Xpert Pro; this shared-package update alone does not add those runtime capabilities to an OSS installation.
+
+- 9585d4e: Resolve custom native model capabilities and credentials from the authorized provider model record. Pass the selected model's reasoning effort to Codex, accept namespaces containing only client-executed Responses tools, preserve budget callbacks across separate LangChain module copies, and report sanitized native transport diagnostics.
+- 1c7c7dc: Preserve validated, non-secret Assistant model parameters through delegated execution grants and model construction. Apply supported request overrides before provider defaults, normalize output-token aliases, and retain host-owned retry and authorization controls. Map native protocol settings explicitly and reject incompatible parameters instead of silently dropping them.
+- 15e3ad0: Preserve durable MCP control delivery and checkpoint tool identity across replicas and input continuation. Keep task receipts separate from business output, complete official recovery migrations, and verify the full Assistant/Pipeline-to-Sandbox chain with independent processes and storage.
+
+  Require actual AssistantTask settlement evidence before Pipeline cancellation completes, and register the control entities in the official schema catalog.
+
+- f8f005b: Fix page-wide flicker and missing content when scrolling the Explore expert catalog by replacing repeated hover-action backdrop filters with theme-aware card backgrounds. Apply the same treatment to template actions while preserving opacity transitions and the header and featured preview glass effects.
+- 7535029: Support automatic Agent runtime bindings across Computer, SDK, process and external service transports. Preserve existing execution protocols and interactive approvals while removing user profile/binding forms. Derive authorization from the current actor and Assistant, and resolve launch settings from installed strategies through a scoped capability, without a host runtime inventory. Old configuration is not migrated or reused.
+- b21c640: Persist MCP execution ownership before sending work, redeliver original-generation control and retain settlement until handlers and attached work actually finish. Add a negotiated control receipt, unique task admission, non-replaying input continuation, and conversation pause/termination bridges. Include conservative migration for legacy tasks.
+- 4820bf3: Add pinned runtime host/generation targets, descendant completion evidence, original-host control compensation, and a shared process supervisor. Legacy receipts remain unconfirmed; unsupported supervision cannot release controlled work.
+- 8b07951: Add owner-only project deletion with confirmation to project configuration, refresh recent projects after deletion, and guide entity-managed projects to their application lifecycle.
+- 4a22aea: Reconcile persisted plugin restart failures against the current server generation, retain operation identities across failures, and isolate browser state by authenticated scope. Fence restart publication atomically so stale tabs cannot replace newer desired plugin versions. Preserve exact runtime admission checks and server-owned setup activation.
+
+  Separate browser persistence, schema validation, and restart reconciliation policy. Report invalid or unavailable storage explicitly, preserve in-memory state when persistence fails, and verify scoped records before removing legacy cache entries during migration.
+
+- 22025b3: Fix downloads in the task results and coding execution views when the host returns
+  authorized file bytes as a data URL. Download those bytes as an iframe-owned
+  attachment, retain HTTP grant support and reject unsafe or malformed URLs.
+- 8741bfe: Report old/new argument line counts and actual file additions/deletions after sandbox edits. Compute line differences in the existing sandbox process without Git or temporary files, with bounded comparison work for broad rewrites. Unchanged replacements succeed with a zero diff. Sequential batches retain per-edit feedback and partial progress; unavailable statistics never prevent editing.
+- 47c4d17: Bind Sandbox jobs and host callbacks to durable execution generations. Redeliver original-target control, retain capacity until runtime and attached work actually settle, prevent implicit replay, and support explicit retries of settled generations. Add provider evidence and conservative legacy migration.
+- 59d850d: Search each sidebar panel's own authorized business data, with independent queries, grouped results, pagination, loading/error states, and cancellation when the query, account, or organization changes. Cover Bosi automations and conversations, Assistant views and archived conversations, accessible projects/workspaces, plugins, configured model catalogs, MCP services/runtimes, evolution records, approvals and settings navigation. Open results at their matching business destination while preserving the existing Settings layout.
+
+  Add validated, scoped conversation-title search before pagination; preserve owner, tenant, organization, Assistant, private-conversation and archive restrictions, and escape SQL wildcard characters.
+
+  Apply literal, paginated search to evolution target names, learning summaries, candidate versions, evaluations and deployments; retain existing strategy, mechanism and organization restrictions.
+
+- 7cb662b: Show the current membership and remaining allowance above the sidebar account menu, with a compact usage ring, hover summary and accessible details popover linking to personal billing. Keep cycle allowance separate from personal points, handle unlimited, inactive and missing plans, and clear scoped data when the account, organization or permission changes.
+- a724133: Expose a versioned public thread control view backed by durable execution evidence. Keep accepted cancellation pending until owned work settles, gate recovery/input actions, and whitelist public run-control fields.
+- 2004c43: Update ChatKit UI to 0.19.1 and web-shared to 0.18.1, including the UI's required Xpert SDK 0.18.0 dependency. Keep workspace, API, Web and Desktop dependency locks aligned.
+- 89e7398: Update ChatKit UI to 0.19.2 and types to 0.19.1 with Xpert SDK 0.19.0, including stable run controls during reconnects, Workbench view layouts and content navigation, and notification dismissal fixes. Keep workspace, API, Web and Desktop dependency locks aligned.
+
+## 3.27.0
+
+### Patch Changes
+
+- 52a3241: Let Assistant capability providers explicitly opt into parameter-free creation switches through supportsQuickCreation. Cloud discovers these options from the server instead of hardcoding Project management, so Spaces and future plugins can participate without bespoke UI. Preserve model authorization, existing capabilities and revision-checked composition; apply and save all selected capabilities before publication.
+- 5330be4: Upgrade ChatKit packages and provision the independently versioned pet resource
+  package during Cloud builds. Serve the bundled offline resources at the default
+  /pets path without a resource URL environment setting or runtime CDN dependency.
+- 147683a: Preserve reasoning and cache token details in priced LLM receipts so Model Gateway can validate and settle reasoning-model calls. Keep usage with unavailable or inconsistent pricing pending settlement instead of treating it as a successful zero-point charge. Add regression coverage from the SDK callback through gateway validation and idempotent membership ledger settlement.
+- d6efa08: Keep API startup available when an external plugin pipeline contribution fails contract validation, including legacy templates that omit projectTypes. Isolate constructor and discovery validation failures, exclude invalid contributions from the catalog, and report scoped diagnostics without payload values. Preserve strict explicit registration, built-in validation, dependency injection and non-validation errors.
+- 078e6fe: Allow trusted Artifact document hosts to opt into exact HTTPS origins for scripts, styles, fonts and images while preserving the offline default and blocking direct data requests, frames, workers and eval. Share resource checks between preview routing and the document CSP.
+
+  Preserve safe analytics error codes, failure stages, retryability and localized repair guidance in both HTTP responses and Agent tool errors. Distinguish read-only SQL rejection, parameter binding failures and output contract mismatches without exposing private provider errors. Add browser isolation coverage and regression cases for parameterized Doris month filters.
+
+- c3509ee: Expose `ProjectAssistantBinding` and return `assistantBindings` from managed Project provisioning so native pipeline applications can bind role executors by plugin, template and agent identity. These are resolved role requirements; `xpertIds` remains the Project membership list.
+- de45823: Keep document source contracts browser-safe and include their transitive types in
+  the isolated Cloud build. Register durable display snapshots and conversation
+  revisions in the packaged SQL migration flow so clean databases initialize in
+  dependency order and existing deployments receive the required fields.
+
 ## 3.26.2
 
 ### Patch Changes

@@ -50,6 +50,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Test Runtime metadata synchronization
+        run: node --test packages/sandbox-runtime/scripts/tests/release-matrix.test.mjs
+
       - name: Create release PR or publish npm packages
         id: changesets
         uses: changesets/action@v1
