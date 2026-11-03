@@ -1,3 +1,6 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 import { Test, TestingModule } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
 import { AIPermissionsEnum, UserType } from '@xpert-ai/contracts'
@@ -105,6 +108,16 @@ describe('App delivery queue worker', () => {
         module = await Test.createTestingModule({
             providers: [
                 AppPlatformWorker,
+                {
+                    provide: CommandBus,
+                    useValue: {
+                        execute: async (command: ResolveExecutionIdentityCommand) => {
+                            const candidates = await query.getMany.mock.results.at(-1)?.value
+                            const user = candidates?.find((user) => user.id === command.actor.userId)
+                            return executionIdentityFixture(command.actor, user)
+                        }
+                    }
+                },
                 { provide: DataSource, useValue: database },
                 { provide: AppPlatformService, useValue: platform },
                 { provide: PlatformProvisionerService, useValue: provisioner }

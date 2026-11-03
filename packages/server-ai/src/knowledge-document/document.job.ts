@@ -12,7 +12,7 @@ import {
     isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { UserService } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -30,7 +30,6 @@ import {
 } from './document-hash'
 import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
-import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentProcessingMetadata } from './document-publication'
 import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
 import { KnowledgeTableMetadataService, TableMetadataStaleError } from './tables/table-metadata.service'
@@ -57,7 +56,6 @@ export class KnowledgeDocumentConsumer {
         @Inject(JOB_REF) jobRef: Job,
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
-        private readonly userService: UserService,
         private readonly commandBus: CommandBus,
         private readonly publicationService: KnowledgeDerivedIndexPublicationService,
         private readonly lifecycle: KnowledgeProcessingReadyService
@@ -66,22 +64,18 @@ export class KnowledgeDocumentConsumer {
     @Process({ concurrency: 5 })
     async process(job: Job<KnowledgeDocumentJobData>) {
         await this.lifecycle.waitUntilReady()
-        const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
         const firstDoc = job.data.docs[0]
-        if (!firstDoc) {
-            return {}
-        }
-
-        const context = captureRequestContext({
-            user,
-            organizationId: firstDoc.organizationId,
-            language: user.preferredLanguage
-        })
-
+        if (!firstDoc) return {}
         try {
-            // Embedding model creation reads plugin-sdk RequestContext, while older CRUD paths
-            // still read server-core context; queued work needs both scopes restored.
-            return await runWithCapturedRequestContext(context, () => this.processInRequestContext(job))
+            const identity = await this.commandBus.execute(
+                new ResolveExecutionIdentityCommand({
+                    kind: 'user',
+                    userId: job.data.userId,
+                    tenantId: firstDoc.tenantId,
+                    organizationId: firstDoc.organizationId
+                })
+            )
+            return await runWithExecutionIdentity(identity, () => this.processInRequestContext(job))
         } catch (err) {
             this.logger.error(err)
             await this.markQueuedDocsFailed(job, err)

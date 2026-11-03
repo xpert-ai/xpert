@@ -1,24 +1,23 @@
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 jest.mock('../document.service', () => ({ KnowledgeDocumentService: class {} }))
 jest.mock('./question-generation.service', () => ({ KnowledgeQuestionGenerationService: class {} }))
 import { getQueueToken } from '@nestjs/bull'
 import { BullExplorer } from '@nestjs/bull/dist/bull.explorer'
 import { BullMetadataAccessor } from '@nestjs/bull/dist/bull-metadata.accessor'
 import { DiscoveryModule } from '@nestjs/core'
-import { CqrsModule, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { CqrsModule, CommandHandler } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
-import { UserService } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { Job } from 'bull'
 import { JOB_KNOWLEDGE_QUESTIONS, KnowledgeQuestionsJob } from './question-generation.command'
 import { KnowledgeQuestionsConsumer } from './question-generation.job'
 import { KnowledgeQuestionGenerationService } from './question-generation.service'
 import { KnowledgeProcessingLifecycleModule } from '../processing-lifecycle.module'
 
-class StartupQuery {}
-
-@QueryHandler(StartupQuery)
+@CommandHandler(ResolveExecutionIdentityCommand)
 class StartupQueryHandler {
     execute() {
-        return { id: 'user', tenantId: 'tenant', preferredLanguage: 'en' }
+        return executionIdentityFixture({ userId: 'user', tenantId: 'tenant' })
     }
 }
 
@@ -41,12 +40,7 @@ describe('knowledge question worker startup', () => {
                 StartupQueryHandler,
                 KnowledgeQuestionsConsumer,
                 { provide: getQueueToken(JOB_KNOWLEDGE_QUESTIONS), useValue: queue },
-                { provide: KnowledgeQuestionGenerationService, useValue: questions },
-                {
-                    provide: UserService,
-                    inject: [QueryBus],
-                    useFactory: (queries: QueryBus) => ({ findOne: () => queries.execute(new StartupQuery()) })
-                }
+                { provide: KnowledgeQuestionGenerationService, useValue: questions }
             ]
         }).compile()
         try {

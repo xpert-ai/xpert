@@ -17,7 +17,11 @@ import { Queue } from 'bull'
 
 import { assign } from 'lodash'
 
-import { DataSource } from 'typeorm'
+import { DataSource, IsNull } from 'typeorm'
+import { t } from 'i18next'
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
+import { createEmbeddingCollectionName } from './embedding-state'
 
 import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
@@ -37,6 +41,7 @@ import type { KnowledgebaseService } from '../management/knowledgebase.service'
 import { TEmbeddingCopilotModel } from './knowledgebase-model-policy'
 
 interface KnowledgebaseRebuildOperationsContext {
+    commandBus: CommandBus
     logger: Logger
     assertKnowledgebaseWriteAccess: KnowledgebaseService['assertKnowledgebaseWriteAccess']
     createVectorStoreForModel: KnowledgebaseService['createVectorStoreForModel']
@@ -107,14 +112,6 @@ export class KnowledgebaseRebuildOperations {
             throw new BadRequestException('Pending embedding model is required for rebuild')
         }
 
-        if (knowledgebase.pendingEmbeddingModelFingerprint === knowledgebase.embeddingModelFingerprint) {
-            assign(knowledgebase, {
-                ...this.clearPendingEmbeddingModelFields(),
-                status: KnowledgebaseStatusEnum.READY
-            })
-            return this.context.save(knowledgebase)
-        }
-
         if (
             knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_REQUIRED &&
             knowledgebase.status !== KnowledgebaseStatusEnum.REBUILD_FAILED
@@ -124,25 +121,54 @@ export class KnowledgebaseRebuildOperations {
             )
         }
 
-        const rebuildTaskId = shortuuid()
-        const pendingEmbeddingRevision =
-            (knowledgebase.pendingEmbeddingRevision ?? knowledgebase.embeddingRevision ?? 0) + 1
-        assign(knowledgebase, {
-            status: KnowledgebaseStatusEnum.REBUILDING,
-            rebuildTaskId,
-            pendingEmbeddingRevision,
-            embeddingRebuildError: null
+        const saved = await this.context.dataSource.transaction(async (manager) => {
+            const repository = manager.getRepository(Knowledgebase)
+            const current = await repository.findOne({
+                where: {
+                    id,
+                    tenantId: knowledgebase.tenantId,
+                    organizationId: knowledgebase.organizationId ?? IsNull()
+                },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (
+                !current ||
+                !current.pendingCopilotModelId ||
+                !current.pendingEmbeddingModelFingerprint ||
+                ![KnowledgebaseStatusEnum.REBUILD_REQUIRED, KnowledgebaseStatusEnum.REBUILD_FAILED].includes(
+                    current.status
+                )
+            )
+                throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
+            if (current.pendingEmbeddingModelFingerprint === current.embeddingModelFingerprint) {
+                assign(current, { ...this.clearPendingEmbeddingModelFields(), status: KnowledgebaseStatusEnum.READY })
+                return repository.save(current)
+            }
+            const revision = (current.pendingEmbeddingRevision ?? current.embeddingRevision ?? 0) + 1
+            assign(current, {
+                status: KnowledgebaseStatusEnum.REBUILDING,
+                rebuildTaskId: shortuuid(),
+                pendingEmbeddingRevision: revision,
+                embeddingRebuildError: null,
+                pendingEmbeddingCollectionName: `${createEmbeddingCollectionName(id, current.pendingEmbeddingModelFingerprint)}_r${revision}`
+            })
+            return repository.save(current)
         })
-        const saved = await this.context.save(knowledgebase)
-
-        await this.context.rebuildQueue.add({
+        if (saved.status === KnowledgebaseStatusEnum.READY) return saved
+        const data: TKnowledgebaseRebuildEmbeddingJob = {
             userId: RequestContext.currentUserId(),
-            tenantId: knowledgebase.tenantId,
-            organizationId: knowledgebase.organizationId,
+            tenantId: saved.tenantId,
+            organizationId: saved.organizationId,
             knowledgebaseId: id,
-            rebuildTaskId,
-            pendingEmbeddingRevision
-        })
+            rebuildTaskId: saved.rebuildTaskId,
+            pendingEmbeddingRevision: saved.pendingEmbeddingRevision
+        }
+        try {
+            await this.context.rebuildQueue.add(data, { jobId: data.rebuildTaskId, attempts: 1 })
+        } catch (error) {
+            await this.markEmbeddingRebuildFailed(data, getErrorMessage(error))
+            throw error
+        }
 
         return saved
     }
@@ -158,9 +184,14 @@ export class KnowledgebaseRebuildOperations {
     }
 
     async processEmbeddingRebuildJob(data: TKnowledgebaseRebuildEmbeddingJob) {
-        const knowledgebase = await this.context.findOne(data.knowledgebaseId, {
+        const knowledgebase = await this.context.assertKnowledgebaseWriteAccess(data.knowledgebaseId, {
             relations: this.context.getPendingVectorStoreRelations()
         })
+        if (
+            knowledgebase.tenantId !== data.tenantId ||
+            (knowledgebase.organizationId ?? null) !== (data.organizationId ?? null)
+        )
+            throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
         this.assertCurrentRebuildTask(knowledgebase, data.rebuildTaskId, data.pendingEmbeddingRevision)
 
         const vectorStore = await this.context.getPendingVectorStoreForRebuild(knowledgebase)
@@ -246,34 +277,112 @@ export class KnowledgebaseRebuildOperations {
         for (const { chunk, write } of questionRebuilds) {
             await recordRebuiltQuestionVectors(chunkRepository, chunk, write)
         }
-        return this.promoteEmbeddingRebuild(data.knowledgebaseId, data.rebuildTaskId, data.pendingEmbeddingRevision)
+        return this.promoteEmbeddingRebuild(data)
     }
 
-    async markEmbeddingRebuildFailed(data: TKnowledgebaseRebuildEmbeddingJob, error: string) {
-        const knowledgebase = await this.context.findOne(data.knowledgebaseId)
+    private taskWhere(data: TKnowledgebaseRebuildEmbeddingJob) {
         if (
-            knowledgebase.rebuildTaskId !== data.rebuildTaskId ||
-            knowledgebase.pendingEmbeddingRevision !== data.pendingEmbeddingRevision
-        ) {
-            this.context.logger.warn(`Skip stale embedding rebuild failure for knowledgebase '${data.knowledgebaseId}'`)
-            return knowledgebase
+            !data.tenantId ||
+            !data.knowledgebaseId ||
+            !data.rebuildTaskId ||
+            !Number.isSafeInteger(data.pendingEmbeddingRevision) ||
+            data.pendingEmbeddingRevision < 1
+        )
+            throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
+        return {
+            id: data.knowledgebaseId,
+            tenantId: data.tenantId,
+            organizationId: data.organizationId ?? IsNull(),
+            rebuildTaskId: data.rebuildTaskId,
+            pendingEmbeddingRevision: data.pendingEmbeddingRevision,
+            status: KnowledgebaseStatusEnum.REBUILDING
         }
+    }
 
-        return this.context.update(data.knowledgebaseId, {
+    // Trusted queue bookkeeping only. No content or model fields can be written here;
+    // revoked business access must still let this exact task reach a terminal state.
+    async markEmbeddingRebuildFailed(data: TKnowledgebaseRebuildEmbeddingJob, error: string) {
+        return this.context.dataSource.getRepository(Knowledgebase).update(this.taskWhere(data), {
             status: KnowledgebaseStatusEnum.REBUILD_FAILED,
             embeddingRebuildError: error
         })
     }
 
-    async promoteEmbeddingRebuild(knowledgebaseId: string, rebuildTaskId: string, pendingEmbeddingRevision: number) {
+    async recoverEmbeddingRebuild(id: string) {
+        const knowledgebase = await this.context.assertKnowledgebaseWriteAccess(id)
+        if (knowledgebase.status !== KnowledgebaseStatusEnum.REBUILDING) return knowledgebase
+        const data: TKnowledgebaseRebuildEmbeddingJob = {
+            knowledgebaseId: id,
+            tenantId: knowledgebase.tenantId,
+            organizationId: knowledgebase.organizationId,
+            userId: RequestContext.currentUserId(),
+            rebuildTaskId: knowledgebase.rebuildTaskId,
+            pendingEmbeddingRevision: knowledgebase.pendingEmbeddingRevision
+        }
+        let job = await this.context.rebuildQueue.getJob(data.rebuildTaskId)
+        // Older jobs used Bull-generated IDs. Require an exact terminal receipt before recovering them.
+        if (!job) {
+            for (let offset = 0; ; offset += 100) {
+                const jobs = await this.context.rebuildQueue.getJobs(['failed', 'completed'], offset, offset + 99)
+                job = jobs.find(
+                    (item) =>
+                        item.data.knowledgebaseId === id &&
+                        item.data.tenantId === data.tenantId &&
+                        (item.data.organizationId ?? null) === (data.organizationId ?? null) &&
+                        item.data.rebuildTaskId === data.rebuildTaskId &&
+                        item.data.pendingEmbeddingRevision === data.pendingEmbeddingRevision
+                )
+                if (job || jobs.length < 100) break
+            }
+        }
+        if (!job) throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildReceiptUnavailable'))
+        if (!['failed', 'completed'].includes(await job.getState()))
+            throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStillActive'))
+        if (
+            job.data.tenantId !== data.tenantId ||
+            (job.data.organizationId ?? null) !== (data.organizationId ?? null) ||
+            job.data.knowledgebaseId !== id ||
+            job.data.rebuildTaskId !== data.rebuildTaskId ||
+            job.data.pendingEmbeddingRevision !== data.pendingEmbeddingRevision
+        )
+            throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
+        await this.markEmbeddingRebuildFailed(
+            data,
+            job.failedReason || t('server-ai:Error.EmbeddingRebuildRecoveryRequired')
+        )
+        return this.context.findOne(id)
+    }
+
+    async promoteEmbeddingRebuild(data: TKnowledgebaseRebuildEmbeddingJob) {
+        const { knowledgebaseId, rebuildTaskId, pendingEmbeddingRevision } = data
+        const identity = await this.context.commandBus.execute(
+            new ResolveExecutionIdentityCommand({
+                kind: 'user',
+                tenantId: data.tenantId,
+                organizationId: data.organizationId,
+                userId: data.userId
+            })
+        )
+        await runWithExecutionIdentity(identity, async () => {
+            const current = await this.context.assertKnowledgebaseWriteAccess(knowledgebaseId, {
+                relations: this.context.getPendingVectorStoreRelations()
+            })
+            this.assertCurrentRebuildTask(current, rebuildTaskId, pendingEmbeddingRevision)
+            await this.context.getPendingVectorStoreForRebuild(current)
+        })
         let oldCollectionName: string | null = null
         let oldCopilotModel: TEmbeddingCopilotModel | null = null
         let promotedCollectionName: string | null = null
 
         const promoted = await this.context.dataSource.transaction(async (manager) => {
             const knowledgebaseRepository = manager.getRepository(Knowledgebase)
+            const locked = await knowledgebaseRepository.findOne({
+                where: this.taskWhere(data),
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!locked) throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
             const knowledgebase = await knowledgebaseRepository.findOne({
-                where: { id: knowledgebaseId },
+                where: this.taskWhere(data),
                 relations: [
                     'copilotModel',
                     'copilotModel.copilot',

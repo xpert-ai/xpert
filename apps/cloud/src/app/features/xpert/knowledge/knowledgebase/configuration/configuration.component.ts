@@ -94,6 +94,7 @@ export class KnowledgeConfigurationComponent {
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
   readonly isWiki = computed(() => normalizeKnowledgebaseWikiConfig(this.knowledgebase()?.wikiConfig).enabled)
+  readonly rebuildFailed = computed(() => this.knowledgebase()?.status === KnowledgebaseStatusEnum.REBUILD_FAILED)
   readonly rebuilding = computed(() => this.knowledgebase()?.status === KnowledgebaseStatusEnum.REBUILDING)
 
   readonly pristine = signal(true)
@@ -341,6 +342,35 @@ export class KnowledgeConfigurationComponent {
       JSON.stringify(this.toComparableCopilotModelConfig(currentModel)) !==
         JSON.stringify(this.toComparableCopilotModelConfig(nextModel))
     )
+  }
+
+  recoverEmbeddingRebuild() {
+    this.runEmbeddingRecovery(false)
+  }
+
+  retryEmbeddingRebuild() {
+    this.runEmbeddingRecovery(true)
+  }
+
+  private runEmbeddingRecovery(retry: boolean) {
+    const id = this.knowledgebase()?.id
+    if (!id || this.loading()) return
+    this.loading.set(true)
+    const request = retry
+      ? this.knowledgebaseService.retryEmbeddingRebuild(id)
+      : this.knowledgebaseService.recoverEmbeddingRebuild(id)
+    request
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.#destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.knowledgebaseComponent.refresh()
+          if (retry) this.pollRebuildStatus()
+        },
+        error: (error) => this._toastrService.error(getErrorMessage(error))
+      })
   }
 
   private pollRebuildStatus() {

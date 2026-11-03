@@ -46,6 +46,7 @@ describe('XpertPublishTriggersHandler', () => {
             {
                 xpertId: 'assistant',
                 scope: { tenantId: 'tenant', organizationId: 'organization' },
+                additionalInstructions: 'Focus on blockers',
                 config: { enabled: true, cron: '0 8 * * *', task: 'Briefing' }
             },
             expect.any(Function)

@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ICopilotModel, ParameterRule, transitionModelParameters } from '@xpert-ai/contracts'
 import { XpDialogFrameImports, XpI18nPipe, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { CopilotProviderService, getErrorMessage } from '../../../@core'
+import { CopilotServerService, getErrorMessage } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 
 @Component({
@@ -70,9 +70,9 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
   </section>`
 })
 export class ModelParametersDialogComponent {
-  readonly data = inject<{ model: ICopilotModel; providerId: string }>(DIALOG_DATA)
+  readonly data = inject<{ model: ICopilotModel }>(DIALOG_DATA)
   readonly dialog = inject(DialogRef<ICopilotModel>)
-  readonly service = inject(CopilotProviderService)
+  readonly service = inject(CopilotServerService)
   readonly loading = signal(true)
   readonly error = signal('')
   readonly rules = signal<ParameterRule[]>([])
@@ -87,7 +87,11 @@ export class ModelParametersDialogComponent {
     try {
       this.rules.set(
         await firstValueFrom(
-          this.service.getModelParameterRules(this.data.providerId, this.data.model.modelType, this.data.model.model)
+          this.service.getModelParameterRules(
+            this.data.model.copilotId,
+            this.data.model.modelType,
+            this.data.model.model
+          )
         )
       )
     } catch (error) {

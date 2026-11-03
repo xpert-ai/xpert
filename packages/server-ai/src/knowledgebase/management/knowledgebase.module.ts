@@ -1,3 +1,5 @@
+import { KnowledgeProcessingLifecycleModule } from '../../knowledge-document/processing-lifecycle.module'
+import { KnowledgebaseRebuildRecoveryController } from '../embedding/knowledgebase-rebuild-recovery.controller'
 import { TenantLibraryAccessService } from '../tenant-library/tenant-library-access.service'
 import { XpertProjectAccessModule } from '../../xpert-project/project-access.module'
 import { KnowledgeResourceAccessService } from '../runtime/knowledge-resource-access.service'
@@ -80,6 +82,7 @@ import { KeywordTitleSubscriber } from '../analyzer/keyword-title.subscriber'
 
 @Module({
     imports: [
+        KnowledgeProcessingLifecycleModule,
         XpertProjectAccessModule,
         RagVStoreModule,
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
@@ -114,7 +117,13 @@ import { KeywordTitleSubscriber } from '../analyzer/keyword-title.subscriber'
             }
         )
     ],
-    controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
+    controllers: [
+        KnowledgebaseRebuildRecoveryController,
+        KnowledgebaseController,
+        KnowledgeFAQController,
+        KnowledgeTagController,
+        KnowledgeTagUsageController
+    ],
     providers: [
         KeywordAnalyzerRegistry,
         KnowledgeKeywordAnalyzerService,

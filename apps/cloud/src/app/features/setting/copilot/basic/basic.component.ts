@@ -1,4 +1,5 @@
 import { ConnectionImpactDialogComponent } from '../connection-impact.component'
+import { ConnectionDeletionDialogComponent } from '../connection-deletion/deletion.component'
 import { ModelReplacementDialogComponent } from '../model-replacement/replacement.component'
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
@@ -288,5 +289,24 @@ export class CopilotBasicComponent {
     } catch (error) {
       this.toastr.error(getErrorMessage(error))
     }
+  }
+
+  async deleteConnection(connection: ICopilot) {
+    if (connection.enabled) return
+    const deleted = await firstValueFrom(
+      this.dialog.open<boolean>(ConnectionDeletionDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: connection
+      }).closed
+    )
+    if (!deleted) return
+    this.connections.update((items) => items.filter((item) => item.id !== connection.id))
+    this.selected.update((selected) =>
+      Object.fromEntries(Object.entries(selected).filter(([, id]) => id !== connection.id))
+    )
+    this.toastr.success('XP.Messages.DeletedSuccessfully')
+    await this.refresh()
   }
 }

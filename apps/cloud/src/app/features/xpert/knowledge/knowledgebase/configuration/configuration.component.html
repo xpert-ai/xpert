@@ -138,6 +138,18 @@
         [(ngModel)]="copilotModel"
       />
 
+      @if (rebuilding()) {
+        <button type="button" class="btn btn-secondary" [disabled]="loading()" (click)="recoverEmbeddingRebuild()">
+          {{ 'XP.Knowledgebase.CheckEmbeddingRebuild' | translate: { Default: 'Check rebuild status' } }}
+        </button>
+      }
+      @if (rebuildFailed()) {
+        <p role="alert" class="text-text-destructive">{{ knowledgebase()?.embeddingRebuildError }}</p>
+        <button type="button" class="btn btn-secondary" [disabled]="loading()" (click)="retryEmbeddingRebuild()">
+          {{ 'XP.Knowledgebase.RetryEmbeddingRebuild' | translate: { Default: 'Retry vector rebuild' } }}
+        </button>
+      }
+
       @if (embeddingModelDraftChanged()) {
         <div
           class="mt-2 mb-4 flex items-start gap-x-2 rounded-md border border-text-warning bg-background-default-subtle px-3 py-2 system-sm-regular text-text-warning"

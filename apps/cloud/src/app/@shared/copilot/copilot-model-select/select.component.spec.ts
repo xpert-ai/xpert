@@ -4,7 +4,6 @@ import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testin
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, Subject } from 'rxjs'
 import { AiModelTypeEnum, ModelPropertyKey, ParameterType } from '@xpert-ai/contracts'
-import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { CopilotModelSelectComponent } from './select.component'
 
@@ -78,10 +77,8 @@ describe('CopilotModelSelectComponent', () => {
     deletedModelRules$ = new Subject<any[]>()
     catalog$ = new BehaviorSubject([copilot])
     const copilotServer = {
-      getCopilotModels: jest.fn(() => catalog$)
-    }
-    const copilotProviderService = {
-      getModelParameterRules: jest.fn((_providerId: string, _modelType: AiModelTypeEnum, model: string) => {
+      getCopilotModels: jest.fn(() => catalog$),
+      getModelParameterRules: jest.fn((_copilotId: string, _modelType: AiModelTypeEnum, model: string) => {
         switch (model) {
           case 'deepseek-chat':
             return deepseekRules$.asObservable()
@@ -99,7 +96,6 @@ describe('CopilotModelSelectComponent', () => {
       imports: [CopilotModelSelectComponent],
       providers: [
         { provide: CopilotServerService, useValue: copilotServer },
-        { provide: CopilotProviderService, useValue: copilotProviderService },
         {
           provide: TranslateService,
           useValue: {
@@ -227,7 +223,7 @@ describe('CopilotModelSelectComponent', () => {
     component.setModel(copilot, glmModel)
     fixture.detectChanges()
     tick(600)
-    expect(TestBed.inject(CopilotProviderService).getModelParameterRules).not.toHaveBeenCalled()
+    expect(TestBed.inject(CopilotServerService).getModelParameterRules).not.toHaveBeenCalled()
     expect(component.modelParameterRules()).toEqual([])
   }))
 

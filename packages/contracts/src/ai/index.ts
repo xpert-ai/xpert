@@ -51,6 +51,7 @@ export * from './copilot-store.model'
 export * from './copilot-user.model'
 export * from './copilot-usage.model'
 export * from './copilot.model'
+export * from './connection-deletion.model'
 export * from './feature.model'
 export * from './membership.model'
 export * from './model-access.model'
@@ -137,7 +138,7 @@ export * from './chat-group.model'
 export * from './chat-group-entity.model'
 export * from './conversation-entry.model'
 
-export type { ThreadActivitySnapshot } from './thread-activity.model'
+export type { ThreadActivitySnapshot, ThreadActivityError } from './thread-activity.model'
 
 export * from './template-installation.model'
 

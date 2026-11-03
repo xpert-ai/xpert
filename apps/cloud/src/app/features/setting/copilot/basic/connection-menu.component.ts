@@ -57,6 +57,7 @@ export class ProviderConnectionsComponent {
   readonly selected = output<string>()
   readonly edit = output<ICopilot>()
   readonly toggle = output<ICopilot>()
+  readonly remove = output<ICopilot>()
   readonly add = output<void>()
   readonly open = signal(false)
   readonly popover = viewChild(ZardPopoverDirective)
@@ -98,6 +99,11 @@ export class ProviderConnectionsComponent {
   toggleConnection(connection: ICopilot) {
     this.close()
     this.toggle.emit(connection)
+  }
+  deleteConnection(connection: ICopilot) {
+    if (connection.enabled) return
+    this.close()
+    this.remove.emit(connection)
   }
   addConnection() {
     this.close()

@@ -15,9 +15,11 @@ import { ModelAccessModule } from '../model-access'
 import { ModelDiscoveryController } from './model-discovery/model-discovery.controller'
 import { ModelDiscoveryService } from './model-discovery/model-discovery.service'
 import { EnabledModelsController } from './models/enabled-models.controller'
+import { ConnectionDeletionModule } from '../copilot/connection-deletion/connection-deletion.module'
 
 @Module({
     imports: [
+        ConnectionDeletionModule,
         RouterModule.register([{ path: '/copilot-provider', module: CopilotProviderModule }]),
         TypeOrmModule.forFeature([CopilotProvider, CopilotProviderModel]),
         forwardRef(() => UserModule),

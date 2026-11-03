@@ -28,7 +28,12 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 	const scope = { tenantId: 'tenant', organizationId: 'org', userId: 'user' }
 
 	function setup(role: RolesEnum = RolesEnum.ADMIN) {
-		const user = { id: scope.userId, tenantId: scope.tenantId, type: UserType.USER, role: { name: role } }
+		const user = {
+			id: scope.userId,
+			tenantId: scope.tenantId,
+			type: UserType.USER,
+			role: { name: role, rolePermissions: [] }
+		}
 		const users = { findOne: jest.fn().mockResolvedValue(user) }
 		const memberships = { findOne: jest.fn().mockResolvedValue({ isActive: true }) }
 		const organizations = { findOne: jest.fn().mockResolvedValue({ id: scope.organizationId }) }
@@ -61,17 +66,19 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		const f = setup()
 		f.users.findOne.mockResolvedValueOnce(user)
 		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBeNull()
-		expect(f.users.findOne).toHaveBeenCalledWith({
-			where: { id: scope.userId, tenantId: scope.tenantId },
-			relations: ['role', 'role.rolePermissions']
-		})
+		expect(f.users.findOne).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { id: scope.userId, tenantId: scope.tenantId },
+				relations: expect.arrayContaining(['role', 'role.rolePermissions'])
+			})
+		)
 		expect(f.memberships.findOne).not.toHaveBeenCalled()
 		expect(f.organizations.findOne).not.toHaveBeenCalled()
 	})
 
 	it('requires active membership and an active organization in the same tenant for ordinary users', async () => {
 		const f = setup()
-		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBe(f.user)
+		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toEqual(f.user)
 		expect(f.memberships.findOne).toHaveBeenCalledWith({
 			where: { ...scope, isActive: true, organization: { tenantId: scope.tenantId, isActive: true } }
 		})
@@ -94,7 +101,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 	it('allows SUPER_ADMIN without a membership only for an active organization in the same tenant', async () => {
 		const f = setup(RolesEnum.SUPER_ADMIN)
 		f.memberships.findOne.mockResolvedValue(null)
-		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBe(f.user)
+		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toEqual(f.user)
 		expect(f.organizations.findOne).toHaveBeenCalledWith({
 			where: { id: scope.organizationId, tenantId: scope.tenantId, isActive: true }
 		})
@@ -106,7 +113,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 	it('rechecks the live role after a downgrade instead of reusing a previous decision', async () => {
 		const f = setup(RolesEnum.SUPER_ADMIN)
 		f.memberships.findOne.mockResolvedValue(null)
-		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBe(f.user)
+		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toEqual(f.user)
 		f.users.findOne.mockResolvedValueOnce({ ...f.user, role: { name: RolesEnum.ADMIN } })
 		await expect(f.service.execute(new ResolveUserOrganizationAccessCommand(scope))).resolves.toBeNull()
 		expect(f.users.findOne).toHaveBeenCalledTimes(2)
@@ -118,10 +125,12 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		const f = setup()
 		const invocationScope = { ...scope, workspaceId: 'workspace', parentExecutionId: 'execution' }
 		await f.service.execute(new ResolveUserOrganizationAccessCommand(invocationScope))
-		expect(f.users.findOne).toHaveBeenCalledWith({
-			where: { id: 'user', tenantId: 'tenant' },
-			relations: ['role', 'role.rolePermissions']
-		})
+		expect(f.users.findOne).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { id: 'user', tenantId: 'tenant' },
+				relations: expect.arrayContaining(['role', 'role.rolePermissions'])
+			})
+		)
 		expect(f.memberships.findOne).toHaveBeenCalledWith({
 			where: { ...scope, isActive: true, organization: { tenantId: 'tenant', isActive: true } }
 		})
@@ -154,7 +163,7 @@ describe('ResolveUserOrganizationAccessHandler', () => {
 		}).compile()
 		try {
 			await module.init()
-			await expect(module.get(AccessConsumer).resolve(scope)).resolves.toBe(f.user)
+			await expect(module.get(AccessConsumer).resolve(scope)).resolves.toEqual(f.user)
 			f.organizations.findOne.mockResolvedValueOnce(null)
 			await expect(module.get(AccessConsumer).resolve(scope)).resolves.toBeNull()
 		} finally {

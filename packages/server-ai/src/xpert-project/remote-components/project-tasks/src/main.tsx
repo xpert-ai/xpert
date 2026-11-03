@@ -5,6 +5,7 @@ import { Table2, GitBranch, ChartNoAxesGantt, Columns3, RefreshCw, LoaderCircle,
 import {
     Button,
     Tabs,
+    TabsHeader,
     TabsList,
     TabsTrigger,
     TabsContent,
@@ -233,37 +234,33 @@ function App() {
                     }}
                     className="min-h-0 min-w-0 flex-1 gap-0"
                 >
-                    <div className="@container flex shrink-0 items-center gap-2 border-b px-3 py-2">
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                            <TabsList variant="line" aria-label={t.viewLabel} className="grid w-full grid-cols-5">
-                                {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
-                                    const Icon = icons[value]
-                                    return (
-                                        <TabsTrigger
-                                            key={value}
-                                            value={value}
-                                            aria-label={t[value]}
-                                            title={t[value]}
-                                            className="min-w-0"
-                                        >
-                                            <Icon />
-                                            <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
-                                        </TabsTrigger>
-                                    )
-                                })}
-                                <TabsTrigger
-                                    value="pipeline"
-                                    aria-label={pipelineTexts(locale).title}
-                                    title={pipelineTexts(locale).title}
-                                    className="min-w-0"
-                                >
-                                    <Workflow />
-                                    <span className="hidden truncate @[34rem]:inline">
-                                        {pipelineTexts(locale).title}
-                                    </span>
-                                </TabsTrigger>
-                            </TabsList>
-                        </div>
+                    <TabsHeader className="@container px-3">
+                        <TabsList variant="line" aria-label={t.viewLabel} className="grid min-w-0 flex-1 grid-cols-5">
+                            {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
+                                const Icon = icons[value]
+                                return (
+                                    <TabsTrigger
+                                        key={value}
+                                        value={value}
+                                        aria-label={t[value]}
+                                        title={t[value]}
+                                        className="min-w-0"
+                                    >
+                                        <Icon />
+                                        <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
+                                    </TabsTrigger>
+                                )
+                            })}
+                            <TabsTrigger
+                                value="pipeline"
+                                aria-label={pipelineTexts(locale).title}
+                                title={pipelineTexts(locale).title}
+                                className="min-w-0"
+                            >
+                                <Workflow />
+                                <span className="hidden truncate @[34rem]:inline">{pipelineTexts(locale).title}</span>
+                            </TabsTrigger>
+                        </TabsList>
                         <IconButton
                             label={t.refresh}
                             tooltip={`${t.refresh} · ${t.updated} ${dateTime(updatedAt, locale, true)}`}
@@ -273,7 +270,7 @@ function App() {
                         >
                             <RefreshCw className={refreshing ? 'motion-safe:animate-spin' : undefined} />
                         </IconButton>
-                    </div>
+                    </TabsHeader>
                     {error && (
                         <div
                             role="alert"

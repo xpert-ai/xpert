@@ -1,12 +1,13 @@
+import { KnowledgeProcessingReadyService } from '../../knowledge-document/processing-lifecycle.module'
+import { CommandBus } from '@nestjs/cqrs'
 import type { IKnowledgebase, IKnowledgeFAQEntry } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { UserService } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
 import type { Job, Queue } from 'bull'
 import { t } from 'i18next'
 import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
-import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { isKnowledgeFAQChunkMetadata } from './faq-projection'
 import { faqContentHash, withFAQTimeout } from './faq-semantic-cache.service'
@@ -78,54 +79,59 @@ export class FAQSemanticPrewarmProcessor {
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly chunks: KnowledgeDocumentChunkService,
-        private readonly users: UserService,
+        private readonly commandBus: CommandBus,
+        private readonly lifecycle: KnowledgeProcessingReadyService,
         private readonly semantic: FAQSemanticService
     ) {}
 
     @Process({ concurrency: 2 })
     async process(job: Job<FAQPrewarmJob>) {
+        await this.lifecycle.waitUntilReady()
         const data = job.data
-        const user = await this.users.findOne(data.userId, { relations: ['role'] })
-        if (!user || user.tenantId !== data.tenantId) return
-        return runWithCapturedRequestContext(
-            captureRequestContext({ user, tenantId: data.tenantId, organizationId: data.organizationId }),
-            async () => {
-                const kb = await this.knowledgebaseService.assertKnowledgebaseWriteAccess(data.knowledgebaseId)
-                if (
-                    kb.tenantId !== data.tenantId ||
-                    kb.organizationId !== data.organizationId ||
-                    kb.faqConfig?.negativeMatchMode !== 'semantic'
-                )
-                    return
-                const { items } = await this.chunks.findAll({
-                    where: {
-                        id: data.faqId,
-                        knowledgebaseId: kb.id,
-                        tenantId: data.tenantId,
-                        organizationId: data.organizationId
-                    },
-                    take: 1,
-                    relations: ['document']
-                })
-                const chunk = items[0]
-                if (
-                    !chunk ||
-                    chunk.version !== data.version ||
-                    chunk.document?.disabled ||
-                    !isKnowledgeFAQChunkMetadata(chunk.metadata)
-                )
-                    return
-                const metadata = chunk.metadata
-                if (
-                    !metadata.enabled ||
-                    metadata.vectorSyncStatus !== 'ready' ||
-                    !metadata.negativeQuestions?.length ||
-                    faqContentHash(faqQuestionTexts(metadata)) !== data.contentHash
-                )
-                    return
-                // Only immutable, content-addressed cache entries are written; no FAQ state is published by a late job.
-                await this.semantic.prewarm(kb, metadata)
-            }
+        const identity = await this.commandBus.execute(
+            new ResolveExecutionIdentityCommand({
+                kind: 'user',
+                userId: data.userId,
+                tenantId: data.tenantId,
+                organizationId: data.organizationId
+            })
         )
+        return runWithExecutionIdentity(identity, async () => {
+            const kb = await this.knowledgebaseService.assertKnowledgebaseWriteAccess(data.knowledgebaseId)
+            if (
+                kb.tenantId !== data.tenantId ||
+                kb.organizationId !== data.organizationId ||
+                kb.faqConfig?.negativeMatchMode !== 'semantic'
+            )
+                return
+            const { items } = await this.chunks.findAll({
+                where: {
+                    id: data.faqId,
+                    knowledgebaseId: kb.id,
+                    tenantId: data.tenantId,
+                    organizationId: data.organizationId
+                },
+                take: 1,
+                relations: ['document']
+            })
+            const chunk = items[0]
+            if (
+                !chunk ||
+                chunk.version !== data.version ||
+                chunk.document?.disabled ||
+                !isKnowledgeFAQChunkMetadata(chunk.metadata)
+            )
+                return
+            const metadata = chunk.metadata
+            if (
+                !metadata.enabled ||
+                metadata.vectorSyncStatus !== 'ready' ||
+                !metadata.negativeQuestions?.length ||
+                faqContentHash(faqQuestionTexts(metadata)) !== data.contentHash
+            )
+                return
+            // Only immutable, content-addressed cache entries are written; no FAQ state is published by a late job.
+            await this.semantic.prewarm(kb, metadata)
+        })
     }
 }

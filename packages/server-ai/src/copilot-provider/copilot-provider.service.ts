@@ -5,20 +5,93 @@ import { ICopilotProvider } from '@xpert-ai/contracts'
 import { Copilot } from '../copilot/copilot.entity'
 import { t } from 'i18next'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ConnectionDeletionService } from '../copilot/connection-deletion/connection-deletion.service'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindManyOptions, In, IsNull, Repository } from 'typeorm'
+import { DeepPartial, FindManyOptions, In, IsNull, Repository } from 'typeorm'
+import { pick } from 'lodash'
 import { CopilotProvider } from './copilot-provider.entity'
 import { CopilotProviderModel } from './models/copilot-provider-model.entity'
 import { snapshotEnabledModels } from './models/enabled-models'
 
 @Injectable()
 export class CopilotProviderService extends TenantOrganizationAwareCrudService<CopilotProvider> {
+    @Inject(ConnectionDeletionService)
+    private readonly deletion: ConnectionDeletionService
+
+    async delete(id: string) {
+        return this.deletion.delete(id, 'provider')
+    }
+
+    async softRemove(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async softDelete(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async softRecover(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async restoreSoftDelete(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+
     constructor(
         @InjectRepository(CopilotProvider)
         repository: Repository<CopilotProvider>
     ) {
         super(repository)
+    }
+
+    async create(input: DeepPartial<CopilotProvider>): Promise<CopilotProvider> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId() ?? null
+        return this.repository.manager.transaction(async (manager) => {
+            const connection =
+                input.copilotId &&
+                (await manager.findOne(Copilot, {
+                    where: { id: input.copilotId, tenantId, organizationId: organizationId ?? IsNull() },
+                    loadEagerRelations: false,
+                    lock: { mode: 'pessimistic_write' }
+                }))
+            if (!connection) throw new BadRequestException(t('server-ai:Error.ConnectionNotFound'))
+            return manager.save(CopilotProvider, {
+                ...pick(input, 'providerName', 'providerType', 'credentials', 'isValid', 'options'),
+                tenantId,
+                organizationId,
+                copilotId: connection.id,
+                createdById: RequestContext.currentUserId(),
+                updatedById: RequestContext.currentUserId()
+            })
+        })
+    }
+
+    async update(id: string, input: DeepPartial<CopilotProvider>) {
+        const existing = await this.findOne(id)
+        if (input.copilotId && input.copilotId !== existing.copilotId)
+            throw new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
+        return this.repository.manager.transaction(async (manager) => {
+            const connection = await manager.findOne(Copilot, {
+                where: {
+                    id: existing.copilotId,
+                    tenantId: existing.tenantId,
+                    organizationId: existing.organizationId ?? IsNull()
+                },
+                loadEagerRelations: false,
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!connection) throw new NotFoundException(t('server-ai:Error.ConnectionNotFound'))
+            const result = await manager.update(
+                CopilotProvider,
+                { id, tenantId: existing.tenantId, organizationId: existing.organizationId ?? IsNull() },
+                {
+                    ...pick(input, 'providerName', 'providerType', 'credentials', 'isValid', 'options'),
+                    updatedById: RequestContext.currentUserId()
+                }
+            )
+            if (!result.affected) throw new NotFoundException(t('server-ai:Error.ConnectionNotFound'))
+            return result
+        })
     }
 
     async assertDefaultsRemainEnabled(connection: CopilotProvider, models: EnabledModelSelection[]) {
@@ -75,7 +148,11 @@ export class CopilotProviderService extends TenantOrganizationAwareCrudService<C
             const connections = manager.getRepository(Copilot)
             const id = existing?.copilotId ?? input.copilotId
             const connection = id
-                ? await connections.findOneBy({ id, tenantId, organizationId: organizationId ?? IsNull() })
+                ? await connections.findOne({
+                      where: { id, tenantId, organizationId: organizationId ?? IsNull() },
+                      loadEagerRelations: false,
+                      lock: { mode: 'pessimistic_write' }
+                  })
                 : null
             if (id && !connection) throw new BadRequestException(t('server-ai:Error.ModelDefaultInvalid'))
             const saved = await connections.save({

@@ -1,3 +1,4 @@
+import { executionIdentityFixture } from '../../../shared/testing/execution-identity.fixture'
 import { Observable, of } from 'rxjs'
 import { BadRequestException } from '@nestjs/common'
 import { ApiKeyBindingType } from '@xpert-ai/contracts'
@@ -290,12 +291,18 @@ describe('AgentChatDispatchHandoffProcessor', () => {
         const hydrated = {
             id: 'viewer',
             tenantId: 'tenant-id',
-            role: { rolePermissions: [{ permission: 'DATA_SOURCE_VIEW', enabled: true }] }
+            role: {
+                name: 'TEST',
+                rolePermissions: [
+                    { permission: 'DATA_SOURCE_VIEW', enabled: true, roleId: 'role', role: { name: 'TEST' } }
+                ]
+            }
         }
         const commandBus = { execute: jest.fn() }
         let captured
         commandBus.execute.mockImplementation((command) => {
-            if (command.constructor.name === 'ResolveRuntimeUserCommand') return Promise.resolve(hydrated)
+            if (command.constructor.name === 'ResolveExecutionIdentityCommand')
+                return Promise.resolve(executionIdentityFixture(command.actor, hydrated))
             captured = RequestContext.currentUser()
             return of()
         })
@@ -315,7 +322,7 @@ describe('AgentChatDispatchHandoffProcessor', () => {
         Object.assign(message.headers, { userId: 'viewer', organizationId: 'org-1', authenticatedUserId: 'viewer' })
         const result = await processor.process(message, createContext())
         expect(result).toEqual({ status: 'ok' })
-        expect(captured).toEqual(hydrated)
+        expect(captured).toMatchObject(hydrated)
     })
 
     it('keeps legacy header userId behavior when runtimePrincipal is absent', async () => {

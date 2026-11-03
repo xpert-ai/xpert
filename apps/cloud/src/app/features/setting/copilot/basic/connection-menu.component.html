@@ -148,5 +148,11 @@
           | translate
       }}
     </button>
+    @if (!connection.enabled) {
+      <button z-menu-item type="button" zType="destructive" (menuItemTriggered)="deleteConnection(connection)">
+        <z-icon zType="trash" aria-hidden="true" />
+        {{ 'XP.Copilot.Deletion.Title' | translate }}
+      </button>
+    }
   </div>
 </ng-template>

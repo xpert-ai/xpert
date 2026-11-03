@@ -10,7 +10,7 @@ import { Interval } from '@nestjs/schedule'
 import { CommandBus, QueryBus, EventsHandler } from '@nestjs/cqrs'
 import { AgentInvocationApi, AgentInvocationScope, taskWaitReason } from '@xpert-ai/plugin-sdk'
 import { UserType, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { User, UserOrganization } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity, User } from '@xpert-ai/server-core'
 import { LessThanOrEqual, Repository } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { lastValueFrom, defaultIfEmpty, ignoreElements } from 'rxjs'
@@ -40,7 +40,6 @@ export class AgentInvocationMonitorService implements OnModuleDestroy {
         private readonly waits: AgentInvocationWaitStore,
         @InjectRepository(AgentInvocationEntity) private readonly invocations: Repository<AgentInvocationEntity>,
         @InjectRepository(User) private readonly users: Repository<User>,
-        @InjectRepository(UserOrganization) private readonly memberships: Repository<UserOrganization>,
         @InjectRepository(XpertAgentExecution) private readonly executions: Repository<XpertAgentExecution>,
         private readonly factory: AgentInvocationFactoryService,
         private readonly queries: QueryBus,
@@ -247,18 +246,11 @@ export class AgentInvocationMonitorService implements OnModuleDestroy {
             scope.userId !== wait.ownerId
         )
             throw new Error('Invocation owner unavailable')
-        const [user, membership] = await Promise.all([
-            this.users.findOne({ where: { id: scope.userId, tenantId: scope.tenantId }, relations: ['role'] }),
-            this.memberships.findOne({
-                where: {
-                    tenantId: scope.tenantId,
-                    organizationId: scope.organizationId,
-                    userId: scope.userId,
-                    isActive: true,
-                    organization: { isActive: true }
-                }
-            })
-        ])
+        const user = await this.users.findOne({
+            where: { id: scope.userId, tenantId: scope.tenantId },
+            select: { id: true, type: true, isActive: true }
+        })
+        if (!user || user.isActive === false) throw new Error('Invocation actor unavailable')
         const identity =
             user?.type === UserType.COMMUNICATION
                 ? await this.commands.execute(
@@ -270,30 +262,41 @@ export class AgentInvocationMonitorService implements OnModuleDestroy {
             ((scope.callerType && scope.callerType !== 'xpert') || identity.assistant.workspaceId !== scope.workspaceId)
         )
             throw new Error('Invocation actor unavailable')
-        if (!identity && (!user || user.type !== UserType.USER || !membership))
-            throw new Error('Invocation actor unavailable')
-        return runWithCapturedRequestContext(
-            captureRequestContext({
-                user: identity?.user ?? user,
+        const run = async () => {
+            const api = this.factory.createScopedApi({
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId,
-                headers: { 'x-scope-level': 'organization' }
-            }),
-            async () => {
-                const api = this.factory.createScopedApi({
+                userId: scope.userId,
+                workspaceId: scope.workspaceId,
+                projectId: scope.projectId,
+                conversationId: scope.conversationId,
+                executionId: scope.parentExecutionId,
+                agentKey: scope.callerAgentKey,
+                xpertId: scope.callerXpertId
+            })
+            await action(scope, api)
+        }
+        if (identity) {
+            // Assistant credentials retain the audience validated by their dedicated identity adapter.
+            return runWithCapturedRequestContext(
+                captureRequestContext({
+                    user: identity.user,
                     tenantId: scope.tenantId,
                     organizationId: scope.organizationId,
-                    userId: scope.userId,
-                    workspaceId: scope.workspaceId,
-                    projectId: scope.projectId,
-                    conversationId: scope.conversationId,
-                    executionId: scope.parentExecutionId,
-                    agentKey: scope.callerAgentKey,
-                    xpertId: scope.callerXpertId
-                })
-                await action(scope, api)
-            }
+                    headers: { 'x-scope-level': 'organization' }
+                }),
+                run
+            )
+        }
+        const human = await this.commands.execute(
+            new ResolveExecutionIdentityCommand({
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                userId: scope.userId,
+                kind: 'user'
+            })
         )
+        return runWithExecutionIdentity(human, run)
     }
 
     private async claim(

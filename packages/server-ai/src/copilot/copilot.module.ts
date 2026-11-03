@@ -1,4 +1,5 @@
 import { ConnectionReferencesService } from './connection-references.service'
+import { ConnectionDeletionModule } from './connection-deletion/connection-deletion.module'
 import { CopilotModel } from '../copilot-model/copilot-model.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Module } from '@nestjs/common'
@@ -9,6 +10,7 @@ import { TenantModule } from '@xpert-ai/server-core'
 import { UserModule } from '@xpert-ai/server-core'
 import { CopilotController } from './copilot.controller'
 import { CopilotModelCatalogController } from './model-catalog/model-catalog.controller'
+import { CopilotModelCatalogService } from './model-catalog/model-catalog.service'
 import { Copilot } from './copilot.entity'
 import { QueryHandlers } from './queries/handlers/index'
 import { CopilotService } from './copilot.service'
@@ -24,6 +26,7 @@ import { CopilotRoleDefaultController } from './role-defaults/role-default.contr
 
 @Module({
     imports: [
+        ConnectionDeletionModule,
         RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
         TypeOrmModule.forFeature([Copilot, CopilotRoleDefault, CopilotModel, Xpert]),
         TenantModule,
@@ -38,6 +41,7 @@ import { CopilotRoleDefaultController } from './role-defaults/role-default.contr
     providers: [
         ConnectionReferencesService,
         CopilotService,
+        CopilotModelCatalogService,
         CopilotRoleDefaultService,
         PrimaryModelSmokeService,
         ...QueryHandlers,

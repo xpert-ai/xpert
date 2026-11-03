@@ -15,7 +15,7 @@ import {
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
 import { countTextTokens, RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
-import { UserService } from '@xpert-ai/server-core'
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService } from '../knowledgebase'
@@ -36,31 +36,6 @@ function readyProcessing() {
     ready.onApplicationBootstrap()
     return ready
 }
-
-let mockContextActive = false
-
-jest.mock('@xpert-ai/server-core', () => {
-    const actual = jest.requireActual('@xpert-ai/server-core')
-    return {
-        ...actual,
-        runWithRequestContext: (_req: unknown, next: () => unknown) => {
-            mockContextActive = true
-            try {
-                const result = next()
-                if (result && typeof (result as Promise<unknown>).finally === 'function') {
-                    return (result as Promise<unknown>).finally(() => {
-                        mockContextActive = false
-                    })
-                }
-                mockContextActive = false
-                return result
-            } catch (error) {
-                mockContextActive = false
-                throw error
-            }
-        }
-    }
-})
 
 jest.mock('../knowledgebase', () => ({
     KnowledgebaseService: class KnowledgebaseService {},
@@ -88,7 +63,7 @@ describe('KnowledgeDocumentConsumer', () => {
 
         const knowledgebaseService = {
             findOne: jest.fn(async () => {
-                if (!mockContextActive) {
+                if (!PluginRequestContext.currentTenantId()) {
                     throw new ForbiddenException('Tenant context is required.')
                 }
                 if (PluginRequestContext.getOrganizationId() !== 'organization-id') {
@@ -103,20 +78,21 @@ describe('KnowledgeDocumentConsumer', () => {
         const documentService = {
             update: jest.fn()
         }
-        const userService = {
-            findOne: jest.fn(async () => ({
-                id: 'user-id',
-                tenantId: 'tenant-id',
-                preferredLanguage: 'zh-Hans'
-            }))
+        const commandBus = {
+            execute: jest.fn(async () =>
+                executionIdentityFixture({
+                    userId: 'user-id',
+                    tenantId: 'tenant-id',
+                    organizationId: 'organization-id'
+                })
+            )
         }
-        const commandBus = {}
         const lifecycle = new KnowledgeProcessingReadyService()
         const consumer = new KnowledgeDocumentConsumer(
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            userService as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
             lifecycle
@@ -131,7 +107,7 @@ describe('KnowledgeDocumentConsumer', () => {
 
         const processing = consumer.process(job)
         await Promise.resolve()
-        expect(userService.findOne).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
         expect(processJob).not.toHaveBeenCalled()
         lifecycle.onApplicationBootstrap()
         await expect(processing).resolves.toEqual({})
@@ -176,7 +152,7 @@ describe('KnowledgeDocumentConsumer', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()
@@ -265,7 +241,7 @@ describe('KnowledgeDocumentConsumer', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             publication as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()
@@ -379,7 +355,7 @@ describe('KnowledgeDocumentConsumer', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()
@@ -494,7 +470,7 @@ describe('KnowledgeDocumentConsumer', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()
@@ -625,7 +601,7 @@ describe('KnowledgeDocumentConsumer', () => {
                 null,
                 knowledgebaseService as unknown as KnowledgebaseService,
                 documentService as unknown as KnowledgeDocumentService,
-                {} as unknown as UserService,
+
                 commandBus as unknown as CommandBus,
                 { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
                 readyProcessing()
@@ -728,7 +704,7 @@ describe('KnowledgeDocumentConsumer', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as unknown as UserService,
+
             commandBus as unknown as CommandBus,
             { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()
@@ -846,7 +822,6 @@ describe('KnowledgeDocumentConsumer table processing', () => {
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
-            {} as UserService,
             commandBus as unknown as CommandBus,
             publication as unknown as KnowledgeDerivedIndexPublicationService,
             readyProcessing()

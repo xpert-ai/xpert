@@ -1,0 +1,63 @@
+<section xpDialogLayout="standard" class="w-[min(560px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Deletion.Title' | translate }}</h2>
+    <p xpDialogDescription>{{ data.name || data.modelProvider?.providerName }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      [zDisabled]="deleting()"
+      (click)="dialog.close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Deletion.Description' | translate }}</p>
+    @if (impact(); as result) {
+      @if (result.enabled) {
+        <p role="alert" class="mt-4 text-sm text-destructive">{{ 'XP.Copilot.Deletion.MustDisable' | translate }}</p>
+      }
+      @if (references().length) {
+        <p role="alert" class="mt-4 text-sm text-destructive">{{ 'XP.Copilot.Deletion.InUse' | translate }}</p>
+        <dl class="mt-2 divide-y divide-border text-sm">
+          @for (reference of references(); track reference.kind) {
+            <div class="flex justify-between gap-4 py-2">
+              <dt>{{ 'XP.Copilot.Deletion.References.' + reference.kind | translate }}</dt>
+              <dd>{{ reference.count }}</dd>
+            </div>
+          }
+        </dl>
+        <p class="mt-3 text-sm text-muted-foreground">{{ 'XP.Copilot.Deletion.CleanupHint' | translate }}</p>
+        <button z-button zType="outline" [zDisabled]="loading() || deleting()" (click)="load()">
+          {{ 'XP.Copilot.Deletion.Recheck' | translate }}
+        </button>
+      }
+    }
+    @if (loading()) {
+      <p role="status" class="mt-4 text-sm">{{ 'XP.KEY_WORDS.Loading' | translate }}</p>
+    }
+    @if (error()) {
+      <p role="alert" class="mt-4 text-sm text-destructive">{{ error() }}</p>
+      <button z-button zType="outline" [zDisabled]="loading() || deleting()" (click)="load()">
+        {{ 'XP.ACTIONS.Retry' | translate }}
+      </button>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" [zDisabled]="deleting()" (click)="dialog.close()">
+      {{ 'XP.ACTIONS.Cancel' | translate }}
+    </button>
+    <button
+      z-button
+      zType="destructive"
+      [zLoading]="deleting()"
+      [zDisabled]="loading() || deleting() || !impact()?.canDelete"
+      (click)="remove()"
+    >
+      {{ 'XP.Copilot.Deletion.Title' | translate }}
+    </button>
+  </footer>
+</section>

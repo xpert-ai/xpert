@@ -3,6 +3,7 @@ import { ReadThreadControlViewQuery } from '../chat-conversation/control-view/re
 jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
+    Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,
@@ -204,6 +205,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
         expect(response.status).toBe(200)
         expect(await response.json()).toEqual({
             thread_id: 'branch',
+            conversation: { id: 'conversation', threadId: 'primary', xpertId: 'assistant' },
             status: 'paused',
             operation: null,
             runControl: { executionId: 'run', state: 'paused', pauseId: 'pause' },

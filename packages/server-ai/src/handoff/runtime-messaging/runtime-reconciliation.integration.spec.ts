@@ -1,3 +1,8 @@
+import { ExecutionUserLoader } from '../../../../server/src/user/execution-identity/execution-user-loader'
+import { ResolveExecutionIdentityHandler } from '../../../../server/src/user/execution-identity/resolve-execution-identity.handler'
+import { ResolveUserOrganizationAccessHandler } from '../../../../server/src/user-organization/commands/handlers/resolve-user-organization-access.handler'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
 // Exercise actor hydration through real workspace authorization, invocation control and delivery.
 // Only persistence and queue I/O are substituted; user relations follow the requested TypeORM query.
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
@@ -80,7 +85,7 @@ async function fixture(intent: TaskControlIntent = 'terminated') {
             organizationId: scope.organizationId,
             userId: scope.userId,
             isActive: true,
-            organization: { isActive: true }
+            organization: { tenantId: scope.tenantId, isActive: true }
         })
         return membership.isActive ? membership : null
     })
@@ -247,7 +252,14 @@ async function fixture(intent: TaskControlIntent = 'terminated') {
             throw new Error('Unexpected transaction repository')
         }
     })
-    const access = new RuntimeMessageAccessService(database, factory)
+    const organizations = new ResolveUserOrganizationAccessHandler(users, members, undefined)
+    const resolver = new ResolveExecutionIdentityHandler(new ExecutionUserLoader(users), {
+        execute: (command) => organizations.execute(command)
+    } as CommandBus)
+    const access = new RuntimeMessageAccessService(database, factory, {
+        execute: (command: ResolveExecutionIdentityCommand) => resolver.execute(command)
+    } as CommandBus)
+
     const enqueue = jest.fn(async () => undefined)
     const queue = Object.assign(Object.create(HandoffQueueService.prototype) as HandoffQueueService, { enqueue })
     const transport = new RuntimeMessageTransportService(database, access, queue, undefined)

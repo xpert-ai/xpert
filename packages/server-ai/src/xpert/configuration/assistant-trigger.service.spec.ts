@@ -125,6 +125,33 @@ function fixture() {
 }
 
 describe('Assistant trigger settings', () => {
+    it('uses durable app-event status and passes trusted scope without inventing conversation activity', async () => {
+        const f = fixture()
+        await f.service.mutate('assistant', await f.input())
+        const assistantStatus = jest.fn(async () => ({
+            available: true,
+            connection: 'connected' as const,
+            lastActivityAt: '2026-11-02T10:00:00.000Z',
+            lastRunAt: null
+        }))
+        Object.assign(f.strategy, { assistantStatus })
+        const result = await f.service.list('assistant')
+        expect(assistantStatus).toHaveBeenCalledWith(
+            expect.objectContaining({
+                xpertId: 'assistant',
+                scope: { tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace' }
+            })
+        )
+        expect(result.items[0]).toMatchObject({
+            connection: 'connected',
+            lastActivityAt: '2026-11-02T10:00:00.000Z',
+            lastRunAt: null
+        })
+        assistantStatus.mockRejectedValueOnce(new Error('unavailable'))
+        const failed = await f.service.list('assistant')
+        expect(failed.providers[0].available).toBe(false)
+        expect(failed.items[0]).toMatchObject({ connection: 'failed', lastActivityAt: null, lastRunAt: null })
+    })
     it('updates only the trigger and mirrors that change into the draft', async () => {
         const f = fixture()
         const pending = structuredClone(f.current().draft.team)
@@ -138,6 +165,7 @@ describe('Assistant trigger settings', () => {
         expect(connectionTrigger(f.current().graph, 'schedule')?.entity).not.toHaveProperty('additionalInstructions')
         expect(f.strategy.validate).toHaveBeenCalledWith({
             xpertId: 'assistant',
+            scope: { tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace' },
             config: { enabled: true, cron: '0 8 * * *', task: 'Summarize projects' }
         })
         expect(f.commands.execute.mock.calls[0][0].options).toMatchObject({ providers: ['schedule'], strict: true })

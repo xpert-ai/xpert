@@ -1,10 +1,11 @@
 import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
+import { By } from '@angular/platform-browser'
+import { ZardMenuDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { of, throwError } from 'rxjs'
-import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { CopilotModelSelectComponent } from './select.component'
 
@@ -16,8 +17,7 @@ describe('Rerank model selection menu', () => {
       imports: [CopilotModelSelectComponent, TranslateModule.forRoot()],
       providers: [
         provideNoopAnimations(),
-        { provide: CopilotServerService, useValue: { getCopilotModels } },
-        { provide: CopilotProviderService, useValue: { getModelParameterRules: () => of([]) } }
+        { provide: CopilotServerService, useValue: { getCopilotModels, getModelParameterRules: () => of([]) } }
       ]
     }).compileComponents()
     const fixture = TestBed.createComponent(CopilotModelSelectComponent)
@@ -25,7 +25,7 @@ describe('Rerank model selection menu', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    fixture.nativeElement.querySelector('.model-select-trigger').click()
+    fixture.debugElement.query(By.directive(ZardMenuDirective)).nativeElement.click()
     fixture.detectChanges()
     await fixture.whenStable()
     const overlay = TestBed.inject(OverlayContainer).getContainerElement()
@@ -43,6 +43,7 @@ describe('Rerank model selection menu', () => {
 
   it('renders returned rerank models in the actual overlay and selects a model', async () => {
     const copilotServer = {
+      getModelParameterRules: () => of([]),
       getCopilotModels: jest.fn(() =>
         of([
           {
@@ -61,18 +62,14 @@ describe('Rerank model selection menu', () => {
     }
     await TestBed.configureTestingModule({
       imports: [CopilotModelSelectComponent, TranslateModule.forRoot()],
-      providers: [
-        provideNoopAnimations(),
-        { provide: CopilotServerService, useValue: copilotServer },
-        { provide: CopilotProviderService, useValue: { getModelParameterRules: () => of([]) } }
-      ]
+      providers: [provideNoopAnimations(), { provide: CopilotServerService, useValue: copilotServer }]
     }).compileComponents()
     const fixture = TestBed.createComponent(CopilotModelSelectComponent)
     fixture.componentRef.setInput('modelType', AiModelTypeEnum.RERANK)
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    const trigger = fixture.nativeElement.querySelector('.model-select-trigger') as HTMLElement
+    const trigger: HTMLElement = fixture.debugElement.query(By.directive(ZardMenuDirective)).nativeElement
     trigger.click()
     fixture.detectChanges()
     await fixture.whenStable()
@@ -86,6 +83,10 @@ describe('Rerank model selection menu', () => {
     expect(item).toBeDefined()
     item.click()
     fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.model()).toBeUndefined()
+    overlay.querySelector<HTMLButtonElement>('footer button:last-child').click()
     await fixture.whenStable()
     expect(fixture.componentInstance.model()).toBe('rerank-test')
     fixture.destroy()

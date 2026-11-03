@@ -47,6 +47,23 @@ function TabsList({
   )
 }
 
+// Attached headers keep the line indicator inside the tab row, flush with its divider.
+// Scope geometry to direct children so nested/default Tabs retain the Nova layout.
+function TabsHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="tabs-header"
+      className={cn(
+        'flex min-h-12 min-w-0 shrink-0 items-center gap-2 border-b',
+        '[&>[data-slot=tabs-list][data-variant=line]]:h-auto [&>[data-slot=tabs-list][data-variant=line]]:self-stretch [&>[data-slot=tabs-list][data-variant=line]]:p-0',
+        '[&>[data-slot=tabs-list][data-variant=line]>[data-slot=tabs-trigger]]:h-auto [&>[data-slot=tabs-list][data-variant=line]>[data-slot=tabs-trigger]]:self-stretch [&>[data-slot=tabs-list][data-variant=line]>[data-slot=tabs-trigger]]:rounded-none [&>[data-slot=tabs-list][data-variant=line]>[data-slot=tabs-trigger]]:border-0 [&>[data-slot=tabs-list][data-variant=line]>[data-slot=tabs-trigger]]:after:bottom-0',
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (
     <TabsPrimitive.Trigger
@@ -73,4 +90,4 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+export { Tabs, TabsHeader, TabsList, TabsTrigger, TabsContent, tabsListVariants }

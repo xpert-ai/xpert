@@ -79,7 +79,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             }
 
             try {
-                await this.stopTriggerWithProvider(provider, xpert.id, removed.trigger)
+                await this.stopTriggerWithProvider(provider, xpert, removed.trigger)
             } catch (error) {
                 if (strict) {
                     throw error
@@ -97,7 +97,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             }
 
             try {
-                await this.stopTriggerWithProvider(provider, xpert.id, changed.previous.trigger)
+                await this.stopTriggerWithProvider(provider, xpert, changed.previous.trigger)
             } catch (error) {
                 if (strict) {
                     throw error
@@ -232,12 +232,17 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
 
     private async stopTriggerWithProvider(
         provider: IWorkflowTriggerStrategy<any>,
-        xpertId: string,
+        xpert: IXpert,
         trigger: IWFNTrigger
     ): Promise<void> {
         await Promise.resolve(
             provider.stop({
-                xpertId,
+                xpertId: xpert.id,
+                scope: {
+                    tenantId: xpert.tenantId,
+                    organizationId: xpert.organizationId ?? null,
+                    workspaceId: xpert.workspaceId
+                },
                 config: this.providerConfig(trigger)
             })
         )
@@ -253,7 +258,16 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             provider.publish(
                 {
                     xpertId: xpert.id,
-                    scope: { tenantId: xpert.tenantId, organizationId: xpert.organizationId ?? null },
+                    scope: {
+                        tenantId: xpert.tenantId,
+                        organizationId: xpert.organizationId ?? null,
+                        workspaceId: xpert.workspaceId,
+                        userId: requestContext.user?.id
+                    },
+                    additionalInstructions:
+                        typeof trigger.config?.additionalInstructions === 'string'
+                            ? trigger.config.additionalInstructions
+                            : undefined,
                     config: this.providerConfig(trigger)
                 },
                 (payload) => {

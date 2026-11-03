@@ -17,9 +17,7 @@ jest.mock('../core/context/request-context.middleware', () => ({
 	runWithRequestContext: jest.fn((_req, next) => next())
 }))
 
-jest.mock('../user/user.service', () => ({
-	UserService: class UserService {}
-}))
+jest.mock('./managed-queue-identity.adapter', () => ({ ManagedQueueIdentityAdapter: class {} }))
 
 describe('ManagedQueueProcessor', () => {
 	beforeEach(() => {
@@ -47,7 +45,7 @@ describe('ManagedQueueProcessor', () => {
 			resolve: jest.fn(() => handler)
 		} as unknown as ManagedQueueHandlerRegistryService
 		const userService = {
-			findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+			resolve: jest.fn().mockResolvedValue({
 				id: 'business-user-1',
 				tenantId: 'tenant-1',
 				role: { name: 'VIEWER' }
@@ -102,7 +100,7 @@ describe('ManagedQueueProcessor', () => {
 			}
 		}
 
-		await processor.process(job as any)
+		await processor.process(job as never)
 
 		expect(registry.resolve).toHaveBeenCalledWith({
 			pluginName: 'plugin-a',
@@ -137,9 +135,7 @@ describe('ManagedQueueProcessor', () => {
 			expect.anything(),
 			expect.any(Function)
 		)
-		expect(userService.findOneByIdWithinTenant).toHaveBeenCalledWith('business-user-1', 'tenant-1', {
-			relations: ['role', 'role.rolePermissions', 'employee']
-		})
+		expect(userService.resolve).toHaveBeenCalledWith('business-user-1', 'tenant-1', 'org-1')
 		expect(runWithLegacyRequestContext).toHaveBeenCalled()
 		expect(handler).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -176,7 +172,7 @@ describe('ManagedQueueProcessor', () => {
 			resolve: jest.fn(() => handler)
 		} as unknown as ManagedQueueHandlerRegistryService
 		const userService = {
-			findOneByIdWithinTenant: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
+			resolve: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
 		}
 		const processor = new ManagedQueueProcessor(
 			registry,
@@ -218,7 +214,7 @@ describe('ManagedQueueProcessor', () => {
 				resolve: jest.fn(() => null)
 			} as unknown as ManagedQueueHandlerRegistryService,
 			{
-				findOneByIdWithinTenant: jest.fn()
+				resolve: jest.fn()
 			} as never,
 			undefined as never,
 			undefined as never
@@ -236,7 +232,7 @@ describe('ManagedQueueProcessor', () => {
 					payload: {},
 					enqueuedAt: new Date().toISOString()
 				}
-			} as any)
+			} as never)
 		).rejects.toThrow('No managed queue handler registered')
 	})
 	it.each([
@@ -251,7 +247,7 @@ describe('ManagedQueueProcessor', () => {
 			const handler = jest.fn(async () => undefined)
 			const registry = { resolve: jest.fn(() => handler) } as unknown as ManagedQueueHandlerRegistryService
 			const userService = {
-				findOneByIdWithinTenant: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
+				resolve: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
 			}
 			const processor = new ManagedQueueProcessor(
 				registry,

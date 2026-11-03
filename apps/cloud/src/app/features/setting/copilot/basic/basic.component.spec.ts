@@ -19,7 +19,8 @@ describe('model provider overview', () => {
     const server = {
       refreshAiProviders: jest.fn().mockResolvedValue([schema]),
       getAllInOrg: jest.fn().mockReturnValue(of({ items: [connection] })),
-      update: jest.fn().mockReturnValue(of(connection))
+      update: jest.fn().mockReturnValue(of(connection)),
+      refresh: jest.fn()
     }
     const providers = {
       getModels: jest
@@ -41,7 +42,7 @@ describe('model provider overview', () => {
         { provide: CopilotProviderService, useValue: providers },
         { provide: Dialog, useValue: dialog },
         { provide: Store, useValue: { selectOrganizationId: () => of('org') } },
-        { provide: ToastrService, useValue: {} }
+        { provide: ToastrService, useValue: { success: jest.fn(), error: jest.fn() } }
       ]
     })
     return { component: TestBed.runInInjectionContext(() => new CopilotBasicComponent()), server, providers, dialog }
@@ -115,4 +116,34 @@ describe('model provider overview', () => {
     expect(dialog.open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: connection }))
     expect(server.update).not.toHaveBeenCalled()
   })
+  it('keeps connections and selection when deletion is cancelled', async () => {
+    const { component, server } = setup()
+    const disabled = { ...connection, enabled: false }
+    component.connections.set([disabled])
+    component.selected.set({ provider: disabled.id })
+    await component.deleteConnection(disabled)
+    expect(component.connections()).toEqual([disabled])
+    expect(component.selected()).toEqual({ provider: disabled.id })
+    expect(server.refresh).not.toHaveBeenCalled()
+  })
+  it.each([true, false])(
+    'refreshes persisted connections after deleting the selection (another=%s)',
+    async (another) => {
+      const { component, server, dialog } = setup()
+      const disabled = { ...connection, enabled: false }
+      const other = { ...connection, id: 'other' }
+      const remaining = another ? [other] : []
+      component.connections.set([disabled, ...remaining])
+      component.selected.set({ provider: disabled.id })
+      dialog.open.mockReturnValue({ closed: of(true) })
+      server.getAllInOrg.mockReturnValue(of({ items: remaining }))
+      await component.deleteConnection(disabled)
+      expect(component.connections()).toEqual(remaining)
+      expect(component.selected()).toEqual({})
+      expect(component.active(component.groups()[0])).toEqual(remaining[0])
+      await component.load()
+      expect(component.connections()).toEqual(remaining)
+      expect(server.update).not.toHaveBeenCalled()
+    }
+  )
 })

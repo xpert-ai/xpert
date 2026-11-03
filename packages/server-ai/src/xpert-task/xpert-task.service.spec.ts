@@ -1,3 +1,5 @@
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 import {
     IWFNMiddleware,
     IXpertTask,
@@ -371,6 +373,12 @@ describe('XpertTaskService', () => {
         const observed: boolean[] = []
         const execute = commandBus.execute.getMockImplementation()!
         commandBus.execute.mockImplementation((command) => {
+            if (command instanceof ResolveExecutionIdentityCommand)
+                return Promise.resolve(
+                    executionIdentityFixture(command.actor, {
+                        role: { name: 'TEST', rolePermissions: [{ ...permission }] }
+                    })
+                )
             if (command instanceof XpertChatCommand)
                 observed.push(PluginRequestContext.hasPermission('DATA_SOURCE_VIEW'))
             return execute(command)
@@ -392,7 +400,7 @@ describe('XpertTaskService', () => {
         await service.executeTask('task-1', { timeZone: 'UTC' })
         expect(observed).toEqual([true, false])
         expect(find).toHaveBeenCalledWith('task-1', {
-            relations: expect.arrayContaining(['createdBy.role.rolePermissions', 'runAsUser.role.rolePermissions'])
+            relations: expect.arrayContaining(['createdBy', 'runAsUser'])
         })
     })
 
@@ -1670,6 +1678,7 @@ function createScheduleStateMiddlewareStrategy() {
 function createCommandBusMock(): CommandBusMock {
     return {
         execute: jest.fn(async (command: unknown) => {
+            if (command instanceof ResolveExecutionIdentityCommand) return executionIdentityFixture(command.actor)
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',

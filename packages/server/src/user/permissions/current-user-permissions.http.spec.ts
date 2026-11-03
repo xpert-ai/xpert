@@ -276,6 +276,7 @@ describe('current request permissions through real authentication and scope chec
 		user.role.rolePermissions = undefined
 		expect((await request()).status).toBe(503)
 		Object.assign(user, { roleId: undefined })
+		user.role.rolePermissions = []
 		expect((await request()).status).toBe(403)
 	})
 })

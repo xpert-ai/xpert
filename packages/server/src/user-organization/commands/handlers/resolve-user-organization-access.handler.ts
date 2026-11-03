@@ -1,8 +1,9 @@
+import { executionUserFindOptions, projectExecutionUser } from '../../../user/execution-identity/execution-user-loader'
 // Invariants: resolve the live user role and organization access within an explicit tenant.
 // SUPER_ADMIN may have no membership row; this check never grants resource-level permissions.
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RolesEnum, UserType } from '@xpert-ai/contracts'
+import { IUser, RolesEnum, UserType } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { Organization } from '../../../organization/organization.entity'
 import { User } from '../../../user/user.entity'
@@ -18,13 +19,10 @@ export class ResolveUserOrganizationAccessHandler implements ICommandHandler<Res
 	) {}
 
 	/** Returns the current human user with organization access, or null when access is denied. */
-	async execute({ input }: ResolveUserOrganizationAccessCommand): Promise<User | null> {
+	async execute({ input }: ResolveUserOrganizationAccessCommand): Promise<IUser | null> {
 		const { tenantId, organizationId, userId } = input
 		if (!tenantId?.trim() || !organizationId?.trim() || !userId?.trim()) return null
-		const user = await this.users.findOne({
-			where: { id: userId, tenantId },
-			relations: ['role', 'role.rolePermissions']
-		})
+		const user = await this.users.findOne(executionUserFindOptions({ id: userId, tenantId }))
 		if (
 			!user ||
 			user.isActive === false ||
@@ -36,7 +34,7 @@ export class ResolveUserOrganizationAccessHandler implements ICommandHandler<Res
 			const organization = await this.organizations.findOne({
 				where: { id: organizationId, tenantId, isActive: true }
 			})
-			return organization ? user : null
+			return organization ? projectExecutionUser(user) : null
 		}
 
 		const membership = await this.memberships.findOne({
@@ -48,6 +46,6 @@ export class ResolveUserOrganizationAccessHandler implements ICommandHandler<Res
 				organization: { tenantId, isActive: true }
 			}
 		})
-		return membership ? user : null
+		return membership ? projectExecutionUser(user) : null
 	}
 }

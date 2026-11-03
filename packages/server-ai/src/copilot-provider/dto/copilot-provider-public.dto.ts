@@ -5,21 +5,23 @@ import { CopilotDto } from '../../copilot/dto'
 
 @Expose()
 export class CopilotProviderPublicDto implements TCopilotProviderPublicDto {
-	@Transform(({ value, obj }) => value && new AiProviderIdentiDto(value, obj.baseUrl))
-	provider: IAiProviderEntity
+    id?: string
 
-	@Exclude()
-	credentials?: Record<string, any>
+    @Transform(({ value, obj }) => value && new AiProviderIdentiDto(value, obj.baseUrl))
+    provider: IAiProviderEntity
 
-	@Transform(({ value, obj }) => value && new CopilotDto(value, obj.baseUrl))
-	copilot: ICopilot
+    @Exclude()
+    credentials?: Record<string, any>
 
-	@Exclude()
-	baseUrl: string
+    @Transform(({ value, obj }) => value && new CopilotDto(value, obj.baseUrl))
+    copilot: ICopilot
 
-	constructor(partial: Partial<CopilotProviderPublicDto>, baseUrl: string) {
-		Object.assign(this, partial)
+    @Exclude()
+    baseUrl: string
 
-		this.baseUrl = baseUrl
-	}
+    constructor(partial: Partial<CopilotProviderPublicDto>, baseUrl: string) {
+        Object.assign(this, partial)
+
+        this.baseUrl = baseUrl
+    }
 }

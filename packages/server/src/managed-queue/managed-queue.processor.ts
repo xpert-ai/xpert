@@ -14,7 +14,7 @@ import type { Job } from 'bullmq'
 import { DelayedError } from 'bullmq'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { runWithRequestContext as runWithLegacyRequestContext } from '../core/context/request-context.middleware'
-import { UserService } from '../user/user.service'
+import { ManagedQueueIdentityAdapter } from './managed-queue-identity.adapter'
 import { MANAGED_QUEUE_PHYSICAL_QUEUE_NAME, MANAGED_QUEUE_SANDBOX_BROWSER_QUEUE_NAME } from './constants'
 import type {
 	ManagedQueueActorSnapshot,
@@ -37,7 +37,7 @@ export class ManagedQueueProcessor extends WorkerHost {
 
 	constructor(
 		private readonly registry: ManagedQueueHandlerRegistryService,
-		private readonly userService: UserService,
+		private readonly identities: ManagedQueueIdentityAdapter,
 		private readonly controls: TaskControlStore,
 		private readonly controlRunner: TaskControlRunner
 	) {
@@ -144,11 +144,13 @@ export class ManagedQueueProcessor extends WorkerHost {
 		// Compatibility for jobs created before actor and delegation were split.
 		if (envelope.principal) {
 			const actor =
-				envelope.principal.id && tenantId ? await this.loadActor(envelope.principal.id, tenantId) : undefined
+				envelope.principal.id && tenantId
+					? await this.loadActor(envelope.principal.id, tenantId, organizationId)
+					: undefined
 			return this.restorePrincipal(envelope.principal, actor, tenantId, organizationId)
 		}
 		if (tenantId && envelope.userId) {
-			return this.loadActor(envelope.userId, tenantId)
+			return this.loadActor(envelope.userId, tenantId, organizationId)
 		}
 		return undefined
 	}
@@ -161,16 +163,14 @@ export class ManagedQueueProcessor extends WorkerHost {
 		if (!tenantId || snapshot.tenantId !== tenantId) {
 			throw new Error('Managed queue actor tenant does not match the job envelope')
 		}
-		if (organizationId && snapshot.organizationId !== organizationId) {
+		if ((snapshot.organizationId ?? null) !== (organizationId ?? null)) {
 			throw new Error('Managed queue actor organization does not match the job envelope')
 		}
-		return this.loadActor(snapshot.userId, tenantId)
+		return this.loadActor(snapshot.userId, tenantId, organizationId)
 	}
 
-	private loadActor(userId: string, tenantId: string): Promise<IUser> {
-		return this.userService.findOneByIdWithinTenant(userId, tenantId, {
-			relations: ['role', 'role.rolePermissions', 'employee']
-		})
+	private loadActor(userId: string, tenantId: string, organizationId?: string): Promise<IUser> {
+		return this.identities.resolve(userId, tenantId, organizationId)
 	}
 
 	private attachDelegation(
@@ -205,8 +205,15 @@ export class ManagedQueueProcessor extends WorkerHost {
 		if (!tenantId || snapshot.tenantId !== tenantId) {
 			throw new Error('Managed queue delegation tenant does not match the job envelope')
 		}
-		if (organizationId && snapshot.organizationId && snapshot.organizationId !== organizationId) {
+		if ((snapshot.organizationId ?? null) !== (organizationId ?? null)) {
 			throw new Error('Managed queue delegation organization does not match the job envelope')
+		}
+		if (
+			snapshot.clientSecretExpiresAt &&
+			(!Number.isFinite(Date.parse(snapshot.clientSecretExpiresAt)) ||
+				Date.parse(snapshot.clientSecretExpiresAt) <= Date.now())
+		) {
+			throw new Error('Managed queue delegation expired')
 		}
 		return tenantId
 	}
@@ -260,11 +267,11 @@ export const SANDBOX_BROWSER_EXECUTOR_CONCURRENCY = getConfig().managedQueueOpti
 export class SandboxBrowserManagedQueueProcessor extends ManagedQueueProcessor {
 	constructor(
 		registry: ManagedQueueHandlerRegistryService,
-		userService: UserService,
+		identities: ManagedQueueIdentityAdapter,
 		controls: TaskControlStore,
 		runner: TaskControlRunner
 	) {
-		super(registry, userService, controls, runner)
+		super(registry, identities, controls, runner)
 	}
 
 	async process(job: Job<ManagedQueueEnvelope>): Promise<void> {
@@ -288,11 +295,11 @@ export function managedQueuePoolAutorun(
 export class ControlledManagedQueueProcessor extends ManagedQueueProcessor {
 	constructor(
 		registry: ManagedQueueHandlerRegistryService,
-		userService: UserService,
+		identities: ManagedQueueIdentityAdapter,
 		controls: TaskControlStore,
 		runner: TaskControlRunner
 	) {
-		super(registry, userService, controls, runner)
+		super(registry, identities, controls, runner)
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		job.data = parseControlledEnvelope(job.data)
@@ -309,11 +316,11 @@ export class ControlledManagedQueueProcessor extends ManagedQueueProcessor {
 export class ControlledBrowserManagedQueueProcessor extends SandboxBrowserManagedQueueProcessor {
 	constructor(
 		registry: ManagedQueueHandlerRegistryService,
-		userService: UserService,
+		identities: ManagedQueueIdentityAdapter,
 		controls: TaskControlStore,
 		runner: TaskControlRunner
 	) {
-		super(registry, userService, controls, runner)
+		super(registry, identities, controls, runner)
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		job.data = parseControlledEnvelope(job.data)

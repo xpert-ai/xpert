@@ -1,121 +1,72 @@
-import { ForbiddenException } from '@nestjs/common'
-import { UserService } from '@xpert-ai/server-core'
+import { KnowledgeProcessingReadyService } from '../../knowledge-document/processing-lifecycle.module'
+import { CommandBus } from '@nestjs/cqrs'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { KnowledgebaseRebuildEmbeddingConsumer } from './knowledgebase-rebuild-embedding.job'
 import { KnowledgebaseService } from '../management/knowledgebase.service'
 import { TKnowledgebaseRebuildEmbeddingJob } from '../shared/types'
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 
-let mockContextActive = false
-
-jest.mock('@xpert-ai/server-core', () => {
-    const actual = jest.requireActual('@xpert-ai/server-core')
-    return {
-        ...actual,
-        runWithRequestContext: (_req: unknown, next: () => unknown) => {
-            mockContextActive = true
-            try {
-                const result = next()
-                if (result && typeof (result as Promise<unknown>).finally === 'function') {
-                    return (result as Promise<unknown>).finally(() => {
-                        mockContextActive = false
-                    })
-                }
-                mockContextActive = false
-                return result
-            } catch (error) {
-                mockContextActive = false
-                throw error
-            }
-        }
-    }
-})
-
-jest.mock('../management/knowledgebase.service', () => ({
-    KnowledgebaseService: class KnowledgebaseService {}
-}))
+jest.mock('../management/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
 
 describe('KnowledgebaseRebuildEmbeddingConsumer', () => {
-    it('loads and rebuilds the knowledgebase inside the rebuild request context', async () => {
-        const knowledgebaseService = {
-            findOne: jest.fn(async () => {
-                if (!mockContextActive) {
-                    throw new ForbiddenException('Tenant context is required.')
-                }
-                return {
-                    id: 'knowledgebase-id',
-                    organizationId: 'organization-id'
-                }
+    const data: TKnowledgebaseRebuildEmbeddingJob = {
+        userId: 'user',
+        tenantId: 'tenant',
+        organizationId: 'org',
+        knowledgebaseId: 'kb',
+        rebuildTaskId: 'task',
+        pendingEmbeddingRevision: 2
+    }
+    function fixture() {
+        const commands = {
+            execute: jest.fn(async () =>
+                executionIdentityFixture({
+                    userId: data.userId,
+                    tenantId: data.tenantId,
+                    organizationId: data.organizationId
+                })
+            )
+        }
+        const service = {
+            processEmbeddingRebuildJob: jest.fn(async () => {
+                expect(RequestContext.currentUserId()).toBe('user')
+                expect(RequestContext.getOrganizationId()).toBe('org')
+                return { id: 'kb' }
             }),
-            processEmbeddingRebuildJob: jest.fn(async () => ({
-                id: 'knowledgebase-id'
-            })),
             markEmbeddingRebuildFailed: jest.fn()
         }
-        const userService = {
-            findOne: jest.fn(async () => ({
-                id: 'user-id',
-                tenantId: 'tenant-id',
-                preferredLanguage: 'zh-Hans'
-            }))
-        }
+        const lifecycle = new KnowledgeProcessingReadyService()
+        lifecycle.onApplicationBootstrap()
         const consumer = new KnowledgebaseRebuildEmbeddingConsumer(
-            knowledgebaseService as unknown as KnowledgebaseService,
-            userService as unknown as UserService
+            service as unknown as KnowledgebaseService,
+            commands as unknown as CommandBus,
+            lifecycle
         )
-        const job = {
-            data: {
-                userId: 'user-id',
-                tenantId: 'tenant-id',
-                organizationId: 'organization-id',
-                knowledgebaseId: 'knowledgebase-id',
-                rebuildTaskId: 'rebuild-task-id',
-                pendingEmbeddingRevision: 2
-            }
-        } as Job<TKnowledgebaseRebuildEmbeddingJob>
-
-        await expect(consumer.process(job)).resolves.toEqual({ id: 'knowledgebase-id' })
-
-        expect(knowledgebaseService.findOne).toHaveBeenCalled()
-        expect(knowledgebaseService.processEmbeddingRebuildJob).toHaveBeenCalledWith(job.data)
-        expect(knowledgebaseService.markEmbeddingRebuildFailed).not.toHaveBeenCalled()
+        return { commands, service, run: () => consumer.process({ data } as Job<TKnowledgebaseRebuildEmbeddingJob>) }
+    }
+    it('executes only after fresh identity restoration', async () => {
+        const f = fixture()
+        await expect(f.run()).resolves.toEqual({ id: 'kb' })
+        expect(f.commands.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                actor: {
+                    kind: 'user',
+                    userId: 'user',
+                    tenantId: 'tenant',
+                    organizationId: 'org'
+                }
+            })
+        )
+        expect(f.service.markEmbeddingRebuildFailed).not.toHaveBeenCalled()
     })
-
-    it('marks rebuild failed when job execution fails after entering request context', async () => {
-        const error = new Error('chunk missing pageContent')
-        const knowledgebaseService = {
-            findOne: jest.fn(async () => ({ id: 'knowledgebase-id' })),
-            processEmbeddingRebuildJob: jest.fn(async () => {
-                throw error
-            }),
-            markEmbeddingRebuildFailed: jest.fn(async () => undefined)
-        }
-        const userService = {
-            findOne: jest.fn(async () => ({
-                id: 'user-id',
-                tenantId: 'tenant-id',
-                preferredLanguage: 'zh-Hans'
-            }))
-        }
-        const consumer = new KnowledgebaseRebuildEmbeddingConsumer(
-            knowledgebaseService as unknown as KnowledgebaseService,
-            userService as unknown as UserService
-        )
-        const job = {
-            data: {
-                userId: 'user-id',
-                tenantId: 'tenant-id',
-                organizationId: 'organization-id',
-                knowledgebaseId: 'knowledgebase-id',
-                rebuildTaskId: 'rebuild-task-id',
-                pendingEmbeddingRevision: 2
-            }
-        } as Job<TKnowledgebaseRebuildEmbeddingJob>
-
-        await expect(consumer.process(job)).rejects.toThrow(error)
-
-        expect(knowledgebaseService.markEmbeddingRebuildFailed).toHaveBeenCalledWith(
-            job.data,
-            'chunk missing pageContent'
-        )
+    it.each(['identity', 'business'])('records the exact failed task when %s fails', async (phase) => {
+        const f = fixture()
+        const error = new Error('Access revoked')
+        if (phase === 'identity') f.commands.execute.mockRejectedValue(error)
+        else f.service.processEmbeddingRebuildJob.mockRejectedValue(error)
+        await expect(f.run()).rejects.toBe(error)
+        expect(f.service.markEmbeddingRebuildFailed).toHaveBeenCalledWith(data, error.message)
+        if (phase === 'identity') expect(f.service.processEmbeddingRebuildJob).not.toHaveBeenCalled()
     })
 })

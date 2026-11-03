@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 import test from 'node:test'
 import { build } from 'esbuild'
 import { chromium, expect } from '@playwright/test'
+import { assertAttachedTabIndicator } from './tab-underline-assertions.mjs'
 
 const root = resolve(import.meta.dirname, '../..')
 const shared = resolve(root, 'packages/shadcn-ui')
@@ -100,6 +101,22 @@ test('official Nova primitives render and interact with host theme variables', a
         await expect(page.getByRole('combobox', { name: 'Workspace' })).toHaveText('Team')
         await page.getByRole('tab', { name: 'History', exact: true }).click()
         await expect(page.getByText('History content', { exact: true })).toBeVisible()
+        const defaultTab = page.getByRole('tab', { name: 'History', exact: true })
+        await expect.poll(() => background(defaultTab)).not.toBe('rgba(0, 0, 0, 0)')
+        assert.equal(await defaultTab.evaluate((element) => getComputedStyle(element, '::after').opacity), '0')
+        const tableTab = page.getByRole('tab', { name: 'Table view', exact: true })
+        await assertAttachedTabIndicator(tableTab)
+        await tableTab.focus()
+        await page.keyboard.press('ArrowRight')
+        const timelineTab = page.getByRole('tab', { name: 'Timeline view', exact: true })
+        await expect(timelineTab).toBeFocused()
+        await assertAttachedTabIndicator(timelineTab)
+        await expect(page.getByText('Timeline content', { exact: true })).toBeVisible()
+        const standaloneTab = page.getByRole('tab', { name: 'Standalone summary', exact: true })
+        await expect
+          .poll(() => standaloneTab.evaluate((element) => getComputedStyle(element, '::after').opacity))
+          .toBe('1')
+        assert.equal(await standaloneTab.evaluate((element) => getComputedStyle(element, '::after').bottom), '-5px')
         await page.getByRole('tab', { name: 'First', exact: true }).focus()
         await page.keyboard.press('ArrowDown')
         await expect(page.getByRole('tab', { name: 'Second', exact: true })).toBeFocused()

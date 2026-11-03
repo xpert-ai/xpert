@@ -1,3 +1,4 @@
+import { CqrsModule } from '@nestjs/cqrs'
 import { ContentResourceOperation } from './catalog/content-operation.entity'
 import { ContentOperations } from './catalog/content-operations.service'
 import { ContentCatalogMaintenance } from './catalog/content-catalog-maintenance.service'
@@ -34,6 +35,7 @@ import { ContentResourceEntry } from './catalog/content-entry.entity'
 @Global()
 @Module({
     imports: [
+        CqrsModule,
         DiscoveryModule,
         RuntimeCapabilityModule,
         XpertProjectAccessModule,

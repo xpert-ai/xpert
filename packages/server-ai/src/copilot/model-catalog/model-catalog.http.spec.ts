@@ -14,10 +14,16 @@ import { Test } from '@nestjs/testing'
 import { AIPermissionsEnum, AiModelTypeEnum, FetchFrom, IUser } from '@xpert-ai/contracts'
 import { RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { ConfigService } from '@xpert-ai/server-config'
+import { I18nService } from 'nestjs-i18n'
 import { EndpointPermissionInterceptor } from '../../../../server/src/shared/guards/endpoint-permission.interceptor'
 import { ResolveUserOrganizationAccessCommand } from '../../../../server/src/user-organization/commands/resolve-user-organization-access.command'
 import { AIProvidersService } from '../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
+import { CopilotProviderController } from '../../copilot-provider/copilot-provider.controller'
+import { CopilotProviderService } from '../../copilot-provider/copilot-provider.service'
+import { CopilotProviderModelService } from '../../copilot-provider/models/copilot-provider-model.service'
+import { CopilotProviderModelParameterRulesQuery } from '../../copilot-provider/queries/model-parameter-rules.query'
+import { CopilotProviderModelParameterRulesHandler } from '../../copilot-provider/queries/handlers/model-parameter-rules.handler'
 import { MembershipService } from '../../membership'
 import { ModelAccessService } from '../../model-access'
 import { CatalogModelAccessBatchInput } from '../../model-access/model-access.types'
@@ -27,6 +33,7 @@ import { PrimaryModelSmokeService } from '../primary-model-smoke.service'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../queries/copilot-model-find.query'
 import { FindCopilotModelsHandler } from '../queries/handlers/copilot-model-find.handler'
 import { CopilotRoleDefaultService } from '../role-defaults/role-default.service'
+import { CopilotModelCatalogService } from './model-catalog.service'
 
 @Injectable()
 class Identity implements CanActivate {
@@ -70,7 +77,9 @@ class Identity implements CanActivate {
 describe('Copilot model catalog HTTP authorization boundaries', () => {
     let app: INestApplication
     let origin: string
+    let providerOrigin: string
     let handler: FindCopilotModelsHandler
+    let parameterHandler: CopilotProviderModelParameterRulesHandler
     const headers = {
         authorization: 'ordinary',
         'tenant-id': 'tenant',
@@ -78,6 +87,17 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
         'x-scope-level': 'organization'
     }
     const id = 'c951f03c-d936-41ab-a0d4-796a627d679f'
+    const providerId = '1731fcaa-5c8b-40ba-a372-8832b6e53568'
+    const rules = [{ name: 'temperature', default: 0.2 }]
+    const getParameterRules = jest.fn(() => rules)
+    const providerService = {
+        findOneInOrganizationOrTenant: jest.fn().mockResolvedValue({
+            id: providerId,
+            providerName: 'fixture',
+            credentials: { api_key: 'provider-secret-fixture' }
+        })
+    }
+    const providerModels = { findOneOrFailByWhereOptions: jest.fn().mockResolvedValue({ success: false }) }
     const service = {
         findAllEnabledCopilotsWithoutMembership: jest.fn(),
         findOne: jest.fn().mockResolvedValue({ id }),
@@ -95,6 +115,7 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
     const defaults = { resolve: jest.fn().mockResolvedValue({ configured: false, binding: null }) }
     const providers = {
         getProvider: () => ({
+            getModelManager: () => ({ getParameterRules }),
             getProviderModels: (type: AiModelTypeEnum) =>
                 ['allowed', 'denied'].map((model) => ({
                     model,
@@ -120,6 +141,11 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
             providers: [
                 Identity,
                 FindCopilotModelsHandler,
+                CopilotModelCatalogService,
+                CopilotProviderModelParameterRulesHandler,
+                { provide: CopilotProviderService, useValue: providerService },
+                { provide: CopilotProviderModelService, useValue: providerModels },
+                { provide: I18nService, useValue: { t: async (key: string) => key } },
                 { provide: CopilotService, useValue: service },
                 { provide: QueryBus, useValue: queries },
                 { provide: CommandBus, useValue: commands },
@@ -132,10 +158,30 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
             ]
         })
         class HttpCopilotModule {}
+        @Module({
+            controllers: [CopilotProviderController],
+            providers: [
+                { provide: CopilotProviderService, useValue: providerService },
+                { provide: CopilotProviderModelService, useValue: providerModels },
+                { provide: AIProvidersService, useValue: providers },
+                { provide: ConfigService, useValue: { get: () => 'http://localhost' } },
+                { provide: QueryBus, useValue: queries },
+                { provide: CommandBus, useValue: commands }
+            ]
+        })
+        class HttpProviderModule {}
         const module = await Test.createTestingModule({
-            imports: [HttpCopilotModule, RouterModule.register([{ path: 'copilot', module: HttpCopilotModule }])]
+            imports: [
+                HttpCopilotModule,
+                HttpProviderModule,
+                RouterModule.register([
+                    { path: 'copilot', module: HttpCopilotModule },
+                    { path: 'copilot-provider', module: HttpProviderModule }
+                ])
+            ]
         }).compile()
         handler = module.get(FindCopilotModelsHandler)
+        parameterHandler = module.get(CopilotProviderModelParameterRulesHandler)
         app = module.createNestApplication({ logger: false })
         app.setGlobalPrefix('api')
         const middleware = new RequestContextMiddleware()
@@ -144,6 +190,7 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
         app.useGlobalInterceptors(new EndpointPermissionInterceptor(module.get(Reflector)))
         await app.listen(0, '127.0.0.1')
         origin = `${await app.getUrl()}/api/copilot`
+        providerOrigin = `${await app.getUrl()}/api/copilot-provider`
     })
 
     afterAll(async () => {
@@ -158,7 +205,7 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
                 enabled: true,
                 apiKey: 'copilot-secret-fixture',
                 modelProvider: {
-                    id: 'provider',
+                    id: providerId,
                     providerName: 'fixture',
                     credentials: { api_key: 'provider-secret-fixture' }
                 }
@@ -171,6 +218,7 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
         queries.execute.mockImplementation(async (query: unknown) => {
             if (query instanceof FindCopilotModelsQuery) return handler.execute(query)
             if (query instanceof GetCopilotProviderModelQuery) return []
+            if (query instanceof CopilotProviderModelParameterRulesQuery) return parameterHandler.execute(query)
             throw new Error('Unexpected query')
         })
         canUseCatalogModels.mockImplementation(async ({ models }) =>
@@ -222,6 +270,152 @@ describe('Copilot model catalog HTTP authorization boundaries', () => {
         const response = await fetch(`${origin}/models?type=llm`, { headers })
         expect(response.status).toBe(200)
         expect(await response.json()).toEqual([])
+    })
+
+    it.each([AiModelTypeEnum.LLM, AiModelTypeEnum.TEXT_EMBEDDING, AiModelTypeEnum.RERANK])(
+        'reads parameter rules for an authorized %s model without provider-management permission',
+        async (modelType) => {
+            const response = await fetch(
+                `${origin}/models/${id}/parameter-rules?model=allowed&modelType=${modelType}`,
+                { headers }
+            )
+            expect(response.status).toBe(200)
+            expect(await response.json()).toEqual(rules)
+            expect(queries.execute).toHaveBeenCalledWith(
+                new CopilotProviderModelParameterRulesQuery(providerId, modelType, 'allowed')
+            )
+            expect(canUseCatalogModels).toHaveBeenCalledWith(
+                expect.objectContaining({ tenantId: 'tenant', organizationId: 'org', userId: 'user' })
+            )
+            expect(getParameterRules).toHaveBeenCalledWith('allowed', undefined)
+        }
+    )
+
+    it.each(['denied', 'deleted'])(
+        'denies rules for the %s model before reading provider parameters',
+        async (model) => {
+            const response = await fetch(`${origin}/models/${id}/parameter-rules?model=${model}&modelType=llm`, {
+                headers
+            })
+            expect(response.status).toBe(403)
+            expect(await response.json()).toMatchObject({ code: 'model_parameter_rules_forbidden' })
+            expect(getParameterRules).not.toHaveBeenCalled()
+            expect(providerService.findOneInOrganizationOrTenant).not.toHaveBeenCalled()
+        }
+    )
+
+    it('rechecks model grants on retry instead of trusting a previously loaded catalog', async () => {
+        const url = `${origin}/models/${id}/parameter-rules?model=allowed&modelType=llm`
+        expect((await fetch(url, { headers })).status).toBe(200)
+        canUseCatalogModels.mockImplementation(async ({ models }) => models.map(() => false))
+        expect((await fetch(url, { headers })).status).toBe(403)
+        expect(getParameterRules).toHaveBeenCalledTimes(1)
+    })
+
+    it('binds access to the connection as well as the model name', async () => {
+        const otherId = '00000000-0000-4000-8000-000000000001'
+        const response = await fetch(`${origin}/models/${otherId}/parameter-rules?model=allowed&modelType=llm`, {
+            headers
+        })
+        expect(response.status).toBe(403)
+        expect(getParameterRules).not.toHaveBeenCalled()
+    })
+
+    it('requires the exact model type even when its name matches', async () => {
+        const allowedModel = { model: 'allowed', model_type: AiModelTypeEnum.LLM }
+        queries.execute.mockImplementationOnce(async () => [
+            { id, modelProvider: { id: providerId }, providerWithModels: { models: [allowedModel] } }
+        ])
+        const response = await fetch(`${origin}/models/${id}/parameter-rules?model=allowed&modelType=text-embedding`, {
+            headers
+        })
+        expect(response.status).toBe(403)
+        expect(getParameterRules).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        'model=allowed',
+        'modelType=llm',
+        'model=%20&modelType=llm',
+        'model=allowed&modelType=invalid',
+        'model=allowed&modelType=llm&model=denied',
+        'model=allowed&modelType=llm&providerId=other',
+        'model=allowed&modelType=llm&accessUserId=other',
+        'model=allowed&modelType=llm&catalogMode=management'
+    ])('rejects invalid or caller-controlled lookup fields: %s', async (query) => {
+        const response = await fetch(`${origin}/models/${id}/parameter-rules?${query}`, { headers })
+        expect(response.status).toBe(400)
+        expect(await response.json()).toMatchObject({ code: 'model_parameter_rules_invalid' })
+        expect(queries.execute).not.toHaveBeenCalled()
+    })
+
+    it('validates the connection UUID and normalizes the model query at the HTTP boundary', async () => {
+        expect(
+            (await fetch(`${origin}/models/invalid/parameter-rules?model=allowed&modelType=llm`, { headers })).status
+        ).toBe(406)
+        expect(queries.execute).not.toHaveBeenCalled()
+        expect(
+            (await fetch(`${origin}/models/${id}/parameter-rules?model=%20allowed%20&modelType=llm`, { headers }))
+                .status
+        ).toBe(200)
+        expect(getParameterRules).toHaveBeenCalledWith('allowed', undefined)
+    })
+
+    it.each([
+        ['anonymous', {}, 401],
+        ['disabled identity', { ...headers, authorization: 'inactive' }, 403],
+        ['foreign tenant', { ...headers, 'tenant-id': 'other' }, 403],
+        ['foreign organization', { ...headers, 'organization-id': 'other' }, 403],
+        ['missing organization', { authorization: 'ordinary', 'x-scope-level': 'organization' }, 400]
+    ])('denies parameter rules for %s before lookup', async (_name, requestHeaders, status) => {
+        expect(
+            (
+                await fetch(`${origin}/models/${id}/parameter-rules?model=allowed&modelType=llm`, {
+                    headers: requestHeaders
+                })
+            ).status
+        ).toBe(status)
+        expect(queries.execute).not.toHaveBeenCalled()
+        expect(getParameterRules).not.toHaveBeenCalled()
+    })
+
+    it('supports parameter reads in tenant scope and observes organization membership revocation', async () => {
+        const url = `${origin}/models/${id}/parameter-rules?model=allowed&modelType=llm`
+        expect((await fetch(url, { headers: { authorization: 'ordinary', 'x-scope-level': 'tenant' } })).status).toBe(
+            200
+        )
+        expect(canUseCatalogModels).toHaveBeenCalledWith(expect.objectContaining({ organizationId: null }))
+        commands.execute.mockResolvedValueOnce(null)
+        expect((await fetch(url, { headers })).status).toBe(403)
+        expect(getParameterRules).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+        ['GET', `/${providerId}`],
+        ['POST', ''],
+        ['PUT', `/${providerId}`],
+        ['DELETE', `/${providerId}`],
+        ['GET', `/${providerId}/model-parameter-rules?model=allowed&modelType=llm`],
+        ['POST', `/${providerId}/model`],
+        ['PUT', `/${providerId}/model/${id}`],
+        ['DELETE', `/${providerId}/model/${id}`]
+    ])('keeps provider management %s %s protected', async (method, path) => {
+        const response = await fetch(`${providerOrigin}${path}`, { method, headers })
+        expect(response.status).toBe(403)
+        expect(queries.execute).not.toHaveBeenCalled()
+        expect(providerService.findOneInOrganizationOrTenant).not.toHaveBeenCalled()
+    })
+
+    it('retains management parameter reads for models outside the consumer catalog', async () => {
+        const response = await fetch(
+            `${providerOrigin}/${providerId}/model-parameter-rules?model=denied&modelType=llm`,
+            {
+                headers: { ...headers, authorization: 'provider-manager' }
+            }
+        )
+        expect(response.status).toBe(200)
+        expect(getParameterRules).toHaveBeenCalledWith('denied', undefined)
+        expect(canUseCatalogModels).not.toHaveBeenCalled()
     })
 
     it('keeps catalog mode and access identity server-controlled and strips credentials', async () => {

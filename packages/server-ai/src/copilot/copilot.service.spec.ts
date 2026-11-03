@@ -1,6 +1,7 @@
 import { AiModelTypeEnum, AiProviderRole, AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ConnectionDeletionService } from './connection-deletion/connection-deletion.service'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -26,6 +27,7 @@ describe('CopilotService', () => {
         find: jest.Mock
         findOneByOrFail: jest.Mock
         save: jest.Mock
+        manager: { transaction: jest.Mock }
     }
     let queryBus: jest.Mocked<Pick<QueryBus, 'execute'>>
     let copilotProviderService: jest.Mocked<Pick<CopilotProviderService, 'findVisibleByCopilotIds'>>
@@ -47,7 +49,8 @@ describe('CopilotService', () => {
             create: jest.fn((entity) => createCopilot(entity)),
             find: jest.fn().mockResolvedValue([]),
             findOneByOrFail: jest.fn().mockRejectedValue(new Error('not found')),
-            save: jest.fn(async (entity) => entity as Copilot)
+            save: jest.fn(async (entity) => entity as Copilot),
+            manager: { transaction: jest.fn() }
         }
         queryBus = {
             execute: jest.fn()
@@ -76,6 +79,7 @@ describe('CopilotService', () => {
         moduleRef = await Test.createTestingModule({
             providers: [
                 CopilotService,
+                { provide: ConnectionDeletionService, useValue: {} },
                 {
                     provide: ConnectionReferencesService,
                     useValue: { inspect: jest.fn().mockResolvedValue({ defaults: 0, bindings: 0, drafts: 0 }) }
@@ -116,6 +120,44 @@ describe('CopilotService', () => {
 
     afterEach(async () => {
         await moduleRef?.close()
+    })
+
+    it('does not recreate a connection deleted after loading it for an update', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(createCopilot({ enabled: false }))
+        const manager = { findOne: jest.fn().mockResolvedValue(null), save: jest.fn() }
+        repository.manager.transaction.mockImplementation((callback) => callback(manager))
+        await expect(service.update('copilot-id', { enabled: true })).rejects.toMatchObject({ status: 404 })
+        expect(manager.save).not.toHaveBeenCalled()
+    })
+
+    it('preserves connection identity and deletion state when editing', async () => {
+        const connection = createCopilot({ enabled: false, deletedAt: null })
+        jest.spyOn(service, 'findOne').mockResolvedValue(connection)
+        const manager = { findOne: jest.fn().mockResolvedValue(connection), save: jest.fn(async (_, value) => value) }
+        repository.manager.transaction.mockImplementation((callback) => callback(manager))
+        const saved = await service.update(connection.id, {
+            enabled: true,
+            name: 'Renamed',
+            id: 'other',
+            tenantId: 'other',
+            organizationId: 'other',
+            deletedAt: new Date()
+        })
+        expect(saved).toMatchObject({
+            id: 'copilot-id',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            deletedAt: null,
+            enabled: true,
+            name: 'Renamed'
+        })
+        expect(manager.findOne).toHaveBeenCalledWith(
+            Copilot,
+            expect.objectContaining({
+                loadEagerRelations: false,
+                lock: { mode: 'pessimistic_write' }
+            })
+        )
     })
 
     it('replaces eager-loaded providers with scope-visible providers', async () => {

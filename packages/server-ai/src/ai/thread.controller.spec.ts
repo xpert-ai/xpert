@@ -406,14 +406,15 @@ describe('ThreadsController', () => {
         )
         const response = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, write: jest.fn() })
         const { firstValueFrom } = await import('rxjs')
-        const stream = await controller.streamThreadActivity(response as never, 'thread')
+        await controller.streamThreadActivity({} as never, response as never, 'thread')
+        const stream: Observable<unknown> = (writeSseResponse as jest.Mock).mock.calls.at(-1)[2]
         await firstValueFrom(stream)
         response.emit('close')
         expect(queries.execute).toHaveBeenCalledTimes(3)
         expect(queries.execute).toHaveBeenLastCalledWith(new ReadThreadControlViewQuery('thread'))
         expect(activity.snapshot).toHaveBeenCalledWith(conversation, 'thread')
         queries.execute.mockRejectedValue(new ForbiddenException())
-        await expect(controller.streamThreadActivity(response as never, 'thread')).rejects.toBeInstanceOf(
+        await expect(controller.streamThreadActivity({} as never, response as never, 'thread')).rejects.toBeInstanceOf(
             ForbiddenException
         )
     })

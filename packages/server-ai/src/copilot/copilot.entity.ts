@@ -2,7 +2,7 @@ import { LegacyProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilot
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, OneToOne, RelationId } from 'typeorm'
+import { Column, DeleteDateColumn, Entity, JoinColumn, OneToOne, RelationId } from 'typeorm'
 import { CopilotModel, CopilotProvider } from '../core/entities/internal'
 
 const bigintNumberTransformer = {
@@ -12,6 +12,9 @@ const bigintNumberTransformer = {
 
 @Entity('copilot')
 export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
+    @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+    deletedAt?: Date | null
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()

@@ -1,3 +1,4 @@
+import { KnowledgeProcessingLifecycleModule } from '../knowledge-document/processing-lifecycle.module'
 import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { StructuredGraphRuntimeService } from './structured-graph-runtime.service'
 import { KnowledgeIdentityModule } from '../knowledgebase/identity/knowledge-identity.module'
@@ -29,6 +30,7 @@ import { JOB_KNOWLEDGE_GRAPH_INDEX } from './types'
 
 @Module({
     imports: [
+        KnowledgeProcessingLifecycleModule,
         forwardRef(() => KnowledgeIdentityModule),
         RouterModule.register([{ path: '/knowledgebase', module: GraphragModule }]),
         TypeOrmModule.forFeature([

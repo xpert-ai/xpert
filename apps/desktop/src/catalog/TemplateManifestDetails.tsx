@@ -4,22 +4,25 @@ import { t } from '../i18n'
 
 export function TemplateManifestDetails({
   readiness,
+  showTemplateSummary = true,
   onManage
 }: {
   readiness?: TemplateReadiness
+  showTemplateSummary?: boolean
   onManage: () => void
 }) {
   if (!readiness) return null
+  if (!showTemplateSummary && !readiness.checks.length && !readiness.files) return null
   return (
     <section className="space-y-3 border-t border-border pt-4" aria-label={t('Template requirements')}>
       <h3 className="font-medium">
         {t('Template requirements')}
-        {readiness.manifestVersion ? ` · v${readiness.manifestVersion}` : ''}
+        {showTemplateSummary && readiness.manifestVersion ? ` · v${readiness.manifestVersion}` : ''}
       </h3>
-      {readiness.legacy && (
+      {showTemplateSummary && readiness.legacy && (
         <p className="text-sm text-muted-foreground">{t('Legacy template: requirements were not declared.')}</p>
       )}
-      {readiness.capabilities && (
+      {showTemplateSummary && readiness.capabilities && (
         <div className="space-y-2 text-sm">
           <p className="text-muted-foreground">
             {t('Assistant capabilities from the template. Runtime access depends on current permissions and bindings.')}

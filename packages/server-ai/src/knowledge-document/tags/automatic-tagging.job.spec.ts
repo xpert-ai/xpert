@@ -1,7 +1,9 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 jest.mock('./automatic-tagging.service', () => ({ KnowledgeAutomaticTaggingService: class {} }))
 jest.mock('../../knowledgebase/tags/knowledge-tag.service', () => ({ KnowledgeTagService: class {} }))
 import { Job, Queue } from 'bull'
-import { RequestContext, UserService } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { KnowledgeTagService } from '../../knowledgebase/tags/knowledge-tag.service'
 import { KnowledgeProcessingReadyService } from '../processing-lifecycle.module'
@@ -44,7 +46,11 @@ describe('automatic tagging queue boundary', () => {
 
     it('waits for CQRS readiness and restores both tenant context implementations', async () => {
         const users = {
-            findOne: jest.fn().mockResolvedValue({ id: 'user', tenantId: 'tenant', preferredLanguage: 'en' })
+            execute: jest
+                .fn()
+                .mockResolvedValue(
+                    executionIdentityFixture({ userId: 'user', tenantId: 'tenant', organizationId: 'org' })
+                )
         }
         const tagging = {
             process: jest.fn(async () => {
@@ -57,7 +63,7 @@ describe('automatic tagging queue boundary', () => {
         }
         const lifecycle = new KnowledgeProcessingReadyService()
         const worker = new KnowledgeAutoTaggingConsumer(
-            users as unknown as UserService,
+            users as unknown as CommandBus,
             tagging as unknown as KnowledgeAutomaticTaggingService,
             lifecycle
         )

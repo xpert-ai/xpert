@@ -9,7 +9,7 @@ import {
 	TaskControlStore,
 	controlAdmissionUnavailable
 } from '../task-control'
-import { UserService } from '../user/user.service'
+import { ManagedQueueIdentityAdapter } from './managed-queue-identity.adapter'
 import { ManagedQueueHandlerRegistryService } from './managed-queue-handler-registry.service'
 import {
 	ManagedQueueProcessor,
@@ -70,12 +70,12 @@ async function admit(
 export class AdmittedManagedQueueProcessor extends ManagedQueueProcessor {
 	constructor(
 		registry: ManagedQueueHandlerRegistryService,
-		userService: UserService,
+		identities: ManagedQueueIdentityAdapter,
 		private readonly taskStore: TaskControlStore,
 		runner: TaskControlRunner,
 		private readonly admission: ControlRuntimeAdmissionService
 	) {
-		super(registry, userService, taskStore, runner)
+		super(registry, identities, taskStore, runner)
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		await admit(this.taskStore, this.admission, job)
@@ -91,12 +91,12 @@ export class AdmittedManagedQueueProcessor extends ManagedQueueProcessor {
 export class AdmittedBrowserManagedQueueProcessor extends ManagedQueueProcessor {
 	constructor(
 		registry: ManagedQueueHandlerRegistryService,
-		userService: UserService,
+		identities: ManagedQueueIdentityAdapter,
 		private readonly taskStore: TaskControlStore,
 		runner: TaskControlRunner,
 		private readonly admission: ControlRuntimeAdmissionService
 	) {
-		super(registry, userService, taskStore, runner)
+		super(registry, identities, taskStore, runner)
 	}
 	async process(job: Job<ManagedQueueEnvelope>) {
 		await admit(this.taskStore, this.admission, job)

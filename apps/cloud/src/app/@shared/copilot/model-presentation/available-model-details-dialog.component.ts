@@ -26,6 +26,7 @@ export type ModelDetailsItem = Pick<
 
 export interface ModelDetailsData {
   item: ModelDetailsItem
+  access?: 'available' | 'management'
   metadata?: AvailableModelMetadata
 }
 
@@ -76,13 +77,15 @@ export class AvailableModelDetailsDialogComponent {
     return metadata$.pipe(
       switchMap((metadata): Observable<ModelDetailsState> => {
         if (!metadata?.providerId) return of({ metadata, rules: [] })
-        return this.#providers
-          .getModelParameterRules(metadata.providerId, this.item.modelType, this.item.copilotModelId)
-          .pipe(
-            map((rules) => ({ metadata, rules })),
-            startWith({ metadata, rules: [], loading: true }),
-            catchError(() => of({ metadata, rules: [], failed: true }))
-          )
+        const rules$ =
+          this.data.access === 'management'
+            ? this.#providers.getModelParameterRules(metadata.providerId, this.item.modelType, this.item.copilotModelId)
+            : this.#server.getModelParameterRules(this.item.copilotId, this.item.modelType, this.item.copilotModelId)
+        return rules$.pipe(
+          map((rules) => ({ metadata, rules })),
+          startWith({ metadata, rules: [], loading: true }),
+          catchError(() => of({ metadata, rules: [], failed: true }))
+        )
       }),
       catchError(() => of({ metadata: null, rules: [], failed: true }))
     )

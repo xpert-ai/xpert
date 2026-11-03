@@ -29,7 +29,11 @@ jest.mock('../core/crud', () => ({
 }))
 
 jest.mock('./user.entity', () => ({
-	User: class User {}
+	User: class User {
+		constructor(input?: object) {
+			Object.assign(this, input)
+		}
+	}
 }))
 
 jest.mock('./email-verification/email-verification.entity', () => ({
@@ -145,31 +149,49 @@ describe('UserService', () => {
 		)
 	})
 
-	it('loads authenticated users with role permissions for permission-gated actions', async () => {
-		const user = { id: 'user-1' }
-
+	it('loads authenticated users through the complete credential-free projection', async () => {
+		const user = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			hash: 'never-copy',
+			role: { name: 'TEST', rolePermissions: [] }
+		}
 		service.findOne = jest.fn().mockResolvedValue(user)
-
 		const result = await service.getIfExists('user-1')
-
-		expect(service.findOne).toHaveBeenCalledWith('user-1', {
-			relations: ['role', 'role.rolePermissions', 'employee']
+		expect(service.findOne).toHaveBeenCalledWith(
+			'user-1',
+			expect.objectContaining({
+				relations: ['role', 'role.rolePermissions', 'employee'],
+				select: expect.objectContaining({
+					role: expect.objectContaining({ rolePermissions: expect.any(Object) })
+				})
+			})
+		)
+		expect(result).toMatchObject({ id: 'user-1', tenantId: 'tenant-1', role: { rolePermissions: [] } })
+		expect(result.hash).toBeUndefined()
+		service.findOne = jest.fn().mockResolvedValue({ ...user, role: { name: 'TEST' } })
+		await expect(service.getIfExists('user-1')).rejects.toMatchObject({
+			response: { code: 'execution_identity_incomplete' }
 		})
-		expect(result).toBe(user)
 	})
 
-	it('loads third-party authentication with current database role permissions', async () => {
-		const user = { id: 'user-1' }
-		const query = {
-			where: jest.fn().mockReturnThis(),
-			leftJoinAndSelect: jest.fn().mockReturnThis(),
-			getOne: jest.fn().mockResolvedValue(user)
+	it('loads third-party authentication with the same current database projection', async () => {
+		const user = {
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			hash: 'never-copy',
+			role: { name: 'TEST', rolePermissions: [] }
 		}
-		userRepository.createQueryBuilder.mockReturnValue(query)
-		expect(await service.getIfExistsThirdParty('sso-user')).toBe(user)
-		expect(query.where).toHaveBeenCalledWith('user.thirdPartyId = :thirdPartyId', { thirdPartyId: 'sso-user' })
-		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('user.role', 'role')
-		expect(query.leftJoinAndSelect).toHaveBeenCalledWith('role.rolePermissions', 'rolePermissions')
+		userRepository.findOne.mockResolvedValue(user)
+		const result = await service.getIfExistsThirdParty('sso-user')
+		expect(result).toMatchObject({ id: 'user-1', role: { rolePermissions: [] } })
+		expect(result.hash).toBeUndefined()
+		expect(userRepository.findOne).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { thirdPartyId: 'sso-user' },
+				relations: ['role', 'role.rolePermissions', 'employee']
+			})
+		)
 	})
 
 	it('loads current user with core relations by default', async () => {
@@ -664,10 +686,14 @@ describe('UserService', () => {
 	})
 	it('requires user-management permission for activation changes, including self updates', async () => {
 		RequestContext.hasAnyPermission.mockReturnValue(false)
-		await expect(service.updateProfile('requester-1', { isActive: true } as never)).rejects.toMatchObject({ status: 403 })
+		await expect(service.updateProfile('requester-1', { isActive: true } as never)).rejects.toMatchObject({
+			status: 403
+		})
 	})
 	it('rejects non-boolean activation input before persisting a profile', async () => {
-		await expect(service.updateProfile('user-1', { isActive: 'false' } as never)).rejects.toMatchObject({ status: 400 })
+		await expect(service.updateProfile('user-1', { isActive: 'false' } as never)).rejects.toMatchObject({
+			status: 400
+		})
 	})
 
 	it('rejects password resets for technical users', async () => {

@@ -132,6 +132,7 @@ export class CopilotProviderComponent {
     const provider = this.copilotProvider()
     if (!provider) return
     const data: ModelDetailsData = {
+      access: 'management',
       item: {
         copilotId: provider.copilotId,
         copilotModelId: row.name,

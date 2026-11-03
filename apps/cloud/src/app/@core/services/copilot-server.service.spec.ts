@@ -89,6 +89,18 @@ describe('CopilotServerService', () => {
     httpMock.verify()
   })
 
+  it('reads parameter rules by connection and model identity through the available catalog endpoint', () => {
+    const received = jest.fn()
+    service.getModelParameterRules('connection-1', AiModelTypeEnum.LLM, 'org/model+v1').subscribe(received)
+    const request = httpMock.expectOne(
+      '/api/copilot/models/connection-1/parameter-rules?model=org/model%2Bv1&modelType=llm'
+    )
+    expect(request.request.method).toBe('GET')
+    expect(request.request.params.keys()).toEqual(['model', 'modelType'])
+    request.flush([{ name: 'temperature', default: 0.2 }])
+    expect(received).toHaveBeenCalledWith([{ name: 'temperature', default: 0.2 }])
+  })
+
   it('refreshes resolved defaults when the organization changes and keeps the old method as an alias', () => {
     const received = jest.fn()
     const subscription = service.getAvailableByRole('primary').subscribe(received)

@@ -2,9 +2,9 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve, relative, isAbsolute, dirname } from 'node:path'
+import { join, resolve, relative, isAbsolute, dirname, posix } from 'node:path'
 import unzipper from 'unzipper'
-import { containedPath } from './agent-plugin-parser'
+import { containedPath, PackagePathEscapeError } from './agent-plugin-path'
 
 const exec = promisify(execFile)
 const MAX_BYTES = 100 * 1024 * 1024
@@ -61,6 +61,10 @@ export async function stagePortableGit(url: string, ref: string, subdirectory = 
     if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash)
         throw new Error('Use an HTTPS Git URL without embedded credentials')
     if (!ref || ref.startsWith('-') || /[\r\n\0]/.test(ref)) throw new Error('A valid Git ref is required')
+    if (isAbsolute(subdirectory) || /[\\\r\n\0]/.test(subdirectory) || subdirectory.split('/').includes('..'))
+        throw new PackagePathEscapeError()
+    const directory = posix.normalize(subdirectory || '.').replace(/\/$/, '')
+    const partial = directory !== '.'
     const temp = await mkdtemp(join(tmpdir(), 'agent-plugin-git-'))
     const options = {
         timeout: 120000,
@@ -69,6 +73,15 @@ export async function stagePortableGit(url: string, ref: string, subdirectory = 
     }
     try {
         await exec('git', ['init', temp], options)
+        if (partial) {
+            // A named promisor remote also serves the missing blobs requested during checkout.
+            await exec('git', ['-C', temp, 'remote', 'add', 'origin', url], options)
+            await exec('git', ['-C', temp, 'config', 'remote.origin.promisor', 'true'], options)
+            await exec('git', ['-C', temp, 'config', 'remote.origin.partialclonefilter', 'blob:none'], options)
+            // One anchored literal pattern excludes root and ancestor files that cone mode would fetch.
+            const pattern = `/${directory.replace(/[*?[\]]/g, '\\$&')}/`
+            await exec('git', ['-C', temp, 'sparse-checkout', 'set', '--no-cone', '--', pattern], options)
+        }
         await exec(
             'git',
             [
@@ -80,15 +93,30 @@ export async function stagePortableGit(url: string, ref: string, subdirectory = 
                 'core.hooksPath=/dev/null',
                 'fetch',
                 '--depth=1',
+                ...(partial ? ['--filter=blob:none', '--no-tags'] : []),
                 '--',
-                url,
+                partial ? 'origin' : url,
                 ref
             ],
             options
         )
         const { stdout } = await exec('git', ['-C', temp, 'rev-parse', 'FETCH_HEAD'], options)
-        await exec('git', ['-C', temp, '-c', 'core.hooksPath=/dev/null', 'checkout', '--detach', 'FETCH_HEAD'], options)
-        const root = await containedPath(temp, subdirectory)
+        await exec(
+            'git',
+            [
+                '-C',
+                temp,
+                '-c',
+                'protocol.file.allow=never',
+                '-c',
+                'core.hooksPath=/dev/null',
+                'checkout',
+                '--detach',
+                stdout.trim()
+            ],
+            options
+        )
+        const root = await containedPath(temp, directory)
         return { temp, root, commit: stdout.trim() }
     } catch (error) {
         await rm(temp, { recursive: true, force: true })

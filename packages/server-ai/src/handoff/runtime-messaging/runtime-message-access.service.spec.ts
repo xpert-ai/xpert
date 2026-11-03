@@ -1,3 +1,4 @@
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
@@ -91,7 +92,14 @@ function fixture() {
         { createCapturedApi: () => ({ inspect }), resolveGroupTarget }
     )
     return {
-        service: new RuntimeMessageAccessService(database, factory),
+        service: new RuntimeMessageAccessService(database, factory, {
+            execute: async () => {
+                const user = await users.findOne()
+                if (!user || user.isActive === false || user.type !== UserType.USER)
+                    throw new Error('Actor unavailable')
+                return executionIdentityFixture(scope)
+            }
+        } as never),
         record,
         invocation,
         scope,

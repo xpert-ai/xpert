@@ -6,12 +6,12 @@ import { groupDeliveryUserId } from './group-delivery-actor'
 import { isGroupRuntime } from './group-runtime-context'
 import { UnauthorizedException, Injectable } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { User, UserOrganization } from '@xpert-ai/server-core'
-import { SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity, UserOrganization } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
-import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { GroupParticipant, GroupMessageRecipient } from './group.entity'
 import { groupDenied } from './group.errors'
 
@@ -20,7 +20,8 @@ import { groupDenied } from './group.errors'
 export class GroupAccessService {
     constructor(
         private readonly db: DataSource,
-        private readonly assistants: PublishedXpertAccessService
+        private readonly assistants: PublishedXpertAccessService,
+        private readonly commands: CommandBus
     ) {}
 
     /**
@@ -41,16 +42,19 @@ export class GroupAccessService {
      * Callers supply scope from authentication or persisted records. This alone does not prove group membership.
      */
     async user(scope: { tenantId: string; organizationId: string }, userId: string) {
-        const [user, membership] = await Promise.all([
-            this.db
-                .getRepository(User)
-                .findOne({ where: { id: userId, tenantId: scope.tenantId, type: UserType.USER }, relations: ['role'] }),
-            this.db
-                .getRepository(UserOrganization)
-                .findOneBy({ ...scope, userId, isActive: true, organization: { isActive: true } })
-        ])
-        if (!user || !membership) throw groupDenied()
-        return user
+        return (await this.identity(scope, userId)).user
+    }
+
+    private async identity(scope: { tenantId: string; organizationId: string }, userId: string) {
+        // Group membership policy is stricter than the shared SUPER_ADMIN organization exception.
+        const membership = await this.db.getRepository(UserOrganization).findOneBy({
+            ...scope,
+            userId,
+            isActive: true,
+            organization: { tenantId: scope.tenantId, isActive: true }
+        })
+        if (!membership) throw groupDenied()
+        return this.commands.execute(new ResolveExecutionIdentityCommand({ ...scope, userId, kind: 'user' }))
     }
 
     /**
@@ -132,19 +136,11 @@ export class GroupAccessService {
      * Await task within this scope; separately queued work must resolve its identity again at execution time.
      */
     async withRootUser<T>(group: ChatConversation, userId: string, task: () => Promise<T>) {
-        const user = await this.user({ tenantId: group.tenantId, organizationId: group.organizationId }, userId)
+        const identity = await this.identity({ tenantId: group.tenantId, organizationId: group.organizationId }, userId)
         const actor = await this.db
             .getRepository(GroupParticipant)
             .findOneBy({ groupId: group.id, subjectId: userId, kind: 'user', active: true })
         if (!actor) throw groupDenied()
-        return runWithCapturedRequestContext(
-            captureRequestContext({
-                user,
-                tenantId: group.tenantId,
-                organizationId: group.organizationId,
-                headers: { 'x-scope-level': 'organization' }
-            }),
-            task
-        )
+        return runWithExecutionIdentity(identity, task)
     }
 }

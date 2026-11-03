@@ -15,7 +15,7 @@ import {
   ICopilotWithProvider,
   ParameterRule
 } from '../types'
-import { RoleDefaultInput, RoleDefaultSetting } from '@xpert-ai/contracts'
+import { ConnectionDeletionImpact, RoleDefaultInput, RoleDefaultSetting } from '@xpert-ai/contracts'
 
 type StatisticsFilters = {
   model?: string | null
@@ -55,6 +55,14 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     return this.httpClient.get<{ defaults: number; bindings: number; drafts: number }>(
       `${this.apiBaseUrl}/${id}/references`
     )
+  }
+
+  getConnectionDeletionImpact(id: string) {
+    return this.httpClient.get<ConnectionDeletionImpact>(`${this.apiBaseUrl}/${id}/deletion-impact`)
+  }
+
+  deleteConnection(id: string) {
+    return this.httpClient.delete<void>(`${this.apiBaseUrl}/${id}`)
   }
 
   getRoleDefaults() {
@@ -178,13 +186,12 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     return this.managementModelsByType.get(type)
   }
 
-  /**
-   * @deprecated use getModelParameterRules in CopilotProviderService
-   */
-  getModelParameterRules(provider: string, model: string) {
-    return this.httpClient.get<ParameterRule[]>(API_COPILOT + `/provider/${provider}/model-parameter-rules`, {
+  /** Read parameter rules for a model in the current user's available catalog. */
+  getModelParameterRules(copilotId: string, modelType: AiModelTypeEnum, model: string) {
+    return this.httpClient.get<ParameterRule[]>(`${API_COPILOT}/models/${copilotId}/parameter-rules`, {
       params: {
-        model
+        model,
+        modelType
       }
     })
   }

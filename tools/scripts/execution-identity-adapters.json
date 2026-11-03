@@ -1,0 +1,138 @@
+{
+  "packages/server-ai/src/agent-invocation/invocation-monitor.service.ts": {
+    "calls": 2,
+    "reason": "Only the Assistant branch retains the published-Assistant audience adapter; human continuations use ResolveExecutionIdentityCommand."
+  },
+  "packages/server-ai/src/artifacts/artifacts.service.ts": {
+    "calls": 2,
+    "reason": "Reuses a verified request principal for the exact artifact workspace ACL."
+  },
+  "packages/server-ai/src/artifacts/library/artifact-library-view.service.ts": {
+    "calls": 1,
+    "reason": "Clears ambient identity for platform artifact rendering; grants no user authority."
+  },
+  "packages/server-ai/src/artifacts/library/artifact-library.service.ts": {
+    "calls": 1,
+    "reason": "Clears ambient identity for platform artifact processing; artifact access is checked separately."
+  },
+  "packages/server-ai/src/artifacts/presentation/artifact-presentation.service.ts": {
+    "calls": 2,
+    "reason": "Scopes an already authenticated presentation operation to its authorized artifact resource."
+  },
+  "packages/server-ai/src/artifacts/presentation/artifact-snapshots.service.ts": {
+    "calls": 1,
+    "reason": "Clears ambient identity while generating platform artifact snapshots."
+  },
+  "packages/server-ai/src/chat-group/group-delivery-context.handler.ts": {
+    "calls": 1,
+    "reason": "Captures only after GroupAccessService restores a live human identity and verifies delivery membership."
+  },
+  "packages/server-ai/src/collaboration/collaboration.service.ts": {
+    "calls": 1,
+    "reason": "Actorless materialization of persisted document state; never grants human rights."
+  },
+  "packages/server-ai/src/handoff/message-context.ts": {
+    "calls": 2,
+    "reason": "Transport bookkeeping scope only. Minimal envelope IDs do not carry roles; business processors authorize separately."
+  },
+  "packages/server-ai/src/handoff/plugins/agent-chat/agent-chat-dispatch.processor.ts": {
+    "calls": 3,
+    "reason": "Trusted human marker uses shared identity restoration; group and Assistant branches retain domain-bound adapters."
+  },
+  "packages/server-ai/src/handoff/plugins/agent-chat/agent-chat.processor.ts": {
+    "calls": 2,
+    "reason": "In-process task registry continuation with transport scope only; no role or permission authority is synthesized."
+  },
+  "packages/server-ai/src/initialization/bootstrap.service.ts": {
+    "calls": 2,
+    "reason": "Installation bootstrap context for its explicitly established bootstrap account, before normal runtime is available."
+  },
+  "packages/server-ai/src/mcp-consumer/execution/mcp-operation.transport.ts": {
+    "calls": 1,
+    "reason": "MCP reconnection preserves persisted publication/Assistant/workspace authority and reloads current role grants."
+  },
+  "packages/server-ai/src/mcp-publication/mcp-files.service.ts": {
+    "calls": 1,
+    "reason": "Request-local publication principal already verified by MCP authorization; retains publication file authority."
+  },
+  "packages/server-ai/src/mcp-publication/mcp-publication-runtime.service.ts": {
+    "calls": 1,
+    "reason": "MCP credential boundary loads current user grants; service accounts deliberately carry no human identity."
+  },
+  "packages/server-ai/src/mcp-publication/mcp-task-execution.service.ts": {
+    "calls": 1,
+    "reason": "Queued MCP publication authority is revalidated by the publication owner before entering context."
+  },
+  "packages/server-ai/src/model-execution/assistant-execution-policy.service.ts": {
+    "calls": 2,
+    "reason": "Model execution supports both humans through shared organization resolution and exact Assistant audiences."
+  },
+  "packages/server-ai/src/model-execution/execution-chat.service.ts": {
+    "calls": 1,
+    "reason": "Executes inside the freshly verified constrained model-execution grant snapshot."
+  },
+  "packages/server-ai/src/model-execution/execution-grant.service.ts": {
+    "calls": 4,
+    "reason": "Revalidates grant limits, persisted actor and Assistant/model audience before creating a constrained execution context."
+  },
+  "packages/server-ai/src/model-execution/execution-native.controller.ts": {
+    "calls": 1,
+    "reason": "Request-local constrained model-execution grant supplied by its verifier."
+  },
+  "packages/server-ai/src/model-gateway/openai.controller.ts": {
+    "calls": 2,
+    "reason": "Gateway-specific authenticated API key principal retains callable model publication constraints."
+  },
+  "packages/server-ai/src/plugin-resource/app-platform/platform-provisioner.service.ts": {
+    "calls": 2,
+    "reason": "Technical maintenance actor remains bound to the exact runWithServiceOperation subject and application."
+  },
+  "packages/server-ai/src/plugin-resource/mcp/plugin-mcp-server.service.ts": {
+    "calls": 2,
+    "reason": "Scopes provider lookup to verified plugin ownership within the authenticated invocation."
+  },
+  "packages/server-ai/src/plugin-resource/template-installation/template-installation.service.ts": {
+    "calls": 2,
+    "reason": "Detached continuation of the authorized HTTP installation, retaining its database session lease; retries reauthorize."
+  },
+  "packages/server-ai/src/realtime-voice/voice-context.ts": {
+    "calls": 2,
+    "reason": "Continuation of an authenticated realtime voice session with its existing principal."
+  },
+  "packages/server-ai/src/sandbox/sandbox-terminal.gateway.ts": {
+    "calls": 1,
+    "reason": "WebSocket credential verification supplies the principal before terminal authorization."
+  },
+  "packages/server-ai/src/shared/request-context.ts": {
+    "calls": 2,
+    "reason": "Low-level compatibility bridge for explicitly reviewed credential and continuation adapters."
+  },
+  "packages/server-ai/src/shared/super-admin-organization-scope.service.ts": {
+    "calls": 2,
+    "reason": "Existing explicit SUPER_ADMIN organization-switch policy, followed by resource authorization."
+  },
+  "packages/server-ai/src/workspace-file-access/workspace-file-access.service.ts": {
+    "calls": 2,
+    "reason": "Signed file-session adapter reloads role permissions then checks the original file and host grants."
+  },
+  "packages/server-ai/src/xpert-template/template-skill-sync.service.ts": {
+    "calls": 2,
+    "reason": "Authorized template synchronization preserves the initiating user while selecting tenant installation scope."
+  },
+  "packages/server-ai/src/xpert/commands/handlers/publish-triggers.handler.ts": {
+    "calls": 2,
+    "reason": "Trigger transport callback binds publication scope; dispatched runs use an Assistant or verified channel actor, not publisher grants."
+  },
+  "packages/server/src/core/context/request-context.middleware.ts": {
+    "calls": 2,
+    "reason": "Legacy context middleware and compatibility bridge; identity establishment remains in authentication/adapters."
+  },
+  "packages/server/src/managed-queue/managed-queue.processor.ts": {
+    "calls": 2,
+    "reason": "Reloads actors via ManagedQueueIdentityAdapter, preserves delegation and validates expiry; actorless jobs grant no user authority."
+  },
+  "packages/server/src/user/execution-identity/execution-identity.ts": {
+    "calls": 2,
+    "reason": "The canonical runner accepts only host-minted, resolved identities and binds both context stores."
+  }
+}

@@ -27,6 +27,7 @@ import {
     BadRequestException,
     Body,
     Controller,
+    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -73,6 +74,21 @@ import { CopilotRoleDefaultService } from './role-defaults/role-default.service'
 @Controller()
 @Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotController extends CrudController<Copilot> {
+    @Get(':id/deletion-impact')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async deletionImpact(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.deletionImpact(id)
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.ACCEPTED)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async delete(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.delete(id)
+    }
+
     @Get('default-models/:role/setup')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.COPILOT_EDIT)

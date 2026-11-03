@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'
-import { User, UserOrganization } from '@xpert-ai/server-core'
-import { UserType, assistantTaskGroupContext } from '@xpert-ai/contracts'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity, UserOrganization } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
+import { IUser, assistantTaskGroupContext } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
     AgentInvocationScope,
@@ -14,7 +15,6 @@ import { AgentInvocationFactoryService } from '../../agent-invocation/invocation
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
-import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { runtimeMessageError } from './runtime-message.errors'
 
 const scopeSchema = z
@@ -36,7 +36,7 @@ export type AuthorizedRuntimeReply = {
     invocation: AgentInvocation
     dispatch: AgentInvocationDispatchContext
     conversation: ChatConversation
-    user: User
+    user: IUser
     parentCreatedAt: string
 }
 
@@ -45,10 +45,11 @@ export type AuthorizedRuntimeReply = {
 export class RuntimeMessageAccessService {
     constructor(
         private readonly dataSource: DataSource,
-        private readonly factory: AgentInvocationFactoryService
+        private readonly factory: AgentInvocationFactoryService,
+        private readonly commands: CommandBus
     ) {}
 
-    async withActor<T>(scope: AgentInvocationScope, work: (user: User) => Promise<T>): Promise<T> {
+    async withActor<T>(scope: AgentInvocationScope, work: (user: IUser) => Promise<T>): Promise<T> {
         const parsed = scopeSchema.safeParse(scope)
         if (!parsed.success) throw runtimeMessageError('Invalid')
         return this.withControlActor(scope, work)
@@ -57,7 +58,7 @@ export class RuntimeMessageAccessService {
     /** Control delivery revalidates the original actor; it never restores a bearer token. */
     async withControlActor<T>(
         scope: Pick<AgentInvocationScope, 'tenantId' | 'organizationId' | 'userId'>,
-        work: (user: User) => Promise<T>
+        work: (user: IUser) => Promise<T>
     ): Promise<T> {
         if (
             !scopeSchema
@@ -66,39 +67,32 @@ export class RuntimeMessageAccessService {
                 .success
         )
             throw runtimeMessageError('Invalid')
-        const [user, membership] = await Promise.all([
-            this.dataSource.getRepository(User).findOne({
-                where: { id: scope.userId, tenantId: scope.tenantId },
-                // Background target authorization reads current grants from RequestContext.
-                relations: ['role', 'role.rolePermissions']
-            }),
-            this.dataSource.getRepository(UserOrganization).findOne({
-                where: {
-                    tenantId: scope.tenantId,
-                    organizationId: scope.organizationId,
-                    userId: scope.userId,
-                    isActive: true,
-                    organization: { isActive: true }
-                }
-            })
-        ])
-        if (!user || user.type !== UserType.USER || !membership) throw runtimeMessageError('Access')
-        return runWithCapturedRequestContext(
-            captureRequestContext({
-                user,
+        const membership = await this.dataSource.getRepository(UserOrganization).findOne({
+            where: {
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId,
-                headers: { 'x-scope-level': 'organization' }
-            }),
-            () => work(user)
+                userId: scope.userId,
+                isActive: true,
+                organization: { tenantId: scope.tenantId, isActive: true }
+            }
+        })
+        if (!membership) throw runtimeMessageError('Access')
+        const identity = await this.commands.execute(
+            new ResolveExecutionIdentityCommand({
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                userId: scope.userId,
+                kind: 'user'
+            })
         )
+        return runWithExecutionIdentity(identity, () => work(identity.user))
     }
 
     /** Owners may inspect delivery failures even when a binding was revoked; this grants no result or runtime access. */
     async withReceiptOwner<T>(
         id: string,
         owner: { tenantId?: string; organizationId?: string; ownerId: string },
-        work: (record: AgentInvocationEntity, user: User) => Promise<T>
+        work: (record: AgentInvocationEntity, user: IUser) => Promise<T>
     ): Promise<T> {
         if (!owner.tenantId || !owner.organizationId || !owner.ownerId) throw runtimeMessageError('Access')
         const record = await this.dataSource

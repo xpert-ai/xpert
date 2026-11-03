@@ -1,3 +1,4 @@
+import { ExecutionContextLifecycleModule } from '@xpert-ai/server-core'
 import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
 import { ThreadControlViewService } from './control-view/thread-control-view.service'
 import { ReadThreadControlViewHandler } from './control-view/read-thread-control-view.handler'
@@ -49,6 +50,7 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
 
 @Module({
     imports: [
+        ExecutionContextLifecycleModule,
         ConversationEnvironmentFilesModule,
         TaskControlModule,
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),

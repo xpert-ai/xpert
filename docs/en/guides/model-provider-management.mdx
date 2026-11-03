@@ -45,7 +45,15 @@ Selecting another connection changes only the management view. The model list sw
 | Catalog loading failed    | The catalog could not be read; check the connection or retry later                           |
 | Models pending enablement | The enabled selection is empty; choose available entries in model management                 |
 
-Before disabling a connection, the interface shows references from default assignments, saved model bindings, and Assistant drafts. A connection used by an explicit default assignment cannot be disabled until that assignment is changed. Disabling can also make other existing bindings unavailable. This page does not provide permanent connection deletion.
+Before disabling a connection, the interface shows references from default assignments, saved model bindings, and Assistant drafts. A connection used by an explicit default assignment cannot be disabled until that assignment is changed. Disabling can also make other existing bindings unavailable.
+
+### Delete a disabled connection
+
+Administrators can choose **Delete connection** from a disabled connection's overflow menu. The confirmation checks current business references: defaults, current Assistant drafts and published configuration, knowledgebases, projects, other connections, gateway publications, membership model rules, active access grants, pending requests, unexpired execution grants and active voice sessions. References block deletion. Tenant connection checks include references from its organizations; only category counts are shown, without other organizations' resource details.
+
+Migrate or clear the listed references, then choose **Check references again**. Publish Assistant changes; editing a draft alone does not remove the published binding. Historical versions, ended sessions and usage records do not block deletion. Restoring an old version may require selecting a replacement model if its connection was deleted.
+
+Confirmed deletion removes the connection from the list and purges its credentials and custom model configuration. Other connections, provider plugins, historical usage and audit records remain. Deletion cannot be undone and does not revoke API keys at the upstream provider. Cancellation or failure keeps the connection in the list; the server rechecks its state and references when submitting the deletion.
 
 ## Manage models within a connection
 
@@ -149,6 +157,8 @@ Hovering reveals compact **Install** and **Details** buttons without increasing 
 The provider heading shows the running plugin version. An **Update** action appears when an update is available and the user has permission. Installation, details, updates, and any required restart prompts use the existing plugin-management workflow. After installation, configure the required connection or model credentials.
 
 ## Upgrade and compatibility
+
+The connection deletion feature requires the normal API `schema-sync` step to add the connection deletion marker. Existing connections, credentials and business bindings remain unchanged.
 
 The normal API build and database `schema-sync` workflow applies the legacy-default migration after entity synchronization:
 

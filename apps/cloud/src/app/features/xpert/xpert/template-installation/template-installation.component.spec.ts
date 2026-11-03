@@ -18,16 +18,8 @@ jest.mock('@cloud/app/@core', () => ({
 }))
 jest.mock('@cloud/app/@core/state', () => ({ Store: class {}, API_PREFIX: '/api' }))
 jest.mock('@cloud/app/@core/services/copilot-server.service', () => ({ CopilotServerService: class {} }))
-jest.mock('@cloud/app/@core/services/copilot-provider.service', () => {
-  const CopilotProviderService = class {}
-  return {
-    CopilotProviderService,
-    injectCopilotProviderService: () => jest.requireActual('@angular/core').inject(CopilotProviderService)
-  }
-})
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
 import { CopilotServerService as CatalogService } from '@cloud/app/@core/services/copilot-server.service'
-import { CopilotProviderService } from '@cloud/app/@core/services/copilot-provider.service'
 import { CopilotServerService, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { Store } from '@cloud/app/@core/state'
 import { TemplateInstallationService } from '@cloud/app/@core/services/template-installation.service'
@@ -158,8 +150,7 @@ describe('Web template installation flow', () => {
         { provide: XpertWorkspaceService, useValue: workspaces },
         { provide: XpertAPIService, useValue: xperts },
         { provide: CopilotServerService, useValue: primary },
-        { provide: CatalogService, useValue: catalog },
-        { provide: CopilotProviderService, useValue: parameters },
+        { provide: CatalogService, useValue: { ...catalog, ...parameters } },
         { provide: Router, useValue: router },
         { provide: DialogRef, useValue: dialog }
       ]
