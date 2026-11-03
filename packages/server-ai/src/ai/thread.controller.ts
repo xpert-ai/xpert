@@ -7,6 +7,7 @@ import { publicRunControl } from '../chat-conversation/control-view/public-run-c
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { threadActivityStream } from './thread-activity/thread-activity-stream'
+import { threadActivityErrors } from './thread-activity/thread-activity-errors'
 import { t } from 'i18next'
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
@@ -154,17 +155,17 @@ export class ThreadsController {
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/stream')
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
-    @Sse()
-    async streamThreadActivity(@Res() res: Response, @Param('thread_id') threadId: string) {
+    async streamThreadActivity(@Req() req: Request, @Res() res: Response, @Param('thread_id') threadId: string) {
         await this.ensureThreadAccess(threadId)
         if (!this.activity) throw new UnimplementedException()
         startSseHeartbeat(res)
-        return threadActivityStream(async () => {
+        const events = threadActivityStream(async () => {
             const conversation = await this.ensureThreadAccess(threadId)
             const activity = await this.activity.snapshot(conversation, threadId)
             const { controlView } = await this.queryBus.execute(new ReadThreadControlViewQuery(threadId))
             return { ...activity, controlView }
-        })
+        }).pipe(threadActivityErrors())
+        writeSseResponse(req, res, events)
     }
 
     @Patch(':thread_id')
