@@ -70,6 +70,10 @@ export enum KnowledgebaseStatusEnum {
   REBUILD_FAILED = 'rebuild_failed'
 }
 
+export type KnowledgebaseEmbeddingRebuildInput = {
+  embeddingBatchSize?: number
+}
+
 export enum KnowledgeStructureEnum {
   General = 'general',
   ParentChild = 'parent-child',

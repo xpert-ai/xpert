@@ -1,3 +1,4 @@
+import { Embeddings } from '@langchain/core/embeddings'
 jest.mock('../../utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
@@ -7,6 +8,7 @@ import { HumanMessage } from '@langchain/core/messages'
 import {
     AiModelTypeEnum,
     FetchFrom,
+    ICopilotProviderModel,
     IModelAccessResolution,
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
@@ -52,11 +54,67 @@ describe('CopilotModelGetChatModelHandler', () => {
         expect(getModelContextSize(f.query.copilotModel)).toBe(32768)
     })
 
+    it.each([
+        { declaredLimit: 10, configured: 16, expected: [10, 10, 4] },
+        { declaredLimit: undefined, configured: 16, expected: [10, 10, 4] },
+        { declaredLimit: 10, configured: 8, expected: [8, 8, 8] },
+        { declaredLimit: 64, configured: 16, expected: [16, 8] }
+    ])(
+        'bounds adapter calls (limit=$declaredLimit, configuration=$configured)',
+        async ({ declaredLimit, configured, expected }) => {
+            const batches: string[][] = []
+            class Endpoint extends Embeddings {
+                constructor() {
+                    super({})
+                }
+                async embedDocuments(texts: string[]) {
+                    batches.push(texts)
+                    if (texts.length > (declaredLimit ?? 10)) throw new Error('upstream batch limit exceeded')
+                    return texts.map((text) => [Number(text)])
+                }
+                async embedQuery(text: string) {
+                    return [Number(text)]
+                }
+            }
+            const f = createFixture(
+                [],
+                AiModelTypeEnum.TEXT_EMBEDDING,
+                [],
+                { max_chunks: 16 },
+                {
+                    max_chunks: 16,
+                    model_configuration: {
+                        modelType: AiModelTypeEnum.TEXT_EMBEDDING,
+                        contextSize: 8192,
+                        maxConcurrency: 1,
+                        batchSize: configured
+                    }
+                }
+            )
+            if (declaredLimit)
+                f.getProviderModels.mockReturnValue([
+                    {
+                        model: f.query.copilotModel.model,
+                        model_properties: { max_chunks: declaredLimit }
+                    }
+                ])
+            f.getModelInstance.mockReturnValue(new Endpoint())
+            const model = await f.handler.execute(f.query)
+            if (!('embedDocuments' in model)) throw new Error('Expected embedding client')
+            const texts = Array.from({ length: 24 }, (_, index) => String(index))
+            expect(await model.embedDocuments(texts)).toEqual(texts.map((text) => [Number(text)]))
+            expect(batches.map((batch) => batch.length)).toEqual(expected)
+            expect(await model.embedQuery('3')).toEqual([3])
+            expect(f.modelAccessCallback).toHaveBeenCalledWith(f.modelAccess)
+        }
+    )
+
     function createFixture(
         features: ModelFeature[] = [],
         modelType = AiModelTypeEnum.LLM,
         parameterRules: ParameterRule[] = [],
-        modelOptions?: Record<string, unknown>
+        modelOptions?: Record<string, unknown>,
+        modelProperties?: ICopilotProviderModel['modelProperties']
     ) {
         const modelAccess: IModelAccessResolution = {
             allowed: true,
@@ -101,7 +159,7 @@ describe('CopilotModelGetChatModelHandler', () => {
         const queryBus = {
             execute: jest.fn(async (query) => {
                 if (query instanceof GetCopilotProviderModelQuery) {
-                    return []
+                    return modelProperties ? [{ modelProperties }] : []
                 }
                 if (query instanceof AIModelGetProviderQuery) {
                     return {
@@ -145,6 +203,7 @@ describe('CopilotModelGetChatModelHandler', () => {
         return {
             commandBus,
             getModelInstance,
+            getProviderModels,
             getParameterRules,
             getUsagePricingSnapshot,
             handler,

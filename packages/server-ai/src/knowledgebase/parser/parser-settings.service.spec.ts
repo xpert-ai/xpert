@@ -51,6 +51,14 @@ function setup() {
 }
 
 describe('KnowledgeParserSettingsService', () => {
+    it('rejects malformed batch sizes while accepting legacy 16 for model-aware splitting', async () => {
+        const { service } = setup()
+        for (const embeddingBatchSize of [0, -1, 1.5, 2049, NaN]) {
+            await expect(service.validateSettings({ ...defaults, embeddingBatchSize })).rejects.toThrow()
+        }
+        await expect(service.validateSettings({ ...defaults, embeddingBatchSize: 16 })).resolves.toBeDefined()
+    })
+
     it('validates spreadsheet headers and bounded table metadata instructions on save', async () => {
         const { service } = setup()
         await expect(

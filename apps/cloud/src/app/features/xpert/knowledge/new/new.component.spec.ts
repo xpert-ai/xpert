@@ -224,11 +224,11 @@ describe('XpertNewKnowledgeComponent', () => {
     TestBed.tick()
     const overlay = TestBed.inject(OverlayContainer).getContainerElement()
     expect(confirm).not.toHaveBeenCalled()
-    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
+    expect(overlay.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
     expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RebuildConfirm')
     expect(api.updateWikiConfiguration).not.toHaveBeenCalled()
     expect(parentDialog.disableClose).toBe(true)
-    overlay.querySelector<HTMLButtonElement>(`[data-testid="z-${approved ? 'ok' : 'cancel'}-button"]`).click()
+    overlay.querySelector<HTMLButtonElement>(`[data-testid="z-alert-dialog-${approved ? 'action' : 'cancel'}"]`).click()
     await pending
     expect(parentDialog.disableClose).toBe(false)
     expect(component.loading()).toBe(false)

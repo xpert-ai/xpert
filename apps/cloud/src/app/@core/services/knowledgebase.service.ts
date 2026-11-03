@@ -15,6 +15,7 @@ import {
   KnowledgeVectorStoreOptions,
   KnowledgeKeywordAnalyzerOption,
   KnowledgebaseWikiConfig,
+  KnowledgebaseEmbeddingRebuildInput,
   KnowledgeChunkPreviewInput,
   KnowledgeChunkPreviewResult,
   IKnowledgeGraphEntity,
@@ -226,8 +227,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/recover-embedding-rebuild`, {})
   }
 
-  retryEmbeddingRebuild(id: string) {
-    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/rebuild-embedding`, {})
+  retryEmbeddingRebuild(id: string, input: KnowledgebaseEmbeddingRebuildInput = {}) {
+    return this.httpClient.post<IKnowledgebase>(this.apiBaseUrl + `/${id}/rebuild-embedding`, input)
   }
 
   rebuildGraph(id: string) {

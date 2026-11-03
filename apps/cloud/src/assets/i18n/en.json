@@ -7249,7 +7249,17 @@
           "EmbeddingModel": "Embedding model",
           "EmbeddingModelDescription": "The embedding model used to vectorize text.",
           "WikiModel": "Wiki generation model",
-          "WikiModelDescription": "Optional. When unset, Wiki generation falls back to the LLM above."
+          "WikiModelDescription": "Optional. When unset, Wiki generation falls back to the LLM above.",
+          "SavedTarget": "The selected embedding configuration has been saved.",
+          "ActiveIndexPreserved": "The current index keeps its previous configuration until rebuilding succeeds.",
+          "Rebuilding": "Rebuilding the index. Changes will become active after completion.",
+          "RefreshStatus": "Refresh status",
+          "RetrySavedTarget": "Save batch size and retry",
+          "SaveModelChangesFirst": "Save your model changes before retrying.",
+          "BatchSize": "Embedding processing batch size",
+          "BatchSizeHelp": "Use 1–2048 inputs per processing batch. Requests are split further to respect declared model limits; models without a declared limit use batches of at most 10. Lower this value if your endpoint requires a smaller batch.",
+          "BatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048.",
+          "SavedRebuilding": "Configuration saved. Index rebuilding has started."
         },
         "Vector": {
           "Description": "Configure query vectors, candidate count, and similarity filtering.",

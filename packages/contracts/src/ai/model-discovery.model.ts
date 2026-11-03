@@ -10,6 +10,8 @@ export const discoverableModelTypes = [
 ] as const
 export type DiscoverableModelType = (typeof discoverableModelTypes)[number]
 
+export const DEFAULT_EMBEDDING_BATCH_SIZE = 10
+
 const positiveInteger = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
 const common = { contextSize: positiveInteger, maxConcurrency: positiveInteger.max(1000) }
 
@@ -62,7 +64,7 @@ export function defaultModelConfiguration(modelType: DiscoverableModelType): Mod
     case AiModelTypeEnum.LLM:
       return { modelType, ...common, maxOutputTokens: 2048, defaultMaxTokens: 2048, features: [] }
     case AiModelTypeEnum.TEXT_EMBEDDING:
-      return { modelType, ...common, batchSize: 16 }
+      return { modelType, ...common, batchSize: DEFAULT_EMBEDDING_BATCH_SIZE }
     case AiModelTypeEnum.RERANK:
       return { modelType, ...common }
   }

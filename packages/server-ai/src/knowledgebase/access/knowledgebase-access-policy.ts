@@ -6,6 +6,7 @@ import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 export const KNOWLEDGEBASE_DETAIL_RELATIONS = [
     'copilotModel',
+    'pendingCopilotModel',
     'chatModel',
     'wikiModel',
     'rerankModel',
@@ -52,6 +53,7 @@ export const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     automaticTagging: true,
     permission: true,
     copilotModelId: true,
+    pendingCopilotModelId: true,
     chatModelId: true,
     wikiModelId: true,
     rerankModelId: true,
@@ -74,6 +76,7 @@ export const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     pipelineId: true,
     integrationId: true,
     copilotModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    pendingCopilotModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     chatModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     wikiModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     rerankModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,

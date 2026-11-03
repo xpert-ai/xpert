@@ -3,6 +3,7 @@ import { BadRequestException, Body, Controller, Param, Post, UseGuards } from '@
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions, TenantScopeGuard, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { KnowledgebaseService } from '../management/knowledgebase.service'
+import { embeddingRebuildSchema, EmbeddingRebuildInput } from './embedding-rebuild.schema'
 import { embeddingRecoverySchema, EmbeddingRecoveryInput } from './embedding-recovery.schema'
 
 @Controller()
@@ -10,6 +11,24 @@ import { embeddingRecoverySchema, EmbeddingRecoveryInput } from './embedding-rec
 @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 export class KnowledgebaseRebuildRecoveryController {
     constructor(private readonly knowledgebases: KnowledgebaseService) {}
+
+    @Post(':id/rebuild-embedding')
+    retry(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body(
+            new ZodValidationPipe(
+                embeddingRebuildSchema,
+                () =>
+                    new BadRequestException({
+                        code: 'embedding_rebuild_invalid',
+                        message: t('server-ai:Error.EmbeddingBatchSizeInvalid')
+                    })
+            )
+        )
+        input: EmbeddingRebuildInput
+    ) {
+        return this.knowledgebases.startEmbeddingRebuild(id, input)
+    }
 
     @Post(':id/recover-embedding-rebuild')
     recover(

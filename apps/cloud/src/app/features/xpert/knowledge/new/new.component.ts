@@ -43,6 +43,8 @@ import {
   ICopilotModel,
   IKnowledgebase,
   KnowledgebaseFAQConfig,
+  KnowledgebaseStatusEnum,
+  DEFAULT_EMBEDDING_BATCH_SIZE,
   KnowledgebaseParserConfig,
   KnowledgebaseWikiConfig,
   KnowledgebaseService,
@@ -223,11 +225,31 @@ export class XpertNewKnowledgeComponent {
     ...(this.#initialKnowledgebase?.wikiConfig ?? {})
   })
 
-  readonly copilotModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.copilotModel)
+  readonly copilotModel = model<ICopilotModel | undefined>(
+    this.#initialKnowledgebase?.pendingCopilotModel ?? this.#initialKnowledgebase?.copilotModel
+  )
   readonly chatModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.chatModel ?? undefined)
   readonly wikiModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.wikiModel ?? undefined)
 
-  readonly embeddingBatchSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? 16)
+  readonly embeddingBatchSize = model<number | null>(
+    this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? DEFAULT_EMBEDDING_BATCH_SIZE
+  )
+  readonly rebuildStatus = computed(() => this.existingKnowledgebase()?.status)
+  readonly isEmbeddingRebuilding = computed(() => this.rebuildStatus() === KnowledgebaseStatusEnum.REBUILDING)
+  readonly canRetryEmbedding = computed(
+    () =>
+      !!this.existingKnowledgebase()?.pendingCopilotModel &&
+      [KnowledgebaseStatusEnum.REBUILD_FAILED, KnowledgebaseStatusEnum.REBUILD_REQUIRED].includes(this.rebuildStatus())
+  )
+  readonly embeddingModelChanged = computed(
+    () =>
+      JSON.stringify(this.toComparableWikiModel(this.copilotModel())) !==
+      JSON.stringify(
+        this.toComparableWikiModel(
+          this.existingKnowledgebase()?.pendingCopilotModel ?? this.existingKnowledgebase()?.copilotModel
+        )
+      )
+  )
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
 
   readonly tagKnowledgebaseId = this.#initialKnowledgebase?.id
@@ -410,11 +432,14 @@ export class XpertNewKnowledgeComponent {
       : this.knowledgebaseService.update(knowledgebaseId, this.buildPayload())
     request$.subscribe({
       next: (knowledgebase) => {
-        this.#toastr.success('XP.Messages.SavedSuccessfully', {
-          Default: 'Knowledge base settings saved successfully'
-        })
+        const savedKnowledgebase = knowledgebase as IKnowledgebase
+        this.#toastr.success(
+          savedKnowledgebase.status === KnowledgebaseStatusEnum.REBUILDING
+            ? `${this.i18nPrefix}.Models.SavedRebuilding`
+            : 'XP.Messages.SavedSuccessfully'
+        )
         this.loading.set(false)
-        this.close(knowledgebase as IKnowledgebase)
+        this.close(savedKnowledgebase)
       },
       error: (error) => {
         this.loading.set(false)
@@ -423,8 +448,62 @@ export class XpertNewKnowledgeComponent {
     })
   }
 
+  async refreshEmbeddingState() {
+    const id = this.existingKnowledgebase()?.id
+    if (!id || this.loading()) return
+    this.loading.set(true)
+    try {
+      this.applyEmbeddingState(await firstValueFrom(this.knowledgebaseService.getDetail(id)))
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  async retryEmbeddingRebuild() {
+    if (!this.canRetryEmbedding() || this.embeddingModelChanged() || !this.validEmbeddingBatchSize()) return
+    await this.runEmbeddingAction('retry')
+  }
+
+  async recoverEmbeddingRebuild() {
+    await this.runEmbeddingAction('recover')
+  }
+
+  private async runEmbeddingAction(action: 'retry' | 'recover') {
+    const id = this.existingKnowledgebase()?.id
+    if (!id || this.loading()) return
+    this.loading.set(true)
+    try {
+      await firstValueFrom(
+        action === 'retry'
+          ? this.knowledgebaseService.retryEmbeddingRebuild(id, { embeddingBatchSize: this.embeddingBatchSize() })
+          : this.knowledgebaseService.recoverEmbeddingRebuild(id)
+      )
+      this.applyEmbeddingState(await firstValueFrom(this.knowledgebaseService.getDetail(id)))
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  private applyEmbeddingState(knowledgebase: IKnowledgebase) {
+    const preserveModelDraft = this.embeddingModelChanged()
+    this.existingKnowledgebase.set(knowledgebase)
+    if (!preserveModelDraft) this.copilotModel.set(knowledgebase.pendingCopilotModel ?? knowledgebase.copilotModel)
+  }
+
+  private validEmbeddingBatchSize() {
+    const value = this.embeddingBatchSize()
+    if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 2048) return true
+    this.activeSection.set('models')
+    this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Models.BatchSizeInvalid`))
+    return false
+  }
+
   private validate() {
-    if (this.loading()) {
+    if (this.loading() || this.isEmbeddingRebuilding()) {
       return false
     }
 
@@ -433,6 +512,8 @@ export class XpertNewKnowledgeComponent {
       this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.NameRequired`))
       return false
     }
+
+    if (!this.isFAQ() && !this.validEmbeddingBatchSize()) return false
 
     if (!this.copilotModel()) {
       this.activeSection.set('models')

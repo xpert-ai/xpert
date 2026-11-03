@@ -13,6 +13,31 @@ import { instanceToPlain } from 'class-transformer'
 import { KnowledgebaseDetailDTO } from './knowledgebase-detail.dto'
 
 describe('KnowledgebaseDetailDTO', () => {
+    it('exposes the saved target separately from a legacy active binding without credentials', () => {
+        const payload = instanceToPlain(
+            new KnowledgebaseDetailDTO({
+                id: 'kb',
+                copilotModel: { id: 'old', model: 'same-name', copilotId: null },
+                pendingCopilotModelId: 'new',
+                pendingCopilotModel: {
+                    id: 'new',
+                    model: 'same-name',
+                    copilotId: 'new-connection',
+                    copilot: { modelProvider: { credentials: { api_key: 'must-not-leak' } } }
+                }
+            })
+        )
+        expect(payload.copilotModel).toMatchObject({ copilotId: null })
+        expect(payload.pendingCopilotModel).toMatchObject({
+            id: 'new',
+            model: 'same-name',
+            copilotId: 'new-connection'
+        })
+        expect(payload.pendingCopilotModelId).toBe('new')
+        expect(payload.pendingCopilotModel).not.toHaveProperty('copilot')
+        expect(JSON.stringify(payload)).not.toContain('must-not-leak')
+    })
+
     it('exposes the saved vector storage selection', () => {
         expect(
             instanceToPlain(new KnowledgebaseDetailDTO({ id: 'kb', vectorStore: VectorTypeEnum.MILVUS }))

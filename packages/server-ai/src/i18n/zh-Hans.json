@@ -1371,7 +1371,8 @@
         "IntegrationSharingAdminRequired": "只有租户管理员可以管理集成共享授权",
         "IntegrationUnavailable": "集成不可用或未获授权",
         "IntegrationSharingOrganizationInvalid": "请选择当前租户内的有效组织",
-        "IntegrationSharingInvalid": "集成使用授权或查询参数无效"
+        "IntegrationSharingInvalid": "集成使用授权或查询参数无效",
+        "EmbeddingBatchSizeInvalid": "嵌入批次大小必须为 1–2048 之间的整数。"
     },
     "Mcp": {
         "Test": {

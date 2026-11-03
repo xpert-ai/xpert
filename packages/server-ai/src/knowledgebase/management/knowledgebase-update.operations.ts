@@ -90,6 +90,25 @@ export class KnowledgebaseUpdateOperations {
             ]
         })
         const changes = { ...entity }
+        // Readback state is not writable configuration. Only the rebuild lifecycle
+        // may claim tasks, promote indices or clear a saved target.
+        for (const field of [
+            'status',
+            'embeddingCollectionName',
+            'embeddingModelFingerprint',
+            'embeddingDimensions',
+            'embeddingRevision',
+            'pendingCopilotModel',
+            'pendingCopilotModelId',
+            'pendingEmbeddingCollectionName',
+            'pendingEmbeddingModelFingerprint',
+            'pendingEmbeddingDimensions',
+            'pendingEmbeddingRevision',
+            'rebuildTaskId',
+            'embeddingRebuildError'
+        ] as const) {
+            delete changes[field]
+        }
         delete changes.keywordAnalyzerLocked
         const hasKeywordAnalyzer = Object.prototype.hasOwnProperty.call(changes, 'keywordAnalyzer')
         delete changes.keywordAnalyzer

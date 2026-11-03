@@ -4,6 +4,8 @@ import {
     mapTranslationLanguage,
     ModelUsagePricingContext,
     ModelUsageReport,
+    ModelPropertyKey,
+    readModelConfiguration,
     resolveModelParameterOptions
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
@@ -29,6 +31,7 @@ import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ensureCopilotModelContextSize } from '../../utils/context-size'
 import { resolveModelVisionSupport, setModelVisionSupport } from '../../model-capabilities'
+import { BoundedEmbeddings, embeddingBatchSize } from '../../utils/embedding-batches'
 import { randomUUID } from 'node:crypto'
 import { createNativeModelBudgetGate } from '../../../shared/agent/native-model-budget'
 import { resolveServiceOperationUserId } from '../../../shared/service-operation'
@@ -216,6 +219,22 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             }
         )
 
+        if (copilotModel.modelType === AiModelTypeEnum.TEXT_EMBEDDING && model && 'embedDocuments' in model) {
+            const properties = customModels[0]?.modelProperties
+            const configuration = readModelConfiguration(properties)
+            const declaredLimit = modelProvider
+                .getProviderModels(AiModelTypeEnum.TEXT_EMBEDDING)
+                .find((entry) => entry.model === modelName)?.model_properties?.[ModelPropertyKey.MAX_CHUNKS]
+            return new BoundedEmbeddings(
+                model,
+                embeddingBatchSize(
+                    declaredLimit,
+                    properties?.[ModelPropertyKey.MAX_CHUNKS],
+                    configuration?.modelType === AiModelTypeEnum.TEXT_EMBEDDING ? configuration.batchSize : undefined,
+                    resolvedCopilotModel.options?.[ModelPropertyKey.MAX_CHUNKS]
+                )
+            )
+        }
         if (copilotModel.modelType === AiModelTypeEnum.LLM) {
             applyModelContextSize(model, copilotModel)
             budgetGate.attach(model)
