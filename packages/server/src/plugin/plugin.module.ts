@@ -38,6 +38,7 @@ import { PluginMarketplaceService } from './marketplace/plugin-marketplace.servi
 import { RedisModule } from '../core/redis/redis.module'
 import { PluginMarketplaceSharedCache } from './marketplace/plugin-marketplace-shared-cache'
 import { PluginMarketplaceController } from './marketplace/plugin-marketplace.controller'
+import { PluginMarketplacePublicController } from './marketplace/plugin-marketplace-public.controller'
 import {
 	PluginAccountBindingPermissionService,
 	PluginBoundIdentityLoginPermissionService,
@@ -62,7 +63,12 @@ import { Integration } from '../integration/integration.entity'
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem, Integration]),
 		CqrsModule
 	],
-	controllers: [PluginController, PluginMarketplaceController, SetupPluginsController],
+	controllers: [
+		PluginController,
+		PluginMarketplacePublicController,
+		PluginMarketplaceController,
+		SetupPluginsController
+	],
 	exports: [
 		StrategyBus,
 		XpertToolProviderRegistry,

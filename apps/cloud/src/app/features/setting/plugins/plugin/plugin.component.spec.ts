@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
-import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
+import { PLUGIN_LEVEL, RequestScopeLevel, RolesEnum } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { TPluginWithDownloads } from '../types'
@@ -112,5 +112,24 @@ describe('SettingsPluginComponent', () => {
     expect(fixture.componentInstance.canInstall()).toBe(false)
     fixture.componentInstance.install()
     expect(dialog.open).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [RolesEnum.ADMIN, false, false],
+    [RolesEnum.SUPER_ADMIN, false, false],
+    [RolesEnum.SUPER_ADMIN, true, true]
+  ])('requires an effective platform grant for tenant installation: %s %s', (role, granted, allowed) => {
+    Object.assign(TestBed.inject(Store), {
+      user: { role: { name: role } },
+      hasPermission: () => granted,
+      scopeLevel: RequestScopeLevel.TENANT,
+      scopeLevel$: of(RequestScopeLevel.TENANT)
+    })
+    const fixture = TestBed.createComponent(SettingsPluginComponent)
+    fixture.componentRef.setInput('plugin', plugin)
+    fixture.detectChanges()
+    expect(fixture.componentInstance.canInstall()).toBe(allowed)
+    fixture.componentInstance.install()
+    expect(dialog.open).toHaveBeenCalledTimes(allowed ? 1 : 0)
   })
 })

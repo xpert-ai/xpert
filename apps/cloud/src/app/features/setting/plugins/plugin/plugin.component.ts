@@ -8,7 +8,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Router } from '@angular/router'
 import { PluginComponent } from '@cloud/app/@shared/plugins'
 import { injectActiveScope, injectPluginAPI, injectScopeLevel, Store } from '@cloud/app/@core/state'
-import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
+import { PermissionsEnum, PLUGIN_LEVEL, RequestScopeLevel, RolesEnum } from '@xpert-ai/contracts'
 import { PluginInstallComponent, PluginInstallResult } from '../install/install.component'
 import { TPluginWithDownloads } from '../types'
 import { pluginMarketplaceDetailCommands } from '../marketplace/plugin-marketplace-navigation'
@@ -68,7 +68,14 @@ export class SettingsPluginComponent {
       this.scopeLevel() !== RequestScopeLevel.TENANT
   )
   readonly canInstall = computed(
-    () => !!this.plugin() && !this.installed() && !this.systemPluginUnavailableInCurrentScope()
+    () =>
+      !!this.plugin() &&
+      !this.installed() &&
+      !this.systemPluginUnavailableInCurrentScope() &&
+      ((this.publicCatalog() && !this.#store.token) ||
+        this.scopeLevel() === RequestScopeLevel.ORGANIZATION ||
+        (this.#store.user?.role?.name === RolesEnum.SUPER_ADMIN &&
+          this.#store.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)))
   )
 
   constructor() {

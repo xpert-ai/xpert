@@ -1,5 +1,6 @@
-import { PermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../../shared/decorators/permissions'
+import { TenantScopeGuard } from '../../shared/guards/tenant-scope.guard'
 import {
 	BadRequestException,
 	Body,
@@ -12,20 +13,22 @@ import {
 	Post,
 	Put,
 	Query,
-	StreamableFile
+	StreamableFile,
+	UseGuards
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import type { PluginMarketplaceRegistryItemInput, PluginMarketplaceSourceInput } from '@xpert-ai/contracts'
-import { Public } from '../../shared/decorators'
 import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 @ApiTags('Plugin')
 @Controller('plugin/marketplace')
+@UseGuards(TenantScopeGuard)
 @Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
 export class PluginMarketplaceController {
 	constructor(private readonly pluginMarketplaceService: PluginMarketplaceService) {}
 
 	@Get('assets/icon')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	@Header('Cache-Control', 'private, max-age=86400, immutable')
 	@Header('Vary', 'Authorization, tenant-id, organization-id, x-scope-level')
 	@Header('X-Content-Type-Options', 'nosniff')
@@ -46,6 +49,7 @@ export class PluginMarketplaceController {
 	}
 
 	@Get()
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	async getMarketplace(
 		@Query('targetApp') targetApp?: string,
 		@Query('sourceId') sourceId?: string,
@@ -60,13 +64,8 @@ export class PluginMarketplaceController {
 		})
 	}
 
-	@Get('public')
-	@Public()
-	async getPublicMarketplace(@Query('targetApp') targetApp?: string) {
-		return this.pluginMarketplaceService.listPublicMarketplace({ targetApp })
-	}
-
 	@Get('sources')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	async getMarketplaceSources() {
 		return this.pluginMarketplaceService.listSources()
 	}
@@ -102,6 +101,7 @@ export class PluginMarketplaceController {
 	}
 
 	@Get('detail')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	async getMarketplacePluginDetail(
 		@Query('name') name?: string,
 		@Query('targetApp') targetApp?: string,
@@ -131,6 +131,7 @@ export class PluginMarketplaceController {
 	}
 
 	@Get(':name')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	async getMarketplacePlugin(
 		@Param('name') name: string,
 		@Query('targetApp') targetApp?: string,

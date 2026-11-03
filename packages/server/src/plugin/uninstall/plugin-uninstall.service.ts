@@ -63,6 +63,15 @@ export class PluginUninstallService {
 				: organizationId === GLOBAL_ORGANIZATION_SCOPE
 					? resolveTenantGlobalScopeKey(tenantId)
 					: organizationId)
+		const expectedScopeKey = organizationId === GLOBAL_ORGANIZATION_SCOPE ? tenantGlobalScopeKey : organizationId
+		if (scopeKey !== expectedScopeKey && !(scopeKey === SYSTEM_GLOBAL_SCOPE && allowSystemPlugins)) {
+			throw new ForbiddenException({
+				code: 'plugin_scope_mismatch',
+				message: t('server-ai:Error.PluginScopeMismatch', {
+					defaultValue: 'The plugin scope does not match the authorized management scope.'
+				})
+			})
+		}
 		if (scopeKey === SYSTEM_GLOBAL_SCOPE && !canManageSystemPlugins(GLOBAL_ORGANIZATION_SCOPE, defaultTenantId)) {
 			throw new ForbiddenException('Only super admins can uninstall system plugins')
 		}

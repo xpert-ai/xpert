@@ -10,6 +10,7 @@ import type { PluginInstanceService } from './plugin-instance.service'
 import type { PluginManagementService } from './plugin-management.service'
 
 jest.mock('@xpert-ai/contracts', () => ({
+	...jest.requireActual('@xpert-ai/contracts'),
 	PLUGIN_CONFIGURATION_STATUS: {
 		VALID: 'valid',
 		INVALID: 'invalid'
@@ -54,6 +55,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	),
 	describeXpertToolProvider: jest.fn(),
 	RequestContext: {
+		currentUser: jest.fn(),
 		getOrganizationId: jest.fn(),
 		currentTenantId: jest.fn(),
 		getScope: jest.fn(),
@@ -179,6 +181,22 @@ describe('PluginController', () => {
 			organizationId: 'org-1'
 		})
 		RequestContext.hasRole.mockReturnValue(false)
+		RequestContext.currentUser.mockImplementation(() => ({
+			id: 'user',
+			tenantId: RequestContext.currentTenantId(),
+			roleId: 'role',
+			role: {
+				id: 'role',
+				rolePermissions: [
+					{
+						permission: 'SUPER_ADMIN_EDIT',
+						enabled: true,
+						roleId: 'role',
+						tenantId: RequestContext.currentTenantId()
+					}
+				]
+			}
+		}))
 	})
 
 	afterEach(async () => {

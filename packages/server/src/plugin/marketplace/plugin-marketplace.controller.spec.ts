@@ -1,6 +1,7 @@
 import { HEADERS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { RequestMethod } from '@nestjs/common'
 import { PluginMarketplaceController } from './plugin-marketplace.controller'
+import { PluginMarketplacePublicController } from './plugin-marketplace-public.controller'
 import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 jest.mock('./plugin-marketplace.service', () => ({ PluginMarketplaceService: class {} }))
@@ -13,6 +14,9 @@ jest.mock('../../shared/decorators', () => ({
 describe('marketplace HTTP routes', () => {
 	const pluginMarketplaceService = { listPublicMarketplace: jest.fn() }
 	const controller = new PluginMarketplaceController(pluginMarketplaceService as unknown as PluginMarketplaceService)
+	const publicController = new PluginMarketplacePublicController(
+		pluginMarketplaceService as unknown as PluginMarketplaceService
+	)
 	it('keeps private marketplace routes authenticated and icon responses privately cached', () => {
 		for (const method of [
 			controller.getMarketplace,
@@ -39,7 +43,7 @@ describe('marketplace HTTP routes', () => {
 			errors: []
 		})
 
-		await expect(controller.getPublicMarketplace('xpert')).resolves.toEqual(
+		await expect(publicController.getPublicMarketplace('xpert')).resolves.toEqual(
 			expect.objectContaining({
 				total: 0,
 				items: []
@@ -48,9 +52,8 @@ describe('marketplace HTTP routes', () => {
 		expect(pluginMarketplaceService.listPublicMarketplace).toHaveBeenCalledWith({
 			targetApp: 'xpert'
 		})
-		expect(Reflect.getMetadata(PATH_METADATA, controller.constructor)).toBe('plugin/marketplace')
-		expect(Reflect.getMetadata(PATH_METADATA, controller.getPublicMarketplace)).toBe('public')
-		expect(Reflect.getMetadata(METHOD_METADATA, controller.getPublicMarketplace)).toBe(RequestMethod.GET)
-		expect(Reflect.getMetadata('isPublic', controller.getPublicMarketplace)).toBe(true)
+		expect(Reflect.getMetadata(PATH_METADATA, publicController.constructor)).toBe('plugin/marketplace/public')
+		expect(Reflect.getMetadata(METHOD_METADATA, publicController.getPublicMarketplace)).toBe(RequestMethod.GET)
+		expect(Reflect.getMetadata('isPublic', publicController.constructor)).toBe(true)
 	})
 })

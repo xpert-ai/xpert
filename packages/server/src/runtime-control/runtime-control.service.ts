@@ -8,12 +8,14 @@ import {
 	IRuntimeRestartResponse,
 	IRuntimeRestartStatus,
 	RUNTIME_RESTART_CONFIRMATION,
+	PermissionsEnum,
 	RolesEnum,
 	RuntimeRestartMode
 } from '@xpert-ai/contracts'
-import { getDefaultTenantId } from '@xpert-ai/plugin-sdk'
+import { getDefaultTenantId, RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
+import { evaluatePermissions } from '../shared/guards/permission-policy'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
-import { RequestContext } from '../core/context'
 import { InstanceRegistryService } from '../managed-connection/instance-registry.service'
 import { RuntimeInstanceRetirementDto, RuntimeRestartRequestDto } from './runtime-control.dto'
 import { stalePluginRestart } from './plugin-restart-conflict'
@@ -71,7 +73,7 @@ export class RuntimeControlService {
 		if (RequestContext.currentApiKey()) {
 			return { allowed: false, mode: this.mode, reason: 'interactive-auth-required' }
 		}
-		if (!RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
+		if (!this.hasAdministrativePermission()) {
 			return { allowed: false, mode: this.mode, reason: 'super-admin-required' }
 		}
 
@@ -146,7 +148,13 @@ export class RuntimeControlService {
 	}
 
 	async pluginConvergenceStatus(generation: number): Promise<IPluginRuntimeConvergenceStatus> {
-		const status = await this.coordinator.getPluginConvergenceStatus(generation)
+		const administrator = this.hasAdministrativePermission()
+		const organizationId = RequestContext.getOrganizationId()
+		const status = administrator
+			? await this.coordinator.getPluginConvergenceStatus(generation)
+			: organizationId
+				? await this.coordinator.getPluginConvergenceStatus(generation, organizationId)
+				: null
 		if (!status) {
 			throw new NotFoundException({
 				statusCode: 404,
@@ -154,7 +162,21 @@ export class RuntimeControlService {
 				message: `Plugin runtime convergence generation ${generation} was not found`
 			})
 		}
-		return status
+		if (administrator) return status
+		return {
+			generation: status.generation,
+			status: status.status,
+			targetReplicaCount: status.targetReplicaCount,
+			completedReplicaCount: status.completedReplicaCount,
+			failedReplicaCount: status.failedReplicaCount,
+			...(status.error
+				? {
+						error: t('server-ai:Error.PluginConvergenceFailed', {
+							defaultValue: 'Plugin changes could not be applied. Contact your administrator.'
+						})
+					}
+				: {})
+		}
 	}
 
 	async recordPluginRuntimeChange(input: PluginRuntimeChangeInput): Promise<PluginRuntimeChangeResult> {
@@ -166,6 +188,13 @@ export class RuntimeControlService {
 		reason: string
 	): Promise<PluginRuntimeChangeResult> {
 		return this.coordinator.recordPluginRequirements(requirements, reason)
+	}
+
+	private hasAdministrativePermission(): boolean {
+		return (
+			RequestContext.hasRole(RolesEnum.SUPER_ADMIN) &&
+			evaluatePermissions(RequestContext.currentUser(), [PermissionsEnum.SUPER_ADMIN_EDIT]).allowed
+		)
 	}
 
 	private assertAuthorizedActor(): void {

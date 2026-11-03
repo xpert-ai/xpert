@@ -1,5 +1,7 @@
-import { PermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../shared/decorators/permissions'
+import { TenantScopeGuard } from '../shared/guards/tenant-scope.guard'
+import { PluginManagementGuard } from './plugin-management.guard'
 import {
 	BadRequestException,
 	Body,
@@ -13,6 +15,7 @@ import {
 	Put,
 	Query,
 	UploadedFile,
+	UseGuards,
 	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -53,6 +56,7 @@ import { getCodeRuntimeName, getCodeWorkspacePath } from './source-config'
 import {
 	canManageSystemPlugins,
 	canManageTenantPlugins,
+	canManageGlobalPlugins,
 	canUninstallPlugin,
 	canUpdatePlugin,
 	hasNewerVersion,
@@ -75,9 +79,9 @@ type ParsedJsonObject = {
 }
 
 @ApiTags('Plugin')
-// @UseGuards(OrganizationPermissionGuard)
 @Controller('plugin')
-@Permissions(PermissionsEnum.SUPER_ADMIN_EDIT)
+@UseGuards(TenantScopeGuard)
+@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 export class PluginController {
 	constructor(
 		@Inject(LOADED_PLUGINS)
@@ -159,6 +163,7 @@ export class PluginController {
 	}
 
 	@Post('configuration')
+	@UseGuards(PluginManagementGuard)
 	async getConfiguration(@Body() body: { pluginName: string }): Promise<IPluginConfiguration> {
 		if (!body?.pluginName) {
 			throw new BadRequestException('pluginName is required')
@@ -205,6 +210,7 @@ export class PluginController {
 	}
 
 	@Put('configuration')
+	@UseGuards(PluginManagementGuard)
 	async saveConfiguration(
 		@Body() body: { pluginName: string; config?: Record<string, any> }
 	): Promise<IPluginConfiguration> {
@@ -273,11 +279,13 @@ export class PluginController {
 	 * @returns
 	 */
 	@Post()
+	@UseGuards(PluginManagementGuard)
 	async installPlugin(@Body() body: PluginInstallInput) {
 		return this.pluginManagementService.installPlugin(body)
 	}
 
 	@Post('archive')
+	@UseGuards(PluginManagementGuard)
 	@ApiConsumes('multipart/form-data')
 	@UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
 	async installPluginArchive(@UploadedFile() file: UploadedPluginArchiveFile | undefined, @Body() body: unknown) {
@@ -301,6 +309,7 @@ export class PluginController {
 	}
 
 	@Post('update')
+	@UseGuards(PluginManagementGuard)
 	async updatePlugin(@Body() body: { pluginName: string }) {
 		if (!body?.pluginName) {
 			throw new BadRequestException('pluginName is required')
@@ -310,6 +319,7 @@ export class PluginController {
 	}
 
 	@Post('refresh')
+	@UseGuards(PluginManagementGuard)
 	async refreshPlugin(@Body() body: { pluginName: string }) {
 		if (!body?.pluginName) {
 			throw new BadRequestException('pluginName is required')
@@ -319,6 +329,7 @@ export class PluginController {
 	}
 
 	@Delete('uninstall')
+	@UseGuards(PluginManagementGuard)
 	async uninstall(@Body() body: { names: string[]; organizationId?: string; scopeKey?: string }) {
 		if (!body?.names || body.names.length === 0) {
 			throw new BadRequestException(t('server:Error.PluginNamesRequired'))
@@ -421,7 +432,9 @@ export class PluginController {
 					? organizationId === GLOBAL_ORGANIZATION_SCOPE &&
 						canManageTenantPlugins(plugin.tenantId) &&
 						!!configSchema
-					: plugin.organizationId === organizationId && !!configSchema
+					: plugin.organizationId === organizationId &&
+						!!configSchema &&
+						(organizationId !== GLOBAL_ORGANIZATION_SCOPE || canManageGlobalPlugins())
 		const instance = await this.pluginInstanceService.findOneByPluginName(
 			plugin.name,
 			plugin.organizationId,

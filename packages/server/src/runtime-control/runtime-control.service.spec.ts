@@ -1,9 +1,9 @@
-import { IApiKey, RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
-import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
+import { IApiKey, PermissionsEnum, RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
+import { RequestContext, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common'
-import { RequestContext } from '../core/context'
 import { RuntimeControlService } from './runtime-control.service'
 import type { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
+import i18next from 'i18next'
 
 describe('RuntimeControlService', () => {
 	const coordinator = {
@@ -15,6 +15,9 @@ describe('RuntimeControlService', () => {
 	}
 	const instances = { getRegisteredInstanceDetails: jest.fn(), retireInstance: jest.fn() }
 	let service: RuntimeControlService
+	beforeAll(async () => {
+		await i18next.init({ lng: 'en', resources: {} })
+	})
 
 	beforeEach(() => {
 		jest.resetAllMocks()
@@ -23,6 +26,24 @@ describe('RuntimeControlService', () => {
 		jest.spyOn(RequestContext, 'hasRole').mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
 		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-default')
 		jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+			id: 'user-1',
+			tenantId: 'tenant-default',
+			roleId: 'role',
+			role: {
+				id: 'role',
+				name: RolesEnum.SUPER_ADMIN,
+				rolePermissions: [
+					{
+						roleId: 'role',
+						tenantId: 'tenant-default',
+						permission: PermissionsEnum.SUPER_ADMIN_EDIT,
+						enabled: true,
+						role: { id: 'role', name: RolesEnum.SUPER_ADMIN }
+					}
+				]
+			}
+		})
 		coordinator.requestRestart.mockResolvedValue({
 			accepted: true,
 			restartId: 'restart-1',
@@ -158,6 +179,22 @@ describe('RuntimeControlService', () => {
 		})
 	})
 
+	it('does not advertise or grant restart control after the platform grant is revoked', async () => {
+		const user = RequestContext.currentUser()
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+			...user,
+			role: {
+				...user.role,
+				rolePermissions: user.role.rolePermissions.map((grant) => ({ ...grant, enabled: false }))
+			}
+		})
+		expect(service.restartCapability()).toMatchObject({ allowed: false, reason: 'super-admin-required' })
+		await expect(service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION })).rejects.toBeInstanceOf(
+			ForbiddenException
+		)
+		expect(coordinator.requestRestart).not.toHaveBeenCalled()
+	})
+
 	it('rejects actors outside the default tenant', async () => {
 		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-other')
 
@@ -205,5 +242,29 @@ describe('RuntimeControlService', () => {
 			generation: 4,
 			status: 'completed'
 		})
+	})
+
+	it('limits organization callers to their own change and redacts administrative diagnostics', async () => {
+		jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-a')
+		coordinator.getPluginConvergenceStatus.mockResolvedValue({
+			generation: 4,
+			status: 'failed',
+			restartId: 'private-restart',
+			targetReplicaCount: 1,
+			completedReplicaCount: 0,
+			failedReplicaCount: 1,
+			error: 'private deployment details'
+		})
+		const status = await service.pluginConvergenceStatus(4)
+		expect(coordinator.getPluginConvergenceStatus).toHaveBeenCalledWith(4, 'org-a')
+		expect(status.restartId).toBeUndefined()
+		expect(status.error).not.toContain('private deployment details')
+		coordinator.getPluginConvergenceStatus.mockResolvedValue(null)
+		await expect(service.pluginConvergenceStatus(5)).rejects.toBeInstanceOf(NotFoundException)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+		coordinator.getPluginConvergenceStatus.mockClear()
+		await expect(service.pluginConvergenceStatus(4)).rejects.toBeInstanceOf(NotFoundException)
+		expect(coordinator.getPluginConvergenceStatus).not.toHaveBeenCalled()
 	})
 })
