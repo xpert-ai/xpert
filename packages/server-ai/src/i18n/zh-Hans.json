@@ -737,6 +737,8 @@
         "ModelAccessGrantCannotShorten": "新的到期时间必须晚于当前到期时间。",
         "ModelAccessModelDisabled": "此模型当前已停用。",
         "ModelAccessModelNotFound": "未找到申请的模型。",
+        "ModelParameterRulesForbidden": "所选模型不可用，或您没有访问其参数的权限。",
+        "ModelParameterRulesInvalid": "请提供模型名称和受支持的模型类型以读取参数规则。",
         "ModelAccessXpertModelUnavailable": "数字专家创建者无权使用 {{field}} 中的模型“{{model}}”。",
         "ModelAccessXpertModelTypeRequired": "{{field}} 中的模型“{{model}}”缺少模型类型。",
         "AssistantModelSelectionInvalidList": "Assistant 的用户可切换模型必须是数组。",

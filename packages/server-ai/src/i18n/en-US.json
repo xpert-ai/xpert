@@ -737,6 +737,8 @@
         "ModelAccessGrantCannotShorten": "The new expiration must be later than the current expiration.",
         "ModelAccessModelDisabled": "The model is currently disabled.",
         "ModelAccessModelNotFound": "The requested model was not found.",
+        "ModelParameterRulesForbidden": "The selected model is unavailable or you do not have access to its parameters.",
+        "ModelParameterRulesInvalid": "Provide a model name and a supported model type to read parameter rules.",
         "ModelAccessXpertModelUnavailable": "The model \"{{model}}\" used by {{field}} is not available to the assistant creator.",
         "ModelAccessXpertModelTypeRequired": "The model \"{{model}}\" used by {{field}} is missing its model type.",
         "AssistantModelSelectionInvalidList": "Assistant selectable models must be an array.",

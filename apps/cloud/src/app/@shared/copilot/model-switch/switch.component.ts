@@ -7,12 +7,11 @@ import { ICopilotModel, ModelParameterPolicy, ParameterRule, transitionModelPara
 import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
-import { CopilotProviderService, getErrorMessage } from '../../../@core'
+import { CopilotServerService, getErrorMessage } from '../../../@core'
 
 export interface ModelSwitchData {
   previous: Partial<ICopilotModel> | null
   target: ICopilotModel
-  providerId: string
   connectionName?: string
 }
 
@@ -34,7 +33,7 @@ export interface ModelSwitchData {
 export class ModelSwitchDialogComponent {
   readonly data = inject<ModelSwitchData>(DIALOG_DATA)
   readonly dialog = inject(DialogRef<ICopilotModel>)
-  readonly service = inject(CopilotProviderService)
+  readonly service = inject(CopilotServerService)
   readonly loading = signal(true)
   readonly error = signal('')
   readonly rules = signal<ParameterRule[]>([])
@@ -65,7 +64,11 @@ export class ModelSwitchDialogComponent {
     try {
       this.rules.set(
         await firstValueFrom(
-          this.service.getModelParameterRules(this.data.providerId, this.data.target.modelType, this.data.target.model)
+          this.service.getModelParameterRules(
+            this.data.target.copilotId,
+            this.data.target.modelType,
+            this.data.target.model
+          )
         )
       )
     } catch (error) {

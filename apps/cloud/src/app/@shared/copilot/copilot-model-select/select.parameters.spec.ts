@@ -17,7 +17,6 @@ import {
   type ParameterRule,
   resolveModelParameterOptions
 } from '@xpert-ai/contracts'
-import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { CopilotModelSelectComponent } from './select.component'
 
@@ -115,12 +114,12 @@ describe('model settings parameter editing', () => {
     await TestBed.configureTestingModule({
       imports: [CopilotModelSelectComponent, SettingsHost, TranslateModule.forRoot()],
       providers: [
-        { provide: CopilotServerService, useValue: { getCopilotModels: () => of(catalog) } },
         {
-          provide: CopilotProviderService,
+          provide: CopilotServerService,
           useValue: {
-            getModelParameterRules: (provider: string, type: AiModelTypeEnum, model: string) =>
-              provider === 'provider-one' && model === 'model-a'
+            getCopilotModels: () => of(catalog),
+            getModelParameterRules: (copilotId: string, type: AiModelTypeEnum, model: string) =>
+              copilotId === 'one' && model === 'model-a'
                 ? ruleUpdates
                 : of(rules.map(({ default: _, ...rule }) => rule))
           }

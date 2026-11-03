@@ -78,7 +78,8 @@ describe('available model properties and parameters', () => {
 
   it('uses scoped parameter definitions, displays zero and false, and retries a failed read', () => {
     let failed = true
-    const providerService = {
+    const serverService = {
+      getCopilotModels: () => of([copilot]),
       getModelParameterRules: jest.fn(() =>
         defer(() =>
           failed
@@ -104,18 +105,15 @@ describe('available model properties and parameters', () => {
       providers: [
         { provide: DIALOG_DATA, useValue: { item } },
         { provide: DialogRef, useValue: { close } },
-        { provide: CopilotServerService, useValue: { getCopilotModels: () => of([copilot]) } },
-        { provide: CopilotProviderService, useValue: providerService }
+        { provide: CopilotServerService, useValue: serverService },
+        { provide: CopilotProviderService, useValue: { getModelParameterRules: jest.fn() } }
       ]
     })
     const fixture = TestBed.createComponent(AvailableModelDetailsDialogComponent)
     fixture.detectChanges()
     const host: HTMLElement = fixture.nativeElement
-    expect(providerService.getModelParameterRules).toHaveBeenCalledWith(
-      'provider-instance-a',
-      AiModelTypeEnum.LLM,
-      'reasoner'
-    )
+    expect(serverService.getModelParameterRules).toHaveBeenCalledWith('config-a', AiModelTypeEnum.LLM, 'reasoner')
+    expect(TestBed.inject(CopilotProviderService).getModelParameterRules).not.toHaveBeenCalled()
     expect(host.textContent).toContain('XP.ModelSettings.PropertiesFailed')
     expect(host.textContent).toContain('131,072')
     failed = false
@@ -139,8 +137,11 @@ describe('available model properties and parameters', () => {
       providers: [
         { provide: DIALOG_DATA, useValue: { item } },
         { provide: DialogRef, useValue: { close: jest.fn() } },
-        { provide: CopilotServerService, useValue: { getCopilotModels: () => of([{ ...copilot, id: 'config-b' }]) } },
-        { provide: CopilotProviderService, useValue: { getModelParameterRules } }
+        {
+          provide: CopilotServerService,
+          useValue: { getCopilotModels: () => of([{ ...copilot, id: 'config-b' }]), getModelParameterRules }
+        },
+        { provide: CopilotProviderService, useValue: { getModelParameterRules: jest.fn() } }
       ]
     })
     const fixture = TestBed.createComponent(AvailableModelDetailsDialogComponent)
@@ -156,7 +157,7 @@ describe('available model properties and parameters', () => {
     TestBed.configureTestingModule({
       imports: [AvailableModelDetailsDialogComponent, TranslateModule.forRoot()],
       providers: [
-        { provide: DIALOG_DATA, useValue: { item, metadata } },
+        { provide: DIALOG_DATA, useValue: { item, metadata, access: 'management' } },
         { provide: DialogRef, useValue: { close: jest.fn() } },
         { provide: CopilotServerService, useValue: { getCopilotModels } },
         { provide: CopilotProviderService, useValue: { getModelParameterRules } }
@@ -167,6 +168,26 @@ describe('available model properties and parameters', () => {
     expect(getCopilotModels).not.toHaveBeenCalled()
     expect(getModelParameterRules).toHaveBeenCalledWith('provider-instance-a', AiModelTypeEnum.LLM, 'reasoner')
     expect(fixture.nativeElement.textContent).toContain('131,072')
+    fixture.destroy()
+  })
+
+  it('does not select management access merely because model metadata was supplied', () => {
+    const getModelParameterRules = jest.fn(() => throwError(() => new Error('Model access denied')))
+    const managementRules = jest.fn()
+    TestBed.configureTestingModule({
+      imports: [AvailableModelDetailsDialogComponent, TranslateModule.forRoot()],
+      providers: [
+        { provide: DIALOG_DATA, useValue: { item, metadata: findAvailableModelMetadata(item, [copilot]) } },
+        { provide: DialogRef, useValue: { close: jest.fn() } },
+        { provide: CopilotServerService, useValue: { getModelParameterRules } },
+        { provide: CopilotProviderService, useValue: { getModelParameterRules: managementRules } }
+      ]
+    })
+    const fixture = TestBed.createComponent(AvailableModelDetailsDialogComponent)
+    fixture.detectChanges()
+    expect(getModelParameterRules).toHaveBeenCalledWith(item.copilotId, item.modelType, item.copilotModelId)
+    expect(managementRules).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.textContent).toContain('XP.ModelSettings.PropertiesFailed')
     fixture.destroy()
   })
 })

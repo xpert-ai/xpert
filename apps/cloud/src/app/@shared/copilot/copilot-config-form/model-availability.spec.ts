@@ -8,7 +8,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, AiProviderRole, ICopilotModel, ICopilotWithProvider } from '@xpert-ai/contracts'
 import { BehaviorSubject, of } from 'rxjs'
 import { CopilotServerService, ToastrService } from '../../../@core'
-import { CopilotProviderService } from '../../../@core/services/copilot-provider.service'
 import { CopilotConfigFormComponent } from './form.component'
 
 describe('default model availability after provider edits', () => {
@@ -36,9 +35,8 @@ describe('default model availability after provider edits', () => {
         provideNoopAnimations(),
         {
           provide: CopilotServerService,
-          useValue: { getCopilotModels: () => catalog$, refresh, update, saveRoleDefaults }
+          useValue: { getCopilotModels: () => catalog$, getModelParameterRules, refresh, update, saveRoleDefaults }
         },
-        { provide: CopilotProviderService, useValue: { getModelParameterRules } },
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } },
         {
           provide: Dialog,

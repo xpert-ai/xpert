@@ -44,7 +44,6 @@ import type {
   ProviderModel,
   TCopilotModelOptions
 } from '@xpert-ai/contracts'
-import { injectCopilotProviderService } from '../../../@core/services/copilot-provider.service'
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -54,7 +53,7 @@ import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } fro
 type ModelParameterRulesResourceValue = {
   model: string | undefined
   modelType: AiModelTypeEnum | undefined
-  providerId: string | undefined
+  copilotId: string | undefined
   rules: ParameterRule[]
 }
 
@@ -97,7 +96,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly value$ = signal<ICopilotModel | null>(null)
   readonly disabled = signal(false)
   readonly copilotServer = inject(CopilotServerService)
-  readonly copilotProviderService = injectCopilotProviderService()
   readonly i18n = new XpI18nPipe()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #destroyRef = inject(DestroyRef)
@@ -284,8 +282,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
 
-  readonly providerId = computed(() => this.selectedCopilotWithModels()?.modelProvider?.id)
-
   readonly model = computed(() => this._copilotModel()?.model)
 
   readonly selectedAiModel = computed(() =>
@@ -296,13 +292,13 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   readonly #modelParameterRules = myRxResource({
     request: () => ({
-      providerId: this.showParameters() && this.selectedAiModel() ? this.providerId() : undefined,
+      copilotId: this.showParameters() && this.selectedAiModel() ? this.copilotId() : undefined,
       modelType: this.modelType(),
       model: this.model()
     }),
     loader: ({ request }) =>
-      request.providerId && request.modelType && request.model
-        ? this.copilotProviderService.getModelParameterRules(request.providerId, request.modelType, request.model).pipe(
+      request.copilotId && request.modelType && request.model
+        ? this.copilotServer.getModelParameterRules(request.copilotId, request.modelType, request.model).pipe(
             map(
               (rules): ModelParameterRulesResourceValue => ({
                 ...request,
@@ -328,7 +324,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
     const resource = this.#modelParameterRules.value()
     return (
-      resource?.providerId === this.providerId() &&
+      resource?.copilotId === this.copilotId() &&
       resource?.modelType === this.modelType() &&
       resource?.model === this.model()
     )
@@ -490,7 +486,6 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
         data: {
           previous: effectiveValue,
           target: nValue,
-          providerId: copilot.modelProvider?.id,
           connectionName: copilot.name
         }
       }).closed
@@ -500,14 +495,14 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
   async editParameters(event: Event) {
     event.stopPropagation()
-    if (this.interactionDisabled() || !this._copilotModel()?.model || !this.providerId()) return
+    if (this.interactionDisabled() || !this._copilotModel()?.model || !this.copilotId()) return
     const current = this.value$()
     const result = await firstValueFrom(
       this.#dialog.open<ICopilotModel>(ModelParametersDialogComponent, {
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
         maxWidth: 'calc(100vw - 32px)',
-        data: { model: this._copilotModel(), providerId: this.providerId() }
+        data: { model: this._copilotModel() }
       }).closed
     )
     if (result && !this.#destroyRef.destroyed && this.value$() === current) this.updateValue(result)
