@@ -1,19 +1,16 @@
 import { ConnectionReferencesService } from './connection-references.service'
-import { BadRequestException } from '@nestjs/common'
+import { ConnectionDeletionService } from './connection-deletion/connection-deletion.service'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { LegacyProviderRole, AIPermissionsEnum, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
-import {
-    FindOptionsWhere,
-    PaginationParams,
-    RequestContext,
-    TenantOrganizationAwareCrudService
-} from '@xpert-ai/server-core'
+import { FindOptionsWhere, PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { assign, compact, uniq } from 'lodash'
+import { assign, compact, pick, uniq } from 'lodash'
 import { IsNull, Repository } from 'typeorm'
 import { ListModelProvidersQuery } from '../ai-model'
 import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
@@ -26,6 +23,30 @@ import { usesOrganizationCredentials } from './utils'
 
 @Injectable()
 export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> {
+    @Inject(ConnectionDeletionService)
+    private readonly deletion: ConnectionDeletionService
+
+    deletionImpact(id: string) {
+        return this.deletion.inspect(id)
+    }
+
+    async delete(id: string) {
+        return this.deletion.delete(id)
+    }
+
+    async softRemove(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async softDelete(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async softRecover(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+    async restoreSoftDelete(): Promise<never> {
+        return this.deletion.rejectRestore()
+    }
+
     async connectionReferences(id: string) {
         await this.findOne(id)
         return this.references.inspect(id)
@@ -269,8 +290,33 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         if (entity.enabled === false && copilot.enabled && (await this.references.inspect(id)).defaults)
             throw new BadRequestException(t('server-ai:Error.ModelDefaultInUse'))
         const wasEnabled = copilot.enabled
-        assign(copilot, entity)
-        const saved = await this.repository.save(copilot)
+        const saved = await this.repository.manager.transaction(async (manager) => {
+            const current = await manager.findOne(Copilot, {
+                where: { id, tenantId: copilot.tenantId, organizationId: copilot.organizationId ?? IsNull() },
+                loadEagerRelations: false,
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!current) throw new NotFoundException(t('server-ai:Error.ConnectionNotFound'))
+            // Preserve identity and deletion state; serialize re-enabling with permanent removal.
+            return manager.save(
+                Copilot,
+                assign(
+                    current,
+                    pick(
+                        entity,
+                        'name',
+                        'role',
+                        'enabled',
+                        'showTokenizer',
+                        'tokenBalance',
+                        'options',
+                        'copilotModel',
+                        'copilotModelId'
+                    ),
+                    { updatedById: RequestContext.currentUserId() }
+                )
+            )
+        })
         if (entity.enabled !== undefined && saved.enabled !== wasEnabled) {
             await this.modelAccessService.handleCopilotStateChanged(saved)
         }

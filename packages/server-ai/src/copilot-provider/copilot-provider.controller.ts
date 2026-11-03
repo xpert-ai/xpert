@@ -24,6 +24,8 @@ import {
     Controller,
     ForbiddenException,
     Get,
+    HttpCode,
+    HttpStatus,
     Param,
     Post,
     Put,
@@ -65,6 +67,14 @@ const validationTargetPipe = new ZodValidationPipe(
 @Controller()
 @Permissions(AIPermissionsEnum.COPILOT_EDIT)
 export class CopilotProviderController extends CrudController<CopilotProvider> {
+    @Delete(':id')
+    @HttpCode(HttpStatus.ACCEPTED)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.COPILOT_EDIT)
+    async delete(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.delete(id)
+    }
+
     @Inject(ConfigService)
     private readonly configService: ConfigService
     @Inject(AIProvidersService)

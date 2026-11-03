@@ -1,4 +1,5 @@
 import { ConnectionReferencesService } from './connection-references.service'
+import { ConnectionDeletionModule } from './connection-deletion/connection-deletion.module'
 import { CopilotModel } from '../copilot-model/copilot-model.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Module } from '@nestjs/common'
@@ -25,6 +26,7 @@ import { CopilotRoleDefaultController } from './role-defaults/role-default.contr
 
 @Module({
     imports: [
+        ConnectionDeletionModule,
         RouterModule.register([{ path: '/copilot', module: CopilotModule }]),
         TypeOrmModule.forFeature([Copilot, CopilotRoleDefault, CopilotModel, Xpert]),
         TenantModule,

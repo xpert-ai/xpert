@@ -86,6 +86,7 @@
               (selected)="choose(group, $event)"
               (edit)="editConnection(group.schema, $event)"
               (toggle)="toggleConnection($event)"
+              (remove)="deleteConnection($event)"
               (add)="addProvider(group.schema)"
             />
           </copilot-provider>

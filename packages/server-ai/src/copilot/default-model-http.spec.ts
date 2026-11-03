@@ -17,7 +17,7 @@ describe('default model routing and setup boundary', () => {
     let allowed = true
     const queries = { execute: jest.fn() }
     const defaults = { setupConnection: jest.fn() }
-    const connections = { enableRole: jest.fn(), update: jest.fn() }
+    const connections = { enableRole: jest.fn(), update: jest.fn(), delete: jest.fn(), deletionImpact: jest.fn() }
     beforeAll(async () => {
         const module = await Test.createTestingModule({
             controllers: [CopilotController],
@@ -76,6 +76,21 @@ describe('default model routing and setup boundary', () => {
         expect((await fetch(`${url}/default-models/primary/setup`)).status).toBe(403)
         expect((await fetch(`${url}/default-models/primary/setup`, { method: 'POST' })).status).toBe(403)
         expect(defaults.setupConnection).not.toHaveBeenCalled()
+    })
+    it('protects deletion and dependency inspection and validates connection IDs', async () => {
+        const id = '9d20b9c8-596a-4c53-a21d-78ee898cd012'
+        allowed = false
+        expect((await fetch(`${url}/${id}`, { method: 'DELETE' })).status).toBe(403)
+        expect((await fetch(`${url}/${id}/deletion-impact`)).status).toBe(403)
+        expect(connections.delete).not.toHaveBeenCalled()
+        expect(connections.deletionImpact).not.toHaveBeenCalled()
+        allowed = true
+        expect((await fetch(`${url}/not-a-uuid`, { method: 'DELETE' })).status).toBe(406)
+        expect((await fetch(`${url}/not-a-uuid/deletion-impact`)).status).toBe(406)
+        expect((await fetch(`${url}/${id}`, { method: 'DELETE' })).status).toBe(202)
+        expect(connections.delete).toHaveBeenCalledWith(id)
+        expect((await fetch(`${url}/${id}/deletion-impact`)).status).toBe(200)
+        expect(connections.deletionImpact).toHaveBeenCalledWith(id)
     })
     it('returns setup identity without credentials and enables its assigned connection by ID', async () => {
         defaults.setupConnection.mockResolvedValue({

@@ -90,4 +90,32 @@ describe('provider connection management', () => {
     expect(overlay.querySelector('[role="dialog"]')).not.toBeNull()
     expect(fixture.componentInstance.open()).toBe(true)
   })
+  it.each([true, false])('offers deletion only for a disabled connection (enabled=%s)', async (enabled) => {
+    TestBed.configureTestingModule({ imports: [ProviderConnectionsComponent, TranslateModule.forRoot()] })
+    const fixture = TestBed.createComponent(ProviderConnectionsComponent)
+    const row = { ...connection, enabled }
+    fixture.componentRef.setInput('connections', [row])
+    fixture.componentRef.setInput('selectedId', row.id)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const removed = jest.fn()
+    fixture.componentInstance.remove.subscribe(removed)
+    fixture.componentInstance.popover().show()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    overlay.querySelector<HTMLButtonElement>('[z-menu]').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const items = [...overlay.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+    expect(items).toHaveLength(enabled ? 1 : 2)
+    if (!enabled) {
+      expect(items[1].textContent).toContain('XP.Copilot.Deletion.Title')
+      items[1].click()
+      expect(removed).toHaveBeenCalledWith(row)
+    } else {
+      fixture.componentInstance.deleteConnection(row)
+      expect(removed).not.toHaveBeenCalled()
+    }
+  })
 })

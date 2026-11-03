@@ -4451,6 +4451,27 @@
       "ExchangeRate": "Exchange rate",
       "Operation": "Operation",
       "Pricing": "Pricing",
+      "Deletion": {
+        "Title": "Delete connection",
+        "Description": "Permanently delete this connection, its credentials and custom model configuration? Other connections and historical usage records are preserved. This action cannot be undone.",
+        "MustDisable": "This connection is enabled. Disable it before deleting.",
+        "InUse": "This connection still has business references and cannot be deleted.",
+        "CleanupHint": "Update default models, migrate and publish Assistant changes, and clear the listed configuration or access references. End active executions or wait for their grants to expire, then check again. Tenant connections may be referenced by other organizations.",
+        "Recheck": "Check references again",
+        "References": {
+          "defaults": "Default models",
+          "assistants": "Current Assistants (draft and published)",
+          "knowledgebases": "Knowledgebases",
+          "projects": "Projects",
+          "connections": "Other connections",
+          "gateways": "Model gateway publications",
+          "membershipPlans": "Membership model rules",
+          "accessGrants": "Active model access grants",
+          "accessRequests": "Pending model access requests",
+          "executions": "Active execution grants",
+          "voiceSessions": "Active voice sessions"
+        }
+      },
       "Management": {
         "DefaultGroup": {
           "roles": "Role defaults",
