@@ -44,6 +44,6 @@ import { CurrentUserPermissionsService } from './permissions/current-user-permis
 		...CommandHandlers,
 		...EventHandlers
 	],
-	exports: [TypeOrmModule, UserService, CqrsModule]
+	exports: [TypeOrmModule, UserService, CqrsModule, ExecutionUserLoader]
 })
 export class UserModule {}

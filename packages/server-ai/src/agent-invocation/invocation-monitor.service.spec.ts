@@ -1,3 +1,5 @@
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -60,7 +62,11 @@ async function fixture(technical = false) {
         execute: jest.fn(async (command: unknown) =>
             command instanceof ResolveAssistantExecutionIdentityCommand
                 ? identity.execute(command)
-                : { stream: of({ type: 'done' }) }
+                : command instanceof ResolveExecutionIdentityCommand
+                  ? (await membership.findOne())
+                      ? executionIdentityFixture(command.actor)
+                      : Promise.reject(new Error('Access revoked'))
+                  : { stream: of({ type: 'done' }) }
         )
     }
     const queries = {
@@ -170,7 +176,9 @@ describe('durable invocation completion monitor', () => {
         const f = await fixture()
         await Promise.all([f.monitor.process(f.wait), f.monitor.process(f.wait)])
         expect(f.inspect).toHaveBeenCalledTimes(1)
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.wait.state).toBe('ready')
         f.queries.execute
             .mockResolvedValueOnce({
@@ -185,8 +193,11 @@ describe('durable invocation completion monitor', () => {
             })
             .mockResolvedValue({ checkpoint: { id: 'later' }, pendingWrites: [] })
         await f.monitor.deliver(f.wait)
-        expect(f.commands.execute).toHaveBeenCalledTimes(1)
-        expect(f.commands.execute.mock.calls[0][0]).toMatchObject({
+        const runs = f.commands.execute.mock.calls.filter(
+            ([command]) => !(command instanceof ResolveExecutionIdentityCommand)
+        )
+        expect(runs).toHaveLength(1)
+        expect(runs[0][0]).toMatchObject({
             threadId: 'thread',
             invocationResume: {
                 invocationId: 'invocation',
@@ -205,7 +216,9 @@ describe('durable invocation completion monitor', () => {
         f.membership.findOne.mockResolvedValue(null)
         await f.monitor.process(f.wait)
         expect(f.inspect).not.toHaveBeenCalled()
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.records.update).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ lastError: 'continuation_pending' })
@@ -216,7 +229,9 @@ describe('durable invocation completion monitor', () => {
         f.queries.execute.mockResolvedValue({ checkpoint: { id: 'new' }, pendingWrites: [] })
         f.wait.state = 'ready'
         await f.monitor.deliver(f.wait)
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.wait.state).toBe('stale')
     })
     it('does not resume an expired wait that is already asking for human approval', async () => {
@@ -248,7 +263,9 @@ describe('durable invocation completion monitor', () => {
         }))
         await f.monitor.process(f.wait)
         expect(f.wait.state).toBe('blocked')
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
     })
     it('does not deliver a queued automatic wake-up over a newly created human checkpoint', async () => {
         const f = await fixture()
@@ -273,7 +290,9 @@ describe('durable invocation completion monitor', () => {
             ]
         }))
         await f.monitor.deliver(f.wait)
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.wait.state).toBe('blocked')
     })
     it('rejects malformed persisted dependency groups before inspecting a provider', async () => {
@@ -294,20 +313,26 @@ describe('durable invocation completion monitor', () => {
         )
         await f.monitor.process(f.wait)
         expect(f.inspect).not.toHaveBeenCalled()
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
     })
     it('does not start parent continuation during service shutdown', async () => {
         const f = await fixture()
         f.monitor.onModuleDestroy()
         await f.monitor.process(f.wait)
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.records.update).not.toHaveBeenCalled()
     })
     it('keeps ambiguous provider outcomes recoverable without relaunching', async () => {
         const f = await fixture()
         f.inspect.mockResolvedValue({ status: 'unknown', result: undefined })
         await f.monitor.process(f.wait)
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
         expect(f.records.update).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ lastError: 'outcome_unknown', state: 'waiting' })
@@ -319,7 +344,9 @@ describe('durable invocation completion monitor', () => {
         f.inspect.mockResolvedValue({ status: 'unknown', result: undefined })
         await f.monitor.process(f.wait)
         expect(f.wait).toMatchObject({ state: 'ready', outcome: 'unavailable' })
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
     })
     it('does not repeatedly wake a parent already showing the same human interaction', async () => {
         const f = await fixture()
@@ -349,6 +376,8 @@ describe('durable invocation completion monitor', () => {
         }))
         await f.monitor.process(f.wait)
         expect(f.wait.state).toBe('waiting')
-        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => !(command instanceof ResolveExecutionIdentityCommand))
+        ).toHaveLength(0)
     })
 })

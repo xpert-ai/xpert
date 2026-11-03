@@ -1,3 +1,4 @@
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -197,11 +198,10 @@ integration('durable task wait isolation / PostgreSQL', () => {
             {
                 findOne: async () => ({ id: scope.userId, tenantId: scope.tenantId, type: UserType.USER })
             } as unknown as Repository<User>,
-            { findOne: async () => ({ id: 'membership' }) } as unknown as Repository<UserOrganization>,
             {} as Repository<XpertAgentExecution>,
             { createScopedApi: () => ({ inspect }) } as unknown as AgentInvocationFactoryService,
             {} as QueryBus,
-            {} as CommandBus
+            { execute: async () => executionIdentityFixture(scope) } as unknown as CommandBus
         )
     }
     it('preserves a single-task checkpoint and supports repeated upgrades and independent group IDs', async () => {

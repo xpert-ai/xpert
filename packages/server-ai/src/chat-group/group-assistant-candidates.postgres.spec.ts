@@ -1,3 +1,5 @@
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { randomUUID } from 'node:crypto'
 import { DataSource } from 'typeorm'
 import { Organization, User, UserGroup, UserOrganization } from '@xpert-ai/server-core'
@@ -51,7 +53,13 @@ postgres('published group candidates with real PostgreSQL authorization and pagi
         await db.query(`CREATE SCHEMA "${schema}"`)
         await db.synchronize()
         published = new PublishedXpertAccessService(db.getRepository(Xpert))
-        catalog = new GroupCatalogService(db, new GroupAccessService(db, published), published)
+        catalog = new GroupCatalogService(
+            db,
+            new GroupAccessService(db, published, {
+                execute: async (command: ResolveExecutionIdentityCommand) => executionIdentityFixture(command.actor)
+            } as never),
+            published
+        )
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(scope.tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(scope.organizationId)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner')
@@ -59,8 +67,8 @@ postgres('published group candidates with real PostgreSQL authorization and pagi
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
         jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(false)
         await db.getRepository(Organization).save([
-            { id: 'org', isActive: true },
-            { id: 'elsewhere', isActive: true }
+            { id: 'org', tenantId: 'tenant', isActive: true },
+            { id: 'elsewhere', tenantId: 'tenant', isActive: true }
         ])
         await db
             .getRepository(User)

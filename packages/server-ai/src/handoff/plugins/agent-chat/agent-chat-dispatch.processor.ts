@@ -1,4 +1,4 @@
-import { ResolveRuntimeUserCommand } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { withGroupRuntime } from '../../../chat-group/group-runtime-context'
 import {
     PrepareGroupChatCommand,
@@ -31,7 +31,7 @@ import { normalizeChatSourceAuditOptions } from '../../../shared/agent/source-au
 import { captureRequestContext, runWithCapturedRequestContext } from '../../../shared/request-context'
 
 type RuntimeRequestContext = {
-    user?: IApiPrincipal | { id: string; tenantId: string }
+    user?: IUser
     headers: Record<string, string>
 }
 
@@ -472,7 +472,16 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         }
         const user = userId
             ? message.headers?.authenticatedUserId === userId
-                ? await this.commandBus.execute(new ResolveRuntimeUserCommand(message.tenantId, userId, organizationId))
+                ? (
+                      await this.commandBus.execute(
+                          new ResolveExecutionIdentityCommand({
+                              tenantId: message.tenantId,
+                              userId,
+                              organizationId,
+                              kind: 'user'
+                          })
+                      )
+                  ).user
                 : { id: userId, tenantId: message.tenantId }
             : undefined
 

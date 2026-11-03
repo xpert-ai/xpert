@@ -4,11 +4,11 @@ import { Job } from 'bull'
 import { DataSource } from 'typeorm'
 import { getConfig } from '@xpert-ai/server-config'
 import { AIPermissionsEnum, UserType } from '@xpert-ai/contracts'
-import { User } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity, User } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
 import { APP_PLATFORM_QUEUE, AppPlatformService } from './app-platform.service'
 import { AppPlatformDelivery } from './app-platform-delivery.entity'
 import { PlatformProvisionerService } from './platform-provisioner.service'
-import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { appPlatformJobSchema } from './app-platform-job.schema'
 
 @Processor(APP_PLATFORM_QUEUE)
@@ -18,7 +18,8 @@ export class AppPlatformWorker {
     constructor(
         private readonly database: DataSource,
         private readonly platform: AppPlatformService,
-        private readonly provisioner: PlatformProvisionerService
+        private readonly provisioner: PlatformProvisionerService,
+        private readonly commands: CommandBus
     ) {}
     @Process({ concurrency: 2 })
     run(job: Pick<Job<unknown>, 'data'>) {
@@ -66,9 +67,16 @@ export class AppPlatformWorker {
             // Revalidate each account through the normal delivery service. Terminal job failures
             // retain explicit retry semantics; recovery only compensates missing dispatches.
             for (const user of users) {
-                await runWithCapturedRequestContext(captureRequestContext({ user, tenantId: user.tenantId }), () =>
-                    this.platform.ensureForCurrentUser()
-                ).catch(() => undefined)
+                await this.commands
+                    .execute(
+                        new ResolveExecutionIdentityCommand({
+                            tenantId: user.tenantId,
+                            userId: user.id,
+                            kind: 'user'
+                        })
+                    )
+                    .then((identity) => runWithExecutionIdentity(identity, () => this.platform.ensureForCurrentUser()))
+                    .catch(() => undefined)
             }
         } finally {
             this.recovering = false

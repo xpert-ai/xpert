@@ -82,7 +82,7 @@ import {
     ScheduledTaskExecutionCoordinator,
     TypeOrmScheduledTaskExecutionStore
 } from './scheduled-task-execution.coordinator'
-import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
+import { runWithTaskExecutionIdentity } from './execution-identity/task-execution-identity'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../xpert-project/services/project-xpert-binding.service'
 import { XpertProject } from '../xpert-project/entities/project.entity'
@@ -442,16 +442,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     ) {
         try {
             const task = await this.findOne(id, {
-                // Reload enabled permissions for this run; a saved identity is not a permission grant.
-                relations: [
-                    'xpert',
-                    'createdBy',
-                    'createdBy.role',
-                    'createdBy.role.rolePermissions',
-                    'runAsUser',
-                    'runAsUser.role',
-                    'runAsUser.role.rolePermissions'
-                ]
+                relations: ['xpert', 'createdBy', 'runAsUser']
             })
             const actor = task.runAsUser ?? task.createdBy
             if (!actor) {
@@ -462,8 +453,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 await this.pauseInvalidProjectTask(task, reason)
                 throw new BadRequestException(reason)
             }
-            return await this.runWithTaskRequestContext(task, actor, () =>
-                this.executeLoadedTask(task, actor, options, scheduledAt, scheduledExecution)
+            return await this.runWithTaskRequestContext(task, actor, (currentActor) =>
+                this.executeLoadedTask(task, currentActor, options, scheduledAt, scheduledExecution)
             )
         } catch (error) {
             if (scheduledExecution) {
@@ -685,19 +676,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             job.start()
         }
 
-        if (RequestContext.currentUser()) {
-            scheduleJob()
-        } else {
-            void this.runWithTaskRequestContext(task, user, () => {
-                try {
-                    scheduleJob()
-                } catch (err) {
-                    console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
-                }
-            }).catch((err) => {
-                this.#logger.error(err)
-            })
-        }
+        scheduleJob()
 
         this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
     }
@@ -782,19 +761,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     private runWithTaskRequestContext<T>(
         task: Pick<IXpertTask, 'tenantId' | 'organizationId'>,
         user: IUser,
-        callback: () => T | Promise<T>
+        callback: (user: IUser) => T | Promise<T>
     ): Promise<T> {
-        if (!user) {
-            return Promise.resolve(callback())
-        }
-
-        const context = captureRequestContext({
-            user,
-            tenantId: task.tenantId,
-            organizationId: task.organizationId,
-            language: user.preferredLanguage
-        })
-        return runWithCapturedRequestContext(context, callback)
+        return runWithTaskExecutionIdentity(this.commandBus, task, user?.id, callback)
     }
 
     async removeTasks(tasks: XpertTask[]) {
@@ -2555,20 +2524,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             await lastValueFrom(observable.pipe(toArray()))
         }
 
-        const createdBy = (task as unknown as { createdBy?: IUser }).createdBy
-        if (RequestContext.currentUser()) {
-            await execute()
-        } else if (createdBy) {
-            const context = captureRequestContext({
-                user: createdBy,
-                tenantId: task.tenantId,
-                organizationId: task.organizationId,
-                language: createdBy.preferredLanguage
-            })
-            await runWithCapturedRequestContext(context, execute)
-        } else {
-            throw new BadRequestException('Missing createdBy context for auto task execution')
-        }
+        await runWithTaskExecutionIdentity(this.commandBus, task, task.createdById, execute)
 
         const now = new Date()
         task.lastRunAt = now

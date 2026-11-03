@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { withGroupRuntime } from './group-runtime-context'
 import { ApiKeyBindingType, SecretTokenBindingType } from '@xpert-ai/contracts'
@@ -39,6 +41,12 @@ describe('group authorization boundary', () => {
         const module = await Test.createTestingModule({
             providers: [
                 GroupAccessService,
+                {
+                    provide: CommandBus,
+                    useValue: {
+                        execute: jest.fn(async () => executionIdentityFixture({ tenantId, organizationId, userId }))
+                    }
+                },
                 { provide: PublishedXpertAccessService, useValue: {} },
                 {
                     provide: DataSource,

@@ -14,7 +14,7 @@ export const groupCandidateTestEntities = [
     new EntitySchema<Organization>({
         name: 'Organization',
         target: Organization,
-        columns: { id, isActive: { type: 'boolean' } }
+        columns: { id, tenantId: text, isActive: { type: 'boolean' } }
     }),
     new EntitySchema<User>({
         name: 'User',

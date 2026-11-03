@@ -1,3 +1,6 @@
+import { CqrsModule } from '@nestjs/cqrs'
+import { ExecutionContextLifecycleModule } from '../user/execution-identity/execution-context-lifecycle.module'
+import { ManagedQueueIdentityAdapter } from './managed-queue-identity.adapter'
 import { TaskControlModule, ControlRuntimeAdmissionService } from '../task-control'
 import { AdmittedManagedQueueProcessor, AdmittedBrowserManagedQueueProcessor } from './admitted-queue.processor'
 import { MANAGED_QUEUE_ADMITTED_NAME, MANAGED_QUEUE_ADMITTED_BROWSER_NAME } from './constants'
@@ -38,6 +41,8 @@ const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
 @Global()
 @Module({
 	imports: [
+		CqrsModule,
+		ExecutionContextLifecycleModule,
 		TaskControlModule,
 		BullModule.registerQueue(
 			{ name: MANAGED_QUEUE_ADMITTED_NAME, prefix: MANAGED_QUEUE_PHYSICAL_QUEUE_PREFIX },
@@ -82,6 +87,7 @@ const MANAGED_QUEUE_PROCESSOR_PROVIDERS = [
 		})
 	],
 	providers: [
+		ManagedQueueIdentityAdapter,
 		{
 			provide: 'MANAGED_QUEUE_CONTROL_ADMISSION',
 			inject: [ControlRuntimeAdmissionService, ManagedQueueHandlerRegistryService],

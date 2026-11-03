@@ -1,10 +1,9 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { In, LessThanOrEqual, Repository } from 'typeorm'
-import { User } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
+import { In, LessThanOrEqual } from 'typeorm'
+import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { ContentOperations } from './content-operations.service'
 import { ContentCatalogService } from './content-catalog.service'
-import { runWithCapturedRequestContext } from '../../shared/request-context'
 
 @Injectable()
 export class ContentCatalogMaintenance implements OnModuleInit, OnModuleDestroy {
@@ -14,7 +13,7 @@ export class ContentCatalogMaintenance implements OnModuleInit, OnModuleDestroy 
     constructor(
         private readonly operations: ContentOperations,
         private readonly catalog: ContentCatalogService,
-        @InjectRepository(User) private readonly users: Repository<User>
+        private readonly commands: CommandBus
     ) {}
     onModuleInit() {
         this.timer = setInterval(() => void this.repair(), 30_000)
@@ -42,17 +41,14 @@ export class ContentCatalogMaintenance implements OnModuleInit, OnModuleDestroy 
                 if (!claimed.affected) continue
                 try {
                     const actor = row.payload.input.actor
-                    const user = await this.users.findOneOrFail({
-                        where: { id: actor.userId, tenantId: actor.tenantId }
-                    })
-                    await runWithCapturedRequestContext(
-                        { user, headers: { 'tenant-id': actor.tenantId, 'organization-id': actor.organizationId } },
-                        async () => {
-                            if (row.payload.kind === 'create') await this.catalog.create(row.payload.input)
-                            else if (row.payload.kind === 'duplicate') await this.catalog.mutate(row.payload.input)
-                            else await this.catalog.reconcile(row.payload.input)
-                        }
+                    const identity = await this.commands.execute(
+                        new ResolveExecutionIdentityCommand({ ...actor, kind: 'user' })
                     )
+                    await runWithExecutionIdentity(identity, async () => {
+                        if (row.payload.kind === 'create') await this.catalog.create(row.payload.input)
+                        else if (row.payload.kind === 'duplicate') await this.catalog.mutate(row.payload.input)
+                        else await this.catalog.reconcile(row.payload.input)
+                    })
                     await this.operations.finish(row)
                 } catch (error) {
                     await this.operations.finish(row, error)

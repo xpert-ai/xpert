@@ -284,13 +284,8 @@ integration('managed project task projection concurrency', () => {
             concurrency: 1,
             handler: (job, scope) => replica.handle(job, scope)
         })
-        const users = { findOneByIdWithinTenant: jest.fn(async (id: string, tenantId: string) => ({ id, tenantId })) }
-        const processor = new ManagedQueueProcessor(
-            handlers,
-            users as unknown as UserService,
-            undefined as never,
-            undefined as never
-        )
+        const users = { resolve: jest.fn(async (id: string, tenantId: string) => ({ id, tenantId })) }
+        const processor = new ManagedQueueProcessor(handlers, users as never, undefined as never, undefined as never)
         const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
             connection: connection(),
             concurrency: 10,

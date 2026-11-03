@@ -1,9 +1,7 @@
 import { ContentCatalogMaintenance } from './content-catalog-maintenance.service'
-import { runWithCapturedRequestContext } from '../../shared/request-context'
-
-jest.mock('../../shared/request-context', () => ({
-    runWithCapturedRequestContext: jest.fn((_context, work) => work())
-}))
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { executionIdentityFixture } from '../../shared/testing/execution-identity.fixture'
 
 const actor = { tenantId: 'tenant', organizationId: 'organization', userId: 'human' }
 function fixture() {
@@ -15,7 +13,7 @@ function fixture() {
     const rows = { find: jest.fn(async () => [row]), update: jest.fn(async () => ({ affected: 1 })) }
     const operations = { rows, finish: jest.fn() }
     const catalog = { reconcile: jest.fn(), create: jest.fn(), mutate: jest.fn() }
-    const users = { findOneOrFail: jest.fn(async () => ({ id: actor.userId, tenantId: actor.tenantId })) }
+    const users = { execute: jest.fn(async () => executionIdentityFixture(actor)) }
     return {
         row,
         rows,
@@ -28,14 +26,12 @@ function fixture() {
 beforeEach(() => jest.clearAllMocks())
 it('leases persisted work and restores the real actor context before reauthorization', async () => {
     const f = fixture()
+    f.catalog.reconcile.mockImplementation(async () => {
+        expect(RequestContext.currentUserId()).toBe(actor.userId)
+        expect(RequestContext.getOrganizationId()).toBe(actor.organizationId)
+    })
     await f.worker.repair()
-    expect(f.users.findOneOrFail).toHaveBeenCalledWith({ where: { id: actor.userId, tenantId: actor.tenantId } })
-    expect(runWithCapturedRequestContext).toHaveBeenCalledWith(
-        expect.objectContaining({
-            headers: { 'tenant-id': actor.tenantId, 'organization-id': actor.organizationId }
-        }),
-        expect.any(Function)
-    )
+    expect(f.users.execute).toHaveBeenCalledWith(new ResolveExecutionIdentityCommand({ ...actor, kind: 'user' }))
     expect(f.catalog.reconcile).toHaveBeenCalledWith(f.row.payload.input)
     expect(f.operations.finish).toHaveBeenCalledWith(f.row)
 })
@@ -43,7 +39,7 @@ it('skips a lease already claimed by another instance', async () => {
     const f = fixture()
     f.rows.update.mockResolvedValue({ affected: 0 })
     await f.worker.repair()
-    expect(f.users.findOneOrFail).not.toHaveBeenCalled()
+    expect(f.users.execute).not.toHaveBeenCalled()
     expect(f.operations.finish).not.toHaveBeenCalled()
 })
 it('retains a failed operation if the persisted actor is no longer authorized', async () => {

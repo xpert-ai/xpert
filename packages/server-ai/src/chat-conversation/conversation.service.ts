@@ -519,6 +519,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             return
         }
         return await this.summaryQueue.add({
+            tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             conversationId,
             userId,
             messageId,
