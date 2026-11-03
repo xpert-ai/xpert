@@ -11,10 +11,18 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage, ITag, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
 import { TagCreatorComponent } from '../creator/creator.component'
 import { TagComponent } from '../tag/tag.component'
+import { TagCatalogStatusComponent } from '../catalog-status/tag-catalog-status.component'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, CdkListboxModule, ZardInputDirective, TagComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    CdkListboxModule,
+    ZardInputDirective,
+    TagComponent,
+    TagCatalogStatusComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-maintain',
   templateUrl: './maintain.component.html',

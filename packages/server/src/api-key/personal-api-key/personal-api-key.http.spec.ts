@@ -32,10 +32,17 @@ import { UseApiKeyQuery } from '../queries/api-key.use.query'
 import { UserController } from '../../user/user.controller'
 import { FactoryResetService } from '../../user/factory-reset/factory-reset.service'
 import { UserService } from '../../user/user.service'
+import { ExecutionUserLoader } from '../../user/execution-identity/execution-user-loader'
 import { IntegrationService } from '../../integration'
 import { hashPersonalApiKey } from './personal-api-key-token'
 
-const owner: IUser = { id: 'owner', tenantId: 'tenant', type: UserType.USER, roleId: 'role' }
+const owner: IUser = {
+	id: 'owner',
+	tenantId: 'tenant',
+	type: UserType.USER,
+	roleId: 'role',
+	role: { id: 'role', name: 'TEST', rolePermissions: [] }
+}
 const token = `sk-user-${'a'.repeat(43)}`
 
 @Controller('user')
@@ -121,6 +128,12 @@ describe('Personal API key HTTP authentication and validation', () => {
 				{ provide: UserService, useValue: users },
 				{ provide: FactoryResetService, useValue: {} },
 				{ provide: IntegrationService, useValue: {} },
+				{
+					provide: ExecutionUserLoader,
+					useValue: {
+						load: async (id: string, tenantId: string) => ({ id, tenantId, type: UserType.COMMUNICATION })
+					}
+				},
 				{ provide: QueryBus, useValue: { execute: (query: UseApiKeyQuery) => handler.execute(query) } },
 				{ provide: CACHE_MANAGER, useValue: { get: async () => null, set: async () => undefined } },
 				{ provide: CommandBus, useValue: authorization }
@@ -225,7 +238,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 		})
 	})
 
-	it('denies incomplete personal-key principals without recovering grants from another policy lookup', async () => {
+	it('denies personal-key principals with no grants without another policy lookup', async () => {
 		const headers = { authorization: `Bearer ${token}` }
 		authorization.execute.mockResolvedValue(true)
 		expect((await fetch(origin + '/identity/protected', { headers })).status).toBe(403)

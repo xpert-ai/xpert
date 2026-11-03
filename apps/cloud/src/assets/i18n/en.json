@@ -955,6 +955,8 @@
       "DirectQrSaveHint": "QR code connections take effect immediately. Other trigger changes must be published to take effect."
     },
     "TagDirectory": {
+      "LoadFailed": "Unable to load tags.",
+      "Retry": "Retry",
       "KnowledgeCandidate": "Knowledgebase candidate",
       "KnowledgeDocuments": "{{count}} linked documents",
       "LoadingKnowledge": "Loading knowledgebases…",

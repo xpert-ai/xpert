@@ -10,6 +10,7 @@ import { IsNull } from 'typeorm'
 import { ApiKey } from '../api-key.entity'
 import { ApiKeyService } from '../api-key.service'
 import { UserService } from '../../user/user.service'
+import { ExecutionUserLoader } from '../../user/execution-identity/execution-user-loader'
 import { IntegrationService } from '../../integration'
 import { hashPersonalApiKey } from './personal-api-key-token'
 
@@ -63,7 +64,13 @@ describe('Personal credentials in ApiKeyService', () => {
 				ApiKeyService,
 				{ provide: getRepositoryToken(ApiKey), useValue: repository },
 				{ provide: UserService, useValue: {} },
-				{ provide: IntegrationService, useValue: {} }
+				{ provide: IntegrationService, useValue: {} },
+				{
+					provide: ExecutionUserLoader,
+					useValue: {
+						load: async (id: string, tenantId: string) => ({ id, tenantId, type: UserType.COMMUNICATION })
+					}
+				}
 			]
 		}).compile()
 		service = module.get(ApiKeyService)

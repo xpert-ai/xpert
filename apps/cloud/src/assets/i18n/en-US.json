@@ -913,6 +913,8 @@
       }
     },
     "TagDirectory": {
+      "LoadFailed": "Unable to load tags.",
+      "Retry": "Retry",
       "KnowledgeCandidate": "Knowledgebase candidate",
       "KnowledgeDocuments": "{{count}} linked documents",
       "LoadingKnowledge": "Loading knowledgebases…",

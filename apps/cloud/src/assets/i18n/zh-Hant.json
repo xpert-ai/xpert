@@ -8674,6 +8674,8 @@
       "WorkspaceScopeCommandsHelp": "工作空间提示词按关联范围默认启用，可在此单独停用。技能命令仍由当前命令配置控制。"
     },
     "TagDirectory": {
+      "LoadFailed": "標籤載入失敗。",
+      "Retry": "重試",
       "Target": {
         "prompt_workflow": "提示词"
       }

@@ -7,6 +7,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
 import { XpFieldColor } from '@xpert-ai/headless-ui'
+import { TagCatalogStatusComponent } from '../catalog-status/tag-catalog-status.component'
 
 function isTag(value: unknown): value is ITag {
   return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)
@@ -14,7 +15,7 @@ function isTag(value: unknown): value is ITag {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, SharedUiModule, TranslateModule, ZardTagSelectComponent],
+  imports: [CommonModule, SharedUiModule, TranslateModule, ZardTagSelectComponent, TagCatalogStatusComponent],
   selector: 'xp-tag-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],

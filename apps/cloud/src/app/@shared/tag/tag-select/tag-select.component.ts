@@ -24,6 +24,7 @@ import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-
 import { debounceTime, switchMap } from 'rxjs'
 import { ITag, TagTarget, TagService } from '../../../@core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { TagCatalogStatusComponent } from '../catalog-status/tag-catalog-status.component'
 
 @Component({
   standalone: true,
@@ -38,7 +39,8 @@ import { XpI18nPipe } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardIconComponent,
-    ZardInputDirective
+    ZardInputDirective,
+    TagCatalogStatusComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-select',
