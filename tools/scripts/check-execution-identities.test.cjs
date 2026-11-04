@@ -49,6 +49,20 @@ test('restricts identity minting to its host owner while allowing ordinary role 
   )
   assert.equal(inspect(`export { createExecutionIdentity as mint } from './execution-identity'`, 'index.ts').length, 1)
 })
+test('requires an inventoried Assistant adapter and keeps ordinary business factories forbidden', () => {
+  const call = `import { createExecutionIdentity as mint } from '@xpert-ai/server-core'; mint(user, scope)`
+  assert.equal(
+    inspect(call, 'packages/server-ai/src/xpert/assistant-principal/resolve-assistant-principal.handler.ts')[0].name,
+    'Assistant domain identity adapter'
+  )
+  assert.equal(inspect(call, 'packages/server-ai/src/xpert/other.service.ts')[0].name, 'forbidden identity factory')
+  const exported = `export { createExecutionIdentity } from './execution-identity'`
+  assert.equal(
+    inspect(exported, 'packages/server/src/user/execution-identity/index.ts')[0].name,
+    'host identity factory export'
+  )
+  assert.equal(inspect(exported, 'packages/plugin-sdk/src/index.ts')[0].name, 'forbidden identity factory export')
+})
 test('checks index content independently of unstaged edits', () => {
   const fs = require('node:fs'),
     os = require('node:os'),

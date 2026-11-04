@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 jest.mock('@xpert-ai/plugin-sdk', () => {
     const actual = jest.requireActual('@xpert-ai/plugin-sdk')
     return {
@@ -100,7 +101,8 @@ describe('FileAssetAccessService', () => {
             const projects = new XpertProjectAccessService(
                 { findOne: jest.fn().mockResolvedValue(project) } as never,
                 { findOne: jest.fn().mockResolvedValue({ role: 'editor' }) } as never,
-                {} as never
+                {} as never,
+                noAssistantPrincipal
             )
             fileAssetRepository.findOne.mockResolvedValue({ ...ownedAsset, projectId: project.id })
             return new FileAssetAccessService(

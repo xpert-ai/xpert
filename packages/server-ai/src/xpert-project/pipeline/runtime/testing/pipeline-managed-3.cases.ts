@@ -1,3 +1,6 @@
+import { UserType } from '@xpert-ai/contracts'
+import { executionIdentityFixture } from '../../../../shared/testing/execution-identity.fixture'
+import { runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { AgentRuntimeBindingEntity, AgentInvocationEntity } from '../../../../agent-invocation/invocation.entity'
 import { randomUUID } from 'node:crypto'
 import { ProjectPipelineContributionRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -24,6 +27,46 @@ import { pipelineTaskFacts } from '../../queries/pipeline-task-facts'
 import { managedPipelineFixture } from './pipeline-managed.fixture'
 
 export function registerManagedCases3(fixture: ReturnType<typeof managedPipelineFixture>) {
+    it('executes a Project-bound Assistant with its own account while retaining the root business actor', async () => {
+        await fixture.launchAssistant()
+        const [operation] = await fixture.operations()
+        const root = fixture.context.actor,
+            executorId = randomUUID()
+        fixture.published.getPublishedXpertInTenant.mockResolvedValue({
+            id: fixture.assistantId,
+            workspaceId: fixture.workspaceId,
+            tenantId: root.tenantId,
+            organizationId: root.organizationId,
+            userId: executorId,
+            version: '1'
+        })
+        const identity = executionIdentityFixture(root, { type: UserType.COMMUNICATION })
+        const nativeStart = fixture.nativeStart.getMockImplementation()
+        fixture.nativeStart.mockImplementation(async (input) => {
+            expect(RequestContext.currentUserId()).toBe(executorId)
+            return nativeStart(input)
+        })
+        await runWithExecutionIdentity(identity, () => fixture.runner.run(fixture.context, operation.id))
+        expect(fixture.nativeStart).toHaveBeenCalledTimes(1)
+        expect(fixture.commands.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    assistantId: fixture.assistantId,
+                    userId: executorId,
+                    projectId: fixture.context.projectId
+                })
+            })
+        )
+        expect((await fixture.operations()).find((item) => item.id === operation.id).context.actor.userId).toBe(
+            root.userId
+        )
+        await fixture.readyAgain(operation.id)
+        await runWithExecutionIdentity(identity, () => fixture.runner.run(fixture.context, operation.id))
+        expect(fixture.collect).toHaveBeenCalledWith(
+            expect.objectContaining({ actor: root, executor: expect.objectContaining({ userId: executorId }) })
+        )
+    })
+
     it('uses the explicitly selected multi-workspace grant for dispatch and blocks removal before observation', async () => {
         const launched = await fixture.launchRuntime(true),
             [operation] = await fixture.operations()
@@ -252,6 +295,7 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
         })
     })
     it('retries a declared confirmed failure once, preserves its attempt and reopens a subsequent failure attention', async () => {
+        const managerContext = { ...fixture.context, actor: { ...fixture.context.actor, userId: randomUUID() } }
         const launched = await fixture.launch(),
             operation = (await fixture.operations())[0]
         fixture.execute.mockResolvedValue({ status: 'failed', receiptKey: 'receipt-1', code: 'TRANSIENT_FAILURE' })
@@ -267,20 +311,22 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
         }
         process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'false'
         const pausedRevision = (await fixture.commandInput(launched.instanceId)).expectedRevision
-        await expect(fixture.lifecycle.retry(fixture.context, input)).rejects.toMatchObject({
+        await expect(fixture.lifecycle.retry(managerContext, input)).rejects.toMatchObject({
             response: { code: 'PIPELINE_DISPATCH_PAUSED' }
         })
         expect((await fixture.commandInput(launched.instanceId)).expectedRevision).toBe(pausedRevision)
         expect(await fixture.operations()).toHaveLength(2)
         process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'true'
-        const retry = await fixture.lifecycle.retry(fixture.context, input)
+        const retry = await fixture.lifecycle.retry(managerContext, input)
         process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'false'
-        expect(await fixture.lifecycle.retry(fixture.context, input)).toEqual(retry)
+        expect(await fixture.lifecycle.retry(managerContext, input)).toEqual(retry)
         process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'true'
         const second = (await fixture.operations()).find(
             (item) => item.nodeInstanceId === operation.nodeInstanceId && item.attempt === 2
         )!
         expect(second).toBeDefined()
+        expect(second.context.actor).toEqual(fixture.context.actor)
+        expect(second.createdById).toBe(fixture.context.actor.userId)
         expect(
             await fixture.db.getRepository(XpertProjectTaskExecution).findOneByOrFail({ sourceKey: operation.id })
         ).toEqual(before)
@@ -323,7 +369,7 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
         await fixture.launchAssistant()
         const operation = (await fixture.operations())[0]
         await fixture.request(() => fixture.runner.run(fixture.context, operation.id))
-        fixture.published.getAccessiblePublishedXpert.mockResolvedValue({
+        fixture.published.getPublishedXpertInTenant.mockResolvedValue({
             id: randomUUID(),
             workspaceId: fixture.workspaceId,
             version: '2',

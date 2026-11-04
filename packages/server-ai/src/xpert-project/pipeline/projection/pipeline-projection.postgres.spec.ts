@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../../../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -433,7 +434,11 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         const assistantAccess = {
             assertCanReadXpert: jest.fn().mockRejectedValue(new Error('Unexpected Assistant access lookup'))
         } as unknown as XpertProjectAccessService
-        const access = new ProjectAccessRuntimeService(db.getRepository(XpertProject), assistantAccess)
+        const access = new ProjectAccessRuntimeService(
+            db.getRepository(XpertProject),
+            assistantAccess,
+            noAssistantPrincipal
+        )
         await db.getRepository(XpertProject).update(context.projectId, { ownerId: context.actor.userId })
         const second = { ...context, projectId: randomUUID() }
         await db

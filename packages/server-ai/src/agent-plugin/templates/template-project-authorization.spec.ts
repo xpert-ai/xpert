@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import { ForbiddenException } from '@nestjs/common'
@@ -66,7 +67,8 @@ describe('Project template task authorization', () => {
         const access = new XpertProjectAccessService(
             projects as unknown as Repository<XpertProject>,
             members as unknown as Repository<XpertProjectMembership>,
-            bindings as unknown as XpertProjectXpertBindingService
+            bindings as unknown as XpertProjectXpertBindingService,
+            noAssistantPrincipal
         )
         module = await Test.createTestingModule({
             imports: [CqrsModule],

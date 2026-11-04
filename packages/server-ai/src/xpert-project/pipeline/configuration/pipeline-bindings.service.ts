@@ -48,7 +48,11 @@ export class ProjectPipelineBindingsService {
             )
     }
     async get(context: ProjectPipelineContext, bindingId: string, request: ProjectPipelineCatalogRequest = {}) {
-        await this.access.assertManage(context)
+        const role = (await this.access.listReadable({ actor: context.actor, projectIds: [context.projectId] }))[0]
+            ?.role
+        const access = await (role === 'assistant'
+            ? this.access.assertEdit(context)
+            : this.access.assertManage(context))
         const input = projectPipelineCatalogRequestSchema.parse(request)
         const row = await this.query(context)
             .andWhere('binding.id = :id', { id: z.string().uuid().parse(bindingId) })
@@ -63,7 +67,11 @@ export class ProjectPipelineBindingsService {
         context: ProjectPipelineContext,
         request: ProjectPipelineCatalogRequest & { after?: string; limit?: number } = {}
     ) {
-        await this.access.assertManage(context)
+        const role = (await this.access.listReadable({ actor: context.actor, projectIds: [context.projectId] }))[0]
+            ?.role
+        const access = await (role === 'assistant'
+            ? this.access.assertEdit(context)
+            : this.access.assertManage(context))
         const input = pipelineBindingsPageInput.parse(request),
             query = this.query(context)
         if (input.protocol === undefined) query.andWhere("NOT (definition.definition ? 'hostRequirements')")

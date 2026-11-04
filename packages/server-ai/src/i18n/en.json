@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "OrganizationAutomationUnavailableUser": "Unavailable user",
+        "OrganizationAutomationAccessDenied": "Organization automation authority is unavailable or revoked.",
         "EmbeddingRebuildRecoveryInvalid": "Rebuild recovery does not accept task or scope overrides.",
         "EmbeddingRebuildReceiptUnavailable": "The rebuild task could not be verified as finished. Check the task queue.",
         "ExecutionIdentityUnavailable": "The execution identity is no longer available in this scope.",

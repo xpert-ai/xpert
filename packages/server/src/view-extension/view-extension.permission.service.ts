@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { XpertExtensionViewManifest, XpertViewActionDefinition, XpertViewHostContext } from '@xpert-ai/contracts'
-import { RequestContext } from '../core/context'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ViewHostDefinitionContract, ViewHostResolution, ViewHostResolutionOptions } from './host-definition.interface'
 
 @Injectable()
@@ -23,15 +23,15 @@ export class ViewExtensionPermissionService {
 	filterVisibleManifests(manifests: XpertExtensionViewManifest[], context?: XpertViewHostContext) {
 		return manifests
 			.filter((manifest) => manifest.visible !== false)
-			.filter((manifest) => this.hasPermissions(manifest.permissions))
+			.filter((manifest) => this.hasPermissions(manifest.permissions, context))
 			.map((manifest) => ({
 				...manifest,
 				actions: this.filterVisibleActions(manifest.actions, context)
 			}))
 	}
 
-	ensureManifestVisible(manifest: XpertExtensionViewManifest) {
-		if (manifest.visible === false || !this.hasPermissions(manifest.permissions)) {
+	ensureManifestVisible(manifest: XpertExtensionViewManifest, context?: XpertViewHostContext) {
+		if (manifest.visible === false || !this.hasPermissions(manifest.permissions, context)) {
 			throw new ForbiddenException('No permission to access this extension view')
 		}
 	}
@@ -40,7 +40,8 @@ export class ViewExtensionPermissionService {
 		return (
 			actions?.filter(
 				(action) =>
-					this.hasPermissions(action.permissions) && (!context || this.hasRequiredHostAccess(action, context))
+					this.hasPermissions(action.permissions, context) &&
+					(!context || this.hasRequiredHostAccess(action, context))
 			) ?? []
 		)
 	}
@@ -50,7 +51,7 @@ export class ViewExtensionPermissionService {
 			throw new ForbiddenException('No permission to access this extension action')
 		}
 
-		if (!this.hasPermissions(action.permissions)) {
+		if (!this.hasPermissions(action.permissions, context)) {
 			throw new ForbiddenException('No permission to access this extension action')
 		}
 
@@ -70,11 +71,14 @@ export class ViewExtensionPermissionService {
 		return access.canManage
 	}
 
-	private hasPermissions(permissions?: string[]) {
+	private hasPermissions(permissions?: string[], context?: XpertViewHostContext) {
 		if (!permissions?.length) {
 			return true
 		}
 
-		return RequestContext.hasPermissions(permissions, false)
+		return (
+			RequestContext.hasPermissions(permissions, false) &&
+			(!context?.permissions || permissions.every((permission) => context.permissions.includes(permission)))
+		)
 	}
 }

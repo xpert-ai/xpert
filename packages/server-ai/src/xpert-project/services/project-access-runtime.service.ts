@@ -1,4 +1,5 @@
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { AssistantPrincipalAccessService } from '../../xpert/assistant-principal/assistant-principal-access.service'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     ProjectAccessRuntimeCapability,
@@ -18,12 +19,45 @@ import { XpertProjectAccessService } from './project-access.service'
 export class ProjectAccessRuntimeService implements ProjectAccessApi {
     constructor(
         @InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>,
-        private readonly access: XpertProjectAccessService
+        private readonly access: XpertProjectAccessService,
+        @Inject(AssistantPrincipalAccessService)
+        private readonly principals: Pick<AssistantPrincipalAccessService, 'isPrincipal' | 'find'>
     ) {}
 
     async listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]> {
         const { actor, projectIds } = input
         if (!actor.tenantId || !actor.userId || projectIds?.length === 0) return []
+        if (await this.principals.isPrincipal(actor)) {
+            if (!actor.organizationId) return []
+            const authorized = await this.principals.find({ ...actor, organizationId: actor.organizationId })
+            if (!authorized) return []
+            const query = this.projects
+                .createQueryBuilder('project')
+                .innerJoin('project.xperts', 'assistant')
+                .where('project.tenantId = :tenantId AND project.organizationId = :organizationId', actor)
+                .andWhere('assistant.id = :assistantId', { assistantId: authorized.assistant.id })
+                .andWhere("project.status <> 'archived'")
+            if (projectIds) query.andWhere('project.id IN (:...projectIds)', { projectIds })
+            const projects = await query.getMany()
+            return Promise.all(
+                projects.map(async (project) => {
+                    const access = await this.principals.find(
+                        { ...actor, organizationId: actor.organizationId },
+                        { projectId: project.id }
+                    )
+                    return {
+                        projectId: project.id,
+                        name: project.name,
+                        applicationKey: project.applicationKey,
+                        projectTypeKey: project.projectTypeKey,
+                        assistantIds: access?.assistants.map((item) => item.id) ?? [],
+                        role: 'assistant' as const,
+                        archived: false,
+                        canManage: false
+                    }
+                })
+            )
+        }
         const query = this.readableQuery(input, this.projects)
         const rows = await query.getRawMany<ProjectHumanAccess & { status: string }>()
         const bindings = rows.length
@@ -52,10 +86,16 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         }))
     }
 
-    /** All selected Projects are authorized in the same MVCC snapshot as the portfolio facts. */
+    /** Human Project membership uses the portfolio snapshot; Assistant execution revalidates its live Project binding. */
     async assertAllReadableWithinTransaction(actor: ProjectAccessActor, projectIds: string[], manager: EntityManager) {
         if (!actor.tenantId || !actor.userId || !projectIds.length)
             throw new ForbiddenException(t('server-ai:Error.ProjectTaskAccessDenied'))
+        if (await this.principals.isPrincipal(actor)) {
+            const rows = await this.listReadable({ actor, projectIds })
+            if (new Set(rows.map((row) => row.projectId)).size !== new Set(projectIds).size)
+                throw new ForbiddenException(t('server-ai:Error.ProjectTaskAccessDenied'))
+            return
+        }
         const rows = await this.readableQuery({ actor, projectIds }, manager.getRepository(XpertProject))
             .select('project.id', 'projectId')
             .getRawMany<{ projectId: string }>()
@@ -102,6 +142,10 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         input: { actor: ProjectAccessActor; projectId: string },
         manager: EntityManager
     ) {
+        if (await this.principals.isPrincipal(input.actor)) {
+            await this.assertManage(input)
+            return
+        }
         const access = await this.readableQuery(
             { actor: input.actor, projectIds: [input.projectId] },
             manager.getRepository(XpertProject)
@@ -112,13 +156,19 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
 
     async assertEdit(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {
         const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
-        if (!access || access.archived || !['owner', 'manager', 'editor'].includes(access.role)) {
+        if (!access || access.archived || !['owner', 'manager', 'editor', 'assistant'].includes(access.role)) {
             throw new ForbiddenException(t('server-ai:Error.ProjectEditorRequired'))
         }
         return access
     }
 
     async assertAssistant(input: { actor: ProjectAccessActor; projectId: string; assistantId: string }) {
+        if (await this.principals.isPrincipal(input.actor)) {
+            const access = await this.assertEdit(input)
+            if (!access.assistantIds?.includes(input.assistantId))
+                throw new ForbiddenException(t('server-ai:Error.ProjectTaskAccessDenied'))
+            return access
+        }
         await this.access.assertCanReadXpert(input.projectId, input.assistantId, input.actor)
         const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
         if (!access) throw new ForbiddenException(t('server-ai:Error.ProjectMembershipRequired'))

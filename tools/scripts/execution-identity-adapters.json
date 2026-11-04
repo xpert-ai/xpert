@@ -1,4 +1,12 @@
 {
+  "packages/server-ai/src/xpert/assistant-principal/resolve-assistant-principal.handler.ts": {
+    "calls": 1,
+    "reason": "Assistant-owned identity adapter validates live Assistant/account bindings and current actor scope before minting a service identity; core identity and queues have no Assistant dependency."
+  },
+  "packages/server/src/user/execution-identity/index.ts": {
+    "calls": 1,
+    "reason": "Exports the existing host-only identity factory for the inventoried Assistant-domain adapter; SDK/plugins and ordinary business consumers cannot mint identities."
+  },
   "packages/server-ai/src/agent-invocation/invocation-monitor.service.ts": {
     "calls": 2,
     "reason": "Only the Assistant branch retains the published-Assistant audience adapter; human continuations use ResolveExecutionIdentityCommand."

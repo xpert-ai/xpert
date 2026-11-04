@@ -141,7 +141,7 @@ describe('AgentViewHostDefinition', () => {
         organization.mockRestore()
 
         expect(xpertService.findOneByIdWithinTenant).toHaveBeenCalledWith('agent-host-1', {
-            relations: ['agent']
+            relations: ['agent', 'organization', 'workspace']
         })
         expect(middlewareRegistry.get).toHaveBeenCalledWith('BomDocumentIntakeMiddleware', 'org-1')
         expect(resolved?.context).toMatchObject({

@@ -1,6 +1,7 @@
+import { AssistantPrincipalAccessService } from '../../xpert/assistant-principal/assistant-principal-access.service'
 import { TXpertProjectAccessRole } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
@@ -10,7 +11,7 @@ import { XpertProjectXpertBindingService } from './project-xpert-binding.service
 
 export type XpertProjectAccess = {
     project: XpertProject
-    role: TXpertProjectAccessRole
+    role: TXpertProjectAccessRole | 'assistant'
 }
 
 export type XpertProjectActorScope = {
@@ -25,7 +26,9 @@ export class XpertProjectAccessService {
         @InjectRepository(XpertProject) private readonly projectRepository: Repository<XpertProject>,
         @InjectRepository(XpertProjectMembership)
         private readonly membershipRepository: Repository<XpertProjectMembership>,
-        private readonly xpertBindingService: XpertProjectXpertBindingService
+        private readonly xpertBindingService: XpertProjectXpertBindingService,
+        @Inject(AssistantPrincipalAccessService)
+        private readonly principals: Pick<AssistantPrincipalAccessService, 'isPrincipal' | 'find'>
     ) {}
 
     async assertCanRead(projectId: string): Promise<XpertProjectAccess> {
@@ -57,7 +60,7 @@ export class XpertProjectAccessService {
     async assertCanEdit(projectId: string): Promise<XpertProjectAccess> {
         const access = await this.resolveAccess(projectId)
         this.assertProjectWritable(access)
-        if (!['owner', 'manager', 'editor'].includes(access.role)) {
+        if (!['owner', 'manager', 'editor', 'assistant'].includes(access.role)) {
             throw new ForbiddenException(
                 t('server-ai:Error.ProjectEditorRequired', { defaultValue: 'Project editor access is required' })
             )
@@ -98,6 +101,21 @@ export class XpertProjectAccessService {
                 t('server-ai:Error.ProjectArchived', { defaultValue: 'The requested Project is archived' })
             )
         }
+        if (access.role === 'assistant') {
+            const actor = actorScope ?? {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                userId: RequestContext.currentUserId()
+            }
+            if (
+                !actor.organizationId ||
+                !(await this.principals.find(
+                    { ...actor, organizationId: actor.organizationId },
+                    { projectId, assistantId: xpertId }
+                ))
+            )
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        }
         const currentXpert = await this.xpertBindingService.resolveCurrentById(xpertId, {
             tenantId: actorScope ? actorScope.tenantId : RequestContext.currentTenantId(),
             organizationId: actorScope ? actorScope.organizationId : RequestContext.getOrganizationId()
@@ -116,6 +134,21 @@ export class XpertProjectAccessService {
         actorScope?: XpertProjectActorScope
     ): Promise<XpertProjectAccess> {
         const access = await this.resolveAccess(projectId, ['xperts'], actorScope)
+        if (access.role === 'assistant') {
+            const actor = actorScope ?? {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                userId: RequestContext.currentUserId()
+            }
+            if (
+                !actor.organizationId ||
+                !(await this.principals.find(
+                    { ...actor, organizationId: actor.organizationId },
+                    { projectId, assistantId: xpertId }
+                ))
+            )
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        }
         const currentXpert = await this.xpertBindingService.resolveCurrentById(xpertId, {
             tenantId: actorScope ? actorScope.tenantId : RequestContext.currentTenantId(),
             organizationId: actorScope ? actorScope.organizationId : RequestContext.getOrganizationId()
@@ -148,6 +181,11 @@ export class XpertProjectAccessService {
             throw new ForbiddenException(
                 t('server-ai:Error.ProjectNotAvailable', { defaultValue: 'The requested Project is not available' })
             )
+        }
+        if (await this.principals.isPrincipal({ tenantId, userId })) {
+            if (!organizationId || !(await this.principals.find({ tenantId, organizationId, userId }, { projectId })))
+                throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            return { project, role: 'assistant' }
         }
         if (project.ownerId === userId) {
             return { project, role: 'owner' }

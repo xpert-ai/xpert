@@ -124,7 +124,7 @@ export function createMembershipFixture(
         policy,
         lifecycle,
         initialization,
-        xpertRepository,
+        Object.assign({ existsBy: jest.fn(async () => false) }, xpertRepository),
         membershipRepository
     )
     const usage = new MembershipUsageService(access, records, ledgerRepository, tenantSettingRepository)

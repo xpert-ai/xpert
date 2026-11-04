@@ -1,3 +1,4 @@
+import { assistantPrincipalPredicate } from './assistant-principal/assistant-principal-access.service'
 import { publishedAgentDelegation } from './published-agent/with-published-agent'
 import { activeSharingMemberSql, validSharingGroupSql } from './sharing/sharing-policy'
 import {
@@ -462,7 +463,8 @@ export class PublishedXpertAccessService {
         ).andWhere(
             new Brackets((accessQb) => {
                 accessQb
-                    .where('xpert.createdById = :userId', { userId })
+                    .where(assistantPrincipalPredicate('xpert'))
+                    .orWhere('xpert.createdById = :userId', { userId })
                     .orWhere('workspace.ownerId = :userId', { userId })
                     .orWhere('workspaceMember.id = :userId', { userId })
                     .orWhere(
@@ -490,6 +492,7 @@ export class PublishedXpertAccessService {
             })
         )
 
+        qb.andWhere(`(NOT ${assistantPrincipalPredicate('xpert', false)} OR ${assistantPrincipalPredicate('xpert')})`)
         applyAppPlatformPublishedFilter(qb, tenantId, organizationId, userId, resourceParentId)
         this.applyPublishedFilters(qb, options?.where)
         this.applySearchFilter(qb, options?.search)
@@ -689,12 +692,13 @@ export class PublishedXpertAccessService {
         // Explicit actors may outlive their organization membership (jobs and collaboration
         // recipients). Check it in the same ACL query, without resolving content groups.
         const count = await this.buildAccessibleQuery({ where: { id } }, undefined, actor)
-            .innerJoin(
+            .leftJoin(
                 UserOrganization,
                 'actorMembership',
-                'actorMembership.tenantId = :tenantId AND actorMembership.organizationId = :organizationId AND actorMembership.userId = :userId AND actorMembership.isActive = :actorMembershipActive',
+                '(actorMembership.tenantId = :tenantId AND actorMembership.organizationId = :organizationId AND actorMembership.userId = :userId AND actorMembership.isActive = :actorMembershipActive)',
                 { actorMembershipActive: true }
             )
+            .andWhere(`(actorMembership.id IS NOT NULL OR ${assistantPrincipalPredicate('xpert')})`)
             .getCount()
         if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         const xpert = await this.repository.findOne({

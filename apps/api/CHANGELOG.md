@@ -1,5 +1,17 @@
 # @xpert-ai/xpert-api
 
+## 3.30.2
+
+### Patch Changes
+
+- 0914ec7: Restore current execution permissions for scheduled tasks, conversation summaries, invocation recovery, group deliveries, runtime messages, content repair and application recovery. Keep managed queue delegation and Assistant audiences separate from human identity restoration.
+- 389dfb9: Share the complete, credential-free user projection across HTTP authentication, organization access and background execution. Preserve JWT permission ceilings, centralize CQRS startup readiness and enforce reviewed context adapters with staged AST checks and CI regression suites. Guard unchanged-model rebuild cleanup with the same transactional claim as new rebuilds.
+- 7c7788b: Restore current scoped execution identities centrally for knowledge workers. Record embedding rebuild failures independently of revoked business permissions, guard state changes by task revision, and provide authorized recovery and retry while retaining active vectors.
+- 8f70f91: Allow users to read parameter rules for models in their authorized catalog without provider-management permission. Use the scoped lookup for model switching, parameter editing and account model details while preserving provider credential and mutation permissions.
+- 6296d57: Allow administrators to delete disabled model connections after clearing current business references. Recheck scope, permission and dependencies on deletion, purge connection credentials and custom models, preserve historical usage and identity, and prevent restoring deleted connections.
+- 60f3213: Revalidate current conversation contribution access when processing feedback summaries, preserving authorized Project collaborators while rejecting revoked access and mismatched queue scopes.
+- 80b5f64: Update ChatKit UI to 0.21.2 and its Xpert SDK dependency to 0.20.2 for unified conversation menus and activity SSE recovery fixes. Refresh and verify the latest published ChatKit versions across workspace, API, Web and Desktop dependency locks.
+
 ## 3.30.1
 
 ### Patch Changes

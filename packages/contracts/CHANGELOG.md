@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.30.2
+
+### Patch Changes
+
+- 6296d57: Allow administrators to delete disabled model connections after clearing current business references. Recheck scope, permission and dependencies on deletion, purge connection credentials and custom models, preserve historical usage and identity, and prevent restoring deleted connections.
+
 ## 3.30.1
 
 ## 3.30.0

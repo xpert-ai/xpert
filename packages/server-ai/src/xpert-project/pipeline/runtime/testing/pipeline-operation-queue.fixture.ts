@@ -7,8 +7,7 @@ import {
     TaskControlStore,
     TaskControlRunner,
     ControlRuntimeAdmissionService,
-    type ManagedQueueEnvelope,
-    type UserService
+    type ManagedQueueEnvelope
 } from '@xpert-ai/server-core'
 import { ProjectPipelineOperationStore } from '../pipeline-operation.store'
 import { ProjectPipelineOperationRunnerService } from '../pipeline-operation-runner.service'
@@ -20,7 +19,13 @@ export function operationQueueFixture(
     redisUrl: string
 ) {
     const url = new URL(redisUrl),
-        connection = { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
+        connection = {
+            host: url.hostname,
+            port: Number(url.port),
+            username: decodeURIComponent(url.username) || undefined,
+            password: decodeURIComponent(url.password) || undefined,
+            maxRetriesPerRequest: null
+        }
     const queue = new Queue<ManagedQueueEnvelope>(`pipeline-operation-test-${randomUUID()}`, { connection })
     // This fixture tests Pipeline's own queue lifecycle; unexpected controlled dispatch must fail closed.
     const controls = { producer: jest.fn().mockResolvedValue(undefined) } as unknown as TaskControlStore
@@ -40,11 +45,16 @@ export function operationQueueFixture(
                 concurrency: 4,
                 handler: (job, scope) => observer.handle(job, scope)
             })
-            const users = { findOneByIdWithinTenant: async (id: string, tenantId: string) => ({ id, tenantId }) }
+            const identities = { resolve: async (id: string, tenantId: string) => ({ id, tenantId }) }
             const controlRunner = {
                 run: jest.fn().mockRejectedValue(new Error('Unexpected controlled queue delivery'))
             } as unknown as TaskControlRunner
-            const processor = new ManagedQueueProcessor(handlers, users as UserService, controls, controlRunner)
+            const processor = new ManagedQueueProcessor(
+                handlers,
+                identities as ConstructorParameters<typeof ManagedQueueProcessor>[1],
+                controls,
+                controlRunner
+            )
             const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
                 connection,
                 concurrency: 4

@@ -3,7 +3,7 @@ import { ControlRuntimeAdmissionService, controlAdmissionUnavailable } from '../
 import { Interval } from '@nestjs/schedule'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { ApiKeyBindingType, SecretTokenBindingType, ENTERPRISE_H5_PLATFORMS } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, SecretTokenBindingType, ENTERPRISE_H5_PLATFORMS, UserType } from '@xpert-ai/contracts'
 import {
 	MANAGED_QUEUE_CONTROLLED_NAME,
 	MANAGED_QUEUE_CONTROLLED_BROWSER_NAME,
@@ -388,7 +388,13 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 						userId: actorUserId,
 						tenantId: currentTenantId,
 						organizationId: effectiveOrganizationId || null,
-						type: principal ? (principal.requestedUserId ? 'delegated_user' : 'service') : 'user'
+						type: principal
+							? principal.requestedUserId
+								? 'delegated_user'
+								: 'service'
+							: currentUser.type === UserType.COMMUNICATION
+								? 'service'
+								: 'user'
 					} satisfies ManagedQueueActorSnapshot)
 				: undefined
 

@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { UserType, type IApiPrincipal } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveAssistantExecutionIdentityHandler } from './resolve-assistant-execution-identity.handler'
@@ -24,7 +25,8 @@ function setup() {
     const handler = new ResolveAssistantExecutionIdentityHandler(
         users as never,
         assistants as never,
-        conversations as never
+        conversations as never,
+        noAssistantPrincipal
     )
     return { handler, user, assistant, conversation, users, assistants, conversations }
 }
@@ -51,7 +53,7 @@ describe('managed execution Assistant identity', () => {
             })
         )
         expect(result.user.id).toBe(actor.userId)
-        expect(result.user.ownerUserId).toBe('payer')
+        expect('ownerUserId' in result.user ? result.user.ownerUserId : null).toBe('payer')
         await runWithCapturedRequestContext(captureRequestContext({ ...actor, user: result.user }), async () => {
             expect(RequestContext.currentUserId()).toBe(actor.userId)
             expect(RequestContext.currentApiPrincipal()?.resourceScope).toEqual({

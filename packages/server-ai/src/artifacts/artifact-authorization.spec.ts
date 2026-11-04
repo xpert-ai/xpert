@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { ArtifactPersistence } from './artifact-persistence'
 import { ArtifactTypesService } from './types/artifact-types.service'
 import { configuredArtifactPolicies } from './testing/source-policies'
@@ -58,7 +59,7 @@ function fixture() {
         } as never,
         {} as never
     )
-    const projects = new ProjectAccessRuntimeService({} as never, {} as never)
+    const projects = new ProjectAccessRuntimeService({} as never, {} as never, noAssistantPrincipal)
     jest.spyOn(projects, 'listReadable').mockImplementation(async ({ actor: current, projectIds }) => {
         const role = memberships.get(current.userId)
         return current.tenantId === actor.tenantId && current.organizationId === actor.organizationId && role

@@ -1,5 +1,14 @@
 # @xpert-ai/xpert-ui
 
+## 3.30.2
+
+### Patch Changes
+
+- 7c7788b: Restore current scoped execution identities centrally for knowledge workers. Record embedding rebuild failures independently of revoked business permissions, guard state changes by task revision, and provide authorized recovery and retry while retaining active vectors.
+- 8f70f91: Allow users to read parameter rules for models in their authorized catalog without provider-management permission. Use the scoped lookup for model switching, parameter editing and account model details while preserving provider credential and mutation permissions.
+- 6296d57: Allow administrators to delete disabled model connections after clearing current business references. Recheck scope, permission and dependencies on deletion, purge connection credentials and custom models, preserve historical usage and identity, and prevent restoring deleted connections.
+- 80b5f64: Update ChatKit UI to 0.21.2 and its Xpert SDK dependency to 0.20.2 for unified conversation menus and activity SSE recovery fixes. Refresh and verify the latest published ChatKit versions across workspace, API, Web and Desktop dependency locks.
+
 ## 3.30.1
 
 ### Patch Changes

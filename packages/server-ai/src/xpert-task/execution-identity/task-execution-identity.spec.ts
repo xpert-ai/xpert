@@ -1,3 +1,4 @@
+import { ResolveAssistantPrincipalCommand } from '../../xpert/assistant-principal/resolve-assistant-principal.command'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
@@ -6,7 +7,9 @@ import { runWithTaskExecutionIdentity } from './task-execution-identity'
 
 it('resolves the persisted actor even inside a different authenticated request', async () => {
     const scope = { tenantId: 'tenant', organizationId: 'org', userId: 'owner' }
-    const execute = jest.fn(async (command: ResolveExecutionIdentityCommand) => executionIdentityFixture(command.actor))
+    const execute = jest.fn(async (command: ResolveExecutionIdentityCommand | ResolveAssistantPrincipalCommand) =>
+        command instanceof ResolveAssistantPrincipalCommand ? null : executionIdentityFixture(command.actor)
+    )
     const commands = { execute } as unknown as CommandBus
     await runWithExecutionIdentity(executionIdentityFixture({ tenantId: 'other', userId: 'ambient' }), async () => {
         await runWithTaskExecutionIdentity(commands, scope, scope.userId, async (user) => {

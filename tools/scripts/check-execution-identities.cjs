@@ -59,11 +59,21 @@ function inspect(text, file) {
       name(node.expression) === 'createExecutionIdentity' &&
       file !== factoryOwner
     )
-      issue(node, 'forbidden identity factory')
+      issue(
+        node,
+        file === 'packages/server-ai/src/xpert/assistant-principal/resolve-assistant-principal.handler.ts'
+          ? 'Assistant domain identity adapter'
+          : 'forbidden identity factory'
+      )
     if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause))
       for (const element of node.exportClause.elements)
         if ((element.propertyName || element.name).text === 'createExecutionIdentity')
-          issue(node, 'forbidden identity factory export')
+          issue(
+            node,
+            file === 'packages/server/src/user/execution-identity/index.ts'
+              ? 'host identity factory export'
+              : 'forbidden identity factory export'
+          )
     ts.forEachChild(node, visit)
   }
   visit(source)
