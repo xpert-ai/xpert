@@ -111,7 +111,7 @@ Project 流水线保留根 Assistant 与 Project 的业务归属，各执行节�
 
 Assistant 身份只表达谁在执行。模型访问域 `model-access` 统一决定模型使用方式、授权、配额与计费；Assistant 域提供账号和模型配置的绑定校验。
 
-当前内部入口 `ResolveAssistantModelCommand` 返回布尔结果，不选择模型或创建账号。普通真人返回 `false` 并沿用原有访问流程；Assistant 账号须匹配有效的已发布 Assistant，且目标模型必须属于该 Assistant 的主模型、可选模型或内部 Agent 模型配置，否则拒绝。
+当前内部入口 `ResolveAssistantModelCommand` 返回布尔结果，不选择模型或创建账号。普通真人返回 `false` 并沿用原有访问流程；Assistant 账号须匹配有效的已发布 Assistant，且目标模型必须属于该 Assistant 的主模型、可选模型、内部 Agent 模型、已启用的 Agent 备用模型或已发布分类器节点配置，否则拒绝。分类器未指定模型时使用 Assistant 的团队模型；草稿中的新增模型和已禁用的备用模型不授予访问权限。
 
 当前模型访问策略有一个明确的直接使用分支：请求的组织与模型所属组织相同、模型使用组织自有凭据，并通过上述 Assistant 绑定校验时，`model-access` 采用 `Direct`。该分支仍检查模型启用和有效性，但不进入后续会员、套餐配额及用户模型授权判断。这是当前模型策略的选择，不是解析 Assistant 身份自动授予的通用权限；其他模型继续按既有模型访问策略处理。
 
