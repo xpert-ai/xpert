@@ -1,3 +1,4 @@
+jest.mock('./local-supervision-support', () => ({ localSupervisionFailure: jest.fn() }))
 import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'

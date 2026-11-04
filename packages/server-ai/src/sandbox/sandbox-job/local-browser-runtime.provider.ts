@@ -1,6 +1,7 @@
 import { LocalBrowserRuntimeInstance, requireDevelopmentRuntime } from './local-browser-runtime-instance'
 import { exposeLocalReadOnlyFile } from './local-browser-runtime-files'
 import { LocalRuntimeControl } from './local-runtime-control'
+import { localSupervisionFailure } from './local-supervision-support'
 import { sandboxTargetsEqual, type SandboxRuntimeTarget } from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
 import { constants as fsConstants } from 'node:fs'
@@ -196,6 +197,8 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         if (!isLocalBinding(input.binding, input.definition.name)) {
             return { available: false, reason: 'Local Browser Runtime Binding does not match the Definition.' }
         }
+        const supervisionFailure = localSupervisionFailure()
+        if (supervisionFailure) return { available: false, reason: supervisionFailure }
         const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${JSON.stringify(input.definition.expectedManifest)}`
         const cached = this.healthCache.get(cacheKey)
         if (cached?.expiresAt > Date.now()) return cached.health
@@ -281,6 +284,10 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
     /** Creates an isolated Job workspace view without claiming container-grade isolation. */
     async create(options: SandboxRuntimeCreateOptions): Promise<SandboxRuntimeInstance> {
         requireDevelopmentRuntime()
+        if (options.controlTarget) {
+            const supervisionFailure = localSupervisionFailure()
+            if (supervisionFailure) throw new Error(supervisionFailure)
+        }
         if (!isLocalBinding(options.binding, options.definition.name)) {
             throw new Error('Local Browser Runtime received an incompatible Binding.')
         }
