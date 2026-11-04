@@ -1,0 +1,18 @@
+# Isolated acceptance probe: this branch never publishes or deploys artifacts.
+name: Code Review Diagnostic Failure Smoke
+on:
+  push:
+    branches: [test/workflow-diagnostics-20261104]
+    paths: [.github/workflows/code-review-diagnostic-failure-smoke.yml]
+permissions: {}
+jobs:
+  expected-failure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Emit controlled failure evidence
+        shell: bash
+        run: |
+          echo 'Diagnostic smoke probe: expected failure with exit code 42.'
+          echo '::error title=Controlled workflow diagnostic probe::Intentional exit 42 for production workflow diagnosis acceptance.'
+          exit 42
