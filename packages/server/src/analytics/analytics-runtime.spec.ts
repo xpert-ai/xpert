@@ -5,13 +5,18 @@ import {
 	AnalyticsProviderRegistry,
 	RequestContext,
 	SandboxJobRuntimeError,
+	AnalyticsProviderError,
 	type AnalyticsQueryProvider,
 	type AnalyticsProviderResult
 } from '@xpert-ai/plugin-sdk'
 import { AnalyticsRuntimeService, ANALYTICS_SOURCE_RESOLVERS } from './analytics-runtime.service'
 import { AnalyticsController } from './analytics.controller'
+import { ToolNode } from '../../../server-ai/src/xpert-agent/commands/handlers/tool_node'
+import { tool } from '@langchain/core/tools'
+import { z } from 'zod/v3'
 
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
+jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn() }))
 
 const uuid = 'a1234567-1234-4234-8234-123456789012'
 const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'viewer' }
@@ -219,6 +224,150 @@ describe('one Analytics Runtime for governed sources', () => {
 		expect(response.status).toBe(400)
 		expect(JSON.stringify(response.body)).not.toContain('credential-secret')
 	})
+	it('preserves public provider diagnostics in discover, HTTP and the tool-facing message', async () => {
+		const diagnostic = {
+			schema: 'xpert.analytics.diagnostic',
+			version: 1,
+			code: 'QUERY_FILTER_INVALID',
+			stage: 'validation',
+			retryable: false,
+			message: 'Filter operator is invalid at filters.0.op. Check the discovered schema.',
+			upstreamExecutionId: 'upstream-run',
+			auditRef: 'audit-run'
+		} as const
+		execute.mockRejectedValue(new AnalyticsProviderError(diagnostic))
+		const response = await post({ binding, controls: {} })
+		expect(response.body).toMatchObject({ ...diagnostic, message: expect.stringContaining(diagnostic.message) })
+		expect(response.body.executionId).toEqual(expect.any(String))
+		discover.mockRejectedValue({ name: 'AnalyticsProviderError', diagnostic, message: 'private driver text' })
+		await expect(runtime.discover(actor, { source, providerId: 'file.table', request: {} })).rejects.toMatchObject({
+			message: expect.stringContaining(diagnostic.message)
+		})
+		await expect(runtime.query(actor, { binding, controls: {} })).rejects.toMatchObject({
+			message: expect.stringContaining('audit-run')
+		})
+		const preview = tool(async () => runtime.query(actor, { binding, controls: {} }), {
+			name: 'dashboard_preview',
+			description: 'Preview',
+			schema: z.object({})
+		})
+		const output = await new ToolNode([preview]).invoke({
+			toolCall: { id: 'preview-1', name: 'dashboard_preview', args: {} }
+		})
+		expect(output).toEqual([
+			expect.objectContaining({
+				update: expect.objectContaining({
+					messages: [
+						expect.objectContaining({
+							status: 'error',
+							content: expect.stringContaining(diagnostic.message)
+						})
+					]
+				})
+			})
+		])
+	})
+	it('revalidates access before returning a public diagnostic', async () => {
+		execute.mockRejectedValue(
+			new AnalyticsProviderError({
+				schema: 'xpert.analytics.diagnostic',
+				version: 1,
+				code: 'FILTER_INVALID',
+				stage: 'validation',
+				retryable: false,
+				message: 'Authorized field information.'
+			})
+		)
+		revalidate.mockRejectedValue(new Error('revoked'))
+		const response = await post({ binding, controls: {} })
+		expect(response.body.code).toBe('ANALYTICS_SOURCE_CHANGED')
+		expect(JSON.stringify(response.body)).not.toContain('Authorized field information')
+	})
+	it('does not forward malformed provider diagnostics', async () => {
+		execute.mockRejectedValue({
+			name: 'AnalyticsProviderError',
+			diagnostic: {
+				schema: 'xpert.analytics.diagnostic',
+				version: 1,
+				code: 'FILTER_INVALID',
+				stage: 'validation',
+				retryable: false,
+				message: 'password=credential-secret'
+			}
+		})
+		const response = await post({ binding, controls: {} })
+		expect(response.body.code).toBe('ANALYTICS_QUERY_FAILED')
+		expect(JSON.stringify(response.body)).not.toContain('credential-secret')
+	})
+	// Optional paired-repository acceptance: run with the built DataXpert client module path.
+	;(process.env.ANALYTICS_DATAX_CLIENT_MODULE ? it : it.skip)(
+		'carries a real DataXpert client HTTP failure through runtime and ToolNode',
+		async () => {
+			const clientModule: {
+				DataXpertAnalyticsClient: new (
+					registry: unknown
+				) => Pick<AnalyticsQueryProvider, 'execute' | 'discover'>
+			} = require(process.env.ANALYTICS_DATAX_CLIENT_MODULE)
+			const client = new clientModule.DataXpertAnalyticsClient({
+				require: () => ({
+					createScopedApi: () => ({ getToken: async () => ({ token: 'private-viewer-token' }) })
+				})
+			})
+			const diagnostic = {
+				schema: 'xpert.analytics.diagnostic',
+				version: 1,
+				code: 'FILTER_OPERATOR_INVALID',
+				stage: 'validation',
+				retryable: false,
+				message: 'Filter operator is invalid at filters.0.op. Inspect the action schema.',
+				upstreamExecutionId: 'upstream-run',
+				auditRef: 'audit-run'
+			}
+			jest.spyOn(globalThis, 'fetch').mockImplementation(
+				async () =>
+					new Response(JSON.stringify(diagnostic), {
+						status: 400,
+						headers: { 'content-type': 'application/json' }
+					})
+			)
+			execute.mockImplementation((input, parameters, context) =>
+				client.execute(
+					{
+						...input,
+						payload: {
+							resourceId: 'r',
+							actionTypeCode: 'mdx.query_cube_slice',
+							target: { entityId: 'e' },
+							params: {}
+						}
+					},
+					parameters,
+					{
+						...context,
+						options: {
+							baseUrl: 'https://analytics.example/api',
+							audience: 'test',
+							assistantCode: 'assistant',
+							assistantXpertId: uuid,
+							workspaceId: uuid
+						}
+					}
+				)
+			)
+			const preview = tool(async () => runtime.query(actor, { binding, controls: {} }), {
+				name: 'dashboard_preview',
+				description: 'Preview',
+				schema: z.object({})
+			})
+			const output = await new ToolNode([preview]).invoke({
+				toolCall: { id: 'preview-1', name: 'dashboard_preview', args: {} }
+			})
+			expect(JSON.stringify(output)).toContain('FILTER_OPERATOR_INVALID')
+			expect(JSON.stringify(output)).toContain('filters.0.op')
+			expect(JSON.stringify(output)).toContain('audit-run')
+			expect(JSON.stringify(output)).not.toContain('private-viewer-token')
+		}
+	)
 	it.each([
 		['SANDBOX_RUNTIME_UNAVAILABLE', false, 'binding'],
 		['SANDBOX_ACTION_UNAVAILABLE', false, 'contracts'],

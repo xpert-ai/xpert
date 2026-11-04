@@ -20,7 +20,15 @@ export function authorizeAnalyticsActor(actor: DataSourceActor) {
 }
 /** Only host-owned diagnostics enter this boundary; provider messages remain redacted. */
 export class AnalyticsRuntimeError extends BadRequestException {
-	constructor(details: { code: string; message: string; retryable?: boolean; stage?: string }) {
+	constructor(details: {
+		code: string
+		message: string
+		retryable?: boolean
+		stage?: string
+		executionId?: string
+		upstreamExecutionId?: string
+		auditRef?: string
+	}) {
 		const diagnostic = { stage: 'dependency', retryable: false, ...details }
 		super(diagnostic)
 		// ToolNode consumes Error.message, whereas HTTP consumes getResponse(). Keep both informative.
