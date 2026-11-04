@@ -1,0 +1,17 @@
+# Isolated acceptance probe: this branch never publishes or deploys artifacts.
+name: Code Review Diagnostic Timeout Smoke
+on:
+  push:
+    branches: [test/workflow-diagnostics-20261104]
+    paths: [.github/workflows/code-review-diagnostic-timeout-smoke.yml]
+permissions: {}
+jobs:
+  expected-timeout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Exceed the one-minute job limit
+        shell: bash
+        run: |
+          echo 'Diagnostic smoke probe: deliberate 120-second wait with a one-minute job timeout.'
+          sleep 120
