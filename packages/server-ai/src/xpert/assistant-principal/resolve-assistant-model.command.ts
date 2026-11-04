@@ -1,6 +1,6 @@
 import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
-import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, IWFNClassifier, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { Xpert } from '../xpert.entity'
 import { assistantModelCandidates } from '../assistant-model-selection.util'
@@ -35,8 +35,23 @@ export class ResolveAssistantModelHandler implements ICommandHandler<ResolveAssi
         if (!assistant?.active || !assistant.publishAt) throw assistantPrincipalDenied()
         const models = [
             ...assistantModelCandidates(assistant).map((item) => item.model),
-            ...(assistant.agents ?? []).map((agent) => agent.copilotModel).filter(Boolean)
-        ]
+            // Classifiers without an override use the team model, even when the primary Agent overrides it.
+            assistant.copilotModel,
+            ...[assistant.agent, ...(assistant.agents ?? [])].flatMap((agent) =>
+                agent
+                    ? [
+                          agent.copilotModel,
+                          ...(agent.options?.fallback?.enabled ? [agent.options.fallback.copilotModel] : [])
+                      ]
+                    : []
+            ),
+            // Only published workflow bindings grant access; draft edits and arbitrary node options do not.
+            ...(assistant.graph?.nodes ?? []).flatMap((node) =>
+                node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.CLASSIFIER
+                    ? [(node.entity as IWFNClassifier).copilotModel]
+                    : []
+            )
+        ].filter(Boolean)
         if (
             !models.some(
                 (candidate) =>
