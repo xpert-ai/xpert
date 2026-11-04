@@ -27,6 +27,7 @@ import { ThreadRunControlService } from './thread-run-control.service'
 import { readRunLease, RUN_LEASE_KEY } from './thread-run-lease'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { legacyThreadGraphRevision, threadGraphRevision } from './thread-graph-revision'
+import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
 
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
@@ -55,6 +56,15 @@ integration('durable pause control / PostgreSQL', () => {
             schema,
             extra: { options: `-c search_path=${schema}` },
             entities: [
+                new EntitySchema<AppPlatformDelivery>({
+                    name: 'AppPlatformDelivery',
+                    target: AppPlatformDelivery,
+                    columns: {
+                        ...scopeColumns,
+                        userId: uuid,
+                        configuration: { type: 'jsonb' }
+                    }
+                }),
                 ThreadControlProjection,
                 ExecutionTaskControl,
                 TaskControlPublication,
@@ -262,11 +272,12 @@ integration('durable pause control / PostgreSQL', () => {
         const recovered = await threads.findOneByOrFail({ threadId })
         const stoppedExecution = await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })
         expect(stoppedExecution).toMatchObject({ checkpointId: 'latest', metadata: { recovery } })
-        expect(stoppedExecution.completedAt).toBeNull()
-        expect(recovered.status).toBe('busy')
-        expect(recovered.runControl.state).toBe('terminating')
-        await expect(second.start(threadId, randomUUID())).rejects.toThrow()
-        expect(await first.finish(threadId, executionId, 'idle')).toBe('interrupted')
+        expect(stoppedExecution.status).toBe(XpertAgentExecutionStatusEnum.INTERRUPTED)
+        expect(stoppedExecution.completedAt).toBeInstanceOf(Date)
+        expect(recovered.status).toBe('error')
+        expect(recovered.runControl).toBeNull()
+        // Recovery needs no finish callback from the vanished owner; a late callback is harmless.
+        expect(await first.finish(threadId, executionId, 'idle')).toBe('error')
         expect(await second.recoverExpiredRun(threadId)).toBe(false)
     })
 
