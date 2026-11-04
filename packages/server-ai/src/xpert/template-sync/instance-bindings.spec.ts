@@ -77,6 +77,23 @@ function fixture() {
 }
 
 describe('template instance bindings', () => {
+    it('preserves a published avatar omitted by the template, even after an interrupted refresh, while honoring an explicit clear', () => {
+        const { installed, incoming, graph } = fixture()
+        const node = graph.nodes[0]
+        if (node.type !== 'agent') throw Error('Expected Agent')
+        node.entity.avatar = { url: 'https://example.com/avatar.png' }
+        installed.draft = structuredClone(graph)
+        const draftNode = installed.draft.nodes[0]
+        if (draftNode.type !== 'agent') throw Error('Expected Agent')
+        delete draftNode.entity.avatar
+        preserveTemplateInstanceBindings(incoming, installed, {})
+        expect(incoming.nodes[0].entity).toMatchObject({ avatar: node.entity.avatar })
+        const next = incoming.nodes[0]
+        if (next.type !== 'agent') throw Error('Expected Agent')
+        next.entity.avatar = null
+        preserveTemplateInstanceBindings(incoming, installed, {})
+        expect(next.entity.avatar).toBeNull()
+    })
     it('rewrites tool nodes, edges, Agent arrays and team arrays to the installed ID, preserving model inheritance and middleware selections', () => {
         const { installed, incoming, selected } = fixture()
         preserveTemplateInstanceBindings(incoming, installed, { Compression: [{ path: 'llm' }] })

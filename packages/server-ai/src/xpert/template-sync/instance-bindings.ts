@@ -52,6 +52,20 @@ export function preserveTemplateInstanceBindings(
             if (old) {
                 node.entity.copilotModel = structuredClone(old.copilotModel ?? null)
                 node.entity.copilotModelId = old.copilotModel?.id ?? null
+                // Publication retains an omitted avatar. Carry it into the refreshed draft too,
+                // so the reviewed graph matches the published graph; explicit null still clears it.
+                if (node.entity.avatar === undefined) {
+                    const published = installed.graph?.nodes?.find(
+                        (item) => item.type === 'agent' && item.key === node.key
+                    )
+                    const avatar =
+                        old.avatar !== undefined
+                            ? old.avatar
+                            : published?.type === 'agent'
+                              ? published.entity.avatar
+                              : undefined
+                    node.entity.avatar = structuredClone(avatar ?? null)
+                }
                 node.entity = { ...node.entity, updatedAt: old.updatedAt }
             }
         } else if (node.type === 'workflow') {
