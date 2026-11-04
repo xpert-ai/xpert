@@ -15,7 +15,7 @@ import {
   ICopilotWithProvider,
   ParameterRule
 } from '../types'
-import { ConnectionDeletionImpact, RoleDefaultInput, RoleDefaultSetting } from '@xpert-ai/contracts'
+import { ConnectionDeletionImpact, ConnectionImpact, RoleDefaultInput, RoleDefaultSetting } from '@xpert-ai/contracts'
 
 type StatisticsFilters = {
   model?: string | null
@@ -52,9 +52,7 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   }
 
   getConnectionReferences(id: string) {
-    return this.httpClient.get<{ defaults: number; bindings: number; drafts: number }>(
-      `${this.apiBaseUrl}/${id}/references`
-    )
+    return this.httpClient.get<ConnectionImpact>(`${this.apiBaseUrl}/${id}/references`)
   }
 
   getConnectionDeletionImpact(id: string) {
