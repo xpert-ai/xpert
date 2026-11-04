@@ -234,6 +234,7 @@ export const prodToggleFeatures: IPACFeatures = {
   FEATURE_USER_GROUPS: process.env.FEATURE_USER_GROUPS === 'false' ? false : true,
   FEATURE_ORGANIZATIONS: process.env.FEATURE_ORGANIZATIONS === 'false' ? false : true,
   FEATURE_APP_INTEGRATION: process.env.FEATURE_APP_INTEGRATION === 'false' ? false : true,
+  FEATURE_INTEGRATION: process.env.FEATURE_INTEGRATION === 'false' ? false : true,
   FEATURE_SETTING: process.env.FEATURE_SETTING === 'false' ? false : true,
   FEATURE_EMAIL_HISTORY: process.env.FEATURE_EMAIL_HISTORY === 'false' ? false : true,
   FEATURE_EMAIL_TEMPLATE: process.env.FEATURE_EMAIL_TEMPLATE === 'false' ? false : true,
@@ -253,5 +254,5 @@ export const prodToggleFeatures: IPACFeatures = {
   FEATURE_XPERT_PROJECT:
     process.env.FEATURE_XPERT === 'false' || process.env.FEATURE_XPERT_PROJECT === 'false' ? false : true,
   FEATURE_XPERT_DATA_ONTOLOGY: process.env.FEATURE_XPERT_DATA_ONTOLOGY === 'false' ? false : true,
-  FEATURE_XPERT_MARKETPLACE: process.env.FEATURE_XPERT_MARKETPLACE === 'true'
+  FEATURE_XPERT_MARKETPLACE: process.env.FEATURE_XPERT_MARKETPLACE === 'false' ? false : true
 }

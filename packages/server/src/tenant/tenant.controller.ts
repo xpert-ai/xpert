@@ -1,7 +1,7 @@
 import { PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../shared/decorators/permissions'
-import { IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts';
-import { Request } from 'express';
+import { IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@xpert-ai/contracts'
+import { Request, Response } from 'express'
 import {
 	BadRequestException,
 	Body,
@@ -16,25 +16,26 @@ import {
 	Post,
 	Put,
 	Req,
+	Res,
 	UseGuards
-} from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UUIDValidationPipe } from './../shared/pipes';
-import { RequestContext } from '../core/context/request-context';
-import { CrudController } from './../core/crud';
-import { Public, Roles } from './../shared/decorators';
-import { RoleGuard, TenantPermissionGuard } from './../shared/guards';
-import { Tenant } from './tenant.entity';
-import { TenantService } from './tenant.service';
-import { UserCreateCommand } from '../user/commands';
-import { FeatureBulkCreateCommand } from '../feature/commands';
-import { LanguageInitCommand } from '../language/commands';
+} from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { UUIDValidationPipe } from './../shared/pipes'
+import { RequestContext } from '../core/context/request-context'
+import { CrudController } from './../core/crud'
+import { Public, Roles } from './../shared/decorators'
+import { RoleGuard, TenantPermissionGuard } from './../shared/guards'
+import { Tenant } from './tenant.entity'
+import { TenantService } from './tenant.service'
+import { UserCreateCommand } from '../user/commands'
+import { FeatureBulkCreateCommand } from '../feature/commands'
+import { LanguageInitCommand } from '../language/commands'
 import {
 	ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY,
 	AnonymousTenantResolution,
 	AnonymousTenantResolverService
-} from './anonymous-tenant-resolver.service';
+} from './anonymous-tenant-resolver.service'
 
 @ApiTags('Tenant')
 @Controller()
@@ -43,22 +44,23 @@ export class TenantController extends CrudController<Tenant> {
 	constructor(
 		private readonly tenantService: TenantService,
 		private readonly anonymousTenantResolver: AnonymousTenantResolverService,
-		private readonly commandBus: CommandBus) {
-		super(tenantService);
+		private readonly commandBus: CommandBus
+	) {
+		super(tenantService)
 	}
 
 	@Get('count')
 	async getCount() {
-		throw new MethodNotAllowedException();
+		throw new MethodNotAllowedException()
 	}
 
 	@Get('pagination')
 	async pagination() {
-		throw new MethodNotAllowedException();
+		throw new MethodNotAllowedException()
 	}
 
 	@ApiOperation({
-		summary: 'Find all tenants of the user' 
+		summary: 'Find all tenants of the user'
 	})
 	@ApiResponse({
 		status: HttpStatus.OK,
@@ -73,31 +75,31 @@ export class TenantController extends CrudController<Tenant> {
 	@Roles(RolesEnum.SUPER_ADMIN)
 	@Get()
 	async findAll(): Promise<IPagination<Tenant>> {
-		const tenantId = RequestContext.currentTenantId();
+		const tenantId = RequestContext.currentTenantId()
 		return this.tenantService.findAll({
 			where: {
 				id: tenantId
 			}
-		});
+		})
 	}
 
-	/**
-	 * @changed add onboarding info api
-	 * @returns 
-	 */
+	/** Return JSON null until the initial tenant exists. */
 	@Public()
 	@HttpCode(HttpStatus.OK)
 	@Get('onboard')
-	async getOnboardDefault(@Req() request: Request): Promise<ITenant> {
+	async getOnboardDefault(@Req() request: Request, @Res() response: Response): Promise<void> {
 		const resolution =
 			(request[ANONYMOUS_TENANT_RESOLUTION_REQUEST_KEY] as AnonymousTenantResolution | undefined) ??
 			(await this.anonymousTenantResolver.resolve(request))
 		const tenant = resolution.tenant
 
-		return tenant ? {
-			...tenant,
-			settings: (tenant.settings ?? []).filter((item) => item.name?.startsWith('tenant'))
-		} : null
+		const onboarding: ITenant | null = tenant
+			? {
+					...tenant,
+					settings: (tenant.settings ?? []).filter((item) => item.name?.startsWith('tenant'))
+				}
+			: null
+		response.status(HttpStatus.OK).json(onboarding)
 	}
 
 	@ApiOperation({ summary: 'Find by id' })
@@ -112,14 +114,12 @@ export class TenantController extends CrudController<Tenant> {
 	@UseGuards(RoleGuard, TenantPermissionGuard)
 	@Roles(RolesEnum.SUPER_ADMIN)
 	@Get(':id')
-	async findById(
-		@Param('id', UUIDValidationPipe) id: string
-	): Promise<Tenant> {
-		const tenantId = RequestContext.currentTenantId();
+	async findById(@Param('id', UUIDValidationPipe) id: string): Promise<Tenant> {
+		const tenantId = RequestContext.currentTenantId()
 		if (id !== tenantId) {
-			throw new ForbiddenException();
+			throw new ForbiddenException()
 		}
-		return this.tenantService.findOne(tenantId);
+		return this.tenantService.findOne(tenantId)
 	}
 
 	/**
@@ -141,22 +141,20 @@ export class TenantController extends CrudController<Tenant> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@HttpCode(HttpStatus.CREATED)
 	@Post()
 	async create(@Body() entity: ITenantCreateInput): Promise<Tenant> {
-		const user = RequestContext.currentUser();
+		const user = RequestContext.currentUser()
 		if (user.tenantId || user.roleId) {
-			throw new BadRequestException('Tenant already exists');
+			throw new BadRequestException('Tenant already exists')
 		}
-		return await this.tenantService.onboardTenant(entity, user);
+		return await this.tenantService.onboardTenant(entity, user)
 	}
 
 	@ApiOperation({
-		summary:
-			'Create new tenant. The user who creates the tenant is given the super admin role.'
+		summary: 'Create new tenant. The user who creates the tenant is given the super admin role.'
 	})
 	@ApiResponse({
 		status: HttpStatus.CREATED,
@@ -164,8 +162,7 @@ export class TenantController extends CrudController<Tenant> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@Public()
 	@HttpCode(HttpStatus.CREATED)
@@ -174,18 +171,17 @@ export class TenantController extends CrudController<Tenant> {
 		const tenantCount = await this.tenantService.count()
 		const requestedTenant = await this.tenantService.findOneOrFailByWhereOptions({ name: entity.name })
 		if (tenantCount > 0 || requestedTenant.success) {
-			throw new BadRequestException('Tenant already exists');
+			throw new BadRequestException('Tenant already exists')
 		}
 		const preparedEntity = await this.tenantService.prepareTenantCreateInput(entity)
 		await this.commandBus.execute(new LanguageInitCommand())
 		await this.commandBus.execute(new FeatureBulkCreateCommand())
 		const user = await this.commandBus.execute(new UserCreateCommand(entity.superAdmin))
-		return await this.tenantService.onboardTenant(preparedEntity, user, { skipSubdomainPreparation: true });
+		return await this.tenantService.onboardTenant(preparedEntity, user, { skipSubdomainPreparation: true })
 	}
 
 	@ApiOperation({
-		summary:
-			'Update existin tenant. The user who updates the tenant is given the super admin role.'
+		summary: 'Update existin tenant. The user who updates the tenant is given the super admin role.'
 	})
 	@ApiResponse({
 		status: HttpStatus.CREATED,
@@ -193,24 +189,20 @@ export class TenantController extends CrudController<Tenant> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(RoleGuard, TenantPermissionGuard)
 	@Roles(RolesEnum.SUPER_ADMIN)
 	@Put(':id')
-	async update(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() entity: ITenantCreateInput
-	): Promise<ITenant> {
-		const tenantId = RequestContext.currentTenantId();
+	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: ITenantCreateInput): Promise<ITenant> {
+		const tenantId = RequestContext.currentTenantId()
 		if (id !== tenantId) {
-			throw new ForbiddenException();
+			throw new ForbiddenException()
 		}
-		const preparedEntity = await this.tenantService.prepareTenantUpdateInput(id, entity);
-		await this.tenantService.update(id, preparedEntity);
-		return await this.findById(id);
+		const preparedEntity = await this.tenantService.prepareTenantUpdateInput(id, entity)
+		await this.tenantService.update(id, preparedEntity)
+		return await this.findById(id)
 	}
 
 	@ApiOperation({
@@ -233,14 +225,11 @@ export class TenantController extends CrudController<Tenant> {
 	@UseGuards(RoleGuard, TenantPermissionGuard)
 	@Roles(RolesEnum.SUPER_ADMIN)
 	@Delete(':id')
-	async delete(
-		@Param('id', UUIDValidationPipe) id: string
-	) {
-		const tenantId = RequestContext.currentTenantId();
+	async delete(@Param('id', UUIDValidationPipe) id: string) {
+		const tenantId = RequestContext.currentTenantId()
 		if (id !== tenantId) {
-			throw new ForbiddenException();
+			throw new ForbiddenException()
 		}
-		return await this.tenantService.delete(id);
+		return await this.tenantService.delete(id)
 	}
-	
 }
