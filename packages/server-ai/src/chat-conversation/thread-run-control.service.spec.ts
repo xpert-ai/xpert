@@ -71,6 +71,7 @@ describe('ThreadRunControlService', () => {
                 root: jest.fn().mockResolvedValue({ desired: 'running' }),
                 intent: jest.fn(),
                 end: jest.fn().mockResolvedValue(true),
+                settleOrphan: jest.fn().mockResolvedValue(true),
                 drainedExecution: jest.fn().mockResolvedValue(true)
             } as unknown as ExecutionControlStore,
             cancellations as unknown as ExecutionCancelService

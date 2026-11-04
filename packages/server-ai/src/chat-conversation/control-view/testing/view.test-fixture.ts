@@ -22,13 +22,25 @@ import { AssertChatConversationAccessQuery } from '../../queries/conversation-as
 import { GetXpertWorkflowQuery } from '../../../xpert/queries/get-xpert-workflow.query'
 import { ThreadControlProjection } from '../thread-control-projection.entity'
 import { ThreadControlViewService } from '../thread-control-view.service'
+import { ChatMessage } from '../../../chat-message/chat-message.entity'
+import { AgentInvocationWaitEntity } from '../../../agent-invocation/invocation.entity'
+import { AppPlatformDelivery } from '../../../plugin-resource/app-platform/app-platform-delivery.entity'
 
 const uuid = { type: 'uuid' as const }
 const text = { type: 'varchar' as const }
 const nullable = { ...text, nullable: true }
-const scope = { id: { ...uuid, primary: true }, tenantId: uuid, organizationId: uuid }
+const scope = {
+    id: { ...uuid, primary: true, generated: 'uuid' as const },
+    tenantId: uuid,
+    organizationId: { ...uuid, nullable: true }
+}
 export async function viewFixture(url: string) {
     const database = await mcpTestDatabase(url, [
+        new EntitySchema<AppPlatformDelivery>({
+            name: 'AppPlatformDelivery',
+            target: AppPlatformDelivery,
+            columns: { ...scope, userId: uuid, configuration: { type: 'jsonb' } }
+        }),
         ThreadControlProjection,
         ExecutionControl,
         new EntitySchema<ChatConversationThread>({
@@ -37,8 +49,9 @@ export async function viewFixture(url: string) {
             tableName: 'chat_conversation_thread',
             columns: {
                 ...scope,
-                threadId: text,
+                threadId: { ...text, unique: true },
                 conversationId: uuid,
+                createdById: { ...uuid, nullable: true },
                 status: text,
                 error: nullable,
                 metadata: { type: 'jsonb', nullable: true },
@@ -56,6 +69,7 @@ export async function viewFixture(url: string) {
                 ...scope,
                 threadId: text,
                 xpertId: uuid,
+                createdById: { ...uuid, nullable: true },
                 status: text,
                 error: nullable,
                 operation: { type: 'jsonb', nullable: true }
@@ -69,12 +83,42 @@ export async function viewFixture(url: string) {
                 ...scope,
                 threadId: text,
                 parentId: { ...uuid, nullable: true },
+                createdById: { ...uuid, nullable: true },
+                xpertId: { ...uuid, nullable: true },
+                agentKey: nullable,
+                type: nullable,
                 status: text,
+                completedAt: { type: 'timestamptz', nullable: true },
                 createdAt: { type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' },
                 metadata: { type: 'jsonb', nullable: true },
                 checkpointId: nullable,
                 checkpointNs: nullable,
                 error: nullable
+            }
+        }),
+        new EntitySchema<ChatMessage>({
+            name: 'ChatMessage',
+            target: ChatMessage,
+            tableName: 'chat_message',
+            columns: {
+                ...scope,
+                executionId: uuid,
+                status: text,
+                error: nullable,
+                content: { type: 'jsonb', nullable: true }
+            }
+        }),
+        new EntitySchema<AgentInvocationWaitEntity>({
+            name: 'AgentInvocationWaitEntity',
+            target: AgentInvocationWaitEntity,
+            tableName: 'agent_invocation_wait',
+            columns: {
+                ...scope,
+                threadId: text,
+                state: text,
+                leaseToken: { ...uuid, nullable: true },
+                leaseUntil: { type: 'timestamptz', nullable: true },
+                lastError: nullable
             }
         }),
         CopilotCheckpoint,
