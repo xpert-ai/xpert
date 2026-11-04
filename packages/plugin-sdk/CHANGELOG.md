@@ -1,5 +1,18 @@
 # @xpert-ai/plugin-sdk
 
+## 3.31.0
+
+### Minor Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+
+### Patch Changes
+
+- 6561b42: Expose optional source-declared column metadata in AnalyticsProviderResult for schema-aware authoring without changing strict binding validation or runtime APIs.
+- Updated dependencies [3f43604]
+- Updated dependencies [7895e19]
+  - @xpert-ai/contracts@3.31.0
+
 ## 3.30.2
 
 ### Patch Changes
