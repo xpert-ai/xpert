@@ -1,5 +1,21 @@
 # @xpert-ai/xpert-api
 
+## 3.31.0
+
+### Patch Changes
+
+- 6561b42: Expose optional source-declared column metadata in AnalyticsProviderResult for schema-aware authoring without changing strict binding validation or runtime APIs.
+- 22461a7: Restore API production builds by keeping cross-module API key authorization tests in the AI package, eliminating the reverse dependency from server-core to server-ai.
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- 3a4788e: Allow Assistant technical accounts to use their published classifier models, enabled Agent fallback models and the team model inherited by classifiers. Keep draft-only models, disabled fallbacks and unrelated provider or model types unauthorized.
+- 8643de1: Enable System Integration and Agent Marketplace by default for newly initialized tenants in development and production. Honor explicit `FEATURE_INTEGRATION=false` and `FEATURE_XPERT_MARKETPLACE=false` overrides, while preserving existing tenant and organization feature selections.
+- 657e608: Check runtime template dependencies through the published Assistant access policy so delegated assistants can run without requiring file-management permissions. Preserve live access checks and explicit version requirements from older template metadata, while keeping authoring checks under file-access authorization.
+- 7895e19: Keep saved embedding targets visible independently of active vector indices. Enforce model batch limits at the host boundary, expose rebuild errors and batch correction in the current knowledge settings dialog, and retry the saved target without replacing active vectors before success. Protect rebuild state from configuration readback and cover failure, refresh, retry and stale-task isolation with nonempty embedding inputs.
+- c8748ab: Return explicit JSON null from tenant onboarding before initialization. Validate shared workspace directory ownership as the configured workspace identity when the privileged NsJail Runner sees caller-dependent ownership, preserving non-root execution and directory protection.
+- 7302333: Restore plugin browsing and organization-scoped management for authorized authors. Validate organization access and uninstall targets while preserving system, tenant, marketplace administration and restart restrictions. Scope plugin convergence reads to the requesting organization and avoid displaying a zero installed count when loading fails.
+- 9a9127b: Load current, credential-free users and role grants when resolving resource API key identities, including API-key-backed client secrets. Preserve tenant, organization and resource boundaries, personal identities and management restrictions, with HTTP and database regression coverage for #1328.
+- 9a9127b: Allow authenticated users to read scoped tag definitions while retaining tag management permissions. Recover tag selectors and workspace rendering after request failures, with retry feedback and cache invalidation on scope changes. Add HTTP isolation and frontend regression coverage for #1327.
+
 ## 3.30.2
 
 ### Patch Changes

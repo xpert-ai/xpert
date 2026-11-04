@@ -1,5 +1,16 @@
 # @xpert-ai/xpert-ui
 
+## 3.31.0
+
+### Patch Changes
+
+- 6561b42: Expose optional source-declared column metadata in AnalyticsProviderResult for schema-aware authoring without changing strict binding validation or runtime APIs.
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- 8643de1: Enable System Integration and Agent Marketplace by default for newly initialized tenants in development and production. Honor explicit `FEATURE_INTEGRATION=false` and `FEATURE_XPERT_MARKETPLACE=false` overrides, while preserving existing tenant and organization feature selections.
+- 7895e19: Keep saved embedding targets visible independently of active vector indices. Enforce model batch limits at the host boundary, expose rebuild errors and batch correction in the current knowledge settings dialog, and retry the saved target without replacing active vectors before success. Protect rebuild state from configuration readback and cover failure, refresh, retry and stale-task isolation with nonempty embedding inputs.
+- 7302333: Restore plugin browsing and organization-scoped management for authorized authors. Validate organization access and uninstall targets while preserving system, tenant, marketplace administration and restart restrictions. Scope plugin convergence reads to the requesting organization and avoid displaying a zero installed count when loading fails.
+- 9a9127b: Allow authenticated users to read scoped tag definitions while retaining tag management permissions. Recover tag selectors and workspace rendering after request failures, with retry feedback and cache invalidation on scope changes. Add HTTP isolation and frontend regression coverage for #1327.
+
 ## 3.30.2
 
 ### Patch Changes

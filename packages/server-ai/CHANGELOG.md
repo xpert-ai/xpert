@@ -1,5 +1,30 @@
 # @xpert-ai/server-ai
 
+## 3.31.0
+
+### Patch Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- 3a4788e: Allow Assistant technical accounts to use their published classifier models, enabled Agent fallback models and the team model inherited by classifiers. Keep draft-only models, disabled fallbacks and unrelated provider or model types unauthorized.
+- 657e608: Check runtime template dependencies through the published Assistant access policy so delegated assistants can run without requiring file-management permissions. Preserve live access checks and explicit version requirements from older template metadata, while keeping authoring checks under file-access authorization.
+- 7895e19: Keep saved embedding targets visible independently of active vector indices. Enforce model batch limits at the host boundary, expose rebuild errors and batch correction in the current knowledge settings dialog, and retry the saved target without replacing active vectors before success. Protect rebuild state from configuration readback and cover failure, refresh, retry and stale-task isolation with nonempty embedding inputs.
+- 7302333: Restore plugin browsing and organization-scoped management for authorized authors. Validate organization access and uninstall targets while preserving system, tenant, marketplace administration and restart restrictions. Scope plugin convergence reads to the requesting organization and avoid displaying a zero installed count when loading fails.
+- Updated dependencies [6561b42]
+- Updated dependencies [3f43604]
+- Updated dependencies [8643de1]
+- Updated dependencies [7895e19]
+- Updated dependencies [c8748ab]
+- Updated dependencies [7302333]
+- Updated dependencies [9a9127b]
+- Updated dependencies [9a9127b]
+    - @xpert-ai/plugin-sdk@3.31.0
+    - @xpert-ai/contracts@3.31.0
+    - @xpert-ai/server-core@3.31.0
+    - @xpert-ai/server-config@3.31.0
+    - @xpert-ai/desktop-protocol@0.4.6
+    - @xpert-ai/server-auth@3.31.0
+    - @xpert-ai/server-common@3.31.0
+
 ## 3.30.2
 
 ### Patch Changes

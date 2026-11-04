@@ -1,5 +1,11 @@
 # @xpert-ai/server-config
 
+## 3.31.0
+
+### Patch Changes
+
+- 8643de1: Enable System Integration and Agent Marketplace by default for newly initialized tenants in development and production. Honor explicit `FEATURE_INTEGRATION=false` and `FEATURE_XPERT_MARKETPLACE=false` overrides, while preserving existing tenant and organization feature selections.
+
 ## 3.30.2
 
 ## 3.30.1

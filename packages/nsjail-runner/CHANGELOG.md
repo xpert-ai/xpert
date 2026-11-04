@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.3
+
+### Patch Changes
+
+- c8748ab: Return explicit JSON null from tenant onboarding before initialization. Validate shared workspace directory ownership as the configured workspace identity when the privileged NsJail Runner sees caller-dependent ownership, preserving non-root execution and directory protection.
+
 ## 0.4.2
 
 ### Patch Changes
