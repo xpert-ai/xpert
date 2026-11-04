@@ -140,6 +140,7 @@
         "AnalyticsCapabilityUnavailableHint": "The selected provider, operation or contract version is unavailable. List sources and discover again, then use the returned providerId, operation and contractVersion.",
         "AnalyticsQueryTimeoutHint": "The query timed out or was cancelled. Narrow the data range or simplify the query, and check source connectivity. Retry at most once after the condition changes; stop if it fails again.",
         "AnalyticsRecursionDeniedHint": "Analytics dependency recursion or depth was rejected. Inspect upstream source definitions and remove the dependency cycle before retrying.",
+        "AnalyticsProviderDiagnostic": "Analytics provider reported:",
         "AnalyticsQueryFailedHint": "The provider failed to execute or validate the query. Private driver details are withheld. Inspect the source schema and query contract, then try a minimal read-only query to isolate the problem. If it still fails, report the blocker; do not repeat identical previews.",
         "NsJailDocumentUnavailable": "NsJail Document Runtime is unavailable. Check the Runner image, managed document dependencies and cgroup v2 isolation.",
         "NsJailDocumentInvalidPolicy": "The NsJail Document request does not match the supported runtime policy.",

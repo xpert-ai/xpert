@@ -1,6 +1,7 @@
 // All source kinds share the same deadline, actor check, provider dispatch and post-query revalidation.
 import { Inject, Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
+import { t } from 'i18next'
 import {
 	type AnalyticsDiscoveryRequest,
 	type AnalyticsProviderDescriptor,
@@ -10,6 +11,7 @@ import {
 } from '@xpert-ai/contracts'
 import {
 	AnalyticsProviderRegistry,
+	readAnalyticsProviderDiagnostic,
 	AnalyticsRuntimeCapability,
 	RuntimeCapabilityProvider,
 	analyticsQueryRequestSchema,
@@ -183,13 +185,38 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 						deadlineAt,
 						ancestry
 					}
+					const revalidateAccess = async () => {
+						assertActive()
+						authorizeAnalyticsActor(actor)
+						if (!this.providers.list(actor.organizationId).includes(provider))
+							throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+						try {
+							await resolved.revalidate()
+						} catch {
+							throw analyticsError('ANALYTICS_SOURCE_CHANGED')
+						}
+						assertActive()
+						authorizeAnalyticsActor(actor)
+						if (!this.providers.list(actor.organizationId).includes(provider))
+							throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+					}
 					let output: T
 					try {
 						output = await run(provider, context)
 					} catch (error) {
+						assertActive()
 						if (error instanceof AnalyticsRuntimeError) throw error
 						const dependencyError = analyticsRuntimeDependencyError(error)
 						if (dependencyError) throw dependencyError
+						const diagnostic = readAnalyticsProviderDiagnostic(error)
+						if (diagnostic) {
+							await revalidateAccess()
+							throw new AnalyticsRuntimeError({
+								...diagnostic,
+								executionId: context.executionId,
+								message: `${t('server-ai:Error.AnalyticsProviderDiagnostic', { defaultValue: 'Analytics provider reported:' })} ${diagnostic.message}`
+							})
+						}
 						// Plugin HTTP exceptions are also untrusted; never forward embedded upstream credentials.
 						throw analyticsError(
 							error instanceof Error && SAFE_ANALYTICS_ERRORS.has(error.message)
@@ -199,19 +226,7 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 									: 'ANALYTICS_QUERY_FAILED'
 						)
 					}
-					assertActive()
-					authorizeAnalyticsActor(actor)
-					if (!this.providers.list(actor.organizationId).includes(provider))
-						throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
-					try {
-						await resolved.revalidate()
-					} catch {
-						throw analyticsError('ANALYTICS_SOURCE_CHANGED')
-					}
-					assertActive()
-					authorizeAnalyticsActor(actor)
-					if (!this.providers.list(actor.organizationId).includes(provider))
-						throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+					await revalidateAccess()
 					return output
 				})()
 			])

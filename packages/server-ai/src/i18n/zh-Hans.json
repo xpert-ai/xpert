@@ -140,6 +140,7 @@
         "AnalyticsCapabilityUnavailableHint": "所选 provider、operation 或契约版本不可用。请重新列出并发现数据源，使用返回的 providerId、operation 和 contractVersion。",
         "AnalyticsQueryTimeoutHint": "查询超时或被取消。请缩小数据范围或简化查询，并检查数据源连接；条件改善后最多重试一次，仍失败则停止。",
         "AnalyticsRecursionDeniedHint": "分析查询存在依赖循环或超出依赖深度。请检查上游数据源定义并消除循环后再试。",
+        "AnalyticsProviderDiagnostic": "分析数据提供程序报告：",
         "AnalyticsQueryFailedHint": "Provider 执行或验证查询失败，底层驱动的私密信息已隐藏。请检查数据源结构和查询契约，再用最小只读查询定位问题；仍失败则报告阻塞原因，不要重复相同预览。",
         "NsJailDocumentUnavailable": "NsJail 文档运行时不可用，请检查 Runner 镜像、文档依赖和 cgroup v2 隔离配置。",
         "NsJailDocumentInvalidPolicy": "NsJail 文档请求与支持的运行时策略不一致。",
