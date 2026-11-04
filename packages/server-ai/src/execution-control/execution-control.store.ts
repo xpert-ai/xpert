@@ -1,6 +1,7 @@
 // Invariants: the root row serializes child registration, control and tool admission.
 // Termination is a tombstone; notices are hints, never the source of truth.
 // A wrapper ending does not settle its tools. Only tool completion receipts drain work.
+// An orphan's graph receipt may be reconciled only after fencing and complete owned-work evidence.
 import { z } from 'zod'
 import { Injectable } from '@nestjs/common'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
@@ -238,6 +239,79 @@ export class ExecutionControlStore {
     async drainedExecution(manager: EntityManager, executionId: string) {
         const record = await this.lock(manager, executionId)
         return !record || (record.target.graphEnded && this.drained(record.root))
+    }
+
+    /** The caller holds the thread lock and has verified its matching expired ownership lease. */
+    async settleOrphan(manager: EntityManager, scope: ExecutionControlScope, executionId: string): Promise<boolean> {
+        const record = await this.lock(manager, executionId)
+        if (
+            !scope.tenantId ||
+            !record ||
+            record.target.rootExecutionId !== executionId ||
+            record.target.tenantId !== scope.tenantId ||
+            record.target.organizationId !== (scope.organizationId ?? null) ||
+            record.target.threadId !== scope.threadId
+        )
+            this.reject(executionId)
+        const task = await this.tasks.execution(executionId, manager)
+        if (
+            !task ||
+            task.kind !== 'execution' ||
+            task.currentExecutionId !== executionId ||
+            task.tenantId !== scope.tenantId ||
+            task.organizationId !== (scope.organizationId ?? null) ||
+            task.threadId !== scope.threadId
+        )
+            this.reject(executionId)
+
+        // Lock both ledgers and fence admission before considering the missing local graph receipt.
+        // Expiry alone never settles a tool, child handler or external operation.
+        await this.intent(manager, executionId, 'terminated')
+        if ((await this.tasks.read(task.id, manager)).currentExecutionId !== executionId) this.reject(executionId)
+        const family = await this.tasks.descendants(task.id, manager)
+        if (
+            !family.some((child) => child.id === task.id) ||
+            family.some(
+                (child) =>
+                    child.tenantId !== scope.tenantId ||
+                    child.organizationId !== (scope.organizationId ?? null) ||
+                    child.rootId !== task.rootId ||
+                    (child.kind === 'execution' &&
+                        (!child.currentExecutionId || !child.attempts.includes(child.currentExecutionId))) ||
+                    (child.id !== task.id && child.state !== 'completed')
+            )
+        )
+            return false
+
+        const executions = new Map(
+            family
+                .filter((child) => child.kind === 'execution')
+                .flatMap((child) => child.attempts.map((attempt) => [attempt, child] as const))
+        )
+        const controls = await manager.find(ExecutionControl, {
+            where: [{ rootExecutionId: executionId }, { executionId: In([...executions.keys()]) }]
+        })
+        controls.forEach(validateExecutionControl)
+        // Missing child ledgers and unregistered attached graphs remain uncertain, even with settled tools.
+        if (
+            controls.length !== executions.size ||
+            controls.some(
+                (control) =>
+                    !executions.has(control.executionId) ||
+                    control.tenantId !== scope.tenantId ||
+                    control.organizationId !== (scope.organizationId ?? null) ||
+                    control.threadId !== executions.get(control.executionId).threadId ||
+                    !executions.has(control.rootExecutionId) ||
+                    (control.executionId !== executionId && !control.graphEnded) ||
+                    !this.drained(control) ||
+                    control.work.some((work) => !executions.has(work.executionId))
+            )
+        )
+            return false
+
+        await this.end(manager, executionId)
+        await this.tasks.receipt(task.id, 'completed', undefined, manager)
+        return true
     }
 
     private drained(root: ExecutionControl) {

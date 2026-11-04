@@ -166,9 +166,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 !['busy', 'pausing'].includes(thread.status)
             )
                 return null
-            if (['terminating', 'settling', 'input_wait'].includes(thread.runControl?.state)) return null
-            await this.controls.intent(manager, lease.executionId, 'terminated')
-            if (!(await this.controls.drainedExecution(manager, lease.executionId))) {
+            if (['settling', 'input_wait'].includes(thread.runControl?.state)) return null
+            if (!(await this.controls.settleOrphan(manager, thread, lease.executionId))) {
                 thread.runControl.state = 'terminating'
                 thread.status = 'busy'
                 thread.encryptedRunContext = null
@@ -186,10 +185,11 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             thread.operation = null
             thread.runControl = null
             thread.encryptedRunContext = null
+            thread.runtimeContinuationBlockedAt = new Date()
             clearRunLease(thread)
             clearThreadDisplayPause(thread)
             await manager.save(thread)
-            const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId }
+            const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId ?? IsNull() }
             await manager.update(
                 XpertAgentExecution,
                 {
@@ -652,6 +652,15 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                 return thread.status
             if (!control && (await this.controls.has(executionId))) return thread.status
             if (!control && ['interrupted', 'error'].includes(thread.status) && thread.error) return thread.status
+            const lease = readRunLease(thread.metadata)
+            // Only orphan reconciliation may finalize an expired, fenced owner. A late callback
+            // must not bypass its stricter check for uncertain child ledgers.
+            if (
+                control?.state === 'terminating' &&
+                lease?.executionId === executionId &&
+                Date.parse(lease.expiresAt) <= Date.now()
+            )
+                return thread.status
             if (control?.state === 'settling' && control.pendingFinish) {
                 status = control.pendingFinish.status
                 error = control.pendingFinish.error
