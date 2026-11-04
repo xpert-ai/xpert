@@ -1,0 +1,17 @@
+# Isolated acceptance probe: no checkout, credentials, publication or deployment.
+name: Code Review Diagnostic Manual Cancel Smoke
+on:
+  push:
+    branches: [test/workflow-diagnostics-20261104]
+    paths: [.github/workflows/code-review-diagnostic-cancel-smoke.yml]
+permissions: {}
+jobs:
+  expected-manual-cancellation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for an explicit manual cancellation
+        shell: bash
+        run: |
+          echo 'Diagnostic acceptance probe: this run will be explicitly cancelled before its timeout.'
+          sleep 600
