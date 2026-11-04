@@ -7,13 +7,15 @@ import {
     AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
     HandoffMessage,
     RunSource,
-    AgentChatDispatchPayload
+    AgentChatDispatchPayload,
+    RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'crypto'
 import { HandoffQueueService } from '../../../handoff/message-queue.service'
 import { AGENT_CHAT_CALLBACK_NOOP_MESSAGE_TYPE } from '../../../handoff/plugins/agent-chat/agent-chat-callback-noop.processor'
 import { XpertService } from '../../xpert.service'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
+import { authenticatedRuntimeUserHeaders } from '../../../shared/runtime-user-headers'
 
 @Injectable()
 @CommandHandler(XpertEnqueueTriggerDispatchCommand)
@@ -37,6 +39,13 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
         }
 
         const resolvedUserId = userId || null
+        // Only the current actor may carry authenticated provenance; workers reload live grants in the target scope.
+        const authenticatedUserHeaders =
+            resolvedUserId === RequestContext.currentUserId() &&
+            xpert.tenantId === RequestContext.currentTenantId() &&
+            (!xpert.organizationId || xpert.organizationId === RequestContext.getOrganizationId())
+                ? authenticatedRuntimeUserHeaders()
+                : {}
         let language: string | undefined
         if (resolvedUserId) {
             try {
@@ -94,6 +103,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
             headers: {
                 ...(xpert.organizationId ? { organizationId: xpert.organizationId } : {}),
                 ...(resolvedUserId ? { userId: resolvedUserId } : {}),
+                ...authenticatedUserHeaders,
                 ...(language ? { language } : {}),
                 source
             }
