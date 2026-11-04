@@ -82,7 +82,7 @@ describe('CopilotService', () => {
                 { provide: ConnectionDeletionService, useValue: {} },
                 {
                     provide: ConnectionReferencesService,
-                    useValue: { inspect: jest.fn().mockResolvedValue({ defaults: 0, bindings: 0, drafts: 0 }) }
+                    useValue: { inspect: jest.fn(), countDefaults: jest.fn().mockResolvedValue(0) }
                 },
                 {
                     provide: getRepositoryToken(Copilot),
@@ -128,6 +128,15 @@ describe('CopilotService', () => {
         repository.manager.transaction.mockImplementation((callback) => callback(manager))
         await expect(service.update('copilot-id', { enabled: true })).rejects.toMatchObject({ status: 404 })
         expect(manager.save).not.toHaveBeenCalled()
+    })
+
+    it('blocks disabling while fixed default settings reference the connection', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(createCopilot({ enabled: true }))
+        const references = moduleRef.get(ConnectionReferencesService)
+        jest.spyOn(references, 'countDefaults').mockResolvedValue(2)
+        await expect(service.update('copilot-id', { enabled: false })).rejects.toMatchObject({ status: 400 })
+        expect(repository.manager.transaction).not.toHaveBeenCalled()
+        expect(references.inspect).not.toHaveBeenCalled()
     })
 
     it('preserves connection identity and deletion state when editing', async () => {

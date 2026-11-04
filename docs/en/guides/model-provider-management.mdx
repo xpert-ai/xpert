@@ -186,3 +186,11 @@ Integration code should use `DefaultModelRole` for default purposes and `AiModel
 **Why can a migrated default remain unavailable?** Migration preserves configuration; it does not repair expired credentials, restore retired models, or expand access. Check the connection, enabled selection, actual type, and permissions, then select an available model.
 
 **Does this include priority routing between platform message credits and API keys?** No. This feature uses independent connections and existing authorization rules; it does not automatically prioritize platform credits versus personal credentials.
+
+### Inspecting the impact of disabling a connection
+
+The disable dialog inventories the owning tenant, including its organizations. Fixed default settings are listed with their purpose, organization and model; change those settings before disabling. Disabling preserves saved configurations, so the reference counts do not automatically decrease.
+
+Saved model bindings count database records, not distinct models, executions or affected resources. The breakdown separates bindings with direct current references, historical-only direct references, and no discovered direct reference. Current resources are deduplicated by resource type and ID; historical Assistant versions and deleted records are listed separately. Multiple configuration fields can reference the same resource or binding.
+
+Expand the reference groups or search by resource, ID, model or field. Details include the resource, organization, model/type, binding ID, field path and draft/published/historical status. JSON matches in Assistant drafts, published graphs and other saved configuration snapshots remain explicitly unresolved: a nested snapshot is not proof of effective runtime use. Bindings without direct references are not proven unused and are never automatically deleted or migrated. This inventory covers default settings, direct model-binding relationships and Assistant configuration JSON; it does not count execution or usage history.
