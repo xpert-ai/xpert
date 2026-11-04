@@ -39,10 +39,12 @@ export class ProjectPipelineRoundService {
 
     async next(context: ProjectPipelineContext, request: ProjectPipelineNextRound) {
         const input = projectPipelineNextRoundSchema.parse(request)
-        await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
+        const access = await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
         const scope = projectionScope(context),
             manager = this.instances.manager
         const instance = await this.instances.findOneByOrFail({ ...scope, id: input.instanceId })
+        if (access.role === 'assistant' && instance.createdById !== context.actor.userId)
+            throw pipelineProjectionConflict('DECISION_NOT_AUTHORIZED')
         if (instance.authority !== 'platform') throw pipelineProjectionConflict('PLATFORM_AUTHORITY_REQUIRED')
         const run = await manager.findOneByOrFail(ProjectPipelineRunEntity, { ...scope, id: instance.currentRunId })
         const roundId = pipelineIdentity(context, 'round', run.id, input.requestId)

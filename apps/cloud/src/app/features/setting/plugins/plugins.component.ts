@@ -35,7 +35,7 @@ import {
 } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { injectActiveScope, injectPluginAPI } from '@cloud/app/@core/state'
+import { injectActiveScope, injectPluginAPI, Store } from '@cloud/app/@core/state'
 
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -52,6 +52,8 @@ import {
   IPluginUpdateResult,
   IRuntimePluginRequirement,
   PluginMarketplaceCategory,
+  PermissionsEnum,
+  RequestScopeLevel,
   RolesEnum
 } from '@xpert-ai/contracts'
 import {
@@ -121,6 +123,7 @@ export class PluginsComponent {
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
   readonly #activeScope = injectActiveScope()
+  readonly #store = inject(Store)
   readonly currentUser = injectUser()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
@@ -242,6 +245,11 @@ export class PluginsComponent {
     [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN].some((role) => role === this.currentUser()?.role?.name)
   )
   readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
+  readonly canManagePlugins = computed(
+    () =>
+      this.#activeScope()?.level === RequestScopeLevel.ORGANIZATION ||
+      (this.isSuperAdmin() && this.#store.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT))
+  )
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()

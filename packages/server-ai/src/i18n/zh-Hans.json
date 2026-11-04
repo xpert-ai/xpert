@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "OrganizationAutomationUnavailableUser": "不可用用户",
+        "OrganizationAutomationAccessDenied": "组织自动化授权不可用或已撤销。",
         "EmbeddingRebuildRecoveryInvalid": "重建恢复请求不能包含任务或范围覆盖参数。",
         "EmbeddingRebuildReceiptUnavailable": "无法确认此重建任务已结束，请检查任务队列。",
         "ExecutionIdentityUnavailable": "执行身份在当前范围内已不可用。",
@@ -67,6 +69,9 @@
         "EmbeddingRebuildStale": "向量重建任务已被替换。",
         "InvalidUnreadSyncRequest": "未读汇总同步请求无效。",
         "EndpointPermissionDenied": "您没有执行此操作的权限。",
+        "PluginManagementScopeDenied": "请在有权访问的组织中管理插件，租户范围的操作需要超级管理员权限。",
+        "PluginScopeMismatch": "插件范围与当前获授权的管理范围不一致。",
+        "PluginConvergenceFailed": "插件变更未能生效，请联系管理员。",
         "RequestScopeInvalid": "请求范围无效。",
         "RequestScopeMismatch": "请求范围与当前身份不匹配。",
         "OrganizationAccessDenied": "您无权访问此组织。",
@@ -1368,7 +1373,8 @@
         "IntegrationSharingAdminRequired": "只有租户管理员可以管理集成共享授权",
         "IntegrationUnavailable": "集成不可用或未获授权",
         "IntegrationSharingOrganizationInvalid": "请选择当前租户内的有效组织",
-        "IntegrationSharingInvalid": "集成使用授权或查询参数无效"
+        "IntegrationSharingInvalid": "集成使用授权或查询参数无效",
+        "EmbeddingBatchSizeInvalid": "嵌入批次大小必须为 1–2048 之间的整数。"
     },
     "Mcp": {
         "Test": {

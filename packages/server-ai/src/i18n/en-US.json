@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "OrganizationAutomationUnavailableUser": "Unavailable user",
+        "OrganizationAutomationAccessDenied": "Organization automation authority is unavailable or revoked.",
         "EmbeddingRebuildRecoveryInvalid": "Rebuild recovery does not accept task or scope overrides.",
         "EmbeddingRebuildReceiptUnavailable": "The rebuild task could not be verified as finished. Check the task queue.",
         "ExecutionIdentityUnavailable": "The execution identity is no longer available in this scope.",
@@ -67,6 +69,9 @@
         "EmbeddingRebuildStale": "The embedding rebuild task has been replaced.",
         "InvalidUnreadSyncRequest": "Invalid unread synchronization request.",
         "EndpointPermissionDenied": "You do not have permission to perform this operation.",
+        "PluginManagementScopeDenied": "Plugin management requires an authorized organization or a super administrator.",
+        "PluginScopeMismatch": "The plugin scope does not match the authorized management scope.",
+        "PluginConvergenceFailed": "Plugin changes could not be applied. Contact your administrator.",
         "RequestScopeInvalid": "Invalid request scope.",
         "RequestScopeMismatch": "Request scope does not match the authenticated identity.",
         "OrganizationAccessDenied": "Organization access denied.",
@@ -1368,7 +1373,8 @@
         "IntegrationSharingAdminRequired": "Only a tenant administrator can manage integration sharing",
         "IntegrationUnavailable": "Integration is unavailable or unauthorized",
         "IntegrationSharingOrganizationInvalid": "Select active organizations in the current tenant",
-        "IntegrationSharingInvalid": "Invalid integration access policy or query"
+        "IntegrationSharingInvalid": "Invalid integration access policy or query",
+        "EmbeddingBatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048."
     },
     "Mcp": {
         "Test": {

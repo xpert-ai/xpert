@@ -9,11 +9,11 @@ import { PermissionGuard, TenantPermissionGuard } from './../shared/guards'
 import { IPagination, PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../shared/decorators'
 import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
+import { FindOptionsWhere } from 'typeorm'
 
 @ApiTags('Tags')
 @UseGuards(TenantPermissionGuard)
 @Controller()
-@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
 export class TagController extends CrudController<Tag> {
 	constructor(
 		private readonly tagService: TagService,
@@ -23,6 +23,7 @@ export class TagController extends CrudController<Tag> {
 	}
 
 	@Get('directory')
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
 	directory() {
 		return this.management.directory()
 	}
@@ -65,12 +66,37 @@ export class TagController extends CrudController<Tag> {
 	}
 
 	@Get()
-	async findAll(@Query('data', ParseJsonPipe) data: PaginationParams<Tag>): Promise<IPagination<Tag>> {
-		const { relations, where } = data ?? {}
-		return this.tagService.findAll({
-			where,
-			relations
-		})
+	async findAll(): Promise<IPagination<Tag>> {
+		return this.tagService.findCatalog()
+	}
+
+	// Legacy CRUD reads remain management-only; catalog readers cannot request arbitrary relations.
+	@Get('count')
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	override getCount(@Query() options?: FindOptionsWhere<Tag>) {
+		return super.getCount(options)
+	}
+
+	@Get('pagination')
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	override pagination(filter?: PaginationParams<Tag>) {
+		return super.pagination(filter)
+	}
+
+	@Get('my')
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	override findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<Tag>) {
+		return super.findMyAll(params)
+	}
+
+	@Get(':id')
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	override findById(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<Tag>['relations'],
+		@Query('$select', ParseJsonPipe) select?: PaginationParams<Tag>['select']
+	) {
+		return super.findById(id, relations, select)
 	}
 
 	@UseGuards(PermissionGuard)

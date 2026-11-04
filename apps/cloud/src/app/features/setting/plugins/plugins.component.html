@@ -15,9 +15,11 @@
         (click)="category.set('plugins')"
       >
         {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
-        <span class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
-          {{ plugins().length }}
-        </span>
+        @if (!pluginsLoading() && !pluginsError()) {
+          <span class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
+            {{ plugins().length }}
+          </span>
+        }
       </button>
       <button
         type="button"
@@ -94,7 +96,7 @@
         {{ 'XP.Plugin.PublishPlugins' | translate: { Default: 'Publish plugins' } }}
       </a>
     }
-    @if (category() !== 'agent-plugins') {
+    @if (category() !== 'agent-plugins' && canManagePlugins()) {
       <button
         type="button"
         class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 whitespace-nowrap p-2 text-text-secondary"
@@ -135,6 +137,7 @@
                 : {
                     Default:
                       'API replicas are restarting in background batches for {{pluginNames
+
 
 
 

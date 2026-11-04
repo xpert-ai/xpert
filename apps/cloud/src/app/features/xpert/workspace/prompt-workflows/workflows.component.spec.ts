@@ -148,7 +148,13 @@ describe('Workspace prompt editor', () => {
         { provide: XpertConnectorService, useValue: { runtimeOptions: jest.fn(() => of({ items: [] })) } },
         { provide: Clipboard, useValue: clipboard },
         { provide: ToastrService, useValue: { success: jest.fn(), error: jest.fn() } },
-        { provide: TagService, useValue: { getCatalogByCategory: jest.fn(() => of(shared.organizationTags)) } }
+        {
+          provide: TagService,
+          useValue: {
+            getCatalogState: () => of({ tags: [], loading: false, error: null }),
+            getCatalogByCategory: jest.fn(() => of(shared.organizationTags))
+          }
+        }
       ]
     }).compileComponents()
   })

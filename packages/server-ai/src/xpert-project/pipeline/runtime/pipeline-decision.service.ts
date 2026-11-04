@@ -45,7 +45,8 @@ export class ProjectPipelineDecisionService {
 
     async decide(context: ProjectPipelineContext, request: ProjectPipelineDecision) {
         const input = projectPipelineDecisionSchema.parse(request)
-        await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
+        const access = await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
+        if (access.role === 'assistant') throw pipelineProjectionConflict('DECISION_NOT_AUTHORIZED')
         const scope = projectionScope(context),
             manager = this.attentions.manager
         const attention = await this.attentions.findOneByOrFail({ ...scope, id: input.attentionId })

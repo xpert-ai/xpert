@@ -1,3 +1,7 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { UserType } from '@xpert-ai/contracts'
+import { runWithExecutionIdentity } from '@xpert-ai/server-core'
+import { ResolveAssistantPrincipalCommand } from '../../../xpert/assistant-principal/resolve-assistant-principal.command'
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -34,7 +38,8 @@ export class ProjectPipelineAssistantBridgeService {
         private readonly published: PublishedXpertAccessService,
         private readonly store: ProjectPipelineOperationStore,
         private readonly adapters: ProjectPipelineRuntimeAdapterRegistry,
-        @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry
+        @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry,
+        private readonly commands: CommandBus
     ) {}
 
     async resolve(context: ProjectPipelineContext, selectionKey: string) {
@@ -51,7 +56,7 @@ export class ProjectPipelineAssistantBridgeService {
             organizationId: context.actor.organizationId,
             userId: context.actor.userId
         })
-        const assistant = await this.published.getAccessiblePublishedXpert(xpertId)
+        const assistant = await this.published.getPublishedXpertInTenant(xpertId)
         if (
             assistant.tenantId !== context.actor.tenantId ||
             assistant.organizationId !== context.actor.organizationId ||
@@ -59,6 +64,8 @@ export class ProjectPipelineAssistantBridgeService {
         )
             throw pipelineProjectionConflict('EXECUTOR_SCOPE_MISMATCH')
         return {
+            userId:
+                RequestContext.currentUser()?.type === UserType.COMMUNICATION ? assistant.userId : context.actor.userId,
             xpertId: assistant.id,
             workspaceId: assistant.workspaceId,
             publishedVersion: assistant.version || assistant.id
@@ -67,7 +74,7 @@ export class ProjectPipelineAssistantBridgeService {
 
     async candidate(context: ProjectPipelineContext, selectionKey: string) {
         const target = await this.resolve(context, selectionKey)
-        const assistant = await this.published.getAccessiblePublishedXpert(target.xpertId)
+        const assistant = await this.published.getPublishedXpertInTenant(target.xpertId)
         return {
             id: target.xpertId,
             name: assistant.title || assistant.name || assistant.id,
@@ -134,6 +141,7 @@ export class ProjectPipelineAssistantBridgeService {
             claim.mode === 'execute' &&
             (intent.xpertId !== target.xpertId ||
                 intent.workspaceId !== target.workspaceId ||
+                (intent.userId && intent.userId !== target.userId) ||
                 intent.publishedVersion !== target.publishedVersion)
         )
             throw pipelineProjectionConflict('EXECUTOR_VERSION_CHANGED')
@@ -143,23 +151,27 @@ export class ProjectPipelineAssistantBridgeService {
         if (claim.mode === 'execute') {
             if (!(await this.store.beginDispatch(context, operation.id, workerId, claim.fence)))
                 return { status: 'unknown', receiptKey: operation.id }
-            native = await api.startTask({
-                ...intent.input,
-                prompt: intent.input.prompt,
-                xpertId: intent.xpertId,
-                projectId: context.projectId,
-                executionId: intent.executionId,
-                conversationId: intent.conversationId,
-                clientMessageId: operation.id,
-                expectedPublishedVersion: intent.publishedVersion
-            })
+            native = await this.withExecutor(context, intent, () =>
+                api.startTask({
+                    ...intent.input,
+                    prompt: intent.input.prompt,
+                    xpertId: intent.xpertId,
+                    projectId: context.projectId,
+                    executionId: intent.executionId,
+                    conversationId: intent.conversationId,
+                    clientMessageId: operation.id,
+                    expectedPublishedVersion: intent.publishedVersion
+                })
+            )
         } else
-            native = await api.getTaskStatus({
-                xpertId: intent.xpertId,
-                executionId: intent.executionId,
-                conversationId: intent.conversationId,
-                clientMessageId: operation.id
-            })
+            native = await this.withExecutor(context, intent, () =>
+                api.getTaskStatus({
+                    xpertId: intent.xpertId,
+                    executionId: intent.executionId,
+                    conversationId: intent.conversationId,
+                    clientMessageId: operation.id
+                })
+            )
         if (!native) return { status: 'unknown', receiptKey: operation.id }
         const control = assistantControl(native, intent.executionId)
         if (
@@ -220,6 +232,7 @@ export class ProjectPipelineAssistantBridgeService {
                 outputs: await adapter.collect({
                     ...operation.context,
                     executor: {
+                        userId: intent.userId,
                         xpertId: intent.xpertId,
                         workspaceId: intent.workspaceId,
                         publishedVersion: intent.publishedVersion,
@@ -251,13 +264,33 @@ export class ProjectPipelineAssistantBridgeService {
         if (!(await this.store.beginCancel(context, row.id, workerId, claim.fence)))
             return { status: 'unknown', receiptKey: row.id }
         if (!api.cancelTask) return this.observe(context, { ...claim, mode: 'inspect' }, workerId, selectionKey)
-        await api.cancelTask({
-            xpertId: intent.xpertId,
-            executionId: intent.executionId,
-            conversationId: intent.conversationId,
-            clientMessageId: row.id
-        })
+        await this.withExecutor(context, intent, () =>
+            api.cancelTask({
+                xpertId: intent.xpertId,
+                executionId: intent.executionId,
+                conversationId: intent.conversationId,
+                clientMessageId: row.id
+            })
+        )
         // Request acknowledgement is not completion. Inspect the original task without dispatching again.
         return this.observe(context, { ...claim, mode: 'inspect' }, workerId, selectionKey)
+    }
+    private async withExecutor<T>(
+        context: ProjectPipelineContext,
+        intent: { userId?: string; xpertId?: string },
+        work: () => Promise<T>
+    ): Promise<T> {
+        if (!intent.userId || RequestContext.currentUser()?.type !== UserType.COMMUNICATION) return work()
+        if (!intent.xpertId) throw pipelineProjectionConflict('EXECUTOR_SCOPE_MISMATCH')
+        const identity = await this.commands.execute(
+            new ResolveAssistantPrincipalCommand({
+                ...context.actor,
+                userId: intent.userId,
+                assistantId: intent.xpertId,
+                projectId: context.projectId
+            })
+        )
+        if (!identity) throw pipelineProjectionConflict('EXECUTOR_SCOPE_MISMATCH')
+        return runWithExecutionIdentity(identity, work)
     }
 }

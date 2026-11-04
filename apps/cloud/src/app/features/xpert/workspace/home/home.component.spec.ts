@@ -1,11 +1,25 @@
-import { Dialog } from '@angular/cdk/dialog'
+jest.mock('@xterm/xterm', () => ({ Terminal: class {} }))
+jest.mock('mermaid', () => ({ __esModule: true, default: { initialize: jest.fn(), render: jest.fn() } }))
+jest.mock('@milkdown/crepe', () => ({
+  Crepe: class {
+    static Feature = {}
+  }
+}))
+import { provideHttpClient } from '@angular/common/http'
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
+import { Dialog, DialogModule } from '@angular/cdk/dialog'
+import { OverlayContainer } from '@angular/cdk/overlay'
+import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { KnowledgebaseService } from '../../../../@core/services/knowledgebase.service'
+import { Store as ActualStore } from '../../../../@core/state/store.service'
+import { XpertNewKnowledgeComponent } from '../../knowledge/new/new.component'
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Location } from '@angular/common'
 import { provideLocationMocks } from '@angular/common/testing'
 import { NavigationEnd, provideRouter, Router } from '@angular/router'
 import { RouterTestingHarness } from '@angular/router/testing'
-import { filter, firstValueFrom, of } from 'rxjs'
+import { BehaviorSubject, filter, firstValueFrom, of } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { AppService } from 'apps/cloud/src/app/app.service'
@@ -91,7 +105,8 @@ describe('XpertWorkspaceHomeComponent', () => {
     selectedWorkspace.set({ id: 'workspace-1' })
   })
 
-  async function setup() {
+  async function setup(realTags = false) {
+    const scope = new BehaviorSubject({ tenantId: 'tenant', organizationId: 'org-one' })
     const setWorkspace = jest.fn()
     const success = jest.fn()
     const workspaceService = {
@@ -117,9 +132,13 @@ describe('XpertWorkspaceHomeComponent', () => {
       }
     })
 
-    await TestBed.configureTestingModule({
-      imports: [TranslateModule.forRoot(), XpertWorkspaceHomeComponent],
+    TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), XpertWorkspaceHomeComponent, DialogModule, NoopAnimationsModule],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ActualStore, useExisting: Store },
+        { provide: KnowledgebaseService, useValue: { getVectorStores: () => of({ default: 'pgvector', stores: [] }) } },
         provideLocationMocks(),
         provideRouter([
           {
@@ -132,6 +151,8 @@ describe('XpertWorkspaceHomeComponent', () => {
           provide: Store,
           useValue: {
             user$: of({ id: 'user-1' }),
+            selectActiveScope: () => scope,
+            selectOrganizationId: () => of('org-one'),
             setWorkspace
           }
         },
@@ -183,6 +204,7 @@ describe('XpertWorkspaceHomeComponent', () => {
         {
           provide: TagService,
           useValue: {
+            getCatalogState: () => of({ tags: [], loading: false, error: null }),
             getAllByCategory: jest.fn((category: string) =>
               of(
                 category === 'prompt_workflow'
@@ -193,10 +215,53 @@ describe('XpertWorkspaceHomeComponent', () => {
           }
         }
       ]
-    }).compileComponents()
+    })
+    if (realTags) {
+      TestBed.overrideProvider(TagService, { useClass: TagService })
+      TestBed.overrideProvider(Dialog, { useClass: Dialog })
+    }
+    await TestBed.compileComponents()
 
-    return { setWorkspace, success, workspaceService }
+    return { setWorkspace, success, workspaceService, scope }
   }
+
+  it('renders the first knowledgebase dialog after tag denial and recovers through the retry button', async () => {
+    const { scope } = await setup(true)
+    const harness = await RouterTestingHarness.create()
+    const component = await harness.navigateByUrl(workspaceUrl, XpertWorkspaceHomeComponent)
+    const http = TestBed.inject(HttpTestingController)
+    http.expectOne('/api/tags').flush({ message: 'Denied' }, { status: 403, statusText: 'Forbidden' })
+    await settle(harness)
+    expect(component.allTags().map((tag) => tag.name)).toEqual(['Tool'])
+    const status: HTMLElement = harness.routeNativeElement.querySelector('xp-tag-catalog-status')
+    expect(status.textContent).toContain('XP.TagDirectory.LoadFailed')
+
+    const dialog = TestBed.inject(Dialog).open(XpertNewKnowledgeComponent, {
+      data: { workspaceId: 'workspace-1' }
+    })
+    await settle(harness)
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelector('xp-new-knowledge input')).not.toBeNull()
+    expect(overlay.querySelector('xp-new-knowledge h2').textContent).toContain('CreateTitle')
+    dialog.close()
+
+    status.querySelector('button').click()
+    http.expectOne('/api/tags').flush({ items: [{ id: 'recovered', name: 'Recovered', category: 'xpert' }] })
+    await settle(harness)
+    expect(component.allTags().map((tag) => tag.name)).toEqual(['Recovered', 'Tool'])
+    expect(status.querySelector('button')).toBeNull()
+
+    selectedWorkspace.set({ id: 'workspace-2' })
+    scope.next({ tenantId: 'tenant', organizationId: 'org-two' })
+    expect(component.xpertTags()).toEqual([])
+    http
+      .expectOne('/api/tags')
+      .flush({ items: [{ id: 'prompt-two', name: 'Prompt Two', targets: ['prompt_workflow'] }] })
+    await harness.navigateByUrl('/xpert/w/workspace-2/prompt-workflows', XpertWorkspaceHomeComponent)
+    await settle(harness)
+    expect(component.allTags().map((tag) => tag.name)).toEqual(['Prompt Two'])
+    http.verify()
+  })
 
   async function settle(harness: RouterTestingHarness) {
     harness.detectChanges()

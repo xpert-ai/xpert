@@ -1,3 +1,11 @@
+import { Embeddings } from '@langchain/core/embeddings'
+import { instanceToPlain } from 'class-transformer'
+import { KnowledgebaseUpdateOperations } from '../management/knowledgebase-update.operations'
+import { KnowledgebaseRebuildEmbeddingConsumer } from './knowledgebase-rebuild-embedding.job'
+import { KnowledgeProcessingReadyService } from '../../knowledge-document/processing-lifecycle.module'
+import { BoundedEmbeddings, embeddingBatchSize } from '../../copilot-model/utils/embedding-batches'
+import { KnowledgebaseStatusEnum as Status, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import { VectorStoreSettingsService } from '../../rag-vstore/vector-store-settings.service'
 import { Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, KnowledgebaseStatusEnum } from '@xpert-ai/contracts'
@@ -83,6 +91,7 @@ function fixture() {
         commandBus: { execute: jest.fn() },
         xpertService: { updateXpert: jest.fn() }
     })
+    const embeddingNodes = jest.fn(async (): Promise<IKnowledgeDocumentChunk[]> => [])
     const vector = { clear: jest.fn(), addKnowledgeChunks: jest.fn(), embeddingModelContextSize: 4096 }
     const chunkRepository = { find: jest.fn(async () => []), save: jest.fn() }
     const manager = {
@@ -94,7 +103,11 @@ function fixture() {
     }
     const terminal = { data, failedReason: 'Access denied to workspace', getState: jest.fn(async () => 'failed') }
     const queue = {
-        add: jest.fn(async () => ({ id: 'queued' })),
+        add: jest.fn(
+            async (_job: TKnowledgebaseRebuildEmbeddingJob, _options?: { jobId: string; attempts: number }) => ({
+                id: 'queued'
+            })
+        ),
         getJob: jest.fn(async () => terminal),
         getJobs: jest.fn(async () => [])
     }
@@ -113,10 +126,12 @@ function fixture() {
         getEmbeddingModelName: (model) => model?.model,
         getEmbeddingProviderName: () => 'provider',
         rebuildQueue: queue as unknown as Queue<TKnowledgebaseRebuildEmbeddingJob>,
-        documentService: { findAllEmbeddingNodes: jest.fn(async () => []) } as unknown as KnowledgeDocumentService
+        documentService: { findAllEmbeddingNodes: embeddingNodes } as unknown as KnowledgeDocumentService
     })
     return {
         state,
+        service,
+        embeddingNodes,
         identity,
         repository,
         queue,
@@ -129,6 +144,169 @@ function fixture() {
 }
 
 describe('Embedding rebuild lifecycle with actual workspace authorization', () => {
+    it.each([null, 'previous-connection'])(
+        'saves → fails with real input batches → reads the target → retries → promotes (active connection %s)',
+        async (previousConnection) => {
+            const f = fixture()
+            Object.assign(f.state, {
+                status: Status.READY,
+                copilotModel: { id: 'old-model', model: 'same-name', copilotId: previousConnection },
+                pendingCopilotModel: null,
+                pendingCopilotModelId: null,
+                parserConfig: { embeddingBatchSize: 16 }
+            })
+            const target = {
+                id: 'new-model',
+                model: 'same-name',
+                copilotId: 'saved-connection',
+                modelType: AiModelTypeEnum.TEXT_EMBEDDING
+            }
+            const chunks = Array.from({ length: 24 }, (_, index) => ({
+                id: String(index),
+                documentId: 'document',
+                metadata: {},
+                pageContent: String(index)
+            }))
+            f.embeddingNodes.mockResolvedValue(chunks)
+            const sent: number[] = []
+            let fail = true
+            class Endpoint extends Embeddings {
+                constructor() {
+                    super({})
+                }
+                async embedDocuments(texts: string[]) {
+                    sent.push(texts.length)
+                    if (texts.length > 10) throw new Error('provider limit 10 exceeded')
+                    if (fail && sent.length === 2) throw new Error('provider unavailable')
+                    return texts.map((text) => [Number(text)])
+                }
+                async embedQuery(text: string) {
+                    return [Number(text)]
+                }
+            }
+            const embeddings = new BoundedEmbeddings(new Endpoint(), embeddingBatchSize(10, 16))
+            const collections = new Map<string, string[]>([['old-vectors', ['existing-vector']]])
+            f.vector.clear.mockImplementation(async () => {
+                collections.set(f.state.pendingEmbeddingCollectionName, [])
+            })
+            f.vector.addKnowledgeChunks.mockImplementation(async (batch: IKnowledgeDocumentChunk[]) => {
+                const collection = f.state.pendingEmbeddingCollectionName
+                await embeddings.embedDocuments(batch.map((chunk) => chunk.pageContent))
+                collections.get(collection).push(...batch.map((chunk) => chunk.id))
+            })
+            const updater = new KnowledgebaseUpdateOperations({
+                assertKnowledgebaseWriteAccess: f.service.assertKnowledgebaseWriteAccess.bind(f.service),
+                repository: f.repository as unknown as Repository<Knowledgebase>,
+                saveSettings: f.repository.save,
+                resolveEmbeddingModelTarget: async () => ({
+                    copilotModel: target,
+                    copilotModelId: target.id,
+                    fingerprint: 'target-fingerprint',
+                    collectionName: 'target-vectors',
+                    dimensions: 1
+                }),
+                startEmbeddingRebuild: (...args) => f.operations.startEmbeddingRebuild(...args),
+                parserSettings: undefined,
+                documentService: undefined,
+                i18nService: undefined,
+                keywordAnalyzers: undefined,
+                resourceAccess: undefined,
+                findOneByIdString: f.service.findOneByIdString.bind(f.service),
+                vectorStoreSettings: new VectorStoreSettingsService(null)
+            })
+            await f.run(() => updater.updateKnowledgebase('kb', { copilotModel: target }))
+            expect(f.state.status).toBe(Status.REBUILDING)
+            expect(f.state.copilotModel.copilotId).toBe(previousConnection)
+            const firstJob = f.queue.add.mock.calls[0][0]
+            const ready = new KnowledgeProcessingReadyService()
+            ready.onApplicationBootstrap()
+            jest.spyOn(f.service, 'processEmbeddingRebuildJob').mockImplementation((job) =>
+                f.operations.processEmbeddingRebuildJob(job)
+            )
+            jest.spyOn(f.service, 'markEmbeddingRebuildFailed').mockImplementation((job, error) =>
+                f.operations.markEmbeddingRebuildFailed(job, error)
+            )
+            const consumer = new KnowledgebaseRebuildEmbeddingConsumer(
+                f.service,
+                f.commands as unknown as CommandBus,
+                ready
+            )
+            await expect(
+                consumer.process({ data: firstJob } as Parameters<typeof consumer.process>[0])
+            ).rejects.toThrow('provider unavailable')
+            expect(sent).toEqual([10, 6])
+            expect(f.state).toMatchObject({
+                status: Status.REBUILD_FAILED,
+                embeddingRebuildError: 'provider unavailable',
+                embeddingCollectionName: 'old-vectors',
+                pendingCopilotModel: target
+            })
+            expect(collections.get('old-vectors')).toEqual(['existing-vector'])
+            const detail = await f.run(() => f.service.findOneDetail('kb'))
+            expect(instanceToPlain(detail)).toMatchObject({
+                status: Status.REBUILD_FAILED,
+                copilotModel: { copilotId: previousConnection },
+                pendingCopilotModel: { model: 'same-name', copilotId: 'saved-connection' }
+            })
+            expect(f.repository.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    relations: expect.arrayContaining(['pendingCopilotModel']),
+                    select: expect.objectContaining({
+                        pendingCopilotModel: expect.objectContaining({ copilotId: true })
+                    })
+                })
+            )
+            await f.run(() =>
+                updater.updateKnowledgebase('kb', {
+                    description: 'Unrelated settings change',
+                    status: Status.READY,
+                    pendingCopilotModel: null,
+                    pendingCopilotModelId: null,
+                    embeddingRebuildError: null,
+                    rebuildTaskId: 'client-task'
+                })
+            )
+            expect(f.state).toMatchObject({
+                status: Status.REBUILD_FAILED,
+                pendingCopilotModel: target,
+                embeddingRebuildError: 'provider unavailable',
+                rebuildTaskId: firstJob.rebuildTaskId
+            })
+            await f.run(() => f.operations.startEmbeddingRebuild('kb', { embeddingBatchSize: 8 }))
+            const secondJob = f.queue.add.mock.calls[1][0]
+            expect(secondJob.rebuildTaskId).not.toBe(firstJob.rebuildTaskId)
+            expect(secondJob.pendingEmbeddingRevision).toBeGreaterThan(firstJob.pendingEmbeddingRevision)
+            expect(f.state.parserConfig.embeddingBatchSize).toBe(8)
+            await f.operations.markEmbeddingRebuildFailed(firstJob, 'late failure')
+            await expect(f.run(() => f.operations.promoteEmbeddingRebuild(firstJob))).rejects.toThrow()
+            expect(f.state.status).toBe(Status.REBUILDING)
+            fail = false
+            sent.length = 0
+            await consumer.process({ data: secondJob } as Parameters<typeof consumer.process>[0])
+            expect(sent).toEqual([8, 8, 8])
+            expect(f.state).toMatchObject({ status: Status.READY, copilotModel: target, pendingCopilotModel: null })
+            expect(collections.get(f.state.embeddingCollectionName)).toEqual(chunks.map((chunk) => chunk.id))
+            const refreshed = instanceToPlain(await f.run(() => f.service.findOneDetail('kb')))
+            expect(refreshed).toMatchObject({
+                copilotModel: { copilotId: 'saved-connection' },
+                pendingCopilotModel: null
+            })
+            expect(f.embeddingNodes).toHaveBeenCalledTimes(2)
+        }
+    )
+
+    it.each([0, -1, 1.5, 2049])(
+        'rejects invalid persisted batch size %s before changing vectors',
+        async (embeddingBatchSize) => {
+            const f = fixture()
+            f.state.parserConfig = { ...f.state.parserConfig, embeddingBatchSize }
+            await expect(f.run(() => f.operations.processEmbeddingRebuildJob(data))).rejects.toThrow()
+            expect(f.vector.clear).not.toHaveBeenCalled()
+            expect(f.vector.addKnowledgeChunks).not.toHaveBeenCalled()
+            expect(f.state.embeddingCollectionName).toBe('old-vectors')
+        }
+    )
+
     it('an authorized owner promotes a pending connection after a legacy null binding', async () => {
         const f = fixture()
         const result = await f.run(() => f.operations.processEmbeddingRebuildJob(data))

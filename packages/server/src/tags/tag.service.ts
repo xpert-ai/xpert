@@ -1,8 +1,9 @@
 import { IPagination } from '@xpert-ai/contracts'
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindManyOptions, Repository } from 'typeorm'
-import { RequestContext, TenantOrganizationAwareCrudService } from '../core'
+import { FindManyOptions, IsNull, Repository } from 'typeorm'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { TenantOrganizationAwareCrudService } from '../core'
 import { Tag } from './tag.entity'
 
 @Injectable()
@@ -12,6 +13,38 @@ export class TagService extends TenantOrganizationAwareCrudService<Tag> {
 		private readonly tagRepository: Repository<Tag>
 	) {
 		super(tagRepository)
+	}
+
+	async findCatalog(): Promise<IPagination<Tag>> {
+		const tenantId = this.catalogTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const shared = { tenantId, organizationId: IsNull() }
+		const items = await this.tagRepository.find({
+			where: organizationId ? [{ tenantId, organizationId }, shared] : shared,
+			select: {
+				id: true,
+				tenantId: true,
+				organizationId: true,
+				name: true,
+				label: true,
+				description: true,
+				category: true,
+				targets: true,
+				color: true,
+				icon: true,
+				isActive: true,
+				isSystem: true
+			},
+			loadEagerRelations: false,
+			order: { name: 'ASC', id: 'ASC' }
+		})
+		return { items, total: items.length }
+	}
+
+	private catalogTenantId() {
+		const user = RequestContext.currentUser()
+		if (!user?.id || !user.tenantId || user.isActive === false) throw new ForbiddenException()
+		return user.tenantId
 	}
 
 	/**
@@ -34,7 +67,7 @@ export class TagService extends TenantOrganizationAwareCrudService<Tag> {
 
 	async findAllCategories(): Promise<{ category: string }[]> {
 		const organizationId = RequestContext.getOrganizationId()
-		const tenantId = RequestContext.currentTenantId()
+		const tenantId = this.catalogTenantId()
 		const categories = this.tagRepository
 			.createQueryBuilder('tag')
 			.select('DISTINCT tag.category')

@@ -1,4 +1,4 @@
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FeatureOrganization, Organization, User } from '@xpert-ai/server-core'
 import { DataSource, Repository } from 'typeorm'
 import { AIProvidersService } from '../../ai-model'
@@ -69,13 +69,15 @@ export function createModelAccessFixture(
         lifecycle,
         records
     )
+    const automationCommands = { execute: jest.fn().mockResolvedValue(false) }
     const catalog = new ModelAccessCatalogService(
         membershipService,
         userRepository,
         policy,
         lifecycle,
         targets,
-        records
+        records,
+        automationCommands as unknown as CommandBus
     )
     const gateway = new ModelAccessGatewayService(
         membershipService,
@@ -88,5 +90,5 @@ export function createModelAccessFixture(
         requests
     )
     const service = new ModelAccessService(catalog, gateway, requests, lifecycle, targets, policy)
-    return { service, lifecycle }
+    return { service, lifecycle, automationCommands }
 }

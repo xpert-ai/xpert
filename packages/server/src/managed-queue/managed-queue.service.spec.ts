@@ -1,5 +1,6 @@
 import { ManagedQueueService } from './managed-queue.service'
-import { SecretTokenBindingType } from '@xpert-ai/contracts'
+import { createExecutionIdentity, runWithExecutionIdentity } from '../user/execution-identity/execution-identity'
+import { SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 describe('ManagedQueueService', () => {

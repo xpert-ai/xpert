@@ -186,6 +186,9 @@ export class ProjectPipelineLifecycleService {
             ...scope,
             id: input.instanceId
         })
+        const access = await this.access.assertEdit(context)
+        if (access.role === 'assistant' && instance.createdById !== context.actor.userId)
+            throw pipelineProjectionConflict('DECISION_NOT_AUTHORIZED')
         if (instance.authority !== 'platform') throw pipelineProjectionConflict('PLATFORM_AUTHORITY_REQUIRED')
         const id = pipelineIdentity(context, 'command', input.requestId)
         const digest = pipelineDigest({ ...input, kind, actorId: context.actor.userId })

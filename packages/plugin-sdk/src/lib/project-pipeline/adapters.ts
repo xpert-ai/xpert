@@ -65,6 +65,8 @@ export interface ProjectPipelineNodeHandler {
 /** The host binds the authorized published Assistant, Project and stable runtime IDs. */
 export interface ProjectPipelineAssistantContext extends ProjectPipelineOperationContext {
   executor: {
+    /** Persisted execution actor, independent of the business run owner. */
+    userId?: string
     xpertId: string
     workspaceId: string
     publishedVersion: string

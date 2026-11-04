@@ -300,15 +300,6 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         }
     }
 
-    @Post(':id/rebuild-embedding')
-    async rebuildEmbedding(@Param('id') id: string) {
-        try {
-            return await this.service.startEmbeddingRebuild(id)
-        } catch (err) {
-            throw new BadRequestException(getErrorMessage(err))
-        }
-    }
-
     @Post(':id/cancel-pending-embedding-model')
     async cancelPendingEmbeddingModel(@Param('id') id: string) {
         try {

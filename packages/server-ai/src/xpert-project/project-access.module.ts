@@ -1,3 +1,4 @@
+import { AssistantPrincipalModule } from '../xpert/assistant-principal/assistant-principal.module'
 import { ProjectContentResourceProvider } from './services/project-content-resource.provider'
 import { ProjectAccessRuntimeService } from './services/project-access-runtime.service'
 import { ProjectFilesRuntimeService } from './services/project-files-runtime.service'
@@ -15,6 +16,7 @@ import { XpertProjectTaskExecution } from './entities/project-task-execution.ent
 
 @Module({
     imports: [
+        AssistantPrincipalModule,
         CqrsModule,
         TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert, XpertProjectTaskExecution])
     ],

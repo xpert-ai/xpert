@@ -1,3 +1,7 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { createExecutionIdentity } from '../../../../../../server/src/user/execution-identity/execution-identity'
+import { ResolveAssistantPrincipalCommand } from '../../../../xpert/assistant-principal/resolve-assistant-principal.command'
+import { UserType } from '@xpert-ai/contracts'
 import { nativeCompletion } from './control-evidence.fixture'
 import { pipelineRuntimeBridgeFixture } from './pipeline-runtime-bridge.fixture'
 import {
@@ -240,7 +244,15 @@ export function managedPipelineFixture() {
         Parameters<ProjectPipelineAssistantOperation['collect']>
     >()
     const assistantAccess = { assertCanUseXpert: jest.fn() }
-    const published = { getAccessiblePublishedXpert: jest.fn() }
+    const commands = {
+        execute: jest.fn(async ({ input }: ResolveAssistantPrincipalCommand) =>
+            createExecutionIdentity(
+                { id: input.userId, tenantId: input.tenantId, type: UserType.COMMUNICATION },
+                { ...input, userId: input.userId, kind: 'service' }
+            )
+        )
+    }
+    const published = { getPublishedXpertInTenant: jest.fn() }
     const request = <T>(work: () => Promise<T>) =>
         runWithCapturedRequestContext(
             {
@@ -311,6 +323,7 @@ export function managedPipelineFixture() {
                 ProjectPipelineRuntimeAdapterRegistry,
                 ...ProjectPipelineBuiltinAdapters,
                 ProjectPipelineAssistantBridgeService,
+                { provide: CommandBus, useValue: commands },
                 ProjectPipelineOperationStore,
                 {
                     provide: getRepositoryToken(ProjectPipelineOperationEntity),
@@ -508,7 +521,7 @@ export function managedPipelineFixture() {
             actor: { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() }
         }
         assistantAccess.assertCanUseXpert.mockResolvedValue(undefined)
-        published.getAccessiblePublishedXpert.mockResolvedValue({
+        published.getPublishedXpertInTenant.mockResolvedValue({
             id: assistantId,
             workspaceId,
             version: '1',
@@ -863,6 +876,9 @@ export function managedPipelineFixture() {
         },
         get workspaceId() {
             return workspaceId
+        },
+        get commands() {
+            return commands
         },
         get nativeStart() {
             return nativeStart

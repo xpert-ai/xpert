@@ -779,7 +779,7 @@ export class XpertProjectController extends XpertProjectPlanningController {
             void this.activityService.record(id, {
                 type: 'automation.created',
                 summary: `Automation ${automation.name} created`,
-                entityType: 'automation',
+                entityType: 'assistant',
                 entityId: automation.id
             })
             return automation
@@ -960,5 +960,4 @@ export class XpertProjectController extends XpertProjectPlanningController {
     async removeAttachments(@Param('id') id: string, @Param('file') file: string) {
         await this.service.removeAttachments(id, [file])
     }
-
 }

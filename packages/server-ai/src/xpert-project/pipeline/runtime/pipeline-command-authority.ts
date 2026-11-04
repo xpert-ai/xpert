@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common'
-import { SecretTokenBindingType, type ProjectPipelineCommandCapability } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, UserType, type ProjectPipelineCommandCapability } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 
@@ -10,6 +10,8 @@ import { t } from 'i18next'
 export function pipelineCommandCapability(
     operation: 'configure' | 'execute' = 'execute'
 ): ProjectPipelineCommandCapability {
+    if (operation === 'configure' && RequestContext.currentUser()?.type === UserType.COMMUNICATION)
+        return { allowed: false, reason: 'PIPELINE_SCOPED_DELEGATION_UNAVAILABLE' }
     const principal = RequestContext.currentApiPrincipal()
     if (operation === 'configure' || !principal) return { allowed: true }
     if (

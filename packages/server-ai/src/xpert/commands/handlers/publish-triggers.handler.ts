@@ -262,7 +262,8 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
                         tenantId: xpert.tenantId,
                         organizationId: xpert.organizationId ?? null,
                         workspaceId: xpert.workspaceId,
-                        userId: requestContext.user?.id
+                        userId: requestContext.user?.id,
+                        assistantUserId: xpert.userId
                     },
                     additionalInstructions:
                         typeof trigger.config?.additionalInstructions === 'string'

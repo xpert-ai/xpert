@@ -56,6 +56,7 @@ import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 
 import { CustomConnectorsDialogComponent } from '../connectors/custom-connectors-dialog.component'
+import { TagCatalogStatusComponent } from '../../../../@shared/tag/catalog-status/tag-catalog-status.component'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -75,6 +76,7 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     XpCommonModule,
     ZardSearchInputComponent,
     TagFilterComponent,
+    TagCatalogStatusComponent,
     XpertWorkspaceWelcomeComponent
   ],
   selector: 'xp-xpert-home',

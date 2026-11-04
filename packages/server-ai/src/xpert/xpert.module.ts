@@ -1,3 +1,4 @@
+import { AssistantPrincipalModule } from './assistant-principal/assistant-principal.module'
 import { ModelReplacementOperation } from './model-replacement/operation.entity'
 import { ModelReplacementService } from './model-replacement/replacement.service'
 import { ModelReplacementController } from './model-replacement/replacement.controller'
@@ -95,6 +96,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
 
 @Module({
     imports: [
+        AssistantPrincipalModule,
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([
             ModelReplacementOperation,

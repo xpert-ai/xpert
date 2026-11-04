@@ -94,6 +94,7 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
     async configure(context: ProjectPipelineContext, request: ProjectPipelineCatalogConfigure) {
         const input = projectPipelineCatalogConfigureSchema.parse(request)
         const access = await this.access.assertManage(context)
+        if (access.role === 'assistant') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         const contribution = this.contributions
             .listForActor(context.actor)
             .find((item) => item.key === input.contributionKey)

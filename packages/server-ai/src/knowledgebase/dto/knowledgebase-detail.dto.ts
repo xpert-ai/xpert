@@ -136,6 +136,9 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     declare copilotModelId?: string
 
     @Expose()
+    declare pendingCopilotModelId?: string | null
+
+    @Expose()
     declare chatModelId?: string | null
 
     @Expose()
@@ -201,6 +204,10 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Expose()
     @Transform((params: TransformFnParams) => (params.value ? new KnowledgebaseModelDetailDTO(params.value) : null))
     declare copilotModel?: ICopilotModel
+
+    @Expose()
+    @Transform((params: TransformFnParams) => (params.value ? new KnowledgebaseModelDetailDTO(params.value) : null))
+    declare pendingCopilotModel?: ICopilotModel | null
 
     @Expose()
     @Transform((params: TransformFnParams) => (params.value ? new KnowledgebaseModelDetailDTO(params.value) : null))

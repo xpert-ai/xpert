@@ -121,7 +121,7 @@ export class KnowledgeConfigurationComponent {
   })
   readonly copilotModel = linkedModel<Partial<ICopilotModel> | null>({
     initialValue: null,
-    compute: () => this.knowledgebase()?.copilotModel ?? null,
+    compute: () => this.knowledgebase()?.pendingCopilotModel ?? this.knowledgebase()?.copilotModel ?? null,
     update: () => {
       this.pristine.set(false)
     }
@@ -186,7 +186,7 @@ export class KnowledgeConfigurationComponent {
   })
 
   private embeddingModelChanged() {
-    const active = this.knowledgebase()?.copilotModel
+    const active = this.knowledgebase()?.pendingCopilotModel ?? this.knowledgebase()?.copilotModel
     const selected = this.copilotModel()
     return (
       JSON.stringify(this.toComparableCopilotModelConfig(selected)) !==

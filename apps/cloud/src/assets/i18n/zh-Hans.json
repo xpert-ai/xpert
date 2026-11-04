@@ -1111,6 +1111,8 @@
       "DirectQrSaveHint": "扫码连接后立即生效；其他触发器更改需发布助手后生效。"
     },
     "TagDirectory": {
+      "LoadFailed": "标签加载失败。",
+      "Retry": "重试",
       "KnowledgeCandidate": "知识库候选关联",
       "KnowledgeDocuments": "{{count}} 篇关联文档",
       "LoadingKnowledge": "正在加载知识库…",
@@ -9206,7 +9208,17 @@
           "EmbeddingModel": "Embedding 嵌入模型",
           "EmbeddingModelDescription": "用于文本向量化的嵌入模型。",
           "WikiModel": "Wiki 合成模型",
-          "WikiModelDescription": "可选；不设置时将回退使用上方的 LLM 大语言模型。"
+          "WikiModelDescription": "可选；不设置时将回退使用上方的 LLM 大语言模型。",
+          "SavedTarget": "所选嵌入模型配置已保存。",
+          "ActiveIndexPreserved": "重建成功前，当前索引继续使用原配置。",
+          "Rebuilding": "索引正在重建，完成后启用新配置。",
+          "RefreshStatus": "刷新状态",
+          "RetrySavedTarget": "保存批次并重试",
+          "SaveModelChangesFirst": "请先保存模型修改，再重试。",
+          "BatchSize": "嵌入处理批次大小",
+          "BatchSizeHelp": "每批处理 1–2048 条输入。模型请求会按声明的上限进一步拆分；未声明上限时，每次最多 10 条。如果服务端上限更小，请调低此值。",
+          "BatchSizeInvalid": "嵌入批次大小必须为 1–2048 之间的整数。",
+          "SavedRebuilding": "配置已保存，索引重建已开始。"
         },
         "Vector": {
           "Description": "配置查询向量、候选数量和相似度筛选策略。",

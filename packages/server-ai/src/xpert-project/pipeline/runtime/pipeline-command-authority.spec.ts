@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { init } from 'i18next'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { SecretTokenBindingType, type IApiPrincipal } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, UserType, type IApiPrincipal } from '@xpert-ai/contracts'
 import { assertPipelineCommandAuthority, pipelineCommandCapability } from './pipeline-command-authority'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
 
@@ -105,3 +105,15 @@ it.each(['en', 'en-US', 'zh-Hans'])(
         expect(pipelineProjectionConflict('BINDING_REQUEST_CONFLICT').getStatus()).toBe(409)
     }
 )
+
+it('does not let a credential-free technical worker configure a pipeline', () => {
+    jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+    jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+        id: 'assistant',
+        tenantId: 'tenant',
+        type: UserType.COMMUNICATION
+    })
+    expect(pipelineCommandCapability('configure').allowed).toBe(false)
+    // Execution still requires the live resource grant at the Project/Assistant boundaries.
+    expect(pipelineCommandCapability('execute').allowed).toBe(true)
+})

@@ -12,7 +12,7 @@ import {
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { z } from 'zod'
@@ -29,6 +29,8 @@ import {
     InspectTemplateReadinessCommand
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { GetAccessiblePublishedXpertQuery } from '../../xpert/published-agent/get-accessible-published-xpert.query'
+import { assistantTemplateDependencyLocks } from '../../xpert/assistant-template/assistant-template-dependencies'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-storage-error'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
@@ -516,9 +518,15 @@ export class InspectTemplateReadinessHandler implements ICommandHandler<InspectT
 export class AssertAssistantTemplateDependenciesHandler implements ICommandHandler<AssertAssistantTemplateDependenciesCommand> {
     constructor(
         private readonly commands: CommandBus,
+        private readonly queries: QueryBus,
         private readonly readiness: TemplateReadinessService
     ) {}
     async execute(command: AssertAssistantTemplateDependenciesCommand) {
+        if (command.entry === 'runtime') {
+            // Delegated execution authorizes metadata through the published graph, not file CRUD grants.
+            const assistant = await this.queries.execute(new GetAccessiblePublishedXpertQuery(command.assistantId))
+            return this.readiness.inspectRuntimeDependencies(assistantTemplateDependencyLocks(assistant.options) ?? [])
+        }
         const access = await this.commands.execute(
             new ResolveAssistantFileAccessCommand(command.assistantId, 'capabilities', command.entry)
         )

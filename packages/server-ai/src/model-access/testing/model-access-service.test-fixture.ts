@@ -108,7 +108,7 @@ export function createFixture() {
     const queryBus = {
         execute: jest.fn()
     }
-    const { service, lifecycle } = createModelAccessFixture(
+    const { service, lifecycle, automationCommands } = createModelAccessFixture(
         dataSource as never,
         requestRepository as never,
         grantRepository as never,
@@ -136,6 +136,7 @@ export function createFixture() {
     }
 
     return {
+        automationCommands,
         lifecycle,
         featureQueryBuilder,
         copilotRepository,

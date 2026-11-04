@@ -1,4 +1,5 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { noAssistantPrincipal } from '../../xpert/assistant-principal/testing/no-assistant-principal.fixture'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
@@ -210,7 +211,8 @@ describe('XpertProjectAccessService', () => {
         return new XpertProjectAccessService(
             projectRepository,
             membershipRepository,
-            xpertBindingService as unknown as XpertProjectXpertBindingService
+            xpertBindingService as unknown as XpertProjectXpertBindingService,
+            noAssistantPrincipal
         )
     }
 })

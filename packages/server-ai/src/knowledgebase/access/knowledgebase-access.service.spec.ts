@@ -423,6 +423,7 @@ describe('Knowledgebase access', () => {
             expect.objectContaining({
                 relations: [
                     'copilotModel',
+                    'pendingCopilotModel',
                     'chatModel',
                     'wikiModel',
                     'rerankModel',
@@ -438,6 +439,8 @@ describe('Knowledgebase access', () => {
                     wikiStatus: true,
                     wikiAvailability: true,
                     wikiModelId: true,
+                    pendingCopilotModelId: true,
+                    pendingCopilotModel: expect.objectContaining({ copilotId: true, model: true }),
                     apiEnabled: true,
                     workspaceId: true,
                     pipelineId: true,

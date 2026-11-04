@@ -1,5 +1,6 @@
-import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@xpert-ai/contracts'
+import { PermissionsEnum, PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
+import { evaluatePermissions } from '../shared/guards/permission-policy'
 import { LoadedPluginRecord } from './types'
 
 type PluginScopeRecord = Pick<LoadedPluginRecord, 'tenantId' | 'organizationId' | 'source'> & {
@@ -12,7 +13,10 @@ type PluginScopeRecord = Pick<LoadedPluginRecord, 'tenantId' | 'organizationId' 
 }
 
 export function canManageGlobalPlugins() {
-	return RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+	return (
+		RequestContext.hasRole(RolesEnum.SUPER_ADMIN) &&
+		evaluatePermissions(RequestContext.currentUser(), [PermissionsEnum.SUPER_ADMIN_EDIT]).allowed
+	)
 }
 
 export function isDefaultTenantContext(defaultTenantId: string | null | undefined) {

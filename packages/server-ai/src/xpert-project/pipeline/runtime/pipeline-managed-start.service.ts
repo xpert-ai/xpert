@@ -50,6 +50,8 @@ export class ProjectPipelineManagedStartService {
     ) {}
 
     async configure(context: ProjectPipelineContext, request: ProjectPipelineConfigure) {
+        const authority = await this.access.assertManage(context)
+        if (authority.role === 'assistant') throw pipelineProjectionConflict('DECISION_NOT_AUTHORIZED')
         const input = projectPipelineConfigureSchema.parse(request)
         const check = await this.configuration.check(context, input.configuration)
         if (!check.valid) throw pipelineProjectionConflict('PIPELINE_CONFIGURATION_INVALID')

@@ -1,3 +1,4 @@
+import { embeddingBatchSizeSchema } from '../embedding/embedding-rebuild.schema'
 import { CommandBus } from '@nestjs/cqrs'
 import { PluginPermissionsCommand } from '../commands/plugin-permissions.command'
 import {
@@ -44,6 +45,12 @@ export class KnowledgeParserSettingsService {
     async validateSettings(config: KnowledgebaseParserConfig): Promise<KnowledgeStructureEnum> {
         if (!config || typeof config !== 'object' || Array.isArray(config)) {
             throw invalidKnowledgeParserConfig('parserConfig')
+        }
+        if (
+            config.embeddingBatchSize != null &&
+            !embeddingBatchSizeSchema.safeParse(config.embeddingBatchSize).success
+        ) {
+            throw invalidKnowledgeParserConfig('embeddingBatchSize (1–2048)')
         }
         validateKnowledgeTableSettings(config)
         validateSeparators(config.separators)

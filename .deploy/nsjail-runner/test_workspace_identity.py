@@ -171,6 +171,47 @@ finally:
                     self.identity.prepare_app_data(self.workspace)
                 self.assertEqual(app.stat(), before)
 
+    def test_caller_dependent_owner_is_verified_as_workspace_user_without_chown(self):
+        self.save_as_api()
+        app = self.workspace / '.apps'
+        before = app.stat()
+        original_fstat = os.fstat
+
+        def privileged_view(descriptor):
+            info = original_fstat(descriptor)
+            values = list(info)
+            values[4:6] = [0, 0]
+            return os.stat_result(values)
+
+        runner_identity = (os.geteuid(), os.getegid())
+        with mock.patch('workspace_identity.os.fstat', side_effect=privileged_view), \
+                mock.patch('workspace_identity.os.fchown') as chown:
+            self.identity.prepare_app_data(self.workspace)
+            self.identity.prepare_app_data(self.workspace)
+            chown.assert_not_called()
+        self.assertEqual((os.geteuid(), os.getegid()), runner_identity)
+        self.assertEqual(app.stat(), before)
+        self.save_as_api()
+
+    def test_workspace_user_rejects_an_unrelated_owner_hidden_by_privileged_view(self):
+        app = self.workspace / '.apps'
+        app.mkdir(mode=0o755)
+        os.chown(app, 2000, 2000)
+        before = app.stat()
+        original_fstat = os.fstat
+
+        def privileged_view(descriptor):
+            values = list(original_fstat(descriptor))
+            values[4:6] = [0, 0]
+            return os.stat_result(values)
+
+        with mock.patch('workspace_identity.os.fstat', side_effect=privileged_view), \
+                mock.patch('workspace_identity.os.fchown') as chown:
+            with self.assertRaises(PermissionError):
+                self.identity.prepare_app_data(self.workspace)
+            chown.assert_not_called()
+        self.assertEqual(app.stat(), before)
+
     def test_non_default_identity_is_used_for_nested_upload_directories(self):
         self.identity = WorkspaceIdentity(21001, 21002)
         os.chown(self.workspace, self.identity.uid, self.identity.gid)

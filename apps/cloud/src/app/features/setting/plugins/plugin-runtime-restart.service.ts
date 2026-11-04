@@ -178,6 +178,7 @@ export class PluginRuntimeRestartService {
   }
 
   private async readCurrentState(): Promise<IPluginRuntimeSnapshot | null> {
+    if (!this.canRestart()) return null
     const context = this.#contextRevision
     const pending = this.pending()
     const convergence = this.convergence()

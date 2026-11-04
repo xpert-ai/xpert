@@ -40,6 +40,7 @@ jobs:
         run: >-
           corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand
           --runTestsByPath
+          packages/server-ai/src/ai/api-key-identity.http.spec.ts
           packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild-recovery.http.spec.ts
           packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild.operations.spec.ts
           packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild-embedding.job.spec.ts

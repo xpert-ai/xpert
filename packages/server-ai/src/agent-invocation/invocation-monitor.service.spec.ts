@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
@@ -56,7 +57,8 @@ async function fixture(technical = false) {
     const identity = new ResolveAssistantExecutionIdentityHandler(
         { findOneBy: async () => ({ id: 'user', tenantId: 'tenant', type: UserType.COMMUNICATION }) } as never,
         assistantRecords as never,
-        { findOneBy: async () => ({ id: 'conversation', createdById: 'user', xpertId: 'assistant' }) } as never
+        { findOneBy: async () => ({ id: 'conversation', createdById: 'user', xpertId: 'assistant' }) } as never,
+        noAssistantPrincipal
     )
     const commands = {
         execute: jest.fn(async (command: unknown) =>

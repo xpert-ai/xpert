@@ -3,8 +3,10 @@ import { recordRebuiltQuestionVectors } from '../../knowledge-document/questions
 import { questionSourceHash } from '../../knowledge-document/questions/question-generation'
 
 import {
+    DEFAULT_EMBEDDING_BATCH_SIZE,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     IKnowledgebase,
+    KnowledgebaseEmbeddingRebuildInput,
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
     KnowledgebaseStatusEnum,
@@ -21,6 +23,7 @@ import { DataSource, IsNull } from 'typeorm'
 import { t } from 'i18next'
 import { CommandBus } from '@nestjs/cqrs'
 import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
+import { embeddingBatchSizeSchema } from './embedding-rebuild.schema'
 import { createEmbeddingCollectionName } from './embedding-state'
 
 import { Knowledgebase } from '../persistence/knowledgebase.entity'
@@ -95,7 +98,7 @@ export class KnowledgebaseRebuildOperations {
         return this.context.save(knowledgebase)
     }
 
-    async startEmbeddingRebuild(id: string) {
+    async startEmbeddingRebuild(id: string, input: KnowledgebaseEmbeddingRebuildInput = {}) {
         const knowledgebase = await this.context.assertKnowledgebaseWriteAccess(id, {
             relations: [
                 'copilotModel',
@@ -143,6 +146,9 @@ export class KnowledgebaseRebuildOperations {
             if (current.pendingEmbeddingModelFingerprint === current.embeddingModelFingerprint) {
                 assign(current, { ...this.clearPendingEmbeddingModelFields(), status: KnowledgebaseStatusEnum.READY })
                 return repository.save(current)
+            }
+            if (input.embeddingBatchSize !== undefined) {
+                current.parserConfig = { ...current.parserConfig, embeddingBatchSize: input.embeddingBatchSize }
             }
             const revision = (current.pendingEmbeddingRevision ?? current.embeddingRevision ?? 0) + 1
             assign(current, {
@@ -194,6 +200,10 @@ export class KnowledgebaseRebuildOperations {
             throw new BadRequestException(t('server-ai:Error.EmbeddingRebuildStale'))
         this.assertCurrentRebuildTask(knowledgebase, data.rebuildTaskId, data.pendingEmbeddingRevision)
 
+        const batch = embeddingBatchSizeSchema.safeParse(
+            knowledgebase.parserConfig?.embeddingBatchSize ?? DEFAULT_EMBEDDING_BATCH_SIZE
+        )
+        if (!batch.success) throw new BadRequestException(t('server-ai:Error.EmbeddingBatchSizeInvalid'))
         const vectorStore = await this.context.getPendingVectorStoreForRebuild(knowledgebase)
         await vectorStore.clear()
 
@@ -261,7 +271,7 @@ export class KnowledgebaseRebuildOperations {
                       return [source, ...write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))]
                   })
 
-        const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
+        const batchSize = batch.data
         let count = 0
         while (batchSize * count < embeddingItems.length) {
             const batch = embeddingItems.slice(batchSize * count, batchSize * (count + 1))

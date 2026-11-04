@@ -2,6 +2,7 @@
 The privileged Runner never changes its process credentials. All child operations
 use pinned directory descriptors and reject symlinks; legacy recovery only touches
 the known root-owned .apps mountpoint, never its contents or unrelated owners.
+Caller-dependent shared-mount ownership is checked again as the workspace identity.
 """
 from __future__ import annotations
 
@@ -24,6 +25,14 @@ except OSError as error:
     print(error.errno)
     sys.exit(1)
 """
+_CHECK_DIRECTORY = """
+import os, stat, sys
+info = os.fstat(int(sys.argv[1]))
+valid = (stat.S_ISDIR(info.st_mode)
+         and (info.st_uid, info.st_gid) == (os.geteuid(), os.getegid())
+         and info.st_mode & 0o700 == 0o700)
+sys.exit(0 if valid else 1)
+"""
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,20 @@ class WorkspaceIdentity:
 
     def matches(self, info: os.stat_result) -> bool:
         return (info.st_uid, info.st_gid) == (self.uid, self.gid)
+
+    def _writable_directory_matches(self, descriptor: int, info: os.stat_result) -> bool:
+        if self.matches(info):
+            return info.st_mode & 0o700 == 0o700
+        if os.geteuid() != 0:
+            return False
+        # Docker Desktop shares can report the observer's identity as the owner.
+        # Keep the descriptor pinned and validate as the actual non-root writer.
+        result = subprocess.run(
+            [sys.executable, '-I', '-c', _CHECK_DIRECTORY, str(descriptor)],
+            pass_fds=(descriptor,), user=self.uid, group=self.gid, extra_groups=[],
+            cwd='/', capture_output=True, timeout=15,
+        )
+        return result.returncode == 0
 
     def open_directory(self, parent: int, name: str) -> int:
         if not name or name in ('.', '..') or '/' in name or '\\' in name or '\0' in name:
@@ -79,7 +102,7 @@ class WorkspaceIdentity:
                         and self.matches(os.fstat(parent))):
                     os.fchown(child, self.uid, self.gid)
                     info = os.fstat(child)
-                if not self.matches(info) or info.st_mode & 0o700 != 0o700:
+                if not self._writable_directory_matches(child, info):
                     raise PermissionError(errno.EACCES, 'Managed application directory must be writable by the configured workspace UID/GID')
                 current = os.stat('.apps', dir_fd=parent, follow_symlinks=False)
                 if not stat.S_ISDIR(current.st_mode) or (current.st_dev, current.st_ino) != (info.st_dev, info.st_ino):

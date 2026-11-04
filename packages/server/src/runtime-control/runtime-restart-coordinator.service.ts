@@ -245,10 +245,20 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		}
 	}
 
-	async getPluginConvergenceStatus(generation: number): Promise<IPluginRuntimeConvergenceStatus | null> {
+	async getPluginConvergenceStatus(
+		generation: number,
+		organizationId?: string
+	): Promise<IPluginRuntimeConvergenceStatus | null> {
 		const state = await this.generations.readState(generation)
 		if (!state) {
 			return null
+		}
+		if (organizationId) {
+			const change = await this.generations.readChange(generation)
+			// Authorize the original change, not the cumulative manifest containing unrelated organizations.
+			if (!change?.requirements.length || change.requirements.some((item) => item.scopeKey !== organizationId)) {
+				return null
+			}
 		}
 		const restart = state.restartId ? await this.getStatus(state.restartId) : null
 		const status = state.status === 'in_progress' && restart?.status === 'failed' ? 'failed' : state.status

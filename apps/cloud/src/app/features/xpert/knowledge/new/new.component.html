@@ -62,6 +62,62 @@
 
     <section class="flex min-h-0 min-w-0 flex-1 flex-col">
       <main xpDialogBody="section">
+        @if (existingKnowledgebase()?.pendingCopilotModel || isEmbeddingRebuilding()) {
+          <div class="mb-5 rounded-lg border border-border bg-muted/30 p-4" data-embedding-rebuild-state>
+            <p class="font-medium">{{ i18nPrefix + '.Models.SavedTarget' | translate }}</p>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{ i18nPrefix + '.Models.ActiveIndexPreserved' | translate }}
+            </p>
+            @if (isEmbeddingRebuilding()) {
+              <p role="status" class="mt-2 text-sm">{{ i18nPrefix + '.Models.Rebuilding' | translate }}</p>
+            }
+            @if (existingKnowledgebase()?.embeddingRebuildError) {
+              <p role="alert" class="mt-2 break-words text-sm text-text-destructive">
+                {{ existingKnowledgebase()?.embeddingRebuildError }}
+              </p>
+            }
+            <div xpDialogActionGroup="inline" class="mt-3 flex flex-wrap gap-2">
+              <button
+                z-button
+                zType="outline"
+                type="button"
+                [zDisabled]="loading()"
+                (click)="refreshEmbeddingState()"
+                data-embedding-refresh
+              >
+                {{ i18nPrefix + '.Models.RefreshStatus' | translate }}
+              </button>
+              @if (canRetryEmbedding()) {
+                <button
+                  z-button
+                  type="button"
+                  [zDisabled]="loading() || embeddingModelChanged()"
+                  (click)="retryEmbeddingRebuild()"
+                  data-embedding-retry
+                >
+                  {{ i18nPrefix + '.Models.RetrySavedTarget' | translate }}
+                </button>
+              }
+              @if (isEmbeddingRebuilding()) {
+                <button
+                  z-button
+                  zType="outline"
+                  type="button"
+                  [zDisabled]="loading()"
+                  (click)="recoverEmbeddingRebuild()"
+                  data-embedding-recover
+                >
+                  {{ 'XP.Knowledgebase.RecoverEmbeddingRebuild' | translate }}
+                </button>
+              }
+            </div>
+            @if (canRetryEmbedding() && embeddingModelChanged()) {
+              <p class="mt-2 text-sm text-text-secondary">
+                {{ i18nPrefix + '.Models.SaveModelChangesFirst' | translate }}
+              </p>
+            }
+          </div>
+        }
         @switch (activeSection()) {
           @case ('basic') {
             <section class="kb-section mx-auto w-full max-w-4xl pb-8">
@@ -354,8 +410,31 @@
                     required
                     [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
                     [(ngModel)]="copilotModel"
+                    [disabled]="isEmbeddingRebuilding()"
                   />
                 </div>
+
+                @if (!isFAQ()) {
+                  <div class="mt-5">
+                    <label for="knowledge-embedding-batch-size" class="block text-sm font-medium">{{
+                      i18nPrefix + '.Models.BatchSize' | translate
+                    }}</label>
+                    <input
+                      z-input
+                      id="knowledge-embedding-batch-size"
+                      type="number"
+                      min="1"
+                      max="2048"
+                      step="1"
+                      class="mt-2 w-full"
+                      [(ngModel)]="embeddingBatchSize"
+                      [disabled]="isEmbeddingRebuilding()"
+                    />
+                    <p class="mt-1 text-sm text-text-secondary">
+                      {{ i18nPrefix + '.Models.BatchSizeHelp' | translate }}
+                    </p>
+                  </div>
+                }
 
                 @if (isWiki()) {
                   <div class="kb-divider my-5 h-px w-full bg-divider-subtle"></div>
@@ -675,7 +754,14 @@
     <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="close()">
       {{ i18nPrefix + '.Actions.Cancel' | translate }}
     </button>
-    <button z-button zType="default" type="button" [zDisabled]="loading()" [zLoading]="loading()" (click)="submit()">
+    <button
+      z-button
+      zType="default"
+      type="button"
+      [zDisabled]="loading() || isEmbeddingRebuilding()"
+      [zLoading]="loading()"
+      (click)="submit()"
+    >
       {{ i18nPrefix + (isEditMode() ? '.Actions.Save' : '.Actions.Create') | translate }}
     </button>
   </footer>

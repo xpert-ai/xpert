@@ -498,6 +498,18 @@ describe('PluginManagementService', () => {
 		)
 	})
 
+	it.each(['org-other', 'tenant:other:global', 'system:global', '__global__'])(
+		'rejects an overridden uninstall scope %s before mutating plugins',
+		async (scopeKey) => {
+			await expect(
+				fixture.service.uninstallByNamesWithGuard(['demo'], undefined, scopeKey)
+			).rejects.toMatchObject({ status: 403, response: { code: 'plugin_scope_mismatch' } })
+			expect(pluginInstanceService.uninstall).not.toHaveBeenCalled()
+			expect(pluginInstanceService.deactivate).not.toHaveBeenCalled()
+			expect(runtimeControl.recordPluginRuntimeRequirements).not.toHaveBeenCalled()
+		}
+	)
+
 	it('rejects global plugin uninstalls for non-super-admin users', async () => {
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 

@@ -1,4 +1,4 @@
-import { PermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../shared/decorators/permissions'
 import {
 	IPluginRuntimeConvergenceStatus,
@@ -59,6 +59,7 @@ export class RuntimeControlController {
 
 	@ApiOperation({ summary: 'Read the current interactive session runtime restart capability' })
 	@Get('restart-capability')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	restartCapability(): IRuntimeRestartCapability {
 		return this.runtimeControl.restartCapability()
 	}
@@ -71,6 +72,7 @@ export class RuntimeControlController {
 
 	@ApiOperation({ summary: 'Read a plugin runtime convergence generation' })
 	@Get('plugin-convergence/:generation')
+	@Permissions(AIPermissionsEnum.XPERT_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT)
 	async pluginConvergenceStatus(
 		@Param('generation', ParseIntPipe) generation: number
 	): Promise<IPluginRuntimeConvergenceStatus> {

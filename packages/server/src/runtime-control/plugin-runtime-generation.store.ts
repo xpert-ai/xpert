@@ -178,6 +178,13 @@ export class PluginRuntimeGenerationStore {
 		return changes
 	}
 
+	async readChange(generation: number): Promise<PluginGenerationChange | null> {
+		const value = await this.redis.get(this.pluginChangeKey(generation))
+		if (!value) return null
+		const change = this.parsePluginGenerationChange(JSON.parse(value) as unknown)
+		return change?.generation === generation ? change : null
+	}
+
 	private parsePluginGenerationChange(value: unknown): PluginGenerationChange | null {
 		if (typeof value !== 'object' || value === null || !('generation' in value)) return null
 		if (typeof value.generation !== 'number') return null
