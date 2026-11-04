@@ -1,0 +1,136 @@
+<section xpDialogLayout="wide" class="w-[min(880px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Management.DisableConnection' | translate }}</h2>
+    <p xpDialogDescription>{{ data.name || data.modelProvider?.providerName }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      (click)="dialog.close()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody class="space-y-4">
+    <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Impact.Description' | translate }}</p>
+    @if (references(); as refs) {
+      <p class="break-all text-xs text-muted-foreground">{{ 'XP.Copilot.Impact.Scope' | translate: refs.scope }}</p>
+      <dl class="divide-y divide-border text-sm">
+        <div class="flex justify-between gap-4 py-2">
+          <dt>{{ 'XP.Copilot.Impact.Defaults' | translate }}</dt>
+          <dd>{{ refs.defaults }}</dd>
+        </div>
+        <div class="py-2">
+          <div class="flex justify-between gap-4">
+            <dt>{{ 'XP.Copilot.Impact.Bindings' | translate }}</dt>
+            <dd>{{ refs.bindings }}</dd>
+          </div>
+          <dd class="mt-1 text-xs text-muted-foreground">
+            {{ 'XP.Copilot.Impact.BindingUsage' | translate: refs.bindingUsage }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4 py-2">
+          <dt>{{ 'XP.Copilot.Impact.CurrentResources' | translate }}</dt>
+          <dd>{{ refs.currentResources }}</dd>
+        </div>
+        <div class="flex justify-between gap-4 py-2">
+          <dt>{{ 'XP.Copilot.Impact.HistoricalResources' | translate }}</dt>
+          <dd>{{ refs.historicalResources }}</dd>
+        </div>
+        <div class="flex justify-between gap-4 py-2">
+          <dt>{{ 'XP.Copilot.Impact.Drafts' | translate }}</dt>
+          <dd>{{ refs.drafts }}</dd>
+        </div>
+      </dl>
+      <p class="text-sm text-muted-foreground">{{ 'XP.Copilot.Impact.Units' | translate }}</p>
+      <p class="text-xs text-muted-foreground">{{ 'XP.Copilot.Impact.Coverage' | translate }}</p>
+      @if (refs.defaults) {
+        <p role="alert" class="text-sm text-destructive">{{ 'XP.Copilot.Impact.DefaultBlock' | translate }}</p>
+      }
+      <label class="block space-y-1 text-sm">
+        <span>{{ 'XP.Copilot.Impact.Search' | translate }}</span>
+        <input z-input type="search" [ngModel]="search()" (ngModelChange)="search.set($event); limit.set(20)" />
+      </label>
+      @for (group of groups(); track group.key) {
+        <details class="border-b border-border pb-3" [open]="group.key === 'defaults' && group.count > 0">
+          <summary class="cursor-pointer text-sm font-medium">
+            {{ 'XP.Copilot.Impact.Groups.' + group.key | translate }} ·
+            {{ 'XP.Copilot.Impact.Entries' | translate: { count: group.count } }}
+          </summary>
+          <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.Copilot.Impact.Hints.' + group.key | translate }}</p>
+          <ul class="divide-y divide-border">
+            @for (row of group.rows; track $index) {
+              <li class="space-y-1 py-3 text-sm">
+                <div class="flex flex-wrap justify-between gap-2">
+                  <span class="break-all font-medium">{{
+                    row.evidence === 'default'
+                      ? ('XP.Copilot.Impact.DefaultRoles.' + row.resourceName | translate)
+                      : row.resourceName
+                  }}</span>
+                  <span class="text-muted-foreground">{{ 'XP.Copilot.Impact.Status.' + row.status | translate }}</span>
+                </div>
+                <p class="break-all text-xs text-muted-foreground">
+                  {{ 'XP.Copilot.Impact.Resources.' + row.resourceType | translate }} · {{ row.resourceId }}
+                </p>
+                <p class="break-all text-xs text-muted-foreground">
+                  {{
+                    row.organizationId
+                      ? ('XP.Copilot.Impact.Organization' | translate: { id: row.organizationId })
+                      : ('XP.Copilot.Impact.TenantSetting' | translate)
+                  }}
+                  @if (row.version) {
+                    · {{ 'XP.Copilot.Impact.Version' | translate: { version: row.version } }}
+                  }
+                </p>
+                <p class="break-all">
+                  {{ row.model || ('XP.Copilot.Impact.UnknownModel' | translate) }}
+                  @if (row.modelType) {
+                    · {{ row.modelType }}
+                  }
+                </p>
+                <p class="break-all font-mono text-xs">{{ row.field }}</p>
+                @if (row.bindingId) {
+                  <p class="break-all text-xs text-muted-foreground">
+                    {{ 'XP.Copilot.Impact.BindingId' | translate }}: {{ row.bindingId }}
+                  </p>
+                }
+                @if (row.evidence === 'json' || row.evidence === 'saved') {
+                  <p class="text-xs text-muted-foreground">
+                    {{ 'XP.Copilot.Impact.Evidence.' + row.evidence | translate }}
+                  </p>
+                }
+              </li>
+            } @empty {
+              <li class="py-3 text-sm text-muted-foreground">{{ 'XP.Copilot.Impact.NoEntries' | translate }}</li>
+            }
+          </ul>
+          @if (group.count > group.rows.length) {
+            <button z-button zType="outline" (click)="limit.update(addPage)">
+              {{ 'XP.Copilot.Impact.ShowMore' | translate }}
+            </button>
+          }
+        </details>
+      }
+    }
+    @if (loading()) {
+      <p role="status">{{ 'XP.KEY_WORDS.Loading' | translate }}</p>
+    }
+    @if (error()) {
+      <p role="alert" class="text-destructive">{{ error() }}</p>
+      <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" (click)="dialog.close()">{{ 'XP.ACTIONS.Cancel' | translate }}</button>
+    <button
+      z-button
+      zType="destructive"
+      [zDisabled]="loading() || !references() || !!references()?.defaults"
+      (click)="confirm()"
+    >
+      {{ 'XP.Copilot.Management.DisableConnection' | translate }}
+    </button>
+  </footer>
+</section>
