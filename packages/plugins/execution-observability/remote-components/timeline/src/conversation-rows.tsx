@@ -1,3 +1,4 @@
+import { RefreshError } from './refresh-error'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { ChevronDown, ChevronRight, GitBranch, MessageSquare } from 'lucide-react'
 import {
@@ -15,6 +16,7 @@ import type { ReadQueue } from './read-queue'
 export function ConversationRows({
   item,
   query,
+  refreshScope,
   view,
   expanded,
   toggle,
@@ -23,6 +25,7 @@ export function ConversationRows({
 }: {
   item: ExecutionObservationConversation
   query: ExecutionObservationQuery
+  refreshScope: string
   view: TimelineViewport
   expanded: boolean
   toggle: () => void
@@ -89,6 +92,7 @@ export function ConversationRows({
       </div>
       <ThreadRows
         query={detailQuery}
+        refreshScope={refreshScope}
         expanded={expanded && !item.executionId}
         queued={queued}
         view={view}
@@ -99,12 +103,14 @@ export function ConversationRows({
 }
 function ThreadRows({
   query,
+  refreshScope,
   expanded,
   queued,
   view,
   open
 }: {
   query: ExecutionObservationQuery
+  refreshScope: string
   expanded: boolean
   queued: ReadQueue
   view: TimelineViewport
@@ -117,7 +123,8 @@ function ThreadRows({
       queued,
       executionObservationListSchema,
       'list',
-      50
+      50,
+      refreshScope
     )
   if (!expanded) return null
   if (!data)
@@ -143,6 +150,7 @@ function ThreadRows({
   }
   return (
     <>
+      {failed && <RefreshError retry={retry} />}
       {[...threads].map(([key, records]) => {
         const record = records[0],
           branch = Boolean(record.parentThreadId || record.forkedFromMessageId)

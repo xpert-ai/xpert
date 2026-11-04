@@ -62,7 +62,10 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
   const initial = initialState.query
   const { t, date, time } = useI18n()
   const [query, setQuery] = useState(initial),
-    [data, setData] = useState<ExecutionObservationOverview | null>(null)
+    [snapshot, setSnapshot] = useState<{ data: ExecutionObservationOverview; scope: string } | null>(null)
+  const data = snapshot?.data
+  // User navigation changes this scope; polling only advances the request's time window.
+  const [refreshScope, setRefreshScope] = useState(queryKey(initial))
   const [loading, setLoading] = useState(true),
     [error, setError] = useState<string | null>(null),
     [reload, setReload] = useState(0)
@@ -105,6 +108,7 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
   const change = (patch: Partial<ExecutionObservationQuery>, liveState = live) => {
     const next = { ...query, ...patch, page: 1, asOf: undefined }
     setQuery(next)
+    setRefreshScope(queryKey(next))
     persist({ query: next, live: liveState })
   }
   const open = (value: string) => {
@@ -119,10 +123,12 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
   const turnPage = (page: number) => {
     const next = { ...query, page }
     setQuery(next)
+    setRefreshScope(queryKey(next))
     persist({ query: next })
   }
   useEffect(() => {
     setQuery((current) => (queryKey(current) === queryKey(initialState.query) ? current : initialState.query))
+    setRefreshScope(queryKey(initialState.query))
     setTimeScale(initialState.timeScale)
     setExpandedConversations(new Set(initialState.expandedConversations))
     setExpanded(new Set(initialState.expanded))
@@ -142,12 +148,12 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
     })
       .then((response) => {
         const result = z.object({ item: executionObservationOverviewSchema }).parse(response).item
-        if (version === generation.current) setData(result)
+        if (version === generation.current) setSnapshot({ data: result, scope: refreshScope })
       })
       .catch(() => {
         if (version === generation.current) {
           setError(t('failed'))
-          setData(null)
+          setSnapshot((current) => (current?.scope === refreshScope ? current : null))
         }
       })
       .finally(() => {
@@ -156,7 +162,7 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
     return () => {
       generation.current++
     }
-  }, [query, reload, t])
+  }, [query, refreshScope, reload, t])
   useEffect(() => {
     if (!live) return
     const interval = window.setInterval(() => {
@@ -455,7 +461,7 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
             {t('loading')}
           </p>
         )}
-        {data && (
+        {data && snapshot && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-4 text-sm tabular-nums">
@@ -528,10 +534,11 @@ function View({ initialState, viewKey, synthetic }: { initialState: ViewState; v
                 </Button>
               </div>
             ) : mode === 'list' ? (
-              <ExecutionList query={data.query} open={open} />
+              <ExecutionList query={data.query} refreshScope={snapshot.scope} open={open} />
             ) : (
               <ExecutionTimeline
                 data={data}
+                refreshScope={snapshot.scope}
                 timeScale={timeScale}
                 setTimeScale={(value) => {
                   setTimeScale(value)

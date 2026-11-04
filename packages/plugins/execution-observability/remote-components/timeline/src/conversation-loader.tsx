@@ -1,3 +1,4 @@
+import { RefreshError } from './refresh-error'
 import type { ReactNode } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import type { ExecutionObservationConversation, ExecutionObservationQuery } from '@xpert-ai/contracts'
@@ -7,18 +8,26 @@ import { useI18n } from './i18n'
 
 export function ConversationLoader({
   query,
+  refreshScope,
   assistantId,
   expanded,
   queued,
   children
 }: {
   query: ExecutionObservationQuery
+  refreshScope: string
   assistantId: string | null
   expanded: boolean
   queued: ReadQueue
   children: (items: ExecutionObservationConversation[]) => ReactNode
 }) {
-  const { data, failed, page, setPage, retry } = useAssistantConversations(query, assistantId, expanded, queued)
+  const { data, failed, page, setPage, retry } = useAssistantConversations(
+    query,
+    assistantId,
+    expanded,
+    queued,
+    refreshScope
+  )
   const { t } = useI18n()
   if (!expanded) return null
   if (!data)
@@ -37,6 +46,7 @@ export function ConversationLoader({
     )
   return (
     <>
+      {failed && <RefreshError retry={retry} />}
       {children(data.items)}
       {data.total === 0 && <p className="px-8 py-2 text-xs text-muted-foreground">{t('empty')}</p>}
       {data.total > data.pageSize && (

@@ -15,6 +15,7 @@ import { OverlapOverview } from './trend'
 
 export function ExecutionTimeline({
   data,
+  refreshScope,
   expanded,
   setExpanded,
   expandedConversations,
@@ -27,6 +28,7 @@ export function ExecutionTimeline({
   changeRange
 }: {
   data: ExecutionObservationOverview
+  refreshScope: string
   expanded: Set<string>
   setExpanded: (next: Set<string>) => void
   expandedConversations: Set<string>
@@ -49,7 +51,15 @@ export function ExecutionTimeline({
     ref,
     onScroll,
     viewport: view
-  } = useTimelineViewport(from, to, Date.parse(data.summary.asOf), timeScale, data.query.timeZone, setTimeScale)
+  } = useTimelineViewport(
+    from,
+    to,
+    Date.parse(data.summary.asOf),
+    timeScale,
+    data.query.timeZone,
+    setTimeScale,
+    refreshScope
+  )
   const tickLabel = (tick: number) =>
     view.step >= 86400000
       ? day(tick, view.timeZone)
@@ -188,7 +198,13 @@ export function ExecutionTimeline({
                   )}
                 </div>
               </div>
-              <ConversationLoader query={data.query} assistantId={assistant.id} expanded={isExpanded} queued={queued}>
+              <ConversationLoader
+                refreshScope={refreshScope}
+                query={data.query}
+                assistantId={assistant.id}
+                expanded={isExpanded}
+                queued={queued}
+              >
                 {(items) =>
                   items.map((item) => {
                     const conversationKey = `${key}/${item.key}`
@@ -196,6 +212,7 @@ export function ExecutionTimeline({
                       <ConversationRows
                         key={item.key}
                         item={item}
+                        refreshScope={refreshScope}
                         query={{
                           ...data.query,
                           assistantId: assistant.id ?? undefined,

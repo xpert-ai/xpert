@@ -1,40 +1,30 @@
-import { useEffect, useState } from 'react'
-import { z } from 'zod/v3'
+import { useMemo } from 'react'
 import { Button, Badge } from '@xpert-ai/shadcn-ui'
-import {
-  executionObservationListSchema,
-  type ExecutionObservationQuery,
-  type ExecutionObservationList
-} from '@xpert-ai/contracts'
-import { request } from './bridge'
+import { executionObservationListSchema, type ExecutionObservationQuery } from '@xpert-ai/contracts'
+import { createReadQueue } from './read-queue'
+import { useObservationPage } from './lazy-executions'
 import { useI18n } from './i18n'
-import { queryParameters } from './navigation'
+import { RefreshError } from './refresh-error'
 
-export function ExecutionList({ query, open }: { query: ExecutionObservationQuery; open: (id: string) => void }) {
-  const { t, date } = useI18n(),
-    [data, setData] = useState<ExecutionObservationList | null>(null),
-    [page, setPage] = useState(1),
-    [error, setError] = useState(false)
-  const queryKey = JSON.stringify(query)
-  useEffect(() => setPage(1), [queryKey])
-  useEffect(() => {
-    let active = true
-    setData(null)
-    setError(false)
-    request('requestData', {
-      query: { page, pageSize: 25, parameters: { ...queryParameters(query), operation: 'list' } }
-    })
-      .then((response) => {
-        if (active) setData(z.object({ item: executionObservationListSchema }).parse(response).item)
-      })
-      .catch(() => {
-        if (active) setError(true)
-      })
-    return () => {
-      active = false
-    }
-  }, [queryKey, page])
-  if (error)
+export function ExecutionList({
+  query,
+  refreshScope,
+  open
+}: {
+  query: ExecutionObservationQuery
+  refreshScope?: string
+  open: (id: string) => void
+}) {
+  const { t, date } = useI18n()
+  const queued = useMemo(() => createReadQueue(1), [])
+  const {
+    data,
+    failed: error,
+    page,
+    setPage,
+    retry
+  } = useObservationPage(query, true, queued, executionObservationListSchema, 'list', 25, refreshScope)
+  if (error && !data)
     return (
       <p role="alert" className="p-4 text-sm text-destructive">
         {t('failed')}
@@ -48,6 +38,7 @@ export function ExecutionList({ query, open }: { query: ExecutionObservationQuer
     )
   return (
     <div className="min-h-0 overflow-auto">
+      {error && <RefreshError retry={retry} />}
       {!data.total && <p className="p-4 text-sm text-muted-foreground">{t('empty')}</p>}
       {data.items.map((record) => (
         <Button
