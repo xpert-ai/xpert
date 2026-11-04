@@ -55,6 +55,23 @@ describe('analytics dataset boundary', () => {
     empty.completeness.returnedRows = 0
     expect(normalizeAnalyticsResult(binding, empty, 'run', 100).fields).toHaveLength(2)
   })
+  it('accepts source-declared metadata without overriding the authored binding or coercing cells', () => {
+    const declared = result()
+    declared.columns[1] = {
+      key: 'net',
+      logicalType: 'decimal',
+      role: 'measure',
+      nullable: false,
+      label: 'Source amount',
+      unit: 'CNY'
+    }
+    const dataset = normalizeAnalyticsResult(binding, declared, 'run', 100)
+    expect(dataset.rows[0].amount).toBe('9007199254740993.12')
+    expect(dataset.fields[1].label).toBe('Revenue')
+    const incorrect = structuredClone(binding)
+    incorrect.output.fields[1].logicalType = 'float64'
+    expect(() => normalizeAnalyticsResult(incorrect, declared, 'run', 100)).toThrow('TYPE_MISMATCH')
+  })
   it('rejects a successful response with missing columns or invalid cell types', () => {
     const missing = result()
     missing.columns.pop()
