@@ -5949,6 +5949,31 @@
         "Unavailable": "当前不可用或未获授权，请联系管理员",
         "EmptyOrganizations": "暂无可用的活跃组织。"
       }
+    },
+    "BusinessArea": {
+      "Access": {
+        "Title": "访问授权",
+        "Hint": "授权仅对当前业务域生效；发布还需要资源创作权限。",
+        "MyAccess": "我的权限",
+        "consumer": "消费者",
+        "publisher": "发布者",
+        "domain_admin": "域管理员",
+        "None": "无权限",
+        "Subject": "授权对象类型",
+        "Group": "用户组",
+        "User": "用户",
+        "Member": "授权对象",
+        "Select": "请选择成员或用户组",
+        "Role": "业务域角色",
+        "Grant": "保存授权",
+        "Revoke": "撤销",
+        "Empty": "暂无显式授权。",
+        "Explain": "查看成员实际权限",
+        "Effective": "有效角色",
+        "Direct": "个人直接授权",
+        "Platform": "平台管理权限",
+        "ManageArea": "管理业务域授权"
+      }
     }
   },
   "AUTH": {

@@ -18,10 +18,12 @@
         <i class="ri-refresh-line" aria-hidden="true"></i>
         {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
       </button>
-      <button z-button zType="default" zSize="sm" type="button" [zDisabled]="busy()" (click)="startCreate()">
-        <i class="ri-add-line" aria-hidden="true"></i>
-        {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
-      </button>
+      @if (canManageAreas()) {
+        <button z-button zType="default" zSize="sm" type="button" [zDisabled]="busy()" (click)="startCreate()">
+          <i class="ri-add-line" aria-hidden="true"></i>
+          {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
+        </button>
+      }
     </div>
   </header>
 
@@ -140,10 +142,12 @@
                   | translate: { Default: 'Create the first top-level business area for this organization.' }
               }}
             </p>
-            <button z-button zType="default" zSize="sm" type="button" class="mt-4" (click)="startCreate()">
-              <i class="ri-add-line" aria-hidden="true"></i>
-              {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
-            </button>
+            @if (canManageAreas()) {
+              <button z-button zType="default" zSize="sm" type="button" class="mt-4" (click)="startCreate()">
+                <i class="ri-add-line" aria-hidden="true"></i>
+                {{ 'XP.BusinessArea.Create' | translate: { Default: 'New business area' } }}
+              </button>
+            }
           </div>
         }
       </div>
@@ -174,45 +178,47 @@
             }
           </div>
 
-          <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            @if (!creating()) {
-              @if (selectedArea(); as activeArea) {
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="sm"
-                  type="button"
-                  [zDisabled]="busy()"
-                  (click)="startCreate(activeArea)"
-                >
-                  <i class="ri-node-tree" aria-hidden="true"></i>
-                  {{ 'XP.BusinessArea.AddChild' | translate: { Default: 'Add child' } }}
-                </button>
-                <button
-                  z-button
-                  zType="destructive"
-                  zSize="sm"
-                  type="button"
-                  [zDisabled]="busy()"
-                  (click)="deleteSelected()"
-                >
-                  <i class="ri-delete-bin-line" aria-hidden="true"></i>
-                  {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
-                </button>
+          @if (canManageAreas()) {
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              @if (!creating()) {
+                @if (selectedArea(); as activeArea) {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
+                    type="button"
+                    [zDisabled]="busy()"
+                    (click)="startCreate(activeArea)"
+                  >
+                    <i class="ri-node-tree" aria-hidden="true"></i>
+                    {{ 'XP.BusinessArea.AddChild' | translate: { Default: 'Add child' } }}
+                  </button>
+                  <button
+                    z-button
+                    zType="destructive"
+                    zSize="sm"
+                    type="button"
+                    [zDisabled]="busy()"
+                    (click)="deleteSelected()"
+                  >
+                    <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                    {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+                  </button>
+                }
               }
-            }
-            <button z-button zType="ghost" zSize="sm" type="button" [zDisabled]="busy()" (click)="resetForm()">
-              {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-            </button>
-            <button z-button zType="default" zSize="sm" type="button" [zDisabled]="busy()" (click)="save()">
-              @if (saving()) {
-                <xp-spin small />
-              } @else {
-                <i class="ri-save-line" aria-hidden="true"></i>
-              }
-              {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-            </button>
-          </div>
+              <button z-button zType="ghost" zSize="sm" type="button" [zDisabled]="busy()" (click)="resetForm()">
+                {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+              </button>
+              <button z-button zType="default" zSize="sm" type="button" [zDisabled]="busy()" (click)="save()">
+                @if (saving()) {
+                  <xp-spin small />
+                } @else {
+                  <i class="ri-save-line" aria-hidden="true"></i>
+                }
+                {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+              </button>
+            </div>
+          }
         </header>
 
         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6">
@@ -298,6 +304,7 @@
                     </dd>
                   </div>
                 </dl>
+                <xp-business-area-access [areaId]="activeArea.id" />
               }
             }
           </div>

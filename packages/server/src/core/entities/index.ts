@@ -40,7 +40,8 @@ import {
 	DataSource,
 	DataSourceAuthentication,
 	DataSourceType,
-	BusinessArea
+	BusinessArea,
+	BusinessAreaAccessGrant
 } from './internal'
 
 export const coreEntities = [
@@ -85,5 +86,6 @@ export const coreEntities = [
 	DataSource,
 	DataSourceAuthentication,
 	DataSourceType,
-	BusinessArea
+	BusinessArea,
+	BusinessAreaAccessGrant
 ]

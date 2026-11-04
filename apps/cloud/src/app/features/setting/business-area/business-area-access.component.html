@@ -1,0 +1,120 @@
+<section class="mt-8 border-t border-border pt-6" [attr.aria-busy]="busy()">
+  <h3 class="text-sm font-semibold">{{ 'XP.BusinessArea.Access.Title' | translate }}</h3>
+  <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.BusinessArea.Access.Hint' | translate }}</p>
+  @if (error()) {
+    <p class="mt-3 text-sm text-text-destructive" role="alert">{{ error() }}</p>
+    <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Refresh' | translate }}</button>
+  }
+  @if (access(); as mine) {
+    <p class="mt-3 text-sm">
+      {{ 'XP.BusinessArea.Access.MyAccess' | translate }}:
+      {{
+        (mine.canManage
+          ? 'XP.BusinessArea.Access.domain_admin'
+          : mine.canPublish
+            ? 'XP.BusinessArea.Access.publisher'
+            : mine.canView
+              ? 'XP.BusinessArea.Access.consumer'
+              : 'XP.BusinessArea.Access.None'
+        ) | translate
+      }}
+    </p>
+    @if (mine.canManage) {
+      <div class="mt-4 grid gap-3 sm:grid-cols-3">
+        <label class="flex flex-col gap-2 text-sm"
+          >{{ 'XP.BusinessArea.Access.Subject' | translate }}
+          <select
+            class="rounded-md border border-border bg-background px-3 py-2"
+            [(ngModel)]="subjectType"
+            (ngModelChange)="subjectId = ''"
+          >
+            <option value="user_group">{{ 'XP.BusinessArea.Access.Group' | translate }}</option>
+            <option value="user">{{ 'XP.BusinessArea.Access.User' | translate }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-2 text-sm"
+          >{{ 'XP.BusinessArea.Access.Member' | translate }}
+          <select class="rounded-md border border-border bg-background px-3 py-2" [(ngModel)]="subjectId">
+            <option value="">{{ 'XP.BusinessArea.Access.Select' | translate }}</option>
+            @for (
+              subject of subjectType === 'user_group' ? candidates().groups : candidates().users;
+              track subject.id
+            ) {
+              <option [value]="subject.id">{{ subject.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="flex flex-col gap-2 text-sm"
+          >{{ 'XP.BusinessArea.Access.Role' | translate }}
+          <select class="rounded-md border border-border bg-background px-3 py-2" [(ngModel)]="role">
+            @for (value of roles; track value) {
+              <option [value]="value">{{ 'XP.BusinessArea.Access.' + value | translate }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <button class="mt-3" z-button [zDisabled]="busy() || !subjectId" (click)="save()">
+        {{ 'XP.BusinessArea.Access.Grant' | translate }}
+      </button>
+      <ul class="mt-4 divide-y divide-border">
+        @for (grant of grants(); track grant.id) {
+          <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+            <span
+              >{{ grant.subjectName || grant.userGroupId || grant.userId }} ·
+              {{ 'XP.BusinessArea.Access.' + grant.role | translate }}</span
+            >
+            <button z-button zType="ghost" [zDisabled]="busy()" (click)="revoke(grant)">
+              {{ 'XP.BusinessArea.Access.Revoke' | translate }}
+            </button>
+          </li>
+        } @empty {
+          <li class="py-3 text-sm text-muted-foreground">{{ 'XP.BusinessArea.Access.Empty' | translate }}</li>
+        }
+      </ul>
+      <div class="mt-5 flex flex-wrap items-end gap-3">
+        <label class="flex min-w-48 flex-1 flex-col gap-2 text-sm"
+          >{{ 'XP.BusinessArea.Access.Explain' | translate }}
+          <select
+            class="rounded-md border border-border bg-background px-3 py-2"
+            [(ngModel)]="inspectedUserId"
+            (ngModelChange)="explain()"
+          >
+            <option value="">{{ 'XP.BusinessArea.Access.Select' | translate }}</option>
+            @for (user of candidates().users; track user.id) {
+              <option [value]="user.id">{{ user.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    }
+    @if (explanation() || (!mine.canManage ? mine : null); as result) {
+      <div class="mt-3 rounded-md bg-muted p-3 text-sm">
+        <p>
+          {{ 'XP.BusinessArea.Access.Effective' | translate }}:
+          {{
+            (result.canManage
+              ? 'XP.BusinessArea.Access.domain_admin'
+              : result.canPublish
+                ? 'XP.BusinessArea.Access.publisher'
+                : result.canView
+                  ? 'XP.BusinessArea.Access.consumer'
+                  : 'XP.BusinessArea.Access.None'
+            ) | translate
+          }}
+        </p>
+        @for (source of result.sources; track source.id) {
+          <p class="mt-1 text-muted-foreground">
+            {{
+              (source.subjectType === 'user_group' ? 'XP.BusinessArea.Access.Group' : 'XP.BusinessArea.Access.Direct')
+                | translate
+            }}: {{ source.subjectName || source.userGroupId || source.userId }} ·
+            {{ 'XP.BusinessArea.Access.' + source.role | translate }}
+          </p>
+        }
+        @if (result.platformManagement) {
+          <p>{{ 'XP.BusinessArea.Access.Platform' | translate }}</p>
+        }
+      </div>
+    }
+  }
+</section>

@@ -1,3 +1,6 @@
 export * from './business-area.entity'
 export * from './business-area.service'
 export * from './business-area.module'
+export * from './access/business-area-access.entity'
+export * from './access/business-area-access.sql'
+export * from './access/assert-business-area-access.command'

@@ -1,5 +1,7 @@
+import { BusinessAreaAccessComponent } from './business-area-access.component'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, viewChild } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { injectOrganization } from '@cloud/app/@core/state'
 import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields'
@@ -17,7 +19,14 @@ import {
 } from '@xpert-ai/headless-ui'
 import { finalize, firstValueFrom } from 'rxjs'
 
-import { getErrorMessage, injectBusinessAreaAPI, injectToastr, OrderTypeEnum } from '../../../@core'
+import {
+  getErrorMessage,
+  injectBusinessAreaAPI,
+  injectToastr,
+  OrderTypeEnum,
+  PermissionsEnum,
+  Store
+} from '../../../@core'
 
 interface BusinessAreaRow {
   area: IBusinessArea
@@ -41,6 +50,7 @@ interface BusinessAreaParentTreeNode {
   selector: 'xp-business-area-settings',
   imports: [
     CommonModule,
+    BusinessAreaAccessComponent,
     ReactiveFormsModule,
     TranslateModule,
     XpSpinComponent,
@@ -61,6 +71,12 @@ export class BusinessAreaSettingsComponent {
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly confirmDelete = injectConfirmDelete()
+  readonly rolePermissions = toSignal(inject(Store).userRolePermissions$)
+  readonly canManageAreas = computed(() =>
+    this.rolePermissions()?.some(
+      (permission) => permission.permission === PermissionsEnum.BUSINESS_AREA_MANAGE && permission.enabled
+    )
+  )
 
   #loadRequestId = 0
 
@@ -99,6 +115,17 @@ export class BusinessAreaSettingsComponent {
   readonly businessAreaTree = viewChild<ZardTreeComponent<IBusinessArea>>('businessAreaTree')
 
   constructor() {
+    effect(() => {
+      if (this.canManageAreas()) {
+        this.name.enable({ emitEvent: false })
+        this.parentId.enable({ emitEvent: false })
+      } else {
+        this.creating.set(false)
+        this.name.disable({ emitEvent: false })
+        this.parentId.disable({ emitEvent: false })
+      }
+    })
+
     effect(() => {
       const organizationId = this.organization()?.id
       if (!organizationId) {
@@ -187,6 +214,7 @@ export class BusinessAreaSettingsComponent {
   }
 
   startCreate(parent?: IBusinessArea | null) {
+    if (!this.canManageAreas()) return
     this.creating.set(true)
     this.selectedAreaId.set(null)
     this.name.setValue('')
@@ -215,6 +243,7 @@ export class BusinessAreaSettingsComponent {
   }
 
   async save() {
+    if (!this.canManageAreas()) return
     this.name.markAsTouched()
     const name = this.name.getRawValue().trim()
     if (!name) {
@@ -240,6 +269,7 @@ export class BusinessAreaSettingsComponent {
   }
 
   deleteSelected() {
+    if (!this.canManageAreas()) return
     const selected = this.selectedArea()
     if (!selected) {
       return

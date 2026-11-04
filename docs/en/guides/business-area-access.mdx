@@ -1,0 +1,128 @@
+---
+title: 'User groups and business area access'
+description: 'Grant consumption, publishing and access management within business areas using existing users and groups.'
+---
+
+User groups organize people; business areas define resource scope. A group or a user can hold a different role in each area. One member can publish procurement resources and consume published finance resources while retaining one platform role. This uses the existing user group and business area models without introducing a department entity.
+
+## Business area roles
+
+| Role           | Consume published resources | Author and publish                          | Manage area grants |
+| -------------- | --------------------------- | ------------------------------------------- | ------------------ |
+| `consumer`     | Yes                         | Not granted                                 | No                 |
+| `publisher`    | Yes                         | Requires existing resource authoring access | No                 |
+| `domain_admin` | Yes                         | Requires existing resource authoring access | Yes                |
+
+Platform feature permissions still apply. For example, the area interface requires `BUSINESS_AREA_VIEW`; Assistant authoring and analytics queries retain their product permissions. Area roles do not automatically grant workspace membership, data source credentials or platform features.
+
+The platform permission `BUSINESS_AREA_MANAGE` provides area management within the current organization and appears separately as `platformManagement` in access explanations. Creating, renaming, moving and deleting business areas require this platform permission. A domain administrator manages grants in that area without gaining control of organization group membership, platform roles or the area taxonomy.
+
+## Configure access in Cloud
+
+1. Select the organization in the settings header. Organization business areas are unavailable in tenant scope.
+2. Open **Settings → Members & Organizations → Business Areas** and select an area.
+3. In the access panel, select a group or user and an area role, then save. Saving the same subject again updates its existing grant.
+4. Revoke a row to remove that subject's grant in the selected area.
+5. Managers can inspect an active member's effective role and grant sources. Ordinary members see only their own access and sources, with no grant management controls. Area properties are read-only without platform management permission.
+
+Candidates include active ordinary users in the current organization and manually maintained groups. System-managed resource sharing groups cannot receive business area grants.
+
+Maintain membership under **Settings → User Groups**. To inspect area grants by group, open **Settings → Organizations → User Groups**, choose a group, then choose an area to manage its grants. Group-level inspection also requires `ORG_USERS_VIEW`. Use the refresh action below the panel to reload the group's grant list.
+
+## Combining and revoking grants
+
+Effective access is the union of the user's direct grant and all current group grants in that area. Every source remains visible. For example, a procurement publishing group grants `publisher` and a cross-area analysis group grants `consumer`. Leaving the publishing group removes publishing access while preserving consumption through the analysis group.
+
+Group grants are not copied into individual member records. Leaving a group removes only that source; other groups, direct grants and exact resource shares continue to apply independently. Subsequent requests evaluate current membership. Disabled users and inactive organization memberships cannot use group or direct grants.
+
+Parent-child area relationships are classification only and do not inherit permissions. Nested groups, custom area roles and deny rules are not supported. Revocation does not delete historical outputs or automatically terminate every execution already in progress.
+
+## Resource behavior
+
+### Assistants
+
+- Area access supports consuming published Assistants without joining the authoring workspace.
+- For an Assistant assigned to an area, creator identity or authoring workspace membership alone does not bypass area consumption checks.
+- Existing exact Assistant shares remain independent sources. They grant access to that Assistant rather than the entire area.
+- Editing, saving drafts and publishing require existing authoring rights and area publishing capability. Changing the area checks publishing capability in both the original and target areas.
+- Unassigned resources keep their existing access rules. Credential audience, delegation and publication restrictions remain in effect.
+
+### DataXpert
+
+DataXpert reads capabilities and grant sources from Xpert, using the same grant records. Area lists are filtered by the current user's capabilities. Legacy local member records are never a runtime authorization fallback.
+
+Semantic model and metric consumption queries authorize the specific resource through its area without requiring authoring workspace membership. Other authoring endpoints retain workspace checks. Semantic model consumption executes the published snapshot and rejects drafts. Metrics retain publication and certification requirements; feature permissions, data source bindings and credential restrictions also apply. Query resources without an area continue to require workspace read access.
+
+## Example: publish procurement, consume finance
+
+Keep one ordinary platform role for a member and configure:
+
+| Group                  | Business area | Role        |
+| ---------------------- | ------------- | ----------- |
+| Procurement publishers | Procurement   | `publisher` |
+| Finance consumers      | Finance       | `consumer`  |
+| Cross-area analysts    | Procurement   | `consumer`  |
+
+Add the member to the first two groups and grant authoring rights only in the procurement workspace. Assign and publish a procurement Assistant and a finance Assistant in their respective areas.
+
+| Action                                                 | Expected result                                                          |
+| ------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Access both published Assistants                       | Allowed                                                                  |
+| Publish procurement Assistant                          | Allowed                                                                  |
+| Publish finance Assistant                              | Denied                                                                   |
+| Open finance authoring workspace                       | Denied without workspace access                                          |
+| Join analysts, then leave publishers                   | Procurement consumption remains; publishing is revoked                   |
+| Leave analysts too                                     | Procurement consumption is revoked; finance remains available            |
+| Keep an independent share of the procurement Assistant | That exact Assistant remains accessible; area publishing is not restored |
+
+Inspect all sources when verifying revocation: removing one source does not necessarily remove effective access.
+
+## API and integration
+
+Platform routes use the `/api/business-area` prefix. Identity, tenant and organization come from authenticated context; grant bodies cannot override them.
+
+| Method and path               | Purpose                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| `GET /access/capabilities`    | Area IDs the current user can view, publish to or manage                    |
+| `GET /:id/access`             | Current user's effective capabilities, sources and platform management flag |
+| `GET /:id/access?userId=…`    | Area manager inspects another active member                                 |
+| `GET /access/groups/:groupId` | Group grants; requires organization user viewing permission                 |
+| `GET /:id/access/candidates`  | Subjects an area manager can grant access to                                |
+| `GET /:id/grants`             | Area manager reads all grants                                               |
+| `PUT /:id/grants`             | Create or update a subject's grant                                          |
+| `DELETE /:id/grants/:grantId` | Remove a grant                                                              |
+
+Example group grant body:
+
+```json
+{
+  "subjectType": "user_group",
+  "userGroupId": "<group UUID>",
+  "role": "publisher"
+}
+```
+
+A direct grant uses `subjectType: "user"` and `userId`. Exactly one subject ID is required. Invalid roles, extra fields and invalid UUIDs are rejected. Mutations, complete grant lists and other members' explanations require area management capability.
+
+DataXpert exposes `/api/business-areas/:id/access`, `/:id/access/candidates` and `/:id/grants`; the platform makes the final authorization decision. Shared types are defined in `@xpert-ai/contracts`, in `business-area-access.model.ts`.
+
+## Deployment and legacy access migration
+
+1. Deploy an Xpert version with the new access contracts and apply the `core.business-area-access` SQL migration before starting the API. Do not substitute TypeORM synchronization for SQL-managed tables.
+2. Update DataXpert to a compatible published contracts version containing types such as `IBusinessAreaAccess`, update the lockfile and rebuild. Upgrading the platform API alone does not update DataXpert dependencies.
+3. Apply DataXpert migration `BusinessAreaGrantMigration1793779200000`, which adds `migrated_at` to legacy member records.
+4. Before enabling the new access interface, a platform area manager calls DataXpert `POST /api/business-areas/access/migrate` to import active legacy direct grants for the current organization.
+5. Verify consumption, publishing, membership revocation and grant sources with the example above before opening business traffic.
+
+Import only fills missing direct grants; existing platform grants take precedence. Successful rows receive a migration timestamp, and import can be retried. Keep the legacy table for reconciliation, not authorization fallback. Run migration separately for each organization.
+
+## Troubleshooting
+
+| Symptom                                   | Check                                                                                                      |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Business Areas is missing                 | Selected organization and `BUSINESS_AREA_VIEW`                                                             |
+| Consumption works but publishing fails    | Publisher role, product permissions and resource authoring rights                                          |
+| Access remains after leaving a group      | Other groups, direct grants, platform management or exact Assistant shares                                 |
+| Parent is accessible but child is not     | Grant access to the child separately                                                                       |
+| Grant management works but renaming fails | Domain administration does not include platform `BUSINESS_AREA_MANAGE`                                     |
+| Xpert and DataXpert disagree              | Actor, organization scope, platform connection and contracts version; never enable a legacy-table fallback |

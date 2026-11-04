@@ -1375,7 +1375,10 @@
         "IntegrationUnavailable": "Integration is unavailable or unauthorized",
         "IntegrationSharingOrganizationInvalid": "Select active organizations in the current tenant",
         "IntegrationSharingInvalid": "Invalid integration access policy or query",
-        "EmbeddingBatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048."
+        "EmbeddingBatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048.",
+        "BusinessAreaAccessDenied": "Business area permission is required for this operation.",
+        "BusinessAreaNotFound": "Business area was not found in the current organization.",
+        "BusinessAreaInvalidSubject": "Select an active organization member or a directory user group."
     },
     "Mcp": {
         "Test": {

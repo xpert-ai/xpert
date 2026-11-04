@@ -1,5 +1,5 @@
-jest.mock('@xpert-ai/server-core', () => ({ User: class User {}, UserGroup: class UserGroup {} }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
         currentTenantId: jest.fn(),
         getOrganizationId: jest.fn(),
@@ -19,13 +19,14 @@ import { DataSource, EntitySchema } from 'typeorm'
 import {
     IUserOrganization,
     PermissionsEnum,
+    AIPermissionsEnum,
     UserType,
     XpertTypeEnum,
     UserGroupManagedByEnum,
     UserGroupManagedEntityTypeEnum
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { User, UserGroup } from '@xpert-ai/server-core'
+import { User, UserGroup, UserOrganization } from '@xpert-ai/server-core'
 import { Xpert } from '../xpert.entity'
 import { XpertWorkspace } from '../../xpert-workspace/workspace.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
@@ -64,8 +65,13 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         jest.mocked(RequestContext.currentUser).mockReturnValue({ id, tenantId: tenant, type: UserType.USER })
         jest.mocked(RequestContext.hasPermission).mockImplementation(
             (permission) =>
-                groups &&
-                [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT].includes(permission as PermissionsEnum)
+                [AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT, AIPermissionsEnum.CHAT_VIEW].includes(
+                    permission as AIPermissionsEnum
+                ) ||
+                (groups &&
+                    [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT].includes(
+                        permission as PermissionsEnum
+                    ))
         )
     }
     beforeAll(async () => {
@@ -90,10 +96,13 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
                         imageUrl: { type: 'varchar', nullable: true },
                         deletedAt: { type: 'timestamptz', nullable: true, deleteDate: true }
                     },
-                    relations: { organizations: { type: 'one-to-many', target: 'Membership', inverseSide: 'user' } }
+                    relations: {
+                        organizations: { type: 'one-to-many', target: 'UserOrganization', inverseSide: 'user' }
+                    }
                 }),
                 new EntitySchema<IUserOrganization>({
-                    name: 'Membership',
+                    name: 'UserOrganization',
+                    target: UserOrganization,
                     tableName: 'user_organization',
                     columns: {
                         ...scopeColumns,
@@ -156,6 +165,9 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
                         slug: { type: 'varchar' },
                         type: { type: 'varchar' },
                         workspaceId: { type: 'uuid', nullable: true },
+                        businessAreaId: { type: 'uuid', nullable: true },
+                        userId: { type: 'uuid', nullable: true },
+                        active: { type: 'boolean', default: true },
                         createdById: { type: 'uuid' },
                         updatedById: { type: 'uuid', nullable: true },
                         publishAt: { type: 'timestamptz', nullable: true },
@@ -191,6 +203,22 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         }).initialize()
         await db.query(`CREATE SCHEMA "${schema}"`)
         await db.synchronize()
+        await db.query(
+            `CREATE TABLE app_platform_delivery ("userId" uuid, "tenantId" uuid, "organizationId" uuid, apps jsonb, configuration jsonb, "readyAt" timestamptz)`
+        )
+        await db.query(
+            `CREATE TABLE plugin_application_installation (id uuid, "tenantId" uuid, "organizationId" uuid, "workspaceId" text, "resourceRefs" jsonb, "pluginName" text, "appName" text)`
+        )
+        await db.query(
+            `CREATE TABLE role_permission ("roleId" uuid, "tenantId" uuid, permission text, enabled boolean)`
+        )
+        await db.query(`ALTER TABLE "user" ADD COLUMN "roleId" uuid, ADD COLUMN "isActive" boolean DEFAULT true`)
+        await db.query(
+            `ALTER TABLE organization ADD COLUMN "tenantId" uuid, ADD COLUMN "isActive" boolean DEFAULT true`
+        )
+        await db.query(
+            `CREATE TABLE business_area_access_grant (id uuid PRIMARY KEY, "tenantId" uuid NOT NULL, "organizationId" uuid NOT NULL, "businessAreaId" uuid NOT NULL, "subjectType" varchar NOT NULL, "userId" uuid, "userGroupId" uuid, role varchar NOT NULL)`
+        )
         access = new XpertWorkspaceAccessService(db.getRepository(XpertWorkspace))
         sharing = new AssistantSharingService(db.getRepository(Xpert), access)
         runtime = new PublishedXpertAccessService(db.getRepository(Xpert), access)
@@ -205,6 +233,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         await db.query(
             `TRUNCATE "${schema}".xpert, "${schema}".user_group, "${schema}".xpert_workspace, "${schema}"."user", "${schema}".organization CASCADE`
         )
+        await db.query('TRUNCATE business_area_access_grant')
         jest.mocked(RequestContext.currentTenantId).mockReturnValue(tenant)
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue(org)
         jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue(null)
@@ -220,7 +249,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
                 email: `${id}@example.test`,
                 deletedAt: id === deleted ? new Date() : null
             })
-            await db.getRepository('Membership').save({
+            await db.getRepository(UserOrganization).save({
                 tenantId: tenant,
                 organizationId: id === foreign ? otherOrg : org,
                 userId: id,
@@ -332,7 +361,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         }
         actor(member)
         expect(await count()).toBe(1)
-        await db.getRepository('Membership').update({ userId: member, organizationId: org }, { isActive: false })
+        await db.getRepository(UserOrganization).update({ userId: member, organizationId: org }, { isActive: false })
         expect(await count()).toBe(0)
         expect((await access.getAccess(workspace)).capabilities.canRun).toBe(false)
     })
@@ -355,6 +384,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue(org)
         jest.mocked(RequestContext.currentTenantId).mockReturnValue(randomUUID())
         await expect(sharing.get(assistant)).rejects.toThrow('AssistantSharingNotFound')
+        await db.query('TRUNCATE business_area_access_grant')
         jest.mocked(RequestContext.currentTenantId).mockReturnValue(tenant)
         jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue({ principalType: 'api_key', id: owner })
         await expect(sharing.grantUsers(assistant, [member])).rejects.toBeInstanceOf(ForbiddenException)
@@ -418,5 +448,25 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         })
         await sharing.grantUsers(assistant, [member])
         expect(await db.getRepository(UserGroup).countBy({ managedBy: UserGroupManagedByEnum.XPERT_SHARING })).toBe(2)
+    })
+    it('grants domain consumers runtime access without workspace read/write and revokes it on leaving the group', async () => {
+        const area = randomUUID()
+        await db.getRepository(Xpert).update(unrelated, { businessAreaId: area })
+        await db.query(
+            `INSERT INTO business_area_access_grant (id, "tenantId", "organizationId", "businessAreaId", "subjectType", "userGroupId", role) VALUES ($1,$2,$3,$4,'user_group',$5,'consumer')`,
+            [randomUUID(), tenant, org, area, group]
+        )
+        actor(member)
+        expect(await count(unrelated)).toBe(1)
+        expect((await access.getAccess(workspace)).capabilities).toEqual({
+            canRead: false,
+            canWrite: false,
+            canManage: false,
+            canRun: true
+        })
+        expect(await count(assistant)).toBe(0)
+        await db.createQueryBuilder().relation(UserGroup, 'members').of(group).remove(member)
+        expect(await count(unrelated)).toBe(0)
+        expect((await access.getAccess(workspace)).capabilities.canRun).toBe(false)
     })
 })

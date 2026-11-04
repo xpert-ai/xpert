@@ -10,6 +10,7 @@ import { I18nService } from 'nestjs-i18n'
 
 jest.mock('@xpert-ai/server-core', () => ({
     BusinessArea: class BusinessArea {},
+    ...jest.requireActual('../../../../../server/src/business-area/access/assert-business-area-access.command'),
     RequestContext: {
         currentUserId: jest.fn(),
         getLanguageCode: jest.fn().mockReturnValue('en')

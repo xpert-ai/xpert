@@ -79,6 +79,16 @@ current-document links. Documentation conversion does not close pending release 
 business acceptance gates. The separate product-docs repository maintains user
 instructions at `{language}/ai/projects/pipelines/` under Projects & Tasks.
 
+## User groups and business area access
+
+Current behavior, setup, role boundaries, revocation and DataXpert migration are documented in
+[English](./en/guides/business-area-access.mdx) and
+[中文](./zh-Hans/guides/business-area-access.mdx), with matching navigation routes.
+The completed implementation plan has been replaced by these feature guides.
+The [2026-11-04 reacceptance report](./acceptance/business-area-access/2026-11-04/report.md)
+retains the real API results, browser evidence and verification limits. Local acceptance does
+not imply package publication or production deployment.
+
 ## Database migration implementation plan
 
 [统一数据库迁移执行机制：需求与实施计划](./plans/2026-10-20-unified-database-migrations.md)
