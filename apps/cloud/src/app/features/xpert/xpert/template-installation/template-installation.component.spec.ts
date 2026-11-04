@@ -557,6 +557,30 @@ describe('Web template installation flow', () => {
     await settle()
     expect(fixture.componentInstance.state().operation).toBeNull()
   })
+  it('preserves a running installation when leaving with Back and reopening it', async () => {
+    const operation: TemplateInstallation = { ...receipt, status: 'running', stage: 'importing' }
+    transport.create.mockResolvedValueOnce(operation)
+    transport.get.mockResolvedValue(operation)
+    const component = fixture.componentInstance
+    await component.start()
+    await settle()
+    const back = jest.fn(() => fixture.destroy())
+    component.back.subscribe(back)
+
+    button('XP.Installation.Back').click()
+
+    expect(back).toHaveBeenCalledTimes(1)
+    fixture = TestBed.createComponent(TemplateInstallationComponent)
+    fixture.componentRef.setInput('templateId', 'template')
+    await settle()
+    expect(fixture.componentInstance.state().operation).toMatchObject({
+      id: operation.id,
+      status: 'running',
+      stage: 'importing'
+    })
+    expect(transport.create).toHaveBeenCalledTimes(1)
+    expect(transport.retry).not.toHaveBeenCalled()
+  })
   it('refreshes the assistant list once per successful operation without requiring Open', async () => {
     const component = fixture.componentInstance
     const completed = jest.spyOn(component.completed, 'emit')
