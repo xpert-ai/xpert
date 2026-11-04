@@ -119,7 +119,12 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                     parentMessageId: message.parentMessageId
                 })
                 const observable = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-                    new XpertChatCommand(request, chatOptions)
+                    new XpertChatCommand(request, {
+                        ...chatOptions,
+                        // Channel callbacks and app observers consume the same admitted run.
+                        // The chat handler binds the actual thread, execution, scope and writer lease.
+                        streamPersistence: chatOptions.streamPersistence ?? { transport: 'redis-stream' }
+                    })
                 )
                 if (this.isRedisPubSubCallback(callback)) {
                     await this.forwardRealtimeEvents(message, callback, observable, ctx)

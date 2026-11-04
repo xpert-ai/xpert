@@ -42,6 +42,67 @@ function fixture(entries: [string, string][], segmentStart = '0-0') {
 }
 
 describe('snapshot replay continuity', () => {
+    it('waits for the producer when discovery sees a run before its first event', async () => {
+        const entries: [string, string][] = []
+        const { service, redis, store } = fixture(entries)
+        store.read.mockResolvedValue(null)
+        const send = redis.sendCommand.getMockImplementation()!
+        redis.sendCommand.mockImplementation(async (args) => {
+            if (args[0] === 'XREAD') {
+                entries.push(['1-0', 'stream_start'], ['2-0', 'complete'])
+                return [
+                    [
+                        service.getStreamKey('thread', 'run'),
+                        entries.map(([id, type]) => [id, ['data', JSON.stringify({ type })]])
+                    ]
+                ]
+            }
+            return send(args)
+        })
+        const joined = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            requireReplayStart: true,
+            snapshotScope: scope,
+            isRunFinished: async () => false
+        })
+        const events = await lastValueFrom(joined.stream.pipe(toArray()))
+        expect(events.map((event) => event.data)).toEqual([{ type: 'stream_start' }, { type: 'complete' }])
+    })
+    it.each([undefined, '10-0'])('still reconciles a finished run with no retained stream (%s)', async (cursor) => {
+        const { service, store } = fixture([])
+        store.read.mockResolvedValue(null)
+        const joined = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            lastEventId: cursor,
+            requireReplayStart: true,
+            snapshotScope: scope,
+            isRunFinished: async () => true
+        })
+        const events = await lastValueFrom(joined.stream.pipe(toArray()))
+        expect(events.map((event) => event.data)).toEqual([
+            { type: 'stream_resync', retryable: false },
+            { type: 'complete' }
+        ])
+    })
+    it('does not wait when an active reader has lost its previous cursor', async () => {
+        const { service, store } = fixture([])
+        store.read.mockResolvedValue(null)
+        const joined = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            lastEventId: '10-0',
+            requireReplayStart: true,
+            snapshotScope: scope,
+            isRunFinished: async () => false
+        })
+        const events = await lastValueFrom(joined.stream.pipe(toArray()))
+        expect(events[0].data).toEqual({ type: 'stream_resync', retryable: true })
+    })
     it.each(['10-0', undefined])('emits only the snapshot and exclusive tail from cursor %s', async (cursor) => {
         const { service } = fixture([
             ['30-0', 'message'],
