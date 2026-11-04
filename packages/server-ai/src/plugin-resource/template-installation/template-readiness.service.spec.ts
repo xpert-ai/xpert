@@ -4,7 +4,7 @@ jest.mock('../../xpert-workspace/workspace-access.service', () => ({ XpertWorksp
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 import { Test } from '@nestjs/testing'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { LOADED_PLUGINS, LoadedPluginRecord } from '@xpert-ai/server-core'
 import {
@@ -33,6 +33,7 @@ import { AgentPluginStorageException } from '../../agent-plugin/agent-plugin-sto
 import { InstallationSourceChangedError } from './template-installation-source'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { GetAccessiblePublishedXpertQuery } from '../../xpert/published-agent/get-accessible-published-xpert.query'
 
 describe('scoped template dependency preparation', () => {
     const base: TXpertTemplate = {
@@ -77,6 +78,7 @@ describe('scoped template dependency preparation', () => {
                 TemplateReadinessService,
                 AssertAssistantTemplateDependenciesHandler,
                 { provide: CommandBus, useValue: { execute: jest.fn() } },
+                { provide: QueryBus, useValue: { execute: jest.fn() } },
                 ...[AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry].map((provide) => ({
                     provide,
                     useValue: { get: (key: string) => ({ key }), getSource: () => ({ kind: 'builtin' }) }
@@ -541,24 +543,47 @@ describe('scoped template dependency preparation', () => {
         async (entry) => {
             const h = await harness()
             const commands = h.module.get(CommandBus)
-            jest.mocked(commands.execute).mockResolvedValueOnce({
-                dependencyLocks: [{ pluginName: '@test/dep', version: '1.0.0', components: [] }]
-            })
+            const queries = h.module.get(QueryBus)
+            const locks = [{ pluginName: '@test/dep', version: '1.0.0', components: [] }]
+            const authority = entry === 'runtime' ? queries : commands
+            jest.mocked(authority.execute).mockResolvedValueOnce(
+                entry === 'runtime' ? { options: { templateDependencyLocks: locks } } : { dependencyLocks: locks }
+            )
             const handler = h.module.get(AssertAssistantTemplateDependenciesHandler)
             await expect(
                 handler.execute(new AssertAssistantTemplateDependenciesCommand('assistant', entry))
             ).resolves.toMatchObject({ updates: [{ currentVersion: '2.0.0' }] })
-            expect(commands.execute).toHaveBeenCalledWith(
-                new ResolveAssistantFileAccessCommand('assistant', 'capabilities', entry)
+            expect(authority.execute).toHaveBeenCalledWith(
+                entry === 'runtime'
+                    ? new GetAccessiblePublishedXpertQuery('assistant')
+                    : new ResolveAssistantFileAccessCommand('assistant', 'capabilities', entry)
             )
+            if (entry === 'runtime') expect(commands.execute).not.toHaveBeenCalled()
+            else expect(queries.execute).not.toHaveBeenCalled()
             const revoked = new ForbiddenException('revoked')
-            jest.mocked(commands.execute).mockRejectedValueOnce(revoked)
+            jest.mocked(authority.execute).mockRejectedValueOnce(revoked)
             await expect(
                 handler.execute(new AssertAssistantTemplateDependenciesCommand('assistant', entry))
             ).rejects.toBe(revoked)
             await h.module.close()
         }
     )
+    it('preserves explicit legacy requirements for delegated runtime dependency checks', async () => {
+        const h = await harness()
+        jest.mocked(h.module.get(QueryBus).execute).mockResolvedValueOnce({
+            options: {
+                templateSource: { dependencyLocks: [{ pluginName: '@test/dep', version: '1.0.0', components: [] }] },
+                templateDefinition: { dependencies: { versions: [{ pluginName: '@test/dep', version: '3.0.0' }] } }
+            }
+        })
+        await expect(
+            h.module
+                .get(AssertAssistantTemplateDependenciesHandler)
+                .execute(new AssertAssistantTemplateDependenciesCommand('assistant', 'runtime'))
+        ).rejects.toMatchObject({ response: { reason: 'version-required', expectedVersion: '3.0.0' } })
+        expect(h.module.get(CommandBus).execute).not.toHaveBeenCalled()
+        await h.module.close()
+    })
     it('fails closed when an otherwise loaded prerequisite belongs to another organization', async () => {
         const h = await harness()
         h.loaded.splice(0, h.loaded.length, plugin('other-org', '2.0.0'))
