@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../../../../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { AgentRuntimeBindingEntity } from '../../../../agent-invocation/invocation.entity'
 import { randomUUID } from 'node:crypto'
 import { projectPipelineConfigurationSchema, SecretTokenBindingType } from '@xpert-ai/contracts'
@@ -23,7 +24,11 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
         const assistantAccess = {
             assertCanReadXpert: jest.fn().mockRejectedValue(new Error('Unexpected Assistant access lookup'))
         } as unknown as XpertProjectAccessService
-        const access = new ProjectAccessRuntimeService(fixture.db.getRepository(XpertProject), assistantAccess)
+        const access = new ProjectAccessRuntimeService(
+            fixture.db.getRepository(XpertProject),
+            assistantAccess,
+            noAssistantPrincipal
+        )
         fixture.access.assertEdit.mockImplementation((input) => access.assertEdit(input))
         fixture.access.assertManage.mockImplementation((input) => access.assertManage(input))
         await fixture.db.getRepository(XpertProject).update(fixture.context.projectId, {
@@ -474,6 +479,7 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
         expect(await fixture.operations()).toHaveLength(2)
     })
     it('authorizes an exact human gate decision, rejects stale versions, and records an idempotent decision', async () => {
+        const managerContext = { ...fixture.context, actor: { ...fixture.context.actor, userId: randomUUID() } }
         const gate = fixture.humanGateConfiguration()
         const { bindingId } = await fixture.start.configure(fixture.context, {
             requestId: randomUUID(),
@@ -498,14 +504,14 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
             evidence: []
         }
         fixture.authorizeDecision.mockResolvedValueOnce(false)
-        await expect(fixture.decisions.decide(fixture.context, input)).rejects.toMatchObject({
+        await expect(fixture.decisions.decide(managerContext, input)).rejects.toMatchObject({
             response: { code: 'DECISION_NOT_AUTHORIZED' }
         })
-        await expect(fixture.decisions.decide(fixture.context, { ...input, generation: 99 })).rejects.toMatchObject({
+        await expect(fixture.decisions.decide(managerContext, { ...input, generation: 99 })).rejects.toMatchObject({
             response: { code: 'DECISION_VERSION_CONFLICT' }
         })
         fixture.checkCurrent.mockResolvedValueOnce(false)
-        await expect(fixture.decisions.decide(fixture.context, input)).rejects.toMatchObject({
+        await expect(fixture.decisions.decide(managerContext, input)).rejects.toMatchObject({
             response: { code: 'SUBJECT_SUPERSEDED' }
         })
         const waitStatistics = (waiting: string[]) =>
@@ -525,7 +531,7 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
         await fixture.db.query(
             `ALTER TABLE xpert_project_pipeline_event ADD CONSTRAINT wait_decision_failure CHECK (jsonb_array_length(payload->'humanWaitSnapshot'->'nodeIds') > 0) NOT VALID`
         )
-        await expect(fixture.decisions.decide(fixture.context, input)).rejects.toThrow()
+        await expect(fixture.decisions.decide(managerContext, input)).rejects.toThrow()
         expect(
             await fixture.db
                 .getRepository(ProjectPipelineDecisionEntity)
@@ -533,14 +539,14 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
         ).toBe(0)
         expect((await waitStatistics([attention.nodeInstanceId])).coverage.snapshots).toBe(1)
         await fixture.db.query('ALTER TABLE xpert_project_pipeline_event DROP CONSTRAINT wait_decision_failure')
-        const first = await fixture.decisions.decide(fixture.context, input)
+        const first = await fixture.decisions.decide(managerContext, input)
         const completedWait = await waitStatistics([])
         expect(completedWait).toMatchObject({
             intervals: 1,
             ongoing: 0,
             coverage: { missingEvents: 0, invalidEvents: 0 }
         })
-        expect(await fixture.decisions.decide(fixture.context, input)).toEqual(first)
+        expect(await fixture.decisions.decide(managerContext, input)).toEqual(first)
         expect((await waitStatistics([])).coverage.snapshots).toBe(completedWait.coverage.snapshots)
         expect(
             await fixture.db
@@ -549,6 +555,8 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
         ).toBe(1)
         expect(fixture.execute).not.toHaveBeenCalled()
         const downstream = (await fixture.operations())[0]
+        expect(downstream.context.actor).toEqual(fixture.context.actor)
+        expect(downstream.createdById).toBe(fixture.context.actor.userId)
         expect(downstream.context.inputs.approval).toMatchObject({
             kind: 'evidence',
             value: { resolverRef: 'platform.pipeline-decision@1', schemaRef: 'platform.human-decision@1' }
@@ -560,7 +568,7 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
             state: 'completed'
         })
         expect(fixture.authorizeDecision).toHaveBeenCalledWith(
-            expect.objectContaining({ actor: fixture.context.actor }),
+            expect.objectContaining({ actor: managerContext.actor }),
             {
                 candidateSelectionKey: 'authorized_owners',
                 outcome: 'accept',

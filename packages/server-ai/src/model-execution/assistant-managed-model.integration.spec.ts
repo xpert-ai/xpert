@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { randomUUID } from 'node:crypto'
 import {
     AiModelTypeEnum,
@@ -54,7 +55,8 @@ async function setup() {
     const identity = new ResolveAssistantExecutionIdentityHandler(
         { findOneBy: jest.fn().mockResolvedValue(technicalUser) } as never,
         { findOne: jest.fn().mockResolvedValue(assistant) } as never,
-        conversations as never
+        conversations as never,
+        noAssistantPrincipal
     )
     const commands = {
         execute: jest.fn(async (command) => {

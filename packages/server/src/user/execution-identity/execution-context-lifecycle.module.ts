@@ -5,12 +5,17 @@ import { CqrsModule } from '@nestjs/cqrs'
 
 @Injectable()
 export class ExecutionContextReadyService implements OnApplicationBootstrap {
+	private started = false
 	private resolveReady!: () => void
 	private readonly ready = new Promise<void>((resolve) => {
 		this.resolveReady = resolve
 	})
 	onApplicationBootstrap() {
+		this.started = true
 		this.resolveReady()
+	}
+	isReady() {
+		return this.started
 	}
 	waitUntilReady() {
 		return this.ready

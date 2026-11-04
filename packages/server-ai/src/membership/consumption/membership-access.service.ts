@@ -35,12 +35,15 @@ export class MembershipAccessService {
     ) {}
 
     async resolveBillableUserId(input: BillableUserInput, manager?: EntityManager): Promise<string> {
+        // An Assistant principal never implicitly consumes the configuring human's or Assistant creator's wallet.
+        // Organization-owned provider credentials remain usable through the normal model access policy.
         const xpertId = input.xpertId?.trim()
         if (!xpertId || input.xpertBillingPayer === XpertBillingPayer.RuntimeUser) {
             return input.userId
         }
 
         const repository = manager?.getRepository(Xpert) ?? this.xpertRepository
+        if (await repository.existsBy({ tenantId: input.tenantId, userId: input.userId })) return input.userId
         const xpert = await repository.findOne({
             where: {
                 tenantId: input.tenantId,

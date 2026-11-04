@@ -1,3 +1,5 @@
+import { Inject } from '@nestjs/common'
+import { AssistantPrincipalAccessService } from '../xpert/assistant-principal/assistant-principal-access.service'
 // Invariants: asynchronous execution restores only the exact published Assistant
 // bound to the persisted actor/conversation. Computer consent and model policy remain separate checks.
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -16,7 +18,9 @@ export class ResolveAssistantExecutionIdentityHandler implements ICommandHandler
     constructor(
         @InjectRepository(User) private readonly users: Repository<User>,
         @InjectRepository(Xpert) private readonly assistants: Repository<Xpert>,
-        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>
+        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
+        @Inject(AssistantPrincipalAccessService)
+        private readonly principals: Pick<AssistantPrincipalAccessService, 'isPrincipal' | 'find'>
     ) {}
 
     async execute({ actor, conversationId, xpertId }: ResolveAssistantExecutionIdentityCommand) {
@@ -32,6 +36,18 @@ export class ResolveAssistantExecutionIdentityHandler implements ICommandHandler
                   createdById: actor.userId
               })
             : null
+        if (await this.principals.isPrincipal(actor)) {
+            const id = xpertId ?? conversation?.xpertId
+            if (!id || (conversationId && !conversation)) throw executionError('Denied')
+            const access = await this.principals.find(actor, { assistantId: id, projectId: conversation?.projectId })
+            if (!access || (principal && principal.id !== actor.userId)) throw executionError('Denied')
+            const assistant = await this.assistants.findOne({
+                where: { id, tenantId: actor.tenantId, organizationId: actor.organizationId },
+                relations: ['agent', 'agent.copilotModel', 'copilotModel']
+            })
+            if (!assistant) throw executionError('Denied')
+            return { user: access.user, assistant }
+        }
         if (
             conversationId &&
             (!conversation ||

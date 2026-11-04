@@ -1,4 +1,4 @@
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm'
 import { FeatureOrganization, Organization, User } from '@xpert-ai/server-core'
@@ -35,7 +35,7 @@ it('resolves the production model-access provider graph with explicit dependenci
                 provide: getRepositoryToken(entity),
                 useValue: {}
             })),
-            ...[getDataSourceToken(), QueryBus, AIProvidersService, MembershipService].map((provide) => ({
+            ...[getDataSourceToken(), QueryBus, CommandBus, AIProvidersService, MembershipService].map((provide) => ({
                 provide,
                 useValue: {}
             }))

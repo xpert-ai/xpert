@@ -367,7 +367,10 @@ describe('ViewExtensionService file actions', () => {
 			expect(view.workbench?.fixed).toBe(true)
 			expect(await service.listFeatureViewSummaries('agent', 'assistant-1', ['audit'])).toHaveLength(1)
 			await service.getViewData('agent', 'assistant-1', 'provider__review', {})
-			expect(permissionService.ensureManifestVisible).toHaveBeenCalledWith(view)
+			expect(permissionService.ensureManifestVisible).toHaveBeenCalledWith(
+				view,
+				expect.objectContaining({ hostId: 'assistant-1' })
+			)
 			expect(provider.getViewData).toHaveBeenCalledWith(expect.any(Object), 'review', {})
 		}
 	)

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveAssistantModelCommand } from '../../xpert/assistant-principal/resolve-assistant-model.command'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     AIPermissionsEnum,
@@ -56,7 +58,8 @@ export class ModelAccessCatalogService {
         private readonly policy: ModelAccessPolicyService,
         private readonly lifecycle: ModelAccessLifecycleService,
         private readonly targets: ModelAccessTargetsService,
-        private readonly records: ModelAccessRecordsService
+        private readonly records: ModelAccessRecordsService,
+        private readonly commands: CommandBus
     ) {}
 
     async getCatalog(): Promise<IModelAccessCatalog> {
@@ -356,12 +359,32 @@ export class ModelAccessCatalogService {
             membershipFeatureState.organizationPlanConfigured
                 ? await context.canManageProviderModels()
                 : false
-        const accessMode = resolveTargetAccessMode(
-            target,
-            context.runtimeOrganizationId,
-            membershipFeatureState,
-            canManageProviderModels
-        )
+        // An Assistant principal may consume its own published organization model configuration.
+        // It never grants provider management or access to a human's membership/wallet.
+        const assistantPrincipal =
+            input.organizationId &&
+            input.xpertId &&
+            target.organizationId === input.organizationId &&
+            target.usesOrganizationCredentials &&
+            (await this.commands.execute(
+                new ResolveAssistantModelCommand(
+                    {
+                        tenantId: input.tenantId,
+                        organizationId: input.organizationId,
+                        userId: input.userId
+                    },
+                    input.xpertId,
+                    { copilotId: target.copilotId, model: target.model, modelType: target.modelType }
+                )
+            ))
+        const accessMode = assistantPrincipal
+            ? ModelTargetAccessMode.Direct
+            : resolveTargetAccessMode(
+                  target,
+                  context.runtimeOrganizationId,
+                  membershipFeatureState,
+                  canManageProviderModels
+              )
         if (accessMode === ModelTargetAccessMode.Direct) {
             return {
                 allowed: target.enabled,

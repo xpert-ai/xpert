@@ -1,7 +1,10 @@
+import { t } from 'i18next'
 import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
 import {
     AIPermissionsEnum,
+    PermissionsEnum,
+    UserType,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
     IXpert,
@@ -92,7 +95,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
 
     private async loadRuntimeAssistant(hostId: string, options?: ViewHostResolutionOptions) {
         const xpert = await this.xpertService.findOneByIdWithinTenant(hostId, {
-            relations: ['agent']
+            relations: ['agent', 'organization', 'workspace']
         })
         if (xpert.type !== XpertTypeEnum.Agent) {
             return null
@@ -105,6 +108,30 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         const agentContext = await this.resolveAgentContext(runtimeXpert)
         const runtimeScope = await this.resolveRuntimeScope(runtimeXpert, options)
 
+        let canManage = false
+        if (
+            RequestContext.currentUser()?.type === UserType.USER &&
+            RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT, false)
+        ) {
+            try {
+                await this.xpertService.assertCanAuthorById(runtimeXpert.id, runtimeXpert.workspaceId)
+                canManage = true
+            } catch (error) {
+                if (!(error instanceof ForbiddenException || error instanceof NotFoundException)) throw error
+            }
+        }
+        const current = RequestContext.currentUser()
+        const permissions = (current?.role?.rolePermissions ?? [])
+            .filter(({ enabled }) => enabled)
+            .map(({ permission }) => permission)
+            .filter((permission) => permission && (permission !== AIPermissionsEnum.XPERT_EDIT || canManage))
+            .filter(
+                (permission) =>
+                    current?.type === UserType.USER ||
+                    ![PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.SUPER_ADMIN_EDIT].some(
+                        (value) => value === permission
+                    )
+            )
         return {
             workspaceId: runtimeXpert.workspaceId ?? null,
             hostSnapshot: {
@@ -115,6 +142,12 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 active: runtimeXpert.active ?? true,
                 environmentId: runtimeXpert.environmentId ?? null,
                 workspaceId: runtimeXpert.workspaceId ?? null,
+                organization: runtimeXpert.organization
+                    ? { id: runtimeXpert.organizationId, name: runtimeXpert.organization.name }
+                    : null,
+                workspace: runtimeXpert.workspace
+                    ? { id: runtimeXpert.workspaceId, name: runtimeXpert.workspace.name }
+                    : null,
                 agent: {
                     key: agentContext.agentKey ?? null
                 }
@@ -127,7 +160,11 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                     workspaceId: runtimeXpert.workspaceId,
                     xpertId: runtimeXpert.id
                 }),
-                assistant: await this.profileIdentity.resolve(runtimeXpert),
+                assistant: {
+                    ...(await this.profileIdentity.resolve(runtimeXpert)),
+                    principalUserId: runtimeXpert.userId
+                },
+                permissions,
                 capabilities: agentContext.capabilities,
                 hostState: agentContext.hostState,
                 runtimeScope
@@ -351,7 +388,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     }
 }
 
-function toProjectViewAccess(role: 'owner' | 'manager' | 'editor' | 'member', status?: string | null) {
+function toProjectViewAccess(role: 'owner' | 'manager' | 'editor' | 'member' | 'assistant', status?: string | null) {
+    if (role === 'assistant') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
     const writable = status !== 'archived'
     return {
         role,

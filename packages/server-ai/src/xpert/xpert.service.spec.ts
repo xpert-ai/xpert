@@ -39,7 +39,10 @@ jest.mock('./types', () => ({
     }
 }))
 
-import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE, TagCategoryEnum } from '@xpert-ai/contracts'
+import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE, TagCategoryEnum, UserType } from '@xpert-ai/contracts'
+import { RequestContext as RuntimeRequestContext } from '@xpert-ai/plugin-sdk'
+import { ResolveAssistantPrincipalCommand } from './assistant-principal/resolve-assistant-principal.command'
+import { GetAccessiblePublishedXpertQuery } from './published-agent/get-accessible-published-xpert.query'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { In, IsNull } from 'typeorm'
@@ -134,6 +137,49 @@ describe('XpertService command facade', () => {
             sharing
         }
     }
+
+    describe('organization automation runtime', () => {
+        beforeEach(() => {
+            jest.spyOn(RuntimeRequestContext, 'currentUser').mockReturnValue({
+                id: 'automation',
+                tenantId: 'tenant-1',
+                type: UserType.COMMUNICATION
+            })
+            jest.spyOn(RuntimeRequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(RuntimeRequestContext, 'getOrganizationId').mockReturnValue('org-1')
+            jest.spyOn(RuntimeRequestContext, 'currentUserId').mockReturnValue('automation')
+        })
+        it('loads only the published Assistant authorized by the live grant without workspace authoring', async () => {
+            const f = createService()
+            f.commandBus.execute.mockResolvedValue(true)
+            f.queryBus.execute.mockResolvedValue({ id: 'assistant', publishAt: new Date() })
+            expect(await f.service.findOneForRuntime('assistant', { relations: ['agent'] })).toMatchObject({
+                id: 'assistant'
+            })
+            expect(f.commandBus.execute).toHaveBeenCalledWith(
+                new ResolveAssistantPrincipalCommand({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'automation'
+                })
+            )
+            expect(f.queryBus.execute).toHaveBeenCalledWith(
+                new GetAccessiblePublishedXpertQuery('assistant', ['agent'])
+            )
+            expect(f.repository.findOne).not.toHaveBeenCalled()
+            expect(f.workspaceAccessService.assertCanAuthor).not.toHaveBeenCalled()
+        })
+        it('does not fall back to workspace access for a revoked grant or an ungranted Assistant', async () => {
+            const f = createService()
+            f.commandBus.execute.mockRejectedValueOnce(new ForbiddenException())
+            await expect(f.service.findOneForRuntime('assistant')).rejects.toMatchObject({ status: 403 })
+            expect(f.queryBus.execute).not.toHaveBeenCalled()
+            f.commandBus.execute.mockResolvedValue(true)
+            f.queryBus.execute.mockRejectedValue(new ForbiddenException())
+            await expect(f.service.findOneForRuntime('another-assistant')).rejects.toMatchObject({ status: 403 })
+            expect(f.repository.findOne).not.toHaveBeenCalled()
+        })
+    })
 
     describe('tag usage names', () => {
         beforeEach(() => {
@@ -352,6 +398,12 @@ describe('XpertService command facade', () => {
     })
 
     it('requires target workspace authoring access for an xpert draft', async () => {
+        jest.spyOn(RuntimeRequestContext, 'currentUser').mockReturnValue({
+            id: 'owner-1',
+            tenantId: 'tenant-1',
+            type: UserType.USER
+        })
+        jest.spyOn(RuntimeRequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         const { service, repository, workspaceAccessService } = createService()
         repository.findOne.mockResolvedValue({
@@ -375,6 +427,12 @@ describe('XpertService command facade', () => {
     })
 
     it('also requires authoring access when the resolved draft workspace differs from the persisted workspace', async () => {
+        jest.spyOn(RuntimeRequestContext, 'currentUser').mockReturnValue({
+            id: 'owner-1',
+            tenantId: 'tenant-1',
+            type: UserType.USER
+        })
+        jest.spyOn(RuntimeRequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         const { service, repository, workspaceAccessService } = createService()
         repository.findOne.mockResolvedValue({
@@ -393,6 +451,12 @@ describe('XpertService command facade', () => {
     })
 
     it('falls back to legacy creator and organization checks when no workspace is resolved', async () => {
+        jest.spyOn(RuntimeRequestContext, 'currentUser').mockReturnValue({
+            id: 'owner-1',
+            tenantId: 'tenant-1',
+            type: UserType.USER
+        })
+        jest.spyOn(RuntimeRequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')

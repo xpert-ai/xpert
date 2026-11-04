@@ -32,4 +32,5 @@ export interface XpertViewAssistantIdentity {
   instanceId: string
   currentId: string
   versionIds: string[]
+  principalUserId?: string | null
 }

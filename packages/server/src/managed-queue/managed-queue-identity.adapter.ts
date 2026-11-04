@@ -34,8 +34,7 @@ export class ManagedQueueIdentityAdapter {
 			).user
 		}
 		if (user.type !== UserType.COMMUNICATION) throw executionIdentityError()
-		// Technical principals keep the envelope's constrained delegation; resource services
-		// still validate the live Assistant binding rather than human organization membership.
+		// Technical accounts retain their persisted delegation; resource domains authorize their bindings.
 		return user
 	}
 }

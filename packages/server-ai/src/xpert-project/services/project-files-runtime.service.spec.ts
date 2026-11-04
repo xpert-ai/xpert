@@ -1,3 +1,4 @@
+import { noAssistantPrincipal } from '../../xpert/assistant-principal/testing/no-assistant-principal.fixture'
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -16,7 +17,7 @@ describe('Project files capability', () => {
     beforeEach(async () => {
         root = await mkdtemp(path.join(tmpdir(), 'xpert-space-project-'))
         membership = { projectId: 'project', role: 'editor', archived: false, canManage: false }
-        const access = new ProjectAccessRuntimeService({} as never, {} as never)
+        const access = new ProjectAccessRuntimeService({} as never, {} as never, noAssistantPrincipal)
         jest.spyOn(access, 'listReadable').mockImplementation(async () => (membership ? [membership] : []))
         const volume = new VolumeHandle(
             { tenantId: 'tenant', catalog: 'projects', projectId: 'project' },

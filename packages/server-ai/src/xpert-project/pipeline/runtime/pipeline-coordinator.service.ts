@@ -55,6 +55,12 @@ export class ProjectPipelineCoordinatorService {
             id: instance.currentRoundId
         })
         const run = await manager.findOneByOrFail(ProjectPipelineRunEntity, { ...scope, id: instance.currentRunId })
+        // A manager's retry or approval is audit provenance, not a transfer of execution authority.
+        // Workers restore and reauthorize this persisted actor before dispatching each operation.
+        const executionContext: ProjectPipelineContext = {
+            ...context,
+            actor: { ...context.actor, userId: run.createdById }
+        }
         if (round.state !== 'active' || !['active', 'pending', 'waiting'].includes(run.state))
             return { queued: [] as string[], revision: instance.revision }
         const definition = await manager.findOneByOrFail(ProjectPipelineDefinitionEntity, {
@@ -144,7 +150,7 @@ export class ProjectPipelineCoordinatorService {
                 continue
             }
             const inputs = await pipelineInputs(manager, context, round, spec, config.binding)
-            const operation = await this.operations.reserve(manager, context, {
+            const operation = await this.operations.reserve(manager, executionContext, {
                 work: {
                     instanceId,
                     runId: run.id,
@@ -180,7 +186,7 @@ export class ProjectPipelineCoordinatorService {
             if (spec.kind === 'work')
                 for (const taskId of node.taskIds) {
                     await manager.insert(XpertProjectTaskExecution, {
-                        ...audit,
+                        ...managedAudit(executionContext),
                         id: pipelineIdentity(context, 'operation-attempt', operation.id, taskId),
                         taskId,
                         sourceKey: operation.id,

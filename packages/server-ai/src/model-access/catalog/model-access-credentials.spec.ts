@@ -83,7 +83,7 @@ function createFixture(showOn?: FormShowOnObject[]) {
             getProviderSchema: () => schema
         })
     }
-    const { service, lifecycle } = createModelAccessFixture(
+    const { service, lifecycle, automationCommands } = createModelAccessFixture(
         {} as never,
         {} as never,
         { createQueryBuilder: () => queryBuilder } as never,
@@ -101,6 +101,7 @@ function createFixture(showOn?: FormShowOnObject[]) {
     jest.spyOn(lifecycle, 'processDueGrants').mockResolvedValue(0)
 
     return {
+        automationCommands,
         service,
         input,
         model,
@@ -115,6 +116,39 @@ function createFixture(showOn?: FormShowOnObject[]) {
 
 describe('ModelAccessService model credentials', () => {
     afterEach(() => jest.restoreAllMocks())
+
+    it('uses exact organization automation model authority without a personal plan', async () => {
+        const f = createFixture()
+        f.membershipService.hasActiveMembershipPlan.mockResolvedValue(true)
+        f.membershipService.findModelAccess.mockResolvedValue(null)
+        f.automationCommands.execute.mockResolvedValue(true)
+        await expect(f.service.resolveModelAccess({ ...f.input, xpertId: 'assistant' })).resolves.toMatchObject({
+            allowed: true,
+            accessSource: ModelAccessSourceEnum.Direct,
+            billableUserId: f.input.userId,
+            organizationId: f.input.organizationId
+        })
+        expect(f.membershipService.findModelAccess).not.toHaveBeenCalled()
+        expect(f.automationCommands.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                assistantId: 'assistant',
+                actor: { tenantId: f.input.tenantId, organizationId: f.input.organizationId, userId: f.input.userId }
+            })
+        )
+    })
+
+    it('does not use automation authority for a model without organization-owned credentials', async () => {
+        const f = createFixture()
+        f.model.modelProperties.api_key = ''
+        f.membershipService.hasActiveMembershipPlan.mockResolvedValue(true)
+        f.membershipService.findModelAccess.mockResolvedValue(null)
+        f.membershipService.isModelAllowed.mockReturnValue(false)
+        f.automationCommands.execute.mockResolvedValue(true)
+        await expect(f.service.resolveModelAccess({ ...f.input, xpertId: 'assistant' })).resolves.toMatchObject({
+            allowed: false
+        })
+        expect(f.automationCommands.execute).not.toHaveBeenCalled()
+    })
 
     it('uses a saved model key directly when only a tenant membership exists', async () => {
         const { service, input, membershipService } = createFixture()

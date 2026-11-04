@@ -54,6 +54,7 @@ export interface XpertViewHostContext {
   hostId: string
   module?: string
   route?: string
+  /** Current actor permissions narrowed to the resolved host; never grants additional authority. */
   permissions?: string[]
   locale?: string
   runtimeScope?: XpertViewRuntimeScope

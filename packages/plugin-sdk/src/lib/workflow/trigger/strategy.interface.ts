@@ -14,7 +14,13 @@ export type TWorkflowTriggerBootstrapConfig = {
 export type TWorkflowTriggerParams<T> = {
   xpertId: string
   /** Host-owned Assistant scope; never taken from trigger configuration. */
-  scope?: { tenantId: string; organizationId: string | null; userId?: string; workspaceId?: string }
+  scope?: {
+    tenantId: string
+    organizationId: string | null
+    userId?: string
+    assistantUserId?: string
+    workspaceId?: string
+  }
   /**
    * Supplementary instructions scoped to trigger-initiated runs.
    * Additive to existing task instructions; preserves the Assistant's instruction definition.

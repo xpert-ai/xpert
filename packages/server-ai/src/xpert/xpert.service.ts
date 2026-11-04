@@ -1,4 +1,6 @@
 import { assertAuthoringUser } from '../shared/authoring-access'
+import { ResolveAssistantPrincipalCommand } from './assistant-principal/resolve-assistant-principal.command'
+import { GetAccessiblePublishedXpertQuery } from './published-agent/get-accessible-published-xpert.query'
 import { AssistantSharingService } from './sharing/sharing.service'
 import {
     ChecklistItem,
@@ -15,6 +17,7 @@ import {
     normalizeXpertAgentConfig,
     TagCategoryEnum,
     OrderTypeEnum,
+    UserType,
     TFile,
     TFileDirectory,
     TMemoryQA,
@@ -37,9 +40,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { t } from 'i18next'
 import { InjectRepository } from '@nestjs/typeorm'
-import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { RequestContext as RuntimeRequestContext, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
-import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOneOptions, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
@@ -77,6 +80,33 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         private readonly sharing: AssistantSharingService
     ) {
         super(repository, workspaceAccessService)
+    }
+
+    override async findOneForRuntime(
+        id: string | number | FindOneOptions<Xpert>,
+        options?: FindOneOptions<Xpert>
+    ): Promise<Xpert> {
+        if (
+            RuntimeRequestContext.currentUser()?.type === UserType.COMMUNICATION &&
+            (await this.commandBus.execute(
+                new ResolveAssistantPrincipalCommand({
+                    tenantId: RuntimeRequestContext.currentTenantId(),
+                    organizationId: RuntimeRequestContext.getOrganizationId(),
+                    userId: RuntimeRequestContext.currentUserId()
+                })
+            ))
+        ) {
+            if (typeof id !== 'string') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+            // A policy grants exact published Assistants, never authoring access to their containing workspace.
+            const assistant = await this.queryBus.execute(
+                new GetAccessiblePublishedXpertQuery(
+                    id,
+                    Array.isArray(options?.relations) ? options.relations : undefined
+                )
+            )
+            return Object.assign(new Xpert(), assistant)
+        }
+        return super.findOneForRuntime(id, options)
     }
 
     /**

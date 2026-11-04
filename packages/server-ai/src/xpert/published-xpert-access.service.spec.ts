@@ -932,13 +932,13 @@ describe('Published human access for collaboration recipients', () => {
             throw new Error('Must not read sender context')
         })
         await expect(service.getAccessiblePublishedXpertForActor('assistant', actor)).resolves.toBe(xpert)
-        expect(qb.innerJoin).toHaveBeenCalledWith(
+        expect(qb.leftJoin).toHaveBeenCalledWith(
             UserOrganization,
             'actorMembership',
             expect.stringContaining('actorMembership.isActive = :actorMembershipActive'),
             { actorMembershipActive: true }
         )
-        const membershipPredicate = qb.innerJoin.mock.calls[0][2]
+        const membershipPredicate = qb.leftJoin.mock.calls.find((call) => call[1] === 'actorMembership')[2]
         for (const field of ['tenantId', 'organizationId', 'userId']) {
             expect(membershipPredicate).toContain(`actorMembership.${field} = :${field}`)
         }

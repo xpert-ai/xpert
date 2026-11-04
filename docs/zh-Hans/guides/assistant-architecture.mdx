@@ -2,9 +2,9 @@
 title: '助手技术架构'
 ---
 
-Assistant 在 Xpert 里不是一个独立的 AI 执行引擎，而是一层“产品入口到已发布 Xpert”的绑定与运行时适配层。
+Assistant 是代替真人账号在系统中执行任务的角色。平台用已发布的 `Xpert` 承载它的能力与配置，用 `Xpert.userId` 关联它的技术执行账号；组织内获授权的真人可以共同使用、查看或维护这个 Assistant。
 
-它解决的是三个问题：
+产品入口通过绑定与运行时适配层使用 Assistant。这一层解决三个问题：
 
 - 某个页面入口应该绑定哪个已发布 `Xpert`
 - 当前用户是否有权限访问这个 `Xpert`
@@ -45,17 +45,18 @@ Assistant 在 Xpert 里不是一个独立的 AI 执行引擎，而是一层“�
 
 ## 核心设计原则
 
-### 1. Assistant 是入口，不是执行实体
+### 1. 产品入口绑定到承载 Assistant 的 Xpert
 
-平台并没有维护一套独立的 “Assistant 实体 + Assistant 引擎”。
+Assistant 的角色、页面入口和执行账号是不同的概念，复用既有实体与运行引擎表达：
 
 在当前实现里：
 
 - 页面只声明自己使用哪个 `AssistantCode`
 - 绑定层负责把这个 code 解析成一个已发布 `Xpert`
 - `/api/ai` 再把这个 `Xpert` 暴露成 assistant 协议对象
+- 后台执行使用这个 `Xpert` 关联的技术账号；人工访问仍校验当前真人的权限
 
-因此 Assistant 本质上是“入口语义”，不是“执行对象”。
+`AssistantCode` 表示入口，`Xpert` 承载 Assistant，`Xpert.userId` 表示技术执行身份。自动化规则不再另建执行角色、独立 Grant 或技术账号。
 
 ### 2. assistantId 实际上是已发布 Xpert 的 id
 
@@ -69,7 +70,7 @@ Assistant 在 Xpert 里不是一个独立的 AI 执行引擎，而是一层“�
 
 ### 3. 后台运行身份是 `xpert.userId`
 
-Assistant/Xpert 被 webhook、integration、定时任务等无人值守后台事件触发时，不能使用配置人、Integration 创建人或外部渠道用户作为平台执行用户。后台 Agent 统一使用目标 `Xpert` 自己的技术账号运行，也就是 `xpert.userId`。
+Assistant/Xpert 被 webhook、integration、定时任务等无人值守后台事件触发时，使用目标 `Xpert` 自己的技术账号。配置人、Integration 创建人、外部渠道用户分别承担配置审计或业务上下文的职责。
 
 这条规则用于把三类身份分开：
 
@@ -77,19 +78,52 @@ Assistant/Xpert 被 webhook、integration、定时任务等无人值守后台事
 - `xpert.userId`：Assistant/Agent 的稳定技术执行主体，类型为 `UserType.COMMUNICATION`
 - 外部终端用户：只进入 `fromEndUserId`、`channelUserId`、会话 metadata 或业务上下文
 
-`xpert.userId` 不存在时，运行时会通过 `XpertPrincipalService` 懒创建 communication user，并用稳定标识 `thirdPartyId = xpert:<xpertId>` 绑定回该 Xpert。默认用户名来自 `xpert.slug`，会规范化为技术用户名；因此某些后台会话或日志的“创建人”可能显示为 `wechat_user`、`sales_assistant` 这类名字。这表示当前会话由 Assistant 技术账号创建，不表示微信 sender、Integration 技术账号或人工配置者。
+技术账号的初始化复用 `XpertPrincipalService` 和既有 Assistant 生命周期，以 `thirdPartyId = xpert:<xpertId>` 关联 Xpert。自动化配置、队列重试及身份恢复只复用和校验已有账号，不为每条规则创建账号，也不在授权失败时补建账号。缺少账号、账号停用或 Assistant 不可执行时，恢复执行应失败。
 
-后台 handoff dispatch 应在 `payload.options.runtimePrincipal` 中声明：
+#### 执行账号由业务入口决定
 
-```ts
-runtimePrincipal: {
-  type: 'assistant',
-  xpertId,
-  sourceIntegrationId: integrationId
-}
-```
+| 场景                                          | 执行身份                  | 决策位置                                                    |
+| --------------------------------------------- | ------------------------- | ----------------------------------------------------------- |
+| 真人配置、查询、手动操作和人工审批            | 当前认证用户              | HTTP / View 入口及相应业务授权                              |
+| 普通后台 job                                  | job 中可信持久化的用户    | 创建任务时绑定，消费和重试时恢复                            |
+| Assistant 自动化或明确委托给 Assistant 的操作 | 目标 `Xpert.userId`       | `server-ai` 的 Assistant 业务入口，进入执行上下文或入队之前 |
+| Assistant 定时任务恢复                        | 任务绑定的 Assistant 账号 | `server-ai` 先校验存活的 Assistant 绑定，再恢复上下文       |
+| Project 流水线中的 Assistant 节点             | 节点所选 Assistant 的账号 | Project 校验绑定，Assistant 域校验身份                      |
 
-宿主会据此构造内部 `assistant` API principal：`apiKey.entityId = xpertId`、`apiKey.userId = xpert.userId`，并使用目标 Xpert 的真实 tenant/organization scope。`sourceIntegrationId` 只用于审计和排障，不参与 Agent executor 选择。
+真人发起请求不意味着整条调用链都以真人执行。只有经过授权的业务入口可以显式进入 Assistant 上下文；普通请求不会因携带一个 `assistantId` 自动切换身份。后台任务也不借用消费时恰好存在的请求用户。
+
+#### 身份解析与队列的分层
+
+- `server` 负责通用账号投影、`ResolveExecutionIdentityCommand`、`runWithExecutionIdentity` 和 Managed Queue。队列保存和恢复受信任的 tenant、organization、user 信息，不解释 Assistant，也没有 Assistant 专用的 `runtimePrincipal` 入队参数。
+- `server-ai` 的 Assistant 域负责 `ResolveAssistantPrincipalCommand`。它校验账号与 Assistant 的绑定、组织与账号状态、Assistant 发布状态，以及适用的 Project 绑定和真人访问权限，然后使用通用身份工具建立上下文。
+- 插件复用现有 `AssistantMiddlewareAccessApi.runAsAssistant`，由宿主校验目标 Assistant、指定 middleware / feature 和资源范围，再在受校验的上下文中调用普通队列。插件不通过 SDK 中的 Command 类跨包调用宿主。
+- 队列恢复账号后，业务处理器仍须重新检查 Assistant 与资源授权。停用、解绑或撤权必须影响后续执行和重试；身份恢复成功不等于业务授权成功。
+
+handoff 的 `payload.options.runtimePrincipal` 仍是 `server-ai` 内部 Agent dispatch 的输入。它声明目标 Assistant 和来源 Integration，由 Assistant 适配器处理，不能作为 Managed Queue 的身份切换开关。`sourceIntegrationId` 用于来源审计，不决定执行账号。
+
+#### 真人共享访问与技术账号权限
+
+组织提供 Assistant 的业务范围，具体哪些真人能执行、查看或编辑，由现有已发布 Assistant、工作空间、用户组和 Project 访问机制决定。属于同一组织本身不授予全部权限。真人的配置、管理和审批操作使用本人的身份与审计信息；技术账号不因可以执行任务而获得配置或人工审批权限。
+
+Project 流水线保留根 Assistant 与 Project 的业务归属，各执行节点使用自己绑定的 Assistant 账号。跨 Assistant 执行需要有效的 Project 绑定，不能把一个技术账号当作组织内全部 Assistant 的通用身份。
+
+#### 模型授权与计费
+
+Assistant 身份只表达谁在执行。模型访问域 `model-access` 统一决定模型使用方式、授权、配额与计费；Assistant 域提供账号和模型配置的绑定校验。
+
+当前内部入口 `ResolveAssistantModelCommand` 返回布尔结果，不选择模型或创建账号。普通真人返回 `false` 并沿用原有访问流程；Assistant 账号须匹配有效的已发布 Assistant，且目标模型必须属于该 Assistant 的主模型、可选模型或内部 Agent 模型配置，否则拒绝。
+
+当前模型访问策略有一个明确的直接使用分支：请求的组织与模型所属组织相同、模型使用组织自有凭据，并通过上述 Assistant 绑定校验时，`model-access` 采用 `Direct`。该分支仍检查模型启用和有效性，但不进入后续会员、套餐配额及用户模型授权判断。这是当前模型策略的选择，不是解析 Assistant 身份自动授予的通用权限；其他模型继续按既有模型访问策略处理。
+
+执行身份和计费主体分别处理。当前 Assistant 执行不隐式回退到配置者或 Assistant 创建者的个人钱包，该约束在既有计费主体解析中落实。后续调整组织模型授权或额度时，应在模型访问与计费机制中统一修改，不在队列或插件中增加放行分支。
+
+#### 展示、审计与历史数据
+
+`XpertViewAssistantIdentity` 只保留 `instanceId`、`currentId`、`versionIds`、`principalUserId` 等身份信息。权限复用 View 上下文的 `permissions` 与业务服务校验，展示取 `hostSnapshot`，审计复用当前请求用户和既有审计记录，不另建权限、展示或审计抽象层。
+
+配置者、维护者、执行账号和审批者承担不同责任。面向有权访问资源的真人，界面可以展示必要的 Assistant 名称、责任人与操作记录以便排查；凭据、令牌、私钥和内部身份对象不因此暴露给前端。技术账号执行留下的记录不能冒充配置者的操作。
+
+既有自动化迁移应保留历史执行人、配置审计与私有结果的访问范围，通过现有授权入口显式确认新的 Assistant 绑定。组织共享不会自动扩大历史数据的可见范围。
 
 ### 4. ChatKit frame 由部署环境统一提供
 
@@ -492,6 +526,13 @@ scope 约束如下：
 - `packages/server-ai/src/ai/assistant.controller.ts`
 - `packages/server-ai/src/ai/commands/handlers/run-create-stream.handler.ts`
 - `packages/server-ai/src/xpert/published-xpert-access.service.ts`
+- `packages/server-ai/src/xpert/assistant-principal/resolve-assistant-principal.command.ts`
+- `packages/server-ai/src/xpert/assistant-principal/resolve-assistant-model.command.ts`
+- `packages/server-ai/src/xpert/middleware-access/assistant-middleware-access.service.ts`
+- `packages/server-ai/src/xpert-task/execution-identity/task-execution-identity.ts`
+- `packages/server-ai/src/model-access/catalog/model-access-catalog.service.ts`
+- `packages/server-ai/src/membership/consumption/membership-access.service.ts`
+- `packages/server/src/managed-queue/managed-queue-identity.adapter.ts`
 - `packages/server-ai/src/xpert/middlewares/xpert-authoring.middleware.ts`
 - `packages/server-ai/src/xpert/middlewares/xpert-authoring.service.ts`
 - `apps/cloud/src/app/features/assistant/assistant.registry.ts`
@@ -507,16 +548,18 @@ scope 约束如下：
 
 ## 总结
 
-当前 Assistant 架构可以理解成三层分工：
+当前 Assistant 架构可以理解成四项分工：
 
 - 产品入口层：用 `AssistantCode` 和注册表定义“页面里有什么助手入口”
 - 绑定层：用 `AssistantBinding` 决定“这个入口当前绑定哪个已发布 Xpert”
 - 运行时层：用 ChatKit 和 `/api/ai` 把这个已发布 Xpert 暴露成可对话、可执行的 assistant
+- 执行身份：Assistant 域决定技术账号及适用的资源范围，通用队列恢复账号，资源域分别执行授权与计费
 
-其中最关键的设计点有三点：
+其中最关键的设计点有四点：
 
 - 配置模型已经统一为 `AssistantBinding`
 - `frameUrl` 不进入数据库，统一走部署环境变量
 - `ClawXpert` 把用户级助手正式纳入同一套 Assistant 架构中
+- Assistant 自动化复用 `Xpert.userId`，真人访问与技术账号执行分别授权，并保留各自的审计责任
 
 这让系统既能支持管理员统一维护的共享助手，也能支持用户在自己页面内自主管理的个人助手，而且两者最终都复用同一套已发布 Xpert 执行体系。

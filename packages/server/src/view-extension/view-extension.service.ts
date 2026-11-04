@@ -116,7 +116,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 		validateQuery(query, resolved.manifest.dataSource)
 
@@ -136,7 +136,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		return {
@@ -153,7 +153,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		const view = resolved.manifest.view
@@ -196,7 +196,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		if (!resolved.manifest.parameters?.some((item) => item.key === parameterKey)) {
@@ -222,7 +222,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 
 		const action = resolved.manifest.actions?.find((item) => item.key === actionKey)
 		if (!action) {
@@ -261,7 +261,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 
 		const action = resolved.manifest.actions?.find((item) => item.key === actionKey)
 		if (!action) {
@@ -315,7 +315,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId, options)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		if (!resolved.manifest.fileAccess?.purposes.length) {
 			throw new NotFoundException(`File access is not available for view '${viewKey}'`)
 		}
@@ -336,7 +336,7 @@ export class ViewExtensionService {
 		const context = await this.resolveHostContext(hostType, hostId, options)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
-		this.permissionService.ensureManifestVisible(resolved.manifest)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
 		this.ensureFileAccessPurpose(resolved.manifest.fileAccess?.purposes, request.purpose, viewKey)
 		if (!resolved.provider.resolveViewFile) {
 			throw new NotFoundException(`File access is not supported for view '${viewKey}'`)

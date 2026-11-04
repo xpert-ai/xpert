@@ -1,3 +1,4 @@
+import { AssistantPrincipalModule } from '../xpert/assistant-principal/assistant-principal.module'
 import { ResolveAssistantExecutionIdentityHandler } from './resolve-assistant-execution-identity.handler'
 import { Xpert } from '../xpert/xpert.entity'
 import { ResolveManagedRuntimeActorHandler } from './resolve-managed-runtime-actor.handler'
@@ -36,6 +37,7 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
 
 @Module({
     imports: [
+        AssistantPrincipalModule,
         CqrsModule,
         forwardRef(() => XpertModule),
         ModelAccessModule,

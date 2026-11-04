@@ -15,8 +15,7 @@ import {
     TaskControlRunner,
     ControlRuntimeAdmissionService,
     ManagedQueueHandlerRegistryService,
-    type ManagedQueueEnvelope,
-    type UserService
+    type ManagedQueueEnvelope
 } from '@xpert-ai/server-core'
 import { runWithCapturedRequestContext } from '../../../../shared/request-context'
 import { ProjectAccessRuntimeService } from '../../../services/project-access-runtime.service'
@@ -34,7 +33,13 @@ export function pipelineQueueFixture(
     redisUrl: string
 ) {
     const url = new URL(redisUrl)
-    const connection = { host: url.hostname, port: Number(url.port), maxRetriesPerRequest: null }
+    const connection = {
+        host: url.hostname,
+        port: Number(url.port),
+        username: decodeURIComponent(url.username) || undefined,
+        password: decodeURIComponent(url.password) || undefined,
+        maxRetriesPerRequest: null
+    }
     const queue = new Queue<ManagedQueueEnvelope>(`pipeline-acceptance-${randomUUID()}`, { connection })
     const controls = { producer: jest.fn().mockResolvedValue(undefined) } as unknown as TaskControlStore
     const admission = {
@@ -90,11 +95,16 @@ export function pipelineQueueFixture(
                 concurrency: 2,
                 handler: (job, scope) => service.handle(job, scope)
             })
-            const users = { findOneByIdWithinTenant: async (id: string, tenantId: string) => ({ id, tenantId }) }
+            const identities = { resolve: async (id: string, tenantId: string) => ({ id, tenantId }) }
             const controlRunner = {
                 run: jest.fn().mockRejectedValue(new Error('Unexpected controlled projection delivery'))
             } as unknown as TaskControlRunner
-            const processor = new ManagedQueueProcessor(registry, users as UserService, controls, controlRunner)
+            const processor = new ManagedQueueProcessor(
+                registry,
+                identities as ConstructorParameters<typeof ManagedQueueProcessor>[1],
+                controls,
+                controlRunner
+            )
             const worker = new Worker<ManagedQueueEnvelope>(queue.name, (job) => processor.process(job), {
                 connection,
                 concurrency: 2

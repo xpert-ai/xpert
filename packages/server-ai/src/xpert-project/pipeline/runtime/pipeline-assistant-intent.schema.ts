@@ -3,6 +3,7 @@ import { projectPipelineAssistantInputSchema } from '@xpert-ai/contracts'
 
 export const pipelineAssistantIntentSchema = z
     .object({
+        userId: z.string().uuid().optional(),
         xpertId: z.string().uuid(),
         workspaceId: z.string().uuid(),
         publishedVersion: z.string().min(1).max(500),
