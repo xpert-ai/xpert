@@ -1,4 +1,3 @@
-import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { ToolMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
@@ -213,19 +212,29 @@ ${taskEntity.descriptionSuffix ?? ''}`
 
             const lastMessage = await wrapAgentExecution(
                 async (execution) => {
-                    const outputState = await invokeChildGraph(
-                        config,
-                        { executionId: execution.id, agentKey, xpertName },
-                        (childConfig) =>
-                            subgraph.invoke(
-                                {
-                                    [STATE_VARIABLE_HUMAN]: {
-                                        input: _.description
-                                    },
-                                    [STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
-                                },
-                                childConfig
-                            )
+                    const outputState = await subgraph.invoke(
+                        {
+                            [STATE_VARIABLE_HUMAN]: {
+                                input: _.description
+                            },
+                            [STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS]
+                        },
+                        {
+                            ...config,
+                            configurable: {
+                                ...config.configurable,
+                                agentKey,
+                                xpertName,
+                                executionId: execution.id
+                            },
+                            metadata: {
+                                ...(config.metadata ?? {}),
+                                agentKey,
+                                xpertName,
+                                executionId: execution.id,
+                                parentExecutionId: executionId
+                            }
+                        }
                     )
 
                     const messages = outputState.messages

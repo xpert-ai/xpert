@@ -121,7 +121,10 @@ export class XpertCollaborator implements IXpertSubAgent {
                 const { executionId } = configurable
 
                 const _execution: IXpertAgentExecution = {
-                    id: configurable.agentExecutionId ?? configurable.agentInvocationId ?? randomUUID(),
+                    id:
+                        typeof config.configurable?.agentInvocationId === 'string'
+                            ? config.configurable.agentInvocationId
+                            : randomUUID(),
                     threadId: configurable.thread_id,
                     checkpointNs: configurable.checkpoint_ns,
                     xpert: { id: xpert.id } as IXpert,
@@ -132,7 +135,6 @@ export class XpertCollaborator implements IXpertSubAgent {
                     predecessor: configurable.agentKey,
                     // Correlation enables domain reconciliation of the child run; it does not grant access.
                     metadata: {
-                        invocationId: configurable.agentInvocationId,
                         invocationKind: 'external_assistant' as const,
                         sourceToolCallId: call?.id,
                         assistantName: xpert.title || xpert.name,

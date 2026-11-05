@@ -278,8 +278,6 @@ describe('AgentInvocationRuntime', () => {
         await expect(f.api.start(f.request)).rejects.toThrow('checkpoint')
         const invocationId = [...f.store.rows.keys()][0]
         expect((await f.api.start(f.request)).id).toBe(invocationId)
-        expect(f.start.mock.calls[0][0].checkpointReplay).toBeUndefined()
-        expect(f.start.mock.calls[1][0].checkpointReplay).toBe(true)
         expect(f.start).toHaveBeenCalledTimes(2)
     })
 

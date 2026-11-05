@@ -61,7 +61,6 @@ import {
     mergeRuntimeContextWithEnv
 } from '../../../environment'
 import { isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
-import { attachedGraphRunner } from '../../../execution-control/attached-graph'
 import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
@@ -258,10 +257,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             await this.executionCancelService.check(execution.id)
             abortController.signal.throwIfAborted()
         }
-        const executionContext: ExecutionContext = {
-            sandbox: sandboxContext,
-            runAttachedExecution: attachedGraphRunner(execution.id, this.executionControls, this.executionCancelService)
-        }
+        const executionContext: ExecutionContext = { sandbox: sandboxContext }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
         const { graph, agent, xpertGraph } = await withExecutionContext(executionContext, () =>
             this.commandBus.execute(

@@ -6,13 +6,11 @@
 import { getContextVariable, setContextVariable } from '@langchain/core/context'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { getConfig, type LangGraphRunnableConfig } from '@langchain/langgraph'
-import type { RunAttachedExecution } from '../../execution-control/attached-graph'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { Observable, Subject, takeUntil, type Subscription } from 'rxjs'
 
 /** Add typed host context fields here; propagation needs no field-specific changes. */
 export interface ExecutionContext {
-    readonly runAttachedExecution?: RunAttachedExecution
     /** Undefined permits legacy config fallback; null explicitly disables inheritance. */
     readonly sandbox?: TSandboxConfigurable | null
 }

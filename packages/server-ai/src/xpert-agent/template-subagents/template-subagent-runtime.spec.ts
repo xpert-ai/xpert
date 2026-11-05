@@ -342,11 +342,6 @@ describe('template invocation lifecycle', () => {
         expect(f.calls).toHaveLength(1)
         expect(output.messages.at(-1).content).toBe('Reviewed case')
         expect([...f.store.rows.values()][0].invocation.status).toBe('succeeded')
-        const invocationId = [...f.store.rows.values()][0].invocation.id
-        const attempts = [...f.executions.values()]
-        expect(attempts.map((attempt) => attempt.metadata.invocationId)).toEqual([invocationId, invocationId])
-        expect(attempts[0].id).toBe(invocationId)
-        expect(attempts[1].id).not.toBe(attempts[0].id)
         expect(f.compile.mock.calls.at(-1)[0].xpert.copilotModel.model).toBe('fallback')
     })
 
@@ -431,13 +426,7 @@ describe('template invocation lifecycle', () => {
         const resourceService = { resolve: jest.fn(async () => resources) }
         Object.defineProperties(handler, {
             invocationGraph: { value: native },
-            agentMiddlewareRegistry: {
-                value: {
-                    get: jest.fn((name: string) =>
-                        name === 'ClientToolMiddleware' ? { createMiddleware: async () => ({ name }) } : undefined
-                    )
-                }
-            },
+            agentMiddlewareRegistry: { value: { get: jest.fn() } },
             templateSubagents: { value: f.runtime },
             runtimeResourceService: { value: resourceService }
         })

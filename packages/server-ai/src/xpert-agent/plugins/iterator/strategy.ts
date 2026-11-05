@@ -1,5 +1,3 @@
-import { runIteration } from '../../workflow/run-iteration'
-import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import {
     agentLabel,
@@ -24,11 +22,12 @@ import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestj
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { get } from 'lodash'
+import { compact, get } from 'lodash'
 import { AgentStateAnnotation } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 import { XpertWorkflowSubgraphCommand } from '../../commands/workflow-subgraph.command'
 
+const PARALLEL_MAXIMUM = 2
 export const STATE_VARIABLE_ITERATOR_OUTPUT = 'output'
 export const STATE_VARIABLE_ITERATOR_OUTPUT_STR = 'output_str'
 
@@ -202,7 +201,10 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
                 const parameterValue = get(state, inputVariable)
 
-                const invokeSubgraph = async (item, index: number, iterationSignal: AbortSignal) => {
+                const parallel = entity.parallel
+                const maximum = entity.maximum ?? PARALLEL_MAXIMUM
+                const errorMode = entity.errorMode
+                const invokeSubgraph = async (item, index: number) => {
                     // const originalState = isString(item)
                     // 	? { [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
                     // 	: { ...(item ?? {}), [IteratorIndexParameterName]: index, [IteratorItemParameterName]: item }
@@ -219,7 +221,6 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
                     // }, inputs)
 
                     const itemExecution: IXpertAgentExecution = {
-                        threadId: configurable.thread_id,
                         category: 'workflow',
                         type: WorkflowNodeTypeEnum.ITERATOR,
                         // xpert: { id: xpertId } as IXpert,
@@ -232,7 +233,6 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
                     return await wrapAgentExecution(
                         async () => {
                             const subAgentExecution: IXpertAgentExecution = {
-                                threadId: configurable.thread_id,
                                 inputs: inputs,
                                 parentId: itemExecution.id
                             }
@@ -240,22 +240,32 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
 
                             const retState = await wrapAgentExecution(
                                 async () => {
-                                    const retState = await invokeChildGraph(
-                                        { ...config, signal: iterationSignal },
+                                    const retState = await subgraph.invoke(
                                         {
-                                            executionId: subAgentExecution.id,
-                                            traceParentId: itemExecution.id,
-                                            agentKey: subgraphAgentMetadata.agentKey ?? node.key,
-                                            xpertName: subgraphAgentMetadata.xpertName
+                                            ...state,
+                                            ...inputs
                                         },
-                                        (childConfig) =>
-                                            subgraph.invoke(
-                                                {
-                                                    ...state,
-                                                    ...inputs
-                                                },
-                                                childConfig
-                                            )
+                                        {
+                                            ...config,
+                                            signal: controller.signal,
+                                            configurable: {
+                                                ...config.configurable,
+                                                agentKey: subgraphAgentMetadata.agentKey ?? node.key,
+                                                ...(subgraphAgentMetadata.xpertName
+                                                    ? { xpertName: subgraphAgentMetadata.xpertName }
+                                                    : {}),
+                                                executionId: subAgentExecution.id
+                                            },
+                                            metadata: {
+                                                ...(config.metadata ?? {}),
+                                                agentKey: subgraphAgentMetadata.agentKey ?? node.key,
+                                                ...(subgraphAgentMetadata.xpertName
+                                                    ? { xpertName: subgraphAgentMetadata.xpertName }
+                                                    : {}),
+                                                executionId: subAgentExecution.id,
+                                                parentExecutionId: itemExecution.id
+                                            }
+                                        }
                                     )
 
                                     const outputItem = outputParams.reduce((acc, curr) => {
@@ -293,13 +303,97 @@ export class WorkflowIteratorNodeStrategy implements IWorkflowNodeStrategy {
                     )()
                 }
 
-                const outputs = Array.isArray(parameterValue)
-                    ? await runIteration(parameterValue, entity, config.signal, invokeSubgraph, (error) =>
-                          this.#logger.error(error)
-                      )
-                    : entity.errorMode === 'remove'
-                      ? []
-                      : null
+                const controller = new AbortController()
+                config.signal.addEventListener('abort', () => {
+                    if (!controller.signal.aborted) {
+                        try {
+                            controller.abort()
+                        } catch (err) {
+                            //
+                        }
+                    }
+                })
+
+                let outputs = null
+                if (Array.isArray(parameterValue)) {
+                    outputs = new Array(parameterValue.length).fill(null)
+                    if (parallel) {
+                        // Execute in parallel with a maximum concurrency limit using a task pool
+                        const taskPool = new Set()
+                        let index = 0
+                        for await (const item of parameterValue) {
+                            const i = index
+                            // If the task pool is full, wait for one task to complete
+                            if (taskPool.size >= maximum) {
+                                await Promise.race(taskPool)
+                            }
+
+                            // Create a new task and add it to the pool
+                            const task = invokeSubgraph(item, i)
+                                .then((output) => {
+                                    outputs[i] = output
+                                })
+                                .catch((err) => {
+                                    switch (errorMode) {
+                                        case 'terminate': {
+                                            throw err
+                                        }
+                                        case 'ignore': {
+                                            this.#logger.error(err)
+                                            break
+                                        }
+                                        case 'remove': {
+                                            this.#logger.error(err)
+                                            break
+                                        }
+                                    }
+                                })
+                                .finally(() => {
+                                    // Remove the task from the pool once it completes
+                                    taskPool.delete(task)
+                                })
+
+                            taskPool.add(task)
+                            index++
+                        }
+
+                        // Wait for all remaining tasks to complete
+                        await Promise.all(taskPool)
+                    } else {
+                        // Execute sequentially
+                        let index = 0
+                        for await (const item of parameterValue) {
+                            // Check signal status
+                            if (config.signal.aborted) {
+                                return
+                            }
+                            const i = index
+                            try {
+                                outputs[i] = await invokeSubgraph(item, i)
+                            } catch (err) {
+                                switch (errorMode) {
+                                    case 'terminate': {
+                                        throw err
+                                    }
+                                    case 'ignore': {
+                                        this.#logger.error(err)
+                                        break
+                                    }
+                                    case 'remove': {
+                                        this.#logger.error(err)
+                                        break
+                                    }
+                                }
+                            } finally {
+                                index++
+                            }
+                        }
+                    }
+                }
+
+                if (errorMode === 'remove') {
+                    outputs = compact(outputs)
+                }
 
                 return {
                     [channelName(node.key)]: {

@@ -43,8 +43,6 @@ export interface AgentRuntimeStart {
   operationId: string
   /** Existing receipt for recovery. Reattach instead of resending the initial task. */
   previous?: AgentRuntimeHandle
-  /** Resuming a waiting checkpoint, including when the provider has no external handle. */
-  checkpointReplay?: true
 }
 
 /**

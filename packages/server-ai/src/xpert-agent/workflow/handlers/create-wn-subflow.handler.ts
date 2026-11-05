@@ -1,4 +1,3 @@
-import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
@@ -19,7 +18,7 @@ import {
 import { RequestContext } from '@xpert-ai/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { get } from 'lodash'
+import { assign, get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
@@ -181,40 +180,45 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 
                     return await wrapAgentExecution(
                         async () => {
-                            const childExecution: IXpertAgentExecution = {
-                                ..._execution,
+                            assign(_execution, {
                                 inputs: inputs,
                                 parentId: execution.id,
                                 threadId: thread_id,
                                 checkpointNs: checkpoint_ns,
                                 checkpointId: checkpoint_id
-                            }
+                            })
                             if (extXpert) {
-                                childExecution.xpertId = extXpert.id
+                                _execution.xpertId = extXpert.id
                             } else {
-                                childExecution.xpertId = xpertId
-                                childExecution.agentKey = agentKey
+                                _execution.xpertId = xpertId
+                                _execution.agentKey = agentKey
                             }
 
                             const _state = await wrapAgentExecution(
                                 async (execution) => {
-                                    const retState = await invokeChildGraph(
-                                        config,
+                                    const retState = await subgraph.invoke(
                                         {
-                                            executionId: execution.id,
-                                            traceParentId: execution.parentId,
-                                            agentKey,
-                                            xpertName
+                                            [STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
+                                            [STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+                                            ...inputs
                                         },
-                                        (childConfig) =>
-                                            subgraph.invoke(
-                                                {
-                                                    [STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
-                                                    [STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
-                                                    ...inputs
-                                                },
-                                                childConfig
-                                            )
+                                        {
+                                            ...config,
+                                            signal: abortController.signal,
+                                            configurable: {
+                                                ...config.configurable,
+                                                agentKey,
+                                                xpertName,
+                                                executionId: execution.id
+                                            },
+                                            metadata: {
+                                                ...(config.metadata ?? {}),
+                                                agentKey,
+                                                xpertName,
+                                                executionId: execution.id,
+                                                parentExecutionId: execution.parentId
+                                            }
+                                        }
                                     )
 
                                     const outputState =
@@ -237,7 +241,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                                     commandBus: this.commandBus,
                                     queryBus: this.queryBus,
                                     subscriber: subscriber,
-                                    execution: childExecution
+                                    execution: _execution
                                 }
                             )()
 

@@ -139,7 +139,6 @@ export class AgentInvocationRuntime {
         access.signal?.throwIfAborted()
         const id = agentInvocationId(access.scope, request.callId)
         let record = await this.store.read(id, access.scope)
-        const checkpointReplay = record?.invocation.status === 'waiting'
         let strategy: IAgentRuntimeStrategy
         if (record) {
             this.assertScope(record, access.scope)
@@ -233,7 +232,6 @@ export class AgentInvocationRuntime {
                         target: record.invocation.request.target,
                         input: request.input,
                         operationId: id,
-                        ...(checkpointReplay ? { checkpointReplay: true as const } : {}),
                         previous: record.invocation.handle
                     },
                     this.context(record, access)
