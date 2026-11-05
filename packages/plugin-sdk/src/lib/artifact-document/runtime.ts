@@ -25,7 +25,10 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
     pending = new Map(),
     listeners = new Map(),
     lastControls = new Map(),
-    latest = new Map()
+    latest = new Map(),
+    inFlight = new Map(),
+    deliveryLocks = new Map()
+  let refreshing = false
   let port,
     context,
     sequence = 0,
@@ -40,24 +43,33 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
       }
   }
   const fail = (code) => Object.assign(new Error(code), { code })
-  const query = async (bindingId, controls = {}) => {
+  const query = async (bindingId, controls = {}, priority, owner) => {
     await ready
     if (!context.bindingIds.includes(bindingId)) {
       port.postMessage({ type: 'diagnostic', code: 'DOCUMENT_BINDING_DENIED' })
       throw fail('DOCUMENT_BINDING_DENIED')
     }
-    const requestId = 'q' + ++sequence,
-      values = { ...context.defaults, ...controls }
+    if (deliveryLocks.has(bindingId) && deliveryLocks.get(bindingId) !== owner) deliveryLocks.delete(bindingId)
+    const values = { ...context.defaults, ...controls },
+      key = JSON.stringify(Object.keys(values).sort().map(id => [id, values[id]])),
+      previous = inFlight.get(bindingId)
+    if (previous && previous.key === key) return previous.promise
+    priority = priority || (lastControls.has(bindingId) ? 'interactive' : 'initial')
+    const requestId = 'q' + ++sequence
     lastControls.set(bindingId, values)
     latest.set(bindingId, requestId)
-    return new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(requestId)
-        reject(fail('DOCUMENT_QUERY_TIMEOUT'))
-      }, 45000)
+        reject(fail('DOCUMENT_QUEUE_TIMEOUT'))
+      }, 185000)
       pending.set(requestId, { resolve, reject, timer, bindingId })
-      port.postMessage({ type: 'query', requestId, bindingId, controls: values })
+      port.postMessage({ type: 'query', requestId, bindingId, controls: values, priority })
     })
+    inFlight.set(bindingId, { key, promise })
+    try { return await promise } finally {
+      if (inFlight.get(bindingId)?.promise === promise) inFlight.delete(bindingId)
+    }
   }
   const subscribe = (id, fn) => {
     if (typeof fn !== 'function') throw fail('DOCUMENT_INVALID_LISTENER')
@@ -66,7 +78,28 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
     listeners.set(id, set)
     return () => set.delete(fn)
   }
-  const refresh = async (id) => query(id, lastControls.get(id) || {})
+  const refresh = async (id) => query(id, lastControls.get(id) || {}, 'refresh')
+  const queryGroup = async (requests, priority) => {
+    await ready
+    const ids = requests.map(request => request.bindingId)
+    if (!ids.length) return { datasets: [], failures: [] }
+    if (ids.length > 64 || new Set(ids).size !== ids.length || ids.some(id => !context.bindingIds.includes(id)))
+      throw fail('DOCUMENT_BINDING_DENIED')
+    const owner = Symbol('query-group')
+    ids.forEach(id => deliveryLocks.set(id, owner))
+    const results = await Promise.allSettled(requests.map(request => query(request.bindingId, request.controls, priority, owner)))
+    const current = ids.every(id => deliveryLocks.get(id) === owner)
+    ids.forEach(id => { if (deliveryLocks.get(id) === owner) deliveryLocks.delete(id) })
+    if (!current) throw fail('DOCUMENT_QUERY_SUPERSEDED')
+    const datasets = [], failures = []
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') { datasets.push(result.value); emit(ids[index], result.value) }
+      else failures.push({ bindingId: ids[index], code: result.reason?.code || 'DOCUMENT_QUERY_FAILED' })
+    })
+    return { datasets, failures }
+  }
+  // Subscribers see successful members of one filter round together, after it settles.
+  const queryMany = (ids, controls = {}) => queryGroup(ids.map(bindingId => ({ bindingId, controls })), 'interactive')
   const bindSelect = (element, config) => {
     if (
       !element ||
@@ -118,7 +151,7 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
     }
   }
   Object.defineProperty(window, 'xpertLiveArtifact', {
-    value: Object.freeze({ ready: () => ready, query, subscribe, refresh, bindSelect }),
+    value: Object.freeze({ ready: () => ready, query, queryMany, subscribe, refresh, bindSelect }),
     writable: false,
     configurable: false
   })
@@ -142,7 +175,23 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
     port.onmessage = (event) => {
       const data = event.data
       if (data.type === 'refresh') {
-        for (const id of new Set([...listeners.keys(), ...lastControls.keys()])) refresh(id).catch(console.error)
+        if (data.bindingId) { refresh(data.bindingId).catch(console.error); return }
+        if (refreshing) return
+        refreshing = true
+        queryGroup([...new Set([...listeners.keys(), ...lastControls.keys()])].map(bindingId => ({ bindingId, controls: lastControls.get(bindingId) || {} })), 'refresh')
+          .catch(error => { if (error.code !== 'DOCUMENT_QUERY_SUPERSEDED') console.error(error) })
+          .finally(() => { refreshing = false })
+        return
+      }
+      if (data.type === 'query-state') {
+        const entry = pending.get(data.requestId)
+        if (entry && data.state === 'running') {
+          clearTimeout(entry.timer)
+          entry.timer = setTimeout(() => {
+            pending.delete(data.requestId)
+            entry.reject(fail('DOCUMENT_QUERY_TIMEOUT'))
+          }, 50000)
+        }
         return
       }
       if (data.type !== 'result') return
@@ -155,7 +204,7 @@ const ARTIFACT_DOCUMENT_RUNTIME = String.raw`
         return
       }
       if (data.ok) {
-        emit(entry.bindingId, data.dataset)
+        if (!deliveryLocks.has(entry.bindingId)) emit(entry.bindingId, data.dataset)
         entry.resolve(data.dataset)
       } else entry.reject(fail(data.code || 'DOCUMENT_QUERY_FAILED'))
     }

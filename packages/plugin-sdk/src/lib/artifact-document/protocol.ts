@@ -17,7 +17,8 @@ export const artifactDocumentQuery = z
     type: z.literal('query'),
     requestId: z.string().min(1).max(80),
     bindingId: artifactDocumentId,
-    controls: artifactDocumentControls
+    controls: artifactDocumentControls,
+    priority: z.enum(['interactive', 'initial', 'refresh']).optional()
   })
   .strict()
 
@@ -30,6 +31,7 @@ export interface ArtifactDocumentQuery {
   requestId: string
   bindingId: string
   controls: ArtifactDocumentControls
+  priority?: 'interactive' | 'initial' | 'refresh'
 }
 
 /** Only public presentation context may cross into the untrusted frame. Never include credentials here. */
