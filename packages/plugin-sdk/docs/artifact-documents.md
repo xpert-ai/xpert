@@ -46,7 +46,11 @@ Node 内置模块或安全上下文，因此浏览器 HTTPS、普通 HTTP 内网
 由该版本的内容摘要覆盖。只存版本号或 hash、再从当前插件目录寻找代码，不能保证历史可用性。
 读取时验证版本内容摘要及每项依赖锁；修改页面默认继承原快照，升级依赖必须显式生成新版本。
 
-SDK 使用独立 MessageChannel，只接受当前 iframe、当前挂载随机标识的一次初始化请求；旧文档的延迟消息不能初始化新挂载。每条查询严格解析、检查 Binding 白名单、拒绝当前一分钟窗口内的重放，执行中的请求 ID 跨窗口继续受保护，最多 8 个并发、每分钟 60 次。关闭宿主后丢弃返回结果并清理 busy 状态；实际服务端取消/期限由查询能力负责。
+SDK 使用独立 MessageChannel，只接受当前 iframe、当前挂载随机标识的一次初始化请求；旧文档的延迟消息不能初始化新挂载。每条查询严格解析、检查 Binding 白名单和请求重放。默认 4 路并发，可信宿主可配置 1–8 路；每个挂载默认每滚动分钟启动最多 60 次执行，超过预算的合法请求进入队列。最多保留 64 个排队任务，排队期限 180 秒，执行期限 45 秒，文档最多声明 64 个 Binding。
+
+`createArtifactQueryScheduler` 供 HTML 宿主与其他 Artifact 渲染器复用。相同 Binding/控件的进行中请求复用 Promise；新参数替换旧待执行请求，交互优先于初次加载和刷新。超时或终止发出 AbortSignal，但底层执行实际结束前不释放并发槽。关闭文档清空队列、停止后续派发并丢弃迟到结果；只有调用方将 signal 传到后端时才具备真实 I/O 取消。不得以丢弃响应冒充数据库查询取消。
+
+`onQueryState` 提供 queued/running/succeeded/failed/superseded 及排队、开始、结束时间。`onBusy` 包含排队与尚未结束的底层执行。可信、无数据源 I/O 的快照验证宿主可以配置独立的有限回放预算 `dispatchesPerMinute`（最多 1024）；生产看板保留 60。作者 HTML 不能调整并发或预算。
 
 ## 文档 SDK
 
@@ -63,9 +67,14 @@ await live.ready()
 await live.query('sales', { region: null })
 // 筛选值是声明的 controlId；刷新沿用此 Binding 最近一次请求的控件值。
 await live.refresh('sales')
+// 多来源共享筛选：本轮结束后，一起交付成功的订阅结果；失败项须明确显示不可用。
+const round = await live.queryMany(['sales', 'margin'], { region: 'east' })
+renderUnavailable(round.failures)
 ```
 
 订阅会接收普通查询和宿主刷新结果。同一 Binding 的旧响应不会覆盖新响应。页面自行处理 loading/error/empty 和数据完整性；可信宿主独立显示新鲜度、部分结果及错误状态。
+
+`queryMany` 返回 `{ datasets, failures }`，失败项包含 `bindingId` 和稳定错误码。新一轮共享筛选使旧轮次失效；旧轮次不会补写新控件结果。全页宿主刷新使用分组交付并合并重复刷新，单来源 `host.refresh(bindingId)` 保留独立刷新。旧 HTML 的多个独立 `query` 调用仍独立交付；需要多来源同时更新的作者代码应显式使用 `queryMany`，不要将旧数据作为失败项的新结果。
 
 `bindSelect` 是可选的通用 Dataset 控件适配器：从已收到的数据行收集唯一值、保留筛选前的候选值、维持选择并发起查询。option.value 使用 JSON 编码以保留标量类型，页面不应再添加第二个 change handler。`allValue` 默认 null，可显式指定声明的全选值。它不会额外查询隐藏数据，也不会把候选列表当作授权；字段和参数访问始终由后端校验。查询失败触发冒泡的 `xpert-query-error` 事件。其他控件可直接使用 query。
 

@@ -39,7 +39,12 @@ module.exports = async function verifyHostBoundaries(browser, bundle) {
       window.releases = []
       window.autoResolve = false
       DocumentHost.installArtifactDocumentFramePolicy(document)
-      const context = { bindingIds: ['sales'], defaults: { region: null }, theme: 'light', locale: 'en' }
+      const context = {
+        bindingIds: ['sales', ...Array.from({ length: 9 }, (_, i) => `panel${i}`)],
+        defaults: { region: null },
+        theme: 'light',
+        locale: 'en'
+      }
       window.host = DocumentHost.mountArtifactDocument(document.querySelector('#target'), {
         html,
         context,
@@ -83,7 +88,7 @@ module.exports = async function verifyHostBoundaries(browser, bundle) {
     await frame.evaluate((data) => parent.postMessage(data, '*'), originalReady)
     await frame.waitForFunction(() => window.testPort)
     assert.deepEqual(await frame.evaluate(() => window.xpertLiveArtifact.ready()), {
-      bindingIds: ['sales'],
+      bindingIds: ['sales', ...Array.from({ length: 9 }, (_, i) => `panel${i}`)],
       defaults: { region: null },
       theme: 'light',
       locale: 'en'
@@ -111,36 +116,54 @@ module.exports = async function verifyHostBoundaries(browser, bundle) {
       Date.now = () => window.testNow
     })
     await send('new-window')
-    await page.waitForFunction(() => window.executions.length === 2)
+    await page.waitForTimeout(30)
+    assert.equal(
+      await page.evaluate(() => window.executions.length),
+      1,
+      'Identical in-flight requests coalesce across rate windows'
+    )
     await send('active')
     await page.waitForFunction(() => window.errors.filter((code) => code === 'DOCUMENT_REQUEST_REPLAY').length === 2)
     assert.equal(
       await page.evaluate(() => window.executions.length),
-      2,
+      1,
       'Window rollover must not permit replay of in-flight requests'
     )
     await page.evaluate(() => window.releases.splice(0).forEach((resolve) => resolve()))
     await page.waitForFunction(() => window.busy.at(-1) === false)
 
-    for (let i = 0; i < 9; i++) await send('concurrent-' + i)
-    await page.waitForFunction(() => window.errors.includes('DOCUMENT_QUERY_LIMIT'))
-    assert.equal(await page.evaluate(() => window.executions.length), 10)
+    for (let i = 0; i < 9; i++) await send('concurrent-' + i, 'panel' + i)
+    await page.waitForFunction(() => window.executions.length === 5)
+    assert.equal(await page.evaluate(() => window.errors.includes('DOCUMENT_QUERY_LIMIT')), false)
+    for (let expected of [9, 10]) {
+      await page.evaluate(() => window.releases.splice(0).forEach((resolve) => resolve()))
+      await page.waitForFunction((count) => window.executions.length === count, expected)
+    }
     await page.evaluate(() => window.releases.splice(0).forEach((resolve) => resolve()))
     await page.waitForFunction(() => window.busy.at(-1) === false)
     await page.evaluate(() => {
       window.testNow += 61000
       window.autoResolve = true
     })
-    for (let i = 0; i < 61; i++) await send('rate-' + i)
-    await page.waitForFunction(() => window.errors.filter((code) => code === 'DOCUMENT_QUERY_LIMIT').length === 2)
-    assert.equal(await page.evaluate(() => window.executions.length), 70)
+    for (let i = 0; i < 60; i++) {
+      await send('rate-' + i)
+      await page.waitForFunction((count) => window.executions.length === count, 11 + i)
+    }
+    await send('rate-60')
+    await page.waitForTimeout(30)
+    assert.equal(await page.evaluate(() => window.executions.length), 70, '61st live dispatch waits for budget')
+    await page.evaluate(() => {
+      window.testNow += 61000
+    })
+    await send('quota-wakeup', 'panel0')
+    await page.waitForFunction(() => window.executions.length === 72)
 
     await page.evaluate(() => {
       window.testNow += 61000
       window.autoResolve = false
     })
     await send('dispose-pending')
-    await page.waitForFunction(() => window.executions.length === 71)
+    await page.waitForFunction(() => window.executions.length === 73)
     const resultCount = await page.evaluate(() => window.results.length)
     await page.evaluate(() => {
       window.host.dispose()
@@ -149,7 +172,7 @@ module.exports = async function verifyHostBoundaries(browser, bundle) {
     })
     await send('after-dispose')
     await page.waitForTimeout(30)
-    assert.equal(await page.evaluate(() => window.executions.length), 71)
+    assert.equal(await page.evaluate(() => window.executions.length), 73)
     assert.equal(await page.evaluate(() => window.results.length), resultCount)
     assert.equal(await page.evaluate(() => window.busy.at(-1)), false)
 
@@ -204,8 +227,8 @@ module.exports = async function verifyHostBoundaries(browser, bundle) {
       'one initialization',
       'context snapshot',
       'in-flight replay across rate windows',
-      'concurrency limit',
-      'rate limit',
+      'bounded concurrent execution with queued overflow',
+      'rolling dispatch budget with queued overflow',
       'observer isolation',
       'dispose drops late results',
       'remount isolation',

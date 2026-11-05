@@ -1,3 +1,4 @@
+import { createArtifactQueryScheduler, type ArtifactQueryState } from './scheduler'
 // Invariants: a frame WindowProxy survives navigation, so source checks alone
 // cannot identify a document generation. Each mount owns one handshake nonce,
 // one MessagePort and a snapshot of the declared binding IDs.
@@ -37,7 +38,11 @@ export interface ArtifactDocumentHostOptions<T> {
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext
   /** Resolve against saved Bindings on the server with the current user's access; never execute a query definition from HTML. */
-  query(input: ArtifactDocumentQuery): Promise<T>
+  query(input: ArtifactDocumentQuery, signal?: AbortSignal): Promise<T>
+  concurrency?: number
+  /** Trusted host policy, never supplied by authored HTML. Defaults to 60 live executions/minute. */
+  dispatchesPerMinute?: number
+  onQueryState?(state: ArtifactQueryState): void
   /** Latest result for a Binding, suitable for host-owned freshness/partial-result indicators. */
   onResult?(result: T): void
   /** Stable protocol/query error code; private backend error details are never sent into the document. */
@@ -49,7 +54,7 @@ export interface ArtifactDocumentHostOptions<T> {
 /** Lifecycle handle for one mount; dispose before replacing the document or its trusted query scope. */
 export interface ArtifactDocumentHost {
   /** Requeries subscribed/previously queried bindings using their last controls. */
-  refresh(): void
+  refresh(bindingId?: string): void
   /** Closes the query channel and discards late results; backend cancellation remains the caller's responsibility. */
   dispose(): void
 }
@@ -70,8 +75,12 @@ export function mountArtifactDocument<T>(
   const source = renderArtifactDocument(options.html, sessionId, options.dependencies, options.networkPolicy)
   const channel = new MessageChannel()
   const bindingIds = new Set(context.bindingIds)
+  const admissionLimit = Number.isFinite(options.dispatchesPerMinute)
+    ? Math.max(256, Math.min(1024, options.dispatchesPerMinute!))
+    : 256
   const requestIds = new Set<string>()
-  const activeIds = new Set<string>()
+  const activeIds = new Map<string, ArtifactDocumentQuery>()
+  const executingIds = new Set<string>()
   const latest = new Map<string, string>()
   const hostWindow = frame.ownerDocument.defaultView!
   let connected = false,
@@ -96,6 +105,34 @@ export function mountArtifactDocument<T>(
     post({ type: 'result', requestId, ok: false, code })
     observe(options.onError, code)
   }
+  const scheduler = createArtifactQueryScheduler<T>({
+    concurrency: options.concurrency,
+    dispatchesPerMinute: options.dispatchesPerMinute,
+    execute: async (input, signal) => {
+      if (signal.aborted) throw new Error('DOCUMENT_QUERY_SUPERSEDED')
+      const request = [...activeIds.values()].find(
+        (item) =>
+          item.bindingId === input.bindingId &&
+          Object.keys(item.controls).length === Object.keys(input.controls).length &&
+          Object.keys(input.controls).every((key) => item.controls[key] === input.controls[key])
+      )
+      if (!request) throw new Error('DOCUMENT_QUERY_SUPERSEDED')
+      executingIds.add(request.requestId)
+      try {
+        return await options.query(request, signal)
+      } finally {
+        executingIds.delete(request.requestId)
+      }
+    },
+    onBusy: (value) => observe(options.onBusy, value),
+    onState: (state) => {
+      observe(options.onQueryState, state)
+      if (state.state === 'running')
+        for (const input of activeIds.values())
+          if (input.bindingId === state.bindingId)
+            post({ type: 'query-state', requestId: input.requestId, state: 'running' })
+    }
+  })
   channel.port1.onmessage = async (event: MessageEvent<unknown>) => {
     if (disposed) return
     const diagnostic = diagnosticSchema.safeParse(event.data)
@@ -112,7 +149,8 @@ export function mountArtifactDocument<T>(
       type: parsed.data.type,
       requestId: parsed.data.requestId,
       bindingId: parsed.data.bindingId,
-      controls: parsed.data.controls
+      controls: parsed.data.controls,
+      priority: parsed.data.priority
     }
     if (!bindingIds.has(input.bindingId)) {
       reject(input.requestId, 'DOCUMENT_BINDING_DENIED')
@@ -124,32 +162,33 @@ export function mountArtifactDocument<T>(
       requestIds.clear()
     }
     // Keep in-flight IDs protected even after the one-minute replay/rate window rolls over.
-    if (activeIds.has(input.requestId) || requestIds.has(input.requestId)) {
+    if (activeIds.has(input.requestId) || executingIds.has(input.requestId) || requestIds.has(input.requestId)) {
       reject(input.requestId, 'DOCUMENT_REQUEST_REPLAY')
       return
     }
-    if (activeIds.size >= 8 || ++requests > 60) {
+    if (activeIds.size >= 128 || ++requests > admissionLimit) {
       reject(input.requestId, 'DOCUMENT_QUERY_LIMIT')
       return
     }
     requestIds.add(input.requestId)
-    activeIds.add(input.requestId)
+    activeIds.set(input.requestId, input)
     latest.set(input.bindingId, input.requestId)
-    observe(options.onBusy, true)
+    post({ type: 'query-state', requestId: input.requestId, state: 'queued' })
     try {
-      const dataset = await options.query(input)
+      const dataset = await scheduler.query(input, input.priority)
       if (!disposed) {
         post({ type: 'result', requestId: input.requestId, ok: true, dataset })
         if (latest.get(input.bindingId) === input.requestId) observe(options.onResult, dataset)
       }
-    } catch {
+    } catch (error) {
       if (!disposed) {
-        post({ type: 'result', requestId: input.requestId, ok: false, code: 'DOCUMENT_QUERY_FAILED' })
-        if (latest.get(input.bindingId) === input.requestId) observe(options.onError, 'DOCUMENT_QUERY_FAILED')
+        const code =
+          error instanceof Error && /^DOCUMENT_[A-Z_]+$/.test(error.message) ? error.message : 'DOCUMENT_QUERY_FAILED'
+        post({ type: 'result', requestId: input.requestId, ok: false, code })
+        if (latest.get(input.bindingId) === input.requestId) observe(options.onError, code)
       }
     } finally {
       activeIds.delete(input.requestId)
-      if (!disposed) observe(options.onBusy, activeIds.size > 0)
     }
   }
   const ready = (event: MessageEvent<unknown>) => {
@@ -173,12 +212,15 @@ export function mountArtifactDocument<T>(
   channel.port1.start()
   frame.srcdoc = source
   return {
-    refresh() {
-      post({ type: 'refresh' })
+    refresh(bindingId) {
+      if (bindingId !== undefined && !bindingIds.has(bindingId)) throw new Error('DOCUMENT_BINDING_DENIED')
+      post({ type: 'refresh', ...(bindingId ? { bindingId } : {}) })
     },
     dispose() {
       if (disposed) return
       disposed = true
+      scheduler.dispose()
+      activeIds.clear()
       hostWindow.removeEventListener('message', ready)
       channel.port1.close()
       channel.port2.close()
