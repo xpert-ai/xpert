@@ -18,7 +18,7 @@ describe('application routes within the existing website', () => {
     organizations: []
   }
   const store = { token: 'test-session', user, setOrganizationScope: jest.fn() }
-  const platform = { refresh: jest.fn() }
+  const platform = { presentation: jest.fn(), refresh: jest.fn() }
   const projects = { get: jest.fn(), typeEntry: jest.fn() }
   const router = { createUrlTree: jest.fn((commands: string[]) => commands.join('/')) }
   const navigate = (url: string) =>
@@ -35,6 +35,7 @@ describe('application routes within the existing website', () => {
         AIPermissionsEnum.MEMBERSHIP_USE
       ].map((permission) => ({ permission, enabled: true }))
     }
+    platform.presentation.mockReset().mockResolvedValue({ mode: 'managed-apps' })
     platform.refresh
       .mockReset()
       .mockResolvedValue({ ready: true, apps: [{ entries: [{ id: 'entry', slug: 'assigned-app' }] }] })
@@ -51,6 +52,20 @@ describe('application routes within the existing website', () => {
     })
   })
   afterEach(() => TestBed.resetTestingModule())
+
+  it.each([true, false])(
+    'preserves standard chat and project destinations with APPLICATION_USE=%s',
+    async (enabled) => {
+      platform.presentation.mockResolvedValue({ mode: 'standard' })
+      platform.refresh.mockRejectedValue(new HttpErrorResponse({ status: 400 }))
+      user.role.rolePermissions.find((item) => item.permission === AIPermissionsEnum.APPLICATION_USE)!.enabled = enabled
+      for (const url of ['/chat', '/chat/x/first/c', '/chat/x/second/c/thread?view=details', '/project']) {
+        expect(await navigate(url)).toBe(true)
+      }
+      expect(platform.refresh).not.toHaveBeenCalled()
+      expect(router.createUrlTree).not.toHaveBeenCalled()
+    }
+  )
 
   it.each([
     '/settings/account/profile',

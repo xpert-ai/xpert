@@ -4,9 +4,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { AIPermissionsEnum, AppPlatformDefinition, AppPlatformStatus } from '@xpert-ai/contracts'
 import { ZardToastService } from '@xpert-ai/headless-ui'
-import { distinctUntilChanged, firstValueFrom, map } from 'rxjs'
+import { defer, distinctUntilChanged, firstValueFrom, map, shareReplay, tap } from 'rxjs'
 import { API_PREFIX, Store } from '../state'
 import { XpertAPIService } from './xpert.service'
+
+type AppPlatformPresentation = { mode: 'standard' | 'managed-apps'; branding?: AppPlatformDefinition['branding'] }
 
 @Injectable({ providedIn: 'root' })
 export class AppPlatformService {
@@ -21,6 +23,12 @@ export class AppPlatformService {
   private notice: ReturnType<ZardToastService['warning']> | undefined
   readonly status = signal<AppPlatformStatus | null>(null)
   readonly branding = signal<AppPlatformDefinition['branding'] | null>(null)
+  private readonly presentation$ = defer(() =>
+    this.http.get<AppPlatformPresentation>(`${API_PREFIX}/app-platform/presentation`)
+  ).pipe(
+    tap(({ branding }) => this.branding.set(branding ?? null)),
+    shareReplay(1)
+  )
   constructor() {
     this.store.user$
       .pipe(
@@ -109,13 +117,7 @@ export class AppPlatformService {
       }
     }
   }
-  async presentation() {
-    const result = await firstValueFrom(
-      this.http.get<{ mode: 'standard' | 'managed-apps'; branding?: AppPlatformDefinition['branding'] }>(
-        `${API_PREFIX}/app-platform/presentation`
-      )
-    )
-    this.branding.set(result.branding ?? null)
-    return result
+  presentation() {
+    return firstValueFrom(this.presentation$)
   }
 }
