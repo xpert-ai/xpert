@@ -1,5 +1,15 @@
 # @xpert-ai/plugin-sdk
 
+## 3.32.0
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- Updated dependencies [a35bd1f]
+- Updated dependencies [e7b2da6]
+- Updated dependencies [56c6c5e]
+  - @xpert-ai/contracts@3.32.0
+
 ## 3.31.0
 
 ### Minor Changes

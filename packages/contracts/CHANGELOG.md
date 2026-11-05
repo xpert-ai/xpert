@@ -1,5 +1,16 @@
 # @xpert-ai/contracts
 
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Add user-group and direct-user business-area grants with consumer, publisher and domain administrator roles. Explain effective grant sources, apply live membership revocation, and authorize published Assistant consumption independently from workspace authoring.
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- 56c6c5e: Clarify model connection disable counts with tenant-scoped reference details, distinct current resources, historical records and explicitly unresolved JSON/snapshot matches. Identify blocking default settings, preserve configurations and the existing disable prerequisite, and provide matching English and Chinese explanations.
+
 ## 3.31.0
 
 ### Patch Changes
