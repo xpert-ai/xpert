@@ -113,20 +113,19 @@ export class ExecutionControlStore {
         await this.attachExecution(executionId, parentExecutionId, policy)
     }
 
-    beginAttached(executionId: string, parentExecutionId: string, expectedRoot?: string, invocationId?: string) {
-        return this.attachExecution(executionId, parentExecutionId, 'attached', { expectedRoot, invocationId })
+    beginAttached(executionId: string, parentExecutionId: string, expectedRoot: string) {
+        return this.attachExecution(executionId, parentExecutionId, 'attached', expectedRoot)
     }
 
     private async attachExecution(
         executionId: string,
         parentExecutionId: string,
         policy: TExecutionOwnership['policy'],
-        entry?: { expectedRoot?: string; invocationId?: string }
+        enteringRoot?: string
     ) {
         return this.database.transaction(async (manager) => {
             const parent = await this.lock(manager, parentExecutionId)
-            if (!parent || (entry?.expectedRoot && parent.root.executionId !== entry.expectedRoot))
-                this.reject(parentExecutionId)
+            if (!parent || (enteringRoot && parent.root.executionId !== enteringRoot)) this.reject(parentExecutionId)
             await this.assertLive(manager, parent.target)
             const independent = policy !== 'attached'
             const rootExecutionId = independent ? executionId : parent.root.executionId
@@ -158,9 +157,7 @@ export class ExecutionControlStore {
             )
                 this.reject(executionId)
             validateExecutionControl(child)
-            const attempt = await this.assertLive(manager, child)
-            const resourceId = entry?.invocationId ?? executionId
-            if (attempt && attempt.resourceId !== resourceId) this.reject(executionId)
+            await this.assertLive(manager, child)
             const owner = await this.tasks.execution(parentExecutionId, manager)
             if (!owner) this.reject(parentExecutionId)
             const context = currentTaskControl()
@@ -171,22 +168,12 @@ export class ExecutionControlStore {
                 invocation.rootId === owner.rootId
                     ? invocation
                     : owner
-            const invocationId = entry?.invocationId
-            const replay = invocationId && invocationId !== executionId
-            if (
-                replay &&
-                (logicalParent !== invocation ||
-                    invocation.resourceId !== invocationId ||
-                    invocation.state !== 'running' ||
-                    !invocation.claim)
-            )
-                this.reject(executionId)
             const childTask = await this.tasks.register(
                 {
                     tenantId: child.tenantId,
                     organizationId: child.organizationId,
                     kind: 'execution',
-                    resourceId,
+                    resourceId: executionId,
                     executionId,
                     threadId: child.threadId,
                     parent: { version: 2, targetId: logicalParent.id },
@@ -195,34 +182,8 @@ export class ExecutionControlStore {
                 },
                 manager
             )
-            if (replay && childTask.currentExecutionId !== executionId) {
-                // A replay gets its own physical ledger but keeps the task that owns its nested calls.
-                if (
-                    childTask.state !== 'completed' ||
-                    childTask.threadId !== child.threadId ||
-                    childTask.attempts.includes(executionId) ||
-                    attempt
-                )
-                    this.reject(executionId)
-                const previous = await manager.findOneByOrFail(ExecutionControl, {
-                    executionId: childTask.currentExecutionId
-                })
-                if (
-                    previous.desired === 'terminated' ||
-                    previous.threadId !== child.threadId ||
-                    previous.tenantId !== child.tenantId ||
-                    previous.organizationId !== child.organizationId
-                )
-                    this.reject(executionId)
-                // Older external/template adapters only wrote the logical completion receipt.
-                if (!previous.graphEnded) {
-                    previous.graphEnded = true
-                    await manager.save(previous)
-                }
-                await this.tasks.bind(previous.executionId, executionId, manager)
-            } else if (entry) {
-                if (childTask.state !== 'queued' || childTask.currentExecutionId !== executionId)
-                    this.reject(executionId)
+            if (enteringRoot) {
+                if (childTask.state !== 'queued') this.reject(executionId)
                 await this.tasks.receipt(childTask.id, 'running', undefined, manager)
             }
             return childTask.id
@@ -440,7 +401,6 @@ export class ExecutionControlStore {
             ancestors.some((record) => record.desired === 'terminated' || record.graphEnded)
         )
             this.reject(target.executionId)
-        return task
     }
 
     private reject(executionId: string): never {

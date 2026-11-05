@@ -37,6 +37,7 @@ import { CompileGraphCommand } from '../commands/compile-graph.command'
 import { wrapAgentExecution } from '../../shared/agent/execution'
 import { getExecutionContext, withExecutionContext } from '../../shared/agent/execution-context'
 import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
+import { executionAbortScope } from '../../execution-control/execution-abort-scope'
 import { ExecutionCancelledError } from '../../execution-control/execution-cancelled.error'
 import { XpertWorkAreaResolver } from '../../shared/volume/work-area'
 import { SandboxAcquireBackendCommand } from '../../sandbox/commands/acquire-backend.command'
@@ -180,10 +181,9 @@ export class TemplateSubagentRuntimeService {
                                 status: missingConnector.status
                             })
                         )
-                    const abort = await this.cancellations.openAttached(executionId, parentExecutionId, invocationId, [
-                        options.signal,
-                        config.signal
-                    ])
+                    await this.cancellations.attach(executionId, parentExecutionId, 'attached')
+                    const abort = executionAbortScope(executionId, this.cancellations, [options.signal, config.signal])
+                    await this.cancellations.check(executionId)
                     const execution: IXpertAgentExecution = {
                         id: executionId,
                         xpert: owner,
@@ -202,8 +202,6 @@ export class TemplateSubagentRuntimeService {
                         }
                     }
                     try {
-                        await this.cancellations.check(executionId)
-                        abort.controller.signal.throwIfAborted()
                         let sandbox: TSandboxConfigurable | null = null
                         if (draft.team.features?.sandbox?.enabled)
                             sandbox = await this.commands.execute(
@@ -323,11 +321,8 @@ export class TemplateSubagentRuntimeService {
                             return { status: 'cancelled' as const }
                         throw error
                     } finally {
-                        try {
-                            await closeGraphRuntimeCleanups(abort.controller)
-                        } finally {
-                            await abort.close()
-                        }
+                        await closeGraphRuntimeCleanups(abort.controller)
+                        abort.dispose()
                     }
                 } catch (error) {
                     if (isGraphInterrupt(error)) throw error

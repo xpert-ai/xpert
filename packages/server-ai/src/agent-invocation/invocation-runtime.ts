@@ -175,7 +175,7 @@ export class AgentInvocationRuntime {
             }
             if (!(await this.store.insert(record))) return this.start(request, originalAccess)
         }
-        const parent = await this.tasks?.execution(requestedExecutionId)
+        const parent = await this.tasks?.execution(access.scope.parentExecutionId)
         if (parent && parent.currentExecutionId !== requestedExecutionId) throw invocationError('CallConflict')
         const task = parent
             ? await this.tasks.register({
@@ -462,15 +462,7 @@ export class AgentInvocationRuntime {
         if (!task) return access
         if (task.tenantId !== access.scope.tenantId || task.organizationId !== (access.scope.organizationId ?? null))
             throw invocationError('NotFound')
-        let parentExecutionId = task.attempts[0]
-        // A pre-registration native checkpoint may first acquire a task on replay.
-        // Its original calls were scoped to the owning invocation's ID.
-        if (task.parentId && task.resourceId !== parentExecutionId) {
-            const owner = await this.tasks.read(task.parentId)
-            if (owner?.kind === 'invocation' && owner.resourceId === task.resourceId)
-                parentExecutionId = task.resourceId
-        }
-        return { ...access, scope: { ...access.scope, parentExecutionId } }
+        return { ...access, scope: { ...access.scope, parentExecutionId: task.attempts[0] } }
     }
 
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {

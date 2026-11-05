@@ -5,8 +5,6 @@ import { ExecutionControlStore } from './execution-control.store'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
-import { executionAbortScope } from './execution-abort-scope'
-import { requireExecutionControl } from './execution-control-operation'
 import { ExecutionCancelledError } from './execution-cancelled.error'
 
 const EXECUTION_CANCEL_CHANNEL = 'ai:execution:cancel'
@@ -85,30 +83,6 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
 
     async attach(executionId: string, parentExecutionId: string, policy: TExecutionOwnership['policy']) {
         await this.controls.attach(executionId, parentExecutionId, policy)
-    }
-
-    async openAttached(
-        executionId: string,
-        parentId: string,
-        invocationId: string | undefined,
-        signals: readonly (AbortSignal | undefined)[],
-        expectedRoot?: string
-    ) {
-        const taskId = await requireExecutionControl(
-            this.controls.beginAttached(executionId, parentId, expectedRoot, invocationId)
-        )
-        const scope = executionAbortScope(executionId, this, signals)
-        return {
-            taskId,
-            controller: scope.controller,
-            close: async () => {
-                try {
-                    await requireExecutionControl(this.controls.finishAttached(executionId))
-                } finally {
-                    scope.dispose('caller')
-                }
-            }
-        }
     }
 
     async ownedExecutionIds(execution: {

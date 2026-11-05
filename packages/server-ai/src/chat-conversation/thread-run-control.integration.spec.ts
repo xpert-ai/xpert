@@ -1,4 +1,3 @@
-import { nestedCheckpointDelegation } from '../execution-control/testing/nested-delegation.fixture'
 import { attachedGraphRunner } from '../execution-control/attached-graph'
 import { withExecutionContext } from '../shared/agent/execution-context'
 import { nestedToolWorkflow } from '../execution-control/testing/nested-tool-workflow.fixture'
@@ -525,7 +524,7 @@ integration('durable pause control / PostgreSQL', () => {
             const workflow = await nestedToolWorkflow(modern, convert)
             const store = new ExecutionControlStore(database, new TaskControlStore(database))
             const cancellations = new ExecutionCancelService(createClient(), store)
-            const context = { runAttachedExecution: attachedGraphRunner(executionId, cancellations) }
+            const context = { runAttachedExecution: attachedGraphRunner(executionId, store, cancellations) }
             const invoke = () =>
                 withExecutionContext(context, () =>
                     workflow.runnable.invoke(
@@ -622,7 +621,7 @@ integration('durable pause control / PostgreSQL', () => {
     it('fences an interrupted graph attempt while a fresh attempt can continue the same logical work', async () => {
         const tasks = new TaskControlStore(database)
         const store = new ExecutionControlStore(database, tasks)
-        const run = attachedGraphRunner(executionId, new ExecutionCancelService(createClient(), store))
+        const run = attachedGraphRunner(executionId, store, new ExecutionCancelService(createClient(), store))
         const paused = randomUUID()
         const duplicate = jest.fn()
         const interrupt = new NodeInterrupt('approve')
@@ -647,62 +646,12 @@ integration('durable pause control / PostgreSQL', () => {
             await store.settle(resumed, 'resumed-tool')
         })
         expect((await tasks.execution(resumed)).state).toBe('completed')
-        const foreign = attachedGraphRunner(randomUUID(), new ExecutionCancelService(createClient(), store))
+        const foreign = attachedGraphRunner(randomUUID(), store, new ExecutionCancelService(createClient(), store))
         const unauthorized = randomUUID()
         const body = jest.fn()
         await expect(foreign(executionId, unauthorized, undefined, body)).rejects.toThrow('Execution ownership ended')
         expect(await store.has(unauthorized)).toBe(false)
         expect(body).not.toHaveBeenCalled()
-    })
-
-    it.each(['registered', 'legacy unregistered', 'legacy completed'] as const)(
-        'recovers one nested delegation across a %s checkpoint and fences the old tool attempt',
-        async (initial) => {
-            const tasks = new TaskControlStore(database)
-            const store = new ExecutionControlStore(database, tasks)
-            const { invoke, attempts, start, records } = nestedCheckpointDelegation(store, scope, executionId, initial)
-            await expect(invoke()).rejects.toBeInstanceOf(NodeInterrupt)
-            await expect(invoke()).resolves.toMatchObject({ status: 'succeeded' })
-            expect(attempts).toHaveLength(2)
-            expect(attempts[1]).not.toBe(attempts[0])
-            expect(start.mock.calls.map(([request]) => [request.operationId, !!request.checkpointReplay])).toEqual([
-                [expect.any(String), false],
-                [start.mock.calls[0][0].operationId, true]
-            ])
-            expect([...records.rows.values()].map((row) => row.invocation.status)).toEqual(['succeeded', 'succeeded'])
-            const task = await tasks.execution(attempts[1])
-            expect(task.resourceId).toBe(attempts[0])
-            expect(task.currentExecutionId).toBe(attempts[1])
-            await expect(store.admit(attempts[0], 'late', executionId)).rejects.toThrow('Execution ownership ended')
-        }
-    )
-
-    it('refuses to rebind a live or terminated delegation and requires the owning invocation claim', async () => {
-        const tasks = new TaskControlStore(database)
-        const store = new ExecutionControlStore(database, tasks)
-        const original = randomUUID()
-        const owner = await tasks.execution(executionId)
-        const invocation = await tasks.register({
-            ...scope,
-            kind: 'invocation',
-            resourceId: original,
-            parent: { version: 2, targetId: owner.id }
-        })
-        const claimed = <T>(body: () => Promise<T>) => withTaskControl({ version: 2, targetId: invocation.id }, body)
-        const next = randomUUID()
-        const replay = () => store.beginAttached(next, executionId, executionId, original)
-        await claimed(() => store.beginAttached(original, executionId, executionId, original))
-        await tasks.claim(invocation.id)
-        await expect(claimed(replay)).rejects.toThrow('Execution ownership ended')
-        await store.finishAttached(original)
-        await expect(replay()).rejects.toThrow('Execution ownership ended')
-        await tasks.receipt(invocation.id, 'paused')
-        await expect(claimed(replay)).rejects.toThrow('Execution ownership ended')
-        await tasks.claim(invocation.id)
-        await store.terminate([original])
-        await expect(claimed(replay)).rejects.toThrow()
-        expect(await store.has(next)).toBe(false)
-        expect((await tasks.execution(original)).attempts).toEqual([original])
     })
 
     it('denies a late child tool before its body even when its parent is still running', async () => {
