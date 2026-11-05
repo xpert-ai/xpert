@@ -21,7 +21,6 @@ import { BadRequestException, Inject, InternalServerErrorException, Logger, Opti
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { isNil } from 'lodash'
-import { In, IsNull, Not } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgebaseService } from '../../management/knowledgebase.service'
 import { KnowledgeSearchQuery, KnowledgeSearchResult } from '../knowledge-search.query'
@@ -123,17 +122,11 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
         const topK = k ?? 1000
 
-        const result = await this.knowledgebaseService.findAll(
-            {
-                where: {
-                    tenantId,
-                    organizationId,
-                    id: knowledgebases ? In(knowledgebases) : Not(IsNull())
-                }
-            },
-            knowledgebases
-        )
-        const _knowledgebases = result.items
+        const { items: _knowledgebases } = await this.knowledgebaseService.findAllForSearch(knowledgebases, {
+            tenantId,
+            organizationId,
+            xpertId: command.input.xpertId
+        })
 
         const documents: DocumentInterface<DocumentMetadata>[] = []
         const diagnostics: KnowledgeFilterDiagnostics[] = []

@@ -33,6 +33,7 @@ export class KnowledgeFilterValueOptionsQuery implements IQuery {
         public readonly input: {
             tenantId?: string
             organizationId?: string
+            xpertId?: string
             knowledgebaseId: string
             field: string
             fixedFilter?: KnowledgeFilterNode

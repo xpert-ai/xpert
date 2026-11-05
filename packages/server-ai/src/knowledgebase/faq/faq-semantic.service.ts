@@ -67,11 +67,9 @@ export class FAQSemanticService {
         }
         request.preparedFilter.diagnostics.faqExclusion = diagnostics
         const getStore = () =>
-            (request.faqSession.vectorStore ??= this.knowledgebaseService.getActiveVectorStore(
+            (request.faqSession.vectorStore ??= this.knowledgebaseService.getSearchVectorStore(
                 request.knowledgebase.id,
-                true,
-                request.modelContext,
-                { rerankEnabled: false }
+                request.modelContext
             ))
         const remember = (key: string, faqId: string, decision: FAQSemanticDecision) => {
             decisions.set(key, decision)

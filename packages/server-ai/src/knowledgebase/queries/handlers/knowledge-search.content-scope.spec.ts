@@ -43,7 +43,7 @@ function setup(overrides: Partial<IKnowledgebase> = {}) {
         wikiConfig: { enabled: true },
         ...overrides
     } as IKnowledgebase
-    const service = { findAll: jest.fn(async () => ({ items: [kb] })) }
+    const service = { findAllForSearch: jest.fn(async () => ({ items: [kb] })) }
     const retriever = (source: 'vector' | 'keyword' | 'graph') => ({
         source,
         retrieve: jest.fn<

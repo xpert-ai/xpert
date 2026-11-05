@@ -4,7 +4,7 @@ import { KnowledgeFilterValueOptionsHandler } from './knowledge-filter-options.h
 describe('KnowledgeFilterValueOptionsHandler', () => {
     it('resolves registered metadata fields and applies the fixed boundary before listing values', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn().mockResolvedValue({
+            findAllForSearch: jest.fn().mockResolvedValue({
                 items: [
                     {
                         id: 'kb-1',
@@ -75,7 +75,7 @@ describe('KnowledgeFilterValueOptionsHandler', () => {
 
     it('rejects unregistered fields before querying values', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn().mockResolvedValue({ items: [{ id: 'kb-1', metadataSchema: [] }] }),
+            findAllForSearch: jest.fn().mockResolvedValue({ items: [{ id: 'kb-1', metadataSchema: [] }] }),
             listStructuredFilterValueCandidates: jest.fn()
         }
         const handler = new KnowledgeFilterValueOptionsHandler(knowledgebaseService as never)

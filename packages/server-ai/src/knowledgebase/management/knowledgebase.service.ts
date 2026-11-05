@@ -5,6 +5,8 @@ import {
 import { normalizeKnowledgebaseFAQConfig } from '../faq/faq-config'
 import { withUnboundKnowledgebase } from '../lifecycle/shared-resource-lifecycle'
 import { appPlatformKnowledgeIds } from '../runtime/app-platform-knowledge-access'
+import { AssistantKnowledgeRetrievalService } from '../retrieval/assistant-knowledge-retrieval.service'
+import { TKnowledgebaseModelContext } from '../embedding/knowledgebase-model-policy'
 import { KnowledgeResourceAccessService } from '../runtime/knowledge-resource-access.service'
 import { KnowledgeKeywordAnalyzerService } from '../analyzer/keyword-analyzer.service'
 import { VectorStoreSettingsService } from '../../rag-vstore/vector-store-settings.service'
@@ -29,7 +31,7 @@ import {
     normalizeKnowledgebaseFAQRecall
 } from '@xpert-ai/contracts'
 
-import { IntegrationService, PaginationParams } from '@xpert-ai/server-core'
+import { assistantRuntimeCredential, IntegrationService, PaginationParams } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Queue } from 'bull'
@@ -102,6 +104,9 @@ import { knowledgebaseTaskAccessDenied } from '../task/knowledgebase-task-policy
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
     @Inject(KnowledgeResourceAccessService)
     private readonly resourceAccess: KnowledgeResourceAccessService
+    @Inject(AssistantKnowledgeRetrievalService)
+    private readonly assistantRetrieval: AssistantKnowledgeRetrievalService
+
     @Inject(TenantLibraryAccessService)
     private readonly tenantLibraries: TenantLibraryAccessService
 
@@ -408,6 +413,32 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             }
         }
         return { ...result, items, total: items.length }
+    }
+
+    async findAllForSearch(
+        ids: string[],
+        scope: { tenantId: string; organizationId: string; xpertId?: string },
+        purpose: 'retrieval' | 'discovery' = 'retrieval'
+    ) {
+        const credential = assistantRuntimeCredential(RequestContext.currentUser())
+        if (credential) {
+            const items = await this.assistantRetrieval.findBound(credential, ids, scope)
+            return { items, total: items.length }
+        }
+        const { tenantId, organizationId } = scope
+        const where = { tenantId, organizationId, id: ids ? In(ids) : Not(IsNull()) }
+        return this.findAll({ where }, purpose === 'retrieval' ? ids : undefined)
+    }
+
+    async findOneForSearch(
+        id: string,
+        options?: Pick<FindOneOptions<Knowledgebase>, 'select' | 'relations'>,
+        scope: TKnowledgebaseModelContext = {}
+    ) {
+        const credential = assistantRuntimeCredential(RequestContext.currentUser())
+        if (!credential) return this.findOne(id, options)
+        const [library] = await this.assistantRetrieval.findBound(credential, [id], scope, options)
+        return library
     }
 
     async findOneByIdString(id: string, options?: FindOneOptions<Knowledgebase>): Promise<Knowledgebase> {
@@ -729,10 +760,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return this.embeddingOperations().createVectorStoreForModel(...args)
     }
 
-    getRerankModel(
-        ...args: Parameters<KnowledgebaseEmbeddingOperations['getRerankModel']>
-    ): ReturnType<KnowledgebaseEmbeddingOperations['getRerankModel']> {
-        return this.embeddingOperations().getRerankModel(...args)
+    getRerankModel(id: string, context: TKnowledgebaseModelContext = {}, requestedModel?: TCopilotModel) {
+        return this.embeddingOperations(context).getRerankModel(id, context, requestedModel)
+    }
+
+    getSearchVectorStore(id: string, context: TKnowledgebaseModelContext = {}) {
+        return this.embeddingOperations(context).getActiveVectorStore(id, true, context, { rerankEnabled: false })
+    }
+
+    getGraphSearchVectorStore(id: string, context: TKnowledgebaseModelContext = {}) {
+        return this.embeddingOperations(context).getGraphEntityVectorStore(id, true, context)
     }
 
     getActiveVectorStore(
@@ -919,10 +956,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         })
     }
 
-    private embeddingOperations(): KnowledgebaseEmbeddingOperations {
+    private embeddingOperations(searchContext?: TKnowledgebaseModelContext): KnowledgebaseEmbeddingOperations {
         return new KnowledgebaseEmbeddingOperations({
             commandBus: this.commandBus,
-            findOne: (...args) => this.findOne(...args),
+            findOne: (id, options) =>
+                searchContext ? this.findOneForSearch(id, options, searchContext) : this.findOne(id, options),
             i18nService: this.i18nService,
             queryBus: this.queryBus,
             repository: this.repository

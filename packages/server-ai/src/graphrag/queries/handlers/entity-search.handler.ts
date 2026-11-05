@@ -22,7 +22,7 @@ export class KnowledgeGraphEntitySearchHandler implements IQueryHandler<Knowledg
         }
 
         const limit = Math.min(100, Math.max(1, Math.trunc(input.take ?? 12)))
-        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase.id, true, {
+        const vectorStore = await this.knowledgebaseService.getGraphSearchVectorStore(knowledgebase.id, {
             xpertId: input.xpertId,
             threadId: input.threadId
         })

@@ -16,7 +16,7 @@ import { t } from 'i18next'
 import { assign } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 
-import { Repository } from 'typeorm'
+import { FindOneOptions, Repository } from 'typeorm'
 
 import {
     CopilotModelGetChatModelQuery,
@@ -39,13 +39,12 @@ import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store
 
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
-import type { KnowledgebaseService } from '../management/knowledgebase.service'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { TEmbeddingCopilotModel, TKnowledgebaseModelContext } from './knowledgebase-model-policy'
 
 interface KnowledgebaseEmbeddingOperationsContext {
     commandBus: CommandBus
-    findOne: KnowledgebaseService['findOne']
+    findOne: (id: string, options?: FindOneOptions<Knowledgebase>) => Promise<Knowledgebase>
     i18nService: I18nService
     queryBus: QueryBus
     repository: Repository<Knowledgebase>
@@ -159,10 +158,7 @@ export class KnowledgebaseEmbeddingOperations {
         return typeof dimension === 'number' ? dimension : null
     }
 
-    async resolveEmbeddingDimensions(
-        copilotModel: TEmbeddingCopilotModel,
-        modelContext?: TKnowledgebaseModelContext
-    ) {
+    async resolveEmbeddingDimensions(copilotModel: TEmbeddingCopilotModel, modelContext?: TKnowledgebaseModelContext) {
         const configuredDimensions = this.resolveConfiguredEmbeddingDimensions(copilotModel)
         if (configuredDimensions) {
             return configuredDimensions

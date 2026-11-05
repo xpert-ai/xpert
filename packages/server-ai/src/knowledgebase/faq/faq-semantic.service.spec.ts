@@ -56,7 +56,7 @@ function fixture() {
         vStore: { embeddings: { embedDocuments: embed } },
         createSearchSession: () => ({ getQueryEmbedding: () => (queryPromise ??= query()) })
     } as unknown as KnowledgeDocumentStore
-    const backend = { getActiveVectorStore: jest.fn(async () => store) }
+    const backend = { getSearchVectorStore: jest.fn(async () => store) }
     const cache = { get: jest.fn(async () => undefined), set: jest.fn(async () => undefined) }
     const service = new FAQSemanticService(
         backend as unknown as KnowledgebaseService,
@@ -82,7 +82,7 @@ describe('FAQ semantic request session', () => {
         expect(await f.service.createSession(f.request).filter([faq()])).toHaveLength(0)
         f.request.query = 'other'
         expect(await f.service.createSession(f.request).filter([faq('a', '')])).toHaveLength(1)
-        expect(f.backend.getActiveVectorStore).not.toHaveBeenCalled()
+        expect(f.backend.getSearchVectorStore).not.toHaveBeenCalled()
     })
 
     it('excludes high-confidence negatives, memoizes a repeated FAQ, and reevaluates changed content', async () => {
@@ -96,12 +96,7 @@ describe('FAQ semantic request session', () => {
         expect(session.diagnostics.compared).toBe(2)
         expect(f.query).toHaveBeenCalledTimes(1)
         expect(f.embed.mock.calls[1][0]).toEqual(['ambiguous'])
-        expect(f.backend.getActiveVectorStore).toHaveBeenCalledWith(
-            'kb',
-            true,
-            { xpertId: 'xpert', threadId: 'thread' },
-            { rerankEnabled: false }
-        )
+        expect(f.backend.getSearchVectorStore).toHaveBeenCalledWith('kb', { xpertId: 'xpert', threadId: 'thread' })
     })
 
     it('retains valid vectors within the request even if the shared cache cannot write', async () => {

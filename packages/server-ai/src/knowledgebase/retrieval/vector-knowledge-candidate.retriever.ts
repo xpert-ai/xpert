@@ -39,10 +39,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
     async retrieve(request: KnowledgeRetrievalRequest): Promise<KnowledgeRetrievalBatch> {
         const { knowledgebase: kb, query, k } = request
         const prepared = request.preparedFilter
-        const prepareStore = () =>
-            this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext, {
-                rerankEnabled: false
-            })
+        const prepareStore = () => this.knowledgebaseService.getSearchVectorStore(kb.id, request.modelContext)
         const vectorStore = await (request.faqSession
             ? (request.faqSession.vectorStore ??= prepareStore())
             : prepareStore())

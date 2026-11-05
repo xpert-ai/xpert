@@ -29,6 +29,7 @@ export class KnowledgeFolderOptionsQuery implements IQuery {
         public readonly input: {
             tenantId?: string
             organizationId?: string
+            xpertId?: string
             knowledgebaseId: string
             fixedFilter?: KnowledgeFilterNode
             /** Runtime state used only to resolve mandatory fixed-filter variables. */
