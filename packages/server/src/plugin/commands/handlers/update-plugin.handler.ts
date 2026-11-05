@@ -1,3 +1,4 @@
+import type { PluginVersionCheckResult } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -46,9 +47,10 @@ export class UpdatePluginHandler implements ICommandHandler<UpdatePluginCommand>
 			throw new BadRequestException(`Plugin "${command.pluginName}" does not support npm-based updates`)
 		}
 
-		const latestVersion = await this.queryBus.execute<ResolveLatestPluginVersionQuery, string | undefined>(
+		const check = await this.queryBus.execute<ResolveLatestPluginVersionQuery, PluginVersionCheckResult>(
 			new ResolveLatestPluginVersionQuery(packageName)
 		)
+		const latestVersion = check.status === 'success' ? check.latestVersion : undefined
 		if (!latestVersion) {
 			throw new BadRequestException(`Unable to resolve the latest version for plugin "${command.pluginName}"`)
 		}

@@ -51,7 +51,10 @@
                 {{ detail.displayName || detail.name | i18n }}
               </h1>
               @if (detail.version) {
-                <z-badge class="font-mono">v{{ detail.version }}</z-badge>
+                <z-badge
+                  >{{ 'XP.Plugin.MarketplaceVersion' | translate }}
+                  <span class="font-mono">{{ detail.version }}</span></z-badge
+                >
               }
               @if (detail.installed) {
                 <z-badge zType="secondary">
@@ -121,9 +124,55 @@
                 <dt class="text-text-tertiary">{{ 'XP.Plugin.Package' | translate: { Default: 'Package' } }}</dt>
                 <dd class="min-w-0 break-all text-right font-mono text-text-primary">{{ packageName(detail) }}</dd>
               </div>
-              <div class="flex items-start justify-between gap-4">
-                <dt class="text-text-tertiary">{{ 'XP.Plugin.Version' | translate: { Default: 'Version' } }}</dt>
-                <dd class="text-right text-text-primary">{{ detail.version || '-' }}</dd>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <div class="inline-flex items-center gap-1">
+                  <dt class="text-text-tertiary">{{ 'XP.Plugin.MarketplaceVersion' | translate }}</dt>
+                  <dd class="font-mono text-text-primary">{{ detail.version || '-' }}</dd>
+                </div>
+                @for (installed of detail.installations || []; track installed.scopeKey) {
+                  <div class="inline-flex items-center gap-1">
+                    <dt class="text-text-tertiary">{{ 'XP.Plugin.RunningVersion' | translate }}</dt>
+                    <dd class="font-mono">{{ installed.runningVersion || ('XP.Plugin.NotRunning' | translate) }}</dd>
+                  </div>
+                  <div class="inline-flex items-center gap-1">
+                    <dt class="sr-only">{{ 'XP.Plugin.InstallationMethod' | translate }}</dt>
+                    <dd
+                      tabindex="0"
+                      [zTooltip]="installationDetails"
+                      class="inline-flex items-center gap-1 text-text-secondary"
+                    >
+                      {{ 'XP.Plugin.InstallMethod_' + installed.installation.method | translate }}
+                      <i aria-hidden="true" class="ri-information-line"></i>
+                    </dd>
+                  </div>
+                  @if (installed.pendingRestart) {
+                    <span
+                      class="text-text-warning"
+                      tabindex="0"
+                      [zTooltip]="'XP.Plugin.StagedVersion' | translate: { version: installed.installedVersion }"
+                    >
+                      {{ 'XP.Plugin.StagedVersionShort' | translate: { version: installed.installedVersion } }}
+                    </span>
+                  }
+                  <ng-template #installationDetails>
+                    <div class="max-w-xs space-y-1">
+                      @if (installed.installation.fileName) {
+                        <p>{{ 'XP.Plugin.UploadedFile' | translate }}: {{ installed.installation.fileName }}</p>
+                      }
+                      @if (installed.installation.installedAt) {
+                        <p>
+                          {{ 'XP.Plugin.InstalledAt' | translate }}:
+                          {{ installed.installation.installedAt | date: 'short' }}
+                        </p>
+                      }
+                      @if (installed.installation.method === 'archive') {
+                        <p>{{ 'XP.Plugin.UpdateReason_archive' | translate }}</p>
+                      } @else {
+                        <p>{{ 'XP.Plugin.InstallMethod_' + installed.installation.method | translate }}</p>
+                      }
+                    </div>
+                  </ng-template>
+                }
               </div>
               <div class="flex items-start justify-between gap-4">
                 <dt class="text-text-tertiary">{{ 'XP.Plugin.Category' | translate: { Default: 'Category' } }}</dt>
@@ -167,11 +216,19 @@
               {{ 'XP.Plugin.Documentation' | translate: { Default: 'Documentation' } }}
             </h2>
             <dl class="mt-4 space-y-3 text-sm">
-              <div class="flex items-start justify-between gap-4">
-                <dt class="text-text-tertiary">{{ 'XP.Plugin.ReadmeSource' | translate: { Default: 'Source' } }}</dt>
-                <dd class="text-right text-text-primary">
-                  {{ 'XP.Plugin.ReadmeSource_' + detail.readme.source | translate: { Default: detail.readme.source } }}
-                </dd>
+              <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <div class="inline-flex items-center gap-1">
+                  <dt class="text-text-tertiary">{{ 'XP.Plugin.ReadmeSource' | translate }}</dt>
+                  <dd class="text-text-primary">
+                    {{
+                      'XP.Plugin.ReadmeSource_' + detail.readme.source | translate: { Default: detail.readme.source }
+                    }}
+                  </dd>
+                </div>
+                <div class="inline-flex items-center gap-1">
+                  <dt class="text-text-tertiary">{{ 'XP.Plugin.ReadmeVersion' | translate }}</dt>
+                  <dd class="font-mono">{{ detail.readme.version || ('XP.Plugin.UnknownVersion' | translate) }}</dd>
+                </div>
               </div>
               <div class="flex items-start justify-between gap-4">
                 <dt class="text-text-tertiary">{{ 'XP.Plugin.ReadmeLocale' | translate: { Default: 'Locale' } }}</dt>

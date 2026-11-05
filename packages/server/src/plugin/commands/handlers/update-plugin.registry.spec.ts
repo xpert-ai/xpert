@@ -118,7 +118,10 @@ describe('plugin updates through the npm registry client', () => {
 		}
 		const { module, updater, versions, installPlugin } = await createUpdater('1.0.0')
 		try {
-			await expect(versions.execute(new ResolveLatestPluginVersionQuery(packageName))).resolves.toBe('1.2.3')
+			await expect(versions.execute(new ResolveLatestPluginVersionQuery(packageName))).resolves.toMatchObject({
+				status: 'success',
+				latestVersion: '1.2.3'
+			})
 			await expect(updater.execute(new UpdatePluginCommand(packageName))).resolves.toMatchObject({
 				success: true,
 				updated: true,

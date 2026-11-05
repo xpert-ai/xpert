@@ -1,3 +1,6 @@
+import { pluginInstallationInfo } from '../plugin-installation-info'
+import { getCodeRuntimeName } from '../source-config'
+import type { PluginInstallationSummary } from '@xpert-ai/contracts'
 import { BadRequestException, Inject, Injectable, NotFoundException, type OnModuleDestroy } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
@@ -234,9 +237,54 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 					])
 		return {
 			...plugin,
+			installations: await this.getInstallations(plugin.packageName ?? plugin.name),
 			readme,
 			availableReadmeLocales
 		}
+	}
+
+	private async getInstallations(name: string): Promise<PluginInstallationSummary[]> {
+		const loadedPlugins = this.visibleLoadedPlugins().filter(
+			(record) => normalizePluginName(record.packageName ?? record.name) === normalizePluginName(name)
+		)
+		const instances = await this.pluginInstanceService.findVisibleInOrganization(
+			this.metadata.getCurrentOrganizationId()
+		)
+		const installations: PluginInstallationSummary[] = instances
+			.filter(
+				(instance) =>
+					normalizePluginName(instance.packageName ?? instance.pluginName) === normalizePluginName(name)
+			)
+			.map((instance) => {
+				const loaded = loadedPlugins.find(
+					(record) =>
+						(record.scopeKey ?? record.organizationId) === (instance.scopeKey ?? instance.organizationId)
+				)
+				return {
+					scopeKey: instance.scopeKey ?? instance.organizationId,
+					installation: pluginInstallationInfo(instance.source, instance.sourceConfig),
+					installedVersion: instance.version,
+					runningVersion: loaded?.instance.meta?.version,
+					pendingRestart:
+						instance.pendingRestart === true &&
+						(!loaded ||
+							loaded.instance.meta?.version !== instance.version ||
+							loaded.source !== instance.source ||
+							getCodeRuntimeName(loaded.sourceConfig) !== getCodeRuntimeName(instance.sourceConfig))
+				}
+			})
+		for (const loaded of loadedPlugins) {
+			const scopeKey = loaded.scopeKey ?? loaded.organizationId
+			if (installations.some((installation) => installation.scopeKey === scopeKey)) continue
+			installations.push({
+				scopeKey,
+				installation: pluginInstallationInfo(loaded.source, loaded.sourceConfig),
+				installedVersion: loaded.instance.meta?.version,
+				runningVersion: loaded.instance.meta?.version,
+				pendingRestart: false
+			})
+		}
+		return installations
 	}
 
 	async getMarketplacePluginContent(name: string, query: PluginMarketplaceListQuery = {}) {
@@ -729,7 +777,6 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 	}
 
 	private buildLoadedContext(): InstalledPluginContext {
-		const organizationId = this.metadata.getCurrentOrganizationId()
 		const loadedMetaByName = new Map<string, PluginMeta>()
 		const installedNames = new Set<string>()
 		const addLoadedMeta = (meta: PluginMeta | undefined, ...names: Array<string | undefined>) => {
@@ -742,23 +789,27 @@ export class PluginMarketplaceService implements OnModuleDestroy {
 			}
 		}
 
-		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
-		const organizationScopeKey =
-			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
-		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
-		for (const plugin of this.loadedPlugins) {
-			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
-			if (
-				pluginScopeKey !== organizationScopeKey &&
-				(organizationId === GLOBAL_ORGANIZATION_SCOPE || pluginScopeKey !== globalScopeKey) &&
-				pluginScopeKey !== SYSTEM_GLOBAL_SCOPE
-			) {
-				continue
-			}
+		for (const plugin of this.visibleLoadedPlugins()) {
 			addLoadedMeta(plugin.instance?.meta, plugin.name, plugin.packageName, plugin.instance?.meta?.name)
 		}
 
 		return { installedNames, loadedMetaByName }
+	}
+
+	private visibleLoadedPlugins(): LoadedPluginRecord[] {
+		const organizationId = this.metadata.getCurrentOrganizationId()
+		const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
+		const organizationScopeKey =
+			organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
+		const globalScopeKey = resolveTenantGlobalScopeKey(tenantId)
+		return this.loadedPlugins.filter((plugin) => {
+			const pluginScopeKey = plugin.scopeKey ?? plugin.organizationId
+			return (
+				pluginScopeKey === organizationScopeKey ||
+				(organizationId !== GLOBAL_ORGANIZATION_SCOPE && pluginScopeKey === globalScopeKey) ||
+				pluginScopeKey === SYSTEM_GLOBAL_SCOPE
+			)
+		})
 	}
 
 	private async buildInstalledContext(): Promise<InstalledPluginContext> {

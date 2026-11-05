@@ -51,4 +51,10 @@ describe('PluginAPIService', () => {
 
     expect(next).toHaveBeenCalledWith(response)
   })
+  it('sends an explicit forced version check without installing anything', () => {
+    service.getLatestVersions(['@test/plugin'], true).subscribe()
+    const request = httpMock.expectOne('/api/plugin/latest-versions')
+    expect(request.request.body).toEqual({ names: ['@test/plugin'], forceRefresh: true })
+    request.flush([])
+  })
 })

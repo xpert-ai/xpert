@@ -1,5 +1,6 @@
 {
 	"Error": {
+		"PluginVersionCheckInvalid": "版本檢查請求無效",
 		"PluginPackageNameRequired": "插件包名不能為空",
 		"PluginSystemLevelInstallForbidden": "插件 {{name}} 為系統級插件，不能透過此 API 安裝",
 		"PluginSystemLevelDefaultTenantRequired": "系統級插件 {{name}} 只能在 Default tenant 中安裝",

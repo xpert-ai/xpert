@@ -74,6 +74,39 @@ export interface IPluginUninstallResult {
   runtimeRequirements?: IRuntimePluginRequirement[]
 }
 
+export type PluginInstallationMethod = 'archive' | 'workspace' | 'npm' | 'git' | 'url' | 'local' | 'unknown'
+
+/** Safe installation provenance; never expose server paths or credential-bearing source config. */
+export interface PluginInstallationInfo {
+  method: PluginInstallationMethod
+  fileName?: string
+  installedAt?: string
+}
+
+export type PluginUpdateUnavailableReason =
+  | 'archive'
+  | 'workspace'
+  | 'unsupported_source'
+  | 'scope'
+  | 'pending_restart'
+  | 'load_failed'
+
+export interface PluginVersionCheckResult {
+  status: 'success' | 'failed'
+  checkedAt: string
+  latestVersion?: string
+  lastSuccessfulCheckAt?: string
+  errorCode?: 'REGISTRY_UNAVAILABLE' | 'VERSION_NOT_FOUND'
+}
+
+export interface PluginInstallationSummary {
+  scopeKey?: string
+  installation: PluginInstallationInfo
+  installedVersion?: string
+  runningVersion?: string
+  pendingRestart?: boolean
+}
+
 export interface IPluginDescriptor {
   scopeKey?: string
   organizationId?: string
@@ -82,6 +115,10 @@ export interface IPluginDescriptor {
   packageName?: string
   source?: PluginSource
   currentVersion?: string
+  runningVersion?: string
+  installedVersion?: string
+  installation?: PluginInstallationInfo
+  updateUnavailableReason?: PluginUpdateUnavailableReason
   latestVersion?: string
   isGlobal: boolean
   level: PluginLevel
@@ -102,6 +139,8 @@ export interface IPluginDescriptor {
 }
 
 export interface IPluginLatestVersionStatus {
+  scopeKey?: string
+  check?: PluginVersionCheckResult
   organizationId?: string
   name: PluginName
   packageName?: string

@@ -1,3 +1,5 @@
+import { PluginVersionStatusComponent } from './plugin-version-status.component'
+import { PluginVersionChecks, pluginVersionCheckKey } from './plugin-version-checks'
 import {
   ZardButtonComponent,
   XpDialogFrameImports,
@@ -91,6 +93,7 @@ function parseListParam(value: string | null): string[] {
   standalone: true,
   imports: [
     CommonModule,
+    PluginVersionStatusComponent,
     TranslateModule,
     FormsModule,
     CdkMenuModule,
@@ -114,7 +117,6 @@ function parseListParam(value: string | null): string[] {
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class PluginsComponent {
-  #latestVersionsRequestId = 0
   readonly isDevEnvironment = !environment.production
   readonly router = inject(Router)
   readonly #dialog = inject(Dialog)
@@ -189,6 +191,11 @@ export class PluginsComponent {
     })
   })
   readonly plugins = signal<Array<TInstalledPlugin>>([])
+  readonly #versionChecks = new PluginVersionChecks(this.plugins, (names, forceRefresh) =>
+    firstValueFrom(this.pluginAPI.getLatestVersions(names, forceRefresh))
+  )
+  readonly versionChecks = this.#versionChecks.states
+  readonly versionCheckKey = pluginVersionCheckKey
   readonly removing = signal('')
   readonly updating = signal('')
   readonly refreshing = signal('')
@@ -349,7 +356,7 @@ export class PluginsComponent {
     effect(
       () => {
         this.#activeScope()
-        this.#latestVersionsRequestId += 1
+        this.#versionChecks.reset()
         this.removing.set('')
         this.updating.set('')
         this.refreshing.set('')
@@ -361,12 +368,11 @@ export class PluginsComponent {
       () => {
         const basePlugins = this.#basePlugins()
         this.plugins.set(basePlugins)
-
-        const requestId = ++this.#latestVersionsRequestId
+        this.#versionChecks.reset()
         const pluginNames = Array.from(
           new Set(
             basePlugins
-              .filter((plugin) => plugin.canUpdate)
+              .filter((plugin) => plugin.canUpdate && !plugin.updateUnavailableReason)
               .map((plugin) => plugin.name)
               .filter((name): name is string => !!name)
           )
@@ -376,7 +382,7 @@ export class PluginsComponent {
           return
         }
 
-        void this.loadLatestPluginVersions(pluginNames, requestId)
+        untracked(() => void this.#versionChecks.load(pluginNames))
       },
       { allowSignalWrites: true }
     )
@@ -833,7 +839,7 @@ export class PluginsComponent {
   }
 
   private reloadInstalledPlugins() {
-    this.#latestVersionsRequestId += 1
+    this.#versionChecks.reset()
     this.plugins.update((plugins) =>
       plugins.map((plugin) => ({
         ...plugin,
@@ -844,42 +850,8 @@ export class PluginsComponent {
     this.#plugins.reload()
   }
 
-  private buildPluginVersionStatusKey(organizationId: string | undefined, name: string) {
-    return `${organizationId ?? ''}:${name}`
-  }
-
-  private async loadLatestPluginVersions(pluginNames: string[], requestId: number) {
-    try {
-      const latestVersions = await firstValueFrom(this.pluginAPI.getLatestVersions(pluginNames))
-      if (requestId !== this.#latestVersionsRequestId) {
-        return
-      }
-
-      const latestVersionMap = new Map(
-        latestVersions.map((plugin) => [this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name), plugin])
-      )
-
-      this.plugins.update((plugins) =>
-        plugins.map((plugin) => {
-          const latestVersion = latestVersionMap.get(
-            this.buildPluginVersionStatusKey(plugin.organizationId, plugin.name)
-          )
-          if (!latestVersion) {
-            return plugin
-          }
-
-          return {
-            ...plugin,
-            latestVersion: latestVersion.latestVersion,
-            hasUpdate: latestVersion.hasUpdate
-          }
-        })
-      )
-    } catch {
-      if (requestId !== this.#latestVersionsRequestId) {
-        return
-      }
-    }
+  checkPluginVersion(plugin: TInstalledPlugin) {
+    void this.#versionChecks.check(plugin)
   }
 
   /**

@@ -236,9 +236,14 @@ describe('PluginMarketplaceService localized registry metadata', () => {
 
 describe('PluginMarketplaceService README detail', () => {
 	let tempRoot: string
+	let storedVersion: string
+	let persistedInstallation: boolean
 	let service: PluginMarketplaceService
 
 	beforeEach(() => {
+		jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
+		storedVersion = '0.2.0'
+		persistedInstallation = true
 		tempRoot = mkdtempSync(join(tmpdir(), 'xpert-plugin-readme-test-'))
 		mkdirSync(join(tempRoot, '.xpertai-plugin'), { recursive: true })
 		writeFileSync(
@@ -276,7 +281,26 @@ describe('PluginMarketplaceService README detail', () => {
 					ctx: {}
 				}
 			] as any,
-			{} as any
+			{
+				findVisibleInOrganization: async () =>
+					persistedInstallation
+						? [
+								{
+									pluginName: '@xpert-ai/plugin-canvas',
+									organizationId: 'org-1',
+									scopeKey: 'org-1',
+									version: storedVersion,
+									source: 'code',
+									pendingRestart: true,
+									sourceConfig: {
+										uploadFileName: 'canvas.tgz',
+										uploadInstalledAt: '2026-11-05T00:00:00Z',
+										runtimeName: 'staged-upload'
+									}
+								}
+							]
+						: []
+			} as unknown as ConstructorParameters<typeof PluginMarketplaceService>[3]
 		)
 		jest.spyOn(service as any, 'findMarketplacePlugin').mockResolvedValue({
 			sourceUnavailable: false,
@@ -296,6 +320,36 @@ describe('PluginMarketplaceService README detail', () => {
 		jest.restoreAllMocks()
 	})
 
+	it('includes visible runtime installations that have no persisted installation record', async () => {
+		persistedInstallation = false
+		const detail = await service.getMarketplacePluginDetail('@xpert-ai/plugin-canvas')
+		expect(detail.installations).toEqual([
+			{
+				scopeKey: 'org-1',
+				runningVersion: '0.1.0',
+				installedVersion: '0.1.0',
+				pendingRestart: false,
+				installation: { method: 'workspace' }
+			}
+		])
+	})
+
+	it('does not expose runtime-only installations from another organization', async () => {
+		persistedInstallation = false
+		jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-other')
+		expect(await service['getInstallations']('@xpert-ai/plugin-canvas')).toEqual([])
+	})
+
+	it('reports a same-version re-upload as pending until its runtime artifact is loaded', async () => {
+		storedVersion = '0.1.0'
+		const detail = await service.getMarketplacePluginDetail('@xpert-ai/plugin-canvas')
+		expect(detail.installations?.[0]).toMatchObject({
+			runningVersion: '0.1.0',
+			installedVersion: '0.1.0',
+			pendingRestart: true
+		})
+	})
+
 	it('prefers localized package README files', async () => {
 		const detail = await service.getMarketplacePluginDetail('@xpert-ai/plugin-canvas', {
 			targetApp: 'xpert',
@@ -311,6 +365,15 @@ describe('PluginMarketplaceService README detail', () => {
 			})
 		)
 		expect(detail.availableReadmeLocales).toEqual(expect.arrayContaining(['en', 'zh-hans']))
+		expect(detail.readme.version).toBe('0.1.0')
+		expect(detail.installations).toEqual([
+			expect.objectContaining({
+				runningVersion: '0.1.0',
+				installedVersion: '0.2.0',
+				pendingRestart: true,
+				installation: { method: 'archive', fileName: 'canvas.tgz', installedAt: '2026-11-05T00:00:00Z' }
+			})
+		])
 	})
 
 	it('falls back to README.md when a localized README is missing', async () => {

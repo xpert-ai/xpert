@@ -826,7 +826,11 @@ describe('PluginController', () => {
 			},
 			ctx: {}
 		})
-		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+		jest.mocked(queryBus.execute).mockResolvedValue({
+			status: 'success',
+			latestVersion: '0.0.2',
+			checkedAt: '2026-11-05T00:00:00Z'
+		})
 
 		await expect(controller.getPlugins()).resolves.toEqual([
 			expect.objectContaining({
@@ -863,19 +867,27 @@ describe('PluginController', () => {
 			},
 			ctx: {}
 		})
-		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+		jest.mocked(queryBus.execute).mockResolvedValue({
+			status: 'success',
+			latestVersion: '0.0.2',
+			checkedAt: '2026-11-05T00:00:00Z'
+		})
 
-		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-env-demo'] })).resolves.toEqual([
+		await expect(
+			controller.getLatestVersions({ names: ['@xpert-ai/plugin-env-demo'], forceRefresh: true })
+		).resolves.toEqual([
 			{
+				scopeKey: 'org-1',
 				organizationId: 'org-1',
 				name: '@xpert-ai/plugin-env-demo',
 				packageName: '@xpert-ai/plugin-env-demo',
 				latestVersion: '0.0.2',
+				check: { status: 'success', latestVersion: '0.0.2', checkedAt: '2026-11-05T00:00:00Z' },
 				hasUpdate: true
 			}
 		])
 		expect((queryBus as any).execute).toHaveBeenCalledWith(
-			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-env-demo')
+			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-env-demo', true)
 		)
 	})
 
@@ -1055,14 +1067,20 @@ describe('PluginController', () => {
 			},
 			ctx: {}
 		})
-		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+		jest.mocked(queryBus.execute).mockResolvedValue({
+			status: 'success',
+			latestVersion: '0.0.2',
+			checkedAt: '2026-11-05T00:00:00Z'
+		})
 
 		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-global-demo'] })).resolves.toEqual([
 			{
+				scopeKey: GLOBAL_ORGANIZATION_SCOPE,
 				organizationId: GLOBAL_ORGANIZATION_SCOPE,
 				name: '@xpert-ai/plugin-global-demo',
 				packageName: '@xpert-ai/plugin-global-demo',
 				hasUpdate: true,
+				check: { status: 'success', latestVersion: '0.0.2', checkedAt: '2026-11-05T00:00:00Z' },
 				latestVersion: '0.0.2'
 			}
 		])
@@ -1104,14 +1122,20 @@ describe('PluginController', () => {
 				ctx: {}
 			}
 		)
-		;(queryBus as any).execute.mockResolvedValue('0.0.3')
+		jest.mocked(queryBus.execute).mockResolvedValue({
+			status: 'success',
+			latestVersion: '0.0.3',
+			checkedAt: '2026-11-05T00:00:00Z'
+		})
 
 		await expect(controller.getLatestVersions({ names: ['@xpert-ai/plugin-scope-demo'] })).resolves.toEqual([
 			{
+				scopeKey: 'org-1',
 				organizationId: 'org-1',
 				name: '@xpert-ai/plugin-scope-demo',
 				packageName: '@xpert-ai/plugin-scope-demo',
 				latestVersion: '0.0.3',
+				check: { status: 'success', latestVersion: '0.0.3', checkedAt: '2026-11-05T00:00:00Z' },
 				hasUpdate: true
 			}
 		])
