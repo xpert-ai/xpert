@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto'
 import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
-import { executionAbortScope } from '../../execution-control/execution-abort-scope'
 import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
@@ -142,8 +141,12 @@ export class XpertCollaborator implements IXpertSubAgent {
                     }
                 }
 
-                await cancellations.attach(_execution.id, executionId, 'attached')
-                const scope = executionAbortScope(_execution.id, cancellations, [signal, config.signal])
+                const scope = await cancellations.openAttached(
+                    _execution.id,
+                    executionId,
+                    configurable.agentInvocationId,
+                    [signal, config.signal]
+                )
                 try {
                     await cancellations.check(_execution.id)
                     scope.controller.signal.throwIfAborted()
@@ -240,7 +243,7 @@ export class XpertCollaborator implements IXpertSubAgent {
                         }
                     )()
                 } finally {
-                    scope.dispose()
+                    await scope.close()
                 }
             }
         )

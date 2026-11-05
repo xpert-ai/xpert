@@ -260,7 +260,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
         const executionContext: ExecutionContext = {
             sandbox: sandboxContext,
-            runAttachedExecution: attachedGraphRunner(execution.id, this.executionControls, this.executionCancelService)
+            runAttachedExecution: attachedGraphRunner(execution.id, this.executionCancelService)
         }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
         const { graph, agent, xpertGraph } = await withExecutionContext(executionContext, () =>

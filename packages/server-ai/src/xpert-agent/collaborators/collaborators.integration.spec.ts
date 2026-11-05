@@ -239,7 +239,8 @@ function fixture(
         {
             terminate: jest.fn(),
             shouldAbort: jest.fn(),
-            attach: jest.fn(),
+            beginAttached: jest.fn(),
+            finishAttached: jest.fn(),
             tasks: { execution: jest.fn().mockResolvedValue(null) }
         } as unknown as ExecutionControlStore
     )

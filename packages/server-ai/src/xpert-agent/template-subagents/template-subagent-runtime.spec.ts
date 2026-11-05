@@ -29,6 +29,8 @@ import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/co
 import { ResolveTemplateConnectorsCommand } from '../../connector/template-connectors.command'
 import { XpertWorkAreaResolver, XpertRuntimeWorkArea } from '../../shared/volume/work-area'
 import { VolumeHandle } from '../../shared/volume/volume'
+import { createClient } from 'redis'
+import type { ExecutionControlStore } from '../../execution-control/execution-control.store'
 import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
 import { AgentStateAnnotation } from '../../shared/agent/state'
 import { TemplateSubagentRuntimeService } from './template-subagent-runtime.service'
@@ -153,13 +155,14 @@ describe('template invocation lifecycle', () => {
             defaultPath: { relativePath: '', serverPath: directory, workspacePath: directory }
         }
         const workAreas = { resolve: jest.fn().mockResolvedValue(area) }
-        const cancellations = { attach: jest.fn(), check: jest.fn(), register: jest.fn(), unregister: jest.fn() }
+        const controls = { beginAttached: jest.fn(), finishAttached: jest.fn(), shouldAbort: jest.fn() }
+        const cancellations = new ExecutionCancelService(createClient(), controls as unknown as ExecutionControlStore)
         const invocations = new AgentInvocationRuntime(store, registry)
         const runtime = new TemplateSubagentRuntimeService(
             commands as unknown as CommandBus,
             queries as unknown as QueryBus,
             invocations,
-            cancellations as unknown as ExecutionCancelService,
+            cancellations,
             workAreas as unknown as XpertWorkAreaResolver
         )
         const controller = new AbortController()
@@ -222,6 +225,7 @@ describe('template invocation lifecycle', () => {
             controller,
             draft,
             invocations,
+            controls,
             cancellations,
             owner
         }
@@ -305,7 +309,7 @@ describe('template invocation lifecycle', () => {
         f.controller.abort(new Error('parent cancelled'))
         await expect(pending).rejects.toThrow()
         expect([...f.store.rows.values()][0].invocation.status).toBe('cancelled')
-        expect(f.cancellations.unregister).toHaveBeenCalledTimes(1)
+        expect(f.controls.finishAttached).toHaveBeenCalledTimes(1)
     })
 
     it('resumes an approval inside the child without restarting completed work', async () => {
@@ -347,6 +351,10 @@ describe('template invocation lifecycle', () => {
         expect(attempts.map((attempt) => attempt.metadata.invocationId)).toEqual([invocationId, invocationId])
         expect(attempts[0].id).toBe(invocationId)
         expect(attempts[1].id).not.toBe(attempts[0].id)
+        expect(f.controls.beginAttached.mock.calls).toEqual(
+            attempts.map(({ id }) => [id, 'parent', undefined, invocationId])
+        )
+        expect(f.controls.finishAttached.mock.calls).toEqual(attempts.map(({ id }) => [id]))
         expect(f.compile.mock.calls.at(-1)[0].xpert.copilotModel.model).toBe('fallback')
     })
 
@@ -413,7 +421,7 @@ describe('template invocation lifecycle', () => {
             {} as RuntimeResourceService,
             f.invocations,
             new NativeAgentCompiler(commandBus, queryBus),
-            f.cancellations as unknown as ExecutionCancelService
+            f.cancellations
         )
         const handler = new XpertAgentSubgraphHandler(
             new MemorySaver() as unknown as CopilotCheckpointSaver,

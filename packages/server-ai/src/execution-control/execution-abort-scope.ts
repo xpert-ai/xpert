@@ -1,4 +1,4 @@
-import { ExecutionCancelService } from './execution-cancel.service'
+import type { ExecutionCancelService } from './execution-cancel.service'
 
 /** Each invocation owns its controller; parent cancellation flows down, never up or sideways. */
 export function executionAbortScope(

@@ -188,7 +188,12 @@ export class NativeAgentCompiler {
                     }
                     const output = await invokeChildGraph(
                         { ...config, signal: config.signal ?? signal },
-                        { executionId: _execution.id, agentKey: agent.key, xpertName: agentLabel(agent) },
+                        {
+                            executionId: _execution.id,
+                            invocationId: configurable.agentInvocationId,
+                            agentKey: agent.key,
+                            xpertName: agentLabel(agent)
+                        },
                         (childConfig) => graph.invoke(subState, childConfig)
                     )
 
