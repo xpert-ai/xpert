@@ -25,6 +25,7 @@ import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 const PARALLEL_MAXIMUM = 2
@@ -39,7 +40,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly i18nService: I18nService
+        private readonly i18nService: I18nService,
+        private readonly executionControls: ExecutionControlStore
     ) {}
 
     public async execute(command: CreateWNIteratingCommand) {
@@ -206,28 +208,36 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
                                 const retState = await wrapAgentExecution(
                                     async () => {
-                                        const retState = await subgraph.invoke(
-                                            {
-                                                ...state,
-                                                ...inputs
-                                            },
-                                            {
-                                                ...config,
-                                                signal: controller.signal,
-                                                configurable: {
-                                                    ...config.configurable,
-                                                    agentKey,
-                                                    xpertName,
-                                                    executionId: subAgentExecution.id
+                                        const invoke = () =>
+                                            subgraph.invoke(
+                                                {
+                                                    ...state,
+                                                    ...inputs
                                                 },
-                                                metadata: {
-                                                    ...(config.metadata ?? {}),
-                                                    agentKey,
-                                                    xpertName,
-                                                    executionId: subAgentExecution.id,
-                                                    parentExecutionId: itemExecution.id
+                                                {
+                                                    ...config,
+                                                    signal: controller.signal,
+                                                    configurable: {
+                                                        ...config.configurable,
+                                                        agentKey,
+                                                        xpertName,
+                                                        executionId: subAgentExecution.id
+                                                    },
+                                                    metadata: {
+                                                        ...(config.metadata ?? {}),
+                                                        agentKey,
+                                                        xpertName,
+                                                        executionId: subAgentExecution.id,
+                                                        parentExecutionId: itemExecution.id
+                                                    }
                                                 }
-                                            }
+                                            )
+
+                                        // The item is a trace. The child graph runs under the enclosing execution.
+                                        const retState = await this.executionControls.runAttached(
+                                            subAgentExecution.id,
+                                            executionId,
+                                            invoke
                                         )
 
                                         const outputItem = outputParams.reduce((acc, curr) => {
