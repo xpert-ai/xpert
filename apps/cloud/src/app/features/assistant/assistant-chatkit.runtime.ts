@@ -324,6 +324,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
     const displayMode = readReactiveChatKitOption(input.displayMode)
+    const pet =
+      displayMode === 'pet' && typeof input.pet === 'object' && user?.id && currentOrganizationId
+        ? { ...input.pet, dismissalKey: JSON.stringify([user.id, currentOrganizationId]) }
+        : input.pet
     const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
@@ -384,7 +388,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       theme: currentTheme,
       displayMode,
       layout: input.layout,
-      pet: input.pet,
+      pet,
       taskSummary: input.taskSummary,
       messagePresentation: group
         ? { ...input.messagePresentation, mode: 'bubbles' as const }

@@ -194,8 +194,10 @@ describe('assistant chatkit runtime helpers', () => {
     const loading = signal(false)
     const initialThread = signal<string | null>('thread-1')
     const projectId = signal<string | null>('project-1')
-    const organizationId = new BehaviorSubject('org-1')
+    const organizationId = new BehaviorSubject<string | null>('org-1')
+    const token = new BehaviorSubject('token-1')
     const user = new BehaviorSubject<Partial<IUser> | null>({
+      id: 'user-1',
       role: {
         name: RolesEnum.AI_BUILDER,
         rolePermissions: [{ permission: AIPermissionsEnum.XPERT_EDIT, enabled: true }]
@@ -236,7 +238,7 @@ describe('assistant chatkit runtime helpers', () => {
           provide: Store,
           useValue: {
             token: 'token-1',
-            token$: of('token-1'),
+            token$: token,
             user$: user,
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
@@ -269,7 +271,8 @@ describe('assistant chatkit runtime helpers', () => {
     })
     flushAngularEffects()
 
-    expect(createChatKitMock.mock.calls[0][0].pet).not.toHaveProperty('assetsBaseUrl')
+    const scopedPet = createChatKitMock.mock.calls[0][0].pet
+    expect(scopedPet).toEqual({ ...pet, dismissalKey: expect.any(String) })
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
@@ -280,7 +283,7 @@ describe('assistant chatkit runtime helpers', () => {
           }
         }),
         layout,
-        pet,
+        pet: scopedPet,
         workbench,
         messagePresentation,
         api: expect.objectContaining({
@@ -332,6 +335,7 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).toHaveBeenLastCalledWith(
       expect.objectContaining({
         displayMode: 'chat',
+        pet,
         messagePresentation,
         header: {
           title: {
@@ -374,7 +378,7 @@ describe('assistant chatkit runtime helpers', () => {
       expect.objectContaining({
         displayMode: 'pet',
         layout,
-        pet,
+        pet: scopedPet,
         workbench,
         api: expect.objectContaining({
           xpertId: 'assistant-1',
@@ -460,7 +464,10 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock).toHaveBeenCalledTimes(1)
     expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
-    user.next({ role: { name: RolesEnum.APP_USER } })
+    const otherOrgPet = createChatKitMock.mock.calls[0][0].pet
+    expect(otherOrgPet.dismissalKey).toEqual(expect.any(String))
+    expect(otherOrgPet.dismissalKey).not.toBe(scopedPet.dismissalKey)
+    user.next({ id: 'user-2', role: { name: RolesEnum.APP_USER } })
     flushAngularEffects()
     expect(setOptions).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -472,6 +479,21 @@ describe('assistant chatkit runtime helpers', () => {
         request: { context: { projectId: 'project-2' } }
       })
     )
+    const otherUserPet = setOptions.mock.lastCall![0].pet
+    expect(otherUserPet.dismissalKey).toEqual(expect.any(String))
+    expect(otherUserPet.dismissalKey).not.toBe(otherOrgPet.dismissalKey)
+
+    user.next(null)
+    flushAngularEffects()
+    expect(setOptions.mock.lastCall![0].pet).toEqual(pet)
+    organizationId.next(null)
+    user.next({ id: 'user-1' })
+    flushAngularEffects()
+    expect(createChatKitMock.mock.lastCall![0].pet).toEqual(pet)
+    organizationId.next('org-1')
+    token.next('new-login-token')
+    flushAngularEffects()
+    expect(createChatKitMock.mock.lastCall![0].pet).toEqual(scopedPet)
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {
