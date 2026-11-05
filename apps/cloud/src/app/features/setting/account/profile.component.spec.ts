@@ -3,12 +3,13 @@ import { UsersService } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { IUser, LanguagesEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject, of, Subject } from 'rxjs'
-import { RoleService, Store, ToastrService } from '../../../@core'
+import { AssistantBindingService, RoleService, Store, ToastrService } from '../../../@core'
 import { XpAccountProfileComponent } from './profile.component'
 
 jest.mock('@cloud/app/@core/state', () => ({ UsersService: class UsersService {} }))
 jest.mock('../../../@core', () => ({
   Store: class Store {},
+  AssistantBindingService: class AssistantBindingService {},
   RoleService: class RoleService {},
   ToastrService: class ToastrService {},
   LANGUAGES: [
@@ -27,6 +28,8 @@ describe('XpAccountProfileComponent', () => {
   let component: XpAccountProfileComponent
   let root: HTMLElement
   let users: BehaviorSubject<IUser>
+  let organization: BehaviorSubject<string | null>
+  let isWorkspaceAssistantAvailable: jest.Mock
   let updateMe: jest.Mock
   let toastr: { success: jest.Mock; error: jest.Mock }
 
@@ -46,6 +49,9 @@ describe('XpAccountProfileComponent', () => {
 
   beforeEach(async () => {
     users = new BehaviorSubject<IUser>({ ...initialUser })
+    localStorage.clear()
+    organization = new BehaviorSubject<string | null>('org-1')
+    isWorkspaceAssistantAvailable = jest.fn(() => of(true))
     updateMe = jest.fn(() => of({ ...initialUser }))
     toastr = { success: jest.fn(), error: jest.fn() }
     await TestBed.configureTestingModule({
@@ -55,6 +61,7 @@ describe('XpAccountProfileComponent', () => {
           provide: Store,
           useValue: {
             user$: users.asObservable(),
+            selectOrganizationId: () => organization.asObservable(),
             get user() {
               return users.value
             },
@@ -63,6 +70,7 @@ describe('XpAccountProfileComponent', () => {
             }
           }
         },
+        { provide: AssistantBindingService, useValue: { isWorkspaceAssistantAvailable } },
         { provide: UsersService, useValue: { updateMe } },
         { provide: RoleService, useValue: { getAll: () => of({ items: [{ id: 'role-1', name: 'Viewer' }] }) } },
         { provide: ToastrService, useValue: toastr }
@@ -77,6 +85,38 @@ describe('XpAccountProfileComponent', () => {
   })
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('saves pet visibility immediately for the current account and organization without saving the profile', async () => {
+    const toggle = root.querySelector<HTMLButtonElement>('button[role="switch"]')
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    toggle.click()
+    fixture.detectChanges()
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(localStorage.getItem('xpert:workspace-pet:hidden:["user-1","org-1"]')).toBe('1')
+    expect(component.form.pristine).toBe(true)
+    expect(updateMe).not.toHaveBeenCalled()
+
+    isWorkspaceAssistantAvailable.mockReturnValue(of(false))
+    organization.next('org-2')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(toggle.disabled).toBe(true)
+    expect(root.textContent).toContain('XP.ProfileSettings.WorkspacePetDisabled')
+    expect(localStorage.getItem('xpert:workspace-pet:hidden:["user-1","org-2"]')).toBeNull()
+
+    isWorkspaceAssistantAvailable.mockReturnValue(of(true))
+    organization.next('org-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(toggle.disabled).toBe(false)
+    localStorage.setItem('xpert:workspace-pet:hidden:["user-1","org-1"]', '0')
+    window.dispatchEvent(new StorageEvent('storage', { key: 'xpert:workspace-pet:hidden:["user-1","org-1"]' }))
+    fixture.detectChanges()
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+  })
 
   function input(id: string, value: string) {
     const field = root.querySelector<HTMLInputElement>(`#${id}`)

@@ -74,17 +74,17 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}, tableRows = fals
                     .slice(0, options.topN)
         )
     }
-    const getActiveVectorStore = jest.fn(async () => vectorStore)
+    const getSearchVectorStore = jest.fn(async () => vectorStore)
     const getRerankModel = jest.fn(async () => vectorStore)
     const knowledgebaseService = {
-        findAll: jest.fn(async () => ({ items: [knowledgebase] })),
+        findAllForSearch: jest.fn(async () => ({ items: [knowledgebase] })),
         searchExternalKnowledgebase: jest.fn(async () => ({
             chunks: [
                 [document('external-high', 0.9), 0.9],
                 [document('external-low', 0.3), 0.3]
             ]
         })),
-        getActiveVectorStore,
+        getSearchVectorStore,
         getRerankModel
     } as unknown as KnowledgebaseService
     const chunkService = {
@@ -174,7 +174,7 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}, tableRows = fals
         vectorStore,
         graphQuery,
         keywordDataSource,
-        getActiveVectorStore,
+        getSearchVectorStore,
         getRerankModel,
         retrievalLogService,
         tableContextService
@@ -372,13 +372,13 @@ describe('Knowledge retrieval finalization', () => {
     it.each<KnowledgeRetrievalMode>(['keyword', 'graph'])(
         'reranks %s evidence without requiring an available embedding model',
         async (mode) => {
-            const { execute, getActiveVectorStore, getRerankModel } = createHarness({ rerankModelId: 'rerank-model' })
-            getActiveVectorStore.mockRejectedValue(new Error('embedding provider unavailable'))
+            const { execute, getSearchVectorStore, getRerankModel } = createHarness({ rerankModelId: 'rerank-model' })
+            getSearchVectorStore.mockRejectedValue(new Error('embedding provider unavailable'))
 
             const result = await execute({ retrieval: { mode }, xpertId: 'xpert-1', threadId: 'thread-1' })
 
             expect(result.documents.map(({ metadata }) => metadata.chunkId)).toEqual([`${mode}-hit`])
-            expect(getActiveVectorStore).not.toHaveBeenCalled()
+            expect(getSearchVectorStore).not.toHaveBeenCalled()
             expect(getRerankModel).toHaveBeenCalledWith('kb-1', { xpertId: 'xpert-1', threadId: 'thread-1' })
         }
     )

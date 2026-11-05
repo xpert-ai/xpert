@@ -340,6 +340,7 @@ export class KnowledgeRetriever extends BaseRetriever {
                     })
                 }
                 const commonInput = {
+                    xpertId: this.readModelContext(config?.configurable).xpertId,
                     tenantId: this.tenantId,
                     organizationId: this.organizationId,
                     knowledgebaseId: this.knowledgebaseId,
@@ -518,6 +519,7 @@ export class KnowledgeRetriever extends BaseRetriever {
     private getToolKnowledgebase(): Promise<KnowledgebaseToolContext> {
         this.#toolKnowledgebase ??= this.queryBus.execute(
             new KnowledgebaseGetOneQuery({
+                purpose: 'retrieval',
                 id: this.knowledgebaseId,
                 options: {
                     select: {

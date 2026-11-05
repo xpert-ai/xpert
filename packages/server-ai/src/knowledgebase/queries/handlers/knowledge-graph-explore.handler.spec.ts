@@ -23,7 +23,7 @@ const fixedFilter = {
 
 function createHandler(queryResult: unknown, evidence: unknown[]) {
     const knowledgebaseService = {
-        findAll: jest.fn().mockResolvedValue({ items: [knowledgebase] }),
+        findAllForSearch: jest.fn().mockResolvedValue({ items: [knowledgebase] }),
         listStructuredGraphEvidence: jest.fn().mockResolvedValue(evidence)
     }
     const graphFilterScopeService = {

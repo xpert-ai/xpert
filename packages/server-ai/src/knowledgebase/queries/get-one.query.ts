@@ -1,16 +1,17 @@
 import { Query } from '@nestjs/cqrs'
-import { FindOneOptions } from 'typeorm';
-import { Knowledgebase } from '../persistence/knowledgebase.entity';
+import { FindOneOptions } from 'typeorm'
+import { Knowledgebase } from '../persistence/knowledgebase.entity'
 
 export class KnowledgebaseGetOneQuery extends Query<Knowledgebase> {
-	static readonly type = '[Knowledgebase] Get one'
+    static readonly type = '[Knowledgebase] Get one'
 
-	constructor(
-		public readonly input: {
-			id: string;
-			options?: FindOneOptions<Knowledgebase>
-		}
-	) {
-		super()
-	}
+    constructor(
+        public readonly input: {
+            id: string
+            purpose?: 'retrieval'
+            options?: FindOneOptions<Knowledgebase>
+        }
+    ) {
+        super()
+    }
 }

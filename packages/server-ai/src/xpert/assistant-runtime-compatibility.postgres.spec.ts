@@ -5,12 +5,32 @@ jest.mock('@xpert-ai/server-core', () => ({
 jest.mock('./xpert.entity', () => ({ Xpert: class Xpert {} }))
 jest.mock('../xpert-workspace/workspace.entity', () => ({ XpertWorkspace: class XpertWorkspace {} }))
 
+jest.mock('../xpert-project/entities/project.entity', () => ({ XpertProject: class XpertProject {} }))
+jest.mock('../knowledgebase/persistence/knowledgebase.entity', () => ({ Knowledgebase: class Knowledgebase {} }))
+jest.mock('../knowledgebase/runtime/knowledge-resource-access.service', () => ({
+    KnowledgeResourceAccessService: class KnowledgeResourceAccessService {}
+}))
+
+import { CqrsModule, QueryBus } from '@nestjs/cqrs'
+import { Test, TestingModule } from '@nestjs/testing'
+import { GetAccessiblePublishedXpertHandler } from './published-agent/get-accessible-published-xpert.query'
+import { runWithPublishedAgent } from './published-agent/with-published-agent'
+import { assistantRuntimeCredential } from '@xpert-ai/server-core'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
+import { AssistantKnowledgeRetrievalService } from '../knowledgebase/retrieval/assistant-knowledge-retrieval.service'
+import { KnowledgeResourceAccessService } from '../knowledgebase/runtime/knowledge-resource-access.service'
 import { randomUUID } from 'node:crypto'
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
 import { DataSource, EntitySchema } from 'typeorm'
 import { ForbiddenException } from '@nestjs/common'
-import { AIPermissionsEnum, IApiPrincipal, SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
+import {
+    AIPermissionsEnum,
+    IApiPrincipal,
+    KnowledgebasePermission,
+    SecretTokenBindingType,
+    UserType
+} from '@xpert-ai/contracts'
 import { als, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Xpert } from './xpert.entity'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
@@ -37,6 +57,9 @@ class Group {
 
 integration('Assistant technical credential lists and point reads / PostgreSQL', () => {
     let database: DataSource, workspaces: XpertWorkspaceAccessService, assistants: PublishedXpertAccessService
+    let module: TestingModule
+    let retrieval: AssistantKnowledgeRetrievalService
+    const resourceRead = jest.fn().mockRejectedValue(new ForbiddenException())
     let actor: IApiPrincipal
     const capabilities = { canRead: false, canRun: true, canWrite: false, canManage: false }
     function inRequest<T>(work: () => Promise<T>, organizationId?: string) {
@@ -72,6 +95,19 @@ integration('Assistant technical credential lists and point reads / PostgreSQL',
                     },
                     relations: { members: { type: 'many-to-many', target: 'Member', joinTable: true } }
                 }),
+                new EntitySchema<Knowledgebase>({
+                    name: 'Knowledgebase',
+                    target: Knowledgebase,
+                    tableName: 'knowledgebase',
+                    columns: {
+                        id: { type: 'uuid', primary: true },
+                        tenantId: { type: 'uuid' },
+                        organizationId: { type: 'uuid', nullable: true },
+                        workspaceId: { type: 'uuid' },
+                        permission: { type: 'varchar', default: KnowledgebasePermission.Private },
+                        resourceRef: { type: 'jsonb', nullable: true }
+                    }
+                }),
                 new EntitySchema<Xpert>({
                     name: 'Xpert',
                     target: Xpert,
@@ -91,6 +127,11 @@ integration('Assistant technical credential lists and point reads / PostgreSQL',
                             type: 'many-to-one',
                             target: 'XpertWorkspace',
                             joinColumn: { name: 'workspaceId' }
+                        },
+                        knowledgebases: {
+                            type: 'many-to-many',
+                            target: 'Knowledgebase',
+                            joinTable: { name: 'xpert_to_knowledgebase' }
                         },
                         userGroups: { type: 'many-to-many', target: 'Group', joinTable: true }
                     }
@@ -129,8 +170,26 @@ integration('Assistant technical credential lists and point reads / PostgreSQL',
         )
         workspaces = new XpertWorkspaceAccessService(database.getRepository(XpertWorkspace))
         assistants = new PublishedXpertAccessService(database.getRepository(Xpert), workspaces)
+        module = await Test.createTestingModule({
+            imports: [CqrsModule],
+            providers: [
+                GetAccessiblePublishedXpertHandler,
+                { provide: PublishedXpertAccessService, useValue: assistants }
+            ]
+        }).compile()
+        await module.init()
+        const resources = Object.assign(
+            Object.create(KnowledgeResourceAccessService.prototype) as KnowledgeResourceAccessService,
+            { authorizeReference: resourceRead }
+        )
+        retrieval = new AssistantKnowledgeRetrievalService(
+            database.getRepository(Knowledgebase),
+            resources,
+            module.get(QueryBus)
+        )
     })
     afterAll(async () => {
+        await module?.close()
         if (database?.isInitialized) {
             await database.query(`DROP SCHEMA "${schema}" CASCADE`)
             await database.destroy()
@@ -148,6 +207,137 @@ integration('Assistant technical credential lists and point reads / PostgreSQL',
             apiKey: { token: 'fixture', tenantId: tenant, userId: user }
         }
     })
+    it('searches only live published knowledge bindings with the Assistant runtime credential', async () => {
+        const bound = randomUUID(),
+            unbound = randomUUID(),
+            foreign = randomUUID(),
+            otherWorkspace = randomUUID()
+        const libraries = database.getRepository(Knowledgebase)
+        await libraries.save(
+            [bound, unbound, foreign, otherWorkspace].map((id) => ({
+                id,
+                tenantId: tenant,
+                organizationId: id === foreign ? randomUUID() : org,
+                workspaceId: id === otherWorkspace ? otherWorkspaceId : workspaceId
+            }))
+        )
+        const relation = database.createQueryBuilder().relation(Xpert, 'knowledgebases').of(assistantId)
+        await relation.add([bound, foreign, otherWorkspace])
+        await database.createQueryBuilder().relation(Xpert, 'knowledgebases').of(siblingId).add(unbound)
+        await inRequest(async () => {
+            const credential = assistantRuntimeCredential(RequestContext.currentUser())
+            if (!credential) throw new Error('Expected an Assistant runtime credential')
+            const scope = { tenantId: tenant, organizationId: org, xpertId: assistantId }
+            const load = (ids: string[]) => retrieval.findBound(credential, ids, scope)
+            await expect(workspaces.assertCanRead(workspaceId)).rejects.toBeInstanceOf(ForbiddenException)
+            expect((await load([bound, bound])).map((kb) => kb.id)).toEqual([bound])
+            await expect(load([bound, unbound])).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(
+                retrieval.findBound(credential, [bound], { ...scope, organizationId: randomUUID() })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(load([otherWorkspace])).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(load([foreign])).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(
+                retrieval.findBound(credential, [bound], { ...scope, xpertId: siblingId })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(
+                retrieval.findBound(credential, [bound], { ...scope, tenantId: randomUUID() })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            await libraries.update(bound, { resourceRef: { providerKey: 'fixture', resourceId: bound } })
+            await expect(load([bound])).rejects.toBeInstanceOf(ForbiddenException)
+            expect(resourceRead).toHaveBeenCalledWith({ providerKey: 'fixture', resourceId: bound }, 'read')
+            await libraries.update(bound, { resourceRef: null })
+            await inRequest(async () => {
+                expect((await load([bound])).map((kb) => kb.id)).toEqual([bound])
+            })
+            await relation.remove(bound)
+            await expect(load([bound])).rejects.toBeInstanceOf(ForbiddenException)
+        }, org)
+    })
+    it('checks current sharing permissions on bound sibling-workspace libraries', async () => {
+        const libraries = database.getRepository(Knowledgebase)
+        const [orgLibrary, publicLibrary, foreignLibrary, unbound] = await libraries.save(
+            [
+                KnowledgebasePermission.Organization,
+                KnowledgebasePermission.Public,
+                KnowledgebasePermission.Public,
+                KnowledgebasePermission.Public
+            ].map((permission, index) => ({
+                id: randomUUID(),
+                permission,
+                workspaceId: otherWorkspaceId,
+                tenantId: tenant,
+                organizationId: index === 2 ? randomUUID() : org
+            }))
+        )
+        await database
+            .createQueryBuilder()
+            .relation(Xpert, 'knowledgebases')
+            .of(assistantId)
+            .add([orgLibrary.id, publicLibrary.id, foreignLibrary.id])
+        await inRequest(async () => {
+            const credential = assistantRuntimeCredential(RequestContext.currentUser())
+            if (!credential) throw new Error('Expected an Assistant runtime credential')
+            const read = (...ids: string[]) => retrieval.findBound(credential, ids, { xpertId: assistantId })
+            expect((await read(orgLibrary.id, publicLibrary.id)).map((row) => row.id).sort()).toEqual(
+                [orgLibrary.id, publicLibrary.id].sort()
+            )
+            await expect(read(foreignLibrary.id)).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(read(unbound.id)).rejects.toBeInstanceOf(ForbiddenException)
+            await libraries.update(orgLibrary.id, { permission: KnowledgebasePermission.Private })
+            await expect(read(orgLibrary.id, publicLibrary.id)).rejects.toBeInstanceOf(ForbiddenException)
+        }, org)
+    })
+
+    it('uses only the live delegated target binding even when tool metadata omits xpertId', async () => {
+        const libraries = database.getRepository(Knowledgebase)
+        const child = await database.getRepository(Xpert).save({
+            id: randomUUID(),
+            tenantId: tenant,
+            organizationId: org,
+            workspaceId: otherWorkspaceId,
+            userId: randomUUID(),
+            name: 'delegated assistant',
+            publishAt: new Date()
+        })
+        const [parentLibrary, childLibrary] = await libraries.save(
+            [workspaceId, otherWorkspaceId].map((workspaceId) => ({
+                id: randomUUID(),
+                tenantId: tenant,
+                organizationId: org,
+                workspaceId
+            }))
+        )
+        await database.createQueryBuilder().relation(Xpert, 'knowledgebases').of(assistantId).add(parentLibrary.id)
+        await database.createQueryBuilder().relation(Xpert, 'knowledgebases').of(child.id).add(childLibrary.id)
+        // The owning resource ACL is covered independently; exercise the real audience check and knowledge binding SQL here.
+        const access = jest.spyOn(assistants, 'getAccessiblePublishedResource').mockResolvedValue(child)
+        try {
+            await inRequest(async () => {
+                const credential = assistantRuntimeCredential(RequestContext.currentUser())
+                if (!credential) throw new Error('Expected an Assistant runtime credential')
+                const read = (id: string, xpertId?: string) => retrieval.findBound(credential, [id], { xpertId })
+                await expect(read(childLibrary.id, child.id)).rejects.toBeInstanceOf(ForbiddenException)
+                await runWithPublishedAgent(randomUUID(), { xpertId: child.id }, () =>
+                    expect(read(childLibrary.id)).rejects.toBeInstanceOf(ForbiddenException)
+                )
+                expect(access).not.toHaveBeenCalled()
+                await runWithPublishedAgent(assistantId, { xpertId: child.id }, async () => {
+                    expect((await read(childLibrary.id))[0].id).toBe(childLibrary.id)
+                    expect((await read(childLibrary.id, child.id))[0].id).toBe(childLibrary.id)
+                    expect(access).toHaveBeenCalledWith(child.id, assistantId)
+                    await expect(read(parentLibrary.id)).rejects.toBeInstanceOf(ForbiddenException)
+                    await expect(read(parentLibrary.id, assistantId)).rejects.toBeInstanceOf(ForbiddenException)
+                    access.mockRejectedValue(new ForbiddenException())
+                    await expect(read(childLibrary.id)).rejects.toBeInstanceOf(ForbiddenException)
+                })
+                expect((await read(parentLibrary.id))[0].id).toBe(parentLibrary.id)
+            }, org)
+        } finally {
+            access.mockRestore()
+        }
+    })
+
     async function assertDenied() {
         expect(await workspaces.findAccessibleWorkspaces()).toEqual([])
         await expect(workspaces.assertCanRun(workspaceId)).rejects.toBeInstanceOf(ForbiddenException)

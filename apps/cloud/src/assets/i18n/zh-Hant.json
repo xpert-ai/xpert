@@ -40,6 +40,14 @@
     "USERS": "用戶"
   },
   "XP": {
+    "ProfileSettings": {
+      "ShowWorkspacePet": "顯示工作區寵物",
+      "WorkspacePetHint": "變更立即生效，僅適用於此瀏覽器中的目前帳號和組織。",
+      "WorkspacePetDisabled": "目前組織未啟用工作空間助手。",
+      "WorkspacePetSelectOrg": "請先選擇組織，再設定工作區寵物。",
+      "WorkspacePetLoading": "正在檢查工作空間助手是否可用…",
+      "WorkspacePetLoadFailed": "無法讀取工作空間助手狀態。"
+    },
     "Notifications": {
       "EditAnnouncement": "編輯公告",
       "EditorHint": "設定公告內容、顯示用戶端和生效時間。",

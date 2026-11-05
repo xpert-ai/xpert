@@ -5,7 +5,7 @@ import { buildKnowledgeFolderOptions, KnowledgeFolderOptionsHandler } from './kn
 describe('KnowledgeFolderOptionsHandler', () => {
     it('applies the fixed boundary before returning canonical selectable paths', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn().mockResolvedValue({
+            findAllForSearch: jest.fn().mockResolvedValue({
                 items: [{ id: 'kb-1', metadataSchema: [] }]
             }),
             listStructuredFilterFolderCandidates: jest.fn().mockResolvedValue([
@@ -31,13 +31,11 @@ describe('KnowledgeFolderOptionsHandler', () => {
             })
         )
 
-        expect(knowledgebaseService.findAll).toHaveBeenCalledWith({
-            where: {
-                id: 'kb-1',
-                tenantId: 'tenant-1',
-                organizationId: 'org-1'
-            }
-        })
+        expect(knowledgebaseService.findAllForSearch).toHaveBeenCalledWith(
+            ['kb-1'],
+            { tenantId: 'tenant-1', organizationId: 'org-1', xpertId: undefined },
+            'discovery'
+        )
         expect(knowledgebaseService.listStructuredFilterFolderCandidates).toHaveBeenCalledWith(
             'kb-1',
             'tenant-1',
@@ -85,7 +83,7 @@ describe('KnowledgeFolderOptionsHandler', () => {
 
     it('fails closed when a fixed-filter variable is missing', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn().mockResolvedValue({ items: [{ id: 'kb-1', metadataSchema: [] }] }),
+            findAllForSearch: jest.fn().mockResolvedValue({ items: [{ id: 'kb-1', metadataSchema: [] }] }),
             listStructuredFilterFolderCandidates: jest.fn()
         }
         const handler = new KnowledgeFolderOptionsHandler(knowledgebaseService as never)

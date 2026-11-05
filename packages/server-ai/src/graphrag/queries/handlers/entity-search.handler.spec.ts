@@ -43,7 +43,7 @@ describe('KnowledgeGraphEntitySearchHandler', () => {
             ])
         }
         const knowledgebaseService = {
-            getGraphEntityVectorStore: jest.fn(async () => vectorStore)
+            getGraphSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const handler = new KnowledgeGraphEntitySearchHandler(
             entityRepository as unknown as Repository<KnowledgeGraphEntity>,
@@ -60,7 +60,7 @@ describe('KnowledgeGraphEntitySearchHandler', () => {
             })
         )
 
-        expect(knowledgebaseService.getGraphEntityVectorStore).toHaveBeenCalledWith('kb-1', true, {
+        expect(knowledgebaseService.getGraphSearchVectorStore).toHaveBeenCalledWith('kb-1', {
             xpertId: 'xpert-1',
             threadId: 'thread-1'
         })

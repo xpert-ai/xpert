@@ -110,7 +110,31 @@ export class ExecutionControlStore {
 
     /** Only explicit backend policy creates a lifecycle boundary. */
     async attach(executionId: string, parentExecutionId: string, policy: TExecutionOwnership['policy']) {
-        await this.database.transaction(async (manager) => {
+        await this.registerChild(executionId, parentExecutionId, policy)
+    }
+
+    /** A synchronous child owns tools only while its graph is executing. */
+    async runAttached<T>(executionId: string, parentExecutionId: string, run: () => Promise<T>): Promise<T> {
+        if (!currentTaskControl() && (!parentExecutionId || !(await this.has(parentExecutionId)))) return run()
+        if (!executionId || !parentExecutionId || executionId === parentExecutionId) this.reject(executionId)
+        const taskId = await this.registerChild(executionId, parentExecutionId, 'attached', true)
+        try {
+            return await run()
+        } finally {
+            await this.database.transaction(async (manager) => {
+                await this.end(manager, executionId)
+                await this.tasks.receipt(taskId, 'completed', undefined, manager)
+            })
+        }
+    }
+
+    private registerChild(
+        executionId: string,
+        parentExecutionId: string,
+        policy: TExecutionOwnership['policy'],
+        start = false
+    ) {
+        return this.database.transaction(async (manager) => {
             const parent = await this.lock(manager, parentExecutionId)
             if (!parent) this.reject(parentExecutionId)
             await this.assertLive(manager, parent.target)
@@ -151,7 +175,7 @@ export class ExecutionControlStore {
             const invocation = context ? await this.tasks.read(context.targetId, manager) : null
             const logicalParent =
                 invocation?.kind === 'invocation' && invocation.rootId === owner.rootId ? invocation : owner
-            await this.tasks.register(
+            const task = await this.tasks.register(
                 {
                     tenantId: child.tenantId,
                     organizationId: child.organizationId,
@@ -165,6 +189,8 @@ export class ExecutionControlStore {
                 },
                 manager
             )
+            if (start) await this.tasks.claim(task.id, manager)
+            return task.id
         })
     }
 
