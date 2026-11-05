@@ -116,6 +116,9 @@ export type TAgentRunnableConfigurable = {
    * Execution id of agent workflow node
    */
   executionId: string
+  /** Host-assigned identities for a delegated graph and its current execution attempt. */
+  agentInvocationId?: string
+  agentExecutionId?: string
   /**
    * Root execution id of the current agent run.
    * Nested subgraphs keep writing steer follow-ups back into this execution.

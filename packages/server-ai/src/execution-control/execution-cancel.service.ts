@@ -49,12 +49,13 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
         this.#controllers.set(executionId, controller)
     }
 
-    unregister(executionId: string, controller?: AbortController) {
+    unregister(executionId: string, controller?: AbortController, taskReceipt: 'defer' | 'caller' = 'defer') {
         if (!executionId) {
             return
         }
         if (!controller || this.#controllers.get(executionId) === controller) {
             this.#controllers.delete(executionId)
+            if (taskReceipt === 'caller') return
             void this.controls.tasks
                 .execution(executionId)
                 .then(async (task) => {

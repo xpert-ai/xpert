@@ -17,7 +17,7 @@ import {
     type TSandboxConfigurable
 } from '@xpert-ai/contracts'
 import { DefaultRuntimeCapabilityRegistry, RequestContext, type AgentJson } from '@xpert-ai/plugin-sdk'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
 import { AgentInvocationRuntime, invocationError } from '../../agent-invocation/invocation-runtime'
@@ -35,7 +35,7 @@ import { createTemplateExecutionDefinition } from '../../shared/agent/execution-
 import { AgentStateAnnotation } from '../../shared/agent/state'
 import { CompileGraphCommand } from '../commands/compile-graph.command'
 import { wrapAgentExecution } from '../../shared/agent/execution'
-import { withExecutionContext } from '../../shared/agent/execution-context'
+import { getExecutionContext, withExecutionContext } from '../../shared/agent/execution-context'
 import { ExecutionCancelService } from '../../execution-control/execution-cancel.service'
 import { executionAbortScope } from '../../execution-control/execution-abort-scope'
 import { ExecutionCancelledError } from '../../execution-control/execution-cancelled.error'
@@ -113,6 +113,7 @@ export class TemplateSubagentRuntimeService {
         }
         const capabilities = new DefaultRuntimeCapabilityRegistry().register(NativeAgentExecution, {
             execute: async (invocationId, request, runtimeContext) => {
+                const executionId = request.checkpointReplay ? randomUUID() : invocationId
                 try {
                     const previous = request.previous?.metadata?.templateSnapshot
                     const snapshot = request.previous
@@ -180,11 +181,11 @@ export class TemplateSubagentRuntimeService {
                                 status: missingConnector.status
                             })
                         )
-                    await this.cancellations.attach(invocationId, parentExecutionId, 'attached')
-                    const abort = executionAbortScope(invocationId, this.cancellations, [options.signal, config.signal])
-                    await this.cancellations.check(invocationId)
+                    await this.cancellations.attach(executionId, parentExecutionId, 'attached')
+                    const abort = executionAbortScope(executionId, this.cancellations, [options.signal, config.signal])
+                    await this.cancellations.check(executionId)
                     const execution: IXpertAgentExecution = {
-                        id: invocationId,
+                        id: executionId,
                         xpert: owner,
                         parentId: parentExecutionId,
                         agentKey: draft.team.agent.key,
@@ -193,6 +194,7 @@ export class TemplateSubagentRuntimeService {
                         threadId: options.thread_id,
                         checkpointNs: `template_${invocationId}`,
                         metadata: {
+                            invocationId,
                             invocationKind: 'sub_agent',
                             sourceToolCallId: callId,
                             templateSource: source,
@@ -248,7 +250,7 @@ export class TemplateSubagentRuntimeService {
                                             execution,
                                             isDraft: false,
                                             leaderKey: context.agentKey,
-                                            rootExecutionId: invocationId,
+                                            rootExecutionId: executionId,
                                             thread_id: options.thread_id,
                                             rootController: abort.controller,
                                             signal: abort.controller.signal,
@@ -258,20 +260,20 @@ export class TemplateSubagentRuntimeService {
                                     )
                                     const childConfig = {
                                         ...config,
-                                        context: { sandbox },
+                                        context: getExecutionContext(),
                                         signal: abort.controller.signal,
                                         recursionLimit: getXpertAgentRecursionLimit(draft.team.agentConfig),
                                         metadata: {
                                             ...config.metadata,
-                                            executionId: invocationId,
+                                            executionId,
                                             parentExecutionId,
                                             agentKey: draft.team.agent.key,
                                             xpertName: template.title
                                         },
                                         configurable: {
                                             ...config.configurable,
-                                            executionId: invocationId,
-                                            rootExecutionId: invocationId,
+                                            executionId,
+                                            rootExecutionId: executionId,
                                             xpertId: owner.id,
                                             agentKey: draft.team.agent.key,
                                             rootAgentKey: draft.team.agent.key,

@@ -236,7 +236,10 @@ function fixture(
         {
             publish: jest.fn().mockResolvedValue(1)
         } as unknown as RedisClientType,
-        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn(),
+        {
+            terminate: jest.fn(),
+            shouldAbort: jest.fn(),
+            attach: jest.fn(),
             tasks: { execution: jest.fn().mockResolvedValue(null) }
         } as unknown as ExecutionControlStore
     )
@@ -264,12 +267,12 @@ function fixture(
     Object.defineProperties(handler, {
         invocationGraph: { value: runtime },
         runtimeResourceService: { value: resourceService },
-        // The graph now always constructs this gate; these fixtures have no thread references.
+        // Delegation fixtures do not use thread references or interactive client tools.
         agentMiddlewareRegistry: {
             value: {
                 get: jest.fn((name: string) =>
-                    name === THREAD_REFERENCE_MIDDLEWARE_NAME
-                        ? { createMiddleware: async () => ({ name: THREAD_REFERENCE_MIDDLEWARE_NAME }) }
+                    [THREAD_REFERENCE_MIDDLEWARE_NAME, 'ClientToolMiddleware'].includes(name)
+                        ? { createMiddleware: async () => ({ name }) }
                         : undefined
                 )
             }
@@ -769,10 +772,13 @@ describe('Collaborators middleware in the Agent graph', () => {
 
     it('keeps exact published delegation scope across concurrent children and clears it afterward', async () => {
         const observed: Array<ReturnType<typeof publishedAgentDelegation>> = []
-        const f = fixture({ batch: true, onChild: async () => {
-            await Promise.resolve()
-            observed.push(publishedAgentDelegation())
-        } })
+        const f = fixture({
+            batch: true,
+            onChild: async () => {
+                await Promise.resolve()
+                observed.push(publishedAgentDelegation())
+            }
+        })
         const { graph } = await f.handler.execute(f.command)
         await graph.invoke(f.input, f.config)
         expect(observed).toEqual([
@@ -780,7 +786,9 @@ describe('Collaborators middleware in the Agent graph', () => {
             { requesterXpertId: 'parent', xpertId: 'expert-1' }
         ])
         expect(publishedAgentDelegation()).toBeUndefined()
-        expect(f.queryBus.execute).toHaveBeenCalledWith(new GetAccessiblePublishedXpertQuery('expert-1', ['agent'], 'parent'))
+        expect(f.queryBus.execute).toHaveBeenCalledWith(
+            new GetAccessiblePublishedXpertQuery('expert-1', ['agent'], 'parent')
+        )
     })
 
     it('returns one child failure without repeating or cancelling successful sibling work', async () => {

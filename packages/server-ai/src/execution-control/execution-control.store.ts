@@ -110,9 +110,22 @@ export class ExecutionControlStore {
 
     /** Only explicit backend policy creates a lifecycle boundary. */
     async attach(executionId: string, parentExecutionId: string, policy: TExecutionOwnership['policy']) {
-        await this.database.transaction(async (manager) => {
+        await this.attachExecution(executionId, parentExecutionId, policy)
+    }
+
+    beginAttached(executionId: string, parentExecutionId: string, expectedRoot: string) {
+        return this.attachExecution(executionId, parentExecutionId, 'attached', expectedRoot)
+    }
+
+    private async attachExecution(
+        executionId: string,
+        parentExecutionId: string,
+        policy: TExecutionOwnership['policy'],
+        enteringRoot?: string
+    ) {
+        return this.database.transaction(async (manager) => {
             const parent = await this.lock(manager, parentExecutionId)
-            if (!parent) this.reject(parentExecutionId)
+            if (!parent || (enteringRoot && parent.root.executionId !== enteringRoot)) this.reject(parentExecutionId)
             await this.assertLive(manager, parent.target)
             const independent = policy !== 'attached'
             const rootExecutionId = independent ? executionId : parent.root.executionId
@@ -150,8 +163,12 @@ export class ExecutionControlStore {
             const context = currentTaskControl()
             const invocation = context ? await this.tasks.read(context.targetId, manager) : null
             const logicalParent =
-                invocation?.kind === 'invocation' && invocation.rootId === owner.rootId ? invocation : owner
-            await this.tasks.register(
+                invocation?.kind === 'invocation' &&
+                invocation.parentId === owner.id &&
+                invocation.rootId === owner.rootId
+                    ? invocation
+                    : owner
+            const childTask = await this.tasks.register(
                 {
                     tenantId: child.tenantId,
                     organizationId: child.organizationId,
@@ -165,6 +182,11 @@ export class ExecutionControlStore {
                 },
                 manager
             )
+            if (enteringRoot) {
+                if (childTask.state !== 'queued') this.reject(executionId)
+                await this.tasks.receipt(childTask.id, 'running', undefined, manager)
+            }
+            return childTask.id
         })
     }
 
@@ -234,6 +256,16 @@ export class ExecutionControlStore {
         record.target.graphEnded = true
         await manager.save(record.target)
         return this.drained(record.root)
+    }
+
+    /** A synchronous attempt has exited, including on checkpoint suspension. Tools settle their own receipts. */
+    async finishAttached(executionId: string) {
+        await this.database.transaction(async (manager) => {
+            await this.end(manager, executionId)
+            const task = await this.tasks.execution(executionId, manager)
+            if (!task || task.currentExecutionId !== executionId) this.reject(executionId)
+            await this.tasks.receipt(task.id, 'completed', undefined, manager)
+        })
     }
 
     async drainedExecution(manager: EntityManager, executionId: string) {

@@ -1,8 +1,17 @@
+import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
+import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { resolveExecutionWorkflow } from '../../../shared/agent/execution-definition'
 import { isAIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
-import { Annotation, CompiledStateGraph, isCommand, isParentCommand, MessagesAnnotation } from '@langchain/langgraph'
+import {
+    Annotation,
+    CompiledStateGraph,
+    isGraphInterrupt,
+    isCommand,
+    isParentCommand,
+    MessagesAnnotation
+} from '@langchain/langgraph'
 import { createHandoffTool, createSwarm } from '@langchain/langgraph-swarm'
 import {
     agentLabel,
@@ -162,20 +171,11 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
                         subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
                     }
                     try {
-                        const output = await graph.invoke(state, {
-                            ...config,
-                            configurable: {
-                                ...config.configurable,
-                                agentKey: member,
-                                executionId: __execution.id
-                            },
-                            metadata: {
-                                ...(config.metadata ?? {}),
-                                agentKey: member,
-                                executionId: __execution.id,
-                                parentExecutionId: executionId
-                            }
-                        })
+                        const output = await invokeChildGraph(
+                            config,
+                            { executionId: __execution.id, agentKey: member },
+                            (childConfig) => graph.invoke(state, childConfig)
+                        )
 
                         const lastMessage = output.messages[output.messages.length - 1]
                         if (lastMessage && isAIMessage(lastMessage)) {
@@ -186,7 +186,10 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
                     } catch (err) {
                         if (!isParentCommand(err) && !isCommand(err)) {
                             error = getErrorMessage(err)
-                            status = XpertAgentExecutionStatusEnum.ERROR
+                            status =
+                                isGraphInterrupt(err) || err instanceof ExecutionCancelledError
+                                    ? XpertAgentExecutionStatusEnum.INTERRUPTED
+                                    : XpertAgentExecutionStatusEnum.ERROR
                         }
                         throw err
                     } finally {

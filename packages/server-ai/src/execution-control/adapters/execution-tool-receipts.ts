@@ -1,4 +1,5 @@
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { requireExecutionControl } from '../execution-control-operation'
 import { ExecutionControlStore } from '../execution-control.store'
 
 /** StructuredTool callbacks surround _call itself, unlike Runnable's abortable promise wrapper. */
@@ -7,20 +8,20 @@ export function executionToolReceipts(store: ExecutionControlStore, executionId:
     const handler = BaseCallbackHandler.fromMethods({
         handleToolStart: async (_tool, _input, runId, _parent, _tags, metadata) => {
             const owner = typeof metadata?.executionId === 'string' ? metadata.executionId : executionId
-            await store.admit(owner, runId, executionId)
+            await requireExecutionControl(store.admit(owner, runId, executionId))
             admitted.set(runId, owner)
         },
         handleToolEnd: async (_output, runId) => {
             const owner = admitted.get(runId)
             if (owner) {
-                await store.settle(owner, runId)
+                await requireExecutionControl(store.settle(owner, runId))
                 admitted.delete(runId)
             }
         },
         handleToolError: async (_error, runId) => {
             const owner = admitted.get(runId)
             if (owner) {
-                await store.settle(owner, runId)
+                await requireExecutionControl(store.settle(owner, runId))
                 admitted.delete(runId)
             }
         }

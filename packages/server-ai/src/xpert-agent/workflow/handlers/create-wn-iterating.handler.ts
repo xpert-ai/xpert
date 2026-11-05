@@ -1,3 +1,5 @@
+import { runIteration } from '../run-iteration'
+import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph } from '@langchain/langgraph'
 import {
@@ -18,16 +20,14 @@ import {
 import { RequestContext } from '@xpert-ai/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { compact, get, isString } from 'lodash'
+import { get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
-import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
-
-const PARALLEL_MAXIMUM = 2
 
 /**
  * @deprecated use Iterator Plugin instead
@@ -160,13 +160,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                 graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
                     const configurable: TAgentRunnableConfigurable = config.configurable
                     const { subscriber, executionId } = configurable
-                    const stateEnv = stateToParameters(state, environment)
                     const parameterValue = get(state, inputVariable)
 
-                    const parallel = entity.parallel
-                    const maximum = entity.maximum ?? PARALLEL_MAXIMUM
-                    const errorMode = entity.errorMode
-                    const invokeSubgraph = async (item, index: number) => {
+                    const invokeSubgraph = async (item, index: number, iterationSignal: AbortSignal) => {
                         const originalState = isString(item)
                             ? { [IteratingIndexParameterName]: index, [IteratingItemParameterName]: item }
                             : {
@@ -182,6 +178,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                         }, inputs)
 
                         const itemExecution: IXpertAgentExecution = {
+                            threadId: configurable.thread_id,
                             category: 'workflow',
                             type: WorkflowNodeTypeEnum.ITERATING,
                             // xpert: { id: xpertId } as IXpert,
@@ -194,6 +191,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                         return await wrapAgentExecution(
                             async () => {
                                 const subAgentExecution: IXpertAgentExecution = {
+                                    threadId: configurable.thread_id,
                                     inputs: inputs,
                                     parentId: itemExecution.id
                                 }
@@ -206,28 +204,22 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
                                 const retState = await wrapAgentExecution(
                                     async () => {
-                                        const retState = await subgraph.invoke(
+                                        const retState = await invokeChildGraph(
+                                            { ...config, signal: iterationSignal },
                                             {
-                                                ...state,
-                                                ...inputs
+                                                executionId: subAgentExecution.id,
+                                                traceParentId: itemExecution.id,
+                                                agentKey,
+                                                xpertName
                                             },
-                                            {
-                                                ...config,
-                                                signal: controller.signal,
-                                                configurable: {
-                                                    ...config.configurable,
-                                                    agentKey,
-                                                    xpertName,
-                                                    executionId: subAgentExecution.id
-                                                },
-                                                metadata: {
-                                                    ...(config.metadata ?? {}),
-                                                    agentKey,
-                                                    xpertName,
-                                                    executionId: subAgentExecution.id,
-                                                    parentExecutionId: itemExecution.id
-                                                }
-                                            }
+                                            (childConfig) =>
+                                                subgraph.invoke(
+                                                    {
+                                                        ...state,
+                                                        ...inputs
+                                                    },
+                                                    childConfig
+                                                )
                                         )
 
                                         const outputItem = outputParams.reduce((acc, curr) => {
@@ -266,97 +258,13 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                         )()
                     }
 
-                    const controller = new AbortController()
-                    config.signal.addEventListener('abort', () => {
-                        if (!controller.signal.aborted) {
-                            try {
-                                controller.abort()
-                            } catch (err) {
-                                //
-                            }
-                        }
-                    })
-
-                    let outputs = null
-                    if (Array.isArray(parameterValue)) {
-                        outputs = new Array(parameterValue.length).fill(null)
-                        if (parallel) {
-                            // Execute in parallel with a maximum concurrency limit using a task pool
-                            const taskPool = new Set()
-                            let index = 0
-                            for await (const item of parameterValue) {
-                                const i = index
-                                // If the task pool is full, wait for one task to complete
-                                if (taskPool.size >= maximum) {
-                                    await Promise.race(taskPool)
-                                }
-
-                                // Create a new task and add it to the pool
-                                const task = invokeSubgraph(item, i)
-                                    .then((output) => {
-                                        outputs[i] = output
-                                    })
-                                    .catch((err) => {
-                                        switch (errorMode) {
-                                            case 'terminate': {
-                                                throw err
-                                            }
-                                            case 'ignore': {
-                                                this.#logger.error(err)
-                                                break
-                                            }
-                                            case 'remove': {
-                                                this.#logger.error(err)
-                                                break
-                                            }
-                                        }
-                                    })
-                                    .finally(() => {
-                                        // Remove the task from the pool once it completes
-                                        taskPool.delete(task)
-                                    })
-
-                                taskPool.add(task)
-                                index++
-                            }
-
-                            // Wait for all remaining tasks to complete
-                            await Promise.all(taskPool)
-                        } else {
-                            // Execute sequentially
-                            let index = 0
-                            for await (const item of parameterValue) {
-                                // Check signal status
-                                if (config.signal.aborted) {
-                                    return
-                                }
-                                const i = index
-                                try {
-                                    outputs[i] = await invokeSubgraph(item, i)
-                                } catch (err) {
-                                    switch (errorMode) {
-                                        case 'terminate': {
-                                            throw err
-                                        }
-                                        case 'ignore': {
-                                            this.#logger.error(err)
-                                            break
-                                        }
-                                        case 'remove': {
-                                            this.#logger.error(err)
-                                            break
-                                        }
-                                    }
-                                } finally {
-                                    index++
-                                }
-                            }
-                        }
-                    }
-
-                    if (errorMode === 'remove') {
-                        outputs = compact(outputs)
-                    }
+                    const outputs = Array.isArray(parameterValue)
+                        ? await runIteration(parameterValue, entity, config.signal, invokeSubgraph, (error) =>
+                              this.#logger.error(error)
+                          )
+                        : entity.errorMode === 'remove'
+                          ? []
+                          : null
 
                     return {
                         [channelName(node.key)]: {

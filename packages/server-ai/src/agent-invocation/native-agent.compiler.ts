@@ -1,4 +1,6 @@
 // Native compatibility compiler: preserves existing state projections and graph edges.
+import { ExecutionCancelledError } from '../execution-control/execution-cancelled.error'
+import { invokeChildGraph } from '../execution-control/attached-graph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
@@ -117,15 +119,14 @@ export class NativeAgentCompiler {
                 const call = state.toolCall
                 const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
                 const { executionId } = configurable
+                const childId = configurable.agentExecutionId ?? configurable.agentInvocationId
 
                 // Record start time
                 const timeStart = Date.now()
                 const _execution = await this.commandBus.execute(
                     new XpertAgentExecutionUpsertCommand({
                         ...execution,
-                        ...(typeof config.configurable?.agentInvocationId === 'string'
-                            ? { id: config.configurable.agentInvocationId }
-                            : {}),
+                        ...(childId ? { id: childId } : {}),
                         threadId: configurable.thread_id,
                         checkpointNs: configurable.checkpoint_ns,
                         xpert: { id: xpert.id } as IXpert,
@@ -134,6 +135,7 @@ export class NativeAgentCompiler {
                         parentId: executionId,
                         metadata: {
                             ...execution.metadata,
+                            invocationId: configurable.agentInvocationId,
                             invocationKind: 'sub_agent',
                             sourceToolCallId: isTool ? call?.id : undefined
                         },
@@ -184,22 +186,11 @@ export class NativeAgentCompiler {
                               }
                             : {})
                     }
-                    const output = await graph.invoke(subState, {
-                        ...config,
-                        signal,
-                        configurable: {
-                            ...config.configurable,
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id
-                        },
-                        metadata: {
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id,
-                            parentExecutionId: executionId
-                        }
-                    })
+                    const output = await invokeChildGraph(
+                        { ...config, signal: config.signal ?? signal },
+                        { executionId: _execution.id, agentKey: agent.key, xpertName: agentLabel(agent) },
+                        (childConfig) => graph.invoke(subState, childConfig)
+                    )
 
                     const lastMessage = output.messages[output.messages.length - 1]
 
@@ -256,9 +247,10 @@ export class NativeAgentCompiler {
                     return nState
                 } catch (err) {
                     error = isGraphInterrupt(err) ? null : getErrorMessage(err)
-                    status = isGraphInterrupt(err)
-                        ? XpertAgentExecutionStatusEnum.INTERRUPTED
-                        : XpertAgentExecutionStatusEnum.ERROR
+                    status =
+                        isGraphInterrupt(err) || err instanceof ExecutionCancelledError
+                            ? XpertAgentExecutionStatusEnum.INTERRUPTED
+                            : XpertAgentExecutionStatusEnum.ERROR
 
                     throw err
                 } finally {

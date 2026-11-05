@@ -1,6 +1,9 @@
+import { attachedGraphRunner } from '../execution-control/attached-graph'
+import { withExecutionContext } from '../shared/agent/execution-context'
+import { nestedToolWorkflow } from '../execution-control/testing/nested-tool-workflow.fixture'
 import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
 import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
-import { ExecutionTaskControl, TaskControlPublication, TaskControlStore } from '@xpert-ai/server-core'
+import { ExecutionTaskControl, TaskControlPublication, TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
 import { Global, Module } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
@@ -8,14 +11,14 @@ import { ExecutionControlModule } from '../execution-control/execution-control.m
 import { XpertAgentExecutionService } from '../xpert-agent-execution/agent-execution.service'
 import { DynamicTool } from '@langchain/core/tools'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, END, MemorySaver, START, StateGraph } from '@langchain/langgraph'
+import { Annotation, END, MemorySaver, NodeInterrupt, START, StateGraph } from '@langchain/langgraph'
 import { createClient, RedisClientType } from 'redis'
 import { ExecutionCancelService } from '../execution-control/execution-cancel.service'
 import { executionToolReceipts } from '../execution-control/adapters/execution-tool-receipts'
 import { installThreadPauseGuards } from '../shared/agent/thread-pause'
 import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { ExecutionControl } from '../execution-control/execution-control.entity'
-import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { channelName, TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import { AgentInvocationWaitEntity } from '../agent-invocation/invocation.entity'
@@ -514,6 +517,141 @@ integration('durable pause control / PostgreSQL', () => {
                 )
             )
         ).rejects.toThrow()
+    })
+
+    describe.each([false, true])('nested iteration and subflow tool (modern=%s)', (modern) => {
+        async function setup(convert: (file: string) => Promise<string>) {
+            const workflow = await nestedToolWorkflow(modern, convert)
+            const store = new ExecutionControlStore(database, new TaskControlStore(database))
+            const cancellations = new ExecutionCancelService(createClient(), store)
+            const context = { runAttachedExecution: attachedGraphRunner(executionId, store, cancellations) }
+            const invoke = () =>
+                withExecutionContext(context, () =>
+                    workflow.runnable.invoke(
+                        { files: ['first', 'second'] },
+                        {
+                            configurable: { thread_id: threadId, executionId },
+                            callbacks: [executionToolReceipts(store, executionId)]
+                        }
+                    )
+                )
+            return { invoke, close: workflow.close, store }
+        }
+
+        it('executes both tool bodies under distinct nested owners and returns the converted items', async () => {
+            const body = jest.fn(async (input: string) => 'text-' + input)
+            const workflow = await setup(body)
+            try {
+                expect((await workflow.invoke())[channelName('loop')].output).toEqual(['text-first', 'text-second'])
+                expect(body.mock.calls.map(([file]) => file)).toEqual(['first', 'second'])
+                const root = await database.getRepository(ExecutionControl).findOneByOrFail({ executionId })
+                expect(root.work).toHaveLength(2)
+                expect(new Set(root.work.map((item) => item.executionId)).size).toBe(2)
+                for (const receipt of root.work) {
+                    expect(receipt.settled).toBe(true)
+                    const child = await database
+                        .getRepository(ExecutionControl)
+                        .findOneByOrFail({ executionId: receipt.executionId })
+                    expect(child.ancestors).toHaveLength(3)
+                    expect(child.ancestors[0]).toBe(executionId)
+                    expect(child.graphEnded).toBe(true)
+                }
+            } finally {
+                await workflow.close()
+            }
+        })
+
+        it.each([
+            ['beginAttached', 0],
+            ['admit', 0],
+            ['settle', 1],
+            ['finishAttached', 1]
+        ] as const)('propagates a %s persistence failure without starting the next file', async (operation, calls) => {
+            const body = jest.fn(async (input: string) => 'text-' + input)
+            const workflow = await setup(body)
+            const cause = new Error('Control database unavailable')
+            jest.spyOn(workflow.store, operation).mockRejectedValueOnce(cause)
+            try {
+                await expect(workflow.invoke()).rejects.toMatchObject({ name: 'ExecutionControlOperationError', cause })
+                expect(body).toHaveBeenCalledTimes(calls)
+            } finally {
+                await workflow.close()
+            }
+        })
+
+        it('propagates termination without starting the second tool or returning an empty success', async () => {
+            const body = jest.fn(async (input: string) => {
+                await workflow.store.terminate([executionId])
+                return 'text-' + input
+            })
+            const workflow = await setup(body)
+            try {
+                await expect(workflow.invoke()).rejects.toThrow('Execution ownership ended')
+                expect(body.mock.calls.map(([file]) => file)).toEqual(['first'])
+            } finally {
+                await workflow.close()
+            }
+        })
+    })
+
+    it.each(['attached', 'detached', 'shared'] as const)(
+        'keeps nested tool ownership in the execution root with a %s invocation in context',
+        async (policy) => {
+            const tasks = new TaskControlStore(database)
+            const store = new ExecutionControlStore(database, tasks)
+            const owner = await tasks.execution(executionId)
+            const invocation = await tasks.register({
+                ...scope,
+                kind: 'invocation',
+                resourceId: randomUUID(),
+                parent: { version: 2, targetId: owner.id },
+                policy
+            })
+            const child = randomUUID()
+            await withTaskControl({ version: 2, targetId: invocation.id }, () =>
+                store.beginAttached(child, executionId, executionId)
+            )
+            const task = await tasks.execution(child)
+            expect(task.rootId).toBe(owner.rootId)
+            expect(task.parentId).toBe(policy === 'attached' ? invocation.id : owner.id)
+            await store.finishAttached(child)
+        }
+    )
+
+    it('fences an interrupted graph attempt while a fresh attempt can continue the same logical work', async () => {
+        const tasks = new TaskControlStore(database)
+        const store = new ExecutionControlStore(database, tasks)
+        const run = attachedGraphRunner(executionId, store, new ExecutionCancelService(createClient(), store))
+        const paused = randomUUID()
+        const duplicate = jest.fn()
+        const interrupt = new NodeInterrupt('approve')
+        await expect(
+            run(executionId, paused, undefined, async () => {
+                await expect(run(executionId, paused, undefined, duplicate)).rejects.toThrow(
+                    'Execution ownership ended'
+                )
+                throw interrupt
+            })
+        ).rejects.toBe(interrupt)
+        expect(duplicate).not.toHaveBeenCalled()
+        expect((await tasks.execution(paused)).state).toBe('completed')
+        const ended = await database.getRepository(ExecutionControl).findOneByOrFail({ executionId: paused })
+        expect(ended.graphEnded).toBe(true)
+        await expect(store.admit(paused, 'late', executionId)).rejects.toThrow('Execution ownership ended')
+        const resumed = randomUUID()
+        await run(executionId, resumed, undefined, async () => {
+            const task = await tasks.execution(resumed)
+            expect(await tasks.producer()).toEqual({ version: 2, targetId: task.id })
+            await store.admit(resumed, 'resumed-tool', executionId)
+            await store.settle(resumed, 'resumed-tool')
+        })
+        expect((await tasks.execution(resumed)).state).toBe('completed')
+        const foreign = attachedGraphRunner(randomUUID(), store, new ExecutionCancelService(createClient(), store))
+        const unauthorized = randomUUID()
+        const body = jest.fn()
+        await expect(foreign(executionId, unauthorized, undefined, body)).rejects.toThrow('Execution ownership ended')
+        expect(await store.has(unauthorized)).toBe(false)
+        expect(body).not.toHaveBeenCalled()
     })
 
     it('denies a late child tool before its body even when its parent is still running', async () => {

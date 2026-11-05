@@ -1,3 +1,4 @@
+import { invokeChildGraph } from '../../../execution-control/attached-graph'
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
@@ -174,22 +175,11 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
 
                     return await wrapAgentExecution(
                         async (execution) => {
-                            const newState = await compiled.graph.invoke(state, {
-                                ...config,
-                                configurable: {
-                                    ...config.configurable,
-                                    agentKey: node.key,
-                                    xpertName,
-                                    executionId: execution.id
-                                },
-                                metadata: {
-                                    ...(config.metadata ?? {}),
-                                    agentKey: node.key,
-                                    xpertName,
-                                    executionId: execution.id,
-                                    parentExecutionId: executionId
-                                }
-                            })
+                            const newState = await invokeChildGraph(
+                                config,
+                                { executionId: execution.id, agentKey: node.key, xpertName },
+                                (childConfig) => compiled.graph.invoke(state, childConfig)
+                            )
                             return {
                                 state: {
                                     [channelName(node.key)]: {

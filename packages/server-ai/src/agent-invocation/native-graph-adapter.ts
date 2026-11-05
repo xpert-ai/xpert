@@ -2,7 +2,7 @@
 // Only this adapter serializes graph state; provider SDK contracts stay graph-independent.
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
 import { interrupt, isGraphInterrupt } from '@langchain/langgraph'
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { DefaultRuntimeCapabilityRegistry, AgentInvocationScope, AgentTarget } from '@xpert-ai/plugin-sdk'
 import { JsonPlusSerializer } from '../copilot-checkpoint/serde/jsonplus'
 import { AgentInvocationRuntime, invocationError } from './invocation-runtime'
@@ -44,13 +44,19 @@ export function wrapNativeAgentInvocation<Input, Output>(
                   : undefined)
         if (!callId) throw invocationError('InvalidRequest')
         const capabilities = new DefaultRuntimeCapabilityRegistry().register(NativeAgentExecution, {
-            execute: async (invocationId) => {
+            execute: async (invocationId, request) => {
+                const executionId = request.checkpointReplay ? randomUUID() : invocationId
                 let output: Output
                 try {
-                    const invoke = () => graph.invoke(state, {
-                        ...config,
-                        configurable: { ...config.configurable, agentInvocationId: invocationId }
-                    })
+                    const invoke = () =>
+                        graph.invoke(state, {
+                            ...config,
+                            configurable: {
+                                ...config.configurable,
+                                agentInvocationId: invocationId,
+                                agentExecutionId: executionId
+                            }
+                        })
                     output = await (context.run ? context.run(invoke) : invoke())
                 } catch (error) {
                     if (error instanceof ExecutionCancelledError) return { status: 'cancelled', error: error.message }

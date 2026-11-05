@@ -125,6 +125,8 @@ export type TAgentExecutionMetadata = {
   businessOutcome?: import('@xpert-ai/chatkit-types').TAgentExecutionOutcome
   /** Recorded by the invocation boundary; never inferred from agent names. */
   invocationKind?: 'external_assistant' | 'sub_agent'
+  /** Stable invocation across physical graph attempts, including checkpoint replays. */
+  invocationId?: string
   /** Tool call in the parent execution that started this run. Omit for workflow-driven runs. */
   sourceToolCallId?: string
   assistantName?: string

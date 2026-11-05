@@ -18,8 +18,8 @@ export function executionAbortScope(
     cancellations.register(executionId, controller)
     return {
         controller,
-        dispose() {
-            cancellations.unregister(executionId, controller)
+        dispose(taskReceipt: 'defer' | 'caller' = 'defer') {
+            cancellations.unregister(executionId, controller, taskReceipt)
             subscriptions.forEach((unsubscribe) => unsubscribe())
         }
     }
