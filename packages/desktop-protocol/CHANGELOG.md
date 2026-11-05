@@ -1,5 +1,11 @@
 # @xpert-ai/desktop-protocol
 
+## 0.4.8
+
+### Patch Changes
+
+- @xpert-ai/contracts@3.33.0
+
 ## 0.4.7
 
 ### Patch Changes
