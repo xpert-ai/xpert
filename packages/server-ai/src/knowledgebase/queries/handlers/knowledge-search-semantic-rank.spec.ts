@@ -35,8 +35,8 @@ describe('Semantic FAQ candidate ordering', () => {
             }
         }
         const backend = {
-            findAll: jest.fn(async () => ({ items: [kb] })),
-            getActiveVectorStore: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({ items: [kb] })),
+            getSearchVectorStore: jest.fn(async () => ({
                 knowledgebase: kb,
                 embeddingModel: 'model',
                 createSearchSession: () => ({ getQueryEmbedding: async () => [1, 0] }),

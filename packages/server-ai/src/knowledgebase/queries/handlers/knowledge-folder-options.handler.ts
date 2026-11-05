@@ -22,13 +22,11 @@ export class KnowledgeFolderOptionsHandler implements IQueryHandler<KnowledgeFol
         const { input } = query
         const tenantId = input.tenantId ?? RequestContext.currentTenantId()
         const organizationId = input.organizationId ?? RequestContext.getOrganizationId()
-        const result = await this.knowledgebaseService.findAll({
-            where: {
-                id: input.knowledgebaseId,
-                tenantId,
-                organizationId
-            }
-        })
+        const result = await this.knowledgebaseService.findAllForSearch(
+            [input.knowledgebaseId],
+            { tenantId, organizationId, xpertId: input.xpertId },
+            'discovery'
+        )
         const knowledgebase = result.items[0]
         if (!knowledgebase) {
             throw new NotFoundException(`Knowledgebase '${input.knowledgebaseId}' was not found.`)

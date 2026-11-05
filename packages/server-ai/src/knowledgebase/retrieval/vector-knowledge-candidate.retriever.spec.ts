@@ -76,7 +76,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
                 vectorStoreType: environment.vectorStore,
                 createSearchSession: () => ({ structuredSimilaritySearchWithScore: search })
             }
-            const backend = { getActiveVectorStore: jest.fn(async () => store) }
+            const backend = { getSearchVectorStore: jest.fn(async () => store) }
             const chunks = {
                 findAll: jest.fn(async () => ({
                     items: ['excluded', 'retained'].map((id) => ({
@@ -129,7 +129,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -166,12 +166,10 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             preparedFilter
         })
 
-        expect(knowledgebaseService.getActiveVectorStore).toHaveBeenCalledWith(
-            'kb-1',
-            true,
-            { xpertId: 'xpert-1', threadId: 'thread-1' },
-            { rerankEnabled: false }
-        )
+        expect(knowledgebaseService.getSearchVectorStore).toHaveBeenCalledWith('kb-1', {
+            xpertId: 'xpert-1',
+            threadId: 'thread-1'
+        })
         expect(vectorStore.structuredSimilaritySearchWithScore).toHaveBeenCalledWith('quality requirements', 5, {
             postgres: {
                 sql: 'TRUE',
@@ -218,7 +216,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -264,7 +262,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -331,7 +329,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -391,7 +389,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             structuredSimilaritySearchWithScore
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore),
+            getSearchVectorStore: jest.fn(async () => vectorStore),
             countStructuredFilterCandidates: jest.fn(async () => ({
                 candidateDocumentCount: 4,
                 candidateChunkCount: 9
@@ -461,7 +459,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -531,7 +529,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -590,7 +588,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({
@@ -654,7 +652,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             rerank: jest.fn(async () => [{ index: 1, relevanceScore: 0.97 }])
         }
         const knowledgebaseService = {
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const chunkService = {
             findAll: jest.fn(async () => ({

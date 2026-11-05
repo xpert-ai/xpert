@@ -2,6 +2,7 @@ import { KnowledgeProcessingLifecycleModule } from '../../knowledge-document/pro
 import { KnowledgebaseRebuildRecoveryController } from '../embedding/knowledgebase-rebuild-recovery.controller'
 import { TenantLibraryAccessService } from '../tenant-library/tenant-library-access.service'
 import { XpertProjectAccessModule } from '../../xpert-project/project-access.module'
+import { AssistantKnowledgeRetrievalService } from '../retrieval/assistant-knowledge-retrieval.service'
 import { KnowledgeResourceAccessService } from '../runtime/knowledge-resource-access.service'
 import { ProjectKnowledgeRuntimeService } from '../runtime/project-knowledge-runtime.service'
 import { RagVStoreModule } from '../../rag-vstore'
@@ -136,6 +137,7 @@ import { KeywordTitleSubscriber } from '../analyzer/keyword-title.subscriber'
         KnowledgeTableContextService,
         KnowledgebaseService,
         KnowledgeResourceAccessService,
+        AssistantKnowledgeRetrievalService,
         ProjectKnowledgeRuntimeService,
         TenantLibraryAccessService,
         KnowledgebaseRuntimeService,

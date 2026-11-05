@@ -6,12 +6,14 @@ import { KnowledgebaseGetOneQuery } from '../get-one.query'
 
 @QueryHandler(KnowledgebaseGetOneQuery)
 export class KnowledgebaseGetOneHandler implements IQueryHandler<KnowledgebaseGetOneQuery> {
-	private readonly logger = new Logger(KnowledgebaseGetOneHandler.name)
+    private readonly logger = new Logger(KnowledgebaseGetOneHandler.name)
 
-	constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
+    constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
-	public async execute(command: KnowledgebaseGetOneQuery): Promise<Knowledgebase> {
-		const { id, options } = command.input
-		return await this.knowledgebaseService.findOne(id, options)
-	}
+    public async execute(command: KnowledgebaseGetOneQuery): Promise<Knowledgebase> {
+        const { id, options } = command.input
+        return command.input.purpose === 'retrieval'
+            ? this.knowledgebaseService.findOneForSearch(id, options)
+            : this.knowledgebaseService.findOne(id, options)
+    }
 }

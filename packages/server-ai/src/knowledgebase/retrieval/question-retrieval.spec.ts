@@ -74,7 +74,7 @@ describe('question retrieval projections', () => {
             }))
         }
         const knowledgebases = {
-            getActiveVectorStore: jest.fn(async () => store),
+            getSearchVectorStore: jest.fn(async () => store),
             countStructuredFilterCandidates: jest.fn(async () => ({}))
         }
         const chunkService = {

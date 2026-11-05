@@ -129,8 +129,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             ) => [{ index: 0, relevanceScore: 0.95 }]
         )
         const service = {
-            findAll: jest.fn(async () => ({ items: [knowledgebase] })),
-            getActiveVectorStore: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({ items: [knowledgebase] })),
+            getSearchVectorStore: jest.fn(async () => ({
                 knowledgebase,
                 embeddingModel: 'model',
                 createSearchSession: () => ({ getQueryEmbedding: () => (queryPromise ??= queryEmbedding()) }),
@@ -196,7 +196,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             recall: { topK: 5 }
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+            findAllForSearch: jest.fn(async () => ({ items: [knowledgebase] }))
         }
         const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
@@ -236,7 +236,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             recall: { topK: 5 }
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+            findAllForSearch: jest.fn(async () => ({ items: [knowledgebase] }))
         }
         const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
@@ -282,7 +282,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             recall: { topK: 5 }
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+            findAllForSearch: jest.fn(async () => ({ items: [knowledgebase] }))
         }
         const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
@@ -325,7 +325,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             execute: jest.fn().mockResolvedValue({ docs: graphDocs })
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -372,7 +372,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         const keywordDocs = [chunk('keyword-1', { keywordScore: 8, score: 8 })]
         const queryBus = { execute: jest.fn() }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -425,7 +425,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
     it('preserves a missing-index failure when keyword mode runs alone', async () => {
         const queryBus = { execute: jest.fn() }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -493,7 +493,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -553,7 +553,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -621,7 +621,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('uses the knowledgebase recall mode before the legacy GraphRAG mode', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-faq',
@@ -663,7 +663,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('lets request-level RRF settings override the knowledgebase legacy default', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -710,7 +710,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('lets a request explicitly keep legacy fusion when the knowledgebase enables RRF', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -751,7 +751,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('fails explicit RRF retrieval instead of silently fusing a failed graph branch', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -786,7 +786,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('fails explicit RRF retrieval when the keyword branch reports a missing index', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -843,7 +843,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('preserves keyword query failure diagnostics in the failed retrieval log', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -903,7 +903,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             execute: jest.fn(async () => ({ docs: [], failed: true, error: 'graph backend unavailable' }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -960,7 +960,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
     it('rejects an all-zero RRF configuration before executing any retrieval branch', async () => {
         const queryBus = { execute: jest.fn(async () => ({ docs: [] })) }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1003,7 +1003,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('ignores an RRF setting outside hybrid mode', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1040,7 +1040,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             execute: jest.fn(async () => ({ docs: [], failed: true, error: 'scoped graph query failed' }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1093,7 +1093,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('fails graph-only retrieval when graph search fails', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1127,7 +1127,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('does not renormalize vector weight when graph retrieval succeeds without hits', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1180,7 +1180,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             )
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1192,7 +1192,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                     }
                 ]
             })),
-            getActiveVectorStore: jest.fn(async () => vectorStore),
+            getSearchVectorStore: jest.fn(async () => vectorStore),
             getRerankModel: jest.fn(async () => vectorStore)
         }
         const { handler } = createHandler(
@@ -1238,7 +1238,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1277,7 +1277,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             execute: jest.fn(async () => ({ docs: [chunk('graph-filtered', { graphScore: 0.9, score: 0.9 })] }))
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1331,7 +1331,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('reports zero final hits after the score threshold and allows an Agent-controlled retry', async () => {
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({
+            findAllForSearch: jest.fn(async () => ({
                 items: [
                     {
                         id: 'kb-1',
@@ -1341,7 +1341,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                     }
                 ]
             })),
-            getActiveVectorStore: jest.fn(async () => ({
+            getSearchVectorStore: jest.fn(async () => ({
                 vectorStoreType: VectorTypeEnum.PGVECTOR,
                 embeddingModel: 'embedding-model',
                 structuredSimilaritySearchWithScore: jest.fn(async () => ({
