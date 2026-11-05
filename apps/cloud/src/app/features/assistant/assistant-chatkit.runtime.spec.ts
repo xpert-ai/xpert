@@ -272,7 +272,7 @@ describe('assistant chatkit runtime helpers', () => {
     flushAngularEffects()
 
     const scopedPet = createChatKitMock.mock.calls[0][0].pet
-    expect(scopedPet).toEqual({ ...pet, launcherVisible: true })
+    expect(scopedPet).toEqual({ ...pet, enabled: true })
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
@@ -455,7 +455,7 @@ describe('assistant chatkit runtime helpers', () => {
     const firstOrg = createChatKitMock.mock.lastCall![0]
     firstOrg.onPetLauncherVisibilityChange({ visible: false })
     flushAngularEffects()
-    expect(setOptions.mock.lastCall![0].pet.launcherVisible).toBe(false)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
     createChatKitMock.mockClear()
     setOptions.mockClear()
     loading.set(true)
@@ -469,10 +469,10 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
     const otherOrg = createChatKitMock.mock.calls[0][0]
-    expect(otherOrg.pet.launcherVisible).toBe(true)
+    expect(otherOrg.pet.enabled).toBe(true)
     otherOrg.onPetLauncherVisibilityChange({ visible: false })
     flushAngularEffects()
-    expect(setOptions.mock.lastCall![0].pet.launcherVisible).toBe(false)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
     user.next({ id: 'user-2', role: { name: RolesEnum.APP_USER } })
     flushAngularEffects()
     expect(setOptions).toHaveBeenLastCalledWith(
@@ -485,12 +485,12 @@ describe('assistant chatkit runtime helpers', () => {
         request: { context: { projectId: 'project-2' } }
       })
     )
-    expect(setOptions.mock.lastCall![0].pet.launcherVisible).toBe(true)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(true)
     // A late event from the previous account must not overwrite either preference.
     otherOrg.onPetLauncherVisibilityChange({ visible: true })
     user.next({ id: 'user-1' })
     flushAngularEffects()
-    expect(setOptions.mock.lastCall![0].pet.launcherVisible).toBe(false)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
 
     user.next(null)
     flushAngularEffects()
@@ -503,17 +503,17 @@ describe('assistant chatkit runtime helpers', () => {
     token.next('new-login-token')
     flushAngularEffects()
     const nextLogin = createChatKitMock.mock.lastCall![0]
-    expect(nextLogin.pet.launcherVisible).toBe(false)
+    expect(nextLogin.pet.enabled).toBe(false)
     nextLogin.onPetLauncherVisibilityChange({ visible: true })
     flushAngularEffects()
-    expect(setOptions.mock.lastCall![0].pet.launcherVisible).toBe(true)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(true)
     organizationId.next('org-2')
     flushAngularEffects()
-    expect(createChatKitMock.mock.lastCall![0].pet.launcherVisible).toBe(false)
+    expect(createChatKitMock.mock.lastCall![0].pet.enabled).toBe(false)
     createChatKitMock.mock.lastCall![0].onPetLauncherVisibilityChange({ visible: true })
     organizationId.next('org-1')
     flushAngularEffects()
-    expect(createChatKitMock.mock.lastCall![0].pet.launcherVisible).toBe(true)
+    expect(createChatKitMock.mock.lastCall![0].pet.enabled).toBe(true)
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {

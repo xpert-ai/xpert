@@ -336,7 +336,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const displayMode = readReactiveChatKitOption(input.displayMode)
     const preference = displayMode === 'pet' ? petPreference() : null
     const pet = preference
-      ? { ...(typeof input.pet === 'object' ? input.pet : {}), launcherVisible: preference.visible() }
+      ? { ...(typeof input.pet === 'object' ? input.pet : {}), enabled: preference.visible() }
       : input.pet
     const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
