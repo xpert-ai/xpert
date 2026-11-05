@@ -27,7 +27,7 @@ import {
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
-import { createWorkspacePetPreference } from './workspace-pet-preference'
+import { WorkspacePetPreference } from './workspace-pet-preference'
 import { injectAssistantChatkitTheme } from './assistant-chatkit-theme'
 import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
@@ -260,16 +260,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
   const currentUser = toSignal(store.user$, { initialValue: store.user })
-  const petStorageKey = computed(() => {
-    const userId = currentUser()?.id
-    const orgId = organizationId()
-    return userId && orgId ? `xpert:workspace-pet:hidden:${JSON.stringify([userId, orgId])}` : null
-  })
-  const petPreference = computed(() => {
-    const key = petStorageKey()
-    const defaultVisible = typeof input.pet === 'boolean' ? input.pet : (input.pet?.enabled ?? true)
-    return key ? createWorkspacePetPreference(document, key, defaultVisible) : null
-  })
+  const petPreference = inject(WorkspacePetPreference).current
+  const defaultPetVisible = typeof input.pet === 'boolean' ? input.pet : (input.pet?.enabled ?? true)
   const publicationRevision = toSignal(
     inject(XpertPublicationService).changes$.pipe(
       filter((change) => change.organizationId === organizationId() && change.assistantId === input.assistantId()),
@@ -337,7 +329,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const displayMode = readReactiveChatKitOption(input.displayMode)
     const preference = displayMode === 'pet' ? petPreference() : null
     const pet = preference
-      ? { ...(typeof input.pet === 'object' ? input.pet : {}), enabled: preference.visible() }
+      ? { ...(typeof input.pet === 'object' ? input.pet : {}), enabled: preference.visible() ?? defaultPetVisible }
       : input.pet
     const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())

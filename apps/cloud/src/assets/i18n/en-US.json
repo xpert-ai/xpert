@@ -6056,6 +6056,12 @@
       "ServerSandbox": "Server sandbox"
     },
     "ProfileSettings": {
+      "ShowWorkspacePet": "Show workspace pet",
+      "WorkspacePetHint": "Changes apply immediately to your account in this organization and browser.",
+      "WorkspacePetDisabled": "The workspace assistant is disabled or has not been configured for this organization.",
+      "WorkspacePetSelectOrg": "Select an organization to change this preference.",
+      "WorkspacePetLoading": "Checking workspace assistant availability…",
+      "WorkspacePetLoadFailed": "Could not check workspace assistant availability.",
       "Description": "Manage your profile, language and regional preferences.",
       "BasicInfo": "Basic information",
       "BasicHint": "Used in your profile and collaboration records.",

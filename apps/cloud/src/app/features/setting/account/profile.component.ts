@@ -16,12 +16,14 @@ import { catchError, firstValueFrom, map, of, switchMap } from 'rxjs'
 import { getErrorMessage, LANGUAGES, RoleService, Store, ToastrService } from '../../../@core'
 import { timezones } from '../../../@core/constants'
 import { CreatedByPipe } from '../../../@shared/pipes'
+import { ProfileWorkspacePetComponent } from './profile-workspace-pet.component'
 
 @Component({
   standalone: true,
   selector: 'xp-account-profile',
   templateUrl: './profile.component.html',
   imports: [
+    ProfileWorkspacePetComponent,
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,

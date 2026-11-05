@@ -29,6 +29,13 @@ export class AssistantBindingController {
         return this.service.getScopedBindings(scope)
     }
 
+    @Get('workspace/availability')
+    @Permissions(AIPermissionsEnum.CHAT_VIEW, AIPermissionsEnum.XPERT_VIEW, AIPermissionsEnum.XPERT_EDIT)
+    async getWorkspaceAvailability(): Promise<{ available: boolean }> {
+        const binding = await this.service.getEffectiveBinding(AssistantCode.XPERT_SHARED)
+        return { available: !!(binding.enabled && binding.assistantId) }
+    }
+
     @Get('effective/:code')
     async getEffectiveBinding(@Param('code') code: AssistantCode) {
         return this.service.getEffectiveBinding(code)
