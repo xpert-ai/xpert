@@ -27,6 +27,7 @@ import {
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
+import { WorkspacePetPreference } from './workspace-pet-preference'
 import { injectAssistantChatkitTheme } from './assistant-chatkit-theme'
 import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
@@ -259,6 +260,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
   const currentUser = toSignal(store.user$, { initialValue: store.user })
+  const petPreference = inject(WorkspacePetPreference).current
+  const defaultPetVisible = typeof input.pet === 'boolean' ? input.pet : (input.pet?.enabled ?? true)
   const publicationRevision = toSignal(
     inject(XpertPublicationService).changes$.pipe(
       filter((change) => change.organizationId === organizationId() && change.assistantId === input.assistantId()),
@@ -324,6 +327,10 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
     const displayMode = readReactiveChatKitOption(input.displayMode)
+    const preference = displayMode === 'pet' ? petPreference() : null
+    const pet = preference
+      ? { ...(typeof input.pet === 'object' ? input.pet : {}), enabled: preference.visible() ?? defaultPetVisible }
+      : input.pet
     const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
@@ -384,7 +391,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       theme: currentTheme,
       displayMode,
       layout: input.layout,
-      pet: input.pet,
+      pet,
       taskSummary: input.taskSummary,
       messagePresentation: group
         ? { ...input.messagePresentation, mode: 'bubbles' as const }
@@ -443,6 +450,13 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       request: {
         context: managed ? (projectId ? { projectId } : {}) : (requestContext ?? {})
       },
+      ...(preference && {
+        onPetLauncherVisibilityChange: forward(({ visible }: { visible: boolean }) => {
+          if (preference === petPreference() && readReactiveChatKitOption(input.displayMode) === 'pet') {
+            preference.setVisible(visible)
+          }
+        })
+      }),
       onReady: forward(input.onReady),
       onEffect: forward(input.onEffect),
       onLog: forward(input.onLog),

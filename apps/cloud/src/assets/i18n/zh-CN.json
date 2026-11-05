@@ -48,6 +48,14 @@
     "USERS": "用户"
   },
   "XP": {
+    "ProfileSettings": {
+      "ShowWorkspacePet": "显示工作区宠物",
+      "WorkspacePetHint": "更改立即生效，仅用于此浏览器中当前账号和组织。",
+      "WorkspacePetDisabled": "当前组织未启用工作空间助手。",
+      "WorkspacePetSelectOrg": "请选择组织后再设置工作区宠物。",
+      "WorkspacePetLoading": "正在检查工作空间助手是否可用…",
+      "WorkspacePetLoadFailed": "无法读取工作空间助手状态。"
+    },
     "Notifications": {
       "EditAnnouncement": "编辑公告",
       "EditorHint": "设置公告内容、展示客户端和生效时间。",
@@ -2536,6 +2544,9 @@
       }
     },
     "Assistant": {
+      "XpertShared": {
+        "Label": "工作空间助手"
+      },
       "MenuTenantSubtitle": "租户默认配置",
       "MenuOrganizationSubtitle": "组织覆盖配置"
     },

@@ -11789,6 +11789,12 @@
       "ServerSandbox": "服务端沙箱"
     },
     "ProfileSettings": {
+      "ShowWorkspacePet": "显示工作区宠物",
+      "WorkspacePetHint": "更改立即生效，仅用于此浏览器中当前账号和组织。",
+      "WorkspacePetDisabled": "当前组织未启用工作空间助手。",
+      "WorkspacePetSelectOrg": "请选择组织后再设置工作区宠物。",
+      "WorkspacePetLoading": "正在检查工作空间助手是否可用…",
+      "WorkspacePetLoadFailed": "无法读取工作空间助手状态。",
       "Description": "管理你的个人资料、语言与地区偏好。",
       "BasicInfo": "基本信息",
       "BasicHint": "用于个人资料和协作记录。",
