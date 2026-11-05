@@ -2,7 +2,9 @@ import { signal, type WritableSignal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { ASSISTANT_CITATION_OPEN_EVENT, KNOWLEDGEBASE_OPEN_CITATION_EFFECT } from '@xpert-ai/contracts'
-import { of, Subject } from 'rxjs'
+import { BehaviorSubject, of, Subject } from 'rxjs'
+import { Store } from '../../../@core'
+import { WorkspacePetPreference } from '../../assistant/workspace-pet-preference'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import {
   type AssistantContext,
@@ -22,6 +24,7 @@ jest.mock('../../../@core', () => {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
     },
+    Store: class Store {},
     XpertAPIService: class XpertAPIService {}
   }
 })
@@ -108,6 +111,7 @@ function latestRuntimeInput() {
 describe('XpertAssistantFacade', () => {
   const createFacade = (url: string) => {
     const routerEvents$ = new Subject<unknown>()
+    const organization = new BehaviorSubject<string | null>('org-1')
     const router = {
       url,
       events: routerEvents$.asObservable(),
@@ -118,6 +122,13 @@ describe('XpertAssistantFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         XpertAssistantFacade,
+        {
+          provide: Store,
+          useValue: {
+            user$: of({ id: 'user-1' }),
+            selectOrganizationId: () => organization
+          }
+        },
         {
           provide: Router,
           useValue: router
@@ -133,6 +144,7 @@ describe('XpertAssistantFacade', () => {
 
     return {
       router,
+      organization,
       facade: TestBed.inject(XpertAssistantFacade)
     }
   }
@@ -179,6 +191,23 @@ describe('XpertAssistantFacade', () => {
     expect(latestRuntimeInput().onThreadChange).toBeUndefined()
     expect(latestRuntimeInput().onThreadLoadStart).toBeUndefined()
     expect(latestRuntimeInput().onThreadLoadEnd).toBeUndefined()
+  })
+
+  it('waits for an organization and follows its personal workspace preference', () => {
+    const { facade, organization } = createFacade('/xpert/w/workspace-1')
+    const scope = TestBed.inject(WorkspacePetPreference).current()!
+    try {
+      scope.setVisible(false)
+      expect(facade.assistantCode()).toBeNull()
+      organization.next(null)
+      expect(facade.assistantCode()).toBeNull()
+      organization.next('org-2')
+      expect(facade.assistantCode()).toBe(AssistantCode.XPERT_SHARED)
+      organization.next('org-1')
+      expect(facade.assistantCode()).toBeNull()
+    } finally {
+      localStorage.removeItem(scope.key)
+    }
   })
 
   it('omits env.xpertId on workspace routes', () => {

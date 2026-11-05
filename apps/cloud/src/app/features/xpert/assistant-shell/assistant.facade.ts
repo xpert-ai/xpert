@@ -7,6 +7,7 @@ import { AssistantCode, XpertAPIService } from '../../../@core'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { distinctUntilChanged, EMPTY, filter, map, startWith, switchMap } from 'rxjs'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
+import { WorkspacePetPreference } from '../../assistant/workspace-pet-preference'
 import {
   createKnowledgebaseCitationOpenHostEvent,
   getKnowledgebaseCitationTargetFromEffectEvent
@@ -73,7 +74,11 @@ export class XpertAssistantFacade {
   readonly #selectedWorkspace = injectWorkspace()
   readonly #hostEvents = inject(ViewHostEventBus)
 
-  readonly assistantCode = signal(AssistantCode.XPERT_SHARED)
+  readonly #petPreference = inject(WorkspacePetPreference).current
+  readonly assistantCode = computed(() => {
+    const preference = this.#petPreference()
+    return preference && preference.visible() !== false ? AssistantCode.XPERT_SHARED : null
+  })
 
   readonly #routeState = toSignal(
     this.#router.events.pipe(
@@ -110,7 +115,7 @@ export class XpertAssistantFacade {
     this.buildRequestContext(this.context(), this.#studioRuntimeContext(), this.#workbenchRequestContexts())
   )
   readonly runtime = injectAssistantChatkitRuntime({
-    assistantCode: this.assistantCode.asReadonly(),
+    assistantCode: this.assistantCode,
     requestContext: this.requestContext,
     displayMode: 'pet',
     pet: SHARED_ASSISTANT_PET,

@@ -4,4 +4,4 @@
 '@xpert-ai/xpert-api': patch
 ---
 
-Remember workspace pet visibility in the browser for each signed-in user and organization. Choosing Show pet restores the launcher on the next login. Users can also change the same preference in their profile when the workspace assistant is enabled.
+Remember workspace pet visibility in the browser for each signed-in user and organization. Closing the pet turns off the personal switch and removes the workspace launcher. Members can turn it back on in their profile when the workspace assistant is available.
