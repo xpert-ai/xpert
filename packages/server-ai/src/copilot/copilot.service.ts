@@ -287,7 +287,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 
     async update(id: string, entity: DeepPartial<ICopilot>) {
         const copilot = await this.findOne(id)
-        if (entity.enabled === false && copilot.enabled && (await this.references.inspect(id)).defaults)
+        if (entity.enabled === false && copilot.enabled && (await this.references.countDefaults(id)))
             throw new BadRequestException(t('server-ai:Error.ModelDefaultInUse'))
         const wasEnabled = copilot.enabled
         const saved = await this.repository.manager.transaction(async (manager) => {

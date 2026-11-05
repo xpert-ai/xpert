@@ -1,8 +1,10 @@
+jest.mock('./local-supervision-support', () => ({ localSupervisionFailure: jest.fn() }))
 import { readFile } from 'node:fs/promises'
 import { init } from 'i18next'
 import { LocalBrowserRuntimeProvider } from './local-browser-runtime.provider'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 import { runLocalRuntimeProcess } from './local-runtime-process'
+import { localSupervisionFailure } from './local-supervision-support'
 
 jest.mock('node:child_process', () => ({
     ...jest.requireActual('node:child_process'),
@@ -29,6 +31,7 @@ beforeAll(async () => {
     await init({ lng: 'en', resources: {} })
 })
 beforeEach(() => {
+    jest.mocked(localSupervisionFailure).mockReset()
     run.mockReset()
     run.mockImplementation(async (_command, args, options) => ({
         ...success,
@@ -44,6 +47,16 @@ function input(provider: LocalBrowserRuntimeProvider, name = 'document/java-17/v
     if (!binding) throw new Error(`Missing test binding: ${name}`)
     return { definition: registry.require(name), binding }
 }
+
+it('rejects unsupported supervision before advertising installed rendering dependencies', async () => {
+    jest.mocked(localSupervisionFailure).mockReturnValue('Local Sandbox Jobs cannot confirm descendant exit on darwin')
+    const provider = new LocalBrowserRuntimeProvider()
+    expect(await provider.getBindingHealth(input(provider))).toMatchObject({
+        available: false,
+        reason: expect.stringContaining('cannot confirm descendant exit')
+    })
+    expect(run).not.toHaveBeenCalled()
+})
 
 it('uses bounded document readiness and retains independent caches for different profiles', async () => {
     const provider = new LocalBrowserRuntimeProvider()

@@ -1,4 +1,5 @@
 import { activeSharingMemberSql, validSharingGroupSql } from '../xpert/sharing/sharing-policy'
+import { businessAreaAccessSql } from '@xpert-ai/server-core'
 import {
     AIPermissionsEnum,
     UserType,
@@ -349,7 +350,22 @@ export class XpertWorkspaceAccessService {
             .andWhere(validSharingGroupSql('ug', 'xpert'))
             .getCount()
 
-        return count > 0
+        if (count > 0) return true
+        return (
+            (await this.workspaceRepository.manager
+                .createQueryBuilder()
+                .select('xpert.id')
+                .from('xpert', 'xpert')
+                .where(
+                    'xpert."workspaceId" = :workspaceId AND xpert."tenantId" = :tenantId AND xpert."organizationId" = :organizationId',
+                    input
+                )
+                .andWhere('xpert."publishAt" IS NOT NULL')
+                .andWhere(businessAreaAccessSql('xpert."businessAreaId"', ':tenantId', ':organizationId', ':userId'), {
+                    userId: input.userId
+                })
+                .getCount()) > 0
+        )
     }
 
     isTenantSharedWorkspace(workspace?: Pick<XpertWorkspace, 'settings'> | null) {
@@ -415,6 +431,15 @@ export class XpertWorkspaceAccessService {
                                         .orWhere(
                                             `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = :organizationSharedVisibility`,
                                             { organizationSharedVisibility: 'organization-shared' }
+                                        )
+                                    if (!isAuthoringPurpose)
+                                        memberQb.orWhere(
+                                            `EXISTS (
+                                        SELECT 1 FROM xpert ba_xpert WHERE ba_xpert."workspaceId" = workspace.id
+                                        AND ba_xpert."tenantId" = workspace."tenantId" AND ba_xpert."organizationId" = workspace."organizationId"
+                                        AND ba_xpert."publishAt" IS NOT NULL AND ${businessAreaAccessSql('ba_xpert."businessAreaId"', 'workspace."tenantId"', 'workspace."organizationId"', ':userId')}
+                                    )`,
+                                            { userId }
                                         )
                                 })
                             )

@@ -15,23 +15,34 @@ export function useObservationPage<T>(
   queued: ReadQueue,
   schema: z.ZodType<T>,
   operation: 'list' | 'conversations',
-  pageSize: number
+  pageSize: number,
+  refreshScope?: string
 ) {
   const [page, setPage] = useState(1),
     [retry, setRetry] = useState(0)
-  const [result, setResult] = useState<{ key: string; data: T } | null>(null)
+  const [result, setResult] = useState<{ key: string; scope: string; page: number; data: T } | null>(null)
   const [errorKey, setErrorKey] = useState<string | null>(null)
   const filter = JSON.stringify({ ...query, page: 1, pageSize })
-  const previousFilter = useRef(filter)
-  // Filter/snapshot changes reset the detail page and invalidate the small in-memory cache.
-  const currentPage = previousFilter.current === filter ? page : 1
-  const key = `${operation}:${filter}:${currentPage}:${retry}`
+  // The owner keeps this scope stable only for refreshes of the same user query.
+  // Always include the lane identity so cached data cannot cross assistants/conversations.
+  const scope = JSON.stringify([
+    refreshScope ?? filter,
+    operation,
+    pageSize,
+    query.assistantId,
+    query.unknownAssistantOnly,
+    query.conversationId,
+    query.threadId
+  ])
+  const previousScope = useRef(scope)
+  const currentPage = previousScope.current === scope ? page : 1
+  const key = `${scope}:${filter}:${currentPage}:${retry}`
   useEffect(() => {
-    if (previousFilter.current !== filter) {
-      previousFilter.current = filter
+    if (previousScope.current !== scope) {
+      previousScope.current = scope
       setPage(1)
     }
-  }, [filter])
+  }, [scope])
   useEffect(() => {
     if (!expanded || result?.key === key) return
     let active = true
@@ -48,7 +59,12 @@ export function useObservationPage<T>(
     })
       .then((response) => {
         if (active && response)
-          setResult({ key, data: schema.parse(z.object({ item: z.unknown() }).parse(response).item) })
+          setResult({
+            key,
+            scope,
+            page: currentPage,
+            data: schema.parse(z.object({ item: z.unknown() }).parse(response).item)
+          })
       })
       .catch(() => {
         if (active) setErrorKey(key)
@@ -56,9 +72,9 @@ export function useObservationPage<T>(
     return () => {
       active = false
     }
-  }, [expanded, filter, currentPage, key, queued, schema, operation, pageSize])
+  }, [expanded, filter, currentPage, key, scope, queued, schema, operation, pageSize])
   return {
-    data: result?.key === key ? result.data : null,
+    data: result?.scope === scope && result.page === currentPage ? result.data : null,
     failed: errorKey === key,
     page: currentPage,
     setPage,
@@ -70,7 +86,8 @@ export function useAssistantConversations(
   query: ExecutionObservationQuery,
   assistantId: string | null,
   expanded: boolean,
-  queued: ReadQueue
+  queued: ReadQueue,
+  refreshScope?: string
 ) {
   return useObservationPage(
     { ...query, assistantId: assistantId ?? undefined, unknownAssistantOnly: assistantId === null || undefined },
@@ -78,6 +95,7 @@ export function useAssistantConversations(
     queued,
     executionObservationConversationsSchema,
     'conversations',
-    25
+    25,
+    refreshScope
   )
 }

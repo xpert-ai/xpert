@@ -85,7 +85,8 @@ describe('AgentChatDispatchHandoffProcessor', () => {
                         channelType: from,
                         sourceIntegrationId: 'integration-id',
                         fromEndUserId: 'external-user',
-                        handoffMessageId: 'message-id'
+                        handoffMessageId: 'message-id',
+                        streamPersistence: { transport: 'redis-stream' }
                     })
                 })
             )

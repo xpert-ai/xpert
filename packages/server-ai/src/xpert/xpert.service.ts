@@ -1,4 +1,5 @@
 import { assertAuthoringUser } from '../shared/authoring-access'
+import { AssertBusinessAreaAccessCommand } from '@xpert-ai/server-core'
 import { ResolveAssistantPrincipalCommand } from './assistant-principal/resolve-assistant-principal.command'
 import { GetAccessiblePublishedXpertQuery } from './published-agent/get-accessible-published-xpert.query'
 import { AssistantSharingService } from './sharing/sharing.service'
@@ -119,6 +120,10 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
+        if (_entity.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(_entity.businessAreaId, 'publish'))
+        if (entity.businessAreaId && entity.businessAreaId !== _entity.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(entity.businessAreaId, 'publish'))
         const { workspaceDataScope, userGroups, ...mutableEntity } = entity
         if (userGroups !== undefined) throw new BadRequestException(t('server-ai:Error.AssistantSharingUseEndpoint'))
         if (
@@ -224,6 +229,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async create(entity: DeepPartial<Xpert>, ...options: unknown[]) {
+        if (entity.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(entity.businessAreaId, 'publish'))
         if (entity.userGroups?.length) throw new BadRequestException(t('server-ai:Error.AssistantSharingUseEndpoint'))
         await this.validateTagAssociations(entity)
         return await super.create(
@@ -437,8 +444,11 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     async assertCanAuthorById(id: string, resolvedWorkspaceId?: string | null): Promise<void> {
         assertAuthoringUser()
         const xpert = await this.findOneByIdWithinTenant(id, {
-            select: ['id', 'organizationId', 'workspaceId', 'createdById']
+            select: ['id', 'organizationId', 'workspaceId', 'createdById', 'businessAreaId']
         })
+
+        if (xpert.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(xpert.businessAreaId, 'publish'))
 
         const persistedWorkspaceId = xpert.workspaceId?.trim()
         if (persistedWorkspaceId) {
@@ -459,6 +469,9 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async save(entity: Xpert) {
+        if (entity.id) await this.assertCanAuthorById(entity.id)
+        if (entity.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(entity.businessAreaId, 'publish'))
         await this.validateTagAssociations(entity)
         return await super.save(normalizeXpertExecutionConfig(entity))
     }
@@ -486,6 +499,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async saveDraft(id: string, draft: TXpertTeamDraft) {
         const xpert = await this.findOne(id)
+        if (xpert.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(xpert.businessAreaId, 'publish'))
         const templateSource = draft.team?.options?.templateSource
         if (templateSource) {
             xpert.options = {
@@ -518,6 +533,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateDraft(id: string, draft: Partial<TXpertTeamDraft>) {
         const xpert = await this.findOne(id)
+        if (xpert.businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(xpert.businessAreaId, 'publish'))
         const currentDraft: Partial<TXpertTeamDraft> = xpert.draft ?? {}
         const nextDraft: Partial<TXpertTeamDraft> = {
             ...currentDraft,

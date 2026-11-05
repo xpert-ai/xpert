@@ -15,7 +15,8 @@ export function useTimelineViewport(
   asOf: number,
   scale: number,
   timeZone: string,
-  onScaleChange: (scale: number) => void
+  onScaleChange: (scale: number) => void,
+  refreshScope: string
 ) {
   const ref = useRef<HTMLDivElement>(null),
     previous = useRef<{ width: number; size: number; range: string } | null>(null)
@@ -25,7 +26,7 @@ export function useTimelineViewport(
   const [size, setSize] = useState(960),
     [left, setLeft] = useState(0)
   const width = plotWidth(size, scale),
-    range = `${from}:${to}`
+    range = refreshScope
   useLayoutEffect(() => {
     const element = ref.current
     if (!element) return

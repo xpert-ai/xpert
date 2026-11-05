@@ -14,6 +14,7 @@ import {
 } from '@xpert-ai/contracts'
 import { omit, pick } from '@xpert-ai/server-common'
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
+import { AssertBusinessAreaAccessCommand } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ConflictException,
@@ -114,6 +115,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                 })
             )
         }
+        if (businessAreaId)
+            await this.commandBus.execute(new AssertBusinessAreaAccessCommand(businessAreaId, 'publish'))
 
         this.logger.verbose(`Draft of xpert '${xpert.name}':\n${JSON.stringify(xpert.draft, null, 2)}`)
 

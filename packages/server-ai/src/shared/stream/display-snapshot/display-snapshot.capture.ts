@@ -41,6 +41,7 @@ const lifecycleSchema = z.object({
         role: z.string().optional(),
         executionId: z.string().optional(),
         conversationId: z.string().nullish(),
+        parentId: z.string().nullish(),
         content: z
             .custom<
                 IChatMessage['content']
@@ -134,6 +135,7 @@ export class DisplaySnapshotCapture {
                 role: 'ai',
                 executionId: item.executionId,
                 conversationId: item.conversationId,
+                parentId: item.parentId,
                 content: item.content,
                 reasoning: item.reasoning,
                 events: item.events,

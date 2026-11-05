@@ -1153,7 +1153,6 @@
       "Organization": "当前组织",
       "Shared": "租户共享",
       "ReadOnly": "你可以查看标签目录。新建、编辑和删除标签需要标签管理权限。",
-      "Retry": "重试",
       "Loading": "正在加载标签…",
       "Name": "标签名称",
       "Usage": "使用情况",
@@ -4809,7 +4808,30 @@
       "UpdatedAt": "最后更新",
       "DeleteHint": "删除后，当前业务区域及其所有下级业务区域将被永久删除，此操作无法撤销。",
       "Select": "选择业务区域",
-      "SelectHint": "请从左侧层级选择业务区域，或新建一个业务区域。"
+      "SelectHint": "请从左侧层级选择业务区域，或新建一个业务区域。",
+      "Access": {
+        "Title": "访问授权",
+        "Hint": "授权仅对当前业务域生效；发布还需要资源创作权限。",
+        "MyAccess": "我的权限",
+        "consumer": "消费者",
+        "publisher": "发布者",
+        "domain_admin": "域管理员",
+        "None": "无权限",
+        "Subject": "授权对象类型",
+        "Group": "用户组",
+        "User": "用户",
+        "Member": "授权对象",
+        "Select": "请选择成员或用户组",
+        "Role": "业务域角色",
+        "Grant": "保存授权",
+        "Revoke": "撤销",
+        "Empty": "暂无显式授权。",
+        "Explain": "查看成员实际权限",
+        "Effective": "有效角色",
+        "Direct": "个人直接授权",
+        "Platform": "平台管理权限",
+        "ManageArea": "管理业务域授权"
+      }
     },
     "MENU": {
       "Assistant settings": "助理设置",
@@ -6447,6 +6469,72 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "Impact": {
+        "Description": "停用后，此连接下的模型将无法被选择或调用。已有配置会保留，因此引用数量不会自动减少。",
+        "Scope": "所有统计和明细均覆盖租户 {{tenantId}}，包含其下属组织。",
+        "Defaults": "固定默认设置（项）",
+        "Bindings": "已保存的模型绑定（条记录）",
+        "BindingUsage": "有当前直接引用：{{current}} · 仅有历史直接引用：{{historicalOnly}} · 未发现直接引用：{{unresolved}}",
+        "CurrentResources": "有直接引用的当前配置（去重资源数）",
+        "HistoricalResources": "有直接引用的历史／已删除记录（条）",
+        "Drafts": "包含 JSON 候选匹配的当前草稿（份）",
+        "Units": "绑定数是保存记录数，不是不同模型数、运行次数或受影响资源数。资源按类型和 ID 去重，历史版本单独计为记录。JSON 匹配（含嵌套快照）不代表实际生效的引用；没有直接引用的绑定也可能仍在使用。",
+        "DefaultBlock": "请先在对应租户或组织中更改下方列出的默认设置，再停用此连接。",
+        "Search": "搜索资源、ID、模型或配置字段",
+        "Entries": "{{count}} 条明细",
+        "Groups": {
+          "defaults": "需要更改的默认设置",
+          "current": "当前直接引用",
+          "historical": "历史直接引用",
+          "unresolved": "实际使用待确认"
+        },
+        "Hints": {
+          "defaults": "每条明细对应一项固定默认设置及其模型，继承的副本不重复计数。",
+          "current": "当前记录中保存的直接关联；一个资源可能对应多个字段，不表示正在执行。",
+          "historical": "历史助手版本及已删除记录，不计入当前资源数。",
+          "unresolved": "JSON／快照匹配，以及未发现直接引用的保存绑定。实际使用情况需确认，不会自动删除或迁移。"
+        },
+        "Status": {
+          "current": "当前配置",
+          "draft": "草稿文档",
+          "published": "已发布配置",
+          "historical": "历史／已删除记录",
+          "unresolved": "待确认的保存记录"
+        },
+        "Resources": {
+          "default": "默认设置",
+          "assistant": "助手",
+          "knowledgebase": "知识库",
+          "project": "项目",
+          "connection": "连接",
+          "binding": "保存绑定"
+        },
+        "Organization": "组织：{{id}}",
+        "TenantSetting": "租户级配置",
+        "Version": "版本 {{version}}",
+        "UnknownModel": "此匹配未能确定模型",
+        "BindingId": "绑定 ID",
+        "Evidence": {
+          "json": "仅为 JSON 匹配，可能来自嵌套快照，实际生效情况尚未确认。",
+          "saved": "未发现直接资源关联，不代表此绑定未被使用。"
+        },
+        "NoEntries": "没有匹配的明细",
+        "ShowMore": "显示更多",
+        "DefaultRoles": {
+          "primary": "主模型",
+          "secondary": "辅助模型",
+          "reasoning": "推理模型",
+          "embedding": "嵌入模型",
+          "realtime": "实时模型",
+          "tts": "语音合成",
+          "speech2text": "语音转文字",
+          "image": "图像生成",
+          "video": "视频生成",
+          "rerank": "重排序",
+          "moderation": "内容审核"
+        },
+        "Coverage": "此清单覆盖默认设置、模型绑定的直接关联，以及助手配置中的 JSON 匹配；不统计执行或用量历史。"
+      },
       "SavedModelUnavailable": "已保存的模型不可用，请重新选择模型。",
       "CredentialValidation": {
         "Model": "测试模型或接入点 ID",

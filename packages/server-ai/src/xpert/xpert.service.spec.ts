@@ -417,7 +417,7 @@ describe('XpertService command facade', () => {
 
         await expect(service.assertCanAuthorById('xpert-1')).rejects.toBeInstanceOf(ForbiddenException)
         expect(repository.findOne).toHaveBeenCalledWith({
-            select: ['id', 'organizationId', 'workspaceId', 'createdById'],
+            select: ['id', 'organizationId', 'workspaceId', 'createdById', 'businessAreaId'],
             where: {
                 id: 'xpert-1',
                 tenantId: 'tenant-1'
@@ -616,6 +616,7 @@ describe('XpertService command facade', () => {
 
     it('strips unsupported concurrency and normalizes recursionLimit on save', async () => {
         const { repository, service } = createService()
+        jest.spyOn(service, 'assertCanAuthorById').mockResolvedValue(undefined)
         repository.save.mockImplementation(async (entity) => entity)
 
         await service.save(

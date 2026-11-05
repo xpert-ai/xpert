@@ -4,7 +4,17 @@ import { Component, Input, computed, effect, inject, signal } from '@angular/cor
 import { XpSpinComponent, XpTableComponent, ZardSearchInputComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { IUserGroup, OrderTypeEnum, UserGroupService, getErrorMessage, injectToastr } from '../../../../@core'
+import {
+  IBusinessArea,
+  IBusinessAreaAccessGrant,
+  BusinessAreaService,
+  IUserGroup,
+  OrderTypeEnum,
+  UserGroupService,
+  getErrorMessage,
+  injectToastr
+} from '../../../../@core'
+import { BusinessAreaAccessComponent } from '../../business-area/business-area-access.component'
 import { TranslationBaseComponent } from '../../../../@shared/language'
 
 @Component({
@@ -18,12 +28,45 @@ import { TranslationBaseComponent } from '../../../../@shared/language'
     XpTableComponent,
     XpSpinComponent,
     ZardSearchInputComponent,
-    ZardButtonComponent
+    ZardButtonComponent,
+    BusinessAreaAccessComponent
   ],
   host: { class: 'block min-w-0 w-full' }
 })
 export class OrganizationUserGroupsComponent extends TranslationBaseComponent {
   readonly #userGroupService = inject(UserGroupService)
+  readonly #areas = inject(BusinessAreaService)
+  readonly selectedGroupId = signal('')
+  readonly selectedAreaId = signal('')
+  readonly groupGrants = signal<IBusinessAreaAccessGrant[]>([])
+  readonly areas = signal<IBusinessArea[]>([])
+  readonly grantsLoading = signal(false)
+
+  async selectGroup(id: string) {
+    this.selectedGroupId.set(id)
+    this.selectedAreaId.set('')
+    this.groupGrants.set([])
+    if (!id) return
+    this.grantsLoading.set(true)
+    try {
+      const [grants, areas] = await Promise.all([
+        firstValueFrom(this.#areas.groupGrants(id)),
+        firstValueFrom(this.#areas.getAll())
+      ])
+      if (this.selectedGroupId() !== id) return
+      this.groupGrants.set(grants)
+      this.areas.set(areas.items)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (this.selectedGroupId() === id) this.grantsLoading.set(false)
+    }
+  }
+
+  areaName(id: string) {
+    return this.areas().find((area) => area.id === id)?.name ?? id
+  }
+
   readonly #toastr = injectToastr()
 
   readonly #organizationId = signal<string | null>(null)
@@ -53,6 +96,9 @@ export class OrganizationUserGroupsComponent extends TranslationBaseComponent {
 
     effect(() => {
       const organizationId = this.#organizationId()
+      this.selectedGroupId.set('')
+      this.selectedAreaId.set('')
+      this.groupGrants.set([])
       if (!organizationId) {
         this.groups.set([])
         return

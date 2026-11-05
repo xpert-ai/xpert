@@ -1,8 +1,10 @@
 import { assistantPrincipalPredicate } from './assistant-principal/assistant-principal-access.service'
+import { businessAreaAccessSql } from '@xpert-ai/server-core'
 import { publishedAgentDelegation } from './published-agent/with-published-agent'
 import { activeSharingMemberSql, validSharingGroupSql } from './sharing/sharing-policy'
 import {
     IApiPrincipal,
+    PermissionsEnum,
     IXpert,
     isTenantSharedXpertWorkspace,
     SecretTokenBindingType,
@@ -412,6 +414,16 @@ export class PublishedXpertAccessService {
         const organizationId = actor?.organizationId ?? this.currentOrganizationId()
         const userId = actor?.userId ?? this.currentAccessUserId()
         const userXpertId = actor || resourceParentId ? null : this.currentUserXpertId()
+        const domainAccess = businessAreaAccessSql(
+            'xpert."businessAreaId"',
+            ':tenantId',
+            ':organizationId',
+            ':userId',
+            'view',
+            !actor &&
+                userId === RequestContext.currentUserId() &&
+                RequestContext.hasPermission(PermissionsEnum.BUSINESS_AREA_MANAGE)
+        )
         const qb = this.repository
             .createQueryBuilder('xpert')
             .leftJoin('xpert.workspace', 'workspace')
@@ -464,6 +476,7 @@ export class PublishedXpertAccessService {
             new Brackets((accessQb) => {
                 accessQb
                     .where(assistantPrincipalPredicate('xpert'))
+                    .orWhere(domainAccess)
                     .orWhere('xpert.createdById = :userId', { userId })
                     .orWhere('workspace.ownerId = :userId', { userId })
                     .orWhere('workspaceMember.id = :userId', { userId })
@@ -492,6 +505,19 @@ export class PublishedXpertAccessService {
             })
         )
 
+        // Workspace membership and creator status alone do not bypass an assigned domain.
+        // Existing exact-resource shares remain independent sources of consumption access.
+        qb.andWhere(
+            new Brackets((domainQb) =>
+                domainQb
+                    .where('xpert.businessAreaId IS NULL')
+                    .orWhere(domainAccess)
+                    .orWhere(assistantPrincipalPredicate('xpert'))
+                    .orWhere(
+                        `member.id = :userId AND ${activeSharingMemberSql(':userId', ':tenantId', ':organizationId')}`
+                    )
+            )
+        )
         qb.andWhere(`(NOT ${assistantPrincipalPredicate('xpert', false)} OR ${assistantPrincipalPredicate('xpert')})`)
         applyAppPlatformPublishedFilter(qb, tenantId, organizationId, userId, resourceParentId)
         this.applyPublishedFilters(qb, options?.where)

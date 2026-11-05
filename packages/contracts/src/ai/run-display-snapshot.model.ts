@@ -4,7 +4,7 @@ import type { TChatAgentRunSummary } from './xpert-agent-execution.model'
 /** Display only: no graph state, commands, interrupts or client tool invocations. */
 export type TRunDisplayMessage = Pick<
   IChatMessage,
-  'id' | 'executionId' | 'conversationId' | 'content' | 'reasoning' | 'events' | 'status' | 'error'
+  'id' | 'parentId' | 'executionId' | 'conversationId' | 'content' | 'reasoning' | 'events' | 'status' | 'error'
 > & { role: 'ai'; agentRuns?: TChatAgentRunSummary[] }
 
 export interface TRunDisplaySnapshot {

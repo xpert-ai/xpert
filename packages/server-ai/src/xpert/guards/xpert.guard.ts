@@ -8,51 +8,56 @@ import { XpertService } from '../xpert.service'
 
 @Injectable()
 export class XpertGuard implements CanActivate {
-	constructor(
-		@Inject(CACHE_MANAGER) private cacheManager: Cache,
-		private readonly reflector: Reflector,
-		private readonly xpertService: XpertService,
-		private readonly workspaceService: XpertWorkspaceService
-	) {}
+    constructor(
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly reflector: Reflector,
+        private readonly xpertService: XpertService,
+        private readonly workspaceService: XpertWorkspaceService
+    ) {}
 
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const request = context.switchToHttp().getRequest()
-		const user = request.user
-		const xpertId = request.params.id
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const request = context.switchToHttp().getRequest()
+        const user = request.user
+        const xpertId = request.params.id
 
-		// Retrieve current tenant ID from RequestContext
-		const tenantId = RequestContext.currentTenantId()
+        // Domain publication grants are live even when workspace access was cached.
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+            await this.xpertService.assertCanAuthorById(xpertId)
+        }
 
-		const cacheKey = `userXperts:${tenantId}:${user.id}_${xpertId}`
+        // Retrieve current tenant ID from RequestContext
+        const tenantId = RequestContext.currentTenantId()
 
-		const fromCache = await this.cacheManager.get<boolean | null>(cacheKey)
+        const cacheKey = `userXperts:${tenantId}:${user.id}_${xpertId}`
 
-		if (fromCache) {
-			return fromCache
-		}
+        const fromCache = await this.cacheManager.get<boolean | null>(cacheKey)
 
-		let isAuthorized = false
-		const xpert = await this.xpertService.findOne(xpertId)
-		if (xpert.createdById === user.id) {
-			isAuthorized = true
-		} else {
-			isAuthorized = await this.workspaceService.canAccess(xpert.workspaceId, user.id)
+        if (fromCache) {
+            return fromCache
+        }
 
-			if (!isAuthorized) {
-				throw new ForbiddenException('Access denied')
-			}
+        let isAuthorized = false
+        const xpert = await this.xpertService.findOne(xpertId)
+        if (xpert.createdById === user.id) {
+            isAuthorized = true
+        } else {
+            isAuthorized = await this.workspaceService.canAccess(xpert.workspaceId, user.id)
 
-			isAuthorized = true
-		}
+            if (!isAuthorized) {
+                throw new ForbiddenException('Access denied')
+            }
 
-		if (isAuthorized) {
-			await this.cacheManager.set(
-				cacheKey,
-				isAuthorized,
-				5 * 60 * 1000 // 5 minutes cache expiration time for User Permissions
-			)
-		}
+            isAuthorized = true
+        }
 
-		return isAuthorized
-	}
+        if (isAuthorized) {
+            await this.cacheManager.set(
+                cacheKey,
+                isAuthorized,
+                5 * 60 * 1000 // 5 minutes cache expiration time for User Permissions
+            )
+        }
+
+        return isAuthorized
+    }
 }

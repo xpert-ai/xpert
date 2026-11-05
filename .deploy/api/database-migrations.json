@@ -19,6 +19,7 @@
     "assistant_binding",
     "assistant_template_publication",
     "assistant_template_upgrade",
+    "business_area_access_grant",
     "chat_conversation",
     "chat_conversation_thread",
     "chat_message",

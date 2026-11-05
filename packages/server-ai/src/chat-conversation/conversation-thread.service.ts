@@ -13,7 +13,17 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
-import { DataSource, EntityManager, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
+import {
+    And,
+    DataSource,
+    EntityManager,
+    Equal,
+    FindOptionsOrder,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Repository
+} from 'typeorm'
 import { threadControlConflict, threadGraphRevision } from './thread-run-control.service'
 import { recoveryConflict } from './recovery/recovery-error'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
@@ -471,7 +481,14 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         const where: FindOptionsWhere<ChatMessage> = {
             ...(options.where ?? {}),
             conversationId: thread.conversationId,
-            id: In(messageIds)
+            // Intersect the caller's filter with the authorized visible path.
+            id:
+                options.where?.id !== undefined
+                    ? And(
+                          In(messageIds),
+                          typeof options.where.id === 'string' ? Equal(options.where.id) : options.where.id
+                      )
+                    : In(messageIds)
         }
         // Select the page by tree position before loading large message contents.
         const matching = new Set(

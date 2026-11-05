@@ -317,6 +317,41 @@ describe('ChatConversationThreadService', () => {
         expect(where.id).toEqual(expect.objectContaining({ _value: ['message-1', 'message-3'] }))
     })
 
+    it.each(['message-1', 'outside-thread'])(
+        'intersects the requested message %s with the visible thread path',
+        async (id) => {
+            const find = jest.fn().mockResolvedValue([])
+            const service = createService({
+                messageRepository: {
+                    findOne: jest.fn().mockResolvedValue({ id: 'message-3' }),
+                    find,
+                    manager: {
+                        getTreeRepository: () => ({
+                            findAncestors: async () => [{ id: 'message-1' }, { id: 'message-3', parentId: 'message-1' }]
+                        })
+                    } as unknown as Repository<ChatMessage>['manager']
+                } as Partial<Repository<ChatMessage>>
+            })
+            jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
+                threadId: 'thread',
+                conversationId: 'conversation-1',
+                headMessageId: 'message-3'
+            } as ChatConversationThread)
+            await service.findVisibleMessages('thread', { where: { id, role: 'human' }, take: 1 })
+            expect(find.mock.calls[0][0].where).toMatchObject({
+                conversationId: 'conversation-1',
+                role: 'human',
+                id: {
+                    _type: 'and',
+                    _value: [
+                        { _type: 'in', _value: ['message-1', 'message-3'] },
+                        { _type: 'equal', _value: id }
+                    ]
+                }
+            })
+        }
+    )
+
     it('rejects a fork while the source thread is busy under the transaction lock', async () => {
         const source = {
             id: 'source-row',

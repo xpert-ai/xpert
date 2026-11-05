@@ -138,6 +138,7 @@ export * from './assistant-sharing.model'
 export * from './artifact-presentation.model'
 
 export * from './analytics-definition.model'
+export * from './analytics-diagnostic'
 
 export * from './data-retention.model'
 export * from './content-resource.model'
@@ -150,3 +151,5 @@ export * from './ai/mcp-operation.model'
 export * from './ai/mcp-task.schema'
 
 export * from './user-notification.schema'
+
+export * from './business-area-access.model'

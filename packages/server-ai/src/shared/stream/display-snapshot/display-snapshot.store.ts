@@ -22,6 +22,7 @@ const displayMessageSchema = z.object({
     role: z.literal('ai'),
     executionId: z.string(),
     conversationId: z.string().nullish(),
+    parentId: z.string().nullish(),
     content: z.custom<IChatMessage['content']>((value) => typeof value === 'string' || Array.isArray(value)),
     reasoning: z.custom<IChatMessage['reasoning']>((value) => value === undefined || Array.isArray(value)).optional(),
     events: z.custom<IChatMessage['events']>((value) => value === undefined || Array.isArray(value)).optional(),

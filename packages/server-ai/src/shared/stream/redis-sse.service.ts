@@ -374,7 +374,9 @@ export class RedisSseStreamService {
                                 if (continuous) return true
                             }
                         }
-                        if (first || finished || options.snapshotScope) {
+                        // Discovery can observe admission before the producer writes stream_start.
+                        // An initial reader waits on XREAD; a lost cursor still requires resync.
+                        if (first || finished || (options.snapshotScope && lastId !== '0-0')) {
                             resync()
                             return false
                         }

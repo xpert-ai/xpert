@@ -1,4 +1,5 @@
 export * from './analytics-provider'
+export * from './analytics-diagnostic'
 export * from './analytics.registry'
 export * from './analytics.schema'
 export * from './analytics-result'

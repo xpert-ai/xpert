@@ -8,6 +8,12 @@ const start = (id = 'ai', content = '') => ({
 })
 
 describe('display snapshot projection', () => {
+    it('preserves the input message identity for observers joining after the start event was trimmed', () => {
+        const capture = new DisplaySnapshotCapture()
+        const event = start()
+        const snapshot = capture.capture({ ...event, data: { ...event.data, parentId: 'human' } })
+        expect(snapshot?.messages[0].parentId).toBe('human')
+    })
     it('owns its inputs and freezes each state without reading ahead from the business message', () => {
         const capture = new DisplaySnapshotCapture()
         capture.capture(start())

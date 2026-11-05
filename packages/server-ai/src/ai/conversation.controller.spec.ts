@@ -7,6 +7,7 @@ jest.mock('@xpert-ai/server-core', () => {
         AllowClientSecretBindings: () => () => undefined,
         ApiKeyOrClientSecretAuthGuard: class {},
         Public: () => () => undefined,
+        Permissions: () => () => undefined,
         TransformInterceptor: class {},
         UUIDValidationPipe: class {},
         transformWhere: jest.fn((where: Record<string, unknown> = {}) => {

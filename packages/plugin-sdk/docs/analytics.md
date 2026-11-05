@@ -22,6 +22,30 @@ Use the root SDK entry on the server. Browser code uses `@xpert-ai/plugin-sdk/an
 
 ## Business metadata discovery
 
+### Public failure diagnostics
+
+Providers may throw `AnalyticsProviderError` with the shared `AnalyticsDiagnostic` contract from
+`@xpert-ai/contracts`. The versioned `xpert.analytics.diagnostic` envelope carries a stable code,
+stage, public message, retry policy and optional opaque `upstreamExecutionId` / `auditRef`.
+The runtime validates its structure across SDK copies, rechecks source access and adds its own
+`executionId`. Both HTTP and Agent `Error.message` retain the cause; the host introduction is localized.
+
+Author public messages separately from raw exceptions. Select only permitted schema paths and
+repair guidance; never copy driver text, query values, raw SQL/MDX, connection options or logs.
+Schema/length checks and sensitive-text rejection are defense in depth, not proof that arbitrary
+text is safe. Unknown, malformed or sensitive errors retain platform-owned guidance. Retryable
+diagnostics are limited to execution/dependency failures. Audit references are opaque identifiers,
+not URLs or paths; resolving them still requires authorization.
+
+HTTP producers and consumers use `parseAnalyticsDiagnostic` at each trust boundary. No `safe:true`
+flag or exception class identity grants trust. DataXpert reads at most 16 KiB of an error response
+within one second and the remaining query deadline, then cancels the stream. Successful results,
+read-only policy, actor scope and cancellation retain their existing contracts.
+
+Release Contracts/SDK and the host before consuming plugins. Until those packages are published,
+cross-repository builds require the paired source artifacts; that is not published-dependency or
+customer deployment acceptance. Do not claim older published SDK versions provide these exports.
+
 Optional `provider.discover(request, context)` returns a versioned `AnalyticsDiscoveryResult`: bounded `items`, opaque `inspectRequest` / `nextRequest`, and a native `queryContract` with operation/version/payloadSchema/instructions. A provider owns navigation syntax and business metadata; the platform validates the envelope and reuses query authorization, source revision checks and deadlines.
 
 `POST /api/data-source/analytics/discover` accepts `{ dataSourceId, providerId, request }`. Catalogs and inspect results must include authored descriptions, declared types and metric definitions when available. Missing metadata is not permission to infer business semantics from labels. Results have a 128 KB/50 item limit; pagination is provider-owned. Discovery does not grant execution permission or certify a metric.

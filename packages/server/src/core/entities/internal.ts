@@ -49,4 +49,5 @@ export * from '../../data-source/data-source.entity'
 export * from '../../data-source/authentication/authentication.entity'
 export * from '../../data-source-type/data-source-type.entity'
 export * from '../../business-area/business-area.entity'
+export * from '../../business-area/access/business-area-access.entity'
 //core subscribers

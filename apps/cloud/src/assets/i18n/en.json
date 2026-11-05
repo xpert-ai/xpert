@@ -997,7 +997,6 @@
       "Organization": "Current organization",
       "Shared": "Tenant shared",
       "ReadOnly": "You can view the catalog. Managing tags requires tag editing permission.",
-      "Retry": "Retry",
       "Loading": "Loading tags…",
       "Name": "Tag name",
       "Usage": "Usage",
@@ -2507,7 +2506,30 @@
       "UpdatedAt": "Last updated",
       "DeleteHint": "This permanently deletes the business area and all of its descendant business areas. This action cannot be undone.",
       "Select": "Select a business area",
-      "SelectHint": "Select an item from the hierarchy or create a new business area."
+      "SelectHint": "Select an item from the hierarchy or create a new business area.",
+      "Access": {
+        "Title": "Access grants",
+        "Hint": "Grants apply to this area only. Publishing also requires authoring access.",
+        "MyAccess": "My access",
+        "consumer": "Consumer",
+        "publisher": "Publisher",
+        "domain_admin": "Domain administrator",
+        "None": "No access",
+        "Subject": "Subject type",
+        "Group": "User group",
+        "User": "User",
+        "Member": "Subject",
+        "Select": "Select a member or group",
+        "Role": "Role in this area",
+        "Grant": "Save grant",
+        "Revoke": "Revoke",
+        "Empty": "No explicit grants.",
+        "Explain": "Inspect effective access",
+        "Effective": "Effective role",
+        "Direct": "Direct grant",
+        "Platform": "Platform management permission",
+        "ManageArea": "Manage business area access"
+      }
     },
     "MENU": {
       "Assistant": "Assistant",
@@ -4256,6 +4278,72 @@
       }
     },
     "Copilot": {
+      "Impact": {
+        "Description": "Disabling makes models on this connection unavailable for selection and calls. Saved configurations are preserved, so reference counts do not automatically decrease.",
+        "Scope": "All counts and details cover tenant {{tenantId}}, including its organizations.",
+        "Defaults": "Fixed default settings (settings)",
+        "Bindings": "Saved model bindings (records)",
+        "BindingUsage": "Direct current references: {{current}} · Historical-only direct references: {{historicalOnly}} · No direct reference found: {{unresolved}}",
+        "CurrentResources": "Current configurations with direct references (distinct resources)",
+        "HistoricalResources": "Historical / deleted records with direct references (records)",
+        "Drafts": "Current drafts with candidate JSON matches (drafts)",
+        "Units": "Bindings are saved records, not distinct models, active executions or affected resources. Resources are deduplicated by type and ID. Historical versions are separate records. JSON matches, including nested snapshots, do not confirm effective use; bindings without direct references may still be used.",
+        "DefaultBlock": "Change the default settings listed below in their tenant or organization before disabling this connection.",
+        "Search": "Search resource, ID, model or configuration field",
+        "Entries": "{{count}} entries",
+        "Groups": {
+          "defaults": "Default settings to change",
+          "current": "Current direct references",
+          "historical": "Historical direct references",
+          "unresolved": "Usage unresolved"
+        },
+        "Hints": {
+          "defaults": "Each entry identifies a fixed default setting and its model. Inherited copies are not counted again.",
+          "current": "Stored direct relationships to current records; multiple fields may belong to one resource. This does not measure runtime activity.",
+          "historical": "Historical Assistant versions and deleted records, excluded from the current resource count.",
+          "unresolved": "JSON / snapshot matches and saved bindings without direct references. Actual usage needs confirmation. Nothing is deleted or migrated automatically."
+        },
+        "Status": {
+          "current": "Current configuration",
+          "draft": "Draft document",
+          "published": "Published configuration",
+          "historical": "Historical / deleted record",
+          "unresolved": "Unresolved saved record"
+        },
+        "Resources": {
+          "default": "Default setting",
+          "assistant": "Assistant",
+          "knowledgebase": "Knowledgebase",
+          "project": "Project",
+          "connection": "Connection",
+          "binding": "Saved binding"
+        },
+        "Organization": "Organization: {{id}}",
+        "TenantSetting": "Tenant scope",
+        "Version": "Version {{version}}",
+        "UnknownModel": "Model not identified in this match",
+        "BindingId": "Binding ID",
+        "Evidence": {
+          "json": "JSON match only; may be a nested snapshot. Effective usage is unconfirmed.",
+          "saved": "No direct resource relationship found. This does not prove the binding is unused."
+        },
+        "NoEntries": "No matching entries",
+        "ShowMore": "Show more",
+        "DefaultRoles": {
+          "primary": "Primary model",
+          "secondary": "Secondary model",
+          "reasoning": "Reasoning model",
+          "embedding": "Embedding model",
+          "realtime": "Realtime model",
+          "tts": "Text to speech",
+          "speech2text": "Speech to text",
+          "image": "Image generation",
+          "video": "Video generation",
+          "rerank": "Reranking",
+          "moderation": "Moderation"
+        },
+        "Coverage": "This inventory covers default settings, direct model-binding relationships and JSON matches in Assistant configurations; it excludes execution and usage history."
+      },
       "SavedModelUnavailable": "Saved model is unavailable. Select another model.",
       "CredentialValidation": {
         "Model": "Model or Endpoint ID",
