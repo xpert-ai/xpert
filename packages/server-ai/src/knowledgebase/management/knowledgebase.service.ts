@@ -93,6 +93,7 @@ import {
     KNOWLEDGEBASE_SAFE_READ_RELATIONS,
     knowledgebaseAccessDenied,
     KNOWLEDGEBASE_DETAIL_SELECT,
+    ORGANIZATION_SHARED_LIBRARY_PERMISSIONS,
     addKnowledgebaseWriteAccessSelect,
     stripKnowledgebaseWriteAccessSelect,
     addKnowledgebaseAccessSelect,
@@ -231,20 +232,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 }
             ]
 
-            // Add Public knowledgebases from any workspace (excluding those already in this workspace)
-            // Note: Using Not(In([workspaceId])) to exclude the current workspace
             whereConditions.push({
                 ...(<FindOptionsWhere<Knowledgebase>>where),
-                permission: KnowledgebasePermission.Public,
-                organizationId: organizationId,
-                workspaceId: Not(In([workspaceId]))
-            })
-
-            // Add Organization knowledgebases from other workspaces in the same organization
-            whereConditions.push({
-                ...(<FindOptionsWhere<Knowledgebase>>where),
-                permission: KnowledgebasePermission.Organization,
-                organizationId: organizationId,
+                permission: In(ORGANIZATION_SHARED_LIBRARY_PERMISSIONS),
+                organizationId,
                 workspaceId: Not(In([workspaceId]))
             })
 
@@ -963,7 +954,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 searchContext ? this.findOneForSearch(id, options, searchContext) : this.findOne(id, options),
             i18nService: this.i18nService,
             queryBus: this.queryBus,
-            repository: this.repository
+            legacyStateWriter: searchContext ? undefined : this.repository
         })
     }
 

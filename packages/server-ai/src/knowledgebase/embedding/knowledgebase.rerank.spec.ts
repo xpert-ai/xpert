@@ -78,7 +78,8 @@ function setup(options: { embeddingsAvailable?: boolean; rerankAvailable?: boole
         throw new Error('Unexpected model query')
     })
     const repository = {
-        findOne: jest.fn(async () => knowledgebase),
+        findOne: jest.fn(async (): Promise<Knowledgebase> => knowledgebase),
+        update: jest.fn(),
         manager: { query: jest.fn(async () => [{ enrolled: false }]) }
     }
     const workspaceAccess = { assertCan: jest.fn() }
@@ -197,6 +198,54 @@ describe('Knowledgebase rerank model access', () => {
             expect(workspaceAccess.assertCan).not.toHaveBeenCalled()
             await expect(service.findOne(library.id)).rejects.toBeInstanceOf(ForbiddenException)
         }
+    })
+
+    it.each([
+        ['getSearchVectorStore', ''],
+        ['getGraphSearchVectorStore', ':graph-entities']
+    ] as const)('%s reads a legacy collection without overwriting a concurrent rebuild', async (method, suffix) => {
+        const { service, knowledgebase, repository, command } = setup({ embeddingsAvailable: true })
+        knowledgebase.vectorStore = VectorTypeEnum.PGVECTOR
+        Object.assign(knowledgebase.copilotModel, { options: { dimensions: 3 } })
+        repository.findOne.mockImplementationOnce(async () => {
+            const snapshot = Object.assign(new Knowledgebase(), knowledgebase, { embeddingCollectionName: null })
+            // The rebuild promotes a collection after the search takes its initial snapshot.
+            Object.assign(knowledgebase, { embeddingCollectionName: 'rebuilt', embeddingRevision: 2 })
+            return snapshot
+        })
+        await inRequestContext(() => service[method](knowledgebase.id))
+        await inRequestContext(() => service[method](knowledgebase.id))
+        expect(command).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                config: expect.objectContaining({ collectionName: knowledgebase.id + suffix })
+            })
+        )
+        expect(command).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                config: expect.objectContaining({ collectionName: 'rebuilt' + suffix })
+            })
+        )
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('still initializes legacy metadata for indexing callers', async () => {
+        const { service, knowledgebase, repository } = setup({ embeddingsAvailable: true })
+        const legacy = Object.assign(new Knowledgebase(), knowledgebase, {
+            embeddingCollectionName: null,
+            vectorStore: VectorTypeEnum.PGVECTOR
+        })
+        Object.assign(legacy.copilotModel, { options: { dimensions: 3 } })
+        await inRequestContext(() => service.getActiveVectorStore(legacy, true, undefined, { rerankEnabled: false }))
+        expect(repository.update).toHaveBeenCalledWith(
+            legacy.id,
+            expect.objectContaining({
+                embeddingCollectionName: legacy.id,
+                embeddingRevision: 1,
+                embeddingDimensions: 3
+            })
+        )
     })
 
     it('does not initialize the final rerank model during vector candidate retrieval', async () => {
