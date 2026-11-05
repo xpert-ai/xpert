@@ -1,9 +1,10 @@
 import { signal } from '@angular/core'
 
-export function createWorkspacePetPreference(document: Document, key: string) {
-  let initiallyVisible = true
+export function createWorkspacePetPreference(document: Document, key: string, defaultVisible: boolean) {
+  let initiallyVisible = defaultVisible
   try {
-    initiallyVisible = document.defaultView?.localStorage.getItem(key) !== '1'
+    const hidden = document.defaultView?.localStorage.getItem(key)
+    if (hidden === '1' || hidden === '0') initiallyVisible = hidden === '0'
   } catch {
     // Storage may be unavailable in a restricted browser.
   }
@@ -14,9 +15,7 @@ export function createWorkspacePetPreference(document: Document, key: string) {
     setVisible(value: boolean) {
       visible.set(value)
       try {
-        const storage = document.defaultView?.localStorage
-        if (value) storage?.removeItem(key)
-        else storage?.setItem(key, '1')
+        document.defaultView?.localStorage.setItem(key, value ? '0' : '1')
       } catch {
         // The current workspace still reflects the choice in memory.
       }

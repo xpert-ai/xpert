@@ -161,6 +161,7 @@ describe('assistant chatkit runtime helpers', () => {
       }
     })
     const pet = {
+      enabled: false,
       behavior: 'auto' as const,
       position: {
         pin: 'bottom-right' as const,
@@ -272,7 +273,7 @@ describe('assistant chatkit runtime helpers', () => {
     flushAngularEffects()
 
     const scopedPet = createChatKitMock.mock.calls[0][0].pet
-    expect(scopedPet).toEqual({ ...pet, enabled: true })
+    expect(scopedPet).toEqual(pet)
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
@@ -453,6 +454,10 @@ describe('assistant chatkit runtime helpers', () => {
     expect(onProjectChange).toHaveBeenCalledWith({ projectId: 'project-2' })
 
     const firstOrg = createChatKitMock.mock.lastCall![0]
+    // The host default is hidden until this account makes its own choice.
+    firstOrg.onPetLauncherVisibilityChange({ visible: true })
+    flushAngularEffects()
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(true)
     firstOrg.onPetLauncherVisibilityChange({ visible: false })
     flushAngularEffects()
     expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
@@ -469,7 +474,9 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
     const otherOrg = createChatKitMock.mock.calls[0][0]
-    expect(otherOrg.pet.enabled).toBe(true)
+    expect(otherOrg.pet.enabled).toBe(false)
+    otherOrg.onPetLauncherVisibilityChange({ visible: true })
+    flushAngularEffects()
     otherOrg.onPetLauncherVisibilityChange({ visible: false })
     flushAngularEffects()
     expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
@@ -485,7 +492,7 @@ describe('assistant chatkit runtime helpers', () => {
         request: { context: { projectId: 'project-2' } }
       })
     )
-    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(true)
+    expect(setOptions.mock.lastCall![0].pet.enabled).toBe(false)
     // A late event from the previous account must not overwrite either preference.
     otherOrg.onPetLauncherVisibilityChange({ visible: true })
     user.next({ id: 'user-1' })

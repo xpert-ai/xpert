@@ -267,7 +267,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   })
   const petPreference = computed(() => {
     const key = petStorageKey()
-    return key ? createWorkspacePetPreference(document, key) : null
+    const defaultVisible = typeof input.pet === 'boolean' ? input.pet : (input.pet?.enabled ?? true)
+    return key ? createWorkspacePetPreference(document, key, defaultVisible) : null
   })
   const publicationRevision = toSignal(
     inject(XpertPublicationService).changes$.pipe(
