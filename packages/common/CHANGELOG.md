@@ -1,5 +1,7 @@
 # @xpert-ai/server-common
 
+## 3.32.0
+
 ## 3.31.0
 
 ## 3.30.2

@@ -1,5 +1,30 @@
 # @xpert-ai/server-ai
 
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Add user-group and direct-user business-area grants with consumer, publisher and domain administrator roles. Explain effective grant sources, apply live membership revocation, and authorize published Assistant consumption independently from workspace authoring.
+
+### Patch Changes
+
+- 56c6c5e: Clarify model connection disable counts with tenant-scoped reference details, distinct current resources, historical records and explicitly unresolved JSON/snapshot matches. Identify blocking default settings, preserve configurations and the existing disable prerequisite, and provide matching English and Chinese explanations.
+- 087cc17: Preserve authenticated user provenance when dispatching knowledge pipelines so background workers restore current permissions before workspace authorization. Bind the marker to the initiating user and target scope while preserving Assistant and delegated credential boundaries, permission revocation and scoped task failure callbacks.
+- 14fd3d6: Recover orphaned executions that remain stopping after their owner disappears without a graph-end receipt. Finalize the execution, message, task and conversation atomically only after ownership fencing and complete tool/child settlement evidence, preserving saved work and allowing the next user message without replaying actions.
+- eef4692: Preserve installed Agent avatars when a refreshed template omits them, including recovery from an interrupted refresh. Keep explicit avatar clearing intact so prepared and published Assistant graphs remain consistent without changing model or resource bindings.
+- c585460: Report local Sandbox Job runtimes as unavailable on non-Linux hosts, where the current supervisor cannot prove descendant exit. Reject controlled runtime creation before starting a process and direct users to a healthy Linux Runtime Provider. This prevents new unverifiable executions; it does not reclaim existing jobs with unknown exit state.
+- 3d7604f: Translate the MCP task request failure message in the Simplified Chinese locale.
+- Updated dependencies [a35bd1f]
+- Updated dependencies [e7b2da6]
+- Updated dependencies [56c6c5e]
+    - @xpert-ai/contracts@3.32.0
+    - @xpert-ai/plugin-sdk@3.32.0
+    - @xpert-ai/server-core@3.32.0
+    - @xpert-ai/desktop-protocol@0.4.7
+    - @xpert-ai/server-auth@3.32.0
+    - @xpert-ai/server-common@3.32.0
+    - @xpert-ai/server-config@3.32.0
+
 ## 3.31.0
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @xpert-ai/xpert-api
 
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Release business-area access grants for groups and individual users, including live permission evaluation, grant source explanations, and scoped Assistant consumption and publishing checks.
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- 56c6c5e: Clarify model connection disable counts with tenant-scoped reference details, distinct current resources, historical records and explicitly unresolved JSON/snapshot matches. Identify blocking default settings, preserve configurations and the existing disable prerequisite, and provide matching English and Chinese explanations.
+- 673ba33: Keep execution overview rows mounted during polling so updates preserve expanded conversations, pagination, focus, and scroll position. Refresh failures retain the last successful data and allow retry without clearing the view.
+- 087cc17: Preserve authenticated user provenance when dispatching knowledge pipelines so background workers restore current permissions before workspace authorization. Bind the marker to the initiating user and target scope while preserving Assistant and delegated credential boundaries, permission revocation and scoped task failure callbacks.
+- 14fd3d6: Recover orphaned executions that remain stopping after their owner disappears without a graph-end receipt. Finalize the execution, message, task and conversation atomically only after ownership fencing and complete tool/child settlement evidence, preserving saved work and allowing the next user message without replaying actions.
+- eef4692: Preserve installed Agent avatars when a refreshed template omits them, including recovery from an interrupted refresh. Keep explicit avatar clearing intact so prepared and published Assistant graphs remain consistent without changing model or resource bindings.
+- c585460: Report local Sandbox Job runtimes as unavailable on non-Linux hosts, where the current supervisor cannot prove descendant exit. Reject controlled runtime creation before starting a process and direct users to a healthy Linux Runtime Provider. This prevents new unverifiable executions; it does not reclaim existing jobs with unknown exit state.
+- 3d7604f: Translate the MCP task request failure message in the Simplified Chinese locale.
+
 ## 3.31.0
 
 ### Patch Changes
