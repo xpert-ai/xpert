@@ -58,6 +58,27 @@ describe('optional App recovery in the native website', () => {
   })
   afterEach(() => TestBed.resetTestingModule())
 
+  it('shares deployment presentation across concurrent and later navigations', async () => {
+    const response = { mode: 'managed-apps', branding: { name: 'Fixture' } } as const
+    const pending = new Subject<typeof response>()
+    http.get.mockReturnValue(pending)
+    const first = service.presentation()
+    const second = service.presentation()
+    pending.next(response)
+    pending.complete()
+    expect(await Promise.all([first, second])).toEqual([response, response])
+    expect(await service.presentation()).toEqual(response)
+    expect(service.branding()).toEqual(response.branding)
+    expect(http.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries a failed presentation lookup', async () => {
+    http.get.mockReturnValueOnce(throwError(() => new Error('Offline'))).mockReturnValue(of({ mode: 'standard' }))
+    await expect(service.presentation()).rejects.toThrow('Offline')
+    await expect(service.presentation()).resolves.toEqual({ mode: 'standard' })
+    expect(http.get).toHaveBeenCalledTimes(2)
+  })
+
   it('shows a single persistent retry notice without changing navigation or successful entries', async () => {
     await service.refresh()
     await service.refresh()

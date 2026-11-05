@@ -21,7 +21,8 @@ const status = (): AppPlatformStatus => ({
 describe('App preparation within the website layout', () => {
   let fixture: ComponentFixture<AppPlatformPageComponent>
   const permission = { permission: AIPermissionsEnum.CHAT_VIEW, enabled: true }
-  const platform = { status: signal<AppPlatformStatus | null>(null), refresh: jest.fn() }
+  const appPermission = { permission: AIPermissionsEnum.APPLICATION_USE, enabled: true }
+  const platform = { status: signal<AppPlatformStatus | null>(null), presentation: jest.fn(), refresh: jest.fn() }
   const router = { navigate: jest.fn(), navigateByUrl: jest.fn() }
   const route = { snapshot: { queryParamMap: convertToParamMap({}) } }
   const ready = () => {
@@ -39,14 +40,16 @@ describe('App preparation within the website layout', () => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     permission.enabled = true
+    appPermission.enabled = true
     platform.status.set(null)
+    platform.presentation.mockResolvedValue({ mode: 'managed-apps' })
     platform.refresh.mockResolvedValue(status())
     route.snapshot.queryParamMap = convertToParamMap({})
     TestBed.configureTestingModule({
       imports: [AppPlatformPageComponent, TranslateModule.forRoot()],
       providers: [
         { provide: AppPlatformService, useValue: platform },
-        { provide: Store, useValue: { user: { role: { rolePermissions: [permission] } } } },
+        { provide: Store, useValue: { user: { role: { rolePermissions: [permission, appPermission] } } } },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: route }
       ]
@@ -57,6 +60,23 @@ describe('App preparation within the website layout', () => {
     fixture.destroy()
     TestBed.resetTestingModule()
     jest.useRealTimers()
+  })
+
+  it.each([true, false])('returns direct standard-mode visits to chat with APPLICATION_USE=%s', async (enabled) => {
+    appPermission.enabled = enabled
+    platform.presentation.mockResolvedValue({ mode: 'standard' })
+    await fixture.componentInstance.refresh()
+    expect(router.navigate).toHaveBeenCalledWith(['/chat'], { replaceUrl: true })
+    expect(platform.refresh).not.toHaveBeenCalled()
+  })
+
+  it('rechecks presentation after a failure before attempting managed recovery', async () => {
+    platform.presentation.mockRejectedValueOnce(new Error('Offline')).mockResolvedValue({ mode: 'standard' })
+    await fixture.componentInstance.refresh()
+    expect(fixture.componentInstance.error()).toBe(true)
+    await fixture.componentInstance.refresh(true)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat'], { replaceUrl: true })
+    expect(platform.refresh).not.toHaveBeenCalled()
   })
 
   it('polls preparation and enters the assigned Assistant when ready', async () => {
@@ -113,6 +133,8 @@ describe('App preparation within the website layout', () => {
       })
     )
     const pending = fixture.componentInstance.refresh()
+    await Promise.resolve()
+    expect(platform.refresh).toHaveBeenCalledTimes(1)
     fixture.destroy()
     complete(ready())
     await pending
