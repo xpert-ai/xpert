@@ -34,7 +34,7 @@ describe('ResolveLatestPluginVersionHandler', () => {
 	afterEach(() => jest.restoreAllMocks())
 
 	it('resolves the version through the registry client without starting npm', async () => {
-		await expect(query('a')).resolves.toBe('1.2.3')
+		await expect(query('a')).resolves.toMatchObject({ status: 'success', latestVersion: '1.2.3' })
 		expect(mockResolveVersion).toHaveBeenCalledWith('@test/a')
 		expect(mockExecFile).not.toHaveBeenCalled()
 	})
@@ -48,7 +48,9 @@ describe('ResolveLatestPluginVersionHandler', () => {
 		const results = ['a', 'b', 'c', 'd', 'e'].map(query)
 		expect(mockResolveVersion).toHaveBeenCalledTimes(5)
 		finish('1.2.3')
-		await expect(Promise.all(results)).resolves.toEqual(Array(5).fill('1.2.3'))
+		await expect(Promise.all(results)).resolves.toEqual(
+			Array(5).fill(expect.objectContaining({ status: 'success', latestVersion: '1.2.3' }))
+		)
 	})
 
 	it('coalesces requests for the same package even after provisional cache expiry', async () => {
@@ -65,7 +67,9 @@ describe('ResolveLatestPluginVersionHandler', () => {
 		const second = query('a')
 		expect(mockResolveVersion).toHaveBeenCalledTimes(1)
 		finish('1.2.3')
-		await expect(Promise.all([first, second])).resolves.toEqual(['1.2.3', '1.2.3'])
+		await expect(Promise.all([first, second])).resolves.toEqual(
+			Array(2).fill(expect.objectContaining({ status: 'success', latestVersion: '1.2.3' }))
+		)
 	})
 
 	it('caches successful results for five minutes from completion', async () => {
@@ -73,11 +77,11 @@ describe('ResolveLatestPluginVersionHandler', () => {
 		jest.spyOn(Date, 'now').mockImplementation(() => now)
 		await query('a')
 		now += 5 * 60 * 1000 - 1
-		await expect(query('a')).resolves.toBe('1.2.3')
+		await expect(query('a')).resolves.toMatchObject({ status: 'success', latestVersion: '1.2.3' })
 		expect(mockResolveVersion).toHaveBeenCalledTimes(1)
 		now += 1
 		mockResolveVersion.mockResolvedValue('2.0.0')
-		await expect(query('a')).resolves.toBe('2.0.0')
+		await expect(query('a')).resolves.toMatchObject({ status: 'success', latestVersion: '2.0.0' })
 		expect(mockResolveVersion).toHaveBeenCalledTimes(2)
 	})
 
@@ -85,16 +89,49 @@ describe('ResolveLatestPluginVersionHandler', () => {
 		let now = 0
 		jest.spyOn(Date, 'now').mockImplementation(() => now)
 		mockResolveVersion.mockRejectedValue(new Error('Registry unavailable'))
-		await expect(query('a')).resolves.toBeUndefined()
-		await expect(query('a')).resolves.toBeUndefined()
+		await expect(query('a')).resolves.toMatchObject({ status: 'failed' })
+		await expect(query('a')).resolves.toMatchObject({ status: 'failed' })
 		expect(mockResolveVersion).toHaveBeenCalledTimes(1)
 		now = 5 * 60 * 1000
 		mockResolveVersion.mockResolvedValue('2.0.0')
-		await expect(query('a')).resolves.toBe('2.0.0')
+		await expect(query('a')).resolves.toMatchObject({ status: 'success', latestVersion: '2.0.0' })
 	})
 
 	it('preserves the missing-version result', async () => {
 		mockResolveVersion.mockResolvedValue(undefined)
-		await expect(query('a')).resolves.toBeUndefined()
+		await expect(query('a')).resolves.toMatchObject({ status: 'failed' })
+	})
+	it('bypasses both successful and failed completed caches on explicit refresh', async () => {
+		await query('a')
+		mockResolveVersion.mockResolvedValue('2.0.0')
+		await expect(handler.execute(new ResolveLatestPluginVersionQuery('@test/a', true))).resolves.toMatchObject({
+			status: 'success',
+			latestVersion: '2.0.0'
+		})
+		mockResolveVersion.mockRejectedValue(new Error('secret registry URL'))
+		const failed = await handler.execute(new ResolveLatestPluginVersionQuery('@test/a', true))
+		expect(failed).toMatchObject({ status: 'failed', errorCode: 'REGISTRY_UNAVAILABLE', latestVersion: '2.0.0' })
+		expect(failed.lastSuccessfulCheckAt).toBeDefined()
+		expect(JSON.stringify(failed)).not.toContain('secret')
+		mockResolveVersion.mockResolvedValue('2.1.0')
+		await expect(handler.execute(new ResolveLatestPluginVersionQuery('@test/a', true))).resolves.toMatchObject({
+			status: 'success',
+			latestVersion: '2.1.0'
+		})
+		expect(mockResolveVersion).toHaveBeenCalledTimes(4)
+	})
+
+	it('coalesces concurrent forced checks', async () => {
+		let finish: (version: string) => void = () => undefined
+		mockResolveVersion.mockReturnValue(
+			new Promise((resolve) => {
+				finish = resolve
+			})
+		)
+		const first = handler.execute(new ResolveLatestPluginVersionQuery('@test/a', true))
+		const second = handler.execute(new ResolveLatestPluginVersionQuery('@test/a', true))
+		expect(mockResolveVersion).toHaveBeenCalledTimes(1)
+		finish('2.0.0')
+		await expect(first).resolves.toEqual(await second)
 	})
 })

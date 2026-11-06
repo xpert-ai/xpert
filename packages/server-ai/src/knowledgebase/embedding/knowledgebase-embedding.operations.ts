@@ -16,7 +16,7 @@ import { t } from 'i18next'
 import { assign } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 
-import { Repository } from 'typeorm'
+import { FindOneOptions, Repository } from 'typeorm'
 
 import {
     CopilotModelGetChatModelQuery,
@@ -39,16 +39,16 @@ import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store
 
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 
-import type { KnowledgebaseService } from '../management/knowledgebase.service'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { TEmbeddingCopilotModel, TKnowledgebaseModelContext } from './knowledgebase-model-policy'
 
 interface KnowledgebaseEmbeddingOperationsContext {
     commandBus: CommandBus
-    findOne: KnowledgebaseService['findOne']
+    findOne: (id: string, options?: FindOneOptions<Knowledgebase>) => Promise<Knowledgebase>
     i18nService: I18nService
     queryBus: QueryBus
-    repository: Repository<Knowledgebase>
+    // Searches can use the legacy collection name (the library ID) without initializing its index.
+    legacyStateWriter?: Pick<Repository<Knowledgebase>, 'update'>
 }
 
 export class KnowledgebaseEmbeddingOperations {
@@ -159,10 +159,7 @@ export class KnowledgebaseEmbeddingOperations {
         return typeof dimension === 'number' ? dimension : null
     }
 
-    async resolveEmbeddingDimensions(
-        copilotModel: TEmbeddingCopilotModel,
-        modelContext?: TKnowledgebaseModelContext
-    ) {
+    async resolveEmbeddingDimensions(copilotModel: TEmbeddingCopilotModel, modelContext?: TKnowledgebaseModelContext) {
         const configuredDimensions = this.resolveConfiguredEmbeddingDimensions(copilotModel)
         if (configuredDimensions) {
             return configuredDimensions
@@ -234,7 +231,12 @@ export class KnowledgebaseEmbeddingOperations {
         requiredEmbeddings: boolean,
         modelContext?: TKnowledgebaseModelContext
     ) {
-        if (!requiredEmbeddings || knowledgebase.embeddingCollectionName || !knowledgebase.copilotModel) {
+        if (
+            !this.context.legacyStateWriter ||
+            !requiredEmbeddings ||
+            knowledgebase.embeddingCollectionName ||
+            !knowledgebase.copilotModel
+        ) {
             return
         }
 
@@ -251,7 +253,7 @@ export class KnowledgebaseEmbeddingOperations {
             embeddingRevision: knowledgebase.embeddingRevision ?? 1,
             status: (knowledgebase.status as KnowledgebaseStatusEnum) ?? KnowledgebaseStatusEnum.READY
         }
-        await this.context.repository.update(knowledgebase.id, patch)
+        await this.context.legacyStateWriter.update(knowledgebase.id, patch)
         assign(knowledgebase, patch)
     }
 

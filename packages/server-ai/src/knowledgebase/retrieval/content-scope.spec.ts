@@ -18,7 +18,7 @@ describe('Vector retrieval content scope', () => {
         const search = jest.fn(async () => ({ items: [] }))
         const counts = jest.fn(async () => ({ candidateDocumentCount: 0, candidateChunkCount: 0 }))
         const service = {
-            getActiveVectorStore: jest.fn(async () => ({
+            getSearchVectorStore: jest.fn(async () => ({
                 vectorStoreType: environment.vectorStore,
                 structuredSimilaritySearchWithScore: search
             })),

@@ -26,6 +26,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
     myRxResource,
     XpI18nPipe: class XpI18nPipe {},
     XpSpinComponent: class XpSpinComponent {},
+    ZardTooltipImports: [],
     ZardBadgeComponent: class ZardBadgeComponent {},
     ZardButtonComponent: class ZardButtonComponent {}
   }
@@ -61,6 +62,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { ActivatedRoute, Router, RouterModule, provideRouter, convertToParamMap } from '@angular/router'
 import { PluginMarketplaceDetailErrorCode, XpertTypeEnum } from '@xpert-ai/contracts'
+import type { PluginInstallationSummary } from '@xpert-ai/contracts'
 import { PluginAPIService } from '@cloud/app/@core/state'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { of, throwError } from 'rxjs'
@@ -85,7 +87,8 @@ type PluginDetail = {
   author: { name: string; url: string }
   installed: boolean
   contributions: []
-  readme: { content: string; source: string; locale: string }
+  installations?: PluginInstallationSummary[]
+  readme: { content: string; source: string; locale: string; version?: string }
 }
 
 function createPluginDetail(installed = true): PluginDetail {
@@ -105,10 +108,16 @@ function createPluginDetail(installed = true): PluginDetail {
 }
 
 async function createComponent(
-  options: { template?: string | null; installed?: boolean; failure?: unknown; locale?: string } = {}
+  options: {
+    template?: string | null
+    installed?: boolean
+    failure?: unknown
+    locale?: string
+    detail?: PluginDetail
+  } = {}
 ) {
   const template = options.template === undefined ? 'docx-editor-assistant' : options.template
-  const detail = createPluginDetail(options.installed)
+  const detail = options.detail ?? createPluginDetail(options.installed)
   const dialog = {
     open: jest.fn(() => ({
       closed: of({ xpert: { id: 'agent-1' } })
@@ -184,6 +193,38 @@ describe('PluginMarketplaceReadmePageComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
+  })
+
+  it('labels catalog, runtime and documentation versions separately and explains archive updates', async () => {
+    const { fixture } = await createComponent({
+      template: null,
+      detail: {
+        ...createPluginDetail(),
+        version: '0.5.0',
+        installations: [
+          {
+            scopeKey: 'system:global',
+            runningVersion: '0.4.0',
+            installedVersion: '0.5.1',
+            pendingRestart: true,
+            installation: { method: 'archive', fileName: 'review.tgz', installedAt: '2026-11-05T00:00:00Z' }
+          }
+        ],
+        readme: { content: '# Review', source: 'installed-package', locale: 'en', version: '0.4.0' }
+      }
+    })
+    const element: HTMLElement = fixture.nativeElement
+    const fields = new Map(
+      Array.from(element.querySelectorAll('dt')).map((term) => [
+        term.textContent?.trim(),
+        term.nextElementSibling?.textContent?.trim()
+      ])
+    )
+    expect(fields.get('市场版本')).toBe('0.5.0')
+    expect(fields.get('当前运行')).toBe('0.4.0')
+    expect(fields.get('文档版本')).toBe('0.4.0')
+    expect(fields.get('安装方式')).toBe('上传包安装')
+    expect(element.textContent).toContain('待生效 0.5.1')
   })
 
   it('opens the requested template once and navigates to the created agent', async () => {

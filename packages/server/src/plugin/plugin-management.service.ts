@@ -213,6 +213,7 @@ export class PluginManagementService {
 					source: 'code',
 					sourceConfig: {
 						packageDir: extracted.packageDir,
+						installationMethod: 'archive',
 						uploadFileName: extracted.originalName,
 						uploadInstalledAt: new Date().toISOString()
 					},

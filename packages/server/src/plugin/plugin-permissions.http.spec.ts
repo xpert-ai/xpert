@@ -219,6 +219,15 @@ describe('plugin HTTP authorization', () => {
 		expect((await request('plugin/by-names', 'POST', { names: ['own'] }, scope)).status).toBe(201)
 		expect((await request('plugin/latest-versions', 'POST', { names: [] }, scope)).status).toBe(201)
 	})
+	it('validates forced-check input at the HTTP boundary', async () => {
+		const scope = { ...headers, authorization: 'super' }
+		expect(
+			(await request('plugin/latest-versions', 'POST', { names: ['own'], forceRefresh: true }, scope)).status
+		).toBe(201)
+		expect((await request('plugin/latest-versions', 'POST', { forceRefresh: 'true' }, scope)).status).toBe(400)
+		expect((await request('plugin/latest-versions', 'POST', { names: [''] }, scope)).status).toBe(400)
+	})
+
 	it.each(['viewer', 'revoked'])('denies browsing and mutations for %s', async (actor) => {
 		const scope = { ...headers, authorization: actor }
 		expect((await request('plugin', 'GET', undefined, scope)).status).toBe(403)

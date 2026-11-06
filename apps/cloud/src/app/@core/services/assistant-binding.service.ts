@@ -51,6 +51,12 @@ export class AssistantBindingService {
     })
   }
 
+  isWorkspaceAssistantAvailable() {
+    return this.#http
+      .get<{ available: boolean }>(`${API_ASSISTANT_BINDING}/workspace/availability`)
+      .pipe(map(({ available }) => available))
+  }
+
   getEffective(code: AssistantCode) {
     return this.#http.get<IResolvedAssistantBinding>(`${API_ASSISTANT_BINDING}/effective/${code}`)
   }

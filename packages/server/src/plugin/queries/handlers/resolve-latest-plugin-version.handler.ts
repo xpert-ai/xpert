@@ -1,6 +1,7 @@
+// A forced check bypasses completed cache entries, but shares any in-flight registry request.
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
-import { getErrorMessage } from '@xpert-ai/plugin-sdk'
+import type { PluginVersionCheckResult } from '@xpert-ai/contracts'
 import { ResolveLatestPluginVersionQuery } from '../resolve-latest-plugin-version.query'
 import { NpmPluginVersionClient } from './npm-plugin-version'
 
@@ -8,8 +9,8 @@ const PLUGIN_VERSION_CACHE_TTL_MS = 5 * 60 * 1000
 
 type PluginVersionCacheEntry = {
 	expiresAt: number
-	latestVersion?: string
-	pending?: Promise<string | undefined>
+	result?: PluginVersionCheckResult
+	pending?: Promise<PluginVersionCheckResult>
 }
 
 @QueryHandler(ResolveLatestPluginVersionQuery)
@@ -18,44 +19,34 @@ export class ResolveLatestPluginVersionHandler implements IQueryHandler<ResolveL
 	private readonly cache = new Map<string, PluginVersionCacheEntry>()
 	private readonly registry = new NpmPluginVersionClient()
 
-	async execute(query: ResolveLatestPluginVersionQuery): Promise<string | undefined> {
-		const now = Date.now()
+	async execute(query: ResolveLatestPluginVersionQuery): Promise<PluginVersionCheckResult> {
 		const cached = this.cache.get(query.packageName)
+		if (cached?.pending) return cached.pending
+		if (!query.forceRefresh && cached?.result && cached.expiresAt > Date.now()) return cached.result
 
-		if (cached?.pending) {
-			return cached.pending
+		const finish = (latestVersion?: string, errorCode?: PluginVersionCheckResult['errorCode']) => {
+			const checkedAt = new Date().toISOString()
+			const result: PluginVersionCheckResult = latestVersion
+				? { status: 'success', checkedAt, latestVersion, lastSuccessfulCheckAt: checkedAt }
+				: {
+						status: 'failed',
+						checkedAt,
+						errorCode: errorCode ?? 'VERSION_NOT_FOUND',
+						latestVersion: cached?.result?.latestVersion,
+						lastSuccessfulCheckAt: cached?.result?.lastSuccessfulCheckAt
+					}
+			this.cache.set(query.packageName, { expiresAt: Date.now() + PLUGIN_VERSION_CACHE_TTL_MS, result })
+			return result
 		}
-
-		if (cached && cached.expiresAt > now) {
-			return cached.latestVersion
-		}
-
 		const pending = this.registry
 			.resolveLatestVersion(query.packageName)
-			.then((latestVersion) => {
-				this.cache.set(query.packageName, {
-					expiresAt: Date.now() + PLUGIN_VERSION_CACHE_TTL_MS,
-					latestVersion
-				})
-				return latestVersion
+			.then((version) => finish(version))
+			.catch(() => {
+				// Registry exceptions can contain credentials or private proxy URLs.
+				this.logger.warn(`Failed to check the latest version for plugin ${query.packageName}`)
+				return finish(undefined, 'REGISTRY_UNAVAILABLE')
 			})
-			.catch((error) => {
-				this.logger.warn(
-					`Failed to resolve latest version for plugin ${query.packageName}: ${getErrorMessage(error)}`
-				)
-				this.cache.set(query.packageName, {
-					expiresAt: Date.now() + PLUGIN_VERSION_CACHE_TTL_MS,
-					latestVersion: undefined
-				})
-				return undefined
-			})
-
-		this.cache.set(query.packageName, {
-			expiresAt: now + PLUGIN_VERSION_CACHE_TTL_MS,
-			latestVersion: cached?.latestVersion,
-			pending
-		})
-
+		this.cache.set(query.packageName, { expiresAt: 0, result: cached?.result, pending })
 		return pending
 	}
 }

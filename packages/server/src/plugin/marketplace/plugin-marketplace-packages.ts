@@ -109,7 +109,8 @@ export class PluginMarketplacePackages {
 			return null
 		}
 
-		return this.readReadmeFromDirectory(packageRoot, locale, 'installed-package')
+		const readme = await this.readReadmeFromDirectory(packageRoot, locale, 'installed-package')
+		return readme ? { ...readme, version: loadedPlugin.instance.meta.version } : null
 	}
 
 	private async resolveNpmPackageReadme(plugin: PluginMarketplaceItem, locale: string | null) {
@@ -164,7 +165,8 @@ export class PluginMarketplacePackages {
 			const archivePath = join(tempDir, 'package.tgz')
 			await writeFile(archivePath, Buffer.from(await tarballResponse.arrayBuffer()))
 			await execFile('tar', ['-xzf', archivePath, '-C', tempDir])
-			return await this.readReadmeFromDirectory(join(tempDir, 'package'), locale, 'npm-package')
+			const readme = await this.readReadmeFromDirectory(join(tempDir, 'package'), locale, 'npm-package')
+			return readme ? { ...readme, version: archive.version } : null
 		} catch (error) {
 			this.metadata.logger.warn(
 				`Failed to load README for npm plugin "${packageName}": ${this.metadata.toErrorMessage(error)}`

@@ -28,6 +28,7 @@ export const appPlatformGuard: CanActivateChildFn = async (_route, state) => {
   // Feature routes enforce their own permissions. This guard only coordinates delivery readiness.
   if (!pathname.startsWith('/chat') && !pathname.startsWith('/project')) return true
   try {
+    if ((await platform.presentation()).mode === 'standard') return true
     const status = await platform.refresh()
     const projectId = /^\/project\/([0-9a-f-]{36})$/.exec(pathname)?.[1]
     if (status.ready && permissions.includes(AIPermissionsEnum.XPERT_PROJECT_VIEW)) {

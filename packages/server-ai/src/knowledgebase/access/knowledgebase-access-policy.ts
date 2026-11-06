@@ -1,8 +1,14 @@
+import { KnowledgebasePermission } from '@xpert-ai/contracts'
 import { ForbiddenException } from '@nestjs/common'
 import { t } from 'i18next'
 
 import { FindOptionsSelect, FindOneOptions } from 'typeorm'
 import { Knowledgebase } from '../persistence/knowledgebase.entity'
+
+export const ORGANIZATION_SHARED_LIBRARY_PERMISSIONS = [
+    KnowledgebasePermission.Organization,
+    KnowledgebasePermission.Public
+] as const
 
 export const KNOWLEDGEBASE_DETAIL_RELATIONS = [
     'copilotModel',

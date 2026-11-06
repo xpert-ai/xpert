@@ -623,7 +623,7 @@ postgresDescribe('Analyzer persistence and retrieval in PostgreSQL', () => {
             )
         }
         const knowledgebaseService = {
-            findAll: jest.fn(async () => ({ items: [kb] })),
+            findAllForSearch: jest.fn(async () => ({ items: [kb] })),
             getRerankModel: jest.fn(async () => rerankModel)
         }
         const handler = new KnowledgeSearchQueryHandler(

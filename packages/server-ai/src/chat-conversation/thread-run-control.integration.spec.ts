@@ -1,6 +1,14 @@
 import { executionControlTestEntities, seedExecutionControlScope } from '../execution-control/testing/scope.fixture'
 import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
-import { ExecutionTaskControl, TaskControlPublication, TaskControlStore } from '@xpert-ai/server-core'
+import { ExecutionTaskControl, TaskControlPublication, TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
+import { Subscriber } from 'rxjs'
+import type { TWorkflowGraphNode } from '../shared/agent/workflow'
+import { CreateWNIteratingHandler } from '../xpert-agent/workflow/handlers/create-wn-iterating.handler'
+import { CreateWNIteratingCommand } from '../xpert-agent/workflow/create-wn-iterating.command'
+import { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands/upsert.command'
 import { Global, Module } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
@@ -8,14 +16,21 @@ import { ExecutionControlModule } from '../execution-control/execution-control.m
 import { XpertAgentExecutionService } from '../xpert-agent-execution/agent-execution.service'
 import { DynamicTool } from '@langchain/core/tools'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { Annotation, END, MemorySaver, START, StateGraph } from '@langchain/langgraph'
+import { Annotation, END, InMemoryStore, MemorySaver, START, StateGraph } from '@langchain/langgraph'
 import { createClient, RedisClientType } from 'redis'
 import { ExecutionCancelService } from '../execution-control/execution-cancel.service'
 import { executionToolReceipts } from '../execution-control/adapters/execution-tool-receipts'
 import { installThreadPauseGuards } from '../shared/agent/thread-pause'
 import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { ExecutionControl } from '../execution-control/execution-control.entity'
-import { TXpertGraph, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import {
+    channelName,
+    WorkflowNodeTypeEnum,
+    XpertAgentExecutionStatusEnum,
+    type IWFNIterating,
+    type TXpertGraph,
+    type TXpertTeamNode
+} from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import { AgentInvocationWaitEntity } from '../agent-invocation/invocation.entity'
@@ -514,6 +529,80 @@ integration('durable pause control / PostgreSQL', () => {
                 )
             )
         ).rejects.toThrow()
+    })
+
+    it('registers each legacy iteration child before its tool starts and closes it after exit', async () => {
+        const store = new ExecutionControlStore(database, new TaskControlStore(database))
+        const convert = async (file: string) => 'text-' + file
+        const tool = new DynamicTool({ name: 'pdf_to_markdown', description: 'Extract text', func: convert })
+        const reader = RunnableLambda.from(async (state: { file: string }, config) => ({
+            text: await tool.invoke(state.file, config)
+        }))
+        const persistOrCompile = async (command: object) => {
+            if (command instanceof XpertAgentExecutionUpsertCommand)
+                return { ...command.execution, id: command.execution.id ?? randomUUID() }
+            if (command instanceof XpertAgentSubgraphCommand) return { graph: reader, agent: { key: 'reader' } }
+            throw new Error('Unexpected command')
+        }
+        const module = await Test.createTestingModule({
+            providers: [
+                CreateWNIteratingHandler,
+                { provide: ExecutionControlStore, useValue: store },
+                { provide: CommandBus, useValue: { execute: persistOrCompile } },
+                { provide: QueryBus, useValue: { execute: async () => ({}) } },
+                { provide: I18nService, useValue: {} }
+            ]
+        }).compile()
+        try {
+            const entity: IWFNIterating = {
+                id: 'loop',
+                key: 'loop',
+                type: WorkflowNodeTypeEnum.ITERATING,
+                inputVariable: 'files',
+                inputParams: [{ name: '$item', variable: 'file' }],
+                outputParams: [{ name: '$item', variable: 'text' }]
+            }
+            const node: TXpertTeamNode<'workflow'> = { key: 'loop', type: 'workflow', position: { x: 0, y: 0 }, entity }
+            const graph: TXpertGraph = {
+                nodes: [node, { key: 'reader', type: 'agent', position: { x: 0, y: 0 }, entity: { key: 'reader' } }],
+                connections: [{ key: 'loop-reader', type: 'agent', from: 'loop', to: 'reader' }]
+            }
+            const { workflowNode }: TWorkflowGraphNode = await module.get(CreateWNIteratingHandler).execute(
+                new CreateWNIteratingCommand('assistant', graph, node, {
+                    isDraft: false,
+                    mute: [],
+                    store: new InMemoryStore(),
+                    subscriber: new Subscriber(),
+                    environment: { name: 'test', variables: [] }
+                })
+            )
+            const rootTask = await store.tasks.execution(executionId)
+            const result = await withTaskControl({ version: 2, targetId: rootTask.id }, () =>
+                workflowNode.graph.invoke(
+                    { files: ['first', 'second'] },
+                    {
+                        configurable: { executionId, thread_id: threadId },
+                        signal: new AbortController().signal,
+                        callbacks: [executionToolReceipts(store, executionId)]
+                    }
+                )
+            )
+            expect(result[channelName('loop')].output).toEqual(['text-first', 'text-second'])
+            const root = await database.getRepository(ExecutionControl).findOneByOrFail({ executionId })
+            expect(new Set(root.work.map((work) => work.executionId)).size).toBe(2)
+            for (const work of root.work) {
+                expect(work.settled).toBe(true)
+                const child = await database
+                    .getRepository(ExecutionControl)
+                    .findOneByOrFail({ executionId: work.executionId })
+                expect(child.ownership.parentExecutionId).toBe(executionId)
+                expect(child.graphEnded).toBe(true)
+                expect((await store.tasks.execution(work.executionId)).state).toBe('completed')
+                await expect(store.admit(work.executionId, 'late', executionId)).rejects.toThrow()
+            }
+        } finally {
+            await module.close()
+        }
     })
 
     it('denies a late child tool before its body even when its parent is still running', async () => {

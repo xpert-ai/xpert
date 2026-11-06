@@ -1,9 +1,19 @@
 import { instanceToPlain } from 'class-transformer'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Test } from '@nestjs/testing'
-import { AssistantBindingScope, AssistantCode, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import { Reflector } from '@nestjs/core'
+import { PERMISSIONS_METADATA } from '@xpert-ai/server-common'
+import {
+    AIPermissionsEnum,
+    AssistantBindingScope,
+    AssistantCode,
+    XpertWorkbenchInitialLayoutEnum
+} from '@xpert-ai/contracts'
 
-jest.mock('@xpert-ai/server-core', () => ({ TransformInterceptor: class {}, Permissions: () => () => undefined }))
+jest.mock('@xpert-ai/server-core', () => ({
+    TransformInterceptor: class {},
+    Permissions: jest.requireActual('../../../server/src/shared/decorators/permissions').Permissions
+}))
 jest.mock('./assistant-binding.service', () => ({ AssistantBindingService: class {} }))
 
 import { AssistantBindingController } from './assistant-binding.controller'
@@ -116,5 +126,36 @@ describe('assistant binding catalog response', () => {
         expect(result[0]).not.toHaveProperty('graph')
         expect(result[0]).not.toHaveProperty('copilotModel')
         await module.close()
+    })
+})
+
+describe('workspace assistant availability', () => {
+    it.each([
+        [true, 'expert', true],
+        [false, 'expert', false],
+        [true, null, false]
+    ] as const)(
+        'exposes only availability for enabled=%s and assistant=%s',
+        async (enabled, assistantId, available) => {
+            const getEffectiveBinding = jest.fn().mockResolvedValue({ enabled, assistantId, createdById: 'admin' })
+            const module = await Test.createTestingModule({
+                controllers: [AssistantBindingController],
+                providers: [{ provide: AssistantBindingService, useValue: { getEffectiveBinding } }]
+            }).compile()
+            await expect(module.get(AssistantBindingController).getWorkspaceAvailability()).resolves.toEqual({
+                available
+            })
+            expect(getEffectiveBinding).toHaveBeenCalledWith(AssistantCode.XPERT_SHARED)
+        }
+    )
+
+    it('allows members to read availability while binding management retains its edit requirement', () => {
+        const reflector = new Reflector()
+        const required = (handler: Function) =>
+            reflector.getAllAndOverride<string[]>(PERMISSIONS_METADATA, [handler, AssistantBindingController])
+        expect(required(AssistantBindingController.prototype.getWorkspaceAvailability)).toContain(
+            AIPermissionsEnum.CHAT_VIEW
+        )
+        expect(required(AssistantBindingController.prototype.upsertBinding)).toEqual([AIPermissionsEnum.XPERT_EDIT])
     })
 })

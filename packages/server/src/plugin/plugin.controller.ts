@@ -1,3 +1,7 @@
+import { pluginInstallationInfo, pluginUpdateUnavailableReason } from './plugin-installation-info'
+import { latestPluginVersionsSchema, LatestPluginVersionsInput } from './plugin-version-check.schema'
+import { ZodValidationPipe } from '../shared/pipes/zod-validation.pipe'
+import type { PluginVersionCheckResult } from '@xpert-ai/contracts'
 import { AIPermissionsEnum, PermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from './../shared/decorators/permissions'
 import { TenantScopeGuard } from '../shared/guards/tenant-scope.guard'
@@ -304,8 +308,16 @@ export class PluginController {
 	}
 
 	@Post('latest-versions')
-	async getLatestVersions(@Body() body?: { names?: string[] }): Promise<IPluginLatestVersionStatus[]> {
-		return this.listLatestPluginVersions(body?.names)
+	async getLatestVersions(
+		@Body(
+			new ZodValidationPipe(
+				latestPluginVersionsSchema,
+				() => new BadRequestException(t('server:Error.PluginVersionCheckInvalid'))
+			)
+		)
+		body?: LatestPluginVersionsInput
+	): Promise<IPluginLatestVersionStatus[]> {
+		return this.listLatestPluginVersions(body?.names, body?.forceRefresh)
 	}
 
 	@Post('update')
@@ -470,6 +482,11 @@ export class PluginController {
 				instance.source !== plugin.source ||
 				getCodeRuntimeName(instance.sourceConfig) !== getCodeRuntimeName(plugin.sourceConfig))
 		const meta = pendingRestart ? (instance.meta ?? plugin.instance.meta) : plugin.instance.meta
+		const installation = pluginInstallationInfo(
+			instance?.source ?? plugin.source,
+			instance?.sourceConfig ?? plugin.sourceConfig
+		)
+		const loadStatus = pendingRestart ? PLUGIN_LOAD_STATUS.PENDING_RESTART : PLUGIN_LOAD_STATUS.LOADED
 
 		return {
 			organizationId: scope,
@@ -484,6 +501,10 @@ export class PluginController {
 			packageName,
 			source: plugin.source,
 			currentVersion: plugin.instance.meta?.version,
+			runningVersion: plugin.instance.meta?.version,
+			installedVersion: instance?.version ?? plugin.instance.meta?.version,
+			installation,
+			updateUnavailableReason: pluginUpdateUnavailableReason(canUpdate, installation, loadStatus),
 			latestVersion: undefined,
 			isGlobal: scope === GLOBAL_ORGANIZATION_SCOPE,
 			level,
@@ -551,6 +572,9 @@ export class PluginController {
 			packageName: plugin.packageName,
 			source: plugin.source,
 			currentVersion: plugin.version,
+			installedVersion: plugin.version,
+			installation: pluginInstallationInfo(plugin.source, plugin.sourceConfig),
+			updateUnavailableReason: pendingRestart ? 'pending_restart' : 'load_failed',
 			latestVersion: undefined,
 			isGlobal: !plugin.organizationId,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
@@ -688,17 +712,23 @@ export class PluginController {
 		)
 	}
 
-	private async resolveLatestPluginVersion(packageName: string): Promise<string | undefined> {
-		return this.queryBus.execute(new ResolveLatestPluginVersionQuery(packageName))
+	private async resolveLatestPluginVersion(
+		packageName: string,
+		forceRefresh = false
+	): Promise<PluginVersionCheckResult> {
+		return this.queryBus.execute(new ResolveLatestPluginVersionQuery(packageName, forceRefresh))
 	}
 
-	private async listLatestPluginVersions(names?: string[]): Promise<IPluginLatestVersionStatus[]> {
+	private async listLatestPluginVersions(
+		names?: string[],
+		forceRefresh = false
+	): Promise<IPluginLatestVersionStatus[]> {
 		const visiblePlugins = await this.listVisiblePlugins(names)
 		const updateablePlugins = visiblePlugins.filter(
 			(plugin) => plugin.canUpdate && plugin.loadStatus === PLUGIN_LOAD_STATUS.LOADED
 		)
 
-		const latestVersionByPackageName = new Map<string, string | undefined>()
+		const latestVersionByPackageName = new Map<string, PluginVersionCheckResult>()
 		const uniquePackageNames = Array.from(
 			new Set(
 				updateablePlugins
@@ -709,20 +739,26 @@ export class PluginController {
 
 		await Promise.all(
 			uniquePackageNames.map(async (packageName) => {
-				latestVersionByPackageName.set(packageName, await this.resolveLatestPluginVersion(packageName))
+				latestVersionByPackageName.set(
+					packageName,
+					await this.resolveLatestPluginVersion(packageName, forceRefresh)
+				)
 			})
 		)
 
 		return updateablePlugins.map((plugin) => {
 			const packageName = plugin.packageName ?? plugin.name
-			const latestVersion = latestVersionByPackageName.get(packageName)
+			const check = latestVersionByPackageName.get(packageName)
+			const latestVersion = check?.latestVersion
 
 			return {
+				scopeKey: plugin.scopeKey,
 				organizationId: plugin.organizationId,
 				name: plugin.name,
 				packageName: plugin.packageName,
 				latestVersion,
-				hasUpdate: hasNewerVersion(plugin.currentVersion, latestVersion)
+				check,
+				hasUpdate: check?.status === 'success' && hasNewerVersion(plugin.currentVersion, latestVersion)
 			}
 		})
 	}

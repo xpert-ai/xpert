@@ -13,7 +13,8 @@ import {
   XpI18nPipe,
   XpSpinComponent,
   ZardBadgeComponent,
-  ZardButtonComponent
+  ZardButtonComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MarkdownModule } from 'ngx-markdown'
 import { map } from 'rxjs'
@@ -37,7 +38,8 @@ import { pluginMarketplaceError } from './plugin-marketplace-error'
     XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
-    ZardButtonComponent
+    ZardButtonComponent,
+    ZardTooltipImports
   ],
   selector: 'xp-plugin-marketplace-readme-page',
   templateUrl: './marketplace-readme-page.component.html',

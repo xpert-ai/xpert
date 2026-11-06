@@ -48,6 +48,14 @@
     "USERS": "用户"
   },
   "XP": {
+    "ProfileSettings": {
+      "ShowWorkspacePet": "显示工作区宠物",
+      "WorkspacePetHint": "更改立即生效，仅用于此浏览器中当前账号和组织。",
+      "WorkspacePetDisabled": "当前组织未启用工作空间助手。",
+      "WorkspacePetSelectOrg": "请选择组织后再设置工作区宠物。",
+      "WorkspacePetLoading": "正在检查工作空间助手是否可用…",
+      "WorkspacePetLoadFailed": "无法读取工作空间助手状态。"
+    },
     "Notifications": {
       "EditAnnouncement": "编辑公告",
       "EditorHint": "设置公告内容、展示客户端和生效时间。",
@@ -909,6 +917,42 @@
       "CurrentScopeActiveRuntimes": "当前租户和组织内的活跃 runtime"
     },
     "Plugin": {
+      "StagedVersionShort": "待生效 {{version}}",
+      "VersionCheckFailedShort": "查询失败",
+      "RunningVersion": "当前运行",
+      "NotRunning": "未运行",
+      "MarketplaceVersion": "市场版本",
+      "InstallationMethod": "安装方式",
+      "InstallMethod_archive": "上传包安装",
+      "InstallMethod_workspace": "本地源码安装",
+      "InstallMethod_npm": "npm 安装",
+      "InstallMethod_git": "Git 安装",
+      "InstallMethod_url": "URL 安装",
+      "InstallMethod_local": "本地包安装",
+      "InstallMethod_unknown": "安装来源未记录",
+      "StagedVersion": "已安装 {{version}}，等待服务重启后生效",
+      "UpdateReason_archive": "此插件通过上传包安装，不支持直接从 npm 更新。请上传新版本。",
+      "UpdateReason_workspace": "此插件从本地源码加载，请构建后重新加载。",
+      "UpdateReason_unsupported_source": "此安装来源不支持直接从 npm 更新，请通过原安装方式更新。",
+      "UpdateReason_scope": "当前权限或管理范围不允许更新，请切换到插件所属管理范围并使用管理员账号。",
+      "UpdateReason_pending_restart": "安装变更等待重启生效，完成后可继续检查更新。",
+      "UpdateReason_load_failed": "插件未能加载，请先查看并解决加载错误。",
+      "CheckingVersion": "正在检查 npm 版本…",
+      "VersionUnchecked": "尚未检查新版",
+      "CheckUpdates": "检查更新",
+      "RetryVersionCheck": "重新检查",
+      "LastVersionCheck": "最近检查",
+      "VersionCheckError_REGISTRY_UNAVAILABLE": "无法连接 npm 源或查询失败，请重试。",
+      "VersionCheckError_VERSION_NOT_FOUND": "npm 源未返回可用版本，请检查包名或发布标签。",
+      "LastKnownVersion": "上次查到的版本 {{version}}",
+      "NewRegistryVersion": "npm 有新版本 {{version}}",
+      "NoNewRegistryVersion": "未发现更新版本 · npm {{version}}",
+      "UpdateToVersion": "更新至 {{version}}",
+      "UploadNewVersion": "上传新版本",
+      "UploadedFile": "上传文件",
+      "InstalledAt": "安装时间",
+      "ReadmeVersion": "文档版本",
+      "UnknownVersion": "版本未记录",
       "RestartConfirmDescription": "重启会等待正在处理的请求结束。若当前只有一个可用实例，服务将短暂不可用，连接会在服务恢复后重新建立。",
       "PendingRestartDescription": "插件已安装，重启服务后即可使用。",
       "PendingRestart": "待重启生效",
@@ -2536,6 +2580,9 @@
       }
     },
     "Assistant": {
+      "XpertShared": {
+        "Label": "工作空间助手"
+      },
       "MenuTenantSubtitle": "租户默认配置",
       "MenuOrganizationSubtitle": "组织覆盖配置"
     },

@@ -289,9 +289,10 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     return this.httpClient.post<IPluginDescriptor[]>(`${this.apiBaseUrl}/by-names`, { names })
   }
 
-  getLatestVersions(names?: string[]) {
+  getLatestVersions(names?: string[], forceRefresh = false) {
     return this.httpClient.post<IPluginLatestVersionStatus[]>(`${this.apiBaseUrl}/latest-versions`, {
-      ...(names?.length ? { names } : {})
+      ...(names?.length ? { names } : {}),
+      ...(forceRefresh ? { forceRefresh: true } : {})
     })
   }
 

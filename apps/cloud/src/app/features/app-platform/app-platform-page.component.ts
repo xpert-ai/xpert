@@ -56,6 +56,12 @@ export class AppPlatformPageComponent implements OnInit {
     clearTimeout(this.timer)
     this.busy.set(true)
     try {
+      const { mode } = await this.platform.presentation()
+      if (this.destroy.destroyed) return
+      if (mode === 'standard') {
+        await this.router.navigate(['/chat'], { replaceUrl: true })
+        return
+      }
       if (
         !this.store.user?.role?.rolePermissions?.some(
           (item) => item.enabled && item.permission === AIPermissionsEnum.CHAT_VIEW

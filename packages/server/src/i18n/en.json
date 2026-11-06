@@ -1,5 +1,6 @@
 {
 	"Error": {
+		"PluginVersionCheckInvalid": "Invalid plugin version check request",
 		"PluginPublicationPending": "A previous plugin installation is awaiting runtime publication. Please retry shortly.",
 		"PluginCommittedArtifactMissing": "The committed artifact for plugin {{plugin}} is missing or incomplete. Restore the artifact before restarting.",
 		"PluginRuntimePolicyInvalid": "Plugin runtimePolicy must declare install, update and uninstall as hot or restart.",

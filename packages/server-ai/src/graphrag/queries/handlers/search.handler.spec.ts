@@ -35,7 +35,7 @@ describe('KnowledgeGraphSearchHandler', () => {
             )
         }
         const knowledgebaseService = {
-            getGraphEntityVectorStore: jest.fn(async () => vectorStore)
+            getGraphSearchVectorStore: jest.fn(async () => vectorStore)
         }
         const graphFilterScopeService = {
             filterSeedEntities: jest.fn(async (ids: string[]) => ids.filter((id) => id === 'eligible-1')),
@@ -95,7 +95,7 @@ describe('KnowledgeGraphSearchHandler', () => {
             })
         )
 
-        expect(knowledgebaseService.getGraphEntityVectorStore).toHaveBeenCalledWith('kb-1', true, {
+        expect(knowledgebaseService.getGraphSearchVectorStore).toHaveBeenCalledWith('kb-1', {
             xpertId: 'xpert-1',
             threadId: 'thread-1'
         })

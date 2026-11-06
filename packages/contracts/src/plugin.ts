@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import type { PluginInstallationSummary } from './plugin-management'
 import type { PluginMarketplaceAppConfig } from './plugin-application'
 import { JsonSchemaObjectType } from './ai/types'
 import type { IXpert, XpertWorkspaceDataScope } from './ai/xpert.model'
@@ -365,6 +366,10 @@ export interface PluginCodeSourceConfig {
 }
 
 export interface PluginSourceConfig extends PluginCodeSourceConfig {
+  installationMethod?: 'archive' | 'workspace'
+  /** Written by the archive upload endpoint; retained for legacy installation provenance. */
+  uploadFileName?: string
+  uploadInstalledAt?: string
   /** Host-owned immutable installation directory; never supplied as an authorization grant. */
   runtimeName?: string
   immutableRuntime?: boolean
@@ -599,9 +604,11 @@ export interface PluginMarketplaceReadme {
   fileName?: string | null
   content: string
   source: PluginMarketplaceReadmeSource
+  version?: string | null
 }
 
 export interface PluginMarketplaceDetailItem extends PluginMarketplaceItem {
+  installations?: PluginInstallationSummary[]
   readme: PluginMarketplaceReadme
   availableReadmeLocales?: string[]
 }

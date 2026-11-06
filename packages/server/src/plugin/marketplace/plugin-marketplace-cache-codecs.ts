@@ -29,6 +29,7 @@ export function decodeNpmReadme(value: unknown): PluginMarketplaceReadme | null 
 		locale: value.locale,
 		content: value.content,
 		source: value.source,
+		version: 'version' in value && typeof value.version === 'string' ? value.version : null,
 		requestedLocale:
 			'requestedLocale' in value && typeof value.requestedLocale === 'string' ? value.requestedLocale : null,
 		fileName: 'fileName' in value && typeof value.fileName === 'string' ? value.fileName : null

@@ -151,6 +151,7 @@
 
 
 
+
           }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
         } @else {
           {{
@@ -408,7 +409,7 @@
                           class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-divider-subtle"
                         />
                         <div class="ml-3 w-0 grow pr-2">
-                          <div class="flex h-5 items-start">
+                          <div class="flex min-h-5 flex-wrap items-center gap-y-1">
                             <button
                               type="button"
                               class="system-md-semibold min-w-0 truncate text-left text-text-primary transition-colors hover:text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
@@ -450,19 +451,6 @@
                               <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                             }
                             <div
-                              class="relative inline-flex h-5 items-center rounded-[5px] border border-divider px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
-                              [class.text-text-warning]="plugin.hasUpdate"
-                              [zTooltip]="
-                                ('XP.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
-                                ': ' +
-                                (plugin.latestVersion || '-')
-                              "
-                              zPosition="top"
-                              [zDisabled]="!plugin.hasUpdate"
-                            >
-                              {{ plugin.currentVersion || plugin.meta.version || '-' }}
-                            </div>
-                            <div
                               class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
                             >
                               <i
@@ -477,7 +465,16 @@
                                 }}
                               </span>
                             </div>
+                            <xp-plugin-version-status
+                              class="ml-2"
+                              [plugin]="plugin"
+                              [check]="versionChecks()[versionCheckKey(plugin)]?.result"
+                              [checking]="versionChecks()[versionCheckKey(plugin)]?.checking || false"
+                              (checkRequested)="checkPluginVersion(plugin)"
+                              (uploadRequested)="installArchive()"
+                            />
                           </div>
+
                           <div class="flex items-start justify-between">
                             <div class="min-w-0 grow">
                               <div
@@ -488,11 +485,6 @@
                               >
                                 {{ plugin.meta.description | i18n }}
                               </div>
-                              @if (plugin.loadStatus === 'pending_restart') {
-                                <p class="mt-2 text-sm text-text-secondary">
-                                  {{ 'XP.Plugin.PendingRestartDescription' | translate }}
-                                </p>
-                              }
                               @if (plugin.loadStatus === 'failed') {
                                 <div class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2">
                                   <div class="flex items-start gap-2">
@@ -623,8 +615,10 @@
                               }
                               @if (plugin.canUpdate && plugin.hasUpdate) {
                                 <button
+                                  z-button
+                                  zType="ghost"
                                   type="button"
-                                  class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                                  class="shrink-0"
                                   [zTooltip]="
                                     'XP.Plugin.UpdatePlugin'
                                       | translate: { Default: 'Update this plugin to the latest version' }
@@ -633,7 +627,9 @@
                                   [disabled]="updating() === plugin.name"
                                   (click)="update(plugin)"
                                 >
-                                  <i class="ri-refresh-line"></i>
+                                  <span>{{
+                                    'XP.Plugin.UpdateToVersion' | translate: { version: plugin.latestVersion }
+                                  }}</span>
                                 </button>
                               }
                               @if (isDevEnvironment && plugin.canRefresh) {
