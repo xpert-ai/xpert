@@ -1,5 +1,12 @@
 # @xpert-ai/xpert-ui
 
+## 3.33.1
+
+### Patch Changes
+
+- 6dad054: Open the selected Assistant's chat directly in standard deployments. Visiting the App Workbench in standard mode now returns to chat.
+- d7bbbb0: Remember workspace pet visibility in the browser for each signed-in user and organization. Closing the pet turns off the personal switch and removes the workspace launcher. Members can turn it back on in their profile when the workspace assistant is available.
+
 ## 3.33.0
 
 ### Patch Changes
