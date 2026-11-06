@@ -44,7 +44,10 @@ function fixture() {
             configuration: { profileVersion: '1' }
         }
     }
-    const repository = { findOneBy: jest.fn(async () => (binding.enabled ? binding : null)) }
+    const repository = {
+        findOneBy: jest.fn(async () => (binding.enabled ? binding : null)),
+        find: jest.fn(async () => [{ ...binding, id: bindingId, title: 'Remote runtime' }])
+    }
     const query = {
         execute: jest.fn(async () => ({
             agent: { team: { tenantId: 'tenant', organizationId: 'org', workspaceId: 'workspace' } }
@@ -121,6 +124,53 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
 }
 
 describe('Agent invocation factory and controller boundaries', () => {
+    it('discovers managed presets before listing bindings in a new Project workspace', async () => {
+        const f = fixture()
+        const scope: AgentInvocationScope = {
+            tenantId: 'tenant',
+            organizationId: 'org',
+            userId: 'user',
+            workspaceId: 'workspace',
+            projectId: 'project',
+            conversationId: 'conversation',
+            callerXpertId: 'assistant',
+            parentExecutionId: 'parent',
+            callerAgentKey: 'leader'
+        }
+        f.managed.list.mockResolvedValue([{ provider: 'remote', reference: 'profile' }])
+        f.managed.resolve.mockImplementation(async () => {
+            expect(f.repository.find).not.toHaveBeenCalled()
+            return f.binding.target
+        })
+        await expect(f.factory.listProjectBindings(scope)).resolves.toEqual([
+            { bindingId, title: 'Remote runtime', provider: 'remote', revision: '1' }
+        ])
+        expect(f.managed.resolve).toHaveBeenCalledWith(scope, { provider: 'remote', reference: 'profile' })
+        expect(f.projects.assertEdit).toHaveBeenCalled()
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+
+    it('does not discover or persist Project runtime bindings after access is revoked', async () => {
+        const f = fixture()
+        f.projects.assertEdit.mockRejectedValue(new Error('project access revoked'))
+        await expect(
+            f.factory.listProjectBindings({
+                tenantId: 'tenant',
+                organizationId: 'org',
+                userId: 'user',
+                workspaceId: 'workspace',
+                projectId: 'project',
+                conversationId: 'conversation',
+                callerXpertId: 'assistant',
+                parentExecutionId: 'parent',
+                callerAgentKey: 'leader'
+            })
+        ).rejects.toThrow('project access revoked')
+        expect(f.managed.list).not.toHaveBeenCalled()
+        expect(f.managed.resolve).not.toHaveBeenCalled()
+        expect(f.repository.find).not.toHaveBeenCalled()
+    })
+
     it('uses the existing native task strategy for group transport and permits bounded result inspection', async () => {
         const f = fixture()
         f.registry.register('xpert-task', new AssistantTaskRuntimeStrategy(), {

@@ -6,11 +6,23 @@ The strategy `managedProfiles` declaration and caller-scoped `listManaged()` /
 `resolveManaged()` API remove profile and binding forms. The Agent Runtimes plugin
 retains Computer adapters, Codex App Server, Claude Agent SDK, Pi RPC and an external
 OpenCode service. Protocol/approval support is independent of configuration UI.
-Discovery happens during tool execution, after the actual conversation identity is
-available, and does not create bindings, directories or credentials.
+Preset discovery through `listManaged()` happens during tool execution, after the actual
+conversation identity is available, and does not create bindings, directories or credentials.
+
+The Project runtime catalog additionally resolves the discovered presets before querying
+workspace bindings, so a new workspace can select installed executors immediately. This
+catalog operation may create or reuse immutable binding rows; it does not launch an executor
+or create runtime directories or credentials. It retains Project edit authorization and the
+scope checks on each resolution. Group members and existing remote bindings remain independent
+catalog sources.
 
 Computer admission uses the optional edition-owned `ResolveManagedRuntimeToolsCommand`
 handler. It checks current Computer, published Assistant/model and CLI policy access.
+When no background strategy declares a Computer preset, discovery skips Computer admission.
+Expected Computer access denials or unavailability omit Computer presets even when no direct
+preset is available; they do not block independent catalog sources. Scope/actor authorization
+failures outside Computer admission and unexpected service errors still propagate. Explicit
+resolution of a denied Computer preset still fails and cannot create a binding.
 Open-source hosts can resolve deployed process/SDK/service presets without that
 handler. `ResolveManagedRuntimeActorCommand`, registered in `ModelExecutionModule`,
 revalidates the current actor, conversation and published Assistant. Project callers
@@ -31,7 +43,8 @@ does not silently replace those credentials or claim platform metering for them.
 SDK/process execution requires an appropriately isolated deployment, as before.
 An external OpenCode service must share the generated workspace path with the host.
 
-First use creates an immutable binding under a PostgreSQL transaction/advisory lock.
+First resolution, including Project catalog preparation, creates an immutable binding under
+a PostgreSQL transaction/advisory lock.
 Keys include tenant, organization, workspace, provider, preset, revision, deployment
 fingerprint and project model source. Strategy settings or credential changes changes
 the strategy settings fingerprint. Old bindings/receipts are not repointed; unavailable

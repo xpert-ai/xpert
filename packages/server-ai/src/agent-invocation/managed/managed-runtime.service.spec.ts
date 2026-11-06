@@ -1,6 +1,12 @@
 import { ResolveManagedRuntimeActorCommand } from './resolve-managed-runtime-actor.command'
 import { CommandHandlerNotFoundException } from '@nestjs/cqrs'
 import { RuntimeDeploymentsService } from './runtime-deployments.service'
+import { ForbiddenException, InternalServerErrorException, NotFoundException } from '@nestjs/common'
+import { AgentInvocationError } from '../invocation-errors'
+import { AgentInvocationFactoryService } from '../invocation-factory.service'
+import { AgentInvocationRuntime } from '../invocation-runtime'
+import { MemoryInvocationStore } from '../invocation-test-store'
+import { GroupTaskTargetItem, ListGroupTaskTargetsCommand } from '../../chat-group/group-project/group-task.commands'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { Test } from '@nestjs/testing'
@@ -11,8 +17,10 @@ import {
     AgentInvocationScope,
     AgentRuntimeRegistry,
     BUILTIN_GLOBAL_SCOPE,
+    DefaultRuntimeCapabilityRegistry,
     IAgentRuntimeStrategy,
-    ManagedAgentRuntimeProfile
+    ManagedAgentRuntimeProfile,
+    ProjectAccessRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { AgentRuntimeBindingEntity } from '../invocation.entity'
 import { ManagedRuntimeService, managedBindingId } from './managed-runtime.service'
@@ -120,6 +128,103 @@ describe('inherited managed Agent runtime admission', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
+    it('does not require Computer access when no installed strategy declares a Computer preset', async () => {
+        const f = fixture()
+        f.registry.unregister('test', { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE }, f.provider)
+        f.commands.execute.mockRejectedValue(new Error('Computer unavailable'))
+        await expect(f.service.list(f.scope)).resolves.toEqual([])
+        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(f.insert.execute).not.toHaveBeenCalled()
+    })
+    it.each([
+        new ForbiddenException(),
+        new NotFoundException(),
+        new AgentInvocationError('InvalidScope'),
+        new AgentInvocationError('NotFound'),
+        new AgentInvocationError('ProviderUnavailable')
+    ])(
+        'omits denied Computer presets without creating bindings, but still denies resolution (case %#)',
+        async (error) => {
+            const f = fixture()
+            f.commands.execute.mockRejectedValue(error)
+            await expect(f.service.list(f.scope)).resolves.toEqual([])
+            await expect(f.service.resolve(f.scope, f.selection)).rejects.toBe(error)
+            expect(f.repository.manager.transaction).not.toHaveBeenCalled()
+            expect(f.insert.execute).not.toHaveBeenCalled()
+        }
+    )
+    it('keeps independent remote and group targets discoverable when Computer admission is denied', async () => {
+        const f = fixture()
+        const scope = { ...f.scope, projectId: randomUUID() }
+        f.registry.register(
+            'remote',
+            { ...f.provider, managedProfiles: undefined },
+            {
+                kind: 'builtin',
+                scopeKey: BUILTIN_GLOBAL_SCOPE
+            }
+        )
+        const id = randomUUID()
+        const target = { bindingId: id, provider: 'remote', reference: 'remote', revision: '1', configuration: {} }
+        f.rows.push(
+            Object.assign(new AgentRuntimeBindingEntity(), {
+                id,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                title: 'Remote runtime',
+                enabled: true,
+                workspaceIds: [scope.workspaceId],
+                target
+            })
+        )
+        f.commands.execute.mockRejectedValue(new ForbiddenException('Computer unavailable'))
+        const member: GroupTaskTargetItem = {
+            target: { type: 'group_member', participantId: randomUUID() },
+            assigneeXpertId: randomUUID(),
+            title: 'Group assistant',
+            provider: 'xpert-task',
+            revision: '1'
+        }
+        const groups = { execute: jest.fn(async () => [member]) }
+        const projects = {
+            assertAssistant: jest.fn(),
+            assertEdit: jest.fn(),
+            assertManage: jest.fn(),
+            listReadable: jest.fn()
+        }
+        const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
+        const factory = new AgentInvocationFactoryService(
+            f.repository as unknown as Repository<AgentRuntimeBindingEntity>,
+            f.queries as unknown as QueryBus,
+            new AgentInvocationRuntime(new MemoryInvocationStore(), f.registry),
+            capabilities,
+            f.service,
+            undefined,
+            groups as unknown as CommandBus
+        )
+        await expect(factory.resolveBackgroundTarget(scope, id)).resolves.toEqual(target)
+        await expect(factory.listProjectBindings(scope)).resolves.toEqual([
+            member,
+            { bindingId: id, title: 'Remote runtime', provider: 'remote', revision: '1' }
+        ])
+        expect(groups.execute).toHaveBeenCalledWith(new ListGroupTaskTargetsCommand(scope))
+        expect(f.insert.execute).not.toHaveBeenCalled()
+        expect(f.provider.start).not.toHaveBeenCalled()
+
+        projects.assertEdit.mockRejectedValue(new ForbiddenException('Project access revoked'))
+        await expect(factory.listProjectBindings(scope)).rejects.toThrow('Project access revoked')
+        expect(groups.execute).toHaveBeenCalledTimes(1)
+    })
+    it('propagates unexpected Computer failures and scope denial instead of returning an empty catalog', async () => {
+        const f = fixture()
+        const failure = new InternalServerErrorException('Computer service failed')
+        f.commands.execute.mockRejectedValue(failure)
+        await expect(f.service.list(f.scope)).rejects.toBe(failure)
+        f.queries.execute.mockRejectedValue(new ForbiddenException('Assistant access revoked'))
+        await expect(f.service.list(f.scope)).rejects.toThrow('Assistant access revoked')
+        expect(f.commands.execute).toHaveBeenCalledTimes(1)
+        expect(f.insert.execute).not.toHaveBeenCalled()
+    })
     it('discovers SDK backends without Computer, creates bindings automatically and never persists deployment secrets', async () => {
         const f = fixture()
         const profile = { ...f.profile, reference: 'managed-claude-code', environment: 'sdk' as const }
@@ -211,7 +316,7 @@ describe('inherited managed Agent runtime admission', () => {
             },
             { kind: 'plugin', scopeKey: f.scope.organizationId, pluginName: '@test/optional' }
         )
-        f.commands.execute.mockRejectedValueOnce(new Error('Actor denied'))
+        f.commands.execute.mockRejectedValueOnce(new ForbiddenException('Actor denied'))
         await expect(f.service.list(f.scope)).rejects.toThrow('Actor denied')
         expect(resolveManagedDeployment).not.toHaveBeenCalled()
         expect(await f.service.list(f.scope)).not.toContainEqual(
