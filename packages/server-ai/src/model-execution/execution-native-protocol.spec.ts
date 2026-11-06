@@ -1,4 +1,5 @@
 import { NativeStreamUsage, nativeFrames, parseNativeRequest, readNativeUsage } from './execution-native-protocol'
+import { BadGatewayException, BadRequestException } from '@nestjs/common'
 
 describe('native execution protocol', () => {
     it('retains native reasoning, custom tools and explicit multi-turn tool outputs without translation', () => {
@@ -30,7 +31,9 @@ describe('native execution protocol', () => {
         { input: [{ role: 'user', content: [{ type: 'input_file', file_id: 'other-file' }] }] },
         { tools: [{ type: 'web_search' }] }
     ])('rejects unowned provider state and unmetered hosted operations %j', (patch) => {
-        expect(() => parseNativeRequest({ model: 'm', input: 'x', ...patch }, 'openai_responses')).toThrow()
+        expect(() => parseNativeRequest({ model: 'm', input: 'x', ...patch }, 'openai_responses')).toThrow(
+            BadRequestException
+        )
     })
     it('preserves Codex namespaces of client-executed functions and custom tools', () => {
         const body = {
@@ -174,7 +177,7 @@ describe('native execution protocol', () => {
                 type: 'response.completed',
                 response: { ...response, usage: { input_tokens: 10, output_tokens: 2, total_tokens: 12 } }
             })
-        ).toThrow()
+        ).toThrow(BadGatewayException)
         expect(stream.failed).toBe(true)
         // Actual usage is still retained for settlement even when delivery is rejected.
         expect(stream.receipt?.usage.totalTokens).toBe(12)
@@ -220,6 +223,6 @@ describe('native execution protocol', () => {
                     /* drain */
                 }
             })()
-        ).rejects.toThrow()
+        ).rejects.toThrow(BadGatewayException)
     })
 })
