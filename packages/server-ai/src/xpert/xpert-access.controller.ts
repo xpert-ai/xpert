@@ -1,7 +1,6 @@
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
-import { Permissions } from '@xpert-ai/server-core'
+import { Permissions, TransformInterceptor } from '@xpert-ai/server-core'
 import type { IXpert } from '@xpert-ai/contracts'
-import { TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
@@ -10,7 +9,7 @@ import { PublishedXpertAccessService } from './published-xpert-access.service'
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller('accessible')
-@Permissions(AIPermissionsEnum.XPERT_EDIT)
+@Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class XpertAccessController {
     constructor(private readonly publishedXpertAccessService: PublishedXpertAccessService) {}
 

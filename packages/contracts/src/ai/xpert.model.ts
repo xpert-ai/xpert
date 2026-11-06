@@ -359,6 +359,8 @@ export type TXpertTemplateSyncResult = {
 }
 
 export type TXpertDataXpertOptions = {
+  /** Keep a group-restricted publication closed if its last assigned group is deleted. */
+  requireUserGroup?: boolean
   managedBy?: string
   templateKey?: string
   requiredPlugin?: string
