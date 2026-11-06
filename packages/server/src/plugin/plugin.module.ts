@@ -52,6 +52,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import { runShutdownStep } from '../runtime-control/shutdown-step'
 import { Integration } from '../integration/integration.entity'
+import { PluginConfigurationReader } from './configuration/plugin-configuration-reader.service'
 
 @Global()
 @Module({
@@ -113,6 +114,7 @@ import { Integration } from '../integration/integration.entity'
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
 		PluginConfigResolver,
 		PluginInstanceService,
+		PluginConfigurationReader,
 		PluginMarketplaceService,
 		PluginMarketplaceSharedCache,
 		PluginManagementService,
@@ -149,7 +151,8 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	constructor(
 		@Inject() private readonly moduleRef: ModuleRef,
 		@Inject() private readonly configService: ConfigService,
-		private readonly runtimeState: PluginRuntimeStateService
+		private readonly runtimeState: PluginRuntimeStateService,
+		private readonly configurationReader: PluginConfigurationReader
 	) {}
 
 	/**
@@ -158,6 +161,7 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 	async onModuleInit() {
 		for (const item of loaded) {
 			item.ctx.module = this.moduleRef
+			item.ctx.readConfig = this.configurationReader.createReader(item)
 		}
 
 		await this.bootstrapPluginLifecycleMethods(

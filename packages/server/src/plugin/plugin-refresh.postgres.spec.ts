@@ -7,6 +7,7 @@ import { loadPluginInstances, buildOrganizationPluginConfigs } from './plugin-in
 import { replayPluginPublications } from './installation/plugin-publication'
 import { PluginStoreLease } from './installation/plugin-store-lock'
 import { getConfig } from '@xpert-ai/server-config'
+import { PluginConfigurationReader } from './configuration/plugin-configuration-reader.service'
 
 jest.mock('@xpert-ai/server-config', () => ({ getConfig: jest.fn() }))
 jest.mock('../core/entities/internal', () => ({ TenantOrganizationBaseEntity: class {} }))
@@ -91,7 +92,12 @@ if (
 			apiConfigOptions: { port: 0, graphqlConfigOptions: { path: '', playground: false, debug: false } },
 			dbConnectionOptions: { type: 'postgres', url }
 		})
-		instances = new ActualInstances(db.getRepository(schema), fixture.loadedPlugins, new ActualStrategyBus())
+		instances = new ActualInstances(
+			db.getRepository(schema),
+			fixture.loadedPlugins,
+			new ActualStrategyBus(),
+			new PluginConfigurationReader(db.getRepository(schema))
+		)
 		jest.spyOn(instances, 'getDefaultTenantId').mockResolvedValue(tenantId)
 		fixture.RequestContext.getScope.mockReturnValue({ tenantId, organizationId })
 		fixture.RequestContext.currentTenantId.mockReturnValue(tenantId)
@@ -261,7 +267,12 @@ if (
 			runtimePublication: publication
 		})
 		// A new service models a replacement process; all recovery data comes from PostgreSQL.
-		const recovered = new ActualInstances(db.getRepository(schema), [], new ActualStrategyBus())
+		const recovered = new ActualInstances(
+			db.getRepository(schema),
+			[],
+			new ActualStrategyBus(),
+			new PluginConfigurationReader(db.getRepository(schema))
+		)
 		const lease = new PluginStoreLease('/unused', 60000)
 		jest.spyOn(lease, 'assertOwned').mockResolvedValue(undefined)
 		fixture.runtimeControl.recordPluginRuntimeChange.mockResolvedValueOnce({ scheduled: false, generation: 0 })

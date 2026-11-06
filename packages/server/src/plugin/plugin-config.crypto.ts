@@ -47,3 +47,15 @@ export function deserializePluginConfig(value: unknown): Record<string, any> {
 
 	return isPlainObject(value) ? value : {}
 }
+
+/** Live reads must surface decryption failures instead of treating them as empty configuration. */
+export function deserializePluginConfigStrict(value: unknown): object {
+	if (value == null) return {}
+	if (isEncryptedPluginConfig(value)) {
+		const parsed: unknown = JSON.parse(decryptSecret(value[ENCRYPTED_CONFIG_KEY], getEncryptionKey()))
+		if (isPlainObject(parsed)) return parsed
+	} else if (isPlainObject(value)) {
+		return value
+	}
+	throw new Error('Invalid persisted plugin configuration')
+}
