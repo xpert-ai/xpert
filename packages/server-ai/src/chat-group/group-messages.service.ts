@@ -97,7 +97,12 @@ export class GroupMessagesService {
             if (!primary) throw groupDenied()
             recipients = [primary.id]
         }
-        const base = { text: input.text, clientMessageId: input.clientMessageId, composer: input.composer }
+        const base = {
+            text: input.text,
+            clientMessageId: input.clientMessageId,
+            composer: input.composer,
+            ...(input.supportsUserInput ? { supportsUserInput: true } : {})
+        }
         if (input.replyToMessageId) {
             const original = await this.db
                 .getRepository(ChatMessage)
@@ -263,6 +268,7 @@ export class GroupMessagesService {
                 throw groupDenied()
             const communication: ChatGroupCommunication = {
                 ...hostContext,
+                ...(sender.kind === 'user' && input.supportsUserInput ? { supportsUserInput: true } : {}),
                 ...(input.composer ? { composer: input.composer } : {}),
                 intent: input.intent,
                 senderId: sender.id,

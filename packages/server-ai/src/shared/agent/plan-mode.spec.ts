@@ -40,6 +40,8 @@ describe('plan mode middleware helpers', () => {
             })
         }
         const context = {
+            xpertFeatures: { requestUserInput: { enabled: true } },
+            supportsUserInput: true,
             tenantId: 'tenant-1',
             userId: 'user-1',
             tools: new Map(),

@@ -8,6 +8,8 @@ Non-blocking questions are not implemented. Their persistence, human-message del
 
 ## Usage
 
+Enable **Ask for user input** in the Assistant’s **Capabilities** settings and choose **Save and publish**. The switch defaults to off, including on existing Assistants. ChatKit advertises form support on each conversation run and human group message. Ordinary API requests and unattended triggers omit this capability.
+
 1. Start a task in an ordinary Assistant conversation, for example: “Arrange an internal training session. First ask me for the training goals, budget, and participating departments.” The model checks existing context before asking for missing information that affects the result.
 2. A question panel appears near the ChatKit composer. Execution waits for input; filling a field does not submit the form automatically.
 3. Select “Submit and continue.” The client validates the fields and focuses the first error. The server validates the answers again before resuming the original task.
@@ -86,8 +88,8 @@ Ordinary input recovery reuses the existing conversation, execution identity, pe
 
 ## Plan Mode and authorization boundaries
 
-- Visible Agents without structured output automatically receive the form tool in ordinary mode. Hidden Agents and structured-output paths do not receive it.
-- Plan Mode retains the original `questions` protocol, plan clarification, and `implement_plan` implementation-confirmation flow.
+- When both the published capability and client form support are enabled, visible Agents without structured output receive the form tool in ordinary mode. Hidden Agents and structured-output paths do not receive it.
+- Without interactive input, Plan Mode ends with a proposed plan. With input enabled, it retains the original `questions` protocol, plan clarification, and `implement_plan` implementation-confirmation flow.
 - Ordinary forms always use `purpose: clarification`. Even a field named `implement_plan` cannot authorize implementation.
 - Input collection and tool HITL authorization remain separate. Forms do not collect passwords, tokens, or other credentials.
 

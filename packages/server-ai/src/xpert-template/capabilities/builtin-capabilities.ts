@@ -16,6 +16,28 @@ import { t } from 'i18next'
 import { SandboxService } from '../../sandbox/sandbox.service'
 
 @Injectable()
+@AssistantCapabilityProvider('request-user-input')
+export class RequestUserInputCapabilityProvider implements IAssistantCapabilityProvider {
+    readonly key = 'request-user-input'
+    readonly availableForBlankAssistant = true
+    readonly requiredModelFeatures = [ModelFeature.TOOL_CALL]
+    readonly label = { en_US: 'Ask for user input', zh_Hans: '向用户提问' }
+    readonly description = {
+        en_US: 'Ask for missing information in ChatKit and continue after the user responds.',
+        zh_Hans: '在 ChatKit 对话中用表单询问缺少的信息，收到回答后继续任务。'
+    }
+    isEnabled(draft: TXpertTeamDraft) {
+        return draft.team.features?.requestUserInput?.enabled === true
+    }
+    async check() {
+        return { available: true }
+    }
+    async apply({ draft }: AssistantCapabilityApplyContext) {
+        draft.team.features = { ...draft.team.features, requestUserInput: { enabled: true } }
+    }
+}
+
+@Injectable()
 @AssistantCapabilityProvider('desktop-shell')
 export class DesktopShellCapabilityProvider implements IAssistantCapabilityProvider {
     readonly key = 'desktop-shell'

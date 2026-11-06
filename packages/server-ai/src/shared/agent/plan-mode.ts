@@ -7,6 +7,7 @@ import {
     type RequestUserInputQuestion,
     type RequestUserInputToolArgs
 } from '@xpert-ai/chatkit-types'
+import { canRequestUserInput } from './user-input-policy'
 import { inheritMiddlewareToolDisplayMetadata } from './middleware'
 
 export const PLAN_MODE_HUMAN_INPUT_KEY = 'planMode'
@@ -174,6 +175,24 @@ function createPlanModeNode(key: string, provider: string): IWFNMiddleware {
     } as IWFNMiddleware
 }
 
+function planPromptEntry(prompt: string) {
+    const middleware: AgentMiddleware = {
+        name: 'PlanModePromptMiddleware',
+        wrapModelCall: (request, handler) => {
+            const systemMessage = request.systemMessage
+            const content =
+                typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
+
+            return handler({
+                ...request,
+                systemMessage: new SystemMessage(`${content}\n\n${prompt}`)
+            })
+        }
+    }
+
+    return { key: PLAN_MODE_PROMPT_MIDDLEWARE_KEY, middleware }
+}
+
 export async function createPlanModeMiddlewareEntries(
     agentMiddlewareRegistry: AgentMiddlewareRegistry,
     context: Omit<IAgentMiddlewareContext, 'node'>,
@@ -181,6 +200,14 @@ export async function createPlanModeMiddlewareEntries(
 ): Promise<Array<{ key: string; middleware: AgentMiddleware }>> {
     if (!enabled) {
         return []
+    }
+
+    if (!canRequestUserInput(context)) {
+        return [
+            planPromptEntry(
+                'You are in Plan Mode. Inspect available context and present your proposed plan inside <proposed_plan> tags. End the turn after the plan. No implementation confirmation is available in this run. Do not implement, mutate files or perform destructive actions.'
+            )
+        ]
     }
 
     const clientToolStrategy = agentMiddlewareRegistry.get(CLIENT_TOOL_MIDDLEWARE_NAME)
@@ -204,28 +231,11 @@ export async function createPlanModeMiddlewareEntries(
         clientToolStrategy.meta
     )
 
-    const promptMiddleware: AgentMiddleware = {
-        name: 'PlanModePromptMiddleware',
-        wrapModelCall: (request, handler) => {
-            const systemMessage = request.systemMessage
-            const content =
-                typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
-
-            return handler({
-                ...request,
-                systemMessage: new SystemMessage(`${content}\n\n${PLAN_MODE_PROMPT}`)
-            })
-        }
-    }
-
     return [
         {
             key: PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY,
             middleware: clientToolMiddleware
         },
-        {
-            key: PLAN_MODE_PROMPT_MIDDLEWARE_KEY,
-            middleware: promptMiddleware
-        }
+        planPromptEntry(PLAN_MODE_PROMPT)
     ]
 }

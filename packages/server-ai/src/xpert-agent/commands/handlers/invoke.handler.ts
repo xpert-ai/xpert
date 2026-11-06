@@ -1,5 +1,6 @@
 import { taskControlledStream } from '@xpert-ai/server-core'
 import { resolveAgentExecutionScope } from '../../../shared/agent/middleware-runtime/execution-scope'
+import { canRequestUserInput } from '../../../shared/agent/user-input-policy'
 import { executionToolReceipts } from '../../../execution-control/adapters/execution-tool-receipts'
 import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
@@ -268,6 +269,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                             ? (nodeKey) => this.threadRunControl.shouldPause(options.thread_id, execution.id, nodeKey)
                             : undefined,
                     planMode,
+                    supportsUserInput: canRequestUserInput({
+                        supportsUserInput: options.supportsUserInput,
+                        xpertFeatures: latestXpert.features
+                    }),
                     execution,
                     rootController: abortController,
                     signal: abortController.signal,

@@ -1573,6 +1573,7 @@
         "NotFound": "未找到执行记录。"
     },
     "UserInput": {
+        "Unavailable": "当前运行不支持向用户提问。",
         "InvalidResponse": "用户输入无效，请重新提交所需字段。",
         "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。"
     },

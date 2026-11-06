@@ -571,6 +571,7 @@ export class XpertController extends CrudController<Xpert> {
         }
         const observable = await this.enqueueXpertChatTask(body.request, {
             ...body.options,
+            supportsUserInput: false,
             xpertId: id,
             environment,
             language,
@@ -1467,6 +1468,7 @@ export class XpertController extends CrudController<Xpert> {
         const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
         const observable = await this.enqueueXpertChatTask(body.request, {
             ...body.options,
+            supportsUserInput: false,
             xpertId: xpert.id,
             environment,
             language,

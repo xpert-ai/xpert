@@ -228,6 +228,7 @@ export class TemplateSubagentRuntimeService {
                                             store: options.store,
                                             subscriber: options.subscriber,
                                             shouldPause: options.shouldPause,
+                                            supportsUserInput: options.supportsUserInput,
                                             planMode: options.planMode,
                                             conversationId: options.conversationId,
                                             projectId: context.projectId,

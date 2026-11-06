@@ -58,6 +58,7 @@ export function toXpertOpenerPrompt(question: TXpertOpenerQuestion): { label: st
 }
 
 export type TXpertFeatures = {
+  requestUserInput?: { enabled: boolean }
   realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceFeature
   /** Generate start-screen questions from recurring intents in conversation history. */
   frequentQuestions?: {
@@ -769,6 +770,8 @@ export interface TXpertTeamConnection {
 }
 
 export type TChatOptions = {
+  /** The initiating client can display and answer a structured question for this run. */
+  supportsUserInput?: boolean
   xpertId?: string
   conversationId?: string
   messageId?: string

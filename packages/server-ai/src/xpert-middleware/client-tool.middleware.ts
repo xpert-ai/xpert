@@ -8,6 +8,9 @@ import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { interrupt, isGraphInterrupt } from '@langchain/langgraph'
 import { Injectable } from '@nestjs/common'
 import { ChatMessageEventTypeEnum, ChatMessageStepCategory, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
+import { t } from 'i18next'
+import { canRequestUserInput } from '../shared/agent/user-input-policy'
+import { REQUEST_USER_INPUT_TOOL_NAME } from '@xpert-ai/chatkit-types'
 import type { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
 import {
     AgentMiddleware,
@@ -459,12 +462,12 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
 
     createMiddleware(
         options: ClientToolMiddlewareConfig = {},
-        _context: IAgentMiddlewareContext
+        context: IAgentMiddlewareContext
     ): PromiseOrValue<AgentMiddleware> {
-        void _context
+        const allowsTool = (name: string) => name !== REQUEST_USER_INPUT_TOOL_NAME || canRequestUserInput(context)
 
         const tools = (options.clientTools || [])
-            .filter((clientTool) => Boolean(clientTool))
+            .filter((clientTool) => Boolean(clientTool) && allowsTool(clientTool.name))
             .map((clientTool) => {
                 const schema = new JsonSchemaValidator().parseAndValidate(clientTool.schema)
                 return tool(
@@ -525,6 +528,13 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
 
                 try {
                     const executeClientTool = async (toolCall: ToolCall) => {
+                        if (!allowsTool(toolCall.name)) {
+                            throw new Error(
+                                t('server-ai:UserInput.Unavailable', {
+                                    defaultValue: 'User input is unavailable for this run.'
+                                })
+                            )
+                        }
                         const clientRequest: ClientToolRequest = {
                             clientToolCalls: [toolCall]
                         }

@@ -28,6 +28,11 @@ describe('managed application run admission', () => {
         expect(() => assertRuntimeInputPolicy({ ...request, config: { configurable: { isDraft: true } } })).toThrow()
         expect(() => assertRuntimeInputPolicy(request)).not.toThrow()
     })
+    it('admits an explicit interactive client without accepting authoring overrides', () => {
+        const context = { supportsUserInput: true, env: { model: 'untrusted' } }
+        expect(applyRuntimeInputPolicy({ ...request, context }).context).toEqual({ supportsUserInput: true })
+        expect(() => assertRuntimeInputPolicy({ ...request, context: { supportsUserInput: 'true' } })).toThrow()
+    })
     it('accepts a business message', () => expect(() => assertRuntimeInputPolicy(request)).not.toThrow())
     it('accepts native regeneration of a restored conversation without a Project', () => {
         const result = assertRuntimeInputPolicy({

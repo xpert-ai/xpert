@@ -50,7 +50,11 @@ describe('XpertAgentInvokeHandler', () => {
         jest.clearAllMocks()
     })
 
-    it('passes plan mode into graph compilation when human input enables it', async () => {
+    it.each([
+        [true, true, true],
+        [false, true, false],
+        [true, false, false]
+    ])('compiles Plan Mode with Assistant input %s and client support %s', async (enabled, client, allowed) => {
         const graph = createGraph()
         let compileCommand: CompileGraphCommand | null = null
 
@@ -74,10 +78,11 @@ describe('XpertAgentInvokeHandler', () => {
                 {
                     id: 'xpert-1',
                     workspaceDataScope: 'user',
-                    features: {}
+                    features: { requestUserInput: { enabled } }
                 } as any,
                 {
                     isDraft: true,
+                    supportsUserInput: client,
                     thread_id: 'thread-1',
                     execution: {
                         id: 'execution-1',
@@ -96,6 +101,7 @@ describe('XpertAgentInvokeHandler', () => {
 
         expect(compileCommand).not.toBeNull()
         expect(compileCommand!.options.planMode).toBe(true)
+        expect(compileCommand!.options.supportsUserInput).toBe(allowed)
     })
 
     it('streams compiled external agents while still respecting explicit mute rules', async () => {

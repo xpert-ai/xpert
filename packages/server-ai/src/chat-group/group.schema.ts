@@ -7,12 +7,14 @@ const ids = z
     .max(16)
     .refine((items) => new Set(items).size === items.length)
 const base = {
+    supportsUserInput: z.boolean().optional(),
     composer: groupComposerSchema.optional(),
     clientMessageId: z.string().uuid(),
     text: z.string().trim().min(1).max(32000)
 }
 export const groupHumanSendSchema = z
     .object({
+        supportsUserInput: z.boolean().optional(),
         composer: groupComposerSchema.optional(),
         clientMessageId: z.string().uuid(),
         text: z
@@ -96,6 +98,7 @@ export const groupCommunicationSchema = z
             })
             .strict()
             .optional(),
+        supportsUserInput: z.boolean().optional(),
         composer: groupComposerSchema.optional(),
         intent: z.enum(['request', 'reply', 'message']),
         senderId: z.string().uuid(),

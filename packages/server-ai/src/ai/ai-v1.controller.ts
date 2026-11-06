@@ -91,6 +91,7 @@ export class AIV1Controller {
             await this.commandBus.execute(
                 new ChatCommand(body.request, {
                     ...(body.options ?? {}),
+                    supportsUserInput: false,
                     tenantId: RequestContext.currentTenantId(),
                     organizationId: RequestContext.getOrganizationId(),
                     user: RequestContext.currentUser(),

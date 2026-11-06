@@ -7,6 +7,26 @@ import { Annotation, Command, END, MemorySaver, START, StateGraph } from '@langc
 import { ToolMessage } from '@langchain/core/messages'
 import { ClientToolMiddleware } from '../../xpert-middleware/client-tool.middleware'
 
+function formContext(enabled?: boolean, supportsUserInput?: boolean): Omit<IAgentMiddlewareContext, 'node'> {
+    return {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        tools: new Map(),
+        runtime: { createModelClient: jest.fn(), wrapWorkflowNodeExecution: jest.fn() },
+        supportsUserInput,
+        xpertFeatures:
+            enabled === undefined
+                ? undefined
+                : {
+                      opener: { enabled: false, message: '', questions: [] },
+                      suggestion: { enabled: false, prompt: '' },
+                      textToSpeech: { enabled: false },
+                      speechToText: { enabled: false },
+                      requestUserInput: { enabled }
+                  }
+    }
+}
+
 const form: RequestUserInputForm = {
     schemaVersion: 1,
     mode: 'blocking',
@@ -55,15 +75,27 @@ describe('runtime user input', () => {
         expect(result).toMatchObject({ content: { status: 'cancelled', purpose: 'clarification', answers: [] } })
         expect(result).not.toHaveProperty('content.values')
     })
+    it.each([
+        [undefined, true],
+        [false, true],
+        [true, undefined],
+        [true, false]
+    ])('omits the blocking tool for capability %s and client %s', async (enabled, supportsUserInput) => {
+        const get = jest.fn()
+        const registry = { get } as unknown as AgentMiddlewareRegistry
+        const context = formContext(enabled, supportsUserInput)
+        await expect(createRuntimeUserInputMiddlewareEntries(registry, context)).resolves.toEqual([])
+        const plan = await createRuntimeUserInputMiddlewareEntries(registry, context, true)
+        expect(plan.map(({ key }) => key)).toEqual(['__xpert_plan_mode_prompt__'])
+        expect(get).not.toHaveBeenCalled()
+    })
+
     it('injects a form tool in ordinary mode and preserves the Plan Mode schema', async () => {
         const createMiddleware = jest.fn().mockResolvedValue({ name: 'ClientToolMiddleware' } satisfies AgentMiddleware)
         const registry = {
             get: jest.fn().mockReturnValue({ createMiddleware, meta: { name: 'ClientToolMiddleware' } })
         } as unknown as AgentMiddlewareRegistry
-        const context = { tenantId: 'tenant-1', userId: 'user-1', tools: new Map(), runtime: {} } as Omit<
-            IAgentMiddlewareContext,
-            'node'
-        >
+        const context = formContext(true, true)
         const entries = await createRuntimeUserInputMiddlewareEntries(registry, context, false)
         expect(entries.map((entry) => entry.key)).toContain('__xpert_user_input__')
         const schema = JSON.parse(createMiddleware.mock.calls[0][0].clientTools[0].schema)
@@ -77,10 +109,7 @@ describe('runtime user input', () => {
         async (status) => {
             const strategy = new ClientToolMiddleware()
             const registry = { get: () => strategy } as unknown as AgentMiddlewareRegistry
-            const context = { tenantId: 'tenant-1', userId: 'user-1', tools: new Map(), runtime: {} } as Omit<
-                IAgentMiddlewareContext,
-                'node'
-            >
+            const context = formContext(true, true)
             const [{ middleware }] = await createRuntimeUserInputMiddlewareEntries(registry, context, false)
             const State = Annotation.Root({ result: Annotation<string> })
             const graph = new StateGraph(State)

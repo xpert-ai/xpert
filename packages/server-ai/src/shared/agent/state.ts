@@ -75,6 +75,7 @@ export type TXpertAgentRuntimeOptions = {
     runtimeResources?: import('../../agent-plugin/runtime-resource.service').ResolvedRuntimeResources
     shouldPause?: (nodeKey?: string) => Promise<boolean>
     toolPreferences?: IAssistantBindingToolPreferences | null
+    supportsUserInput?: boolean
     planMode?: boolean
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended | null
     workspacePath?: string | null

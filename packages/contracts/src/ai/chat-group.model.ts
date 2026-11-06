@@ -85,6 +85,8 @@ export interface ChatGroupComposerInput {
 
 /** Server-authored routing and causality metadata; public senders cannot supply or override identity. */
 export interface ChatGroupCommunication {
+  /** The initiating client can present and answer a form for this message. */
+  supportsUserInput?: boolean
   /** Host-only task routing metadata; never accepted by group send APIs or model tools. */
   projectTask?: { invocationId: string; projectId: string; projectTaskId: string; taskExecutionId: string }
   /** Durable Invocation result notification, delivered through the group queue. */
@@ -157,6 +159,8 @@ export interface ChatGroupMention {
  * explicit mentions route only to those members. Busy Assistants receive input through steer.
  */
 export type ChatGroupSendInput = {
+  /** The initiating client can present and answer a form for this message. */
+  supportsUserInput?: boolean
   composer?: ChatGroupComposerInput
   /** Client-generated UUID; reuse for retries of the same submission, scoped to group and sender. */
   clientMessageId: string

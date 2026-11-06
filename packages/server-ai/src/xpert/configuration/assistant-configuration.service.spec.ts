@@ -29,6 +29,7 @@ import { parseCapabilityTemplateDraft } from '../../xpert-template/capabilities/
 import { primaryAgent } from '../../xpert-template/capabilities/capability-state'
 
 import {
+    RequestUserInputCapabilityProvider,
     DesktopShellCapabilityProvider,
     SandboxToolsCapabilityProvider
 } from '../../xpert-template/capabilities/builtin-capabilities'
@@ -163,6 +164,25 @@ describe('Assistant configuration authoring', () => {
 })
 
 describe('Dialog capability draft composition', () => {
+    it('round trips optional user input through the settings capability list', async () => {
+        const { service, entity } = fixture([new RequestUserInputCapabilityProvider()])
+        const initial = await service.getCapabilities('expert', language)
+        expect(initial.options).toContainEqual(expect.objectContaining({ key: 'request-user-input', required: false }))
+        expect(initial.selected).toEqual([])
+        entity.draft = await service.previewCapabilities('expert', language, {
+            revision: initial.revision,
+            capabilities: ['request-user-input']
+        })
+        expect(entity.draft.team.features.requestUserInput?.enabled).toBe(true)
+        const enabled = await service.getCapabilities('expert', language)
+        expect(enabled.selected).toEqual(['request-user-input'])
+        const disabled = await service.previewCapabilities('expert', language, {
+            revision: enabled.revision,
+            capabilities: []
+        })
+        expect(disabled.team.features?.requestUserInput).toBeUndefined()
+    })
+
     it('offers realtime models before enabling calls and preserves voice when composing other capabilities', async () => {
         const { service, entity, xperts, catalog } = fixture((catalog) => [
             new RealtimeVoiceCapabilityProvider(catalog),
