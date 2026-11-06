@@ -64,8 +64,7 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
                 'user-1',
                 {
                     [STATE_VARIABLE_HUMAN]: {
-                        input: 'hello',
-                        supportsUserInput: true
+                        input: 'hello'
                     }
                 } as any,
                 {
@@ -79,7 +78,6 @@ describe('XpertEnqueueTriggerDispatchHandler', () => {
         const [message] = handoffQueue.enqueue.mock.calls[0]
         expect(message.type).toBe(AGENT_CHAT_DISPATCH_MESSAGE_TYPE)
         expect(message.payload.options.from).toBe('job')
-        expect(message.payload.options.supportsUserInput).not.toBe(true)
         expect(message.payload.options.runtimePrincipal).toBeUndefined()
         expect(message.headers.userId).toBe('user-1')
         expect(message.headers.organizationId).toBe('org-1')

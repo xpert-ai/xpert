@@ -1,6 +1,5 @@
 import { AgentMiddlewareRegistry, type IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
-import { createPlanModeMiddlewareEntries } from './plan-mode'
-import { canRequestUserInput } from './user-input-policy'
+import { createPlanModeMiddlewareEntries, createPlanModePromptEntry } from './plan-mode'
 import { createUserInputMiddlewareEntries } from './user-input'
 
 export async function createRuntimeUserInputMiddlewareEntries(
@@ -8,6 +7,10 @@ export async function createRuntimeUserInputMiddlewareEntries(
     context: Omit<IAgentMiddlewareContext, 'node'>,
     planMode?: boolean
 ) {
-    if (planMode) return createPlanModeMiddlewareEntries(registry, context, true)
-    return canRequestUserInput(context) ? createUserInputMiddlewareEntries(registry, context) : []
+    if (context.xpertFeatures?.requestUserInput?.enabled !== true) {
+        return planMode ? [createPlanModePromptEntry(false)] : []
+    }
+    return planMode
+        ? createPlanModeMiddlewareEntries(registry, context, true)
+        : createUserInputMiddlewareEntries(registry, context)
 }

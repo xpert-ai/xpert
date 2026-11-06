@@ -66,7 +66,7 @@ describe('group human message routing', () => {
     it('routes plain text to the group xpertId while preserving the authenticated human author', async () => {
         const { service, group, a, c } = fixture()
         const publish = jest.spyOn(service, 'publish').mockResolvedValue(undefined)
-        const input = { clientMessageId: randomUUID(), text: 'Hello', supportsUserInput: true }
+        const input = { clientMessageId: randomUUID(), text: 'Hello' }
         await service.submit(group.id, input)
         expect(publish).toHaveBeenCalledWith(group, a, {
             ...input,

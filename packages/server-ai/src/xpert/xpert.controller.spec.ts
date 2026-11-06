@@ -58,7 +58,6 @@ jest.mock('@xpert-ai/server-core', () => ({
     UseValidationPipe: () => () => undefined,
     UserService: class {},
     UUIDValidationPipe: class {},
-    ZodValidationPipe: class {},
     transformWhere: jest.fn((where: unknown) => where)
 }))
 
@@ -755,7 +754,6 @@ describe('XpertController', () => {
             }
         }
         const options: TChatOptions = {
-            supportsUserInput: true,
             messageId: 'message-1'
         }
         const controllerAccess = controller as unknown as ControllerPrivateAccess
@@ -787,7 +785,6 @@ describe('XpertController', () => {
                 environment: { id: 'env-1' },
                 from: 'webapp',
                 fromEndUserId: 'anonymous-user-1',
-                supportsUserInput: false,
                 language: LanguagesEnum.English,
                 messageId: 'message-1',
                 timeZone: 'Asia/Shanghai',

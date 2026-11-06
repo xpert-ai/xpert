@@ -967,7 +967,6 @@ describe('RunCreateStreamHandler execute', () => {
                 },
                 context: {
                     scope: 'workspace',
-                    supportsUserInput: true,
                     target: {
                         type: 'assistant'
                     },
@@ -981,7 +980,6 @@ describe('RunCreateStreamHandler execute', () => {
 
         expect(control.start).toHaveBeenCalledWith('thread-1', 'execution-1', {
             scope: 'workspace',
-            supportsUserInput: true,
             target: { type: 'assistant' },
             env: { workspaceId: 'workspace-1', region: 'cn' }
         })
@@ -998,14 +996,12 @@ describe('RunCreateStreamHandler execute', () => {
         expect(xpertChatCommand).toBeInstanceOf(XpertChatCommand)
         expect(xpertChatCommand.options).toMatchObject({
             from: 'dingtalk',
-            supportsUserInput: true,
             fromEndUserId: 'employee-1',
             sourceIntegrationId: 'integration-1',
             integrationId: 'integration-1',
             channelType: 'enterprise_h5',
             context: {
                 scope: 'workspace',
-                supportsUserInput: true,
                 target: {
                     type: 'assistant'
                 },

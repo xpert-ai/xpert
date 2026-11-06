@@ -67,7 +67,6 @@ describe('AIV1Controller ChatKit sessions', () => {
         commandBus.execute.mockResolvedValue(of(event))
         const options = {
             xpertId: 'assistant-1',
-            supportsUserInput: true,
             streamPersistence: {
                 transport: 'redis-stream',
                 threadId: 'forged',
@@ -86,7 +85,6 @@ describe('AIV1Controller ChatKit sessions', () => {
                     tenantId: 'tenant-1',
                     organizationId: 'org-1',
                     user: { id: 'user-1' },
-                    supportsUserInput: false,
                     streamPersistence: { transport: 'redis-stream' }
                 })
             })

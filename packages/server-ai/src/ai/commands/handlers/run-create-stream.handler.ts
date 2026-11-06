@@ -685,7 +685,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                     threadId,
                     isDerivedThread: conversation.threadId !== threadId,
                     ...chatSource,
-                    supportsUserInput: runtimeContext?.supportsUserInput === true,
                     execution:
                         chatRequest.action === 'resume' && !command.resumePaused ? undefined : { id: execution.id },
                     ...(resumeCheckpoint ? { resumeCheckpoint } : {}),

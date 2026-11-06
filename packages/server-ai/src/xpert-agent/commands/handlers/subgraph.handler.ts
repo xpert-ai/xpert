@@ -491,7 +491,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Workflow Task tool
         const taskTools = await createWorkflowTaskTools(agentKey, graph, {
             executionDefinition: options.executionDefinition,
-            supportsUserInput: options.supportsUserInput,
             planMode: options.planMode,
             workspacePath: options.workspacePath,
             workspaceRoot: options.workspaceRoot,
@@ -565,7 +564,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     follower,
                     {
                         executionDefinition: options.executionDefinition,
-                        supportsUserInput: options.supportsUserInput,
                         planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
@@ -651,7 +649,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     node.entity,
                     {
                         executionDefinition: options.executionDefinition,
-                        supportsUserInput: options.supportsUserInput,
                         planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
@@ -744,7 +741,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
                         new CreateWorkflowNodeCommand(runtimeXpert.id, graph, node, parentKey, {
                             executionDefinition: options.executionDefinition,
-                            supportsUserInput: options.supportsUserInput,
                             planMode: options.planMode,
                             workspacePath: options.workspacePath,
                             workspaceRoot: options.workspaceRoot,
@@ -926,7 +922,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             threadId: thread_id,
             xpertId: runtimeXpert.id,
             workspaceDataScope: runtimeXpert.workspaceDataScope,
-            supportsUserInput: options.supportsUserInput,
             xpertFeatures: runtimeXpert.features ?? null,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,

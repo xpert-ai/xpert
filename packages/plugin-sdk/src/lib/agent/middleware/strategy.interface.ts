@@ -20,8 +20,6 @@ export interface IAgentMiddlewareContext {
   threadId?: string
   xpertId?: string
   workspaceDataScope?: XpertWorkspaceDataScope | null
-  /** The current run has a client that can collect structured user input. */
-  supportsUserInput?: boolean
   xpertFeatures?: TXpertFeatures | null
   agentKey?: string
   knowledgebaseIds?: string[]

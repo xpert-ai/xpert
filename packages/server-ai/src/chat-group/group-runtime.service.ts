@@ -344,7 +344,6 @@ export class GroupRuntimeService {
             options: {
                 resumeCheckpoint,
                 groupDeliveryId: receipt.id,
-                supportsUserInput: communication.supportsUserInput === true,
                 xpertId: member.subjectId,
                 threadId: member.runtimeThreadId,
                 isDraft: false,

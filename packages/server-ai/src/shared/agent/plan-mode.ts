@@ -7,7 +7,6 @@ import {
     type RequestUserInputQuestion,
     type RequestUserInputToolArgs
 } from '@xpert-ai/chatkit-types'
-import { canRequestUserInput } from './user-input-policy'
 import { inheritMiddlewareToolDisplayMetadata } from './middleware'
 
 export const PLAN_MODE_HUMAN_INPUT_KEY = 'planMode'
@@ -175,7 +174,11 @@ function createPlanModeNode(key: string, provider: string): IWFNMiddleware {
     } as IWFNMiddleware
 }
 
-function planPromptEntry(prompt: string) {
+export function createPlanModePromptEntry(allowUserInput: boolean) {
+    const prompt = allowUserInput
+        ? PLAN_MODE_PROMPT
+        : 'You are in Plan Mode. Inspect available context and present your proposed plan inside <proposed_plan> tags. End the turn after the plan. No implementation confirmation is available in this run. Do not implement, mutate files or perform destructive actions.'
+
     const middleware: AgentMiddleware = {
         name: 'PlanModePromptMiddleware',
         wrapModelCall: (request, handler) => {
@@ -200,14 +203,6 @@ export async function createPlanModeMiddlewareEntries(
 ): Promise<Array<{ key: string; middleware: AgentMiddleware }>> {
     if (!enabled) {
         return []
-    }
-
-    if (!canRequestUserInput(context)) {
-        return [
-            planPromptEntry(
-                'You are in Plan Mode. Inspect available context and present your proposed plan inside <proposed_plan> tags. End the turn after the plan. No implementation confirmation is available in this run. Do not implement, mutate files or perform destructive actions.'
-            )
-        ]
     }
 
     const clientToolStrategy = agentMiddlewareRegistry.get(CLIENT_TOOL_MIDDLEWARE_NAME)
@@ -236,6 +231,6 @@ export async function createPlanModeMiddlewareEntries(
             key: PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY,
             middleware: clientToolMiddleware
         },
-        planPromptEntry(PLAN_MODE_PROMPT)
+        createPlanModePromptEntry(true)
     ]
 }

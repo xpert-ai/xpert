@@ -1573,7 +1573,6 @@
         "NotFound": "Execution not found."
     },
     "UserInput": {
-        "Unavailable": "User input is unavailable for this run.",
         "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
         "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
     },

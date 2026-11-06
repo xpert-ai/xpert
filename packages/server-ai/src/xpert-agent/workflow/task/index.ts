@@ -188,7 +188,6 @@ ${taskEntity.descriptionSuffix ?? ''}`
                     { id: xpertId },
                     {
                         executionDefinition: params.executionDefinition,
-                        supportsUserInput: params.supportsUserInput,
                         planMode: params.planMode,
                         workspacePath: params.workspacePath,
                         workspaceRoot: params.workspaceRoot,

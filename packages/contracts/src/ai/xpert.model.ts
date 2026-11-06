@@ -770,8 +770,6 @@ export interface TXpertTeamConnection {
 }
 
 export type TChatOptions = {
-  /** The initiating client can display and answer a structured question for this run. */
-  supportsUserInput?: boolean
   xpertId?: string
   conversationId?: string
   messageId?: string

@@ -23,8 +23,8 @@ export class RequestUserInputCapabilityProvider implements IAssistantCapabilityP
     readonly requiredModelFeatures = [ModelFeature.TOOL_CALL]
     readonly label = { en_US: 'Ask for user input', zh_Hans: '向用户提问' }
     readonly description = {
-        en_US: 'Ask for missing information in ChatKit and continue after the user responds.',
-        zh_Hans: '在 ChatKit 对话中用表单询问缺少的信息，收到回答后继续任务。'
+        en_US: 'Allow the Assistant to request missing information and wait for a reply in any run.',
+        zh_Hans: '允许助手在任意入口发起的任务中询问缺少的信息，并等待用户回答。'
     }
     isEnabled(draft: TXpertTeamDraft) {
         return draft.team.features?.requestUserInput?.enabled === true

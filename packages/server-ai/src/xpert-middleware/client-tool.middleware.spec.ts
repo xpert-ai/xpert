@@ -135,30 +135,6 @@ describe('ClientToolMiddleware', () => {
         mockDispatchCustomEvent.mockResolvedValue(undefined)
     })
 
-    it('rejects a stale user-input call before interrupting an unattended run', async () => {
-        const context = createContext()
-        context.xpertFeatures = {
-            opener: { enabled: false, message: '', questions: [] },
-            suggestion: { enabled: false, prompt: '' },
-            textToSpeech: { enabled: false },
-            speechToText: { enabled: false },
-            requestUserInput: { enabled: true }
-        }
-        const middleware = await new ClientToolMiddleware().createMiddleware(
-            {
-                clientTools: [
-                    { name: 'client_tool', schema: CLIENT_TOOL_SCHEMA },
-                    { name: 'request_user_input', schema: CLIENT_TOOL_SCHEMA }
-                ]
-            },
-            context
-        )
-        expect(middleware.tools?.map((item) => item.name)).toEqual(['client_tool'])
-        const request = createToolCallRequest(middleware, { id: 'stale', name: 'request_user_input', args: {} })
-        await expect(getWrapToolCall(middleware)(request, jest.fn())).rejects.toThrow()
-        expect(mockInterrupt).not.toHaveBeenCalled()
-    })
-
     it('does not leave a tool receipt across the input checkpoint', async () => {
         const start = jest.fn()
         const end = jest.fn()
