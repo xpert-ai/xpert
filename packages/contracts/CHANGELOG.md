@@ -1,5 +1,25 @@
 # @xpert-ai/contracts
 
+## 3.33.0
+
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Add user-group and direct-user business-area grants with consumer, publisher and domain administrator roles. Explain effective grant sources, apply live membership revocation, and authorize published Assistant consumption independently from workspace authoring.
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- 56c6c5e: Clarify model connection disable counts with tenant-scoped reference details, distinct current resources, historical records and explicitly unresolved JSON/snapshot matches. Identify blocking default settings, preserve configurations and the existing disable prerequisite, and provide matching English and Chinese explanations.
+
+## 3.31.0
+
+### Patch Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- 7895e19: Keep saved embedding targets visible independently of active vector indices. Enforce model batch limits at the host boundary, expose rebuild errors and batch correction in the current knowledge settings dialog, and retry the saved target without replacing active vectors before success. Protect rebuild state from configuration readback and cover failure, refresh, retry and stale-task isolation with nonempty embedding inputs.
+
 ## 3.30.2
 
 ### Patch Changes

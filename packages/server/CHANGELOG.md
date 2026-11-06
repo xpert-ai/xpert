@@ -1,5 +1,50 @@
 # @xpert-ai/server-core
 
+## 3.33.0
+
+### Patch Changes
+
+- Updated dependencies [7e89657]
+    - @xpert-ai/plugin-sdk@3.33.0
+    - @xpert-ai/server-common@3.33.0
+    - @xpert-ai/server-config@3.33.0
+    - @xpert-ai/contracts@3.33.0
+
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Add user-group and direct-user business-area grants with consumer, publisher and domain administrator roles. Explain effective grant sources, apply live membership revocation, and authorize published Assistant consumption independently from workspace authoring.
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- Updated dependencies [a35bd1f]
+- Updated dependencies [e7b2da6]
+- Updated dependencies [56c6c5e]
+    - @xpert-ai/contracts@3.32.0
+    - @xpert-ai/plugin-sdk@3.32.0
+    - @xpert-ai/server-common@3.32.0
+    - @xpert-ai/server-config@3.32.0
+
+## 3.31.0
+
+### Patch Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- c8748ab: Return explicit JSON null from tenant onboarding before initialization. Validate shared workspace directory ownership as the configured workspace identity when the privileged NsJail Runner sees caller-dependent ownership, preserving non-root execution and directory protection.
+- 7302333: Restore plugin browsing and organization-scoped management for authorized authors. Validate organization access and uninstall targets while preserving system, tenant, marketplace administration and restart restrictions. Scope plugin convergence reads to the requesting organization and avoid displaying a zero installed count when loading fails.
+- 9a9127b: Load current, credential-free users and role grants when resolving resource API key identities, including API-key-backed client secrets. Preserve tenant, organization and resource boundaries, personal identities and management restrictions, with HTTP and database regression coverage for #1328.
+- 9a9127b: Allow authenticated users to read scoped tag definitions while retaining tag management permissions. Recover tag selectors and workspace rendering after request failures, with retry feedback and cache invalidation on scope changes. Add HTTP isolation and frontend regression coverage for #1327.
+- Updated dependencies [6561b42]
+- Updated dependencies [3f43604]
+- Updated dependencies [8643de1]
+- Updated dependencies [7895e19]
+    - @xpert-ai/plugin-sdk@3.31.0
+    - @xpert-ai/contracts@3.31.0
+    - @xpert-ai/server-config@3.31.0
+    - @xpert-ai/server-common@3.31.0
+
 ## 3.30.2
 
 ### Patch Changes

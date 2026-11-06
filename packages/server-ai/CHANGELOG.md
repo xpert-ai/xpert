@@ -1,5 +1,68 @@
 # @xpert-ai/server-ai
 
+## 3.33.0
+
+### Patch Changes
+
+- Updated dependencies [7e89657]
+    - @xpert-ai/plugin-sdk@3.33.0
+    - @xpert-ai/server-core@3.33.0
+    - @xpert-ai/server-auth@3.33.0
+    - @xpert-ai/server-common@3.33.0
+    - @xpert-ai/server-config@3.33.0
+    - @xpert-ai/contracts@3.33.0
+    - @xpert-ai/desktop-protocol@0.4.8
+
+## 3.32.0
+
+### Minor Changes
+
+- e7b2da6: Add user-group and direct-user business-area grants with consumer, publisher and domain administrator roles. Explain effective grant sources, apply live membership revocation, and authorize published Assistant consumption independently from workspace authoring.
+
+### Patch Changes
+
+- 56c6c5e: Clarify model connection disable counts with tenant-scoped reference details, distinct current resources, historical records and explicitly unresolved JSON/snapshot matches. Identify blocking default settings, preserve configurations and the existing disable prerequisite, and provide matching English and Chinese explanations.
+- 087cc17: Preserve authenticated user provenance when dispatching knowledge pipelines so background workers restore current permissions before workspace authorization. Bind the marker to the initiating user and target scope while preserving Assistant and delegated credential boundaries, permission revocation and scoped task failure callbacks.
+- 14fd3d6: Recover orphaned executions that remain stopping after their owner disappears without a graph-end receipt. Finalize the execution, message, task and conversation atomically only after ownership fencing and complete tool/child settlement evidence, preserving saved work and allowing the next user message without replaying actions.
+- eef4692: Preserve installed Agent avatars when a refreshed template omits them, including recovery from an interrupted refresh. Keep explicit avatar clearing intact so prepared and published Assistant graphs remain consistent without changing model or resource bindings.
+- c585460: Report local Sandbox Job runtimes as unavailable on non-Linux hosts, where the current supervisor cannot prove descendant exit. Reject controlled runtime creation before starting a process and direct users to a healthy Linux Runtime Provider. This prevents new unverifiable executions; it does not reclaim existing jobs with unknown exit state.
+- 3d7604f: Translate the MCP task request failure message in the Simplified Chinese locale.
+- Updated dependencies [a35bd1f]
+- Updated dependencies [e7b2da6]
+- Updated dependencies [56c6c5e]
+    - @xpert-ai/contracts@3.32.0
+    - @xpert-ai/plugin-sdk@3.32.0
+    - @xpert-ai/server-core@3.32.0
+    - @xpert-ai/desktop-protocol@0.4.7
+    - @xpert-ai/server-auth@3.32.0
+    - @xpert-ai/server-common@3.32.0
+    - @xpert-ai/server-config@3.32.0
+
+## 3.31.0
+
+### Patch Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+- 3a4788e: Allow Assistant technical accounts to use their published classifier models, enabled Agent fallback models and the team model inherited by classifiers. Keep draft-only models, disabled fallbacks and unrelated provider or model types unauthorized.
+- 657e608: Check runtime template dependencies through the published Assistant access policy so delegated assistants can run without requiring file-management permissions. Preserve live access checks and explicit version requirements from older template metadata, while keeping authoring checks under file-access authorization.
+- 7895e19: Keep saved embedding targets visible independently of active vector indices. Enforce model batch limits at the host boundary, expose rebuild errors and batch correction in the current knowledge settings dialog, and retry the saved target without replacing active vectors before success. Protect rebuild state from configuration readback and cover failure, refresh, retry and stale-task isolation with nonempty embedding inputs.
+- 7302333: Restore plugin browsing and organization-scoped management for authorized authors. Validate organization access and uninstall targets while preserving system, tenant, marketplace administration and restart restrictions. Scope plugin convergence reads to the requesting organization and avoid displaying a zero installed count when loading fails.
+- Updated dependencies [6561b42]
+- Updated dependencies [3f43604]
+- Updated dependencies [8643de1]
+- Updated dependencies [7895e19]
+- Updated dependencies [c8748ab]
+- Updated dependencies [7302333]
+- Updated dependencies [9a9127b]
+- Updated dependencies [9a9127b]
+    - @xpert-ai/plugin-sdk@3.31.0
+    - @xpert-ai/contracts@3.31.0
+    - @xpert-ai/server-core@3.31.0
+    - @xpert-ai/server-config@3.31.0
+    - @xpert-ai/desktop-protocol@0.4.6
+    - @xpert-ai/server-auth@3.31.0
+    - @xpert-ai/server-common@3.31.0
+
 ## 3.30.2
 
 ### Patch Changes

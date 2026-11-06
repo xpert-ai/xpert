@@ -1,5 +1,40 @@
 # @xpert-ai/plugin-sdk
 
+## 3.33.0
+
+### Minor Changes
+
+- 7e89657: Add bounded Artifact Document query scheduling, separate queue and execution deadlines, request reuse and supersession, source execution status callbacks, and grouped query delivery. Preserve per-document authorization, replay checks and live dispatch protection.
+
+  Include the shared SDK runtime update in API and Web application releases.
+
+### Patch Changes
+
+- @xpert-ai/contracts@3.33.0
+
+## 3.32.0
+
+### Patch Changes
+
+- a35bd1f: Carry validated public provider diagnostics through Analytics discovery, queries and Agent tool messages with execution correlation. Preserve unknown-error redaction and revalidate access before exposing provider causes.
+- Updated dependencies [a35bd1f]
+- Updated dependencies [e7b2da6]
+- Updated dependencies [56c6c5e]
+  - @xpert-ai/contracts@3.32.0
+
+## 3.31.0
+
+### Minor Changes
+
+- 3f43604: Reuse each published Assistant's technical account for background execution. Keep Assistant identity and resource checks in server-ai while managed queues restore generic account identities. Preserve human configuration and approval permissions, existing View identity and audit mechanisms, and model access and billing boundaries.
+
+### Patch Changes
+
+- 6561b42: Expose optional source-declared column metadata in AnalyticsProviderResult for schema-aware authoring without changing strict binding validation or runtime APIs.
+- Updated dependencies [3f43604]
+- Updated dependencies [7895e19]
+  - @xpert-ai/contracts@3.31.0
+
 ## 3.30.2
 
 ### Patch Changes
