@@ -8,6 +8,7 @@ import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execut
 import { GroupMessagesService } from '../../group-messages.service'
 import { GroupMessageRecipient, GroupParticipant } from '../../group.entity'
 import { GroupProjectService } from '../group-project.service'
+import { assertGroupProjectReuse } from '../group-project-policy'
 
 type Fixture = {
     db: DataSource
@@ -22,6 +23,59 @@ type Fixture = {
 }
 
 export function groupProjectPreflightCases(fixture: () => Fixture) {
+    it('requires explicit reuse for other groups, including caller-chosen creation IDs, while preserving existing bindings', async () => {
+        const f = fixture()
+        const projectId = randomUUID()
+        await f.db.getRepository(ChatConversation).save({
+            tenantId: f.group.tenantId,
+            organizationId: f.group.organizationId,
+            purpose: 'group',
+            projectId,
+            title: 'Another group'
+        })
+        const project = { mode: 'existing' as const, projectId }
+        await expect(f.projects.set(f.group.id, { project, participantIds: [f.c.id] })).rejects.toMatchObject({
+            status: 409,
+            response: { code: 'GROUP_PROJECT_REUSE_REQUIRED' }
+        })
+        const permission = jest.spyOn(RequestContext, 'hasPermissions').mockReturnValue(true)
+        try {
+            await expect(
+                f.projects.set(f.group.id, {
+                    project: { mode: 'create', id: projectId, name: 'Guessed ID' },
+                    participantIds: [f.c.id]
+                })
+            ).rejects.toMatchObject({ status: 409 })
+            expect(f.ensureManagedProject).not.toHaveBeenCalled()
+        } finally {
+            permission.mockRestore()
+        }
+        expect((await f.db.getRepository(ChatConversation).findOneByOrFail({ id: f.group.id })).projectId).toBeNull()
+        await f.projects.set(f.group.id, { project: { ...project, reuse: true }, participantIds: [f.c.id] })
+        await f.projects.set(f.group.id, { project, participantIds: [f.c.id, f.e.id] })
+        expect(
+            (await f.db.getRepository(ChatConversation).findOneByOrFail({ id: f.e.runtimeConversationId })).projectId
+        ).toBe(projectId)
+    })
+    it('serializes concurrent independent claims across groups so only one can bind', async () => {
+        const f = fixture()
+        const other = await f.db.getRepository(ChatConversation).save({
+            tenantId: f.group.tenantId,
+            organizationId: f.group.organizationId,
+            purpose: 'group',
+            title: 'Concurrent group'
+        })
+        const projectId = randomUUID()
+        const claim = (group: ChatConversation) =>
+            f.db.transaction(async (manager) => {
+                await assertGroupProjectReuse(manager, group, projectId, false)
+                await manager.update(ChatConversation, group.id, { projectId })
+            })
+        const results = await Promise.allSettled([claim(f.group), claim(other)])
+        expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+        expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
+        expect(await f.db.getRepository(ChatConversation).countBy({ purpose: 'group', projectId })).toBe(1)
+    })
     it('rejects an existing Project that does not match the primary Assistant type', async () => {
         const f = fixture()
         f.primaryProjectType({ applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' })

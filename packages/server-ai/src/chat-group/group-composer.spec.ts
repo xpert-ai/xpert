@@ -48,7 +48,11 @@ describe('group Composer scope', () => {
     beforeEach(async () => {
         jest.clearAllMocks()
         types.list.mockReset().mockResolvedValue({ items: [] })
-        access.authorize.mockResolvedValue({ group: { id: 'group' }, actor: { subjectId: 'human' } })
+        access.authorize.mockResolvedValue({
+            group: { id: 'group', xpertId: 'assistant' },
+            actor: { subjectId: 'human' }
+        })
+        access.assistant.mockResolvedValue({})
         access.withRootUser.mockImplementation(async (_group, _user, task) => task())
         feature.canActivate.mockResolvedValue(true)
         projectAccess.assertCanUseXpert.mockResolvedValue(undefined)
@@ -231,14 +235,38 @@ describe('group Composer scope', () => {
     it('keeps catalog permissions in the service and uses the injected Project providers', async () => {
         const permission = jest.spyOn(RequestContext, 'hasPermissions').mockReturnValue(false)
         await expect(service.listProjectTypes('assistant')).rejects.toMatchObject({ status: 403 })
-        await expect(service.listProjects({ xpertId: 'assistant' })).rejects.toMatchObject({ status: 403 })
+        await expect(service.listProjects('group', { xpertId: 'assistant' })).rejects.toMatchObject({ status: 403 })
         expect(types.list).not.toHaveBeenCalled()
         expect(projects.findAvailableForXpert).not.toHaveBeenCalled()
         permission.mockReturnValue(true)
         await service.listProjectTypes('assistant')
-        await service.listProjects({ xpertId: 'assistant', take: 10 })
+        await service.listProjects('group', { xpertId: 'assistant', take: 10 })
         expect(types.list).toHaveBeenCalledWith('assistant')
-        expect(projects.findAvailableForXpert).toHaveBeenCalledWith({ xpertId: 'assistant', take: 10 })
+        expect(access.authorize).toHaveBeenCalledWith('group', true)
+        expect(projects.findAvailableForXpert).toHaveBeenCalledWith({
+            xpertId: 'assistant',
+            take: 10,
+            status: 'active',
+            group: {
+                id: 'group',
+                usage: 'independent',
+                projectType: { applicationKey: 'platform', projectTypeKey: 'general' }
+            }
+        })
+    })
+    it('uses the primary Assistant type for explicit reuse and does not let Composer input bypass group binding', async () => {
+        jest.spyOn(RequestContext, 'hasPermissions').mockReturnValue(true)
+        const projectType = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
+        access.assistant.mockResolvedValue({ options: { workspaceScope: { projectType } } })
+        await service.listProjects('group', { xpertId: 'secondary', status: 'all' }, 'reuse')
+        expect(projects.findAvailableForXpert).toHaveBeenCalledWith({
+            xpertId: 'assistant',
+            status: 'active',
+            group: { id: 'group', usage: 'reuse', projectType }
+        })
+        await expect(
+            service.validate(member, { participantId: id, projectId: 'unbound-project' })
+        ).rejects.toMatchObject({ status: 409 })
     })
     it('routes files to the injected Assistant or Project provider', async () => {
         await service.files('assistant', undefined, 'docs', 0)

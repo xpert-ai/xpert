@@ -14,7 +14,7 @@ import { XpertProjectFeatureGuard } from '../../xpert-project/guards/project-fea
 import { GroupAccessService } from '../group-access.service'
 import { GroupParticipant } from '../group.entity'
 import { groupConflict, groupDenied } from '../group.errors'
-import { assertGroupProjectType } from './group-project-policy'
+import { assertGroupProjectReuse, assertGroupProjectType } from './group-project-policy'
 
 @Injectable()
 export class GroupProjectService {
@@ -86,6 +86,12 @@ export class GroupProjectService {
                 lock: { mode: 'pessimistic_write' }
             })
             if (locked.projectId && locked.projectId !== projectId) throw groupConflict()
+            await assertGroupProjectReuse(
+                manager,
+                locked,
+                projectId,
+                input.project.mode === 'existing' && input.project.reuse === true
+            )
             if (
                 !(await manager.findOneBy(GroupParticipant, {
                     ...scope,

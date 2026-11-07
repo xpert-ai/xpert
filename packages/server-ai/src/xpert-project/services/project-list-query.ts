@@ -1,9 +1,22 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
-import type { IXpert, XpertProjectListFilter } from '@xpert-ai/contracts'
+import {
+    GENERAL_PROJECT_TYPE,
+    type IXpert,
+    type XpertProjectListFilter,
+    type XpertProjectTypeRef
+} from '@xpert-ai/contracts'
 import { applyWhereToQueryBuilder, PaginationParams } from '@xpert-ai/server-core'
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
+
+/** Trusted group scope, supplied by the group service after owner authorization. */
+export type GroupProjectAvailability = {
+    id: string
+    usage: 'independent' | 'reuse'
+    projectType: XpertProjectTypeRef
+}
 
 /** Add classification and literal-text search predicates to an already access-scoped query. */
 export function applyProjectListFilter(query: SelectQueryBuilder<XpertProject>, filter: XpertProjectListFilter) {
@@ -112,6 +125,7 @@ export async function findAvailableProjects(
         status?: 'active' | 'archived' | 'all'
         skip?: number
         take?: number
+        group?: GroupProjectAvailability
     }
 ) {
     const userId = RequestContext.currentUserId()
@@ -141,14 +155,15 @@ export async function findAvailableProjects(
         linkedXpertSubquery.andWhere('linkedXpert.workspaceId IS NULL')
     }
     const linkedXpertExists = linkedXpertSubquery.getQuery()
-    const activeMembershipExists = query
+    const activeMembership = query
         .subQuery()
         .select('1')
         .from(XpertProjectMembership, 'availableMembership')
         .where('availableMembership.projectId = project.id')
         .andWhere('availableMembership.userId = :userId', { userId })
         .andWhere('availableMembership.deletedAt IS NULL AND availableMembership.removedAt IS NULL')
-        .getQuery()
+    if (input.group) activeMembership.andWhere("availableMembership.role = 'manager'")
+    const activeMembershipExists = activeMembership.getQuery()
     query
         .where('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
         .andWhere(`EXISTS ${linkedXpertExists}`)
@@ -162,6 +177,35 @@ export async function findAvailableProjects(
     if (input.status && input.status !== 'all') query.andWhere('project.status = :status', { status: input.status })
     else if (!input.status) query.andWhere("project.status <> 'archived'")
     applyProjectListFilter(query, input.filter ?? {})
+    if (input.group) {
+        const { id, usage, projectType } = input.group
+        const otherGroup = query
+            .subQuery()
+            .select('1')
+            .from(ChatConversation, 'otherGroup')
+            .where('otherGroup.projectId = project.id')
+            .andWhere('otherGroup.tenantId = project.tenantId')
+            .andWhere('otherGroup.organizationId IS NOT DISTINCT FROM project.organizationId')
+            .andWhere("otherGroup.purpose = 'group'")
+            .andWhere('otherGroup.id <> :selectionGroupId', { selectionGroupId: id })
+        query.andWhere(`${usage === 'reuse' ? '' : 'NOT '}EXISTS ${otherGroup.getQuery()}`)
+        query.andWhere(
+            new Brackets((qb) => {
+                qb.where(
+                    '(project.applicationKey = :groupApplicationKey AND project.projectTypeKey = :groupProjectTypeKey)',
+                    {
+                        groupApplicationKey: projectType.applicationKey,
+                        groupProjectTypeKey: projectType.projectTypeKey
+                    }
+                )
+                if (
+                    projectType.applicationKey === GENERAL_PROJECT_TYPE.applicationKey &&
+                    projectType.projectTypeKey === GENERAL_PROJECT_TYPE.projectTypeKey
+                )
+                    qb.orWhere('(project.applicationKey IS NULL AND project.projectTypeKey IS NULL)')
+            })
+        )
+    }
     // Stable ordering is shared by the recent list and incrementally loaded groups.
     query.orderBy({ 'project.updatedAt': 'DESC', 'project.id': 'DESC' })
     query.skip(Math.max(input.skip ?? 0, 0)).take(Math.min(Math.max(input.take ?? 25, 1), 100))

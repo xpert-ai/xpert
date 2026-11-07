@@ -14,6 +14,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 jest.mock('../entities/project.entity', () => ({ XpertProject: class {} }))
 jest.mock('../entities/project-membership.entity', () => ({ XpertProjectMembership: class {} }))
+jest.mock('../../chat-conversation/conversation.entity', () => ({ ChatConversation: class {} }))
 
 describe('available project pagination', () => {
     it('uses a deterministic recent-first order with type, search and organization filters before paging', async () => {

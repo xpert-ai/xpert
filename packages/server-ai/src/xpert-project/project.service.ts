@@ -1,7 +1,7 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GENERAL_PROJECT_TYPE, type XpertProjectListFilter } from '@xpert-ai/contracts'
 import { XpertProjectTypeService } from './services/project-type.service'
-import { findMyProjects, findAvailableProjects } from './services/project-list-query'
+import { findMyProjects, findAvailableProjects, type GroupProjectAvailability } from './services/project-list-query'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -281,6 +281,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         status?: 'active' | 'archived' | 'all'
         skip?: number
         take?: number
+        group?: GroupProjectAvailability
     }) {
         return findAvailableProjects(this.repository, await this.resolveAccessibleCurrentXpert(input.xpertId), input)
     }

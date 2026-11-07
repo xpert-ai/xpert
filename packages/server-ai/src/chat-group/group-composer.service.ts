@@ -101,9 +101,24 @@ export class GroupComposerService {
             )
         }
     }
-    async listProjects(input: Parameters<XpertProjectService['findAvailableForXpert']>[0]) {
+    async listProjects(
+        groupId: string,
+        input: Parameters<XpertProjectService['findAvailableForXpert']>[0],
+        usage: 'independent' | 'reuse' = 'independent'
+    ) {
         await this.projectCatalog()
-        return this.projects.findAvailableForXpert(input)
+        const { group } = await this.access.authorize(groupId, true)
+        const primary = await this.access.assistant(group.xpertId)
+        return this.projects.findAvailableForXpert({
+            ...input,
+            xpertId: group.xpertId,
+            status: 'active',
+            group: {
+                id: groupId,
+                usage,
+                projectType: primary.options?.workspaceScope?.projectType ?? GENERAL_PROJECT_TYPE
+            }
+        })
     }
     /** Recheck the group binding before reusing Assistant-only resource APIs as the authenticated human. */
     private async withResourceActor<T>(member: GroupParticipant, task: () => Promise<T>) {
@@ -151,8 +166,9 @@ export class GroupComposerService {
         if (input.participantId !== member.id) throw groupDenied()
         if (input.projectId) await this.project(member.subjectId, input.projectId)
         const context = await this.context(member)
-        // Match the original Chat: a started conversation retains its project scope.
-        if (context.locked && context.projectId !== (input.projectId ?? null)) throw groupConflict()
+        // Project changes must pass the group binding flow, including explicit reuse consent.
+        if ((context.locked || input.projectId) && context.projectId !== (input.projectId ?? null))
+            throw groupConflict()
         if (input.runtimeResources) await this.validateResources(member, input.runtimeResources, input.projectId)
         for (const file of input.files ?? []) {
             const path = file.workspacePath

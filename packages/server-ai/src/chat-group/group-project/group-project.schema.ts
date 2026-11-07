@@ -18,7 +18,13 @@ export const groupProjectSchema = z
                         .optional()
                 })
                 .strict(),
-            z.object({ mode: z.literal('existing'), projectId: z.string().uuid() }).strict()
+            z
+                .object({
+                    mode: z.literal('existing'),
+                    projectId: z.string().uuid(),
+                    reuse: z.literal(true).optional()
+                })
+                .strict()
         ]),
         participantIds: z
             .array(z.string().uuid())

@@ -324,7 +324,7 @@ export interface ChatGroupRuntimeView {
 export interface ChatGroupProjectInput {
   project:
     | { mode: 'create'; id: string; name: string; projectType?: XpertProjectTypeRef }
-    | { mode: 'existing'; projectId: string }
+    | { mode: 'existing'; projectId: string; reuse?: true }
   /** Include the primary Assistant. Updates add participants and preserve existing bindings. */
   participantIds: string[]
 }

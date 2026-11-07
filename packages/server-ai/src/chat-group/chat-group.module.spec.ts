@@ -267,6 +267,9 @@ describe('ChatGroupModule integration boundary', () => {
         const projectType = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
         expect((await put({ ...valid, project: { ...valid.project, projectType } })).status).toBe(200)
         expect(set).toHaveBeenLastCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test', projectType } })
+        const reuse = { project: { mode: 'existing', projectId: id, reuse: true }, participantIds: [id] }
+        expect((await put(reuse)).status).toBe(200)
+        expect(set).toHaveBeenLastCalledWith(id, reuse)
         for (const invalid of [
             { ...valid, participantIds: [] },
             { ...valid, participantIds: [id, id] },
@@ -275,12 +278,47 @@ describe('ChatGroupModule integration boundary', () => {
             { ...valid, project: { ...valid.project, projectType: { ...projectType, projectTypeKey: '' } } },
             { ...valid, project: { ...valid.project, projectType: { ...projectType, binding: { kind: 'project' } } } },
             { project: { mode: 'existing', projectId: id, projectType }, participantIds: [id] },
+            { ...reuse, project: { ...reuse.project, reuse: 'true' } },
+            { ...valid, project: { ...valid.project, reuse: true } },
             { ...valid, organizationId: id }
         ])
             expect((await put(invalid)).status).toBe(400)
-        expect(set).toHaveBeenCalledTimes(2)
+        expect(set).toHaveBeenCalledTimes(3)
         set.mockRejectedValueOnce(new ForbiddenException('project access denied'))
         expect((await put({ project: { mode: 'existing', projectId: id }, participantIds: [id] })).status).toBe(403)
+    })
+    it('validates Project usage at the HTTP boundary and preserves group membership denials', async () => {
+        const composer = module.get(GroupComposerService)
+        const member = jest.spyOn(composer, 'member').mockResolvedValue(Object.assign(new GroupParticipant(), { id }))
+        const list = jest.spyOn(composer, 'listProjects').mockResolvedValue({ items: [], total: 0 })
+        const url = `${origin}/api/ai/groups/${id}/members/${id}/composer/available?xpertId=${id}`
+        try {
+            expect((await fetch(url)).status).toBe(200)
+            expect(member).toHaveBeenCalledWith(id, id, id)
+            expect(list).toHaveBeenLastCalledWith(
+                id,
+                { xpertId: id, skip: 0, take: 25, status: undefined, filter: { unclassified: false } },
+                'independent'
+            )
+            expect((await fetch(`${url}&groupProjectUsage=reuse&skip=2&take=5`)).status).toBe(200)
+            expect(list).toHaveBeenLastCalledWith(
+                id,
+                { xpertId: id, skip: 2, take: 5, status: undefined, filter: { unclassified: false } },
+                'reuse'
+            )
+            member.mockClear()
+            list.mockClear()
+            for (const query of ['groupProjectUsage=all', 'reuse=true', 'groupProjectUsage=reuse&take=101'])
+                expect((await fetch(`${url}&${query}`)).status).toBe(400)
+            expect(member).not.toHaveBeenCalled()
+            expect(list).not.toHaveBeenCalled()
+            member.mockRejectedValueOnce(new ForbiddenException('member denied'))
+            expect((await fetch(`${url}&groupProjectUsage=reuse`)).status).toBe(403)
+            expect(list).not.toHaveBeenCalled()
+        } finally {
+            member.mockRestore()
+            list.mockRestore()
+        }
     })
     it('routes resource requests through concrete Composer operations after member checks', async () => {
         const composer = module.get(GroupComposerService)

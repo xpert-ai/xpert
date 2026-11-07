@@ -96,14 +96,18 @@ export class GroupComposerController {
         @Query(new ZodValidationPipe(composerProjectsQuery, groupInvalid)) query: z.output<typeof composerProjectsQuery>
     ) {
         await this.composer.member(group, member, query.xpertId)
-        const { xpertId, skip, take, status, unclassified, ...filter } = query
-        return this.composer.listProjects({
-            xpertId,
-            skip,
-            take,
-            status,
-            filter: { ...filter, unclassified: unclassified === 'true' }
-        })
+        const { xpertId, skip, take, status, unclassified, groupProjectUsage, ...filter } = query
+        return this.composer.listProjects(
+            group,
+            {
+                xpertId,
+                skip,
+                take,
+                status,
+                filter: { ...filter, unclassified: unclassified === 'true' }
+            },
+            groupProjectUsage
+        )
     }
     @Get('assistants/:assistantId/workspace/files')
     async workspaceFiles(
