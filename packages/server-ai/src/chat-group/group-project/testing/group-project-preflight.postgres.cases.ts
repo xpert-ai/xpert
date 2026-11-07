@@ -19,7 +19,7 @@ type Fixture = {
     c: GroupParticipant
     e: GroupParticipant
     requireProject: () => void
-    ensureManagedProject: jest.Mock
+    ensureDirectProject: jest.Mock
     primaryProjectType: (type: XpertProjectTypeRef) => void
 }
 
@@ -47,7 +47,7 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
                     participantIds: [f.c.id]
                 })
             ).rejects.toMatchObject({ status: 409 })
-            expect(f.ensureManagedProject).not.toHaveBeenCalled()
+            expect(f.ensureDirectProject).not.toHaveBeenCalled()
         } finally {
             permission.mockRestore()
         }
@@ -82,7 +82,7 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
         f.primaryProjectType({ applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' })
         await expect(
             f.projects.set(f.group.id, {
-                project: { mode: 'existing', projectId: randomUUID() },
+                project: { mode: 'existing', projectId: randomUUID(), reuse: true },
                 participantIds: [f.c.id]
             })
         ).rejects.toMatchObject({ status: 400 })
@@ -101,7 +101,7 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
             await expect(f.projects.set(f.group.id, { project, participantIds: [f.c.id] })).rejects.toMatchObject({
                 status: 403
             })
-            expect(f.ensureManagedProject).not.toHaveBeenCalled()
+            expect(f.ensureDirectProject).not.toHaveBeenCalled()
             permission.mockReturnValue(true)
             await expect(
                 f.projects.set(f.group.id, {
@@ -109,9 +109,9 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
                     participantIds: [f.c.id]
                 })
             ).rejects.toMatchObject({ status: 400 })
-            expect(f.ensureManagedProject).not.toHaveBeenCalled()
+            expect(f.ensureDirectProject).not.toHaveBeenCalled()
             await f.projects.set(f.group.id, { project, participantIds: [f.c.id, f.e.id] })
-            expect(f.ensureManagedProject).toHaveBeenCalledWith({
+            expect(f.ensureDirectProject).toHaveBeenCalledWith({
                 projectId: project.id,
                 name: project.name,
                 xpertId: f.group.xpertId,
@@ -124,7 +124,7 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
             ).toBe(project.id)
             const { projectType: _type, ...legacy } = project
             await f.projects.set(f.group.id, { project: legacy, participantIds: [f.c.id] })
-            expect(f.ensureManagedProject).toHaveBeenLastCalledWith(
+            expect(f.ensureDirectProject).toHaveBeenLastCalledWith(
                 expect.objectContaining({ projectType: project.projectType })
             )
         } finally {

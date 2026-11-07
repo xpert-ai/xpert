@@ -6,6 +6,7 @@ import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EntityManager, type DeepPartial, type Repository } from 'typeorm'
 import type { ConnectorService } from '../connector/connector.service'
 import type { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import type { GetAccessiblePublishedXpertQuery } from '../xpert/published-agent/get-accessible-published-xpert.query'
 import { XpertProject } from './entities/project.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertProjectService } from './project.service'
@@ -20,13 +21,79 @@ const expectation = {
     agentKey: 'Agent_EquipmentDiagnostics'
 }
 
-describe('XpertProjectService managed provisioning', () => {
+describe('XpertProjectService direct and managed provisioning', () => {
     beforeEach(() => {
         jest.restoreAllMocks()
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as IUser)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+    })
+
+    it('creates a direct application Project and repairs retries without changing its type or user edits', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const projectType = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
+        jest.spyOn(harness.types, 'catalog').mockReturnValue([
+            {
+                ...projectType,
+                applicationTitle: 'Dashboards',
+                title: 'Dashboard',
+                binding: { kind: 'project' },
+                available: true
+            }
+        ])
+        const input = {
+            projectId: 'project-1',
+            xpertId: requester.id,
+            name: 'October review',
+            projectType,
+            status: 'active' as const
+        }
+        harness.content.initialize.mockRejectedValueOnce(new Error('content storage temporarily unavailable'))
+        await expect(harness.service.ensureDirectProject(input)).rejects.toThrow(
+            'content storage temporarily unavailable'
+        )
+        expect(harness.createdProject).toMatchObject({ ...projectType, name: 'October review' })
+        harness.createdProject.name = 'Renamed by owner'
+        await expect(harness.service.ensureDirectProject(input)).resolves.toMatchObject({
+            projectId: 'project-1',
+            operation: 'updated'
+        })
+        expect(harness.createdProject.name).toBe('Renamed by owner')
+        expect(harness.repository.insert).toHaveBeenCalledTimes(1)
+        expect(harness.repository.save).not.toHaveBeenCalled()
+        expect(harness.content.initialize).toHaveBeenCalledTimes(2)
+        harness.createdProject.ownerId = 'another-owner'
+        await expect(harness.service.ensureDirectProject(input)).rejects.toMatchObject({ status: 403 })
+    })
+
+    it('rejects entity-managed, unavailable and conflicting Project types before direct creation', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const input = { projectId: 'project-1', xpertId: requester.id, name: 'Review', status: 'active' as const }
+        const entity = { applicationKey: 'test:case', projectTypeKey: 'case' }
+        const catalog = jest.spyOn(harness.types, 'catalog').mockReturnValue([
+            {
+                ...entity,
+                applicationTitle: 'Cases',
+                title: 'Case',
+                binding: { kind: 'entity', providerKey: 'case' },
+                available: true
+            }
+        ])
+        await expect(harness.service.ensureDirectProject({ ...input, projectType: entity })).rejects.toThrow()
+        await expect(
+            harness.service.ensureDirectProject({ ...input, projectType: { ...entity, projectTypeKey: 'missing' } })
+        ).rejects.toThrow()
+        expect(harness.repository.insert).not.toHaveBeenCalled()
+        catalog.mockRestore()
+        const general = { applicationKey: 'platform', projectTypeKey: 'general' }
+        const classification = await harness.types.forCreate(general)
+        Object.assign(harness.createdProject, { ...classification, projectTypeKey: 'space' })
+        harness.repository.findOne.mockResolvedValue(harness.createdProject)
+        await expect(harness.service.ensureDirectProject({ ...input, projectType: general })).rejects.toThrow()
+        expect(harness.repository.insert).not.toHaveBeenCalled()
     })
 
     it('preserves the existing single-Assistant ensure contract when expectations are omitted', async () => {
@@ -487,8 +554,8 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         )
     }
     const queryBus = {
-        execute: jest.fn(async (query: { conditions?: { id?: string } }) => {
-            const candidate = query.conditions?.id ? xperts.get(query.conditions.id) : undefined
+        execute: jest.fn(async (query: GetAccessiblePublishedXpertQuery) => {
+            const candidate = xperts.get(query.xpertId)
             if (!candidate) throw new Error('missing')
             return candidate
         })
@@ -529,6 +596,7 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         initialize: jest.fn<Promise<void>, [XpertProject]>().mockResolvedValue(undefined),
         readInstructions: jest.fn().mockResolvedValue({ content: 'Instructions' })
     }
+    const types = projectTypeTestService()
     const service = new XpertProjectService(
         repository as unknown as Repository<XpertProject>,
         {} as CommandBus,
@@ -541,9 +609,19 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         publishedXpertAccess as unknown as PublishedXpertAccessService,
         {} as ConnectorService,
         bindingService as unknown as XpertProjectXpertBindingService,
-        projectTypeTestService()
+        types
     )
-    return { service, repository, createdProject, content, publishedXpertAccess, bindingService, transaction, relation }
+    return {
+        service,
+        repository,
+        createdProject,
+        content,
+        publishedXpertAccess,
+        bindingService,
+        transaction,
+        relation,
+        types
+    }
 }
 
 function projectTypeTestService() {

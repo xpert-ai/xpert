@@ -59,7 +59,7 @@ import { XpertProjectXpertBindingService } from './services/project-xpert-bindin
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { createProjectWithAssistants } from './services/project-creation'
 import { withAppPlatformProjectLimit } from '../shared/app-platform-resource-policy'
-import { ensureManagedProject } from './services/project-managed-provisioning'
+import { ensureProject } from './services/project-provisioning'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -127,11 +127,20 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     }
 
     /**
-     * Create or reconcile a caller-idempotent Chat Project and Assistant link.
+     * Create or reconcile an application-managed Project and its business state.
      * The authenticated user remains the owner and the caller-supplied id is never replaced.
      */
     ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
-        return ensureManagedProject(
+        return this.ensureProject(input, 'managed')
+    }
+
+    /** Create ordinary Project types and repair retries while preserving existing names, status and membership. */
+    ensureDirectProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
+        return this.ensureProject(input, 'direct')
+    }
+
+    private ensureProject(input: ProjectEnsureInput, lifecycle: 'managed' | 'direct'): Promise<ProjectEnsureResult> {
+        return ensureProject(
             {
                 repository: this.repository,
                 queryBus: this.queryBus,
@@ -140,7 +149,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
                 resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
             },
-            input
+            input,
+            lifecycle
         )
     }
 

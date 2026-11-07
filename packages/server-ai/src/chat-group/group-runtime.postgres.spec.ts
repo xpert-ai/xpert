@@ -206,7 +206,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     let messages: GroupMessagesService
     let runtime: GroupRuntimeService
     let projects: GroupProjectService
-    const binding = { addXpert: jest.fn(), ensureManagedProject: jest.fn() }
+    const binding = { addXpert: jest.fn(), ensureDirectProject: jest.fn() }
     const projectAccess = {
         assertCanManage: jest.fn(async (id) => ({ project: { id, name: 'Test project' } })),
         assertCanRead: jest.fn(async (id) => ({ project: { id, name: 'Test project' } }))
@@ -284,7 +284,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         group,
         c,
         e,
-        ensureManagedProject: binding.ensureManagedProject,
+        ensureDirectProject: binding.ensureDirectProject,
         primaryProjectType: (projectType) =>
             access.assistant.mockImplementation(async (id: string) =>
                 id === group.xpertId ? { options: { workspaceScope: { mode: 'project-required', projectType } } } : {}

@@ -120,7 +120,7 @@ export class GroupProjectService {
                     throw groupConflict()
             }
             if (input.project.mode === 'create')
-                await this.projects.ensureManagedProject({
+                await this.projects.ensureDirectProject({
                     projectId,
                     name: input.project.name,
                     xpertId: group.xpertId,

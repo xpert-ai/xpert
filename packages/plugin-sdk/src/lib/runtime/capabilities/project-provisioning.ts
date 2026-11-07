@@ -45,7 +45,10 @@ export type ProjectEnsureResult = {
   xpertIds: string[]
   /** Bindings for the requested role expectations, not all members. Check xpertIds before assigning an executor. */
   assistantBindings: ProjectAssistantBinding[]
-  /** Whether this call inserted the Project or reconciled an existing one. */
+  /**
+   * `created` inserts a new Project; `updated` reuses an existing Project and ensures its content is initialized.
+   * `updated` does not guarantee metadata changes: direct creation retries preserve existing names and status.
+   */
   operation: 'created' | 'updated'
 }
 

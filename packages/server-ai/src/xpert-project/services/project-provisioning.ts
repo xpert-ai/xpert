@@ -1,7 +1,7 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import type { IXpert } from '@xpert-ai/contracts'
+import { GENERAL_PROJECT_TYPE, type IXpert } from '@xpert-ai/contracts'
 import type { ProjectEnsureInput, ProjectEnsureResult } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common'
 import type { QueryBus } from '@nestjs/cqrs'
 import { DeepPartial, IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
@@ -9,7 +9,7 @@ import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTypeService } from './project-type.service'
 import { requiredProjectText, validateProjectExternalAssistants } from './project-external-assistants'
 
-export interface ManagedProjectStore {
+export interface ProjectProvisioningStore {
     repository: Repository<XpertProject>
     queryBus: QueryBus
     types: XpertProjectTypeService
@@ -19,13 +19,14 @@ export interface ManagedProjectStore {
 }
 
 /**
- * Reconcile the business-owned Project under its persisted ID and request scope.
- * Validate classification and required Assistants before writes; retries repair content
- * initialization while preserving independently managed membership and Project identity.
+ * Ensure a Project under its persisted ID and request scope, validating types and Assistants before writes.
+ * Direct retries preserve user edits; managed calls reconcile business state.
+ * Both paths repair content initialization while preserving existing membership and Project identity.
  */
-export async function ensureManagedProject(
-    store: ManagedProjectStore,
-    input: ProjectEnsureInput
+export async function ensureProject(
+    store: ProjectProvisioningStore,
+    input: ProjectEnsureInput,
+    lifecycle: 'managed' | 'direct' = 'managed'
 ): Promise<ProjectEnsureResult> {
     const projectId = requiredProjectText(input.projectId, 'projectId', 100)
     const xpertId = requiredProjectText(input.xpertId, 'xpertId', 100)
@@ -58,10 +59,18 @@ export async function ensureManagedProject(
         },
         relations: ['xperts']
     })
-    const classification = await store.types.forEnsure(project, input.projectType, xpert, projectId, {
-        name,
-        status: input.status
-    })
+    const classification =
+        lifecycle === 'direct'
+            ? await store.types.forCreate(input.projectType ?? GENERAL_PROJECT_TYPE)
+            : await store.types.forEnsure(project, input.projectType, xpert, projectId, { name, status: input.status })
+    if (
+        project &&
+        lifecycle === 'direct' &&
+        (project.applicationKey !== classification.applicationKey ||
+            project.projectTypeKey !== classification.projectTypeKey ||
+            project.projectTypeSnapshot?.binding.kind === 'entity')
+    )
+        throw new ConflictException(t('server-ai:Error.ProjectTypeConflict'))
     const operation = project ? 'updated' : 'created'
     if (project && project.ownerId !== user.id) {
         throw new ForbiddenException(
@@ -81,7 +90,7 @@ export async function ensureManagedProject(
             },
             [xpert]
         )
-    } else {
+    } else if (lifecycle === 'managed') {
         // Reconcile a conversation-created name once. Subsequent provisioning
         // must preserve user naming, including changes before the first ensure.
         const bootstrap = project.settings?.conversationBootstrap
