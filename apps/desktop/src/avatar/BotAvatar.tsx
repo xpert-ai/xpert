@@ -10,7 +10,7 @@ export function BotAvatar({
   size = 'default',
   status
 }: {
-  bot: Bot
+  bot: Pick<Bot, 'id' | 'assistantId' | 'avatar' | 'avatarUrl' | 'avatarEmoji'>
   size?: 'compact' | 'default' | 'large' | 'profile'
   status?: AvatarConversationStatus
 }) {
