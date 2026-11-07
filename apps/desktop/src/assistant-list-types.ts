@@ -1,4 +1,4 @@
-import type { IChatConversationUnreadXpertSummary } from '../../../packages/contracts/src/ai/chat-activity.model'
+import type { IChatConversationUnreadXpertSummary } from '@xpert-ai/contracts'
 
 export type BotActivity = IChatConversationUnreadXpertSummary
 export interface DesktopLastSession {

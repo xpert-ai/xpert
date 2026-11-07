@@ -1,6 +1,5 @@
 import type { Bot } from './types'
-// Keep the renderer independent of the contracts barrel's runtime side effects.
-import { orderAssistantXperts } from '../../../packages/contracts/src/ai/assistant-order.ts'
+import { orderAssistantXperts } from '@xpert-ai/contracts'
 import type { BotActivity, SidebarState } from './assistant-list-types'
 
 export const SIDEBAR_MIN = 240

@@ -6,7 +6,7 @@ import {
   type Announcement,
   type NotificationSnapshot,
   type UserNotification
-} from '../../../../packages/contracts/src/user-notification.schema'
+} from '@xpert-ai/contracts'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
 import { t } from '../i18n'
