@@ -16,6 +16,7 @@ import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/wor
 import { ArtifactsService } from '../artifacts.service'
 import { Artifact, ArtifactVersion } from '../entities'
 import { ArtifactDraft } from './artifact-draft.entity'
+import { ArtifactContentAccess } from '../artifact-content-access'
 import { ArtifactDraftsService } from './artifact-drafts.service'
 import { createDraftFixture } from './testing/artifact-drafts.fixture'
 
@@ -51,6 +52,7 @@ integration('Artifact working drafts / PostgreSQL', () => {
             imports: [RuntimeCapabilityModule],
             providers: [
                 ArtifactDraftsService,
+                { provide: ArtifactContentAccess, useValue: fixture.contentAccess },
                 { provide: DataSource, useValue: fixture.database },
                 { provide: ArtifactsService, useValue: fixture.artifacts },
                 { provide: WorkspaceFilesRuntimeCapabilityService, useValue: fixture.files }

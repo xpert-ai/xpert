@@ -12,8 +12,9 @@ export const S3CompatibleProviderConfigSchema = z.object({
   bucket: z.string().optional(),
   endpoint: z.string().optional(),
   publicUrl: z.string().optional(),
+  signedUrlEndpoint: z.string().url().optional(),
   forcePathStyle: z.boolean().optional(),
-  signedUrlExpires: z.number().int().positive().optional()
+  signedUrlExpires: z.number().int().positive().max(604800).optional()
 })
 
 export const OssProviderConfigSchema = z.object({
@@ -97,6 +98,11 @@ function createS3CompatibleProviderFormSchema(title: {
         'x-ui': {
           span: 2
         }
+      },
+      signedUrlEndpoint: {
+        type: 'string',
+        title: { en_US: 'Signed URL endpoint', zh_Hans: '签名 URL 访问地址' },
+        'x-ui': { span: 2 }
       },
       rootPath: {
         type: 'string',

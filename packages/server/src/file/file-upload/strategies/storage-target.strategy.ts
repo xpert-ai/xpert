@@ -34,7 +34,9 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		const tenantDirectory = this.joinRelativePath(directory, tenantId)
 		const key = this.joinRelativePath(tenantDirectory, fileName)
 		this.assertContainedInTenantDirectory(tenantDirectory, key)
-		const uploadedFile = (await provider.putFile(source.buffer, key)) as TStorageUploadedFile
+		const uploadedFile = (await provider.putFile(source.buffer, key, {
+			contentType: source.mimeType
+		})) as TStorageUploadedFile
 		const storageProvider = this.normalizeProvider(provider.name)
 
 		uploadedFile.originalname = source.originalName

@@ -148,6 +148,7 @@ export async function createDraftFixture(url: string) {
         },
         resolveRoot: (tenantId) => ({ serverRoot: path.join(root, tenantId), hostRoot: path.join(root, tenantId) })
     } satisfies VolumeClient
+    const policies = configuredArtifactPolicies()
     const artifacts = new ArtifactsService(
         database.getRepository(Artifact),
         database.getRepository(ArtifactVersion),
@@ -159,17 +160,23 @@ export async function createDraftFixture(url: string) {
         undefined,
         database,
         undefined,
-        configuredArtifactPolicies()
+        policies
     )
     const files = new WorkspaceFilesRuntimeCapabilityService({ execute: jest.fn() }, volumes, {
         listReadable: jest.fn().mockResolvedValue([]),
-        assertEdit: jest.fn().mockResolvedValue(undefined)
+        assertEdit: jest.fn().mockResolvedValue(undefined),
+        assertAssistant: jest.fn().mockRejectedValue(new Error('Assistant access is not part of this fixture'))
     })
-    const service = new ArtifactDraftsService(database, artifacts, files, { assert: jest.fn() } as never)
+    const contentAccess = {
+        assert: policies.authorize.bind(policies),
+        assertDraftPublication: policies.assertDraftPublication.bind(policies)
+    }
+    const service = new ArtifactDraftsService(database, artifacts, files, contentAccess as never)
     const api = service.createScopedApi(owner)
 
     return {
         database,
+        contentAccess,
         artifacts,
         files,
         service,
@@ -184,6 +191,17 @@ export async function createDraftFixture(url: string) {
                     resourceType: 'document',
                     resourceId: randomUUID(),
                     kind: 'html',
+                    typeBinding: policies.bind(
+                        {
+                            ...owner,
+                            ...overrides,
+                            pluginName: 'test.drafts',
+                            resourceType: 'document',
+                            resourceId: 'fixture'
+                        },
+                        undefined,
+                        'html'
+                    ),
                     status: 'active',
                     title: 'Published title',
                     ...overrides

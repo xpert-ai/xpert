@@ -27,7 +27,8 @@ describe('central file storage quota', () => {
 	afterEach(() => jest.restoreAllMocks())
 	it('admits a provider write before sending its contents', async () => {
 		const f = fixture()
-		await f.wrapped.putFile(Buffer.from('content'), 'file')
+		await f.wrapped.putFile(Buffer.from('content'), 'file', { contentType: 'text/csv' })
+		expect(f.provider.putFile).toHaveBeenCalledWith(Buffer.from('content'), 'file', { contentType: 'text/csv' })
 		expect(f.commands.execute.mock.calls[0][0]).toEqual(
 			new CheckStorageQuotaCommand({ kind: 'write', scope: owner })
 		)

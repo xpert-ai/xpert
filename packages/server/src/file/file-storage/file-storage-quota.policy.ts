@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { IFileStorageProvider, RequestContext } from '@xpert-ai/plugin-sdk'
+import { FileStoragePutOptions, IFileStorageProvider, RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileStorageOption, UploadedFile } from '@xpert-ai/contracts'
 import type { StorageEngine } from 'multer'
 import {
@@ -61,9 +61,13 @@ class QuotaFileStorageProvider implements IFileStorageProvider {
 	getFile(key: string) {
 		return this.provider.getFile(key)
 	}
-	async putFile(contents: string | Buffer | URL, key?: string): Promise<UploadedFile> {
+	async putFile(
+		contents: string | Buffer | URL,
+		key?: string,
+		options?: FileStoragePutOptions
+	): Promise<UploadedFile> {
 		await this.policy.admit(this.policy.owner(this.scope))
-		return this.provider.putFile(contents, key)
+		return this.provider.putFile(contents, key, options)
 	}
 	async deleteFile(key: string) {
 		const owner = this.policy.owner(this.scope)
