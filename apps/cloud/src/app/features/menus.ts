@@ -52,7 +52,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'Analytics',
       icon: 'layout-dashboard',
       scopeContext: 'organization-only',
-      data: { translationKey: 'XP.Analytics.Title', permissionKeys: [AIPermissionsEnum.MODEL_USAGE_MONITOR] }
+      data: { translationKey: 'XP.Analytics.Title', permissionKeys: [AIPermissionsEnum.XPERT_EDIT] }
     },
     {
       path: 'data-sources',
