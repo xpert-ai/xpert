@@ -182,6 +182,7 @@
         "ChatkitSessionInputInvalid": "ChatKit 会话参数无效。",
         "GroupAccessDenied": "无权访问此群聊。",
         "GroupProjectRequired": "请先为需要项目的数字专家关联项目，再发送此消息。",
+        "GroupProjectTypeUnsupported": "请选择群组主助手支持的项目类型。",
         "GroupInputInvalid": "群消息或请求格式无效。",
         "GroupMessageConflict": "此群消息当前无法发送。",
         "ApplicationSetupScopeRequired": "请先选择组织，再配置应用。",

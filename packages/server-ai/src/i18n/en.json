@@ -182,6 +182,7 @@
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",
         "GroupProjectRequired": "Choose a Project for the required Assistants before sending this message.",
+        "GroupProjectTypeUnsupported": "Choose the Project type supported by this group's primary Assistant.",
         "GroupInputInvalid": "Invalid group message or request.",
         "GroupMessageConflict": "This group message can no longer be sent.",
         "ApplicationSetupScopeRequired": "Select an organization before configuring the application.",

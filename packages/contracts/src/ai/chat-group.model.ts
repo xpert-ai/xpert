@@ -1,6 +1,7 @@
 import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 import type { RuntimeResourcesSelection } from '../agent-plugin'
 import type { TAvatar } from '../types'
+import type { XpertProjectTypeRef } from './xpert-project-type.model'
 
 /**
  * Public group protocol for ChatConversation(purpose='group'). Each Assistant has a separate runtime.
@@ -321,7 +322,9 @@ export interface ChatGroupRuntimeView {
 }
 /** Shared Project membership is explicitly selected; group membership alone grants no Project access. */
 export interface ChatGroupProjectInput {
-  project: { mode: 'create'; id: string; name: string } | { mode: 'existing'; projectId: string }
+  project:
+    | { mode: 'create'; id: string; name: string; projectType?: XpertProjectTypeRef }
+    | { mode: 'existing'; projectId: string }
   /** Include the primary Assistant. Updates add participants and preserve existing bindings. */
   participantIds: string[]
 }

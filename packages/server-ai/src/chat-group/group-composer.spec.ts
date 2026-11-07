@@ -47,6 +47,7 @@ describe('group Composer scope', () => {
     let service: GroupComposerService
     beforeEach(async () => {
         jest.clearAllMocks()
+        types.list.mockReset().mockResolvedValue({ items: [] })
         access.authorize.mockResolvedValue({ group: { id: 'group' }, actor: { subjectId: 'human' } })
         access.withRootUser.mockImplementation(async (_group, _user, task) => task())
         feature.canActivate.mockResolvedValue(true)
@@ -130,6 +131,32 @@ describe('group Composer scope', () => {
         conversations.findOneByOrFail.mockResolvedValue({ id: 'private', projectId: 'project' })
         messages.existsBy.mockResolvedValue(true)
         await expect(service.validate(member, { participantId: id })).rejects.toMatchObject({ status: 409 })
+    })
+    it('limits Project types to the addressed Assistant binding even for a broad catalog', async () => {
+        const permission = jest.spyOn(RequestContext, 'hasPermissions').mockReturnValue(true)
+        const dashboard = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
+        const general = { applicationKey: 'platform', projectTypeKey: 'general' }
+        const items = [dashboard, general].map((type) => ({
+            ...type,
+            title: 'Project',
+            applicationTitle: 'App',
+            binding: { kind: 'project' as const },
+            available: true
+        }))
+        try {
+            types.list.mockResolvedValue({ defaultProjectType: dashboard, items })
+            expect(await service.listProjectTypes('primary')).toEqual({
+                defaultProjectType: dashboard,
+                items: [items[0]]
+            })
+            expect(types.list).toHaveBeenCalledWith('primary')
+            types.list.mockResolvedValue({ items })
+            expect(await service.listProjectTypes('legacy')).toEqual({ defaultProjectType: general, items: [items[1]] })
+            types.list.mockRejectedValue(new Error('Type unavailable'))
+            await expect(service.listProjectTypes('primary')).rejects.toThrow('Type unavailable')
+        } finally {
+            permission.mockRestore()
+        }
     })
     it('requires canonical existing workspace paths and rejects traversal before listing', async () => {
         const files = jest

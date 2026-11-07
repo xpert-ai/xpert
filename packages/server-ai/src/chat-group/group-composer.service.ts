@@ -3,7 +3,12 @@ import { CommandBus } from '@nestjs/cqrs'
 import { GetRuntimeCapabilitiesCommand } from '../xpert/runtime-capabilities/get-runtime-capabilities.command'
 import { DataSource } from 'typeorm'
 import { posix } from 'node:path'
-import { AIPermissionsEnum, ChatGroupComposerInput, resolveRuntimeXpert } from '@xpert-ai/contracts'
+import {
+    AIPermissionsEnum,
+    ChatGroupComposerInput,
+    GENERAL_PROJECT_TYPE,
+    resolveRuntimeXpert
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GroupAccessService } from './group-access.service'
 import { GroupParticipant } from './group.entity'
@@ -85,7 +90,16 @@ export class GroupComposerService {
     /** Keep Project policy checks next to each reusable operation, rather than in HTTP adapters. */
     async listProjectTypes(assistantId: string) {
         await this.projectCatalog()
-        return this.projectTypes.list(assistantId)
+        const catalog = await this.projectTypes.list(assistantId)
+        const projectType = catalog.defaultProjectType ?? GENERAL_PROJECT_TYPE
+        return {
+            defaultProjectType: projectType,
+            items: catalog.items.filter(
+                (type) =>
+                    type.applicationKey === projectType.applicationKey &&
+                    type.projectTypeKey === projectType.projectTypeKey
+            )
+        }
     }
     async listProjects(input: Parameters<XpertProjectService['findAvailableForXpert']>[0]) {
         await this.projectCatalog()

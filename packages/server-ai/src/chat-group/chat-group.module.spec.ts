@@ -25,6 +25,7 @@ import { GROUP_CONTROLLERS } from '../ai/groups'
 import { GroupWorkbenchGuard } from '../ai/groups/group-workbench.guard'
 import { WorkspaceFileAccessModule } from '../workspace-file-access/workspace-file-access.module'
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
+import { ImagePreviewService } from '../workspace-file-access/image-preview/image-preview.service'
 import { GroupScopeGuard } from '../ai/groups/group-scope.guard'
 import { GetRuntimeCapabilitiesHandler } from '../xpert/runtime-capabilities/get-runtime-capabilities.handler'
 import { RuntimeCapabilitiesService } from '../xpert/runtime-capabilities/runtime-capabilities.service'
@@ -147,8 +148,11 @@ class WorkspaceStubModule {}
 class ViewStubModule {}
 
 @Module({
-    providers: [{ provide: WorkspaceFileAccessService, useValue: {} }],
-    exports: [WorkspaceFileAccessService]
+    providers: [
+        { provide: WorkspaceFileAccessService, useValue: {} },
+        { provide: ImagePreviewService, useValue: {} }
+    ],
+    exports: [WorkspaceFileAccessService, ImagePreviewService]
 })
 class FileAccessStubModule {}
 
@@ -175,6 +179,10 @@ describe('ChatGroupModule integration boundary', () => {
         jest.spyOn(GroupScopeGuard.prototype, 'canActivate').mockResolvedValue(true)
         jest.spyOn(ApiKeyOrClientSecretAuthGuard.prototype, 'canActivate').mockResolvedValue(true)
         module = await Test.createTestingModule({ imports: [DatabaseStubModule, GroupHttpTestModule] })
+            .overrideGuard(ApiKeyOrClientSecretAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideGuard(GroupScopeGuard)
+            .useValue({ canActivate: () => true })
             .overrideModule(ExecutionControlModule)
             .useModule(ControlStubModule)
             .overrideModule(ViewExtensionModule)
@@ -256,15 +264,21 @@ describe('ChatGroupModule integration boundary', () => {
         const valid = { project: { mode: 'create', id, name: '  Test  ' }, participantIds: [id] }
         expect((await put(valid)).status).toBe(200)
         expect(set).toHaveBeenCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test' } })
+        const projectType = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
+        expect((await put({ ...valid, project: { ...valid.project, projectType } })).status).toBe(200)
+        expect(set).toHaveBeenLastCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test', projectType } })
         for (const invalid of [
             { ...valid, participantIds: [] },
             { ...valid, participantIds: [id, id] },
             { ...valid, project: { ...valid.project, ownerId: id } },
             { ...valid, project: { ...valid.project, name: '' } },
+            { ...valid, project: { ...valid.project, projectType: { ...projectType, projectTypeKey: '' } } },
+            { ...valid, project: { ...valid.project, projectType: { ...projectType, binding: { kind: 'project' } } } },
+            { project: { mode: 'existing', projectId: id, projectType }, participantIds: [id] },
             { ...valid, organizationId: id }
         ])
             expect((await put(invalid)).status).toBe(400)
-        expect(set).toHaveBeenCalledTimes(1)
+        expect(set).toHaveBeenCalledTimes(2)
         set.mockRejectedValueOnce(new ForbiddenException('project access denied'))
         expect((await put({ project: { mode: 'existing', projectId: id }, participantIds: [id] })).status).toBe(403)
     })
