@@ -11,11 +11,6 @@ jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
         new (jest.requireActual('@nestjs/common').ConflictException)(message)
 }))
 
-jest.mock('isolated-vm', () => ({
-    ExternalCopy: class ExternalCopy {},
-    Isolate: class Isolate {}
-}))
-
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {

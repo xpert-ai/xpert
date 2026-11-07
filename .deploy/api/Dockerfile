@@ -91,7 +91,7 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     DEMO=false \
     LOG_LEVEL=
 
-# Install native build tools for runtime dependencies such as isolated-vm.
+# Install build tools for native runtime dependencies.
 RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
       sudo \
@@ -134,8 +134,8 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN touch ormlogs.log
 
-# Exercise native bindings as the runtime user, not just dependency resolution.
-RUN node --no-node-snapshot check-native-modules.cjs
+# Exercise the packaged sandbox worker and image processor as the runtime user.
+RUN node check-native-modules.cjs ./quickjs-worker.js
 RUN node main.js --command schema-check
 
 EXPOSE ${PORT}

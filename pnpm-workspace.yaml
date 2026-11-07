@@ -44,7 +44,6 @@ onlyBuiltDependencies:
   - electron
   - esbuild
   - ffmpeg-ffprobe-static
-  - isolated-vm
   - less
   - lmdb
   - msgpackr-extract

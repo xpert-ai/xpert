@@ -19,6 +19,11 @@
         "assets": [
           "apps/api/src/assets",
           {
+            "glob": "quickjs-worker.js",
+            "input": "packages/server-ai/src/sandbox/commands/handlers",
+            "output": "."
+          },
+          {
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/agent-invocation/remote-components",
             "output": "remote-components"

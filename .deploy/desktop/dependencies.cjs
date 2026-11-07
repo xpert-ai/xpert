@@ -8,7 +8,15 @@ const { spawnSync } = require('node:child_process')
 const root = path.resolve(__dirname, '../..')
 const packages = ['apps/desktop', 'packages/contracts', 'packages/desktop-protocol', 'packages/shadcn-ui']
 const lock = '.deploy/desktop/pnpm-lock.yaml'
-const forbidden = ['node-pty', 'isolated-vm', 'sharp', 'ffmpeg-ffprobe-static', 'cypress', '@nestjs/core']
+const forbidden = [
+  'node-pty',
+  'isolated-vm',
+  'quickjs-emscripten',
+  'sharp',
+  'ffmpeg-ffprobe-static',
+  'cypress',
+  '@nestjs/core'
+]
 function copy(source, target) {
   fs.mkdirSync(path.dirname(target), { recursive: true })
   fs.copyFileSync(source, target)

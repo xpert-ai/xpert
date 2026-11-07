@@ -34,7 +34,6 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # isolated-vm 5 needs a compatible V8 ABI; Node 22 also supports npm 11 trusted publishing.
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 

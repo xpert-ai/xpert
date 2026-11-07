@@ -100,3 +100,13 @@ The dependency workflow performs the same build/start/health check on Linux
 AMD64. The image also includes a Docker healthcheck for normal deployments.
 Health proves startup and required infrastructure connectivity, not every
 business operation or plugin's readiness.
+
+## Workflow JavaScript runtime
+
+Studio's single-node test and workflow execution both dispatch `SandboxVMCommand`. Each JavaScript call starts a new Node child using the packaged `quickjs-worker.js` and QuickJS/WASM. Named parameters are copied into the guest. The node body runs synchronously, and its return value is converted through JSON. For example, a script returning `{ total: 42 }` produces `{ result: { total: 42 } }` at the command boundary.
+
+The API admits four concurrent workers per process. Each worker has a 128 MiB guest heap and a five-second script deadline. The parent enforces a ten-second deadline covering child startup and execution, and kills the child on workflow cancellation or API shutdown. The guest receives no Node modules, filesystem, network or host callbacks. The child starts with an empty environment. These process and engine limits do not provide Linux namespace or cgroup isolation. Xpert's NsJail Compute Runner offers those controls for deployments that require a separate Linux execution service. The local worker keeps short Code nodes usable on developer machines without that service, at the cost of starting a process and initializing WASM for each invocation.
+
+Deploy the API bundle, worker asset, dependencies and production lock together. Existing drafts and published graphs keep their input names and output shape. During rollout, exercise a representative Code node in Studio and its workflow, including structured inputs and error handling. To check an assembled image, run `node check-native-modules.cjs ./quickjs-worker.js` in its application directory. This executes the packaged worker and checks the image processor.
+
+To roll back, redeploy the previous complete API image and restore that image's Node runtime options. Images containing `isolated-vm` on Node 20 or newer require `--no-node-snapshot` on the API process. The engine change requires no database migration or graph rewrite.

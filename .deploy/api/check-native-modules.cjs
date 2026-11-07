@@ -1,21 +1,22 @@
 // API readiness does not load the lazy JavaScript sandbox or image processor.
-// Check their native bindings in the final image before publishing it.
+// Execute both dependencies in the final image before publishing it.
 const assert = require('node:assert/strict')
+const { execFileSync } = require('node:child_process')
+const path = require('node:path')
+const { serialize } = require('node:v8')
 
 async function main() {
-  const ivm = require('isolated-vm')
-  const isolate = new ivm.Isolate({ memoryLimit: 16 })
-  try {
-    const context = await isolate.createContext()
-    try {
-      assert.equal(await context.eval('21 * 2', { timeout: 1000 }), 42)
-    } finally {
-      context.release()
-    }
-  } finally {
-    isolate.dispose()
-  }
-  console.log('isolated-vm execution passed')
+  const worker =
+    process.argv[2] || path.join(__dirname, '../../packages/server-ai/src/sandbox/commands/handlers/quickjs-worker.js')
+  const output = execFileSync(process.execPath, [worker], {
+    input: serialize({ parameters: { value: 21 }, code: 'return value * 2' }),
+    encoding: 'utf8',
+    timeout: 10000,
+    killSignal: 'SIGKILL',
+    env: {}
+  })
+  assert.equal(JSON.parse(output), 42)
+  console.log('QuickJS worker execution passed')
 
   const sharp = require('sharp')
   const image = await sharp({
