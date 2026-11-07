@@ -1,4 +1,5 @@
-import type { WorkbenchExtensionViewOpenRequest, XpertViewScalar } from './model'
+import type { WorkbenchExtensionViewOpenRequest } from './client-commands'
+import type { XpertViewScalar } from './model'
 
 /** Live-only UI request. Project scope is mandatory; history playback must not reopen Views. */
 export const WORKBENCH_VIEW_OPEN_EVENT = 'workbench.view.open'
