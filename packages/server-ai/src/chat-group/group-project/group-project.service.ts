@@ -7,7 +7,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource, EntityManager, In } from 'typeorm'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
-import { ChatMessage } from '../../chat-message/chat-message.entity'
+import { canBindEmptyGroupRuntime } from './group-project-binding'
 import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectFeatureGuard } from '../../xpert-project/guards/project-feature.guard'
@@ -113,9 +113,11 @@ export class GroupProjectService {
                     where: { threadId: member.runtimeThreadId },
                     lock: { mode: 'pessimistic_write' }
                 })
-                const started =
-                    thread.status !== 'idle' || (await manager.existsBy(ChatMessage, { conversationId: runtime.id }))
-                if (started && runtime.projectId !== projectId) throw groupConflict()
+                if (
+                    runtime.projectId !== projectId &&
+                    !(await canBindEmptyGroupRuntime(manager, member, runtime, thread))
+                )
+                    throw groupConflict()
             }
             if (input.project.mode === 'create')
                 await this.projects.ensureManagedProject({

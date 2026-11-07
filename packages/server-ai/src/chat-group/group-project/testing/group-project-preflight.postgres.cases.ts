@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import type { XpertProjectTypeRef } from '@xpert-ai/contracts'
+import { XpertAgentExecutionStatusEnum, type XpertProjectTypeRef } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { ChatConversation } from '../../../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../../../chat-conversation/conversation-thread.entity'
 import { ChatMessage } from '../../../chat-message/chat-message.entity'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { GroupMessagesService } from '../../group-messages.service'
@@ -176,4 +177,99 @@ export function groupProjectPreflightCases(fixture: () => Fixture) {
         expect((await f.messages.send(f.group.id, input)).id).toBe(sent.id)
         expect(await f.db.getRepository(ChatMessage).count()).toBe(1)
     })
+
+    async function failedFirstAttempt() {
+        const f = fixture()
+        const message = await f.messages.send(f.group.id, request([f.c.id]))
+        const scope = { tenantId: f.group.tenantId, organizationId: f.group.organizationId }
+        const execution = await f.db.getRepository(XpertAgentExecution).save({
+            ...scope,
+            threadId: f.c.runtimeThreadId,
+            status: XpertAgentExecutionStatusEnum.ERROR
+        })
+        const receipt = await f.db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: message.id })
+        await f.db.getRepository(GroupMessageRecipient).update(receipt.id, {
+            status: 'failed',
+            phase: 'finalized',
+            executionId: execution.id
+        })
+        await f.db.getRepository(ChatConversationThread).update({ threadId: f.c.runtimeThreadId }, { status: 'error' })
+        await f.db.getRepository(ChatConversation).update(f.c.runtimeConversationId, { status: 'error' })
+        return { ...f, scope, execution, receipt }
+    }
+    it('binds an empty, finalized failed runtime while preserving its failed receipt and execution', async () => {
+        const f = await failedFirstAttempt()
+        const projectId = randomUUID()
+        await f.projects.set(f.group.id, { project: { mode: 'existing', projectId }, participantIds: [f.c.id, f.e.id] })
+        expect(
+            await f.db.getRepository(ChatConversation).findOneByOrFail({ id: f.c.runtimeConversationId })
+        ).toMatchObject({ projectId, status: 'error' })
+        expect(await f.db.getRepository(GroupMessageRecipient).findOneByOrFail({ id: f.receipt.id })).toMatchObject({
+            status: 'failed',
+            executionId: f.execution.id
+        })
+        expect(await f.db.getRepository(XpertAgentExecution).findOneByOrFail({ id: f.execution.id })).toMatchObject({
+            status: XpertAgentExecutionStatusEnum.ERROR
+        })
+        f.requireProject()
+        await expect(f.messages.send(f.group.id, request([f.c.id]))).resolves.toMatchObject({
+            text: 'Review the monthly figures'
+        })
+    })
+    it.each(['busy', 'message', 'accepted', 'pending', 'lease', 'execution', 'operation', 'bound'])(
+        'does not recover a runtime with %s evidence',
+        async (evidence) => {
+            const f = await failedFirstAttempt()
+            if (evidence === 'busy')
+                await f.db
+                    .getRepository(ChatConversationThread)
+                    .update({ threadId: f.c.runtimeThreadId }, { status: 'busy' })
+            if (evidence === 'message')
+                await f.db
+                    .getRepository(ChatMessage)
+                    .save({ ...f.scope, conversationId: f.c.runtimeConversationId, role: 'human', content: 'Accepted' })
+            if (evidence === 'accepted')
+                await f.db.getRepository(GroupMessageRecipient).update(f.receipt.id, { inputMessageId: randomUUID() })
+            if (evidence === 'pending')
+                await f.db.getRepository(GroupMessageRecipient).update(f.receipt.id, { status: 'pending' })
+            if (evidence === 'lease')
+                await f.db.getRepository(ChatConversationThread).update(
+                    { threadId: f.c.runtimeThreadId },
+                    {
+                        metadata: {
+                            chatkitRunLease: {
+                                owner: 'worker',
+                                executionId: f.execution.id,
+                                expiresAt: new Date(Date.now() + 90_000).toISOString()
+                            }
+                        }
+                    }
+                )
+            if (evidence === 'execution')
+                await f.db
+                    .getRepository(XpertAgentExecution)
+                    .update(f.execution.id, { status: XpertAgentExecutionStatusEnum.RUNNING })
+            if (evidence === 'operation')
+                await f.db
+                    .getRepository(ChatConversationThread)
+                    .update({ threadId: f.c.runtimeThreadId }, { operation: { tasks: [] } })
+            if (evidence === 'bound')
+                await f.db
+                    .getRepository(ChatConversation)
+                    .update(f.c.runtimeConversationId, { projectId: randomUUID() })
+            await expect(
+                f.projects.set(f.group.id, {
+                    project: { mode: 'existing', projectId: randomUUID() },
+                    participantIds: [f.c.id, f.e.id]
+                })
+            ).rejects.toMatchObject({ status: 409 })
+            expect(
+                (await f.db.getRepository(ChatConversation).findOneByOrFail({ id: f.group.id })).projectId
+            ).toBeNull()
+            expect(
+                (await f.db.getRepository(ChatConversation).findOneByOrFail({ id: f.e.runtimeConversationId }))
+                    .projectId
+            ).toBeNull()
+        }
+    )
 }
