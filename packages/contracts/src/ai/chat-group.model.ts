@@ -55,6 +55,15 @@ export interface ChatGroupParticipant {
 }
 /** Invite candidate before membership exists; submit kind + subjectId to add the member. */
 export type ChatGroupCandidate = Pick<ChatGroupParticipant, 'kind' | 'subjectId' | 'name' | 'avatar'>
+/** A rejected send has not persisted a message or queued an Assistant execution. */
+export type ChatGroupProjectRequiredError = {
+  statusCode: 400
+  error: 'Bad Request'
+  code: 'GROUP_PROJECT_REQUIRED'
+  message: string
+  groupId: string
+  participantIds: string[]
+}
 /**
  * Per-message selections from the shared Composer, scoped to one addressed Assistant.
  * This does not choose the recipient: the server requires a single matching Assistant recipient

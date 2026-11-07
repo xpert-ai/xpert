@@ -181,6 +181,7 @@
         "GroupPrimaryAssistantInUse": "该数字专家是群组的主数字专家，暂时无法删除。",
         "ChatkitSessionInputInvalid": "ChatKit 会话参数无效。",
         "GroupAccessDenied": "无权访问此群聊。",
+        "GroupProjectRequired": "请先为需要项目的数字专家关联项目，再发送此消息。",
         "GroupInputInvalid": "群消息或请求格式无效。",
         "GroupMessageConflict": "此群消息当前无法发送。",
         "ApplicationSetupScopeRequired": "请先选择组织，再配置应用。",

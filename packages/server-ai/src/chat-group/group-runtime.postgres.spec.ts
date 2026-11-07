@@ -1,5 +1,6 @@
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
 import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
+import { groupProjectPreflightCases } from './group-project/testing/group-project-preflight.postgres.cases'
 import i18next from 'i18next'
 import { GroupProjectService } from './group-project/group-project.service'
 import { XpertProjectService } from '../xpert-project/project.service'
@@ -275,6 +276,16 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         c,
         e,
         prepare: (receipt, queue) => runtime.prepare(job(receipt, queue))
+    }))
+    groupProjectPreflightCases(() => ({
+        db,
+        messages,
+        projects,
+        group,
+        c,
+        e,
+        requireProject: () =>
+            access.assistant.mockResolvedValue({ options: { workspaceScope: { mode: 'project-required' } } })
     }))
     afterAll(async () => {
         if (db) {

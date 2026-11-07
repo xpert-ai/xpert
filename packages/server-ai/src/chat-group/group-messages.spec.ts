@@ -25,7 +25,10 @@ function fixture() {
         c = member('C', 'assistant', group.xpertId),
         e = member('E', 'assistant')
     const db = new DataSource({ type: 'postgres' })
-    const access = { authorize: jest.fn().mockResolvedValue({ group, actor: a }), assistant: jest.fn() }
+    const access = {
+        authorize: jest.fn().mockResolvedValue({ group, actor: a }),
+        assistant: jest.fn().mockResolvedValue(new Xpert())
+    }
     const composer = { member: jest.fn(), validate: jest.fn() }
     const service = new GroupMessagesService(
         db,
