@@ -14,7 +14,6 @@ export interface AssistantCapabilityState {
     after?: Pick<IXpertAgent['options'], 'middlewares' | 'parallelToolCalls'>
   }
   sandbox?: { before?: TXpertFeatures['sandbox']; after?: TXpertFeatures['sandbox'] }
-  requestUserInput?: { before?: TXpertFeatures['requestUserInput']; after?: TXpertFeatures['requestUserInput'] }
   realtimeVoice?: { before?: TXpertFeatures['realtimeVoice']; after?: TXpertFeatures['realtimeVoice'] }
   instructions: string
 }

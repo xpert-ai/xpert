@@ -48,11 +48,6 @@ export function recordCapabilityState(before: TXpertTeamDraft, after: TXpertTeam
         state.agentOptions = { before: options(source.entity), after: options(primary.entity) }
     if (!same(before.team.features?.sandbox, after.team.features?.sandbox))
         state.sandbox = { before: before.team.features?.sandbox, after: after.team.features?.sandbox }
-    if (!same(before.team.features?.requestUserInput, after.team.features?.requestUserInput))
-        state.requestUserInput = {
-            before: before.team.features?.requestUserInput,
-            after: after.team.features?.requestUserInput
-        }
     if (!same(before.team.features?.realtimeVoice, after.team.features?.realtimeVoice))
         state.realtimeVoice = { before: before.team.features?.realtimeVoice, after: after.team.features?.realtimeVoice }
     after.team.options = { ...after.team.options, assistantCapabilities: structuredClone(state) }
@@ -102,10 +97,6 @@ export function removeCapabilityState(input: TXpertTeamDraft): TXpertTeamDraft {
     if (state.sandbox) {
         if (!same(draft.team.features?.sandbox, state.sandbox.after)) conflict()
         draft.team.features = { ...draft.team.features, sandbox: state.sandbox.before }
-    }
-    if (state.requestUserInput) {
-        if (!same(draft.team.features?.requestUserInput, state.requestUserInput.after)) conflict()
-        draft.team.features = { ...draft.team.features, requestUserInput: state.requestUserInput.before }
     }
     if (state.realtimeVoice) {
         if (!same(draft.team.features?.realtimeVoice, state.realtimeVoice.after)) conflict()

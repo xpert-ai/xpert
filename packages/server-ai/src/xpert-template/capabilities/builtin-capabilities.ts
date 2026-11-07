@@ -6,14 +6,19 @@ import {
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
 import {
     AssistantCapabilityProvider,
     AssistantCapabilityApplyContext,
     AssistantCapabilityContext,
-    IAssistantCapabilityProvider
+    IAssistantCapabilityProvider,
+    applyAssistantMiddleware,
+    hasAssistantMiddleware
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { SandboxService } from '../../sandbox/sandbox.service'
+import { REQUEST_USER_INPUT_MIDDLEWARE_NAME } from '../../shared/agent/user-input'
+import { EventNameXpertValidate, type XpertDraftValidateEvent } from '../../xpert/types'
 
 @Injectable()
 @AssistantCapabilityProvider('request-user-input')
@@ -23,17 +28,54 @@ export class RequestUserInputCapabilityProvider implements IAssistantCapabilityP
     readonly requiredModelFeatures = [ModelFeature.TOOL_CALL]
     readonly label = { en_US: 'Ask for user input', zh_Hans: '向用户提问' }
     readonly description = {
-        en_US: 'Allow the Assistant to request missing information and wait for a reply in any run.',
-        zh_Hans: '允许助手在任意入口发起的任务中询问缺少的信息，并等待用户回答。'
+        en_US: 'Allow the primary Agent to request missing information and wait for a reply in any run.',
+        zh_Hans: '允许主 Agent 在任意入口发起的任务中询问缺少的信息，并等待用户回答。'
     }
     isEnabled(draft: TXpertTeamDraft) {
-        return draft.team.features?.requestUserInput?.enabled === true
+        return hasAssistantMiddleware(draft, REQUEST_USER_INPUT_MIDDLEWARE_NAME)
     }
-    async check() {
-        return { available: true }
+    async check({ draft }: AssistantCapabilityContext) {
+        const options = primaryAgent(draft).entity.options
+        const available = !options?.hidden && !options?.structuredOutputMethod
+        return { available, reason: available ? undefined : t('server-ai:UserInput.UnsupportedAgent') }
     }
-    async apply({ draft }: AssistantCapabilityApplyContext) {
-        draft.team.features = { ...draft.team.features, requestUserInput: { enabled: true } }
+    async apply(context: AssistantCapabilityApplyContext) {
+        const availability = await this.check(context)
+        if (!availability.available) throw new BadRequestException(availability.reason)
+        const { draft } = context
+        applyAssistantMiddleware(draft, {
+            provider: REQUEST_USER_INPUT_MIDDLEWARE_NAME,
+            key: 'Capability_RequestUserInput',
+            title: 'Ask for user input',
+            instructions: ''
+        })
+    }
+
+    @OnEvent(EventNameXpertValidate, { suppressErrors: false })
+    validateDraft({ draft }: XpertDraftValidateEvent) {
+        const middlewareKeys = new Set(
+            draft.nodes
+                .filter(
+                    (node) =>
+                        node.type === 'workflow' &&
+                        node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE &&
+                        (node.entity as IWFNMiddleware).provider === REQUEST_USER_INPUT_MIDDLEWARE_NAME
+                )
+                .map(({ key }) => key)
+        )
+        for (const connection of draft.connections) {
+            if (connection.type !== 'workflow' || !middlewareKeys.has(connection.to.split('/')[0])) continue
+            const node = draft.nodes.find((node) => node.type === 'agent' && node.key === connection.from)
+            if (
+                node?.type !== 'agent' ||
+                node.key !== draft.team.agent?.key ||
+                node.entity.options?.hidden ||
+                node.entity.options?.structuredOutputMethod
+            ) {
+                throw new BadRequestException(t('server-ai:UserInput.UnsupportedAgent'))
+            }
+        }
+        return []
     }
 }
 

@@ -1,28 +1,27 @@
 import type { ToolCall } from '@langchain/core/messages/tool'
 import type { ClientToolMessageInput, RequestUserInputForm } from '@xpert-ai/chatkit-types'
-import { AgentMiddlewareRegistry, type AgentMiddleware, type IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { resolveUserInputMessage } from './user-input'
-import { createRuntimeUserInputMiddlewareEntries } from './runtime-user-input'
 import { Annotation, Command, END, MemorySaver, START, StateGraph } from '@langchain/langgraph'
-import { ToolMessage } from '@langchain/core/messages'
+import { AIMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
+import type { ModelRequest } from '@xpert-ai/plugin-sdk'
+import { FakeStreamingChatModel } from './fake-streaming-chat-model'
 import { ClientToolMiddleware } from '../../xpert-middleware/client-tool.middleware'
+import { RequestUserInputMiddleware } from '../../xpert-middleware/request-user-input.middleware'
 
-function formContext(enabled?: boolean): Omit<IAgentMiddlewareContext, 'node'> {
+function formContext(): IAgentMiddlewareContext {
     return {
         tenantId: 'tenant-1',
         userId: 'user-1',
         tools: new Map(),
         runtime: { createModelClient: jest.fn(), wrapWorkflowNodeExecution: jest.fn() },
-        xpertFeatures:
-            enabled === undefined
-                ? undefined
-                : {
-                      opener: { enabled: false, message: '', questions: [] },
-                      suggestion: { enabled: false, prompt: '' },
-                      textToSpeech: { enabled: false },
-                      speechToText: { enabled: false },
-                      requestUserInput: { enabled }
-                  }
+        node: {
+            id: 'input',
+            key: 'input',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            provider: 'RequestUserInputMiddleware'
+        }
     }
 }
 
@@ -51,6 +50,72 @@ function response(overrides: object = {}): ClientToolMessageInput {
 }
 
 describe('runtime user input', () => {
+    const plan = {
+        questions: [
+            {
+                id: 'scope',
+                header: 'Scope',
+                question: 'Scope?',
+                options: [
+                    { label: 'Primary', description: 'Primary only' },
+                    { label: 'All', description: 'All Agents' }
+                ]
+            }
+        ]
+    }
+
+    it.each([
+        { planMode: false, args: plan },
+        { planMode: true, args: form },
+        { planMode: true, args: { ...plan, ...form } },
+        { planMode: false, args: { ...plan, ...form } },
+        { planMode: true, args: { questions: [{ ...plan.questions[0], options: [] }] } }
+    ])('rejects arguments outside the current runtime protocol before interrupting: %j', async ({ planMode, args }) => {
+        const middleware = await new RequestUserInputMiddleware(new ClientToolMiddleware()).createMiddleware(
+            {},
+            formContext()
+        )
+        const handler = jest.fn()
+        await expect(
+            middleware.wrapToolCall!(
+                {
+                    toolCall: { ...call, args },
+                    tool: middleware.tools![0],
+                    state: { messages: [], human: { planMode } },
+                    runtime: {}
+                },
+                handler
+            )
+        ).rejects.toThrow()
+        expect(handler).not.toHaveBeenCalled()
+    })
+
+    it('selects prompts from runtime state without re-registering or replacing the tool', async () => {
+        const clientTools = new ClientToolMiddleware()
+        const create = jest.spyOn(clientTools, 'createMiddleware')
+        const middleware = await new RequestUserInputMiddleware(clientTools).createMiddleware({}, formContext())
+        const registeredTool = middleware.tools![0]
+        const request: ModelRequest = {
+            model: new FakeStreamingChatModel({}),
+            messages: [],
+            tools: middleware.tools!,
+            systemMessage: new SystemMessage('base'),
+            state: { messages: [], human: { planMode: false } },
+            runtime: {}
+        }
+        const handler = jest.fn(async (_request: ModelRequest) => new AIMessage('done'))
+        await middleware.wrapModelCall!(request, handler)
+        await middleware.wrapModelCall!({ ...request, state: { messages: [], human: { planMode: true } } }, handler)
+        await middleware.wrapModelCall!(request, handler)
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('schemaVersion 1')
+        expect(handler.mock.calls[1][0].systemMessage.content).toContain('Implement this plan?')
+        expect(handler.mock.calls[1][0].systemMessage.content).not.toContain('schemaVersion 1')
+        expect(handler.mock.calls[2][0].systemMessage.content).toContain('schemaVersion 1')
+        expect(handler.mock.calls[2][0].systemMessage.content).not.toContain('Implement this plan?')
+        expect(handler.mock.calls.every(([request]) => request.tools[0] === registeredTool)).toBe(true)
+        expect(create).toHaveBeenCalledTimes(1)
+    })
+
     it('validates typed answers and derives clarification purpose from the server request', () => {
         expect(
             resolveUserInputMessage(response({ purpose: 'implementation_confirmation' }), call, execute)
@@ -74,37 +139,11 @@ describe('runtime user input', () => {
         expect(result).toMatchObject({ content: { status: 'cancelled', purpose: 'clarification', answers: [] } })
         expect(result).not.toHaveProperty('content.values')
     })
-    it.each([undefined, false])('omits the built-in tool when the Assistant setting is %s', async (enabled) => {
-        const get = jest.fn()
-        const registry = { get } as unknown as AgentMiddlewareRegistry
-        const context = formContext(enabled)
-        await expect(createRuntimeUserInputMiddlewareEntries(registry, context)).resolves.toEqual([])
-        const plan = await createRuntimeUserInputMiddlewareEntries(registry, context, true)
-        expect(plan.map(({ key }) => key)).toEqual(['__xpert_plan_mode_prompt__'])
-        expect(get).not.toHaveBeenCalled()
-    })
-
-    it('injects a form tool in ordinary mode and preserves the Plan Mode schema', async () => {
-        const createMiddleware = jest.fn().mockResolvedValue({ name: 'ClientToolMiddleware' } satisfies AgentMiddleware)
-        const registry = {
-            get: jest.fn().mockReturnValue({ createMiddleware, meta: { name: 'ClientToolMiddleware' } })
-        } as unknown as AgentMiddlewareRegistry
-        const context = formContext(true)
-        const entries = await createRuntimeUserInputMiddlewareEntries(registry, context, false)
-        expect(entries.map((entry) => entry.key)).toContain('__xpert_user_input__')
-        const schema = JSON.parse(createMiddleware.mock.calls[0][0].clientTools[0].schema)
-        expect(schema.properties.mode.enum).toEqual(['blocking'])
-        expect(schema.properties.fields.items.properties.type.enum).toHaveLength(8)
-        await createRuntimeUserInputMiddlewareEntries(registry, context, true)
-        expect(JSON.parse(createMiddleware.mock.calls[1][0].clientTools[0].schema).properties.questions).toBeDefined()
-    })
     it.each(['submitted', 'cancelled'] as const)(
         'persists a real graph interrupt and resumes a %s response',
         async (status) => {
-            const strategy = new ClientToolMiddleware()
-            const registry = { get: () => strategy } as unknown as AgentMiddlewareRegistry
-            const context = formContext(true)
-            const [{ middleware }] = await createRuntimeUserInputMiddlewareEntries(registry, context, false)
+            const strategy = new RequestUserInputMiddleware(new ClientToolMiddleware())
+            const middleware = await strategy.createMiddleware({}, formContext())
             const State = Annotation.Root({ result: Annotation<string> })
             const graph = new StateGraph(State)
                 .addNode('ask', async () => {

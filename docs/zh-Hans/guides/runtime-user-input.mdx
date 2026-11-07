@@ -8,7 +8,7 @@ Assistant 可以在普通对话中主动询问缺失信息，以结构化表单�
 
 ## 使用方式
 
-在 Assistant 的「能力」设置中打开「向用户提问」，点击「保存并发布」。已有和新建 Assistant 的开关均默认关闭。此开关对该助手的所有运行入口生效，包括 API 和触发器。如果任务必须在无人值守时完成，请关闭此能力。
+在 Assistant 的「能力」设置中打开「向用户提问」，点击「保存并发布」。此能力默认关闭。此能力为主 Agent 挂载提问中间件，对其 ChatKit、API 和触发器运行生效，子 Agent 不继承该工具。如果任务必须在无人值守时完成，请关闭此能力。
 
 1. 在普通 Assistant 对话中提出任务，例如“安排一次内部培训，先向我收集培训目标、预算和参与部门”。模型先检查已有上下文，只对影响结果的缺失信息发起提问。
 2. 提问面板显示在 ChatKit 输入区附近。此时执行等待输入，填写字段不会自动提交。
@@ -88,8 +88,10 @@ sequenceDiagram
 
 ## Plan Mode 与授权边界
 
-- 已发布的助手开启此能力时，可见、非结构化输出 Agent 才加载表单工具；隐藏 Agent 和结构化输出路径不注入该工具。
-- 无法收集输入时，Plan Mode 给出计划后结束本轮；支持提问时保留原 `questions` 协议、计划澄清和 `implement_plan` 实施确认流程。
+- 此能力将工具挂载到主 Agent；能力配置与发布校验会拒绝连接到子 Agent、隐藏 Agent 或启用了结构化输出的 Agent。
+- Plan Mode 要求助手已启用「向用户提问」能力；未启用时，调用入口拒绝进入 Plan Mode。启用后保留 `questions` 协议、计划澄清和 `implement_plan` 实施确认流程。如果用户工具偏好关闭了已配置中间件中的提问工具，则给出计划后结束，不请求实施确认。
+- 中间件固定注册一份工具 schema，包含互斥的 `fields` 与 `questions` 格式，再通过运行时钩子中的现有 `state.human.planMode` 添加对应提示并校验允许的格式。subgraph 构建不再注入 Plan Mode 提示，也不改写 provider 或 schema；插件 SDK 上下文不增加模式或 Agent 选项字段。
+- 服务端校验问题 ID、所选选项和回答所属请求，并从原始请求确定结果用途；取消时丢弃附带的答案。
 - 普通表单的 purpose 固定为 `clarification`，即使某字段名为 `implement_plan`，也不能产生实施授权。
 - 输入收集与工具 HITL 授权分别处理；表单不收集密码、令牌等凭证。
 
@@ -100,8 +102,9 @@ ChatKit 路径相对于独立的 `chatkit-js` 仓库，其余路径相对于本�
 | 责任             | 关键文件                                                                                                                                          |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 共享协议与校验   | ChatKit `packages/chatkit/src/user-input-form.ts`、`interrupt.ts`。                                                                               |
-| 工具及可信结果   | `packages/server-ai/src/shared/agent/user-input.ts`、`runtime-user-input.ts`。                                                                    |
-| Agent 注入       | `packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts`。                                                                      |
+| 工具及可信结果   | `packages/server-ai/src/xpert-middleware/request-user-input.middleware.ts`、`packages/server-ai/src/shared/agent/user-input.ts`。                 |
+| 计划问答结果     | `packages/server-ai/src/shared/agent/user-input-plan.ts`。                                                                                        |
+| 能力挂载         | `packages/server-ai/src/xpert-template/capabilities/builtin-capabilities.ts`。                                                                    |
 | 表单与日期组件   | ChatKit `packages/chatkit-ui/src/components/composer/user-input-form-panel.tsx`、`user-input-date-field.tsx`。                                    |
 | 客户端提交及恢复 | ChatKit `packages/chatkit-ui/src/providers/stream/interrupts/useStreamUserInput.ts`、`useStreamInterrupts.ts`。                                   |
 | 历史卡           | ChatKit `packages/chatkit-ui/src/components/thread/messages/request-user-input-result-card.tsx`。                                                 |

@@ -1574,7 +1574,9 @@
     },
     "UserInput": {
         "InvalidResponse": "用户输入无效，请重新提交所需字段。",
-        "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。"
+        "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。",
+        "UnsupportedAgent": "向用户提问需要主 Agent 可见且未启用结构化输出。",
+        "PlanModeRequiresCapability": "请先为此助手启用「向用户提问」能力，再使用 Plan Mode。"
     },
     "TemplateSync": {
         "Summary": "内置模板同步：新增 {{added}}，更新 {{updated}}，接管 {{adopted}}，保留 {{preserved}}，冲突 {{conflicted}}。",

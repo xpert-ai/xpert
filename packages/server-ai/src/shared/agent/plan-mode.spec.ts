@@ -1,10 +1,28 @@
-import { SystemMessage } from '@langchain/core/messages'
-import {
-    createPlanModeMiddlewareEntries,
-    hasExplicitPlanModeFlag,
-    isPlanModeEnabledFromState,
-    PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
-} from './plan-mode'
+import { AIMessage, SystemMessage } from '@langchain/core/messages'
+import type { ModelRequest } from '@xpert-ai/plugin-sdk'
+import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { FakeStreamingChatModel } from './fake-streaming-chat-model'
+import { hasExplicitPlanModeFlag, isPlanModeEnabledFromState } from './plan-mode'
+import { RequestUserInputMiddleware } from '../../xpert-middleware/request-user-input.middleware'
+import { ClientToolMiddleware } from '../../xpert-middleware/client-tool.middleware'
+
+function createMiddleware() {
+    return new RequestUserInputMiddleware(new ClientToolMiddleware()).createMiddleware(
+        {},
+        {
+            tenantId: 'tenant',
+            userId: 'user',
+            tools: new Map(),
+            runtime: { createModelClient: jest.fn(), wrapWorkflowNodeExecution: jest.fn() },
+            node: {
+                id: 'input',
+                key: 'input',
+                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                provider: 'RequestUserInputMiddleware'
+            }
+        }
+    )
+}
 
 describe('plan mode middleware helpers', () => {
     it('detects plan mode from human state', () => {
@@ -21,86 +39,24 @@ describe('plan mode middleware helpers', () => {
         expect(hasExplicitPlanModeFlag({ human: { input: 'Plan this' } })).toBe(false)
     })
 
-    it('creates request_user_input client tool and prompt middleware only when enabled', async () => {
-        const clientToolMiddleware = {
-            name: 'ClientToolMiddleware',
-            tools: [{ name: 'request_user_input' }]
-        }
-        const createMiddleware = jest.fn().mockResolvedValue(clientToolMiddleware)
-        const registry = {
-            get: jest.fn().mockReturnValue({
-                meta: {
-                    name: 'ClientToolMiddleware',
-                    icon: {
-                        type: 'svg',
-                        value: '<svg viewBox="0 0 24 24" data-icon="client-tool"></svg>'
-                    }
-                },
-                createMiddleware
-            })
-        }
-        const context = {
-            tenantId: 'tenant-1',
-            userId: 'user-1',
-            tools: new Map(),
-            runtime: {}
-        }
-
-        await expect(createPlanModeMiddlewareEntries(registry as any, context as any, false)).resolves.toEqual([])
-
-        const entries = await createPlanModeMiddlewareEntries(registry as any, context as any, true)
-
-        expect(registry.get).toHaveBeenCalledWith('ClientToolMiddleware')
-        expect(createMiddleware).toHaveBeenCalledWith(
-            expect.objectContaining({
-                clientTools: [
-                    expect.objectContaining({
-                        name: 'request_user_input',
-                        description: expect.stringContaining('Use once for clarification before a plan'),
-                        schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
-                    })
-                ]
-            }),
-            expect.objectContaining({
-                node: expect.objectContaining({
-                    provider: 'ClientToolMiddleware'
-                })
-            })
-        )
-        expect(JSON.parse(PLAN_MODE_REQUEST_USER_INPUT_SCHEMA)).toMatchObject({
-            properties: {
-                questions: {
-                    minItems: 1,
-                    maxItems: 3
-                }
-            }
+    it('retains the Plan Mode approval protocol when the question tool is available', async () => {
+        const middleware = await createMiddleware()
+        const handler = jest.fn(async (request: ModelRequest) => {
+            void request
+            return new AIMessage('plan')
         })
-
-        const clientToolEntry = entries.find((entry) => entry.key === '__xpert_plan_mode_client_tool__')
-        expect(clientToolEntry?.middleware.tools?.[0]?.metadata).toMatchObject({
-            middlewareIcon: {
-                type: 'svg',
-                value: expect.stringContaining('data-icon="client-tool"')
-            }
-        })
-
-        const promptEntry = entries.find((entry) => entry.key === '__xpert_plan_mode_prompt__')
-        expect(promptEntry).toBeDefined()
-        const handler = jest.fn().mockResolvedValue('ok')
-        await promptEntry!.middleware.wrapModelCall!(
+        await middleware.wrapModelCall!(
             {
-                systemMessage: new SystemMessage('base')
-            } as any,
+                model: new FakeStreamingChatModel({}),
+                messages: [],
+                tools: middleware.tools!,
+                systemMessage: new SystemMessage('base'),
+                state: { messages: [], human: { planMode: true } },
+                runtime: {}
+            },
             handler
         )
 
-        expect(handler).toHaveBeenCalledWith(
-            expect.objectContaining({
-                systemMessage: expect.objectContaining({
-                    content: expect.stringContaining('<proposed_plan>')
-                })
-            })
-        )
         expect(handler.mock.calls[0][0].systemMessage.content).toContain('write the plan directly as Markdown')
         expect(handler.mock.calls[0][0].systemMessage.content).toContain(
             'Do not wrap the proposed plan in a fenced code block.'
@@ -124,5 +80,29 @@ describe('plan mode middleware helpers', () => {
         expect(handler.mock.calls[0][0].systemMessage.content).not.toContain('```markdown')
         expect(handler.mock.calls[0][0].systemMessage.content).toContain('Implement this plan?')
         expect(handler.mock.calls[0][0].systemMessage.content).toContain('Yes, implement this plan')
+    })
+
+    it('ends after the plan when no question tool is selected', async () => {
+        const middleware = await createMiddleware()
+        const handler = jest.fn(async (request: ModelRequest) => {
+            const content = request.systemMessage?.content
+            expect(content).toContain('End the turn after the plan.')
+            expect(content).toContain('Do not implement')
+            expect(content).not.toContain('implement_plan')
+            expect(request.tools).toEqual([])
+            return new AIMessage('plan')
+        })
+        await middleware.wrapModelCall!(
+            {
+                model: new FakeStreamingChatModel({}),
+                messages: [],
+                tools: [],
+                systemMessage: new SystemMessage('base'),
+                state: { messages: [], human: { planMode: true } },
+                runtime: {}
+            },
+            handler
+        )
+        expect(handler).toHaveBeenCalledTimes(1)
     })
 })
