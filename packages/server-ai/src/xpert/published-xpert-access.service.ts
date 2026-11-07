@@ -30,6 +30,7 @@ import { applyAssistantRuntimeCredential } from './assistant-runtime-compatibili
 import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { isSameXpertFamily } from './xpert-family'
+import { applyDataXpertGroupAudience } from './data-xpert-group-audience'
 import { applyAppPlatformPublishedFilter } from './published-app-platform-filter'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
@@ -252,6 +253,7 @@ export class PublishedXpertAccessService {
                 workspaceId
             })
 
+        this.applyBoundGroupAudience(qb)
         this.applyPublishedFilters(qb, options?.where)
         this.applySearchFilter(qb, options?.search)
 
@@ -282,6 +284,7 @@ export class PublishedXpertAccessService {
                 publicXpertId
             })
 
+        this.applyBoundGroupAudience(qb, true)
         this.applyPublicChatAppFilter(qb)
         this.applyPublishedFilters(qb, options?.where)
         this.applySearchFilter(qb, options?.search)
@@ -326,6 +329,7 @@ export class PublishedXpertAccessService {
             .andWhere('xpert.publishAt IS NOT NULL')
             .andWhere('xpert.id = :enterpriseXpertId', { enterpriseXpertId: enterpriseScope.xpertId })
 
+        this.applyBoundGroupAudience(qb)
         this.applyEnterpriseChatAppFilter(qb, enterpriseScope)
         this.applyPublishedFilters(qb, options?.where)
         this.applySearchFilter(qb, options?.search)
@@ -388,6 +392,15 @@ export class PublishedXpertAccessService {
         const credential = actor || resourceParentId ? null : assistantRuntimeCredential(RequestContext.currentUser())
         if (credential) {
             const query = applyAssistantRuntimeCredential(this.repository.createQueryBuilder('xpert'), credential)
+            if (credential.allowed) {
+                applyDataXpertGroupAudience(
+                    query,
+                    credential.tenantId,
+                    credential.organizationId ?? RequestContext.getOrganizationId(),
+                    credential.ownerUserId,
+                    false
+                )
+            }
             this.applyPublishedFilters(query, options?.where)
             this.applySearchFilter(query, options?.search)
             Object.entries(options?.order ?? {}).forEach(([field, direction]) =>
@@ -414,15 +427,17 @@ export class PublishedXpertAccessService {
         const organizationId = actor?.organizationId ?? this.currentOrganizationId()
         const userId = actor?.userId ?? this.currentAccessUserId()
         const userXpertId = actor || resourceParentId ? null : this.currentUserXpertId()
+        const canManageAreas =
+            !actor &&
+            userId === RequestContext.currentUserId() &&
+            RequestContext.hasPermission(PermissionsEnum.BUSINESS_AREA_MANAGE)
         const domainAccess = businessAreaAccessSql(
             'xpert."businessAreaId"',
             ':tenantId',
             ':organizationId',
             ':userId',
             'view',
-            !actor &&
-                userId === RequestContext.currentUserId() &&
-                RequestContext.hasPermission(PermissionsEnum.BUSINESS_AREA_MANAGE)
+            canManageAreas
         )
         const qb = this.repository
             .createQueryBuilder('xpert')
@@ -519,6 +534,7 @@ export class PublishedXpertAccessService {
             )
         )
         qb.andWhere(`(NOT ${assistantPrincipalPredicate('xpert', false)} OR ${assistantPrincipalPredicate('xpert')})`)
+        applyDataXpertGroupAudience(qb, tenantId, organizationId, userId, canManageAreas)
         applyAppPlatformPublishedFilter(qb, tenantId, organizationId, userId, resourceParentId)
         this.applyPublishedFilters(qb, options?.where)
         this.applySearchFilter(qb, options?.search)
@@ -610,6 +626,27 @@ export class PublishedXpertAccessService {
         }
 
         return xpert
+    }
+
+    private applyBoundGroupAudience(query: SelectQueryBuilder<Xpert>, anonymous = false) {
+        const organizationId = this.currentApiPrincipal()?.requestedOrganizationId ?? RequestContext.getOrganizationId()
+        const userId = !anonymous && RequestContext.currentUserId() ? this.currentAccessUserId() : null
+        applyDataXpertGroupAudience(
+            query,
+            this.currentTenantId(),
+            organizationId,
+            userId,
+            !!userId &&
+                userId === RequestContext.currentUserId() &&
+                RequestContext.hasPermission(PermissionsEnum.BUSINESS_AREA_MANAGE)
+        )
+    }
+
+    private async assertBoundGroupAudience(id: string, xpert: Xpert, partial: boolean, anonymous = false) {
+        if (!partial && xpert.options?.dataXpert?.managedBy !== 'data-xpert') return
+        const query = this.repository.createQueryBuilder('xpert').where('xpert.id = :id', { id })
+        this.applyBoundGroupAudience(query, anonymous)
+        if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
     }
 
     async countAccessiblePublishedXperts(where?: PublishedXpertQueryOptions['where'], search?: string) {
@@ -744,6 +781,7 @@ export class PublishedXpertAccessService {
 
             const xpert = await this.getPublishedXpertInTenant(id, options)
             this.assertPublicChatAppXpert(xpert)
+            await this.assertBoundGroupAudience(id, xpert, !!options?.select, true)
             return xpert
         }
 
@@ -755,6 +793,7 @@ export class PublishedXpertAccessService {
 
             const xpert = await this.getPublishedXpertInTenant(id, options)
             this.assertEnterpriseChatAppXpert(xpert)
+            await this.assertBoundGroupAudience(id, xpert, !!options?.select)
             return xpert
         }
 
@@ -801,6 +840,7 @@ export class PublishedXpertAccessService {
                 .createQueryBuilder('xpert')
                 .where('xpert.id = :id AND xpert.tenantId = :tenantId', { id, tenantId: xpert.tenantId })
                 .andWhere('xpert.publishAt IS NOT NULL')
+            this.applyBoundGroupAudience(query)
             applyAppPlatformPublishedFilter(query, xpert.tenantId, xpert.organizationId, this.currentAccessUserId())
             if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             // SecretTokenStrategy restores the issuing user and the immutable
@@ -815,6 +855,7 @@ export class PublishedXpertAccessService {
                 throw new ForbiddenException('You do not have access to this assistant.')
             }
             if (!this.currentRequestedUserId()) {
+                await this.assertBoundGroupAudience(id, xpert, !!options?.select)
                 return xpert
             }
         }
@@ -843,6 +884,7 @@ export class PublishedXpertAccessService {
                 .createQueryBuilder('xpert')
                 .where('xpert.id = :id AND xpert.tenantId = :tenantId', { id, tenantId })
                 .andWhere('xpert.organizationId IS NULL AND xpert.publishAt IS NOT NULL')
+            this.applyBoundGroupAudience(query)
             applyAppPlatformPublishedFilter(query, tenantId, RequestContext.getOrganizationId(), userId)
             if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             return xpert
