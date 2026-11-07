@@ -20,7 +20,7 @@ import {
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import type { AgentMiddleware, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import type { AgentMiddleware, IAgentMiddlewareContext, IAgentMiddlewareStrategy } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime'
 import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'
@@ -54,6 +54,8 @@ export function createInputGraphFixture(
         disableMessageHistory?: boolean
         promptTemplates?: IXpertAgent['promptTemplates']
         middleware?: AgentMiddleware
+        middlewareStrategy?: IAgentMiddlewareStrategy
+        middlewareConnected?: boolean
     } = {}
 ) {
     jest.spyOn(Logger.prototype, 'verbose').mockImplementation(() => undefined)
@@ -76,7 +78,8 @@ export function createInputGraphFixture(
         }),
         false
     )
-    Object.defineProperty(chatModel, 'bindTools', { value: () => chatModel })
+    const bindTools = jest.fn((_tools: unknown[]) => chatModel)
+    Object.defineProperty(chatModel, 'bindTools', { value: bindTools })
     const beforeModel = jest.fn(async () => undefined)
     const middleware: AgentMiddleware = {
         name: 'input-test',
@@ -106,13 +109,21 @@ export function createInputGraphFixture(
     const definition = {
         nodes: [
             { type: 'agent', key: agentKey, entity: agent },
-            {
-                type: 'workflow',
-                key: 'input_middleware',
-                entity: { type: WorkflowNodeTypeEnum.MIDDLEWARE, provider: 'input-test' }
-            }
+            ...(options.middlewareConnected === false
+                ? []
+                : [
+                      {
+                          type: 'workflow',
+                          key: 'input_middleware',
+                          entity: {
+                              type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                              provider: options.middlewareStrategy?.meta.name ?? 'input-test'
+                          }
+                      }
+                  ])
         ],
-        connections: [{ type: 'workflow', from: agentKey, to: 'input_middleware' }]
+        connections:
+            options.middlewareConnected === false ? [] : [{ type: 'workflow', from: agentKey, to: 'input_middleware' }]
     }
     const repository = { find: jest.fn().mockResolvedValue([]), save: jest.fn() }
     const queryBus = {
@@ -156,7 +167,15 @@ export function createInputGraphFixture(
     )
     Object.defineProperty(handler, 'agentMiddlewareRegistry', {
         value: {
-            get: () => ({ createMiddleware: (_options: object, _context: IAgentMiddlewareContext) => middleware })
+            get: (name: string) => {
+                if (options.middlewareStrategy) {
+                    if (options.middlewareStrategy.meta.name === name) return options.middlewareStrategy
+                    throw new Error(`Unexpected middleware provider: ${name}`)
+                }
+                return {
+                    createMiddleware: (_options: object, _context: IAgentMiddlewareContext) => middleware
+                }
+            }
         }
     })
     const compile = async (overrides: Partial<XpertAgentSubgraphCommand['options']> = {}) => {
@@ -190,7 +209,7 @@ export function createInputGraphFixture(
             )
         ).graph
     }
-    return { compile, saver, model, toolRun, requests, beforeModel, repository }
+    return { compile, saver, model, toolRun, requests, beforeModel, repository, bindTools }
 }
 
 export function input(text: string) {

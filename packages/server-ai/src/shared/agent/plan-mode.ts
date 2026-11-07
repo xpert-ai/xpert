@@ -1,19 +1,13 @@
-import { SystemMessage } from '@langchain/core/messages'
-import { AgentMiddleware, AgentMiddlewareRegistry, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
-import { IWFNMiddleware, STATE_VARIABLE_HUMAN, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 import {
     REQUEST_USER_INPUT_TOOL_NAME,
     type RequestUserInputOption,
+    type RequestUserInputParams,
     type RequestUserInputQuestion,
     type RequestUserInputToolArgs
 } from '@xpert-ai/chatkit-types'
-import { inheritMiddlewareToolDisplayMetadata } from './middleware'
 
 export const PLAN_MODE_HUMAN_INPUT_KEY = 'planMode'
-export const PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY = '__xpert_plan_mode_client_tool__'
-export const PLAN_MODE_PROMPT_MIDDLEWARE_KEY = '__xpert_plan_mode_prompt__'
-
-const CLIENT_TOOL_MIDDLEWARE_NAME = 'ClientToolMiddleware'
 
 type JsonObjectSchema<T extends object> = {
     type: 'object'
@@ -128,7 +122,7 @@ const REQUEST_USER_INPUT_QUESTION_SCHEMA = {
     required: ['id', 'header', 'question', 'options']
 } satisfies JsonObjectSchema<RequestUserInputQuestion>
 
-const REQUEST_USER_INPUT_PARAMS_SCHEMA = {
+export const PLAN_MODE_REQUEST_USER_INPUT_SCHEMA = {
     type: 'object',
     additionalProperties: false,
     properties: {
@@ -140,9 +134,7 @@ const REQUEST_USER_INPUT_PARAMS_SCHEMA = {
         }
     },
     required: ['questions']
-} satisfies JsonObjectSchema<RequestUserInputToolArgs>
-
-export const PLAN_MODE_REQUEST_USER_INPUT_SCHEMA = JSON.stringify(REQUEST_USER_INPUT_PARAMS_SCHEMA)
+} satisfies JsonObjectSchema<RequestUserInputParams>
 
 function isRecord(value: unknown): value is Record<string, any> {
     return !!value && typeof value === 'object' && !Array.isArray(value)
@@ -166,66 +158,8 @@ export function hasExplicitPlanModeFlag(value: unknown): boolean {
     return !!human && Object.prototype.hasOwnProperty.call(human, PLAN_MODE_HUMAN_INPUT_KEY)
 }
 
-function createPlanModeNode(key: string, provider: string): IWFNMiddleware {
-    return {
-        key,
-        type: WorkflowNodeTypeEnum.MIDDLEWARE,
-        provider
-    } as IWFNMiddleware
-}
-
-export async function createPlanModeMiddlewareEntries(
-    agentMiddlewareRegistry: AgentMiddlewareRegistry,
-    context: Omit<IAgentMiddlewareContext, 'node'>,
-    enabled?: boolean
-): Promise<Array<{ key: string; middleware: AgentMiddleware }>> {
-    if (!enabled) {
-        return []
-    }
-
-    const clientToolStrategy = agentMiddlewareRegistry.get(CLIENT_TOOL_MIDDLEWARE_NAME)
-    const clientToolMiddleware = inheritMiddlewareToolDisplayMetadata(
-        await clientToolStrategy.createMiddleware(
-            {
-                clientTools: [
-                    {
-                        name: REQUEST_USER_INPUT_TOOL_NAME,
-                        description:
-                            'Plan Mode user input. Use once for clarification before a plan, or after a visible proposed plan only for the final implementation confirmation. Never use for repeated clarification rounds.',
-                        schema: PLAN_MODE_REQUEST_USER_INPUT_SCHEMA
-                    }
-                ]
-            },
-            {
-                ...context,
-                node: createPlanModeNode(PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY, CLIENT_TOOL_MIDDLEWARE_NAME)
-            }
-        ),
-        clientToolStrategy.meta
-    )
-
-    const promptMiddleware: AgentMiddleware = {
-        name: 'PlanModePromptMiddleware',
-        wrapModelCall: (request, handler) => {
-            const systemMessage = request.systemMessage
-            const content =
-                typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
-
-            return handler({
-                ...request,
-                systemMessage: new SystemMessage(`${content}\n\n${PLAN_MODE_PROMPT}`)
-            })
-        }
-    }
-
-    return [
-        {
-            key: PLAN_MODE_CLIENT_TOOL_MIDDLEWARE_KEY,
-            middleware: clientToolMiddleware
-        },
-        {
-            key: PLAN_MODE_PROMPT_MIDDLEWARE_KEY,
-            middleware: promptMiddleware
-        }
-    ]
+export function getPlanModePrompt(allowUserInput: boolean): string {
+    return allowUserInput
+        ? PLAN_MODE_PROMPT
+        : 'You are in Plan Mode. Inspect available context and present your proposed plan inside <proposed_plan> tags. End the turn after the plan. No implementation confirmation is available in this run. Do not implement, mutate files or perform destructive actions.'
 }

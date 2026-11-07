@@ -1,8 +1,4 @@
 import { NativeAgentCompiler } from '../../../agent-invocation/native-agent.compiler'
-// Input interruption and schema validation have dedicated runtime tests.
-jest.mock('../../../shared/agent/runtime-user-input', () => ({
-    createRuntimeUserInputMiddlewareEntries: jest.fn(async () => [])
-}))
 jest.mock('yargs', () => ({
     __esModule: true,
     default: () => ({

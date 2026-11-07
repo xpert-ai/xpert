@@ -72,6 +72,10 @@ jest.mock('../../../chat-message/chat-message.entity', () => ({
     ChatMessage: class ChatMessage {}
 }))
 
+jest.mock('../../../shared/volume', () => ({
+    VolumeClient: jest.requireMock('../../../shared').VolumeClient
+}))
+
 jest.mock('../../../knowledgebase', () => ({
     KnowledgebaseTaskService: class KnowledgebaseTaskService {},
     KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
