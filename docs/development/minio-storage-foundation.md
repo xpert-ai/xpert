@@ -1,5 +1,7 @@
 # MinIO / S3 存储基础与联合验收
 
+> 本文为 2026-11-05 第一阶段验收记录。后续 ArtifactContent 底层存储已调整为使用系统 FileStorage Provider，见 [Artifact 内容存储与联合验收](artifact-content-storage.md)。普通 POSIX 工作目录没有整体迁移。
+
 ## 结论与修复范围
 
 此变更修复 FileStorage 的私有桶浏览器签名地址、统一上传 Content-Type、签名 TTL 边界、匿名公开 URL 的 key 编码，以及更改默认 provider 后仍读取旧租户设置缓存的问题。它没有将 POSIX Workspace 改为对象存储，不能据此宣称 Artifact、数据集和后台任务已全面使用 MinIO。

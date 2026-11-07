@@ -1,9 +1,8 @@
 import type { StorageBudgetOwner } from '../../shared/storage-budget.command'
 import { FileStorageOption, FileStorageProviderEnum } from '@xpert-ai/contracts'
-import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
+import { IFileStorageProvider, RequestContext } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
 import { isEmpty, isNotEmpty } from '@xpert-ai/server-common'
-import { RequestContext } from '../../core/context'
 import { FileStorageRegistryBridge } from './file-storage-registry.bridge'
 import { LocalProvider } from './providers'
 

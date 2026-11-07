@@ -1,9 +1,12 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { IncomingMessage } from 'node:http'
+import { Socket } from 'node:net'
+import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { ForbiddenException } from '@nestjs/common'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type IFileStorageProvider } from '@xpert-ai/plugin-sdk'
+import { FileStorage } from '@xpert-ai/server-core'
 import { VolumeHandle, VolumeSubtreeClient } from '../shared/volume'
 import { ArtifactContentRuntimeService } from './artifact-content-runtime.service'
 import { Artifact, ArtifactVersion } from './entities'
@@ -11,6 +14,9 @@ import { Artifact, ArtifactVersion } from './entities'
 describe('Artifact-owned content storage', () => {
     let root: string
     beforeEach(async () => {
+        jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(
+            Object.assign(new IncomingMessage(new Socket()), { tenantSettings: { fileStorageProvider: 'LOCAL' } })
+        )
         root = await mkdtemp(path.join(tmpdir(), 'artifact-protected-'))
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
@@ -91,6 +97,57 @@ describe('Artifact-owned content storage', () => {
         f.versions.push({ workspaceFileRef: ref })
         expect((await f.service.read(ref)).buffer).toEqual(bytes)
         await expect(f.service.read({ ...ref, projectId: randomUUID() })).rejects.toThrow(ForbiddenException)
+        f.revoke()
+        await expect(f.service.read(ref)).rejects.toThrow(ForbiddenException)
+    })
+    it('keeps Artifact references unchanged across an operator-managed storage migration', async () => {
+        const objects = new Map<string, Buffer>()
+        const remote: IFileStorageProvider = {
+            name: 'TEST_REMOTE',
+            url: (key) => `https://storage.test/${key}`,
+            path: (key) => key,
+            handler: () => {
+                throw new Error('Not used')
+            },
+            putFile: async (bytes, key = '') => {
+                if (!Buffer.isBuffer(bytes)) throw new Error('Expected Buffer')
+                objects.set(key, Buffer.from(bytes))
+                return { fieldname: '', key, originalname: key, filename: key, path: key, size: bytes.length, url: '' }
+            },
+            getFile: async (key) => {
+                const bytes = objects.get(key)
+                if (!bytes) throw Object.assign(new Error('Missing'), { code: 'NoSuchKey' })
+                return Buffer.from(bytes)
+            },
+            deleteFile: async (key) => {
+                objects.delete(key)
+            }
+        }
+        const settings = { fileStorageProvider: remote.name }
+        jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(
+            Object.assign(new IncomingMessage(new Socket()), { tenantSettings: settings })
+        )
+        const initializeProviders = FileStorage.prototype.initProvider
+        jest.spyOn(FileStorage.prototype, 'initProvider').mockImplementation(function (this: FileStorage) {
+            initializeProviders.call(this)
+            this.providers = { ...this.providers, [remote.name]: remote }
+        })
+        const f = fixture()
+        const ref = await f.service.write({ artifactId: f.artifact.id, buffer: Buffer.from('remote') })
+        expect(ref).not.toHaveProperty('storageProvider')
+        expect(ref).not.toHaveProperty('byteStorage')
+        const referenceSnapshot = JSON.stringify(ref)
+        expect(objects.size).toBe(1)
+        settings.fileStorageProvider = 'LOCAL'
+        await expect(f.service.read(ref)).rejects.toMatchObject({ code: 'ENOENT' })
+        const target = path.join(root, ref.filePath)
+        await mkdir(path.dirname(target), { recursive: true })
+        await writeFile(target, objects.values().next().value!)
+        expect((await f.service.read(ref)).buffer.toString()).toBe('remote')
+        expect(JSON.stringify(ref)).toBe(referenceSnapshot)
+        const local = await f.service.write({ artifactId: f.artifact.id, buffer: Buffer.from('local') })
+        expect(local).not.toHaveProperty('storageProvider')
+        expect((await f.service.read(local)).buffer.toString()).toBe('local')
         f.revoke()
         await expect(f.service.read(ref)).rejects.toThrow(ForbiddenException)
     })

@@ -58,6 +58,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ImmutableStorageProviderUnavailable": "The configured file storage provider is unavailable.",
+        "ImmutableContentPathInvalid": "Invalid immutable content path.",
+        "ImmutableContentBytesInvalid": "Invalid immutable content bytes or content exceeds 50 MiB.",
+        "ImmutableContentNotFound": "Immutable content was not found.",
+        "ImmutableContentDigestMismatch": "Immutable content digest mismatch.",
         "OrganizationAutomationUnavailableUser": "Unavailable user",
         "OrganizationAutomationAccessDenied": "Organization automation authority is unavailable or revoked.",
         "EmbeddingRebuildRecoveryInvalid": "Rebuild recovery does not accept task or scope overrides.",

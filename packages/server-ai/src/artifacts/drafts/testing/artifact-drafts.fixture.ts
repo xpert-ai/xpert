@@ -112,7 +112,28 @@ export async function createDraftFixture(url: string) {
                 name: 'ArtifactLink',
                 target: ArtifactLink,
                 tableName: 'artifact_link',
-                columns: { ...baseColumns, artifactId: { type: 'uuid' }, slug: { type: 'varchar' } },
+                columns: {
+                    ...baseColumns,
+                    ...scopeColumns,
+                    artifactId: { type: 'uuid' },
+                    slug: { type: 'varchar' },
+                    artifactVersionId: { type: 'uuid', nullable: true },
+                    shareKey: text,
+                    versionMode: text,
+                    publicUrl: text,
+                    accessMode: text,
+                    status: text,
+                    tokenHash: text,
+                    customPrincipals: { type: 'json', nullable: true },
+                    metadata: { type: 'json', nullable: true },
+                    expiresAt: { type: 'timestamptz', nullable: true },
+                    revokedAt: { type: 'timestamptz', nullable: true },
+                    accessCount: { type: 'int', default: 0 },
+                    downloadCount: { type: 'int', default: 0 },
+                    disposition: text,
+                    allowDownload: { type: 'boolean', default: true },
+                    safeHtmlProfile: text
+                },
                 relations: { artifact: { type: 'many-to-one', target: 'Artifact', joinColumn: { name: 'artifactId' } } }
             }),
             new EntitySchema<ArtifactAccessLog>({
@@ -177,6 +198,7 @@ export async function createDraftFixture(url: string) {
     return {
         database,
         contentAccess,
+        volumes,
         artifacts,
         files,
         service,

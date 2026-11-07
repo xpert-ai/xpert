@@ -1,12 +1,11 @@
 import type { WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import type { VolumeClient } from '../shared/volume'
-import { VolumeWorkspaceStorage } from '../shared/volume/workspace-storage'
+import { artifactByteStorage } from '../shared/volume/artifact-byte-storage'
 import { resolveWorkspaceVolumeScope } from '../file-understanding/domain/workspace-file'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
 import { ForbiddenException } from '@nestjs/common'
 
-export const ARTIFACT_CONTENT_NAMESPACE = 'artifact_content'
 const pattern = /^\.apps\/artifact_content\/([a-f0-9-]{36})\/([a-f0-9]{64})$/
 export const artifactContentIdentity = (path: string) => pattern.exec(path)
 
@@ -22,11 +21,9 @@ export function artifactContentStorage(volumes: Pick<VolumeClient, 'resolve'>, r
         throw new ForbiddenException(
             t('server-ai:Error.ArtifactContentReferenceInvalid', { defaultValue: 'ARTIFACT_CONTENT_REFERENCE_INVALID' })
         )
+    const volume = volumes.resolve({ ...resolved.volumeScope, organizationId: ref.organizationId })
     return {
-        storage: new VolumeWorkspaceStorage(
-            async () => volumes.resolve(resolved.volumeScope),
-            ARTIFACT_CONTENT_NAMESPACE
-        ),
+        storage: artifactByteStorage(volume, ref.organizationId),
         path: `${match[1]}/${match[2]}`,
         artifactId: match[1],
         sha256: match[2]

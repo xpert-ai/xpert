@@ -8,6 +8,8 @@ MinIO 是 `@xpert-ai/plugin-draft` 中的组织级 FileStorage provider。通过
 
 `FILE_PROVIDER=MINIO` 只切换 **FileStorage**。Workspace Files、应用数据、ArtifactContent、Artifact 草稿/版本和 Sandbox 工作区仍使用本地 POSIX Volume，必须为 API、worker 和 sandbox 保留相应的持久共享存储。文件 Analytics 通过 Workspace Files 读取，并不直接查询任意 S3 对象。详见[存储验证与迁移约束](../../development/minio-storage-foundation.md)。
 
+Artifact 内容使用不含存储类型的逻辑引用，由内部字节层统一使用系统 FileStorage 配置。切换配置需先迁移数据，引用保持不变；普通工作目录和 appData 仍为 POSIX。详见[Artifact 内容存储与限制](../../development/artifact-content-storage.md)。
+
 ## 配置
 
 优先级依次为：加密保存的 `PluginInstance.config.minio`、插件环境默认配置、provider 默认值。环境解析保留在通过 Nest Config 注册的 `file-storage.config.ts`，业务服务不读取环境变量。

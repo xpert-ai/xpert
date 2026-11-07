@@ -164,6 +164,7 @@ export class ArtifactPersistence {
         if (
             protectedContent &&
             (protectedContent[1] !== artifact.id ||
+                (versionInput.workspaceFileRef.organizationId ?? null) !== (artifact.organizationId ?? null) ||
                 versionInput.workspaceFileRef.tenantId !== artifact.tenantId ||
                 (versionInput.workspaceFileRef.projectId ?? null) !==
                     (!artifact.userId ? (artifact.projectId ?? null) : null) ||
@@ -252,6 +253,7 @@ export class ArtifactPersistence {
         if (
             protectedContent &&
             (protectedContent[1] !== artifact.id ||
+                (versionInput.workspaceFileRef.organizationId ?? null) !== (artifact.organizationId ?? null) ||
                 versionInput.workspaceFileRef.tenantId !== artifact.tenantId ||
                 (versionInput.workspaceFileRef.projectId ?? null) !==
                     (!artifact.userId ? (artifact.projectId ?? null) : null) ||

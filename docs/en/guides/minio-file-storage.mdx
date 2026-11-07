@@ -6,6 +6,8 @@ MinIO is an organization-scoped provider in `@xpert-ai/plugin-draft`. Deploy the
 
 `FILE_PROVIDER=MINIO` selects the default **FileStorage** provider only. Workspace Files, app data, ArtifactContent, Artifact drafts/versions, and Sandbox workspaces still use POSIX Volumes. Their files must remain on durable storage shared with the relevant API/worker/sandbox processes. File Analytics uses Workspace Files; it does not query arbitrary S3 objects. See [storage verification and migration constraints](../../development/minio-storage-foundation.md).
 
+Artifact content uses logical references without storage types. The internal byte layer uses system FileStorage configuration for every operation; changing that configuration requires data migration, with references unchanged. Ordinary workspaces and appData remain POSIX. See [Artifact content storage and limitations](../../development/artifact-content-storage.md).
+
 ## Configuration
 
 Encrypted `PluginInstance.config.minio` overrides plugin-local environment defaults, followed by provider defaults. Environment parsing stays in `file-storage.config.ts`, registered through Nest Config; business services do not read these variables.
