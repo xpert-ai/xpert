@@ -53,6 +53,7 @@ import { PipelineView } from './pipeline/view'
 import { pipelineTexts } from './pipeline/i18n'
 import { useViewVisible } from './view-visibility'
 import { GraphAvatarCache } from './graph-avatars'
+import { ErrorNotice } from './error-notice'
 
 function App() {
     const visible = useViewVisible()
@@ -271,17 +272,13 @@ function App() {
                             <RefreshCw className={refreshing ? 'motion-safe:animate-spin' : undefined} />
                         </IconButton>
                     </TabsHeader>
-                    {error && (
-                        <div
-                            role="alert"
-                            className="flex items-center gap-3 border-b bg-destructive/5 px-4 py-2 text-sm text-destructive"
-                        >
-                            <span className="min-w-0 flex-1 break-words">{error}</span>
-                            <Button variant="outline" size="sm" onClick={() => void load()}>
-                                {t.refresh}
-                            </Button>
-                        </div>
-                    )}
+                    <ErrorNotice
+                        message={error}
+                        label={t.title}
+                        closeLabel={pipelineTexts(locale).close}
+                        retryLabel={t.refresh}
+                        onRetry={() => void load()}
+                    />
                     {!!graph?.diagnostics.length && (
                         <Accordion type="single" collapsible className="px-4">
                             <AccordionItem value="diagnostics">
