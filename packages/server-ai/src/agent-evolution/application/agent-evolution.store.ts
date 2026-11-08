@@ -1,3 +1,4 @@
+import { finalizeCheckedProposal } from '../learning/finalize-checked-proposal'
 import { sameScope } from './evolution-governance.helpers'
 import { applyEvolutionSearch } from './evolution-search'
 import { verifyEvolutionPersistence } from './evolution-persistence-proof'
@@ -739,7 +740,8 @@ export class AgentEvolutionStore {
         )
     }
 
-    async saveProposal(tenant: EvolutionTenantScope, proposal: ImprovementProposal) {
+    async saveProposal(tenant: EvolutionTenantScope, proposal: ImprovementProposal, checked = false) {
+        if (checked) return finalizeCheckedProposal(this.proposalRepository, tenant, proposal)
         const existing = await this.proposalRepository.findOne({
             where: { ...tenantWhere(tenant), proposalId: proposal.proposalId, revision: proposal.revision }
         })

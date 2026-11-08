@@ -1,316 +1,333 @@
-import { EvolutionLandingDirective } from '../shared/evolution-landing.directive'
-import { ActivatedRoute } from '@angular/router'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { injectActiveScope } from '@cloud/app/@core/state'
-import { findLearningEvent } from '../evolution-resource-lookup'
-import { AgentEvolutionApiService } from '../agent-evolution-api.service'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
-import type { EvolutionCandidateChangeFieldDescriptor, LearningEvent } from '@xpert-ai/contracts'
+import { Component, computed, DestroyRef, effect, inject, signal, untracked, ViewContainerRef } from '@angular/core'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router'
+import { injectActiveScope } from '@cloud/app/@core/state'
 import {
-  ZardAlertDialogService,
-  XpI18nPipe,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardCheckboxComponent,
-  ZardInputDirective,
-  ZardSearchInputComponent,
-  ZardSelectImports,
-  type ZardSelectValue
-} from '@xpert-ai/headless-ui'
+  resolveI18nText,
+  type EvolutionLearningQuery,
+  type ImprovementProposal,
+  type LearningEvent,
+  type LearningProposalRow
+} from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardDialogRef,
+  ZardDialogService,
+  ZardMenuImports,
+  ZardSearchInputComponent
+} from '@xpert-ai/headless-ui'
+import { catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs'
+import { AgentEvolutionApiService } from '../agent-evolution-api.service'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { evolutionSummaryPresentation, learningEventPresentation, percent, shortId } from '../agent-evolution.types'
+import { evolutionSummaryPresentation } from '../agent-evolution.types'
+import { targetLabel } from '../targets/target-directory'
+import { EvolutionLandingDirective } from '../shared/evolution-landing.directive'
+import { LearningCandidateFormComponent } from './learning-candidate-form.component'
+import { LearningProposalDialog } from './learning-proposal-dialog.component'
 
-type EventLookupState = { item: LearningEvent | null; loading: boolean; error: boolean }
+type View = 'feedback' | 'proposals'
+interface Filters {
+  search: string
+  status: string
+  kind: string
+  page: number
+}
+const emptyFilters: Filters = { search: '', status: 'all', kind: 'all', page: 1 }
+function destination(params: ParamMap) {
+  return {
+    event: params.get('eventId'),
+    proposal: params.get('proposalId'),
+    target: params.get('target'),
+    cited: params.get('citedBy'),
+    citing: params.get('citingEvent'),
+    revision: Number(params.get('revision')) || undefined,
+    view: (params.get('proposalId') || params.get('citingEvent') || params.get('view') === 'proposals'
+      ? 'proposals'
+      : 'feedback') as View
+  }
+}
 
 @Component({
-  standalone: true,
   selector: 'xp-agent-evolution-learning',
+  standalone: true,
   imports: [
-    EvolutionLandingDirective,
     CommonModule,
-    FormsModule,
     TranslateModule,
-    XpI18nPipe,
-    ZardBadgeComponent,
+    RouterLink,
+    EvolutionLandingDirective,
+    LearningCandidateFormComponent,
     ZardButtonComponent,
-    ZardCheckboxComponent,
-    ZardInputDirective,
+    ZardComboboxComponent,
     ZardSearchInputComponent,
-    ...ZardSelectImports,
-    ...ZardCardImports
+    ...ZardMenuImports
   ],
   templateUrl: './learning.component.html',
-  host: { class: 'block' }
+  host: { class: 'flex min-h-0 min-w-0 flex-1 overflow-hidden' }
 })
 export class AgentEvolutionLearningComponent {
   readonly facade = inject(AgentEvolutionFacade)
-  readonly #alertDialog = inject(ZardAlertDialogService)
-  readonly #translate = inject(TranslateService)
-
-  readonly percent = percent
-  readonly shortId = shortId
-  readonly eventPresentation = learningEventPresentation
-  readonly summaryPresentation = evolutionSummaryPresentation
-  readonly query = signal('')
-  readonly queueTab = signal<'pending' | 'grouped' | 'ignored'>('pending')
-  readonly selectedEventId = signal<string | null>(null)
-  readonly candidateDraft = signal<Record<string, string | number | boolean | string[]>>({})
-
-  private readonly route = inject(ActivatedRoute, { optional: true })
-  private readonly requestedEventId = toSignal(
-    this.route?.queryParamMap.pipe(map((params) => params.get('eventId'))) ?? of(null)
-  )
-  readonly requestedProposalId = toSignal(
-    this.route?.queryParamMap.pipe(map((params) => params.get('proposalId'))) ?? of(null)
-  )
-  private readonly scope = injectActiveScope()
   private readonly api = inject(AgentEvolutionApiService)
-  private readonly lookupRevision = signal(0)
-  private readonly eventRequest = computed(() => ({
-    id: this.requestedEventId(),
-    scope: this.scope(),
-    revision: this.lookupRevision()
-  }))
-  readonly isSearchDestination = computed(
-    () => !!this.requestedEventId() && this.requestedEventId() === this.query().trim()
+  private readonly translate = inject(TranslateService)
+  private readonly router = inject(Router)
+  private readonly route = inject(ActivatedRoute)
+  private readonly dialog = inject(ZardDialogService)
+  private readonly container = inject(ViewContainerRef)
+  private readonly destroy = inject(DestroyRef)
+  private readonly activeScope = injectActiveScope()
+  private readonly lang = toSignal(this.translate.onLangChange)
+  readonly prefix = 'XP.AgentEvolution.Learning.'
+  readonly dest = toSignal(this.route.queryParamMap.pipe(map(destination)), {
+    initialValue: destination(this.route.snapshot.queryParamMap)
+  })
+  readonly filters = signal<Filters>(emptyFilters)
+  readonly expanded = signal<string | null>(null)
+  readonly details = signal(false)
+  readonly feedbackStatuses = ['all', 'pending', 'golden', 'ignored']
+  readonly proposalStatuses = ['all', 'ready', 'candidate_built', 'draft', 'rejected']
+  readonly kinds = ['all', 'corrected', 'grouped']
+  readonly notice = signal('')
+  readonly revision = signal(0)
+  private checkRef?: ZardDialogRef<LearningProposalDialog>
+  readonly targets = computed(() => new Map(this.facade.visibleTargets().map((t) => [t.targetId, t])))
+  readonly options = computed(() => {
+    this.lang()
+    return [
+      { value: 'all', label: this.translate.instant('XP.AgentEvolution.Overview.AllTargets') },
+      ...Array.from(this.targets().values(), (t) => ({
+        value: t.targetId,
+        label: targetLabel(t, this.translate.currentLang)
+      }))
+    ]
+  })
+  readonly view = computed(() => this.dest().view)
+  readonly contextual = computed(
+    () => !!(this.dest().event || this.dest().proposal || this.dest().citing || this.dest().cited)
   )
-  readonly eventLookup = toSignal(
-    toObservable(this.eventRequest).pipe(
-      switchMap(({ id }) =>
-        id
-          ? findLearningEvent(this.api, id).pipe(
-              map((item): EventLookupState => ({ item, loading: false, error: false })),
-              catchError(() => of<EventLookupState>({ item: null, loading: false, error: true })),
-              startWith<EventLookupState>({ item: null, loading: true, error: false })
-            )
-          : of<EventLookupState>({ item: null, loading: false, error: false })
+  private readonly request = computed(() => {
+    const f = this.filters(),
+      d = this.dest(),
+      target = this.facade.selectedTargetId()
+    const base: EvolutionLearningQuery = {
+      targetId: target === 'all' ? undefined : target,
+      includeFixtures: this.facade.showFixtures()
+    }
+    const filtered = {
+      ...base,
+      page: f.page,
+      pageSize: 5,
+      search: f.search.trim() || undefined,
+      status: f.status === 'all' ? undefined : f.status
+    }
+    const events: EvolutionLearningQuery =
+      d.view === 'feedback'
+        ? {
+            ...filtered,
+            eventId: d.event ?? undefined,
+            proposalId: d.cited ?? undefined,
+            revision: d.revision,
+            corrected: f.kind === 'corrected',
+            grouped: f.kind === 'grouped'
+          }
+        : { ...base, pageSize: 1 }
+    const proposals: EvolutionLearningQuery =
+      d.view === 'proposals'
+        ? { ...filtered, eventId: d.citing ?? undefined, proposalId: d.proposal ?? undefined, revision: d.revision }
+        : { ...base, pageSize: 1 }
+    return {
+      events,
+      proposals,
+      scope: this.activeScope(),
+      refreshed: this.facade.loadedAt(),
+      revision: this.revision()
+    }
+  })
+  readonly state = toSignal(
+    toObservable(this.request).pipe(
+      switchMap(({ events, proposals }) =>
+        forkJoin({
+          events: this.api.learningReview(events),
+          proposals: this.api.learningProposals(proposals)
+        }).pipe(
+          map((data) => ({ data, error: false })),
+          catchError(() => of({ data: null, error: true })),
+          startWith({ data: null, error: false })
+        )
       )
     ),
-    { initialValue: { item: null, loading: false, error: false } }
+    { initialValue: { data: null, error: false } }
   )
-  readonly searchedEvent = computed(() => this.eventLookup().item)
-
+  readonly result = computed(() =>
+    this.view() === 'feedback' ? this.state().data?.events : this.state().data?.proposals
+  )
+  readonly maxPage = computed(() => Math.max(1, Math.ceil((this.result()?.total ?? 0) / 5)))
   constructor() {
     effect(() => {
-      const id = this.requestedEventId()
-      if (id) {
-        this.query.set(id)
-        this.selectedEventId.set(id)
-      }
+      const d = this.dest()
+      untracked(() => {
+        if (
+          (d.target || d.event || d.proposal || d.cited || d.citing) &&
+          this.facade.selectedTargetId() !== (d.target || 'all')
+        )
+          this.facade.selectTarget(d.target || 'all')
+        this.filters.set(emptyFilters)
+        this.expanded.set(null)
+        this.details.set(false)
+      })
     })
     effect(() => {
-      const event = this.searchedEvent()
-      if (event) this.queueTab.set(event.reviewStatus === 'ignored' ? 'ignored' : 'pending')
+      this.activeScope()
+      untracked(() => {
+        this.checkRef?.close()
+        this.notice.set('')
+        this.expanded.set(null)
+        this.details.set(false)
+        this.filters.set(emptyFilters)
+      })
     })
+    effect(() => {
+      const result = this.result()
+      if (result && this.filters().page > this.maxPage()) this.page(this.maxPage())
+    })
+    this.destroy.onDestroy(() => this.checkRef?.close())
   }
-
-  readonly filteredEvents = computed(() => {
-    const query = this.query().trim().toLocaleLowerCase()
-    const searched = this.searchedEvent()
-    const events = this.isSearchDestination() ? (searched ? [searched] : []) : this.facade.contextEvents()
-    return events.filter((event) => {
-      if (this.queueTab() === 'ignored') {
-        return event.reviewStatus === 'ignored'
-      }
-      if (event.reviewStatus === 'ignored') {
-        return false
-      }
-      if (
-        this.queueTab() === 'grouped' &&
-        !this.facade.dashboard().clusters.some((cluster) => cluster.eventIds.includes(event.eventId))
-      )
-        return false
-      if (!query) {
-        return true
-      }
-      return [event.eventId, event.predictionSummary, event.finalOutcomeSummary, event.targetId, event.subjectRef]
-        .join(' ')
-        .toLocaleLowerCase()
-        .includes(query)
-    })
-  })
-
-  readonly selectedEvent = computed<LearningEvent | null>(() => {
-    const events = this.filteredEvents()
-    return events.find((event) => event.eventId === this.selectedEventId()) ?? events[0] ?? null
-  })
-
-  readonly selectedProposal = computed(() => {
-    const event = this.selectedEvent()
-    const proposals = this.facade.contextProposals()
-    if (this.requestedProposalId()) return proposals.find((p) => p.proposalId === this.requestedProposalId()) ?? null
+  name(id: string) {
+    this.lang()
+    const target = this.targets().get(id)
+    return target ? targetLabel(target, this.translate.currentLang) : id
+  }
+  reason(event: LearningEvent) {
+    this.lang()
     return (
-      proposals.find((proposal) => event && proposal.evidenceEventIds.includes(event.eventId)) ??
-      proposals.find((proposal) => !event || proposal.targetId === event.targetId) ??
-      proposals[0] ??
-      null
+      event.reasonCodes
+        .map(
+          (code) =>
+            resolveI18nText(
+              this.targets().get(event.targetId)?.feedbackVocabulary?.reasons?.[code],
+              this.translate.currentLang
+            ) || this.translate.instant('XP.AgentEvolution.ReasonCode.' + code, { Default: code })
+        )
+        .join(' · ') || '—'
     )
-  })
-
-  readonly averageConfidence = computed(() => {
-    const events = this.filteredEvents()
-    return events.length ? events.reduce((sum, event) => sum + event.confidence, 0) / events.length : 0
-  })
-  readonly goldenEventCount = computed(
-    () => this.facade.contextEvents().filter((event) => event.reviewStatus === 'golden').length
-  )
-  readonly candidateTarget = computed(() => {
-    const proposal = this.selectedProposal()
-    return this.facade.dashboard().targets.find((target) => target.targetId === proposal?.targetId) ?? null
-  })
-  readonly candidateFields = computed(() => this.candidateTarget()?.candidateForm?.fields ?? [])
-  readonly canBuildCandidate = computed(
-    () =>
-      this.selectedProposal()?.status === 'ready' &&
-      this.candidateTarget()?.capabilities.candidateBuild === true &&
-      !!this.candidateTarget()?.candidateForm
-  )
-  readonly candidateDraftValid = computed(() =>
-    this.candidateFields().every((field) => !field.required || hasFieldValue(this.candidateDraft()[field.key]))
-  )
-
-  readonly #candidateDraftEffect = effect(() => {
-    const fields = this.candidateFields()
-    this.candidateDraft.set(
-      Object.fromEntries(fields.map((field) => [field.key, cloneDefaultValue(field.defaultValue)])) as Record<
-        string,
-        string | number | boolean | string[]
-      >
+  }
+  summary(value: string, targetId: string) {
+    this.lang()
+    const label = resolveI18nText(
+      this.targets().get(targetId)?.feedbackVocabulary?.values?.[value],
+      this.translate.currentLang
     )
-  })
-
-  select(event: LearningEvent) {
-    this.selectedEventId.set(event.eventId)
-  }
-
-  refreshSearchDestination() {
-    this.lookupRevision.update((revision) => revision + 1)
-  }
-
-  async ignoreSelected() {
-    const event = this.selectedEvent()
-    if (!event) {
-      return
-    }
-    if (await this.facade.reviewEvent(event.eventId, 'ignored')) {
-      this.selectedEventId.set(null)
-      this.refreshSearchDestination()
-    }
-  }
-
-  async toggleGolden() {
-    const event = this.selectedEvent()
-    if (!event) {
-      return
-    }
-    if (await this.facade.reviewEvent(event.eventId, event.reviewStatus === 'golden' ? 'pending' : 'golden')) {
-      this.refreshSearchDestination()
-    }
-  }
-
-  async generateProposal() {
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.GenerateProposalTitle', {
-          Default: 'Generate a proposal from reviewed evidence?'
-        }),
-        description: this.#translate.instant('XP.AgentEvolution.GenerateProposalDescription', {
-          Default:
-            'This creates an auditable Proposal only. It does not build a Candidate or change a Production capability version.'
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.CreateProposal', { Default: 'Create proposal' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
+    if (label) return label
+    const summary = evolutionSummaryPresentation(value)
+    return (
+      summary.text ||
+      summary.fields
+        .map(
+          (f) =>
+            this.translate.instant(f.labelKey, { Default: f.key }) +
+            ' · ' +
+            (f.valueKey ? this.translate.instant(f.valueKey, { Default: f.value }) : f.value)
+        )
+        .join(' / ') ||
+      '—'
     )
-    if (!confirmed) {
-      return
+  }
+  rootCause(p: ImprovementProposal) {
+    const prefix = 'repeated_correction_signature:'
+    if (!p.rootCause.startsWith(prefix)) return p.rootCause
+    const names = p.rootCause
+      .slice(prefix.length)
+      .split(',')
+      .map(
+        (code) =>
+          resolveI18nText(
+            this.targets().get(p.targetId)?.feedbackVocabulary?.reasons?.[code.trim()],
+            this.translate.currentLang
+          ) || code.trim()
+      )
+    return this.translate.instant(this.prefix + 'Repeated') + ' · ' + names.join(', ')
+  }
+  selectTarget(id: string | null) {
+    this.facade.selectTarget(id || 'all')
+    this.filters.set(emptyFilters)
+    this.expanded.set(null)
+    this.details.set(false)
+    this.navigate(this.view())
+  }
+  navigate(view: View, params: Record<string, string | number> = {}) {
+    this.notice.set('')
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        ...(view === 'proposals' ? { view } : {}),
+        target: this.facade.selectedTargetId() === 'all' ? null : this.facade.selectedTargetId(),
+        ...params
+      }
+    })
+  }
+  setFilter(f: Partial<Filters>) {
+    this.filters.update((old) => ({ ...old, ...f, page: 1 }))
+    this.expanded.set(null)
+    this.details.set(false)
+  }
+  page(n: number) {
+    this.filters.update((old) => ({ ...old, page: n }))
+    this.expanded.set(null)
+    this.details.set(false)
+  }
+  key(row: LearningProposalRow) {
+    return row.proposal.proposalId + '@' + row.proposal.revision
+  }
+  isExpanded(id: string, first: boolean) {
+    return this.expanded() === null ? first : this.expanded() === id
+  }
+  toggle(id: string, first: boolean) {
+    this.expanded.set(this.isExpanded(id, first) ? '' : id)
+    this.details.set(false)
+  }
+  async review(event: LearningEvent, status: 'pending' | 'golden' | 'ignored') {
+    if (this.facade.mutating()) return
+    const scope = this.activeScope()
+    if ((await this.facade.reviewEvent(event.eventId, status)) && scope === this.activeScope()) {
+      this.notice.set(
+        this.translate.instant(this.prefix + 'ReviewSaved', {
+          status: this.translate.instant(this.prefix + 'Mark_' + status)
+        })
+      )
+      this.revision.update((x) => x + 1)
     }
-    const event = this.selectedEvent()
-    if (event) await this.facade.createProposalForEvent(event)
   }
-
-  reasonLabel(reason: string) {
-    return this.#translate.instant(`XP.AgentEvolution.ReasonCode.${reason}`, { Default: reason })
+  check(event: LearningEvent) {
+    if (this.checkRef || event.reviewStatus === 'ignored') return
+    const ref = this.dialog.create<
+      LearningProposalDialog,
+      { event: LearningEvent; targetName: string; reason: string; prediction: string; outcome: string }
+    >({
+      zContent: LearningProposalDialog,
+      zTitle: this.translate.instant(this.prefix + 'Generate'),
+      zDescription: this.translate.instant(this.prefix + 'CheckIntro'),
+      zWidth: 'min(585px, calc(100vw - 24px))',
+      zHideFooter: true,
+      zViewContainerRef: this.container,
+      zMaskClosable: false,
+      zData: {
+        event,
+        targetName: this.name(event.targetId),
+        reason: this.reason(event),
+        prediction: this.summary(event.predictionSummary, event.targetId),
+        outcome: this.summary(event.finalOutcomeSummary, event.targetId)
+      }
+    })
+    this.checkRef = ref
+    const scope = this.activeScope()
+    ref.closed.pipe(takeUntilDestroyed(this.destroy)).subscribe((p: ImprovementProposal | undefined) => {
+      this.checkRef = undefined
+      if (!p || scope !== this.activeScope()) return
+      this.navigate('proposals', { proposalId: p.proposalId, revision: p.revision })
+      this.notice.set(this.translate.instant(this.prefix + 'Created'))
+      this.revision.update((x) => x + 1)
+      void this.facade.load({ silent: true })
+    })
   }
-
-  proposalRootCause(rootCause: string) {
-    const repeated = /^(?:Repeated correction signature|repeated_correction_signature):\s*(.+)$/i.exec(rootCause)
-    if (repeated?.[1]) {
-      const reasons = repeated[1]
-        .split(',')
-        .map((reason) => this.reasonLabel(reason.trim()))
-        .filter(Boolean)
-        .join(this.#translate.instant('XP.AgentEvolution.ListSeparator'))
-      return this.#translate.instant('XP.AgentEvolution.RepeatedFeedbackRootCause', { reasons })
-    }
-    if (/^(?:Unclassified repeated correction|unclassified_repeated_correction)$/i.test(rootCause)) {
-      return this.#translate.instant('XP.AgentEvolution.UnclassifiedRepeatedFeedback')
-    }
-    return rootCause
-  }
-
-  candidateValue(field: EvolutionCandidateChangeFieldDescriptor) {
-    return this.candidateDraft()[field.key] ?? cloneDefaultValue(field.defaultValue)
-  }
-
-  candidateSelectValue(field: EvolutionCandidateChangeFieldDescriptor): string | number {
-    const value = this.candidateValue(field)
-    return typeof value === 'string' || typeof value === 'number' ? value : ''
-  }
-
-  setCandidateValue(field: EvolutionCandidateChangeFieldDescriptor, value: string | number | boolean) {
-    const normalized = field.type === 'number' ? Number(value) : field.type === 'boolean' ? Boolean(value) : `${value}`
-    this.candidateDraft.update((current) => ({ ...current, [field.key]: normalized }))
-  }
-
-  setCandidateSelectValue(field: EvolutionCandidateChangeFieldDescriptor, value: ZardSelectValue | ZardSelectValue[]) {
-    const selected = Array.isArray(value) ? value[0] : value
-    if (selected !== undefined) this.setCandidateValue(field, selected)
-  }
-
-  setCandidateArrayValue(field: EvolutionCandidateChangeFieldDescriptor, value: string) {
-    this.candidateDraft.update((current) => ({
-      ...current,
-      [field.key]: value
-        .split(/[\n,]/)
-        .map((item) => item.trim())
-        .filter(Boolean)
-    }))
-  }
-
-  candidateArrayText(field: EvolutionCandidateChangeFieldDescriptor) {
-    const value = this.candidateValue(field)
-    return Array.isArray(value) ? value.join('\n') : ''
-  }
-
-  async buildCandidate() {
-    const proposal = this.selectedProposal()
-    if (!proposal || !this.canBuildCandidate() || !this.candidateDraftValid()) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateDescription'),
-        actionText: this.#translate.instant('XP.AgentEvolution.BuildCandidate'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (confirmed) await this.facade.buildCandidate(proposal, this.candidateDraft())
-  }
-}
-
-function cloneDefaultValue(value: EvolutionCandidateChangeFieldDescriptor['defaultValue']) {
-  return Array.isArray(value) ? [...value] : (value ?? '')
-}
-
-function hasFieldValue(value: string | number | boolean | string[] | undefined) {
-  if (Array.isArray(value)) return value.length > 0
-  if (typeof value === 'string') return value.trim().length > 0
-  return value !== undefined && value !== null && !Number.isNaN(value)
 }

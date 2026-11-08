@@ -97,6 +97,15 @@ export interface EvolutionTargetDescriptor {
   riskLevel: EvolutionRiskLevel
   metricSetId: string
   relatedTargetIds?: string[]
+  /** Provider vocabulary for feedback emitted by this target, including previously recorded events. */
+  feedbackVocabulary?: {
+    /** Stable reason codes that denote a correction to a prediction. */
+    correctionReasons: string[]
+    /** Localized labels for exact scalar prediction and outcome values. */
+    values?: Record<string, I18nText>
+    /** Localized labels for provider-owned reason codes. */
+    reasons?: Record<string, I18nText>
+  }
   candidateForm?: EvolutionCandidateFormDescriptor
   capabilities: EvolutionTargetCapabilities
   status: 'active' | 'disabled' | 'provider_unavailable'

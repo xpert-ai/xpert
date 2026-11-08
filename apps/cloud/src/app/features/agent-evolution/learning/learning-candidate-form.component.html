@@ -1,0 +1,89 @@
+<section class="space-y-3 border-t border-divider-subtle pt-4">
+  <div>
+    <div class="text-sm font-semibold text-text-primary">
+      {{ 'XP.AgentEvolution.CandidateChangeSet' | translate }}
+    </div>
+    <p class="mt-1 text-sm leading-5 text-text-secondary">
+      @if (candidateTarget()?.candidateForm?.description; as description) {
+        {{ description | i18n }}
+      } @else {
+        {{ 'XP.AgentEvolution.ProviderDefinedCandidateFields' | translate }}
+      }
+    </p>
+  </div>
+  @if (candidateTarget()?.capabilities?.candidateBuild && candidateTarget()?.candidateForm) {
+    @for (field of candidateFields(); track field.key) {
+      <label class="block text-sm text-text-secondary">
+        @if (field.type !== 'boolean') {
+          <span class="mb-1.5 flex items-center gap-1 font-medium">
+            {{ field.label | i18n }}
+            @if (field.required) {
+              <span class="text-text-destructive">*</span>
+            }
+          </span>
+        }
+        @switch (field.type) {
+          @case ('select') {
+            <z-select
+              class="w-full"
+              [zValue]="candidateSelectValue(field)"
+              [zPlaceholder]="
+                field.placeholder ? (field.placeholder | i18n) : ('XP.AgentEvolution.SelectValue' | translate)
+              "
+              (zSelectionChange)="setCandidateSelectValue(field, $event)"
+            >
+              @for (option of field.options || []; track option.value) {
+                <z-select-item [zValue]="option.value">{{ option.label | i18n }}</z-select-item>
+              }
+            </z-select>
+          }
+          @case ('string_array') {
+            <textarea
+              z-input
+              class="min-h-20 w-full resize-y py-2 font-mono text-sm"
+              [placeholder]="
+                field.placeholder ? (field.placeholder | i18n) : ('XP.AgentEvolution.OneValuePerLine' | translate)
+              "
+              [ngModel]="candidateArrayText(field)"
+              (ngModelChange)="setCandidateArrayValue(field, $event)"
+            ></textarea>
+          }
+          @case ('boolean') {
+            <z-checkbox [ngModel]="candidateValue(field)" (ngModelChange)="setCandidateValue(field, $event)">{{
+              field.label | i18n
+            }}</z-checkbox>
+          }
+          @default {
+            <input
+              z-input
+              class="w-full"
+              [type]="field.type === 'number' ? 'number' : 'text'"
+              [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+              [ngModel]="candidateValue(field)"
+              (ngModelChange)="setCandidateValue(field, $event)"
+            />
+          }
+        }
+        @if (field.description) {
+          <span class="mt-1 block text-sm leading-4 text-text-secondary">{{ field.description | i18n }}</span>
+        }
+      </label>
+    }
+    <button
+      z-button
+      class="min-h-[44px]"
+      type="button"
+      [zLoading]="facade.mutating()"
+      [zDisabled]="!candidateDraftValid()"
+      (click)="buildCandidate()"
+    >
+      <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.BuildIsolatedCandidate' | translate }}
+    </button>
+  } @else {
+    <div
+      class="rounded-lg border border-state-warning-hover bg-state-warning-hover/10 p-3 text-sm leading-5 text-text-warning"
+    >
+      {{ 'XP.AgentEvolution.CandidateBuildUnavailable' | translate }}
+    </div>
+  }
+</section>

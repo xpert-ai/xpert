@@ -295,43 +295,6 @@ export class AgentEvolutionFacade {
     })
   }
 
-  async createProposalForEvent(event: LearningEvent) {
-    return this.withMutation(async () => {
-      const analysis = await firstValueFrom(this.#api.diagnose(event.eventId))
-      const cluster = analysis.clusters.find((item) => item.eventIds.includes(event.eventId))
-      const diagnosis = analysis.diagnoses.find((item) => item.eventIds.includes(event.eventId))
-      if (!cluster || cluster.status !== 'proposal_ready') {
-        this.#toastr.error(this.#translate.instant('XP.AgentEvolution.InsufficientLearningEvidence'))
-        return null
-      }
-      const proposal = await firstValueFrom(
-        this.#api.createProposal({
-          strategyId: 'feedback_learning',
-          targetId: event.targetId,
-          scope: event.scope,
-          eventIds: cluster.eventIds,
-          title: this.#translate.instant('XP.AgentEvolution.ImprovementProposalTitle', {
-            targetId: event.targetId
-          }),
-          problemStatement: event.predictionSummary,
-          rootCause: diagnosis?.rootCause ?? (event.reasonCodes.join(', ') || 'unclassified'),
-          changeHypothesis: this.#translate.instant('XP.AgentEvolution.ProposalHypothesis'),
-          riskLevel: this.dashboard().targets.find((item) => item.targetId === event.targetId)?.riskLevel ?? 'R2'
-        })
-      )
-      this.dashboard.update((current) => ({
-        ...current,
-        proposals: [proposal, ...current.proposals],
-        diagnoses: [...analysis.diagnoses, ...current.diagnoses],
-        clusters: [...analysis.clusters, ...current.clusters]
-      }))
-      this.#toastr.success('XP.AgentEvolution.ProposalCreated', {
-        Default: 'Improvement proposal created without changing Production'
-      })
-      return proposal
-    })
-  }
-
   async buildCandidate(proposal: ImprovementProposal, changeSet: Record<string, string | number | boolean | string[]>) {
     return this.withMutation(async () => {
       const candidate = await firstValueFrom(

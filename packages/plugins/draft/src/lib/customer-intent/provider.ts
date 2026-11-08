@@ -51,8 +51,24 @@ export class CustomerIntentProvider implements EvolutionTargetProvider {
     strategies: [FEEDBACK_LEARNING_STRATEGY],
     status: 'active',
     capabilities: { candidateBuild: true, replay: true, install: true, shadow: true, canary: true, rollback: true },
+    feedbackVocabulary: {
+      correctionReasons: ['route_corrected'],
+      values: {
+        order_status: { en_US: 'Order status', zh_Hans: '订单进度', zh_Hant: '訂單進度' },
+        refund: { en_US: 'Refund', zh_Hans: '退款', zh_Hant: '退款' },
+        other: { en_US: 'Other', zh_Hans: '其他', zh_Hant: '其他' }
+      },
+      reasons: {
+        route_corrected: { en_US: 'Route corrected', zh_Hans: '路由已纠正', zh_Hant: '路由已糾正' },
+        route_confirmed: { en_US: 'Route confirmed', zh_Hans: '路由已确认', zh_Hant: '路由已確認' }
+      }
+    },
     candidateForm: {
-      description: 'Build rules from the reviewed routing corrections.',
+      description: {
+        en_US: 'Build rules from the reviewed routing corrections.',
+        zh_Hans: '使用已复核的路由纠正构建候选规则。',
+        zh_Hant: '使用已復核的路由糾正建立候選規則。'
+      },
       fields: [
         {
           key: 'expandIntentVocabulary',

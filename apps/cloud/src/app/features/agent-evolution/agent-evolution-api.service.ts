@@ -30,6 +30,12 @@ import type {
   EvolutionTargetDescriptor,
   ImprovementProposal,
   LearningEvent,
+  EvolutionLearningQuery,
+  EvolutionLearningPage,
+  LearningReviewRow,
+  LearningProposalRow,
+  LearningProposalCheck,
+  ConfirmLearningProposalRequest,
   ReleaseDeployment,
   ReleasePackage,
   ReviewLearningEventRequest,
@@ -118,6 +124,27 @@ export class AgentEvolutionApiService {
     })
   }
 
+  learningReview(query: EvolutionLearningQuery) {
+    return this.#http.get<EvolutionLearningPage<LearningReviewRow>>(`${API_AGENT_EVOLUTION}/learning/events`, {
+      params: queryParams(query)
+    })
+  }
+  learningProposals(query: EvolutionLearningQuery) {
+    return this.#http.get<EvolutionLearningPage<LearningProposalRow>>(`${API_AGENT_EVOLUTION}/learning/proposals`, {
+      params: queryParams(query)
+    })
+  }
+  checkLearningProposal(eventId: string) {
+    return this.#http.get<LearningProposalCheck>(
+      `${API_AGENT_EVOLUTION}/learning/events/${encodeURIComponent(eventId)}/check`
+    )
+  }
+  confirmLearningProposal(eventId: string, request: ConfirmLearningProposalRequest) {
+    return this.#http.post<ImprovementProposal>(
+      `${API_AGENT_EVOLUTION}/learning/events/${encodeURIComponent(eventId)}/proposal`,
+      request
+    )
+  }
   reviewLearningEvent(eventId: string, request: ReviewLearningEventRequest) {
     return this.#http.patch<LearningEvent>(`${API_AGENT_EVOLUTION}/learning-events/${eventId}/review`, request)
   }

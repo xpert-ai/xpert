@@ -1,6 +1,7 @@
 export * from './target'
 export * from './capability-version'
 export * from './learning-event'
+export * from './learning-review'
 export * from './candidate'
 export * from './evaluation'
 export * from './release'

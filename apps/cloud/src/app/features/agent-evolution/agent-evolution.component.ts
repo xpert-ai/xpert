@@ -75,6 +75,7 @@ export class AgentEvolutionComponent {
   readonly pageHeader = computed(() => {
     const path = this.currentUrl().split(/[?#]/)[0].replace(/\/$/, '')
     if (path === '/agent-evolution/overview') return 'XP.AgentEvolution.TabOverview'
+    if (path === '/agent-evolution/learning') return 'XP.AgentEvolution.TabLearning'
     if (path === '/agent-evolution/targets') return 'XP.AgentEvolution.TabTargets'
     return null
   })
