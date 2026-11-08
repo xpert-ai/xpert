@@ -1,3 +1,4 @@
+import { listScopedValues } from './evolution-scoped-list'
 import { finalizeCheckedProposal } from '../learning/finalize-checked-proposal'
 import { sameScope } from './evolution-governance.helpers'
 import { applyEvolutionSearch } from './evolution-search'
@@ -35,6 +36,7 @@ import type {
     EvolutionJob,
     EvolutionJobStatus,
     EvolutionPage,
+    EvolutionReleaseEvidenceQuery,
     EvolutionPageQuery,
     EvolutionRuntimeObservation,
     EvolutionDiagnosis,
@@ -50,7 +52,7 @@ import type {
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { createHash } from 'crypto'
-import { DataSource, In, IsNull, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm'
+import { DataSource, In, IsNull, Repository } from 'typeorm'
 import {
     ActiveCapabilityPointerEntity,
     ApprovalDecisionEntity,
@@ -237,28 +239,26 @@ export class AgentEvolutionStore {
     }
 
     async listCapabilityVersions(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.versionRepository, tenant, query, 'version', 'targetId')
+        return listScopedValues(this.versionRepository, tenant, query, 'version', { targetColumn: 'targetId' })
     }
 
     async listCapabilityBundles(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.bundleRepository, tenant, query, 'bundle')
+        return listScopedValues(this.bundleRepository, tenant, query, 'bundle')
     }
 
     async listActivePointers(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.pointerRepository, tenant, query, 'pointer', 'targetId', 'channel')
+        return listScopedValues(this.pointerRepository, tenant, query, 'pointer', {
+            targetColumn: 'targetId',
+            statusColumn: 'channel'
+        })
     }
 
     async listProposals(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        const result = await this.listJsonValues(
-            this.proposalRepository,
-            tenant,
-            query,
-            'proposal',
-            'targetId',
-            'status',
-            false,
-            { field: 'sourceKind', value: 'learning_events' }
-        )
+        const result = await listScopedValues(this.proposalRepository, tenant, query, 'proposal', {
+            targetColumn: 'targetId',
+            statusColumn: 'status',
+            mechanism: { field: 'sourceKind', value: 'learning_events' }
+        })
         return { ...result, items: result.items.filter(isLearningProposal) }
     }
 
@@ -273,36 +273,37 @@ export class AgentEvolutionStore {
     }
 
     async listCandidates(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues<EvolutionCandidateEntity, EvolutionCandidate>(
+        return listScopedValues<EvolutionCandidateEntity, EvolutionCandidate>(
             this.candidateRepository,
             tenant,
             query,
             'candidate',
-            'targetId',
-            'status',
-            false,
-            undefined,
-            'self',
-            ['candidateId', 'targetId', 'providerKey', 'status', 'proposalId']
+            {
+                targetColumn: 'targetId',
+                statusColumn: 'status',
+                strategyOwner: 'self',
+                searchFields: ['candidateId', 'targetId', 'providerKey', 'status', 'proposalId']
+            }
         )
     }
 
     async listDatasets(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.datasetRepository, tenant, query, 'dataset', undefined, undefined, true)
+        return listScopedValues(this.datasetRepository, tenant, query, 'dataset', { targetInValue: true })
     }
 
     async listEvaluations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        const result = await this.listJsonValues<EvaluationRunEntity, EvaluationRunEntity['value']>(
+        const result = await listScopedValues<EvaluationRunEntity, EvaluationRunEntity['value']>(
             this.evaluationRepository,
             tenant,
             query,
             'evaluation',
-            undefined,
-            'status',
-            true,
-            { field: 'evaluatorKind', value: 'golden_replay' },
-            'candidate',
-            ['runId', 'targetId', 'candidateId', 'status']
+            {
+                statusColumn: 'status',
+                targetInValue: true,
+                mechanism: { field: 'evaluatorKind', value: 'golden_replay' },
+                strategyOwner: 'candidate',
+                searchFields: ['runId', 'targetId', 'candidateId', 'status']
+            }
         )
         return { ...result, items: result.items.filter(isReplayEvaluation) }
     }
@@ -311,41 +312,62 @@ export class AgentEvolutionStore {
         tenant: EvolutionTenantScope,
         query: EvolutionPageQuery = {}
     ): Promise<EvolutionPage<ReleasePackage>> {
-        const result = await this.listJsonValues(
-            this.releaseRepository,
-            tenant,
-            query,
-            'release',
-            'targetId',
-            'status',
-            false,
-            { field: 'publicationKind', value: 'staged_rollout' },
-            'candidate'
-        )
+        const result = await listScopedValues(this.releaseRepository, tenant, query, 'release', {
+            targetColumn: 'targetId',
+            statusColumn: 'status',
+            mechanism: { field: 'publicationKind', value: 'staged_rollout' },
+            strategyOwner: 'candidate'
+        })
         return { ...result, items: result.items.filter(isStagedRelease) }
     }
 
     async listDeployments(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues<ReleaseDeploymentEntity, ReleaseDeployment>(
+        return listScopedValues<ReleaseDeploymentEntity, ReleaseDeployment>(
             this.deploymentRepository,
             tenant,
             query,
             'deployment',
-            undefined,
-            'status',
-            false,
-            undefined,
-            undefined,
-            ['deploymentId', 'releasePackageId', 'channel', 'status']
+            { statusColumn: 'status', searchFields: ['deploymentId', 'releasePackageId', 'channel', 'status'] }
         )
     }
 
-    async listRuntimeObservations(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.observationRepository, tenant, query, 'observation', 'targetId')
+    async listRuntimeObservations(tenant: EvolutionTenantScope, query: EvolutionReleaseEvidenceQuery = {}) {
+        return listScopedValues<EvolutionRuntimeObservationEntity, EvolutionRuntimeObservation>(
+            this.observationRepository,
+            tenant,
+            query,
+            'observation',
+            {
+                targetColumn: 'targetId',
+                narrow: (qb) => {
+                    if (query.releasePackageId)
+                        qb.innerJoin(
+                            ReleaseDeploymentEntity,
+                            'stage',
+                            'stage.deploymentId = observation.deploymentId AND stage.tenantId = observation.tenantId AND stage.organizationId IS NOT DISTINCT FROM observation.organizationId AND stage.releasePackageId = :releasePackageId',
+                            { releasePackageId: query.releasePackageId }
+                        )
+                }
+            }
+        )
     }
 
-    async listAuditEvents(tenant: EvolutionTenantScope, query: EvolutionPageQuery = {}) {
-        return this.listJsonValues(this.auditRepository, tenant, query, 'audit', undefined, 'action')
+    async listAuditEvents(tenant: EvolutionTenantScope, query: EvolutionReleaseEvidenceQuery = {}) {
+        return listScopedValues<EvolutionAuditEventEntity, EvolutionAuditEvent>(
+            this.auditRepository,
+            tenant,
+            query,
+            'audit',
+            {
+                statusColumn: 'action',
+                narrow: (qb) => {
+                    if (query.releasePackageId)
+                        qb.andWhere('audit.releasePackageId = :releasePackageId', {
+                            releasePackageId: query.releasePackageId
+                        })
+                }
+            }
+        )
     }
 
     async listDeploymentsForTarget(tenant: EvolutionTenantScope, targetId: string, scope: EvolutionScope) {
@@ -447,57 +469,6 @@ export class AgentEvolutionStore {
         entity.status = status
         entity.value = { ...entity.value, ...patch, status }
         return (await this.jobRepository.save(entity)).value
-    }
-
-    private async listJsonValues<TEntity extends ObjectLiteral & { value: TValue }, TValue>(
-        repository: Repository<TEntity>,
-        tenant: EvolutionTenantScope,
-        query: EvolutionPageQuery,
-        alias: string,
-        targetColumn?: string,
-        statusColumn?: string,
-        targetInValue = false,
-        mechanism?: { field: 'sourceKind' | 'evaluatorKind' | 'publicationKind'; value: string },
-        strategyOwner?: 'self' | 'candidate',
-        searchFields: readonly (keyof TValue & string)[] = []
-    ): Promise<EvolutionPage<TValue>> {
-        const pagination = normalizePage(query)
-        const qb = repository.createQueryBuilder(alias).where(`${alias}.tenantId = :tenantId`, {
-            tenantId: tenant.tenantId
-        })
-        applyOrganizationScope(qb, tenant, alias)
-        if (strategyOwner === 'self') qb.andWhere(`${alias}.value -> 'strategy' ->> 'hash' IS NOT NULL`)
-        if (strategyOwner === 'candidate') {
-            qb.innerJoin(
-                EvolutionCandidateEntity,
-                'strategyCandidate',
-                `strategyCandidate.candidateId = ${alias}.candidateId AND strategyCandidate.tenantId = ${alias}.tenantId AND strategyCandidate.organizationId IS NOT DISTINCT FROM ${alias}.organizationId`
-            ).andWhere(`strategyCandidate.value -> 'strategy' ->> 'hash' IS NOT NULL`)
-        }
-        if (query.targetId && targetColumn) {
-            qb.andWhere(`${alias}.${targetColumn} = :targetId`, { targetId: query.targetId })
-        } else if (query.targetId && targetInValue) {
-            qb.andWhere(`${alias}.value ->> 'targetId' = :targetId`, { targetId: query.targetId })
-        }
-        if (query.status && statusColumn) qb.andWhere(`${alias}.${statusColumn} = :status`, { status: query.status })
-        if (mechanism)
-            qb.andWhere(`${alias}.value ->> '${mechanism.field}' = :mechanism`, { mechanism: mechanism.value })
-        applyEvolutionSearch(
-            qb,
-            query.search,
-            searchFields.map((field) => `${alias}.value ->> '${field}'`)
-        )
-        const sortColumn = query.sort === 'updatedAt' ? 'updatedAt' : 'createdAt'
-        const [items, total] = await qb
-            .orderBy(`${alias}.${sortColumn}`, query.order ?? 'DESC')
-            .skip(pagination.skip)
-            .take(pagination.pageSize)
-            .getManyAndCount()
-        return page(
-            items.map((item) => item.value),
-            total,
-            pagination
-        )
     }
 
     async saveVersion(tenant: EvolutionTenantScope, version: CapabilityVersion) {

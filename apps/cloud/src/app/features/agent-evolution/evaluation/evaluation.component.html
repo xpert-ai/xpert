@@ -486,14 +486,27 @@
         <i class="ri-information-line mr-1"></i
         >{{ prefix + (stage() === 'result' ? 'HistoryNote' : 'DirectoryNote') | translate }}
       </p>
-      @if (resource() && (stage() === 'result' || stage() === 'prepare')) {
-        <button
-          class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-          (click)="go({ changeId: id()!, view: 'checks' })"
-        >
-          {{ prefix + 'Governance' | translate }}<i class="ri-arrow-right-s-line"></i>
-        </button>
-      }
+      <div class="flex flex-wrap items-center gap-3">
+        @if (resource() && (stage() === 'result' || stage() === 'prepare')) {
+          <button
+            class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+            (click)="go({ changeId: id()!, view: 'checks' })"
+          >
+            {{ prefix + 'Governance' | translate }}<i class="ri-arrow-right-s-line"></i>
+          </button>
+        }
+        @if (record(); as rec) {
+          @if (rec.phase === 'publication' || rec.publication) {
+            <a
+              class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+              routerLink="/agent-evolution/release"
+              [queryParams]="{ target: rec.targetId, changeId: rec.id }"
+            >
+              {{ 'XP.AgentEvolution.TabRelease' | translate }}<i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+            </a>
+          }
+        }
+      </div>
     </div>
   </div>
 </main>

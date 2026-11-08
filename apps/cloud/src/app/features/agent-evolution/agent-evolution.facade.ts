@@ -18,6 +18,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 import { EMPTY_EVOLUTION_DASHBOARD, sameEvolutionScope, type AgentEvolutionDashboard } from './agent-evolution.types'
+import type { ReleaseCommand } from './release/release-presentation'
 import { selectedReplayEvaluation } from './shared/evolution-change-presentation'
 import { loadAllEvolutionPages } from './shared/evolution-pagination'
 
@@ -149,19 +150,30 @@ export class AgentEvolutionFacade {
     this.error.set(null)
   }
 
-  async refreshChanges() {
+  async refreshChanges(includeRelease = false) {
     const scopeRevision = this.#scopeRevision
     const loadRevision = this.#loadRevision
     try {
       const activeJob = this.activeJob()
-      const [changes, lifecycle, job] = await Promise.all([
+      const [changes, lifecycle, job, runtime] = await Promise.all([
         firstValueFrom(this.#api.listChanges()),
         firstValueFrom(this.#api.listLifecycleRecords()),
         activeJob && ['pending', 'running', 'queued'].includes(activeJob.status)
           ? firstValueFrom(this.#api.getJob(activeJob.jobId))
+          : Promise.resolve(null),
+        includeRelease
+          ? Promise.all([
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listReleases({ page, pageSize: 100 }))),
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDeployments({ page, pageSize: 100 }))),
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listActivePointers({ page, pageSize: 100 })))
+            ])
           : Promise.resolve(null)
       ])
       if (scopeRevision !== this.#scopeRevision || loadRevision !== this.#loadRevision) return
+      if (runtime) {
+        const [releases, deployments, pointers] = runtime
+        this.dashboard.update((d) => ({ ...d, releases, deployments, pointers }))
+      }
       this.changes.set(changes)
       this.lifecycleRecords.set(lifecycle.items)
       if (job && this.activeJob()?.jobId === job.jobId) this.activeJob.set(job)
@@ -206,12 +218,12 @@ export class AgentEvolutionFacade {
         firstValueFrom(this.#api.listDiagnoses({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listClusters({ page: 1, pageSize: 50 })),
         loadAllEvolutionPages((page) => firstValueFrom(this.#api.listProposals({ page, pageSize: 50 }))),
-        firstValueFrom(this.#api.listExperiences({ page: 1, pageSize: 50 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listExperiences({ page, pageSize: 100 }))),
         loadAllEvolutionPages((page) => firstValueFrom(this.#api.listCandidates({ page, pageSize: 50 }))),
         loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDatasets({ page, pageSize: 50 }))),
         loadAllEvolutionPages((page) => firstValueFrom(this.#api.listEvaluations({ page, pageSize: 50 }))),
-        firstValueFrom(this.#api.listReleases({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listDeployments({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listReleases({ page, pageSize: 100 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDeployments({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listChanges())
           .then((value) => ({ value, error: null }))
           .catch((error) => ({ value: [], error: getErrorMessage(error) })),
@@ -223,7 +235,7 @@ export class AgentEvolutionFacade {
       this.providerError.set(providerRecords.error)
       this.eventPage.set(events)
       this.candidatePage.set({ items: candidates, total: candidates.length, page: 1, pageSize: candidates.length })
-      this.releasePage.set(releases)
+      this.releasePage.set({ items: releases, total: releases.length, page: 1, pageSize: 100 })
       this.dashboard.set({
         ...EMPTY_EVOLUTION_DASHBOARD,
         ...dashboard,
@@ -235,12 +247,12 @@ export class AgentEvolutionFacade {
         diagnoses: diagnoses.items,
         clusters: clusters.items,
         proposals,
-        experiences: experiences.items,
+        experiences,
         candidates,
         datasets,
         evaluations,
-        releases: releases.items,
-        deployments: deployments.items
+        releases,
+        deployments
       })
       this.normalizeSelections()
       this.loadedAt.set(new Date())
@@ -473,48 +485,75 @@ export class AgentEvolutionFacade {
   }
 
   async packageRelease(candidateId: string, evaluationRunId: string, approvalIds: string[]) {
+    if (this.mutating()) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       const release = await firstValueFrom(this.#api.publishChange(candidateId))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
+      if (revision !== this.#scopeRevision) return null
       this.selectedReleasePackageId.set(release.releasePackageId ?? null)
       return release
     })
   }
 
-  async runReleaseAction(release: ReleasePackage) {
+  async runReleaseAction(release: ReleasePackage, command: ReleaseCommand) {
+    const id = release.releasePackageId
+    if (this.mutating() || this.releaseJobPending(id)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
-      let job: EvolutionJob | null = null
-      if (release.status === 'approved') job = await firstValueFrom(this.#api.installRelease(release.releasePackageId))
-      else if (release.status === 'installed')
-        job = await firstValueFrom(this.#api.startShadow(release.releasePackageId))
-      else if (release.status === 'shadow') {
-        job = await firstValueFrom(this.#api.startCanary(release.releasePackageId, { canaryPercent: 5 }))
-      } else if (release.status === 'canary' && release.canaryPercent < 50) {
-        job = await firstValueFrom(
-          this.#api.startCanary(release.releasePackageId, { canaryPercent: release.canaryPercent === 5 ? 25 : 50 })
-        )
-      } else if (release.status === 'canary') {
-        await firstValueFrom(this.#api.activateRelease(release.releasePackageId))
-      } else if (release.status === 'active') {
-        await firstValueFrom(this.#api.createExperience(release.releasePackageId))
+      let job: EvolutionJob | undefined
+      switch (command) {
+        case 'install':
+          job = await firstValueFrom(this.#api.installRelease(id))
+          break
+        case 'shadow':
+          job = await firstValueFrom(this.#api.startShadow(id))
+          break
+        case 'canary5':
+        case 'canary25':
+        case 'canary50':
+          job = await firstValueFrom(
+            this.#api.startCanary(id, { canaryPercent: command === 'canary5' ? 5 : command === 'canary25' ? 25 : 50 })
+          )
+          break
+        case 'activate':
+          await firstValueFrom(this.#api.activateRelease(id))
+          break
+        case 'experience':
+          await firstValueFrom(this.#api.createExperience(id))
+          break
       }
-      if (job) await this.waitForJob(job)
+      if (revision !== this.#scopeRevision) return null
+      if (job) await this.waitForJob(job, revision)
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
-      return job
+      return true
     })
   }
 
+  releaseJobPending(id: string) {
+    const job = this.activeJob()
+    return job?.resourceId === id && (job.status === 'queued' || job.status === 'running')
+  }
+
   async pauseRelease(releasePackageId: string) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       await firstValueFrom(this.#api.pauseRelease(releasePackageId))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       return true
     })
   }
 
   async createCanaryTestOverride(releasePackageId: string, request: CreateEvolutionCanaryTestOverrideRequest) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       const override = await firstValueFrom(this.#api.createCanaryTestOverride(releasePackageId, request))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       this.#toastr.success('XP.AgentEvolution.CanaryTestOverrideCreated')
       return override
@@ -522,18 +561,24 @@ export class AgentEvolutionFacade {
   }
 
   async rollbackRelease(releasePackageId: string) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       const job = await firstValueFrom(this.#api.rollbackRelease(releasePackageId))
-      await this.waitForJob(job)
+      if (revision !== this.#scopeRevision) return null
+      await this.waitForJob(job, revision)
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       return true
     })
   }
 
-  private async waitForJob(initial: EvolutionJob) {
+  private async waitForJob(initial: EvolutionJob, revision: number) {
     this.activeJob.set(initial)
     for (let attempt = 0; attempt < 60; attempt++) {
+      if (revision !== this.#scopeRevision) return null
       const job = await firstValueFrom(this.#api.getJob(initial.jobId))
+      if (revision !== this.#scopeRevision) return null
       if (!job) throw new Error('Evolution job disappeared')
       this.activeJob.set(job)
       if (job.status === 'completed') return job

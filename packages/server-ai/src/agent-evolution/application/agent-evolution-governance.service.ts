@@ -34,6 +34,7 @@ import type {
     EvolutionCanaryTestOverride,
     EvolutionCandidate,
     EvolutionExperience,
+    EvolutionReleaseEvidenceQuery,
     EvolutionPageQuery,
     EvolutionProviderContext,
     EvolutionReleaseGatePolicy,
@@ -247,11 +248,11 @@ export class AgentEvolutionGovernanceService {
         return this.store.createCanaryTestOverride(tenant, override, audit)
     }
 
-    listRuntimeObservations(context: EvolutionCommandContext, query: EvolutionPageQuery) {
+    listRuntimeObservations(context: EvolutionCommandContext, query: EvolutionReleaseEvidenceQuery) {
         return this.store.listRuntimeObservations(toTenantScope(context), query)
     }
 
-    listAuditEvents(context: EvolutionCommandContext, query: EvolutionPageQuery) {
+    listAuditEvents(context: EvolutionCommandContext, query: EvolutionReleaseEvidenceQuery) {
         return this.store.listAuditEvents(toTenantScope(context), query)
     }
 
@@ -719,6 +720,11 @@ export class AgentEvolutionGovernanceService {
         const entity = await this.store.findRelease(tenant, releasePackageId)
         if (!entity) throw new NotFoundException('Release Package was not found')
         const release = entity.value
+        if (operation === 'shadow' || operation === 'canary') {
+            const pointer = await this.store.findPointer(tenant, release.targetId, release.scope, 'production')
+            if (!pointer || pointer.activeVersionId !== release.rollbackVersionId)
+                throw new ConflictException('Production pointer no longer matches the approved rollback version')
+        }
         const provider = this.providers.get(release.targetId, context.organizationId ?? undefined)
         const releaseProvider = provider.releaseProvider
         if (!releaseProvider) throw new BadRequestException(`Release Provider is required for ${operation}`)

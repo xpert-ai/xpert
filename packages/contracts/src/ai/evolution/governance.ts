@@ -9,6 +9,12 @@ export interface EvolutionPageQuery {
   order?: 'ASC' | 'DESC'
 }
 
+/** Filters runtime observations or audit events without widening the caller’s organization scope. */
+export interface EvolutionReleaseEvidenceQuery extends EvolutionPageQuery {
+  /** Limits evidence to the named release package and its deployments. */
+  releasePackageId?: string
+}
+
 /** Page of visible records and the total number matching the query across pages. */
 export interface EvolutionPage<T> {
   items: T[]

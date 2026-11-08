@@ -7,6 +7,7 @@ import {
   type EvaluationRun,
   type EvolutionCandidate,
   type EvolutionChange,
+  type ReleasePackage,
   type EvolutionLifecycleRecord
 } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
@@ -282,4 +283,31 @@ describe('isolated replay submission', () => {
     expect(facade.pendingReplay()).toBeNull()
     expect(facade.error()).toBe('replay failed')
   })
+})
+
+it('submits one canary expansion to the selected package while its job is outstanding', async () => {
+  const queue = new Subject<{ jobId: string; resourceId: string; status: string }>()
+  const startCanary = jest.fn(() => queue)
+  Object.assign(api, { startCanary })
+  const pack = { releasePackageId: 'selected-release' } as ReleasePackage
+  const pending = facade.runReleaseAction(pack, 'canary25')
+  expect(await facade.runReleaseAction(pack, 'canary50')).toBeNull()
+  expect(startCanary).toHaveBeenCalledTimes(1)
+  expect(startCanary).toHaveBeenCalledWith('selected-release', { canaryPercent: 25 })
+  api.getJob.mockReturnValue(of({ jobId: 'job-25', resourceId: 'selected-release', status: 'completed' }))
+  queue.next({ jobId: 'job-25', resourceId: 'selected-release', status: 'queued' })
+  expect(await pending).toBe(true)
+  expect(facade.activeJob()?.status).toBe('completed')
+  expect(facade.load).toHaveBeenCalledWith({ silent: true })
+})
+
+it('does not surface a release job after the organization changes', async () => {
+  const install = new Subject<{ jobId: string; resourceId: string; status: string }>()
+  Object.assign(api, { installRelease: () => install })
+  const work = facade.runReleaseAction({ releasePackageId: 'old-selection' } as ReleasePackage, 'install')
+  facade.resetScopeContext()
+  install.next({ jobId: 'old-job', resourceId: 'old-selection', status: 'queued' })
+  expect(await work).toBeNull()
+  expect(facade.activeJob()).toBeNull()
+  expect(api.getJob).not.toHaveBeenCalled()
 })

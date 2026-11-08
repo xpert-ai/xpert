@@ -10,6 +10,7 @@ import type {
     CreateReleasePackageRequest,
     DecideCandidateApprovalRequest,
     EvaluateCandidateCommand,
+    EvolutionReleaseEvidenceQuery,
     EvolutionPageQuery,
     ResolveCapabilityExecutionPlanRequest,
     ReviewLearningEventRequest,
@@ -274,15 +275,15 @@ export class AgentEvolutionController {
     @Get('runtime-observations')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
-    listRuntimeObservations(@Query() query: EvolutionPageQuery) {
-        return this.governance.listRuntimeObservations(commandContext(), normalizeQuery(query))
+    listRuntimeObservations(@Query() query: EvolutionReleaseEvidenceQuery) {
+        return this.governance.listRuntimeObservations(commandContext(), normalizeReleaseEvidence(query))
     }
 
     @Get('audit-events')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
-    listAuditEvents(@Query() query: EvolutionPageQuery) {
-        return this.governance.listAuditEvents(commandContext(), normalizeQuery(query))
+    listAuditEvents(@Query() query: EvolutionReleaseEvidenceQuery) {
+        return this.governance.listAuditEvents(commandContext(), normalizeReleaseEvidence(query))
     }
 
     @Get('experiences')
@@ -419,6 +420,14 @@ function learningQuery(raw: Record<string, string>): EvolutionLearningQuery {
         eventId: raw.eventId?.slice(0, 240),
         proposalId: raw.proposalId?.slice(0, 240),
         revision: Number(raw.revision) || undefined
+    }
+}
+
+function normalizeReleaseEvidence(query: EvolutionReleaseEvidenceQuery): EvolutionReleaseEvidenceQuery {
+    return {
+        ...normalizeQuery(query),
+        releasePackageId:
+            typeof query.releasePackageId === 'string' ? query.releasePackageId.trim().slice(0, 240) : undefined
     }
 }
 
