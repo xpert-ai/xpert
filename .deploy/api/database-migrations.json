@@ -111,6 +111,7 @@
     "ai/user-notification/migrations/checks/20261031010000-user-notifications.sql",
     "ai/artifacts/use-grants/migrations/checks/20261107000100-artifact-use-grants.sql",
     "ai/artifacts/use-grants/migrations/checks/20261107000200-artifact-group-references.sql",
-    "ai/artifacts/use-grants/migrations/checks/20261108000100-resource-analysis.sql"
+    "ai/artifacts/use-grants/migrations/checks/20261108000100-resource-analysis.sql",
+    "ai/artifacts/use-grants/migrations/checks/20261108000200-artifact-grant-uuid-extension.sql"
   ]
 }
