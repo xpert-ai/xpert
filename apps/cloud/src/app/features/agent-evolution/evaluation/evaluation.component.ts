@@ -235,6 +235,25 @@ export class AgentEvolutionEvaluationComponent {
     effect(() => {
       if (this.stage() === 'latest' && this.latest()) untracked(() => this.showRun(this.latest()!, true))
     })
+    effect(() => {
+      const change = this.resource()
+      if (
+        this.stage() === 'checks' &&
+        change?.candidate?.artifact?.hash &&
+        change.evaluation &&
+        ['pending_approval', 'approved', 'publishing', 'published', 'rejected', 'test_failed', 'stale'].includes(
+          change.status
+        )
+      ) {
+        untracked(
+          () =>
+            void this.router.navigate(['/agent-evolution/evaluation/approval', change.changeId], {
+              queryParams: { target: this.q().get('target') },
+              replaceUrl: true
+            })
+        )
+      }
+    })
     // A second tab can finish a run while this page is open. Refresh its persisted metrics once per new assessment.
     let hydrated = ''
     effect(() => {

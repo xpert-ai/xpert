@@ -16,6 +16,10 @@ export const routes: Routes = [
         loadComponent: () => import('./learning/learning.component').then((m) => m.AgentEvolutionLearningComponent)
       },
       {
+        path: 'evaluation/approval/:changeId',
+        loadComponent: () => import('./approval/approval.component').then((m) => m.EvolutionApprovalComponent)
+      },
+      {
         path: 'evaluation',
         loadComponent: () =>
           import('./evaluation/evaluation.component').then((m) => m.AgentEvolutionEvaluationComponent)

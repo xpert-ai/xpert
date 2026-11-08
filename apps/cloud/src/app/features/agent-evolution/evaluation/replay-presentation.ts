@@ -29,7 +29,7 @@ export function displayOutput(
 }
 export function compactId(value: string) {
   // Keep the type prefix and the first full UUID group; the full identity remains on the link/title.
-  return value.replace(/^([\w]+-[0-9a-f]{8})-[0-9a-f-]+$/i, '$1')
+  return value.replace(/^([\w-]+?-[0-9a-f]{8})-[0-9a-f-]+$/i, '$1')
 }
 export function bundleVersion(run: EvaluationRun, side: 'baselineBundle' | 'candidateBundle') {
   const items = run[side].items

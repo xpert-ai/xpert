@@ -106,7 +106,25 @@
         <button z-button zType="outline" (click)="goto('directory')">{{ prefix + 'Directory' | translate }}</button>
       </div>
       @if (resource(); as c) {
-        <xp-evolution-change-panel [change]="c" [lifecycle]="selected()" mode="release" />
+        @if (
+          c.candidate?.artifact?.hash &&
+          c.evaluation &&
+          ['pending_approval', 'test_failed', 'approved', 'publishing', 'published', 'rejected', 'stale'].includes(
+            c.status
+          )
+        ) {
+          <div class="mb-4">
+            <a
+              z-button
+              zType="outline"
+              [routerLink]="['/agent-evolution/evaluation/approval', c.changeId]"
+              [queryParams]="{ target: c.targetId }"
+            >
+              {{ 'XP.AgentEvolution.Approval.Title' | translate }} <i class="ri-arrow-right-line" aria-hidden="true"></i
+            ></a>
+          </div>
+        }
+        <xp-evolution-change-panel [change]="c" [lifecycle]="selected()" mode="release" [readOnly]="true" />
       } @else {
         <p class="p-5 text-text-secondary">{{ prefix + 'NoPackage' | translate }}</p>
       }

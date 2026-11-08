@@ -1,0 +1,386 @@
+<header class="shrink-0 border-b border-border">
+  <div class="mx-auto flex w-full max-w-[1320px] flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-8">
+    <nav
+      [attr.aria-label]="p + 'Breadcrumb' | translate"
+      class="flex flex-wrap items-center gap-1.5 text-sm text-text-secondary"
+    >
+      <a routerLink="/agent-evolution/overview" class="hover:underline">{{ 'XP.AgentEvolution.Title' | translate }}</a
+      ><i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      <a routerLink="/agent-evolution/evaluation" [queryParams]="backQuery()" class="hover:underline">{{
+        'XP.AgentEvolution.TabEvaluation' | translate
+      }}</a
+      ><i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      <strong class="font-medium text-foreground" aria-current="page">{{ p + 'Title' | translate }}</strong>
+    </nav>
+    <a z-button zType="outline" zSize="lg" routerLink="/agent-evolution/evaluation" [queryParams]="backQuery()"
+      ><i class="ri-arrow-left-line" aria-hidden="true"></i>{{ p + 'Back' | translate }}</a
+    >
+  </div>
+</header>
+<main class="min-h-0 flex-1 overflow-y-auto">
+  <div class="mx-auto w-full max-w-[1320px] px-4 py-5 sm:px-8">
+    @if (f.providerError() || (f.error() && !change())) {
+      <p class="mb-3 flex items-center gap-2 text-sm text-text-destructive" role="alert">
+        {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
+        <button z-button zType="outline" (click)="f.load()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
+      </p>
+    }
+    @if (change(); as c) {
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="xp-page-title">{{ p + 'Title' | translate }}</h1>
+          <span
+            class="rounded border border-border px-1.5 text-sm font-medium"
+            [class]="
+              c.status === 'pending_approval'
+                ? 'bg-state-warning-hover/10 text-text-warning'
+                : c.status === 'rejected'
+                  ? 'text-text-destructive'
+                  : 'bg-muted text-text-secondary'
+            "
+          >
+            @if (record()?.releasePackageId) {
+              {{ 'XP.AgentEvolution.Status.' + record()?.status | translate }}
+            } @else {
+              {{
+                c.status === 'pending_approval'
+                  ? (p + 'Pending' | translate)
+                  : ('XP.AgentEvolution.ResourceStatus.' + c.status | translate)
+              }}
+            }
+          </span>
+        </div>
+        <p class="text-sm text-text-secondary">
+          {{ 'XP.AgentEvolution.Directory.Scope' | translate }}
+          <b class="ml-2 font-medium text-foreground">{{ targetName() }}</b>
+        </p>
+      </div>
+      <section class="overflow-hidden rounded-lg border border-border bg-card">
+        <div class="flex flex-wrap items-start justify-between gap-2 px-4 py-3">
+          <div class="min-w-0">
+            <h2 class="break-words text-xl font-semibold">{{ title() }}</h2>
+            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-secondary">
+              <span>{{ targetName() }}</span
+              ><span
+                >{{ p + 'Candidate' | translate }} <code>{{ short(c.changeId) }}</code></span
+              >
+              <span
+                >{{ p + 'Fingerprint' | translate }} <code>{{ shortHash(c.candidate?.artifact?.hash) }}</code></span
+              >
+              <span
+                >{{ p + 'EvaluationShort' | translate }}
+                <code>{{ short(replay()?.runId || c.evaluation?.runId || '—') }}</code></span
+              >
+              <span>{{ 'XP.AgentEvolution.Risk' | translate }} {{ c.strategy.riskLevel }}</span>
+            </div>
+          </div>
+          <button class="text-sm font-medium text-text-accent hover:underline" (click)="open('identity')">
+            {{ p + 'Identity' | translate }} <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="divide-y divide-border border-y border-border bg-muted/35">
+          @for (delta of deltas(); track $index) {
+            <div
+              class="grid items-center gap-2 px-4 py-2.5 @xl/review:grid-cols-[minmax(0,1fr)_2rem_minmax(0,1fr)] [overflow-wrap:anywhere]"
+            >
+              <div>
+                <p class="text-sm text-text-secondary">
+                  {{ p + 'Before' | translate }} · {{ p + 'Baseline' | translate }} {{ c.baseline.version }}
+                </p>
+                <p class="mt-0.5">{{ delta.before || (p + 'NotReported' | translate) }}</p>
+              </div>
+              <i
+                class="ri-arrow-right-line hidden text-center text-text-secondary @xl/review:block"
+                aria-hidden="true"
+              ></i>
+              <div>
+                <p class="text-sm text-text-secondary">
+                  {{ p + 'After' | translate }}
+                  @if (deltas().length > 1) {
+                    · {{ delta.label }}
+                  }
+                </p>
+                <p class="mt-0.5 font-medium">{{ delta.after }}</p>
+              </div>
+            </div>
+          } @empty {
+            <p class="px-4 py-3 text-sm text-text-secondary">
+              {{ c.candidate?.summary || (p + 'NoDelta' | translate) }}
+            </p>
+          }
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+          <p class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 [overflow-wrap:anywhere]">
+            <b class="font-medium">{{ p + 'Evidence' | translate }}</b>
+            @if (business()?.evidence?.[0]; as src) {
+              <span>{{ src.quote }}</span
+              ><span class="text-text-secondary">{{ src.documentName }}</span>
+            } @else if (proposal(); as pr) {
+              <span>{{ p + 'FeedbackCount' | translate: { n: pr.evidenceEventIds.length } }}</span
+              ><span class="text-text-secondary">{{ pr.title }}</span>
+            } @else {
+              <span class="text-text-secondary">{{
+                p + 'RefCount' | translate: { n: c.evidence.length + c.learningEventIds.length }
+              }}</span>
+            }
+          </p>
+          <button class="shrink-0 font-medium text-text-accent hover:underline" (click)="open('source')">
+            {{ p + 'ViewEvidence' | translate }} <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </section>
+      <div class="my-4 grid gap-4 @3xl/review:grid-cols-[1.1fr_1fr]">
+        <section class="min-w-0 rounded-lg border border-border bg-card px-4 py-3">
+          <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="flex items-center gap-2 text-lg font-semibold">
+              <i class="ri-flask-line text-base text-text-secondary" aria-hidden="true"></i
+              >{{ p + 'Evaluation' | translate }}
+            </h2>
+            <button class="text-sm font-medium text-text-accent hover:underline" (click)="open('checks')">
+              {{ p + (replay() ? 'ViewReplay' : 'ViewChecks') | translate: { n: c.evaluation?.checks?.length ?? 0 } }}
+              <i class="ri-arrow-right-s-line"></i>
+            </button>
+          </div>
+          @if (c.evaluation?.assessment === 'not_applicable') {
+            <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.AssessmentNotApplicableHint' | translate }}</p>
+          } @else {
+            <dl
+              class="grid grid-cols-3 gap-2 [&_dt]:text-sm [&_dt]:text-text-secondary [&_dd]:text-xl [&_dd]:font-semibold [&_dd]:tabular-nums"
+            >
+              @if (replay(); as r) {
+                <div>
+                  <dt>{{ p + 'BaselineCorrect' | translate }}</dt>
+                  <dd>{{ replayCounts().baseline }} / {{ r.metrics.totalCases }}</dd>
+                </div>
+                <div>
+                  <dt>{{ p + 'CandidateCorrect' | translate }}</dt>
+                  <dd>{{ r.metrics.passedCases }} / {{ r.metrics.totalCases }}</dd>
+                </div>
+                <div>
+                  <dt>{{ p + 'Severe' | translate }}</dt>
+                  <dd>{{ r.metrics.severeErrors }}</dd>
+                </div>
+              } @else {
+                <div>
+                  <dt>{{ p + 'ChecksPassed' | translate }}</dt>
+                  <dd>{{ stats().passed ?? '—' }} / {{ c.evaluation?.checks?.length ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt>{{ p + 'Required' | translate }}</dt>
+                  <dd>{{ stats().requiredPassed }} / {{ stats().required.length }}</dd>
+                </div>
+                <div>
+                  <dt>{{ p + 'Concerns' | translate }}</dt>
+                  <dd>{{ p + 'Count' | translate: { n: stats().concerns.length } }}</dd>
+                </div>
+              }
+            </dl>
+            @if (replay(); as run) {
+              <div class="mt-2.5 border-t border-border pt-2 text-sm leading-relaxed text-text-secondary">
+                <p>{{ p + 'ReplayDelta' | translate: replayCounts() }}</p>
+                <p>
+                  {{ p + 'ReplayRun' | translate }} <code>{{ short(run.runId) }}</code> ·
+                  {{ p + 'Snapshot' | translate }} <code>{{ short(run.datasetSnapshotId) }}</code>
+                </p>
+              </div>
+            } @else if (stats().concerns.length) {
+              <div class="mt-2.5 space-y-1 border-t border-border pt-2 text-sm leading-relaxed text-text-secondary">
+                @for (check of stats().concerns; track check.checkId) {
+                  <p>
+                    <b class="mr-2 font-medium text-text-warning">{{ checkLabel(check.checkId, check.title) }}</b
+                    >{{ concernNote(check.checkId, check.details) }}
+                  </p>
+                }
+              </div>
+            }
+          }
+        </section>
+        <section class="min-w-0 rounded-lg border border-border bg-card px-4 py-3">
+          <div class="mb-2.5 flex items-center justify-between gap-2">
+            <h2 class="flex items-center gap-2 text-lg font-semibold">
+              <i class="ri-focus-3-line text-base text-text-secondary" aria-hidden="true"></i
+              >{{ p + 'Impact' | translate }}
+            </h2>
+            <span class="rounded border border-border bg-muted/30 px-1.5 text-sm">{{
+              p + c.strategy.definition.publication.mode | translate
+            }}</span>
+          </div>
+          <dl
+            class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-4 gap-y-1 [overflow-wrap:anywhere] [&_dt]:text-sm [&_dt]:text-text-secondary"
+          >
+            <dt>{{ p + 'Scope' | translate }}</dt>
+            <dd>
+              {{ p + ('Scope_' + c.scope.type) | translate }}
+              @if (c.scope.type === 'project' || c.scope.type === 'workspace') {
+                <code class="text-sm">{{ c.scope.key }}</code>
+              }
+              · {{ targetName() }}
+            </dd>
+            @if (business()?.context?.length) {
+              <dt>{{ 'XP.AgentEvolution.ChangeDetail.Context' | translate }}</dt>
+              <dd class="flex flex-wrap gap-x-3 gap-y-0.5">
+                @for (field of business()?.context; track field.key) {
+                  <span
+                    ><span class="text-sm text-text-secondary">{{ txt(field.label) }}</span>
+                    {{ field.value || '—' }}</span
+                  >
+                }
+              </dd>
+            }
+            @if (!direct() && changedFields().length) {
+              <dt>{{ p + 'ChangedFields' | translate }}</dt>
+              <dd>
+                @for (field of changedFields(); track $index) {
+                  <span [title]="field.key">{{ field.label }}: {{ field.value }}</span>
+                  @if (!$last) {
+                    ·
+                  }
+                }
+              </dd>
+            }
+            @if (business()?.adoption; as a) {
+              <dt>{{ p + 'Adoption' | translate }}</dt>
+              <dd>
+                {{ p + 'AdoptionCount' | translate: { n: a.adopted, total: a.total, subject: txt(a.subjectLabel) } }}
+              </dd>
+            }
+            <dt>{{ p + 'Baseline' | translate }}</dt>
+            <dd>{{ c.baseline.version }}</dd>
+            @if (!direct()) {
+              <dt>{{ p + 'SignAction' | translate }}</dt>
+              <dd>{{ p + 'NoTraffic' | translate }}</dd>
+            }
+          </dl>
+        </section>
+      </div>
+      <section class="overflow-hidden rounded-lg border border-border bg-card">
+        <div class="flex items-start gap-2.5 border-b border-border bg-muted/35 px-4 py-3">
+          <i [class]="direct() ? 'ri-file-upload-line' : 'ri-rocket-line'" aria-hidden="true"></i>
+          <div>
+            <h2 class="font-semibold">{{ p + (direct() ? 'Write' : 'StagedTitle') | translate }}</h2>
+            <p class="mt-0.5 text-sm leading-relaxed text-text-secondary">
+              {{
+                p +
+                  (direct()
+                    ? c.strategy.definition.publication.effect === 'explicit_adoption'
+                      ? 'DirectAdoptHint'
+                      : 'DirectHint'
+                    : 'StagedHint') | translate
+              }}
+            </p>
+          </div>
+        </div>
+        <div class="px-4 py-3">
+          @if (release()?.gatePolicy?.profile === 'manual_test') {
+            <p class="mb-2 text-sm text-text-secondary">{{ p + 'ManualGate' | translate }}</p>
+          } @else if (
+            !direct() &&
+            !record()?.releasePackageId &&
+            ['pending_approval', 'approved', 'publishing'].includes(c.status)
+          ) {
+            <p class="mb-2 text-sm text-text-secondary">{{ p + 'ManualGateConditional' | translate }}</p>
+          }
+          @if (decisions().length) {
+            <div class="mb-2 space-y-1 text-sm" aria-live="polite">
+              @for (a of decisions(); track a.approvalId) {
+                <p class="break-words">
+                  <b class="font-medium">{{ p + (a.decision === 'approved' ? 'Signed' : 'Rejected') | translate }}</b> ·
+                  {{ a.decidedAt | date: 'yyyy-MM-dd HH:mm' }} · {{ a.actorRoleName || a.actorRole }} · {{ a.reason }}
+                </p>
+              }
+            </div>
+          }
+          @if (canApprove() || canReject()) {
+            <label for="approval-opinion" class="mb-1.5 block font-semibold">{{ p + 'Opinion' | translate }}</label>
+            <textarea
+              id="approval-opinion"
+              required
+              rows="2"
+              aria-describedby="approval-gate"
+              class="block w-full resize-y rounded-md border border-border bg-background px-2.5 py-1.5 text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              [placeholder]="p + 'Placeholder' | translate"
+              [value]="draft()"
+              (input)="setOpinion(opinion.value)"
+              #opinion
+              [disabled]="f.mutating()"
+            ></textarea>
+            <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+              <p id="approval-gate" class="text-sm text-text-secondary">
+                {{
+                  p + 'Gate'
+                    | translate: { risk: c.strategy.riskLevel, n: ['R3', 'R4'].includes(c.strategy.riskLevel) ? 3 : 2 }
+                }}
+              </p>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  z-button
+                  zType="outline"
+                  [zDisabled]="!canReject() || !draft().trim() || f.mutating()"
+                  (click)="decide('rejected')"
+                >
+                  {{ p + 'Reject' | translate }}
+                </button>
+                <button
+                  type="button"
+                  z-button
+                  [zDisabled]="!canApprove() || !draft().trim() || f.mutating()"
+                  (click)="decide('approved')"
+                >
+                  {{ p + (direct() ? 'Write' : 'Approve') | translate }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="flex flex-wrap items-center justify-between gap-2" aria-live="polite">
+              <p class="text-sm text-text-secondary">
+                @if (record()?.releasePackageId) {
+                  {{ p + 'PackageExists' | translate }} ·
+                  {{ 'XP.AgentEvolution.Status.' + record()?.status | translate }}
+                } @else if (c.receipt; as receipt) {
+                  {{ p + 'Written' | translate: { v: receipt.resource.version } }}
+                } @else if (c.status === 'pending_approval') {
+                  {{ p + (ownDecision() ? 'Waiting' : 'ReadOnly') | translate }}
+                } @else if (c.status === 'approved' || c.status === 'publishing') {
+                  {{ p + (direct() ? 'ReadyWrite' : 'ReadyPackage') | translate }}
+                } @else if (c.status === 'rejected') {
+                  {{ p + 'RejectOutcome' | translate }}
+                } @else {
+                  {{ 'XP.AgentEvolution.ResourceStatus.' + c.status | translate }}
+                }
+              </p>
+              <div class="flex flex-wrap gap-2">
+                @if (canPublish()) {
+                  <button z-button [zDisabled]="f.mutating()" (click)="publish(c)">
+                    {{ p + (direct() ? 'RetryWrite' : 'CreatePackage') | translate }}
+                  </button>
+                }
+                @if (record()?.releasePackageId) {
+                  <a
+                    z-button
+                    zType="outline"
+                    routerLink="/agent-evolution/release"
+                    [queryParams]="{ changeId: c.changeId, target: c.targetId }"
+                    >{{ 'XP.AgentEvolution.TabRelease' | translate }} <i class="ri-arrow-right-line"></i
+                  ></a>
+                }
+                @if (link(); as l) {
+                  <a z-button zType="outline" [routerLink]="l.commands" [queryParams]="l.queryParams">{{
+                    p + 'Workbench' | translate
+                  }}</a>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    } @else {
+      <p class="py-8 text-center text-sm text-text-secondary" role="status">
+        {{
+          (f.loading() ? 'XP.AgentEvolution.LoadingChanges' : 'XP.AgentEvolution.ReplayWorkbench.Unavailable')
+            | translate
+        }}
+      </p>
+    }
+  </div>
+</main>

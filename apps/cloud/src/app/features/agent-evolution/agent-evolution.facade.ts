@@ -387,18 +387,20 @@ export class AgentEvolutionFacade {
     return this.evaluateCandidate(candidate, dataset)
   }
 
-  async approveCandidate(candidateId: string, evaluationRunId: string, reason: string) {
-    return this.decideCandidate(candidateId, evaluationRunId, 'approved', reason)
+  approveAndPublishChange(change: EvolutionChange, reason: string) {
+    if (change.strategy.definition.publication.mode !== 'version_write') return null
+    return this.decideChange(change, 'approved', reason)
   }
 
-  async approveAndPublishChange(change: EvolutionChange, reason: string) {
+  async decideChange(change: EvolutionChange, decision: 'approved' | 'rejected', reason: string) {
     const { candidate, evaluation } = change
     if (
       this.mutating() ||
-      change.strategy.definition.publication.mode !== 'version_write' ||
-      change.status !== 'pending_approval' ||
-      !candidate ||
-      !evaluation?.passed ||
+      !(change.status === 'pending_approval' || (decision === 'rejected' && change.status === 'test_failed')) ||
+      !candidate?.artifact?.hash ||
+      !evaluation?.runId ||
+      candidate.artifact.hash !== evaluation.candidateHash ||
+      (decision === 'approved' && !evaluation.passed) ||
       !reason.trim()
     )
       return null
@@ -409,11 +411,11 @@ export class AgentEvolutionFacade {
           this.#api.decideChange(change.changeId, {
             candidateHash: candidate.artifact.hash,
             evaluationRunId: evaluation.runId,
-            decision: 'approved',
+            decision,
             reason: reason.trim()
           })
         )
-        if (scopeRevision !== this.#scopeRevision) return approval
+        if (scopeRevision !== this.#scopeRevision || decision === 'rejected') return approval
         // The server decides whether all required human approvals are present.
         if (approval.status !== 'approved') {
           if (approval.status === 'pending_approval')
@@ -423,7 +425,9 @@ export class AgentEvolutionFacade {
             })
           return approval
         }
-        return await this.publishVersionChange(change.changeId)
+        return change.strategy.definition.publication.mode === 'version_write'
+          ? await this.publishVersionChange(change.changeId)
+          : approval
       } finally {
         if (scopeRevision === this.#scopeRevision) await this.load({ silent: true })
       }
@@ -458,37 +462,17 @@ export class AgentEvolutionFacade {
     }
   }
 
-  async rejectCandidate(candidateId: string, evaluationRunId: string, reason: string) {
-    return this.decideCandidate(candidateId, evaluationRunId, 'rejected', reason)
-  }
-
-  private async decideCandidate(
-    candidateId: string,
-    evaluationRunId: string,
-    decision: 'approved' | 'rejected',
-    reason: string
-  ) {
-    return this.withMutation(async () => {
-      const approval = await firstValueFrom(
-        this.#api.decideChange(candidateId, {
-          candidateHash:
-            this.dashboard().candidates.find((item) => item.candidateId === candidateId)?.artifact.hash ?? '',
-          evaluationRunId:
-            this.lifecycleRecords().find((item) => item.id === candidateId)?.evaluation?.runId ?? evaluationRunId,
-          decision,
-          reason
-        })
-      )
-      await this.load({ silent: true })
-      return approval
-    })
-  }
-
-  async packageRelease(candidateId: string, evaluationRunId: string, approvalIds: string[]) {
-    if (this.mutating()) return null
+  async packageRelease(change: EvolutionChange) {
+    if (
+      this.mutating() ||
+      change.strategy.definition.publication.mode !== 'staged_rollout' ||
+      !['approved', 'publishing'].includes(change.status) ||
+      !change.evaluation?.passed
+    )
+      return null
     const revision = this.#scopeRevision
     return this.withMutation(async () => {
-      const release = await firstValueFrom(this.#api.publishChange(candidateId))
+      const release = await firstValueFrom(this.#api.publishChange(change.changeId))
       if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       if (revision !== this.#scopeRevision) return null

@@ -93,6 +93,7 @@ export function overviewTasks(
         row.priority = 2
         row.tone = 'warning'
         row.action = 'ViewReview'
+        row.query['view'] = 'checks'
       }
       return row
     })

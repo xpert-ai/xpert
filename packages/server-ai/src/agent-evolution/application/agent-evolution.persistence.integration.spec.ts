@@ -2,7 +2,19 @@ import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { Test, TestingModule } from '@nestjs/testing'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Column, DataSource, Entity, PrimaryColumn } from 'typeorm'
-import type { ReleaseDeployment } from '@xpert-ai/contracts'
+import {
+    AIPermissionsEnum,
+    FEEDBACK_LEARNING_STRATEGY,
+    type EvolutionChange,
+    type EvolutionTargetProvider,
+    type EvolutionStrategy,
+    type ReleaseDeployment
+} from '@xpert-ai/contracts'
+import { runWithRequestContext } from '@xpert-ai/server-core'
+import { EvolutionChangeStore } from '../changes/change.store'
+import { EvolutionStrategyService, initialStages } from '../changes/strategy.service'
+import { EvolutionEvaluationExecutor } from '../changes/evaluation-executor.service'
+import { EvolutionPublicationExecutor } from '../changes/publication-executor.service'
 import { AgentEvolutionGovernanceService } from './agent-evolution-governance.service'
 import {
     AgentEvolutionReleaseGatePolicyService,
@@ -55,6 +67,13 @@ class User {
     tenantId?: string
 }
 
+const reviewer = '00000000-0000-4000-8000-000000000009'
+
+@Entity('review_business_version_fixture')
+class ReviewBusinessVersion {
+    @PrimaryColumn('varchar') changeId: string
+}
+
 const persistenceDescribe = runPersistenceIntegration ? describe : describe.skip
 
 persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', () => {
@@ -75,13 +94,44 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
 
         const fieldProvider = new ConformanceFieldMappingProvider()
         const routingProvider = new ConformanceIntentRoutingProvider()
+        const plans: EvolutionStrategy[] = (['direct', 'staged'] as const).map((id) => ({
+            ...FEEDBACK_LEARNING_STRATEGY,
+            id,
+            inputs: ['manual'],
+            learning: { mode: 'none' },
+            evaluations: [],
+            publication:
+                id === 'direct'
+                    ? { mode: 'version_write', effect: 'explicit_adoption' }
+                    : { mode: 'staged_rollout', effect: 'activation' }
+        }))
+        const reviewProvider: EvolutionTargetProvider = {
+            descriptor: { ...fieldProvider.descriptor, targetId: 'test.review', strategies: plans },
+            candidateBuilder: fieldProvider,
+            releaseProvider: fieldProvider,
+            versionPublisher: {
+                validateCurrent: async () => ({ valid: true, reasons: [] }),
+                authorizePublication: async () => {},
+                publish: async ({ change }) => {
+                    await dataSource.getRepository(ReviewBusinessVersion).save({ changeId: change.changeId })
+                    return {
+                        receiptId: 'write-' + change.changeId,
+                        changeId: change.changeId,
+                        candidateHash: change.candidate!.artifact.hash,
+                        approvalId: change.approval!.approvalId,
+                        resource: { resourceId: change.targetId, version: '2', hash: change.candidate!.artifact.hash },
+                        completedAt: new Date().toISOString()
+                    }
+                }
+            }
+        }
         moduleRef = await Test.createTestingModule({
             imports: [
                 TypeOrmModule.forRoot({
                     type: 'postgres',
                     ...databaseOptions,
                     schema: schemaName,
-                    entities: [...AGENT_EVOLUTION_ENTITIES, Tenant, Organization, User],
+                    entities: [...AGENT_EVOLUTION_ENTITIES, Tenant, Organization, User, ReviewBusinessVersion],
                     synchronize: true,
                     logging: false
                 }),
@@ -92,13 +142,18 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
                 AgentEvolutionService,
                 AgentEvolutionGovernanceService,
                 AgentEvolutionReleaseGatePolicyService,
-                { provide: AgentEvolutionQualityGovernanceService, useValue: {} },
-                { provide: EvolutionChangeService, useValue: {} },
+                AgentEvolutionQualityGovernanceService,
+                EvolutionChangeService,
+                EvolutionChangeStore,
+                EvolutionStrategyService,
+                EvolutionEvaluationExecutor,
+                EvolutionPublicationExecutor,
                 {
                     provide: EvolutionTargetProviderRegistry,
                     useValue: {
                         listDescriptors: () => [fieldProvider.descriptor, routingProvider.descriptor],
                         get: (targetId: string) => {
+                            if (targetId === reviewProvider.descriptor.targetId) return reviewProvider
                             if (targetId === fieldProvider.descriptor.targetId) return fieldProvider
                             if (targetId === routingProvider.descriptor.targetId) return routingProvider
                             throw new Error(`Unknown target '${targetId}'`)
@@ -422,4 +477,143 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
         })
         expect((await store.findRelease(tenant, id))?.status).toBe('rolled_back')
     }, 30000)
+    it.each(['direct', 'staged', 'reject'] as const)(
+        'persists the %s signature and only its authorized publication effect',
+        async (mode) => {
+            const id = 'review-' + mode
+            const targetId = 'test.review'
+            const ctx = { tenantId, organizationId, changeId: id }
+            const service = moduleRef.get(EvolutionChangeService)
+            const records = moduleRef.get(EvolutionChangeStore)
+            const strategy = moduleRef
+                .get(EvolutionStrategyService)
+                .freeze(targetId, organizationId, mode === 'staged' ? 'staged' : 'direct', 'manual')
+            const now = new Date().toISOString(),
+                scope = { type: 'organization' as const, key: id }
+            const baseline = { resourceId: 'base', version: '1', hash: 'base-hash' }
+            const change: EvolutionChange = {
+                contractVersion: 3,
+                strategy,
+                sourceKind: 'manual',
+                learningEventIds: [],
+                candidateInput: {},
+                datasetSnapshotIds: {},
+                stages: initialStages(strategy.definition),
+                changeId: id,
+                targetId,
+                requestId: id,
+                scope,
+                baseline,
+                evidence: [],
+                evidenceHash: 'evidence',
+                status: 'pending_approval',
+                jobId: 'job-' + id,
+                createdBy: reviewer,
+                createdAt: now,
+                updatedAt: now,
+                candidate: {
+                    baseline,
+                    artifact: {
+                        uri: 'fixture://' + id,
+                        hash: 'hash-' + id,
+                        schemaVersion: '1',
+                        mediaType: 'application/json'
+                    },
+                    summary: id,
+                    changes: [],
+                    warnings: []
+                },
+                evaluation: {
+                    runId: 'assessment-' + id,
+                    strategyHash: strategy.hash,
+                    candidateHash: 'hash-' + id,
+                    baselineHash: baseline.hash,
+                    evidenceHash: 'evidence',
+                    datasetVersion: 'fixture',
+                    datasetHash: 'data',
+                    passed: true,
+                    checks: [],
+                    readiness: [],
+                    completedAt: now
+                }
+            }
+            await records.save(dataSource.manager, ctx, change, strategy)
+            const store = moduleRef.get(AgentEvolutionStore)
+            const pointer = {
+                pointerId: 'ptr-' + id,
+                targetId,
+                scope,
+                channel: 'production' as const,
+                revision: 1,
+                activeVersionId: 'base',
+                updatedAt: now,
+                updatedBy: reviewer
+            }
+            await store.savePointer(ctx, pointer)
+            const outcome = () => store.findPointer(ctx, targetId, scope)
+            const req = {
+                user: {
+                    id: reviewer,
+                    tenantId,
+                    roleId: reviewer,
+                    role: {
+                        name: 'SUPER_ADMIN',
+                        rolePermissions: [{ permission: AIPermissionsEnum.EVOLUTION_MANAGE, enabled: true }]
+                    }
+                },
+                headers: { 'tenant-id': tenantId, 'organization-id': organizationId, 'x-scope-level': 'organization' }
+            }
+            await new Promise<void>((resolve, reject) =>
+                runWithRequestContext(req, () => {
+                    ;(async () => {
+                        const decision = {
+                            ...ctx,
+                            decision: mode === 'reject' ? ('rejected' as const) : ('approved' as const),
+                            candidateHash: change.candidate!.artifact.hash,
+                            evaluationRunId: change.evaluation!.runId,
+                            reason: 'Reviewed evidence and scope'
+                        }
+                        await expect(
+                            service.decide({ ...decision, evaluationRunId: 'another-assessment' })
+                        ).rejects.toThrow()
+                        expect((await service.decide(decision)).status).toBe(
+                            mode === 'reject' ? 'rejected' : 'approved'
+                        )
+                        expect(await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })).toBe(0)
+                        const intent = await dataSource
+                            .getRepository(ReleasePackageEntity)
+                            .findOneBy({ tenantId, organizationId, releasePackageId: 'PUB-' + id })
+                        expect(intent?.value.publicationKind).not.toBe('staged_rollout')
+                        if (mode === 'reject') {
+                            await expect(service.publish(ctx)).rejects.toThrow()
+                        } else if (mode === 'direct') {
+                            const published = await service.publish(ctx)
+                            expect(published.receipt).toMatchObject({
+                                changeId: id,
+                                candidateHash: decision.candidateHash,
+                                resource: { version: '2' }
+                            })
+                            expect(
+                                await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })
+                            ).toBe(1)
+                        } else {
+                            await service.publish(ctx)
+                            expect((await store.findRelease(ctx, 'PUB-' + id))?.value).toMatchObject({
+                                candidateId: id,
+                                candidateHash: decision.candidateHash,
+                                evaluationRunId: decision.evaluationRunId,
+                                status: 'approved',
+                                canaryPercent: 0
+                            })
+                            expect(
+                                await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })
+                            ).toBe(0)
+                        }
+                        expect((await outcome())?.value).toMatchObject({ revision: 1, activeVersionId: 'base' })
+                    })().then(resolve, reject)
+                })
+            )
+        },
+        30000
+    )
 })
