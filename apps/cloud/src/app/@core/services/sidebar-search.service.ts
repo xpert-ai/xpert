@@ -1,8 +1,14 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
-import { AiModelTypeEnum, IXpertTask, resolveI18nText } from '@xpert-ai/contracts'
-import { EMPTY, Observable, expand, forkJoin, map, of, reduce, take } from 'rxjs'
+import {
+  AiModelTypeEnum,
+  IXpertTask,
+  resolveI18nText,
+  type ReleaseDeployment,
+  type EvolutionPage
+} from '@xpert-ai/contracts'
+import { EMPTY, Observable, catchError, expand, forkJoin, map, of, reduce, switchMap, take } from 'rxjs'
 import { ChatConversationService } from './chat-conversation.service'
 import { CopilotServerService } from './copilot-server.service'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
@@ -12,6 +18,9 @@ import { API_PREFIX } from '../state/constants'
 import { McpPublicationService } from './mcp-publication.service'
 import { McpRuntimeService } from './mcp-runtime.service'
 import { XpertProjectApiService } from '../../features/project/project-api.service'
+import { findEvolutionTarget } from '../../features/agent-evolution/evolution-resource-lookup'
+import { sameEvolutionScope } from '../../features/agent-evolution/agent-evolution.types'
+import { targetLabel } from '../../features/agent-evolution/targets/target-directory'
 import { AgentEvolutionApiService } from '../../features/agent-evolution/agent-evolution-api.service'
 import {
   BindingSummary,
@@ -330,18 +339,7 @@ export class SidebarSearchService {
           }))
         )
       case 'deployments':
-        return this.evolution.listDeployments(page).pipe(
-          map(({ items, total }) => ({
-            total,
-            items: items.map((item) => ({
-              id: item.deploymentId,
-              title: item.releasePackageId,
-              description: item.status,
-              icon: 'ri-upload-cloud-line',
-              route: ['/agent-evolution/deployments', item.deploymentId]
-            }))
-          }))
-        )
+        return this.searchDeployments(query, offset).pipe(switchMap((result) => this.deploymentResults(result)))
       case 'approvals':
         return this.approvals.findReviewableRequests().pipe(
           map((items) =>
@@ -377,6 +375,110 @@ export class SidebarSearchService {
     }
   }
 
+  private searchDeployments(
+    query: string,
+    offset: number
+  ): Observable<Pick<EvolutionPage<ReleaseDeployment>, 'items' | 'total'>> {
+    const normalize = (s: string) => s.replace(/％/g, '%').replace(/\s+/g, '').toLocaleLowerCase()
+    const term = normalize(query)
+    const pct = query.match(/(\d{1,3})\s*[%％]/)?.[1]
+    const labels = (key: string, n?: number) =>
+      normalize(this.translate.instant('XP.AgentEvolution.ReleaseWorkbench.' + key, { n: n ?? '' }))
+    const isCanary =
+      pct !== undefined &&
+      Number(pct) <= 100 &&
+      (term === normalize(pct + '%') || term === labels('Canary', Number(pct)))
+    const channel =
+      isCanary || term === labels('Canary').replace('%', '')
+        ? 'canary'
+        : term === labels('Production')
+          ? 'production'
+          : term === labels('Shadow')
+            ? 'shadow'
+            : undefined
+    if (!channel)
+      return this.evolution.listDeployments({
+        search: query,
+        page: offset / SIDEBAR_SEARCH_PAGE_SIZE + 1,
+        pageSize: SIDEBAR_SEARCH_PAGE_SIZE
+      })
+    const read = (page: number) =>
+      this.evolution.listDeployments({ search: channel, page, pageSize: 100 }).pipe(take(1))
+    // Apply the localized label to the recorded channel and percentage before paginating the matches.
+    return read(1).pipe(
+      expand((p) => (p.items.length && p.page * p.pageSize < p.total ? read(p.page + 1) : EMPTY)),
+      reduce(
+        (result, p) => {
+          for (const stage of p.items) {
+            if (stage.channel !== channel || (isCanary && stage.canaryPercent !== Number(pct))) continue
+            if (result.total >= offset && result.items.length < SIDEBAR_SEARCH_PAGE_SIZE) result.items.push(stage)
+            result.total++
+          }
+          return result
+        },
+        { items: [] as ReleaseDeployment[], total: 0 }
+      )
+    )
+  }
+
+  private deploymentResults(
+    page: Pick<EvolutionPage<ReleaseDeployment>, 'items' | 'total'>
+  ): Observable<SidebarSearchPage> {
+    const format = (names = new Map<string, string>()): SidebarSearchPage => ({
+      total: page.total,
+      items: page.items.map((stage) => {
+        const channel = this.translate.instant(
+          'XP.AgentEvolution.ReleaseWorkbench.' +
+            (stage.channel === 'canary' ? 'Canary' : stage.channel === 'production' ? 'Production' : 'Shadow'),
+          { n: stage.canaryPercent }
+        )
+        const name = names.get(stage.deploymentId)
+        const instant = Date.parse(stage.startedAt)
+        const started = Number.isFinite(instant)
+          ? new Intl.DateTimeFormat(this.translate.currentLang, { dateStyle: 'short', timeStyle: 'medium' }).format(
+              instant
+            )
+          : ''
+        return {
+          id: stage.deploymentId,
+          title: name ? name + ' · ' + channel : channel,
+          description: [started, stage.deploymentId].filter(Boolean).join(' · '),
+          icon: 'ri-upload-cloud-line',
+          route: ['/agent-evolution/deployments', stage.deploymentId]
+        }
+      })
+    })
+    if (!page.items.some((s) => s.releasePackageId)) return of(format())
+    return this.evolution.listLifecycleRecords().pipe(
+      switchMap(({ items }) => {
+        const targets = new Map<string, string>()
+        for (const stage of page.items) {
+          const record = items.find(
+            (r) => r.releasePackageId === stage.releasePackageId && sameEvolutionScope(r.scope, stage.scope)
+          )
+          if (record) targets.set(stage.deploymentId, record.targetId)
+        }
+        const ids = [...new Set(targets.values())]
+        if (!ids.length) return of(format())
+        return forkJoin(
+          ids.map((id) =>
+            findEvolutionTarget(this.evolution, id).pipe(
+              map((target) => (target ? targetLabel(target, this.translate.currentLang) : id)),
+              catchError(() => of(id))
+            )
+          )
+        ).pipe(
+          map((labels) => {
+            const names = new Map(ids.map((id, i) => [id, labels[i]]))
+            return format(
+              new Map([...targets].map(([deployment, target]) => [deployment, names.get(target) || target]))
+            )
+          })
+        )
+      }),
+      catchError(() => of(format()))
+    )
+  }
   private label(value: Parameters<typeof resolveI18nText>[0]) {
     return resolveI18nText(value, this.translate.currentLang) || ''
   }

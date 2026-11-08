@@ -6,6 +6,7 @@ import type {
   ReleaseDeployment,
   ReleasePackage
 } from '@xpert-ai/contracts'
+import { stageEvidence } from './stage-evidence'
 import { sameEvolutionScope } from '../agent-evolution.types'
 
 export type ReleaseCommand = 'install' | 'shadow' | 'canary5' | 'canary25' | 'canary50' | 'activate' | 'experience'
@@ -88,24 +89,12 @@ export function reviewedCorrect(stage: ReleaseDeployment) {
 /** Attribute only reviewed executions, never all issued or consumed test assignments. */
 export function canaryAttribution(
   stage: ReleaseDeployment,
+  release: ReleasePackage,
   samples: EvolutionRuntimeObservation[],
-  overrides: EvolutionCanaryTestOverride[]
+  overrides: EvolutionCanaryTestOverride[] | null
 ) {
-  if (stage.channel !== 'canary' || stage.dataSource !== 'runtime_telemetry') return null
-  const rows = samples.filter(
-    (r) => r.deploymentId === stage.deploymentId && r.channel === 'canary' && sameEvolutionScope(r.scope, stage.scope)
-  )
-  if (rows.length !== stage.sampleCount) return null
-  const forced = new Set(
-    overrides
-      .filter(
-        (o) =>
-          o.releasePackageId === stage.releasePackageId &&
-          o.deploymentId === stage.deploymentId &&
-          o.status === 'consumed'
-      )
-      .map((o) => o.consumedByExecutionId)
-  )
-  const specified = rows.filter((r) => forced.has(r.executionId)).length
-  return { specified, natural: rows.length - specified }
+  const evidence = stageEvidence(stage, release, samples, overrides)
+  if (!evidence.attributable) return null
+  const specified = evidence.rows.filter((entry) => entry.source === 'specified').length
+  return { specified, natural: evidence.rows.length - specified }
 }

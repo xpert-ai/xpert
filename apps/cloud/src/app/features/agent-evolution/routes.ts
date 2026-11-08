@@ -26,7 +26,7 @@ export const routes: Routes = [
       },
       {
         path: 'release',
-        loadComponent: () => import('./release/release.component').then((m) => m.AgentEvolutionReleaseComponent)
+        loadComponent: () => import('./release/release-page.component').then((m) => m.EvolutionReleasePageComponent)
       },
       {
         path: 'targets',
@@ -48,9 +48,7 @@ export const routes: Routes = [
       },
       {
         path: 'deployments/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'deployment' }
+        loadComponent: () => import('./release/deployment-history.component').then((m) => m.DeploymentHistoryComponent)
       }
     ]
   }

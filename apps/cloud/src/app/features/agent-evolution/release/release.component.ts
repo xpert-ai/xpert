@@ -1,3 +1,4 @@
+import { stageEvidence } from './stage-evidence'
 import { ReleaseDetailsComponent } from './release-details.component'
 import { ReleaseTrendComponent } from './release-trend.component'
 import { CommonModule } from '@angular/common'
@@ -42,7 +43,10 @@ import {
 
 type View = 'history' | 'directory' | 'observations' | 'audit' | 'test' | 'trend' | 'details'
 type LoadStatus = 'loading' | 'ready' | 'error'
-const emptyEvidence = { rows: [] as EvolutionRuntimeObservation[], overrides: [] as EvolutionCanaryTestOverride[] }
+const emptyEvidence = {
+  rows: [] as EvolutionRuntimeObservation[],
+  overrides: null as EvolutionCanaryTestOverride[] | null
+}
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-release',
@@ -227,13 +231,12 @@ export class AgentEvolutionReleaseComponent {
   readonly evidenceStatus = signal<LoadStatus>('loading')
   readonly audits = signal({ items: [] as EvolutionAuditEvent[], total: 0 })
   readonly auditStatus = signal<LoadStatus>('loading')
-  readonly stageRows = computed(() =>
-    this.evidence()
-      .rows.filter(
-        (o) => o.deploymentId === this.focusStage()?.deploymentId && o.channel === this.focusStage()?.channel
-      )
-      .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
-  )
+  readonly stageSources = computed(() => {
+    const stage = this.focusStage(),
+      release = this.release()
+    return stage && release ? stageEvidence(stage, release, this.evidence().rows, this.evidence().overrides) : null
+  })
+  readonly stageRows = computed(() => this.stageSources()?.rows.map((entry) => entry.row) ?? [])
   readonly visibleRows = computed(() =>
     this.stageRows().slice((this.observationsPage() - 1) * this.pageSize, this.observationsPage() * this.pageSize)
   )
@@ -241,8 +244,8 @@ export class AgentEvolutionReleaseComponent {
     const s = this.stages()
       .filter((i) => i.channel === 'canary' && i.canaryPercent === 50)
       .at(-1)
-    return s && this.evidenceStatus() === 'ready'
-      ? canaryAttribution(s, this.evidence().rows, this.evidence().overrides)
+    return s && this.release() && this.evidenceStatus() === 'ready'
+      ? canaryAttribution(s, this.release()!, this.evidence().rows, this.evidence().overrides)
       : null
   })
   readonly evidenceKey = computed(() => {
@@ -315,7 +318,7 @@ export class AgentEvolutionReleaseComponent {
                 })
               )
             ),
-            firstValueFrom(this.api.listCanaryTestOverrides(r.releasePackageId))
+            firstValueFrom(this.api.listCanaryTestOverrides(r.releasePackageId)).catch(() => null)
           ])
           if (alive && key === this.evidenceKey()) {
             this.evidence.set({ rows: rows.filter((o) => sameEvolutionScope(o.scope, r.scope)), overrides })
@@ -401,10 +404,8 @@ export class AgentEvolutionReleaseComponent {
     const v = this.facade.dashboard().versions.find((v) => v.versionId === id)
     return compactId(v?.semanticVersion || id.split(':').at(-1) || id)
   }
-  assigned(o: EvolutionRuntimeObservation) {
-    return this.evidence().overrides.some(
-      (v) => v.status === 'consumed' && v.deploymentId === o.deploymentId && v.consumedByExecutionId === o.executionId
-    )
+  hitSource(o: EvolutionRuntimeObservation) {
+    return this.stageSources()?.rows.find((entry) => entry.row.observationId === o.observationId)?.source ?? 'unknown'
   }
   toggleRetry() {
     this.retry.update((n) => n + 1)

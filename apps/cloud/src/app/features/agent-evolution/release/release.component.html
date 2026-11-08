@@ -150,7 +150,7 @@
             zSize="lg"
             [zType]="view() === 'observations' ? 'secondary' : 'default'"
             [zDisabled]="!stages().length"
-            (click)="goto('observations')"
+            (click)="goto('observations', selected()?.id, (production() ?? stages().at(-1))?.deploymentId)"
           >
             {{ prefix + (production() ? 'ViewProduction' : 'ViewObservations') | translate }}</button
           ><button z-button zSize="lg" zType="ghost" (click)="goto('audit')">{{ prefix + 'Audit' | translate }}</button
@@ -266,7 +266,7 @@
                               }}</span>
                               @if (s.channel === 'canary') {
                                 <div class="text-sm text-text-secondary">
-                                  {{ prefix + (assigned(o) ? 'Specified' : 'Natural') | translate }}
+                                  {{ 'XP.AgentEvolution.DeploymentHistory.' + hitSource(o) | translate }}
                                 </div>
                               }
                             </td>
@@ -478,7 +478,7 @@
               <h3 class="mt-5 font-medium">{{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}</h3>
               @if (evidenceStatus() === 'loading') {
                 <p class="p-6 text-sm text-text-secondary" role="status">{{ prefix + 'Loading' | translate }}</p>
-              } @else if (evidenceStatus() === 'error') {
+              } @else if (evidenceStatus() === 'error' || evidence().overrides === null) {
                 <p class="p-5 text-sm" role="alert">
                   {{ prefix + 'LoadError' | translate }}
                   <button z-button zType="outline" (click)="toggleRetry()">

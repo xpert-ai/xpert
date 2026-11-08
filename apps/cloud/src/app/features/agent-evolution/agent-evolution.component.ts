@@ -76,6 +76,12 @@ export class AgentEvolutionComponent {
     const path = this.currentUrl().split(/[?#]/)[0].replace(/\/$/, '')
     if (path === '/agent-evolution/overview') return 'XP.AgentEvolution.TabOverview'
     if (path === '/agent-evolution/learning') return 'XP.AgentEvolution.TabLearning'
+    const query = this.#router.parseUrl(this.currentUrl()).queryParamMap
+    if (
+      path.startsWith('/agent-evolution/deployments/') ||
+      (path === '/agent-evolution/release' && query.get('view') === 'observations' && query.has('stage'))
+    )
+      return 'XP.AgentEvolution.DeploymentHistory.Title'
     if (path === '/agent-evolution/release') return 'XP.AgentEvolution.TabRelease'
     if (path.startsWith('/agent-evolution/evaluation/approval/')) return 'XP.AgentEvolution.Approval.Title'
     if (path === '/agent-evolution/evaluation' || path.startsWith('/agent-evolution/evaluations/'))
@@ -143,7 +149,10 @@ export class AgentEvolutionComponent {
         if (refreshing || this.facade.loading() || document.hidden) return
         refreshing = true
         try {
-          await this.facade.refreshChanges(this.pageHeader() === 'XP.AgentEvolution.TabRelease')
+          await this.facade.refreshChanges(
+            this.pageHeader() === 'XP.AgentEvolution.TabRelease' ||
+              this.pageHeader() === 'XP.AgentEvolution.DeploymentHistory.Title'
+          )
         } finally {
           refreshing = false
         }

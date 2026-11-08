@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, of } from 'rxjs'
 import { ChatConversationService, CopilotServerService, XpertMarketplaceService, XpertTaskService } from '..'
 import { PluginAPIService } from '../state/plugin.service'
@@ -24,6 +24,7 @@ const evolution = {
   listLearningEvents: jest.fn(),
   listCandidates: jest.fn(),
   listEvaluations: jest.fn(),
+  listLifecycleRecords: jest.fn(),
   listDeployments: jest.fn()
 }
 const approvals = { findReviewableRequests: jest.fn() }
@@ -147,6 +148,41 @@ describe('domain-specific sidebar search', () => {
     const result = await firstValueFrom(api.search(source, 'needle', 20, {}))
     expect(evolution[method]).toHaveBeenCalledWith({ search: 'needle', page: 2, pageSize: 20 })
     expect(result.items[0].route).toEqual([route, 'a'])
+  })
+
+  it('searches a localized canary percentage using the recorded stage and names its authorized target', async () => {
+    const i18n = TestBed.inject(TranslateService)
+    i18n.setTranslation('zh-Hans', {
+      XP: {
+        AgentEvolution: { ReleaseWorkbench: { Canary: '{{n}}% 灰度', Production: '100% 生产', Shadow: '影子观测' } }
+      }
+    })
+    await firstValueFrom(i18n.use('zh-Hans'))
+    const scope = { type: 'organization', key: 'site' }
+    const stage = { releasePackageId: 'package', scope, channel: 'canary', startedAt: '2026-01-01T10:00:00Z' }
+    evolution.listDeployments.mockReturnValue(
+      of({
+        items: [
+          { ...stage, deploymentId: 'old', canaryPercent: 25 },
+          { ...stage, deploymentId: 'exact', canaryPercent: 50 }
+        ],
+        total: 2,
+        page: 1,
+        pageSize: 100
+      })
+    )
+    evolution.listLifecycleRecords.mockReturnValue(
+      of({ items: [{ releasePackageId: 'package', scope, targetId: 'target' }] })
+    )
+    evolution.listTargets.mockReturnValue(
+      of({ items: [{ targetId: 'target', displayName: '售后客服' }], page: 1, pageSize: 20, total: 1 })
+    )
+    const result = await firstValueFrom(api.search('deployments', '50% 灰度', 0, {}))
+    expect(result.total).toBe(1)
+    expect(result.items[0]).toMatchObject({
+      title: '售后客服 · 50% 灰度',
+      route: ['/agent-evolution/deployments', 'exact']
+    })
   })
 
   it('retains ignored learning event context when opening a match', async () => {

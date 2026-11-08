@@ -11,6 +11,7 @@ import { nextReleaseStep, productionPointer, isServing, canaryAttribution } from
 const scope = { type: 'organization' as const, key: 'site' }
 const pack = {
   releasePackageId: 'r',
+  candidateId: 'candidate',
   targetId: 'target',
   scope,
   status: 'canary',
@@ -59,6 +60,9 @@ it('requires the corresponding 50% stage, sufficient samples, elapsed time, zero
 it('attributes only consumed overrides matched to the reviewed stage executions', () => {
   const stage2 = { ...stage, sampleCount: 2 }
   const rows = ['natural', 'forced'].map((executionId) => ({
+    observationId: executionId,
+    observedAt: '2026-11-08T00:00:00Z',
+    targetId: 'target',
     scope,
     channel: 'canary',
     deploymentId: 'd',
@@ -66,11 +70,27 @@ it('attributes only consumed overrides matched to the reviewed stage executions'
   })) as EvolutionRuntimeObservation[]
   const overrides = ['forced', 'unreviewed'].map((consumedByExecutionId) => ({
     releasePackageId: 'r',
+    scope,
+    targetId: 'target',
+    candidateId: 'candidate',
     deploymentId: 'd',
     status: 'consumed',
     consumedByExecutionId
   })) as EvolutionCanaryTestOverride[]
-  expect(canaryAttribution(stage2, rows, overrides)).toEqual({ natural: 1, specified: 1 })
-  expect(canaryAttribution(stage2, rows.slice(0, 1), overrides)).toBeNull()
-  expect(canaryAttribution({ ...stage2, dataSource: 'deterministic_replay' }, rows, overrides)).toBeNull()
+  expect(canaryAttribution(stage2, pack, rows, overrides)).toEqual({ natural: 1, specified: 1 })
+  expect(canaryAttribution(stage2, pack, rows, null)).toBeNull()
+  expect(canaryAttribution(stage2, pack, rows, [{ ...overrides[0], consumedByExecutionId: undefined }])).toBeNull()
+  expect(
+    canaryAttribution(stage2, pack, rows, [{ ...overrides[0], scope: { type: 'organization', key: 'other' } }])
+  ).toEqual({ natural: 2, specified: 0 })
+  expect(
+    canaryAttribution(
+      stage2,
+      pack,
+      [...rows, { ...rows[0], deploymentId: 'production', channel: 'production' }],
+      overrides
+    )
+  ).toEqual({ natural: 1, specified: 1 })
+  expect(canaryAttribution(stage2, pack, rows.slice(0, 1), overrides)).toBeNull()
+  expect(canaryAttribution({ ...stage2, dataSource: 'deterministic_replay' }, pack, rows, overrides)).toBeNull()
 })
