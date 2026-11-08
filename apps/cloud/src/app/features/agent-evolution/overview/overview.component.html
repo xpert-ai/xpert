@@ -1,5 +1,5 @@
 <div class="flex min-w-0 flex-1 flex-col bg-background text-foreground">
-  <main #scroll class="min-h-0 flex-1 overflow-y-auto">
+  <main #scroll class="@container/overview min-h-0 flex-1 overflow-y-auto">
     <div class="mx-auto max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -9,7 +9,7 @@
           <p class="mt-1 text-sm text-text-secondary">{{ key('Intro') | translate }}</p>
         </div>
         <z-combobox
-          class="w-full min-w-0 sm:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-base"
+          class="w-full min-w-0 @2xl/overview:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-base"
           zWidth="full"
           [value]="facade.selectedTargetId()"
           [options]="targetOptions()"
@@ -20,7 +20,7 @@
         />
       </div>
       @if (!facade.loadedAt()) {
-        <p role="status" class="mt-6 rounded-lg border border-border p-8 text-center text-[14px] text-text-secondary">
+        <p role="status" class="mt-6 rounded-lg border border-border p-8 text-center text-sm text-text-secondary">
           {{ key(facade.error() ? 'LoadFailed' : 'Loading') | translate }}
         </p>
       } @else if (!facade.contextTargets().length) {
@@ -29,7 +29,7 @@
           <button
             z-button
             zType="outline"
-            class="mt-3"
+            class="mt-3 min-h-[44px]"
             [zLoading]="facade.synchronizing()"
             [zDisabled]="facade.mutating()"
             (click)="facade.synchronize()"
@@ -39,7 +39,7 @@
         </div>
       } @else {
         <div
-          class="mt-[22px] grid grid-cols-1 divide-y divide-border rounded-lg border border-border bg-card py-1 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:py-[13px]"
+          class="mt-4 grid grid-cols-1 divide-y divide-border rounded-lg border border-border bg-card py-1 @xl/overview:grid-cols-3 @xl/overview:divide-x @xl/overview:divide-y-0 @xl/overview:py-3"
         >
           @for (
             metric of [
@@ -54,33 +54,31 @@
             ];
             track metric.label
           ) {
-            <div class="px-4 py-2 sm:px-5 sm:py-0">
-              <div class="flex items-center gap-1.5 text-[13px] font-medium text-text-secondary">
+            <div class="px-4 py-2 @xl/overview:px-5 @xl/overview:py-0">
+              <div class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
                 <i [class]="metric.icon" aria-hidden="true"></i>{{ key(metric.label) | translate }}
               </div>
               <div class="mt-1 flex flex-wrap items-baseline gap-x-3">
-                <strong class="text-[29px] leading-9 font-semibold tracking-tight tabular-nums">{{
-                  metric.value
-                }}</strong>
-                <span class="text-[12px] text-text-secondary">{{ key(metric.note) | translate: rate() }}</span>
+                <strong class="text-2xl font-semibold tracking-tight tabular-nums">{{ metric.value }}</strong>
+                <span class="text-sm text-text-secondary">{{ key(metric.note) | translate: rate() }}</span>
               </div>
             </div>
           }
         </div>
-        <div class="mt-[22px] grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_298px]">
+        <div class="mt-4 grid items-start gap-4 @5xl/overview:grid-cols-[minmax(0,1fr)_19rem]">
           <section
-            class="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
+            class="@container/queue min-w-0 overflow-hidden rounded-lg border border-border bg-card"
             aria-labelledby="overview-queue"
           >
-            <div class="px-[17px] pt-[16px] pb-[13px]">
-              <h2 id="overview-queue" class="text-[19px] font-semibold">{{ key('Queue') | translate }}</h2>
-              <p class="mt-0.5 text-[13px] text-text-secondary">
+            <div class="px-4 py-3">
+              <h2 id="overview-queue" class="text-lg font-semibold">{{ key('Queue') | translate }}</h2>
+              <p class="mt-0.5 text-sm text-text-secondary">
                 {{ key('QueueCount') | translate: { count: tasks().length } }}
               </p>
             </div>
             @if (tasks().length) {
               <div
-                class="hidden grid-cols-[minmax(0,1fr)_100px_112px] gap-2 border-t border-border bg-sidebar px-4 py-1.5 text-[12px] text-text-secondary lg:grid"
+                class="hidden grid-cols-[minmax(0,1fr)_7rem_8rem] gap-2 border-t border-border bg-sidebar px-4 py-1.5 text-sm text-text-secondary @xl/queue:grid"
                 aria-hidden="true"
               >
                 <span>{{ key('ItemTarget') | translate }}</span
@@ -90,25 +88,25 @@
               <ul>
                 @for (row of tasks(); track row.id) {
                   <li
-                    class="grid min-h-[64px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-t border-border px-4 py-2 hover:bg-muted/30 lg:grid-cols-[minmax(0,1fr)_100px_112px]"
+                    class="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-t border-border px-4 py-1.5 hover:bg-muted/30 @xl/queue:grid-cols-[minmax(0,1fr)_7rem_8rem]"
                   >
-                    <div class="col-span-2 flex min-w-0 items-center gap-2.5 lg:col-span-1">
+                    <div class="col-span-2 flex min-w-0 items-center gap-2.5 @xl/queue:col-span-1">
                       <span
-                        class="grid size-[32px] shrink-0 place-items-center rounded-md border border-border bg-sidebar text-text-secondary"
+                        class="grid size-8 shrink-0 place-items-center rounded-md border border-border bg-sidebar text-text-secondary"
                         ><i [class]="row.icon" aria-hidden="true"></i
                       ></span>
                       <div class="min-w-0">
-                        <p class="truncate text-[16px] font-semibold" [title]="row.detailTitle || row.title">
+                        <p class="truncate text-base font-medium" [title]="row.detailTitle || row.title">
                           {{ row.title }}
                         </p>
-                        <p class="truncate text-[13px] text-text-secondary" [title]="row.target">
+                        <p class="truncate text-sm text-text-secondary" [title]="row.target">
                           {{ row.target }} · {{ key(row.group) | translate }}
                         </p>
                       </div>
                     </div>
                     <z-badge
                       zType="secondary"
-                      class="max-w-full justify-self-start rounded-md border-0 px-2 text-[12px]"
+                      class="min-h-6 max-w-full justify-self-start rounded-md border-0 px-1.5 py-0 text-sm leading-none"
                       [ngClass]="tones[row.tone]"
                     >
                       <i class="ri-circle-fill text-[6px]" aria-hidden="true"></i
@@ -120,7 +118,7 @@
                       }}</z-badge
                     >
                     <a
-                      class="inline-flex min-h-8 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring justify-self-end px-0 text-[14px] font-semibold text-text-accent"
+                      class="inline-flex min-h-[44px] items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring justify-self-end px-0 text-sm font-medium text-text-accent"
                       [routerLink]="row.route"
                       [queryParams]="row.query"
                       [fragment]="row.fragment"
@@ -130,66 +128,68 @@
                 }
               </ul>
             } @else {
-              <p class="border-t border-border p-8 text-center text-[14px] text-text-secondary">
+              <p class="border-t border-border p-8 text-center text-sm text-text-secondary">
                 {{ 'XP.AgentEvolution.NoPendingTodos' | translate }}
               </p>
             }
           </section>
-          <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <section class="min-w-0 rounded-lg border border-border bg-card p-[16px]">
-              <h2 class="flex items-center gap-2 text-[16px] font-semibold">
+          <div class="grid min-w-0 gap-3 @2xl/overview:grid-cols-2 @5xl/overview:grid-cols-1">
+            <section class="min-w-0 rounded-lg border border-border bg-card p-4">
+              <h2 class="flex items-center gap-2 text-lg font-semibold">
                 <i class="ri-pulse-line" aria-hidden="true"></i>{{ key('Live') | translate }}
               </h2>
               @if (live(); as active) {
-                <div class="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-text-secondary">
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
                   <span>{{ targetNames().get(active.record.targetId) || active.record.targetId }}</span
-                  ><z-badge zType="secondary" class="border-0 bg-success/10 text-text-success">{{
-                    key('Full') | translate
-                  }}</z-badge>
+                  ><z-badge
+                    zType="secondary"
+                    class="min-h-6 rounded-md border-0 bg-success/10 px-1.5 py-0 text-sm leading-none text-text-success"
+                    >{{ key('Full') | translate }}</z-badge
+                  >
                 </div>
-                <p class="mt-1.5 line-clamp-2 font-semibold" [title]="active.record.title">
+                <p class="mt-1.5 line-clamp-2 text-base font-medium" [title]="active.record.title">
                   {{ recordTitle(active.record) }}
                 </p>
                 <dl class="my-3 grid grid-cols-2 gap-x-2 border-y border-border py-2.5">
                   <div>
-                    <dd class="text-[23px] leading-7 font-semibold tabular-nums">100%</dd>
-                    <dt class="text-[12px] text-text-secondary">{{ key('Traffic') | translate }}</dt>
+                    <dd class="text-xl font-semibold tabular-nums">100%</dd>
+                    <dt class="text-sm text-text-secondary">{{ key('Traffic') | translate }}</dt>
                   </div>
                   <div>
-                    <dd class="text-[23px] leading-7 font-semibold tabular-nums">
+                    <dd class="text-xl font-semibold tabular-nums">
                       {{ active.samples ? active.passed + ' / ' + active.samples : '—' }}
                     </dd>
-                    <dt class="text-[12px] text-text-secondary">
+                    <dt class="text-sm text-text-secondary">
                       {{ key(active.samples ? 'ObservedPass' : 'NoProductionSamples') | translate }}
                     </dt>
                   </div>
                 </dl>
                 <a
-                  class="inline-flex min-h-8 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring h-auto px-0 text-[14px] font-semibold text-text-accent"
+                  class="inline-flex min-h-[44px] items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring px-0 text-sm font-medium text-text-accent"
                   routerLink="../release"
                   [queryParams]="{ changeId: active.record.id }"
                   fragment="observations"
                   >{{ key('ViewProduction') | translate }}<i class="ri-arrow-right-line" aria-hidden="true"></i
                 ></a>
               } @else {
-                <p class="mt-4 text-[14px] text-text-secondary">{{ key('NoLive') | translate }}</p>
+                <p class="mt-4 text-sm text-text-secondary">{{ key('NoLive') | translate }}</p>
               }
             </section>
-            <section class="min-w-0 rounded-lg border border-border bg-card p-[16px]">
-              <h2 class="flex items-center gap-2 text-[16px] font-semibold">
+            <section class="min-w-0 rounded-lg border border-border bg-card p-4">
+              <h2 class="flex items-center gap-2 text-lg font-semibold">
                 <i class="ri-history-line text-text-secondary" aria-hidden="true"></i>{{ key('History') | translate }}
               </h2>
               @if (runs().length) {
-                <p class="mt-1.5 flex items-baseline gap-2 text-[14px]">
-                  <strong class="text-2xl font-semibold tabular-nums">{{ severe() }}</strong
+                <p class="mt-1.5 flex items-baseline gap-2 text-sm">
+                  <strong class="text-xl font-semibold tabular-nums">{{ severe() }}</strong
                   >{{ key('Severe') | translate }}
                 </p>
-                <p class="mt-1 text-[12px] leading-5 text-text-secondary">{{ key('HistoricalScope') | translate }}</p>
+                <p class="mt-1 text-sm leading-5 text-text-secondary">{{ key('HistoricalScope') | translate }}</p>
                 <button
                   z-button
                   zType="link"
                   zSize="sm"
-                  class="mt-1 h-auto px-0 text-[14px] font-semibold text-text-accent"
+                  class="mt-1 min-h-[44px] px-0 text-sm font-medium text-text-accent"
                   [attr.aria-expanded]="historyOpen()"
                   aria-controls="overview-history"
                   (click)="historyOpen.set(!historyOpen())"
@@ -200,7 +200,7 @@
                 @if (historyOpen()) {
                   <ul id="overview-history" class="mt-2 max-h-64 overflow-auto border-t border-border">
                     @for (run of runs(); track run.runId) {
-                      <li class="border-b border-border py-2 text-[12px]">
+                      <li class="border-b border-border py-2 text-sm">
                         <a
                           class="block rounded-sm text-text-accent hover:underline focus-visible:outline-ring"
                           [routerLink]="['../evaluations', run.runId]"
@@ -212,27 +212,30 @@
                   </ul>
                 }
               } @else {
-                <p class="mt-4 text-[14px] text-text-secondary">{{ key('NoHistory') | translate }}</p>
+                <p class="mt-4 text-sm text-text-secondary">{{ key('NoHistory') | translate }}</p>
               }
             </section>
           </div>
         </div>
         <section class="mt-5">
           <div class="mb-2 flex items-center justify-between">
-            <h2 class="text-[19px] font-semibold">{{ key('Flow') | translate }}</h2>
-            <span class="text-[12px] text-text-secondary">{{ key('StageCounts') | translate }}</span>
+            <h2 class="text-lg font-semibold">{{ key('Flow') | translate }}</h2>
+            <span class="text-sm text-text-secondary">{{ key('StageCounts') | translate }}</span>
           </div>
           <ol
-            class="grid divide-y divide-border rounded-lg border border-border bg-card sm:grid-cols-5 sm:divide-x sm:divide-y-0 sm:py-[13px]"
+            class="grid divide-y divide-border rounded-lg border border-border bg-card @2xl/overview:grid-cols-5 @2xl/overview:divide-x @2xl/overview:divide-y-0 @2xl/overview:py-3"
           >
             @for (stage of stages(); track stage.name; let last = $last) {
-              <li class="flex items-center justify-between gap-1 px-3 py-2 sm:py-0">
-                <span class="flex items-center gap-1.5 text-[13px] text-text-secondary"
+              <li class="flex items-center justify-between gap-1 px-3 py-2 @2xl/overview:py-0">
+                <span class="flex items-center gap-1.5 text-sm text-text-secondary"
                   ><i [class]="stage.icon" aria-hidden="true"></i
                   >{{ 'XP.AgentEvolution.' + stage.name | translate }}</span
-                ><strong class="ml-auto text-xl font-semibold tabular-nums">{{ stage.value }}</strong>
+                ><strong class="ml-auto text-lg font-semibold tabular-nums">{{ stage.value }}</strong>
                 @if (!last) {
-                  <i class="ri-arrow-right-s-line hidden text-muted-foreground lg:inline" aria-hidden="true"></i>
+                  <i
+                    class="ri-arrow-right-s-line hidden text-muted-foreground @4xl/overview:inline"
+                    aria-hidden="true"
+                  ></i>
                 }
               </li>
             }
