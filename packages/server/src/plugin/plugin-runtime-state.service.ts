@@ -1,22 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { InstanceRegistryService } from '../managed-connection'
-import { readWorkspacePluginRuntimeRevision } from './organization-plugin.store'
 import { loadFailures } from './plugin.helper'
-import { getCodeRuntimeName } from './source-config'
+import { resolvePluginRuntimeRevision } from './plugin-runtime-revision'
 import { LOADED_PLUGINS, LoadedPluginRecord } from './types'
 
-export function resolvePluginRuntimeRevision(
-	plugin: Pick<LoadedPluginRecord, 'source' | 'sourceConfig' | 'baseDir'>
-): string | undefined {
-	if (plugin.source !== 'code') return undefined
-
-	const runtimeName = getCodeRuntimeName(plugin.sourceConfig)
-	if (runtimeName) return `runtime:${runtimeName}`
-
-	const workspaceRevision = plugin.baseDir ? readWorkspacePluginRuntimeRevision(plugin.baseDir) : undefined
-	if (workspaceRevision) return workspaceRevision
-	return undefined
-}
+export { resolvePluginRuntimeRevision } from './plugin-runtime-revision'
 
 @Injectable()
 export class PluginRuntimeStateService {
@@ -33,7 +21,8 @@ export class PluginRuntimeStateService {
 				scopeKey: failure.scopeKey ?? failure.organizationId,
 				pluginName: failure.pluginName,
 				...(failure.packageName ? { packageName: failure.packageName } : {}),
-				error: failure.error
+				error: failure.error,
+				...(failure.isolation ? { isolation: { ...failure.isolation } } : {})
 			}))
 		})
 	}

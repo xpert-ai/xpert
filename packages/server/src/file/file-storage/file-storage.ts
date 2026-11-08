@@ -5,6 +5,8 @@ import { environment } from '@xpert-ai/server-config'
 import { isEmpty, isNotEmpty } from '@xpert-ai/server-common'
 import { FileStorageRegistryBridge } from './file-storage-registry.bridge'
 import { LocalProvider } from './providers'
+import type { StorageEngine } from 'multer'
+import type { Request } from 'express'
 
 const FALLBACK_PROVIDER_TYPES = [LocalProvider]
 
@@ -27,9 +29,6 @@ export class FileStorage {
 		this.config = {
 			...this.config,
 			...config
-		}
-		if (isEmpty(config.provider)) {
-			this.getProvider()
 		}
 		return this
 	}
@@ -54,19 +53,39 @@ export class FileStorage {
 		return this.getProviderInstance()
 	}
 
-	storage(option?: FileStorageOption) {
-		this.setConfig(option)
-		const provider = this.getProviderInstance()
-		if (provider) {
-			return provider.handler(this.config)
-		} else {
-			throw new Error(`Provider "${this.config.provider}" is not registered`)
+	storage(option?: FileStorageOption): StorageEngine {
+		const config = { ...this.config, ...option }
+		const engines = new WeakMap<Request, StorageEngine>()
+		// Controllers construct Multer decorators before plugin providers are registered.
+		// Resolve per upload, then retain that engine for cleanup even if request scope changes.
+		return {
+			_handleFile: (request, file, callback) => {
+				let engine = engines.get(request)
+				try {
+					if (!engine) {
+						const storage = new FileStorage(config, this.owner)
+						const provider = storage.getProvider(config.provider)
+						if (!provider) throw new Error(`Provider "${storage.config.provider}" is not registered`)
+						engine = provider.handler(storage.config)
+						engines.set(request, engine)
+					}
+				} catch (error) {
+					callback(error instanceof Error ? error : new Error('Unable to resolve file storage'))
+					return
+				}
+				engine._handleFile(request, file, callback)
+			},
+			_removeFile: (request, file, callback) => {
+				const engine = engines.get(request)
+				if (!engine) return callback(new Error('Upload storage engine is unavailable'))
+				engine._removeFile(request, file, callback)
+			}
 		}
 	}
 
 	getProviderInstance(): IFileStorageProvider {
 		if (!this.config.provider) {
-			return undefined
+			this.setProvider()
 		}
 
 		const registry = FileStorageRegistryBridge.getRegistry()

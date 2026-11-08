@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { RequestContext, type ArtifactLibraryScope } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { ContentIdentityService } from '../../content-resource/content-identity.service'
@@ -36,13 +36,15 @@ export class ArtifactLibraryAccess {
         return {
             tenantId: scope.actor.tenantId,
             organizationId: scope.actor.organizationId,
-            projectId: scope.projectId
+            projectId: scope.projectId,
+            groupId: IsNull(),
+            useGrantId: IsNull()
         }
     }
     async get(scope: ArtifactLibraryScope, id: string, write = false, includeDeleted = false) {
         await this.check(scope, write)
         const reference = await this.references.findOneBy({ ...this.where(scope), id })
-        if (!reference || (reference.deleted && !includeDeleted))
+        if (!reference || reference.groupId || reference.useGrantId || (reference.deleted && !includeDeleted))
             throw new NotFoundException(t('server-ai:Error.ArtifactNotFound'))
         return reference
     }

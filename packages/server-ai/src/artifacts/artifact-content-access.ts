@@ -58,6 +58,14 @@ export class ArtifactContentAccess {
         await this.assertSourceConstraints(artifact, scope, 'read', false)
     }
 
+    /** Host-only: call after ArtifactUseGrantService validates the persisted grant and its live group audience. */
+    async assertGroupGrantedRead(artifact: ArtifactAuthorizationTarget, actor: ActorScope) {
+        if (artifact.userId || !artifact.projectId || artifact.organizationId !== actor.organizationId) throw denied()
+        this.sourcePolicies.assertGroupUseGrant(artifact)
+        await this.sourcePolicies.authorize(artifact, actor, 'read')
+        await this.assertSourceConstraints(artifact, actor, 'read', false)
+    }
+
     private async assertSourceConstraints(
         artifact: ArtifactAuthorizationTarget,
         scope: ActorScope,

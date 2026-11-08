@@ -1,0 +1,128 @@
+---
+title: 'Plugin Installation, Updates, and Failure Isolation'
+description: 'Understand installation publication, plugin load failures, automatic recovery, and verification.'
+---
+
+Xpert preserves the last committed installation while preparing a plugin update. It records the new installation and its pending runtime publication together, so interrupted publication can resume. A root-module provider declaration that fails validation is rejected before Nest instantiates the module; healthy platform functions can remain available while that plugin stays failed.
+
+This guide is for plugin developers and platform operators. It covers installation, refresh, startup restoration, and publication recovery for organization, tenant, and system plugins. Installation permissions and visibility continue to follow the [plugin scope rules](/en/guides/plugin).
+
+## Deployment prerequisites
+
+- Deploy matching host, Plugin SDK, and database schema versions. The existing `schema-sync` step applies the `runtimePublication` column and pending-publication index.
+- Preserve the plugin artifact storage required by the deployment. Installation, refresh, uninstall, and publication recovery coordinate through the shared installation lease.
+- Complete the coordinated upgrade before relying on these guarantees. An older writer that can delete a refresh registration can still break them during a mixed-version rollout.
+
+## What each result means
+
+| Result                        | What it confirms                                                                    | What still needs verification                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Installation saved            | The database holds the committed plugin configuration and artifact reference.       | The intended version is loaded on the required API replicas.           |
+| Runtime publication pending   | The installation has a durable intent to publish its runtime requirements.          | The publication is acknowledged and its convergence outcome is known.  |
+| Plugin loaded                 | A process has loaded that plugin's version and, where applicable, runtime revision. | The other required replicas and the plugin's actual business behavior. |
+| Runtime convergence completed | The required plugin state and replacement readiness have been confirmed.            | Ingress routing and business acceptance.                               |
+| Platform ready                | This API process can accept ordinary traffic under the current admission rules.     | An isolated plugin may still have failed; check its own result.        |
+
+Use these results separately when reporting a deployment. An HTTP health response alone cannot establish that a plugin works.
+
+## Installation and refresh
+
+1. **Prepare a candidate.** The host stages the package in a new runtime directory. Registry and code installations record an immutable artifact reference and a completion receipt. Preparing a replacement preserves the previously committed installation and its files.
+2. **Validate the candidate.** The host performs the applicable import, registration, provider declaration, entity, and lifecycle checks for that operation. Root-module provider conflicts reject the candidate before it enters Nest's container.
+3. **Save the installation.** The new installation and its runtime publication intent are committed in one PostgreSQL transaction, with lease ownership checked before writing and before commit. Concurrent startup readers see the old committed row until the replacement is committed.
+4. **Publish the runtime requirements.** A durable publication ID identifies the operation. Redis records its receipt and cumulative requirements atomically, so replaying a lost acknowledgement does not create another generation. Only the matching database intent is cleared.
+5. **Verify activation.** Inspect the plugin's loaded version and runtime revision, follow any required convergence or restart, and exercise its real capability. Saving the installation does not complete these checks.
+
+Explicit `deferActivation` staging does not create an automatic publication intent. Activation must be requested separately through the applicable deployment workflow.
+
+Refresh and uninstall have different effects: refresh preserves the committed registration and retained artifacts while preparing a replacement. An explicit uninstall removes the registration and version directories through the uninstall flow.
+
+## Component naming
+
+A decorated `@XpertToolProvider` component key belongs to its plugin and installation scope. Two plugins can both expose a component named `tools`.
+
+| Name                                 | Uniqueness rule                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| `componentKey`                       | Different providers inside the same plugin and scope must use different keys. |
+| Provider name                        | Different plugins in the same scope cannot claim the same Provider name.      |
+| Public Tool name                     | Different Providers in the same scope must use different public Tool names.   |
+| Generated Toolset or Middleware name | Cannot conflict with an already accepted strategy claim in the same scope.    |
+
+For example, these declarations can coexist in one scope:
+
+| Plugin          | Provider     | Component key | Tool          |
+| --------------- | ------------ | ------------- | ------------- |
+| `@example/json` | `json_tools` | `tools`       | `format_json` |
+| `@example/url`  | `url_tools`  | `tools`       | `encode_url`  |
+
+Changing the second Provider to `json_tools`, or its Tool to `format_json`, creates a genuine conflict. The later candidate is rejected; the previously accepted plugin keeps its registration.
+
+## When a plugin declaration fails
+
+The host checks the root module's static and dynamic provider declarations as a batch. If a declaration is invalid or conflicts with an accepted plugin, it records `plugin-provider-registration-failed` and excludes the entire candidate module. It does not activate part of that module's providers, controllers, or Nest lifecycle hooks. Conflict diagnostics identify the relevant claim and its owning plugin and scope when available.
+
+The host attaches a `provider-preflight` isolation record with the rejected artifact's version and, for code plugins, its runtime revision. Ordinary platform traffic can continue under this isolation path when:
+
+- every desired plugin requirement is either satisfied or matches an isolated rejected artifact;
+- any required version and runtime revision match the rejected artifact;
+- no loaded record for that same plugin and scope coexists with the isolated failure;
+- the process is listening, the instance lease is valid, validation is fresh, and lifecycle state permits traffic.
+
+The rejected plugin remains failed. It does not satisfy deployment convergence or an uninstall requirement. Its own capabilities are unavailable even when healthy plugins and ordinary platform APIs remain accessible.
+
+Fix the declaration and explicitly refresh or reinstall the plugin. A successful registration clears the recorded load failure. Startup snapshots retain the identity of isolated failures, so a later unknown failure of the same plugin cannot be treated as the previously isolated artifact.
+
+### Supported declarations
+
+Declare decorated Tool providers directly in the root module returned by the plugin's `register()` method. Preflight reads class providers, `useClass`, `useValue`, class-token `useFactory`, and class-target `useExisting` declarations without invoking constructors or factories.
+
+Providers hidden in imported modules and opaque factories cannot be fully inspected by this check. Keep their runtime failure behavior in mind when designing a plugin.
+
+## Failure handling and recovery
+
+| Situation                                                      | Platform behavior                                                                                    | Operator or developer action                                                                                      |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Replacement registration fails before publication              | The previous committed installation and its files remain available to startup readers.               | Fix the candidate and explicitly retry the refresh. Check the running process if a hot replacement was attempted. |
+| Database publication outcome is uncertain                      | Candidate cleanup stops because the transaction may have committed.                                  | Check the committed installation and pending publication before retrying. Preserve its artifacts.                 |
+| Installation is committed but Redis publication is interrupted | The durable intent remains for replay under the installation lease.                                  | Restore the dependency and observe recovery and convergence.                                                      |
+| Root-module provider declaration is rejected                   | The candidate module is excluded; ordinary platform traffic can continue under the conditions above. | Read the failure, fix the declaration, and refresh or reinstall.                                                  |
+| An immutable artifact or its receipt is missing during startup | Startup does not rebuild it from a changed workspace or substitute another registry artifact.        | Restore the required artifact or publish a corrected installation, then verify runtime admission.                 |
+| A hot replacement fails after altering the live module graph   | The saved installation remains recoverable, but the in-memory Nest graph is not transactional.       | Repair the cause; the process may need a restart from the retained installation.                                  |
+
+Legacy installations continue through the legacy staging path until refreshed. Failed or superseded candidate directories are conservatively retained when they may still be referenced by an installation or startup snapshot. There is no eager artifact garbage collection; cleanup follows explicit uninstall.
+
+Unexpected import, construction, lifecycle, and bootstrap failures continue through the applicable startup failure and recovery path. See [Runtime control](/en/architecture/runtime-control) for restart coordination and admission behavior.
+
+## Automatic publication recovery and cost
+
+Normal installation publishes immediately. Background recovery repairs interrupted or failed publication:
+
+- A process checks for pending publication at startup.
+- Consecutive empty checks increase the delay ceiling through 10, 20, 40, and 60 seconds. Each delay is randomized to 80–100% of its ceiling.
+- Finding pending work or encountering an error resets the delay ceiling to 10 seconds.
+- Each delay starts after the previous pass finishes. Passes do not overlap, and shutdown cancels future checks.
+- A new installation replays earlier pending intents before proceeding.
+
+An idle pass performs an indexed existence query for pending intents. It does not load full plugin records or acquire the filesystem lease. Replay reads the installation scope, plugin name, and publication intent without loading plugin configuration.
+
+At sustained idle, each API process performs approximately 1–1.25 checks per minute, excluding query duration. Pending work missed just after a check may wait up to 60 seconds before the next pass starts, plus query, lease, and processing time. This retry mechanism repairs publication; it does not repeatedly activate a plugin whose declaration failed.
+
+## Verify a deployment
+
+1. Confirm the installation source, scope, and intended version.
+2. Confirm the actual loaded version and runtime revision on the required replicas, and inspect any load failures. For a deliberately rejected candidate, confirm the failure is still reported.
+3. Inspect the convergence outcome and API readiness separately. A platform that serves traffic with an isolated plugin failure has not completed that plugin's deployment.
+4. Invoke the plugin's real tool, endpoint, or other capability with representative inputs. Confirm the expected output and any intended side effects.
+5. For failure-isolation acceptance, also invoke a healthy sibling plugin and an ordinary platform API, and confirm that the rejected candidate exposes no partial capability.
+
+## Isolation boundaries
+
+The preflight boundary is before Nest instantiation of the registered root module. JavaScript module imports and `plugin.register()` have already run; their side effects are not rolled back. A `useValue` object may also have been created by plugin code before preflight.
+
+This feature does not provide independent plugin processes or undo arbitrary constructors, hooks, migrations, or external writes. Missing artifacts, version or revision mismatches, and failures without host-attested isolation retain the existing runtime admission rules. Database changes must remain compatible with any retained installation used for recovery.
+
+## Related guides
+
+- [Plugins and installation scopes](/en/guides/plugin)
+- [Runtime control](/en/architecture/runtime-control)
+- [Graceful API shutdown](/en/guides/graceful-api-shutdown)

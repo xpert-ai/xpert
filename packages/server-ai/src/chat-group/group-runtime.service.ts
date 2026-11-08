@@ -1,3 +1,4 @@
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { legacyThreadGraphRevision } from '../chat-conversation/thread-graph-revision'
 // Invariants: reserve exactly one writer per Assistant runtime; never re-execute an ambiguous started run.
 // Busy inputs use the existing persisted steer path, while public messages remain in the group timeline.
@@ -40,7 +41,8 @@ export class GroupRuntimeService {
         private readonly queries: QueryBus,
         private readonly interactions: GroupInteractionsService,
         private readonly outbox: GroupOutboxService,
-        private readonly composer: GroupComposerService
+        private readonly composer: GroupComposerService,
+        private readonly resourceTools: GroupResourceToolsService
     ) {}
 
     /**
@@ -349,7 +351,12 @@ export class GroupRuntimeService {
                 isDraft: false,
                 runtimePrincipal: { type: 'assistant', xpertId: member.subjectId },
                 execution: { id: receipt.executionId },
-                tools: [this.tools.create(receipt, member)],
+                tools: [
+                    this.tools.create(receipt, member, (group, userId) =>
+                        this.resourceTools.validateAnalysisDelivery(receipt, member, group, userId)
+                    ),
+                    ...this.resourceTools.createAnalysisTools(receipt, member)
+                ],
                 context: { groupId: group.id, groupParticipantId: member.id },
                 streamPersistence:
                     action !== 'steer'
@@ -507,6 +514,7 @@ export class GroupRuntimeService {
             const publicationId = `output:${output.id}`
             const isAnswer = completed && index === visible.length - 1 && !!replyTarget
             try {
+                await this.resourceTools.validateAnalysisDelivery(receipt, member, group, root.rootUserId)
                 await this.messages.publish(
                     group,
                     member,

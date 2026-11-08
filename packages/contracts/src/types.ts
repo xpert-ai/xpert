@@ -11,8 +11,12 @@ export type {
 export type { I18nObject, I18nText } from './i18n.model'
 export { resolveI18nText } from './i18n.model'
 
-const uuidGenerator = new ShortUniqueId({ length: 10 })
-export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) => uuidGenerator.randomUUID(...args)
+// The legacy generator extends Function; constructing it during import violates Desktop's CSP.
+let uuidGenerator: ShortUniqueId | undefined
+export const uuid = (...args: Parameters<ShortUniqueId['randomUUID']>) => {
+  uuidGenerator ??= new ShortUniqueId({ length: 10 })
+  return uuidGenerator.randomUUID(...args)
+}
 
 /**
  * @description

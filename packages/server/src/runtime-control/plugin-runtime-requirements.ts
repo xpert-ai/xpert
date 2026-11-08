@@ -42,6 +42,31 @@ export function evaluateRuntimeRequirements(
 	return { status: 'satisfied' }
 }
 
+/** Readiness may tolerate an exact, rejected artifact. Rollout convergence remains strict. */
+export function canServeWithIsolatedPluginFailures(
+	requirements: IRuntimePluginRequirement[],
+	state: RuntimePluginState | null
+): boolean {
+	if (!state) return false
+	let isolated = false
+	for (const requirement of requirements) {
+		if (evaluateRuntimeRequirements([requirement], state).status === 'satisfied') continue
+		const failure = findRuntimeFailure(state, requirement)
+		const isolation = failure?.isolation
+		if (
+			requirement.state !== 'loaded' ||
+			findRuntimePlugin(state, requirement) ||
+			isolation?.stage !== 'provider-preflight' ||
+			!isolation.version ||
+			(requirement.version && isolation.version !== requirement.version) ||
+			(requirement.runtimeRevision && isolation.runtimeRevision !== requirement.runtimeRevision)
+		)
+			return false
+		isolated = true
+	}
+	return isolated
+}
+
 function findRuntimePlugin(state: RuntimePluginState, requirement: IRuntimePluginRequirement) {
 	return state.plugins.find(
 		(plugin) =>

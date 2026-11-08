@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
+        "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",
+        "PluginProviderClaimDuplicate": "Duplicate {{kind}} '{{key}}' inside the plugin",
+        "PluginProviderClaimConflict": "{{kind}} '{{key}}' is already registered by '{{pluginName}}' in scope '{{scopeKey}}'",
         "ImmutableStorageProviderUnavailable": "The configured file storage provider is unavailable.",
         "ImmutableContentPathInvalid": "Invalid immutable content path.",
         "ImmutableContentBytesInvalid": "Invalid immutable content bytes or content exceeds 50 MiB.",
@@ -1223,6 +1227,10 @@
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
         "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "ArtifactGroupReferenceInvalid": "ARTIFACT_GROUP_REFERENCE_INVALID: Invalid group artifact request.",
+        "ArtifactUseGrantDenied": "ARTIFACT_USE_GRANT_DENIED: This group cannot use the published artifact under this grant.",
+        "ArtifactUseGrantNotFound": "ARTIFACT_USE_GRANT_NOT_FOUND: The grant or published artifact version was not found.",
+        "ArtifactUseGrantConflict": "ARTIFACT_USE_GRANT_CONFLICT: The grant changed. Reload before continuing.",
         "ArtifactDraftAccessDenied": "ARTIFACT_DRAFT_ACCESS_DENIED: You do not have access to this draft.",
         "ArtifactDraftRevisionInvalid": "ARTIFACT_DRAFT_REVISION_INVALID: The draft revision is invalid.",
         "ArtifactDraftMimeInvalid": "ARTIFACT_DRAFT_MIME_INVALID: This file type cannot be used for an Artifact draft.",
@@ -1386,7 +1394,13 @@
         "EmbeddingBatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048.",
         "BusinessAreaAccessDenied": "Business area permission is required for this operation.",
         "BusinessAreaNotFound": "Business area was not found in the current organization.",
-        "BusinessAreaInvalidSubject": "Select an active organization member or a directory user group."
+        "BusinessAreaInvalidSubject": "Select an active organization member or a directory user group.",
+        "ResourceAnalysisDenied": "This resource has no matching data-analysis authorization. Ask the source data owner and group owner to authorize this scope.",
+        "ResourceAnalysisUnsupported": "This resource does not support governed analysis.",
+        "ResourceAnalysisInvalid": "The analysis query does not match the allowed field types or operations.",
+        "ResourceAnalysisIncomplete": "The upstream dataset is incomplete. Aggregation would produce an unreliable total.",
+        "ResourceAnalysisBudget": "The analysis query exceeds its allowed query, row or result-size budget.",
+        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters."
     },
     "Mcp": {
         "Test": {

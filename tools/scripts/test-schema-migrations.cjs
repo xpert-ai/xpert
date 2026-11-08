@@ -10,6 +10,7 @@ const { verifyLegacyAdoption } = require('./schema-migration-legacy-fixture.cjs'
 const { seedContentDocuments, verifyContentDocuments } = require('./schema-migration-content-fixture.cjs')
 const { verifyLegacyCompatibility } = require('./schema-migration-compatibility-fixture.cjs')
 const { verifyCatalogRevisions } = require('./schema-migration-catalog-fixture.cjs')
+const { verifyArtifactGrantMigrations } = require('./schema-migration-artifact-grants-fixture.cjs')
 const root = path.resolve(__dirname, '../..')
 const silent = {
   log() {},
@@ -355,6 +356,7 @@ async function main() {
       path.join(assets, 'database-migrations.json')
     )
     const hostBundle = await loadSchemaMigrations(assets)
+    await verifyArtifactGrantMigrations(admin, connect, hostBundle, synchronizeWithMigrations)
     await verifyCatalogRevisions(admin, connect, hostBundle, synchronizeWithMigrations)
     assert.ok(hostBundle.migrations.length > 0)
     const manifestPath = path.join(assets, 'database-migrations.json')
@@ -472,14 +474,22 @@ async function main() {
 
     // Reconstruct the pre-runner deployment path, independently of the new baseline SQL.
     // The inventory pins the historical scripts, so this is not a freshly migrated DB with its history deleted.
-    // Notifications were introduced later; current entities must not pre-create their SQL-owned tables.
+    // Notifications and artifact grants came later; current entities must not pre-create their SQL-owned tables.
     const { USER_NOTIFICATION_ENTITIES } = require(
       path.join(root, 'packages/server-ai/src/user-notification/notification.entities')
     )
     const notificationTables = USER_NOTIFICATION_ENTITIES.map((entity) => host.getMetadata(entity).tableName)
+    const postBaselineTables = [
+      ...notificationTables,
+      'artifact_use_grant',
+      'artifact_use_grant_audit',
+      'resource_analysis_execution'
+    ]
     await admin.query('CREATE DATABASE legacy')
     const historical = await connect(
-      [...coreEntities, ...ALL_AI_ENTITIES].filter((entity) => !USER_NOTIFICATION_ENTITIES.includes(entity)),
+      [...coreEntities, ...ALL_AI_ENTITIES].filter(
+        (entity) => !postBaselineTables.includes(host.getMetadata(entity).tableName)
+      ),
       'legacy'
     )
     await historical.query('CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS vector')
@@ -497,19 +507,19 @@ async function main() {
         throw new Error(`${entry.source}: ${error.message}`)
       }
     }
-    const notificationTableNames = async () =>
+    const postBaselineTableNames = async () =>
       (
         await legacy.query('SELECT to_regclass(name)::text AS name FROM unnest($1::text[]) AS name', [
-          notificationTables
+          postBaselineTables
         ])
       ).map((row) => row.name)
     assert.deepEqual(
-      await notificationTableNames(),
-      notificationTables.map(() => null)
+      await postBaselineTableNames(),
+      postBaselineTables.map(() => null)
     )
     const verifyPreserved = await verifyLegacyCompatibility(legacy, hostBundle, synchronizeWithMigrations, root)
     await verifyLegacyAdoption(legacy, hostBundle, synchronizeWithMigrations)
-    assert.deepEqual(await notificationTableNames(), notificationTables)
+    assert.deepEqual(await postBaselineTableNames(), postBaselineTables)
     await verifyPreserved()
     console.log('PASS legacy Entity synchronization + 38 original SQL scripts -> baseline -> apply -> verify')
   } finally {

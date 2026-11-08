@@ -1,0 +1,156 @@
+---
+title: 'Group resource sharing and conversational analysis'
+description: 'Authorize published dashboards from an authoring project for a group, open them in the Workbench, and let Agents analyze explicitly scoped data.'
+---
+
+A group can reference published resources from another project. For example, an Inventory Overview Live Dashboard is authored and published in one project, while an operations group uses its own project. Once the grant is accepted, members can open that dashboard in the Workbench and ask an Agent to query or analyze data within the approved scope.
+
+The dashboard remains in its authoring project. Sharing does not copy it, switch the group's project, or add group members to the source project. Selecting an Assistant does not automatically expose projects or resources that Assistant has used.
+
+## Before you start
+
+Use an Xpert API, SDK, ChatKit and Cloud/Bosi host that support group resource sharing, together with a Live Dashboard plugin that supports group grants. Conversational analysis also requires a data source that supports analysis delegation. Installing a plugin or binding a project does not grant resource access.
+
+- The **sharer** is normally signed in, can manage the source project, and is an active member of the target group.
+- The **source dashboard** has at least one published release. Group references cannot share drafts.
+- The **target group** has a bound project. Its owner accepts grants; other members use accepted resources.
+- The **viewer or requesting member** has the relevant data-source permissions. Sharing a dashboard definition does not share source accounts or database privileges.
+- The **Assistant used to open resources through conversation** belongs to the group, has Resource Assistant enabled, and uses a model that supports tool calling.
+
+See [Group chat](/en/guides/group-chat) for group creation, invitations and project binding, and [Dashboard lifecycle and sharing](/en/guides/artifacts-dashboard/lifecycle-and-sharing) for authoring and publication.
+
+## Offer a grant from the source dashboard
+
+1. Open the source project's Live Dashboard in a normally signed-in authoring conversation.
+2. Open **Team sharing → Group authorization**. Group references and share links are separate sharing paths.
+3. Select a published version and target group. The picker lists groups you belong to that have a bound project; use **Load more** if needed.
+4. Choose how the group may use data, as described in the next section.
+5. Select an expiry of **1, 7 or 30 days**. The default is 7 days.
+6. Click **Offer to group**. This creates a pending offer; it becomes usable after the group owner accepts it.
+
+The expiry starts when the offer is created, not when the owner accepts it. The source dashboard's sharing panel lists grant status and lets you revoke grants. Offering and revoking grants require a normally signed-in source authoring conversation; a shared dashboard opened inside a group does not expose source grant management.
+
+## Configure Agent data access
+
+### Choose a permission level
+
+| Option                                      | What the group's Agent can do                                                                                                                                      | Suitable use                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| **View dashboard only** (default)           | Request that the dashboard open when Resource Assistant is enabled; no shared dataset query access                                                                 | Members mainly use the dashboard's viewing and filtering controls |
+| **Allow Agent to query dashboard datasets** | Query selected published datasets and return results within the approved fields and row scope; no additional exploratory filters, grouping, aggregation or sorting | Answer questions from existing dashboard results                  |
+| **Allow analysis within selected datasets** | Add filters, grouping, count, sum, minimum, maximum and sorting within selected datasets; returning unaggregated rows is controlled separately                     | Compare plants, analyze composition or rank results               |
+
+A dataset is the query-result scope declared by the selected release and may already be aggregated. It does not mean an entire database, arbitrary table or arbitrary model. Dataset detail rows are not necessarily raw business records.
+
+### Select datasets, fields and row restrictions
+
+For either of the two analysis levels:
+
+1. **Select datasets**: choose at least one. If a dataset is unavailable, check the sharer's delegation authority and whether its data source supports group sharing.
+2. **Keep the required fields**: selecting a dataset initially selects all its fields. Deselect fields that should not be exposed, keeping at least one per dataset.
+3. **Add fixed row restrictions** (optional): select an approved field and set an equality condition, such as a plant code. All fixed conditions apply together; the Agent cannot remove them or expand the scope.
+4. **Decide whether to allow details**: in analysis mode, only aggregated results are allowed by default. Enable **Allow dataset detail rows** to permit unaggregated dataset rows. Dataset-query mode returns dataset rows and does not have this toggle.
+5. **Set the maximum rows per query**: choose **20, 50 or 100**, with 50 as the default. This limits one response, not the total number of rows in the underlying dataset.
+
+Selecting another published version resets the analysis configuration. Reselect its permissions and data scope; datasets, fields and fixed conditions belong to that version.
+
+These restrictions govern **Agent conversational analysis**. Human dashboard interactions continue to use the viewer's own data permissions. The analysis form's field and row restrictions do not replace data-source policies for human viewing.
+
+### Example: authorize inventory summary analysis
+
+Suppose Inventory Overview declares `inventory_stock_by_plant` and `inventory_filter_catalog`:
+
+1. Select **Allow analysis within selected datasets**.
+2. Select `inventory_stock_by_plant`, keeping only the plant, stock quantity and inventory value fields needed for analysis. Add `inventory_filter_catalog` only if the analysis needs that filter catalog.
+3. To restrict access to one plant, add a fixed equality condition on the dataset's actual plant-code field.
+4. Leave **Allow dataset detail rows** off, choose 50 rows and a 7-day expiry.
+5. Send the offer and have the group owner explicitly accept analysis access.
+
+A member can then ask: “Summarize inventory value by plant within the approved scope, sorted by value descending.” Answerable questions depend on the selected fields, data completeness and the requesting member's source permissions.
+
+## Accept and open resources in the group
+
+1. As the group owner, open the target group and choose **More → Shared resources**.
+2. Under **Awaiting acceptance**, review the title, published version and analysis scope.
+3. To enable conversational analysis, check **Accept data analysis permissions (leave unchecked for view only)**, then click **Accept reference**.
+4. Members can click **Open** to view the dashboard in the Workbench.
+
+If the owner leaves the analysis checkbox unchecked, the group accepts viewing only, even when the source offered analysis. Existing viewing grants are not automatically upgraded. To add or change analysis access later, the source manager must revoke the old grant, issue a new offer, and obtain acceptance again.
+
+Each shared reference has its own Workbench tab. Reopening the same reference focuses its existing tab and preserves the current filters. The shared view supports viewing and interactive queries; it does not expose source draft editing, publication, export or onward grants. Authoring remains in the source project's authoring view.
+
+## Open and analyze through conversation
+
+### Enable Resource Assistant
+
+Select **Resource Assistant** when creating an Assistant, or enable it in Bosi under the Assistant's **Edit profile → Model and capabilities**, then **Save and publish**. It defaults to off and requires a tool-calling model. See [Assistant capabilities](/en/guides/assistant-capabilities) for configuration.
+
+Once enabled, it does not need to be selected again in each conversation's plugin picker. Disabling it removes its automatically added configuration; manually authored Studio workflows retain their existing management behavior.
+
+Resource Assistant searches for and opens resources. Project conversations can use content types integrated with the current project's resource catalog. Groups search only their accepted, still-valid shared references. The capability itself does not grant content reading, editing or data analysis.
+
+### Example requests
+
+- **Open**: “Open ‘Inventory Overview | Plant Count and Value’ in the Workbench for viewing.”
+- **Query a declared dataset**: “Query the authorized inventory dataset in the shared dashboard and explain the result scope.”
+- **Analyze further**: “Summarize inventory value by plant, show the top five, and explain whether the data is complete.”
+
+A unique match lets the Agent request an open in the requesting member's current Workbench and provide a clickable resource entry. Multiple matches require a more specific title or a selection. Other members' Workbenches do not open automatically; history loading and reconnection do not replay automatic opens. Members can still click historical entries, with access checked again before opening.
+
+Analysis requires **a source grant, the group owner's explicit analysis consent, and the requesting member's data-source permissions**. Neither group ownership nor Resource Assistant replaces these requirements. An Assistant that belongs to the group uses governed analysis tools during a valid member-initiated group execution; it does not need source drafts or a switch to the source project.
+
+## Permissions and scope
+
+| Role or scope          | Permission boundary                                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Source project manager | Can offer and revoke viewing grants; delegating analysis also requires the data source's sharing authority |
+| Group owner            | Can accept grants and remove references; cannot expand the source-approved analysis scope                  |
+| Group member           | Can open valid references; human queries and Agent queries they initiate use their own data permissions    |
+| Group Agent            | Acts for the requesting member within accepted scope; never borrows the creator's identity or credentials  |
+| Another group          | Cannot use this group's grant even if it binds the same project; needs a separate offer and acceptance     |
+
+Data Xpert currently requires the sharer to have its data-administrator authority and an available read-only action. Project-file datasets require management of the exact project file. Execution still checks the requesting member's data access, including file access. Source project management cannot bypass a provider that does not support analysis delegation.
+
+**Agent query results may be posted to every member of the group.** The owner must consider that audience when accepting analysis access. This is not a private report that reruns access checks for each recipient. The platform audits grants and query operations without storing result cells in analysis audit records.
+
+## Versions, revocation and updates
+
+- **Pinned release**: the reference pins the dashboard definition and data bindings. A new source release does not automatically update the group's reference. Business data is still queried with current access permissions; pinning a dashboard version does not freeze its data.
+- **Change version or permissions**: revoke the old grant, select the new version and analysis scope, then obtain the owner's acceptance again.
+- **Source revocation**: choose **Revoke authorization** in the source dashboard's group authorization list.
+- **Group removal**: the owner chooses **Remove reference** under Shared resources. The source dashboard stays unchanged; adding it again requires a new grant.
+- **Loss of access**: expiry, membership removal or departure, a changed group project, or an unavailable resource provider prevents the corresponding access. Old references do not automatically migrate to the new project.
+
+Subsequent opens, reads and queries check authorization again. An idle viewer also rechecks access approximately every 60 seconds. If a grant is revoked during a query, the server rechecks before returning data and delivering the analysis answer. Revocation cannot retract messages already sent, data already viewed or saved, or information already supplied to model context or an external model service.
+
+## Current analysis limits
+
+| Limit                  | Current behavior                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data scope             | Only datasets, fields and fixed row restrictions declared by the selected release and explicitly authorized                                       |
+| Query access           | No arbitrary SQL, queries against other tables or models, writes, export or unattended scheduled exploration                                      |
+| Per group execution    | At most 8 query attempts across all shared resources                                                                                              |
+| Per query              | 30-second deadline and up to 1,000 source rows scanned; responses are limited to 100 rows and 64 KB, with any lower grant row limit also enforced |
+| Aggregate completeness | Incomplete or truncated upstream data is rejected for complete aggregation; narrow the permitted query scope before retrying                      |
+
+## Troubleshooting
+
+| Symptom                                                     | What to check                                                                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cannot manage grants                                        | Return to a normally signed-in source authoring conversation, verify source project management permission, and confirm the host supports grant management  |
+| No groups available                                         | Confirm you belong to the target group and it has a bound project; refresh or load more                                                                    |
+| Dataset cannot be selected or analysis options fail to load | Check the selected release's dataset declarations, provider support and the sharer's data-delegation authority                                             |
+| Offer to group is disabled                                  | Check the version, group and analysis scope; revoke an existing unexpired pending or active grant for the same target before replacing it                  |
+| Agent opens the dashboard but cannot analyze                | Check the source analysis offer, the owner's analysis consent and the requesting member's data-source permissions                                          |
+| Agent cannot find the dashboard                             | Confirm Resource Assistant is enabled and published, the Assistant still belongs to the group, and the reference is accepted and valid; use the full title |
+| Version or access has changed                               | Reopen to check access; expiry, revocation or a changed group project requires a new grant and acceptance                                                  |
+
+## Platform and plugin responsibilities
+
+| Component                            | Responsibilities                                                                                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Xpert platform, shared by OS and Pro | Grants, owner acceptance, pinned references, membership and project checks, analysis scope and query budgets, auditing                        |
+| Live Dashboard                       | Publication, dataset and control semantics, the source sharing form, dashboard canvas and authoring toolbar                                   |
+| ChatKit, Cloud and Bosi              | Generic shared-resource menus, scope summaries, Workbench tabs and the connection to grant management from a signed-in authoring conversation |
+
+Group sharing integrates domain behavior through resource types without a separate Live Dashboard authorization flow inside ChatKit. Dashboards illustrate the workflow here; other resource types must support the corresponding read-only presentation and analysis capabilities to offer equivalent features.

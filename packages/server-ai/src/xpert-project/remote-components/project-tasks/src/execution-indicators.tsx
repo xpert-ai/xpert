@@ -50,13 +50,15 @@ export function ExecutionIndicators({
                             const { state, color, businessResult, label: statusLabel } = executionSummary(attempt, t)
                             const canOpen = !!(attempt.invocationId || attempt.agentExecutionId)
                             const { start, end } = attemptTimes(attempt)
-                            const label = `${taskTitles?.get(attempt.taskId) ?? title} · ${t.attempt} ${attempt.attempt} ${t.execution} · ${statusLabel}${businessResult ? ` · ${t.outcome}: ${businessResult}` : ''}`
+                            const taskTitle = taskTitles?.get(attempt.taskId) ?? title
+                            const executionLabel = `${t.attempt} ${attempt.attempt} ${t.execution} · ${statusLabel}${businessResult ? ` · ${t.outcome}: ${businessResult}` : ''}`
                             return (
                                 <Tooltip key={attempt.id}>
                                     <TooltipTrigger
-                                        aria-label={label}
+                                        aria-label={`${taskTitle} · ${executionLabel}`}
                                         aria-disabled={!canOpen || !!busy}
                                         aria-busy={busy === attempt.id}
+                                        title=""
                                         className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-muted focus-visible:outline-ring aria-disabled:opacity-50"
                                         onClick={(event) => {
                                             event.stopPropagation()
@@ -72,24 +74,41 @@ export function ExecutionIndicators({
                                             )}
                                         />
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                        {attempt.runtimeProvider && (
-                                            <p className="flex items-center gap-1.5">
-                                                <CodingToolIcon
-                                                    toolId={attempt.runtimeToolId}
-                                                    provider={attempt.runtimeProvider}
-                                                    decorative
-                                                />
-                                                {executionProviderLabel(attempt)}
+                                    <TooltipContent
+                                        className="block max-w-[min(22rem,calc(100vw-1rem))] py-2"
+                                        sideOffset={6}
+                                        collisionPadding={8}
+                                    >
+                                        <div className="space-y-1.5 wrap-anywhere">
+                                            <p className="font-medium">{taskTitle}</p>
+                                            {(attempt.runtimeProvider || attempt.executorName) && (
+                                                <div className="flex flex-wrap items-start gap-x-3 gap-y-1 opacity-80">
+                                                    {attempt.runtimeProvider && (
+                                                        <span className="flex min-w-0 items-center gap-1.5">
+                                                            <CodingToolIcon
+                                                                toolId={attempt.runtimeToolId}
+                                                                provider={attempt.runtimeProvider}
+                                                                className="size-4 shrink-0"
+                                                                decorative
+                                                            />
+                                                            {executionProviderLabel(attempt)}
+                                                        </span>
+                                                    )}
+                                                    {attempt.executorName && <span>{attempt.executorName}</span>}
+                                                </div>
+                                            )}
+                                            <p>{executionLabel}</p>
+                                            <p className="flex flex-wrap gap-x-1 tabular-nums opacity-80">
+                                                <span className="whitespace-nowrap">{dateTime(start, locale)} →</span>
+                                                <span className="whitespace-nowrap">{dateTime(end, locale)}</span>
                                             </p>
-                                        )}
-                                        {attempt.executorName && <p>{attempt.executorName}</p>}
-                                        <p>{label}</p>
-                                        <p>
-                                            {dateTime(start, locale)} → {dateTime(end, locale)}
-                                        </p>
-                                        {attempt.error && <p className="max-w-64 break-words">{attempt.error}</p>}
-                                        <p>{canOpen ? t.open : t.unavailable}</p>
+                                            {attempt.error && (
+                                                <p className="line-clamp-3 whitespace-pre-line">{attempt.error}</p>
+                                            )}
+                                            <p className="border-t border-background/20 pt-1.5 opacity-80">
+                                                {canOpen ? t.open : t.unavailable}
+                                            </p>
+                                        </div>
                                     </TooltipContent>
                                 </Tooltip>
                             )

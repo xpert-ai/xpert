@@ -98,6 +98,7 @@ const methods = new Set([
   'toolOutputPreview',
   'deliveredFilePreview',
   'workbenchSession',
+  'manageArtifactGrant',
   'listCatalog',
   'templateCatalogPage',
   'catalogAvatar',

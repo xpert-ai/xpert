@@ -3,7 +3,41 @@ const { test } = require('node:test')
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
+const { createRequire } = require('node:module')
 const { packages, prepareManifestWorkspace, prepareRuntime, runtimeManifest } = require('./dependencies.cjs')
+
+test('relocated API libraries can resolve SDK subpath exports in local and Docker builds', (t) => {
+  for (const manifestFile of ['../../package.json', './package.json']) {
+    const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, manifestFile)))
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'api-sdk-subpath-'))
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }))
+    const sdk = path.join(root, 'packages/plugin-sdk/dist')
+    const source = path.join(root, 'packages/server-ai/src/analysis.js')
+    const compiled = path.join(root, 'dist/packages/server-ai/src/analysis.js')
+    fs.mkdirSync(sdk, { recursive: true })
+    fs.mkdirSync(path.dirname(source), { recursive: true })
+    fs.mkdirSync(path.dirname(compiled), { recursive: true })
+    fs.writeFileSync(
+      path.join(sdk, 'package.json'),
+      JSON.stringify({
+        name: '@xpert-ai/plugin-sdk',
+        exports: { './analytics': { types: './analytics.d.ts', default: './analytics.cjs.js' } }
+      })
+    )
+    fs.writeFileSync(path.join(sdk, 'analytics.cjs.js'), 'exports.analytics = "compiled SDK export"')
+    const link = (directory) => {
+      fs.mkdirSync(path.join(directory, 'node_modules/@xpert-ai'), { recursive: true })
+      fs.symlinkSync(sdk, path.join(directory, 'node_modules/@xpert-ai/plugin-sdk'), 'junction')
+    }
+    // pnpm's source-package link is no longer an ancestor of the relocated JS.
+    link(path.join(root, 'packages/server-ai'))
+    if (manifest.dependencies['@xpert-ai/plugin-sdk'] === 'workspace:*') link(root)
+    const request = '@xpert-ai/plugin-sdk/analytics'
+    assert.equal(createRequire(source)(request).analytics, 'compiled SDK export')
+    assert.equal(createRequire(compiled)(request).analytics, 'compiled SDK export', manifestFile)
+    assert.equal(createRequire(compiled).resolve(request), fs.realpathSync(path.join(sdk, 'analytics.cjs.js')))
+  }
+})
 
 test('API workspace dependencies are included in deployment and the Docker install layer', () => {
   const root = path.resolve(__dirname, '../..')

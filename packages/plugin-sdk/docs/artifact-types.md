@@ -103,3 +103,33 @@ Types that own an application draft workflow can declare `versioning: { mode: 'd
 `ArtifactContentRuntimeCapability` stores definition bytes in protected Artifact-owned storage. Ordinary project file listings and file tools cannot read that storage. Reads check the current source policy and require draft access unless the exact content is already referenced by a formal version. The platform validates ownership, canonical references, checksums and the 50 MB limit.
 
 By default, Project membership and link audience are cumulative restrictions. A type may explicitly declare `sharing.projectAccess: 'link-audience'` only with authenticated presentation and organization/workspace audiences. In that case a manager's explicit share can grant access to the published definition outside Project membership. Provider authorization and any resource ACL still apply; tenant and audience membership are checked, revocation remains immediate, and the exception never applies to drafts, generic file APIs, library references, edits or data queries. It cannot enable anonymous/public sharing.
+
+## Fixed-version analytics extension
+
+A type may implement optional `analytics: ArtifactTypeAnalytics` on its existing
+`IArtifactTypeProvider`. There is no additional decorator, registry or renderer
+requirement for this extension. Its registration follows the type's exact plugin
+installation; removal never falls back to another provider.
+
+- `resolveBindings(context)` reads only the supplied `ArtifactVersionContext` and
+  returns `{ binding, title? }` entries with unique `binding.id` dataset keys.
+  Preserve published source, operation and native payload; never resolve a newer
+  source definition. An empty array declares no datasets for that version.
+- `normalizeControls(context, datasetKey, controls)` is optional. Validate domain
+  control names/types/allowlists, apply published defaults, and select the binding's
+  parameters. Omission passes input through unchanged. Analytics subsequently
+  enforces its own parameter schema and execution constraints.
+- Both hooks describe or normalize declarations only: they must not query data,
+  discover sources, make sharing decisions or open a Workbench. Native binding
+  payloads remain server-only; the host builds safe, permission-filtered descriptions.
+- Source disclosure authority is checked by the existing `AnalyticsQueryProvider`'s
+  optional `authorizeGroupSharing(binding, context)`. Unsupported providers are not
+  eligible for analysis sharing. Actual data execution continues through `execute`
+  as the requesting human, independently of the source owner's sharing authority.
+
+The host authorizes the fixed version, verifies bytes, validates plugin declarations,
+checks accepted dataset/field/row scope, and revalidates grants and registrations
+before releasing results. Do not treat a retained context as durable authorization.
+`IArtifactPresentationProvider` remains responsible for read-only rendering and UI
+queries; it has no headless analysis hook. Group grants currently still require an
+`authenticated` presentation declaration; adding analytics does not relax that policy.

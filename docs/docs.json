@@ -65,6 +65,7 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/plugin-installation-publication",
                   "en/guides/model-provider-management",
                   "en/guides/assistant-capabilities",
                   "en/guides/assistant-templates",
@@ -74,6 +75,7 @@
                   "en/guides/spaces-markdown",
                   "en/guides/spaces-document-sources",
                   "en/guides/group-chat",
+                  "en/guides/artifact-group-references",
                   "en/guides/conversation-map",
                   "en/guides/conversation-trail",
                   "en/guides/project-tasks",
@@ -193,6 +195,7 @@
                 "group": "指南",
                 "pages": [
                   "zh-Hans/guides/plugin",
+                  "zh-Hans/guides/plugin-installation-publication",
                   "zh-Hans/guides/model-provider-management",
                   "zh-Hans/guides/assistant-capabilities",
                   "zh-Hans/guides/assistant-templates",
@@ -202,6 +205,7 @@
                   "zh-Hans/guides/spaces-markdown",
                   "zh-Hans/guides/spaces-document-sources",
                   "zh-Hans/guides/group-chat",
+                  "zh-Hans/guides/artifact-group-references",
                   "zh-Hans/guides/conversation-map",
                   "zh-Hans/guides/conversation-trail",
                   "zh-Hans/guides/project-tasks",
