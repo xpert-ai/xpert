@@ -961,6 +961,31 @@
       "OAuthTestPassed": "OAuth 探索設定測試通過。"
     },
     "AgentEvolution": {
+      "Directory": {
+        "Intro": "查看已接入的能力、平台正式版本及生效範圍。",
+        "Scope": "目標範圍",
+        "Search": "搜尋名稱、識別碼或提供方",
+        "Name": "目標名稱",
+        "Registration": "註冊狀態",
+        "Version": "平台正式版本",
+        "EffectiveScope": "生效範圍",
+        "ScopeCount": "{{count}} 個範圍",
+        "VersionCount": "{{count}} 個版本",
+        "NoVersion": "暫無平台版本",
+        "Clear": "清除本頁篩選",
+        "VersionNote": "平台正式版本按目前範圍的正式指標統計，業務應用中的採用情況請在對應應用查看。",
+        "Group": {
+          "all": "全部目標",
+          "live": "有正式版本",
+          "unversioned": "無正式版本"
+        },
+        "Status": {
+          "all": "全部註冊狀態",
+          "active": "可用",
+          "disabled": "已停用",
+          "provider_unavailable": "提供方無法使用"
+        }
+      },
       "Overview": {
         "More": "更多操作",
         "ShowDemo": "顯示示範資料",

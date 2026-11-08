@@ -1,4 +1,6 @@
 import { computed, signal } from '@angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { defaultTargetFilters, type TargetFilters } from './target-directory'
 import { TestBed } from '@angular/core/testing'
 import type { ActiveCapabilityPointer, EvolutionTargetDescriptor } from '@xpert-ai/contracts'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
@@ -46,6 +48,10 @@ describe('AgentEvolutionTargetsComponent', () => {
   const dashboard = signal<{ pointers: ActiveCapabilityPointer[] }>({ pointers: [] })
   const facade = {
     dashboard,
+    visibleTargets: targets,
+    directoryFilters: signal<TargetFilters>({ ...defaultTargetFilters }),
+    directoryScrollTop: 0,
+    contextPointers: computed(() => dashboard().pointers),
     contextTargets: computed(() =>
       targets().filter((item) => selectedTargetId() === 'all' || item.targetId === selectedTargetId())
     ),
@@ -53,11 +59,12 @@ describe('AgentEvolutionTargetsComponent', () => {
   }
 
   beforeEach(() => {
+    facade.directoryFilters.set({ ...defaultTargetFilters })
     targets.set([target('example.mapping'), target('example.routing', 'disabled')])
     selectedTargetId.set('all')
     dashboard.set({ pointers: [] })
     TestBed.configureTestingModule({
-      imports: [AgentEvolutionTargetsComponent],
+      imports: [AgentEvolutionTargetsComponent, TranslateModule.forRoot()],
       providers: [{ provide: AgentEvolutionFacade, useValue: facade }]
     }).overrideComponent(AgentEvolutionTargetsComponent, { set: { template: '', imports: [] } })
   })
@@ -79,13 +86,42 @@ describe('AgentEvolutionTargetsComponent', () => {
 
   it('combines search and status filters with the selected target context', () => {
     const component = TestBed.createComponent(AgentEvolutionTargetsComponent).componentInstance
-    component.query.set(' EXAMPLE.RULES ')
-    component.status.set('disabled')
+    component.update({ query: ' EXAMPLE.RULES ', status: 'disabled' })
     expect(component.rows().map((row) => row.target.targetId)).toEqual(['example.routing'])
     selectedTargetId.set('example.mapping')
     expect(component.rows()).toEqual([])
     component.resetFilters()
-    expect(component.rows()).toHaveLength(2)
+    expect(selectedTargetId()).toBe('example.mapping')
+    expect(component.rows().map((row) => row.target.targetId)).toEqual(['example.mapping'])
+  })
+
+  it('searches translated names, original registration names, stable IDs and providers', () => {
+    targets.set([
+      {
+        ...target('route.intent'),
+        displayName: 'Customer intent',
+        label: { en_US: 'Customer intent', zh_Hans: '客服意图路由' }
+      },
+      target('legacy')
+    ])
+    TestBed.inject(TranslateService).use('zh-Hans')
+    const component = TestBed.createComponent(AgentEvolutionTargetsComponent).componentInstance
+    for (const query of ['客服意图', 'Customer intent', 'route.intent']) {
+      component.update({ query })
+      expect(component.rows().map((row) => row.name)).toEqual(['客服意图路由'])
+    }
+    component.update({ query: 'legacy' })
+    expect(component.rows()[0].name).toBe('legacy')
+  })
+
+  it('keeps target counts independent of the selected version group or number of pointers', () => {
+    dashboard.set({ pointers: [pointer('production', 'a', 'v1'), pointer('production', 'b', 'v2')] })
+    const component = TestBed.createComponent(AgentEvolutionTargetsComponent).componentInstance
+    component.update({ group: 'unversioned' })
+    expect(component.counts()).toEqual({ all: 2, live: 1, unversioned: 1 })
+    expect(component.rows().map((row) => row.target.targetId)).toEqual(['example.routing'])
+    component.update({ status: 'disabled' })
+    expect(component.counts()).toEqual({ all: 1, live: 0, unversioned: 1 })
   })
 
   it('clears target and production data when the shared facade changes organization', () => {

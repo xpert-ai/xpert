@@ -23,6 +23,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs/operators'
+import { EvolutionPageHeaderComponent } from './shared/evolution-page-header.component'
 import { AgentEvolutionFacade } from './agent-evolution.facade'
 import { changeFilter } from './shared/evolution-change-presentation'
 
@@ -35,6 +36,7 @@ import { changeFilter } from './shared/evolution-change-presentation'
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    EvolutionPageHeaderComponent,
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
@@ -70,7 +72,12 @@ export class AgentEvolutionComponent {
     ),
     { initialValue: this.#router.url }
   )
-  readonly isOverview = computed(() => this.currentUrl().split(/[?#]/)[0].endsWith('/overview'))
+  readonly pageHeader = computed(() => {
+    const path = this.currentUrl().split(/[?#]/)[0].replace(/\/$/, '')
+    if (path === '/agent-evolution/overview') return 'XP.AgentEvolution.TabOverview'
+    if (path === '/agent-evolution/targets') return 'XP.AgentEvolution.TabTargets'
+    return null
+  })
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly activeSubtitleKey = computed(() => {
     const url = this.currentUrl()

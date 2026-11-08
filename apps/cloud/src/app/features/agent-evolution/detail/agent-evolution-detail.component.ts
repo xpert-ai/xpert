@@ -7,7 +7,9 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject } from '@angular/core'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { targetLabel } from '../targets/target-directory'
+import { evolutionScopeLabel } from '../agent-evolution.types'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
 import { EvolutionBaselinePanelComponent } from './evolution-baseline-panel.component'
 
@@ -64,5 +66,17 @@ export class AgentEvolutionDetailComponent {
       }
     })
   }
+  private readonly translate = inject(TranslateService)
+  private readonly languageChange = toSignal(this.translate.onLangChange)
+  readonly scopeLabel = evolutionScopeLabel
+  readonly target = computed(() => this.facade.visibleTargets().find((t) => t.targetId === this.resourceId()))
+  readonly targetName = computed(() => {
+    this.languageChange()
+    const target = this.target()
+    return target ? targetLabel(target, this.translate.currentLang) : this.resourceId()
+  })
+  readonly production = computed(() =>
+    this.facade.dashboard().pointers.filter((p) => p.channel === 'production' && p.targetId === this.resourceId())
+  )
   readonly item = computed(() => this.state().item)
 }

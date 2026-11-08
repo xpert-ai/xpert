@@ -85,6 +85,8 @@ export interface EvolutionTargetDescriptor {
   targetId: string
   targetType: EvolutionTargetType
   displayName: string
+  /** Provider-owned localized name of the same registered capability. */
+  label?: I18nText
   /** Registration key of the implementation responsible for this target. */
   providerKey: string
   /** Version of the provider implementation, independent of any capability version it produces. */

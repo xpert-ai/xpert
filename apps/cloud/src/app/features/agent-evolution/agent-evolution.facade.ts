@@ -1,3 +1,4 @@
+import { defaultTargetFilters, type TargetFilters } from './targets/target-directory'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import type {
@@ -50,6 +51,8 @@ export class AgentEvolutionFacade {
   readonly error = signal<string | null>(null)
   readonly activeJob = signal<EvolutionJob | null>(null)
   readonly loadedAt = signal<Date | null>(null)
+  readonly directoryFilters = signal<TargetFilters>({ ...defaultTargetFilters })
+  directoryScrollTop = 0
   overviewScrollTop = 0
   readonly selectedTargetId = signal('all')
   readonly showFixtures = signal(false)
@@ -124,6 +127,8 @@ export class AgentEvolutionFacade {
   )
 
   resetScopeContext() {
+    this.directoryFilters.set({ ...defaultTargetFilters })
+    this.directoryScrollTop = 0
     this.overviewScrollTop = 0
     this.#scopeRevision++
     this.#loadRevision++
@@ -568,6 +573,7 @@ export class AgentEvolutionFacade {
   }
 
   selectTarget(targetId: string) {
+    this.directoryScrollTop = 0
     this.overviewScrollTop = 0
     this.selectedTargetId.set(targetId)
     this.clearResourceSelections()

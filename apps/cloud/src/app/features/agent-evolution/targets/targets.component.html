@@ -1,139 +1,278 @@
-<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <h2 class="text-lg font-semibold text-text-primary">{{ 'XP.AgentEvolution.TabTargets' | translate }}</h2>
-      <p class="mt-1 text-sm text-text-secondary">{{ 'XP.AgentEvolution.TargetsDescription' | translate }}</p>
+<main #scroll (scroll)="rememberScroll()" class="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background text-foreground">
+  <div class="mx-auto w-full max-w-[1430px] p-4 sm:p-[24px] xl:px-[32px]">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-3xl leading-tight font-semibold tracking-tight xl:text-[35px]">
+          {{ 'XP.AgentEvolution.TabTargets' | translate }}
+        </h1>
+        <p class="mt-1.5 text-[14px] leading-6 text-text-secondary">
+          {{ 'XP.AgentEvolution.Directory.Intro' | translate }}
+        </p>
+      </div>
+      <div class="flex w-full min-w-0 items-center gap-2.5 sm:w-auto">
+        <span class="shrink-0 text-[13px] text-text-secondary">{{
+          'XP.AgentEvolution.Directory.Scope' | translate
+        }}</span>
+        <z-combobox
+          class="min-w-0 flex-1 sm:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-[15px]"
+          zWidth="full"
+          [value]="facade.selectedTargetId()"
+          [options]="targetOptions()"
+          [ariaLabel]="'XP.AgentEvolution.Directory.Scope' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
+          [emptyText]="'XP.AgentEvolution.NoTargetOptions' | translate"
+          (zValueChange)="selectTarget($event)"
+        />
+      </div>
     </div>
-    <z-badge zType="outline">{{ 'XP.AgentEvolution.TargetCount' | translate: { count: rows().length } }}</z-badge>
-  </div>
-
-  <section class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-    <z-search-input
-      class="min-w-0 flex-1 sm:min-w-64"
-      [placeholder]="'XP.AgentEvolution.SearchTargetRegistry' | translate"
-      [clearLabel]="'XP.ACTIONS.Clear' | translate"
-      [value]="query()"
-      (valueChange)="query.set($event)"
-    />
-    <select
-      class="rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
-      [attr.aria-label]="'XP.AgentEvolution.TargetRegistrationStatus' | translate"
-      [ngModel]="status()"
-      (ngModelChange)="status.set($event)"
-    >
-      <option value="all">{{ 'XP.AgentEvolution.AllTargetStatuses' | translate }}</option>
-      @for (value of statuses; track value) {
-        <option [value]="value">{{ 'XP.AgentEvolution.Status.' + value | translate }}</option>
-      }
-    </select>
-    <select
-      class="rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
-      [attr.aria-label]="'XP.AgentEvolution.SortTargets' | translate"
-      [ngModel]="sort()"
-      (ngModelChange)="sort.set($event)"
-    >
-      <option value="displayName">{{ 'XP.AgentEvolution.SortTargetsByName' | translate }}</option>
-      <option value="targetId">{{ 'XP.AgentEvolution.SortTargetsById' | translate }}</option>
-    </select>
-    <button z-button zType="outline" type="button" (click)="resetFilters()">
-      <i class="ri-filter-off-line" aria-hidden="true"></i>{{ 'XP.AgentEvolution.Reset' | translate }}
-    </button>
-  </section>
-
-  @if (facade.loading()) {
-    <p role="status" class="py-16 text-center text-sm text-text-secondary">
-      {{ 'XP.AgentEvolution.LoadingTargets' | translate }}
-    </p>
-  } @else if (facade.error() && !facade.loadedAt()) {
-    <p role="status" class="py-16 text-center text-sm text-text-secondary">
-      {{ 'XP.AgentEvolution.TargetsLoadFailed' | translate }}
-    </p>
-  } @else if (!rows().length) {
-    <div role="status" class="rounded-xl border border-divider-regular py-16 text-center text-sm text-text-secondary">
-      <p>{{ 'XP.AgentEvolution.NoTargetOptions' | translate }}</p>
-      <p class="mt-2">{{ 'XP.AgentEvolution.TargetsEmptyHint' | translate }}</p>
-    </div>
-  } @else {
-    <div class="overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg">
-      <table class="w-full text-left text-sm">
-        <caption class="sr-only">
-          {{
-            'XP.AgentEvolution.TabTargets' | translate
-          }}
-        </caption>
-        <thead class="border-b border-divider-regular bg-background-default-subtle text-text-secondary">
-          <tr>
-            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Target' | translate }}</th>
-            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Provider' | translate }}</th>
-            <th scope="col" class="whitespace-nowrap px-4 py-3 font-medium">
-              {{ 'XP.AgentEvolution.TargetRegistrationStatus' | translate }}
-            </th>
-            <th scope="col" class="px-4 py-3 font-medium">
-              {{ 'XP.AgentEvolution.TargetProductionVersion' | translate }}
-            </th>
-            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Risk' | translate }}</th>
-            <th scope="col" class="px-4 py-3">
-              <span class="sr-only">{{ 'XP.AgentEvolution.ViewTargetDetails' | translate }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-divider-subtle">
-          @for (row of rows(); track row.target.targetId) {
-            <tr class="text-text-primary hover:bg-background-default-subtle">
-              <th scope="row" class="px-4 py-4 text-left font-normal">
-                <a
-                  class="font-medium hover:underline"
-                  [routerLink]="['/agent-evolution/targets', row.target.targetId]"
-                  >{{ row.target.displayName }}</a
-                >
-                <div class="mt-1 font-mono text-xs text-text-secondary">{{ row.target.targetId }}</div>
-                <div class="mt-1 text-xs text-text-secondary">
-                  {{
-                    'XP.AgentEvolution.TargetType.' + row.target.targetType
-                      | translate: { Default: row.target.targetType }
-                  }}
-                </div>
-              </th>
-              <td class="px-4 py-4">
-                <div class="break-words">{{ row.target.providerKey }}</div>
-                <div class="mt-1 text-xs text-text-secondary">{{ row.target.providerVersion }}</div>
-              </td>
-              <td class="whitespace-nowrap px-4 py-4">
-                <z-badge zType="outline">{{ 'XP.AgentEvolution.Status.' + row.target.status | translate }}</z-badge>
-              </td>
-              <td class="px-4 py-4">
-                @for (version of row.versions; track version) {
-                  <div class="break-all font-mono text-xs">{{ version }}</div>
-                } @empty {
-                  <span class="text-text-secondary">{{ 'XP.AgentEvolution.NoProductionVersion' | translate }}</span>
-                }
-                @if (row.scopeCount) {
-                  <div class="mt-1 text-xs text-text-secondary">
-                    {{ 'XP.AgentEvolution.ProductionScopeCount' | translate: { count: row.scopeCount } }}
-                  </div>
-                }
-              </td>
-              <td class="px-4 py-4">
-                <z-badge zType="outline">{{ row.target.riskLevel }}</z-badge>
-              </td>
-              <td class="whitespace-nowrap px-4 py-4">
-                <a
-                  z-button
-                  zType="ghost"
-                  zSize="sm"
-                  [routerLink]="['/agent-evolution/targets', row.target.targetId]"
-                  [attr.aria-label]="
-                    ('XP.AgentEvolution.ViewTargetDetails' | translate) + ': ' + row.target.displayName
-                  "
-                >
-                  {{ 'XP.AgentEvolution.ViewTargetDetails' | translate
-                  }}<i class="ri-arrow-right-line" aria-hidden="true"></i>
-                </a>
-              </td>
-            </tr>
+    @if (!facade.loadedAt()) {
+      <div role="status" class="mt-6 rounded-lg border border-border p-8 text-center text-sm text-text-secondary">
+        {{ (facade.error() ? 'XP.AgentEvolution.TargetsLoadFailed' : 'XP.AgentEvolution.LoadingTargets') | translate }}
+        @if (facade.error()) {
+          <button z-button zType="outline" class="mx-auto mt-3 block min-h-[44px]" (click)="facade.load()">
+            {{ 'XP.AgentEvolution.Refresh' | translate }}
+          </button>
+        }
+      </div>
+    } @else if (!facade.contextTargets().length) {
+      <div class="mt-6 rounded-lg border border-border p-8 text-center">
+        <p>{{ 'XP.AgentEvolution.Overview.NoTargets' | translate }}</p>
+        <button
+          z-button
+          zType="outline"
+          class="mt-3 min-h-[44px]"
+          [zLoading]="facade.synchronizing()"
+          [zDisabled]="facade.mutating()"
+          (click)="facade.synchronize()"
+        >
+          {{ 'XP.AgentEvolution.SyncTargets' | translate }}
+        </button>
+      </div>
+    } @else {
+      <section
+        class="mt-[22px] overflow-hidden rounded-lg border border-border bg-card"
+        [attr.aria-label]="'XP.AgentEvolution.TabTargets' | translate"
+      >
+        <div
+          role="group"
+          [attr.aria-label]="'XP.AgentEvolution.TargetProductionVersion' | translate"
+          class="flex gap-3 overflow-x-auto border-b border-border px-3 sm:gap-7 sm:px-5"
+        >
+          @for (group of groups; track group) {
+            <button
+              type="button"
+              [attr.aria-pressed]="filters().group === group"
+              class="inline-flex min-h-[49px] shrink-0 items-center gap-1.5 border-b-2 px-1 text-[14px] font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:text-[15px]"
+              [class]="
+                filters().group === group
+                  ? 'border-primary font-semibold text-foreground'
+                  : 'border-transparent text-text-secondary hover:text-foreground'
+              "
+              (click)="update({ group })"
+            >
+              {{ 'XP.AgentEvolution.Directory.Group.' + group | translate }}
+              <span class="rounded-md bg-muted px-1.5 text-[12px] tabular-nums">{{ counts()[group] }}</span>
+            </button>
           }
-        </tbody>
-      </table>
-    </div>
-  }
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 px-3 py-[16px] sm:px-5">
+          <z-search-input
+            class="w-full min-w-0 sm:flex-1 [&_[data-slot=input-group]]:min-h-[44px] [&_input]:text-[14px]"
+            [placeholder]="'XP.AgentEvolution.Directory.Search' | translate"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate"
+            [value]="filters().query"
+            (valueChange)="update({ query: $event })"
+          />
+          <button
+            type="button"
+            z-button
+            zType="outline"
+            class="min-h-[44px] gap-2 px-3 text-[15px]"
+            z-menu
+            [zMenuTriggerFor]="statusMenu"
+            [attr.aria-label]="'XP.AgentEvolution.TargetRegistrationStatus' | translate"
+          >
+            <i class="ri-filter-3-line" aria-hidden="true"></i
+            >{{ 'XP.AgentEvolution.Directory.Status.' + filters().status | translate
+            }}<i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            z-button
+            zType="outline"
+            class="min-h-[44px] gap-2 px-3 text-[15px]"
+            z-menu
+            [zMenuTriggerFor]="sortMenu"
+            [attr.aria-label]="'XP.AgentEvolution.SortTargets' | translate"
+          >
+            <i class="ri-arrow-up-down-line" aria-hidden="true"></i
+            >{{
+              (filters().sort === 'displayName'
+                ? 'XP.AgentEvolution.SortTargetsByName'
+                : 'XP.AgentEvolution.SortTargetsById'
+              ) | translate
+            }}<i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          @if (filtered() && rows().length) {
+            <button z-button type="button" zType="ghost" class="min-h-[44px] px-3 text-[14px]" (click)="resetFilters()">
+              {{ 'XP.AgentEvolution.Directory.Clear' | translate }}
+            </button>
+          }
+        </div>
+        @if (rows().length) {
+          <table class="block w-full text-left md:table md:table-fixed">
+            <caption class="sr-only">
+              {{
+                'XP.AgentEvolution.TabTargets' | translate
+              }}
+            </caption>
+            <thead
+              class="hidden border-y border-border bg-sidebar text-[13px] text-text-secondary md:table-header-group"
+            >
+              <tr>
+                <th scope="col" class="w-[34%] px-4 py-[10px] font-medium">
+                  {{ 'XP.AgentEvolution.Directory.Name' | translate }}
+                </th>
+                <th scope="col" class="w-[12%] px-4 py-[10px] font-medium">
+                  {{ 'XP.AgentEvolution.Directory.Registration' | translate }}
+                </th>
+                <th scope="col" class="w-[20%] px-4 py-[10px] font-medium">
+                  {{ 'XP.AgentEvolution.Directory.Version' | translate }}
+                </th>
+                <th scope="col" class="w-[13%] px-4 py-[10px] font-medium">
+                  {{ 'XP.AgentEvolution.Directory.EffectiveScope' | translate }}
+                </th>
+                <th scope="col" class="w-[8%] px-4 py-[10px] font-medium">
+                  {{ 'XP.AgentEvolution.Risk' | translate }}
+                </th>
+                <th scope="col" class="px-4 py-[10px] text-right font-medium">
+                  {{ 'XP.AgentEvolution.Actions' | translate }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="block divide-y divide-border md:table-row-group">
+              @for (row of rows(); track row.target.targetId) {
+                <tr
+                  class="grid grid-cols-2 items-center gap-y-2 px-3 py-3 hover:bg-muted/30 md:table-row md:h-[63px] md:p-0"
+                >
+                  <th scope="row" class="col-span-2 min-w-0 text-left font-normal md:px-4">
+                    <a
+                      class="break-words text-[16px] font-semibold hover:underline focus-visible:outline-ring"
+                      [routerLink]="[row.target.targetId]"
+                      >{{ row.name }}</a
+                    >
+                    <p class="mt-0.5 break-all font-mono text-[12px] leading-[18px] text-text-secondary">
+                      {{ row.target.targetId }}
+                    </p>
+                  </th>
+                  <td class="md:px-4">
+                    <span class="block text-xs text-text-secondary md:hidden">{{
+                      'XP.AgentEvolution.Directory.Registration' | translate
+                    }}</span>
+                    <z-badge zType="secondary" class="gap-1 rounded-md border-0 px-2 text-[12px]"
+                      ><i
+                        [class]="
+                          row.target.status === 'active'
+                            ? 'ri-checkbox-circle-line'
+                            : row.target.status === 'disabled'
+                              ? 'ri-pause-circle-line'
+                              : 'ri-error-warning-line'
+                        "
+                        aria-hidden="true"
+                      ></i
+                      >{{ 'XP.AgentEvolution.Directory.Status.' + row.target.status | translate }}</z-badge
+                    >
+                  </td>
+                  <td class="min-w-0 md:px-4">
+                    <span class="block text-xs text-text-secondary md:hidden">{{
+                      'XP.AgentEvolution.Directory.Version' | translate
+                    }}</span>
+                    @if (row.versions.length) {
+                      <span class="flex min-w-0 items-center gap-2 text-[14px]" [title]="row.versions.join(' · ')"
+                        ><i class="ri-git-branch-line text-text-success" aria-hidden="true"></i>
+                        <span class="truncate font-mono">{{
+                          row.versions.length === 1
+                            ? shortVersion(row.versions[0], row.target.targetId)
+                            : ('XP.AgentEvolution.Directory.VersionCount' | translate: { count: row.versions.length })
+                        }}</span></span
+                      >
+                    } @else {
+                      <span class="text-[14px] text-text-secondary">{{
+                        'XP.AgentEvolution.Directory.NoVersion' | translate
+                      }}</span>
+                    }
+                  </td>
+                  <td class="text-[14px] md:px-4">
+                    <span class="block text-xs text-text-secondary md:hidden">{{
+                      'XP.AgentEvolution.Directory.EffectiveScope' | translate
+                    }}</span
+                    >{{
+                      row.scopeCount
+                        ? ('XP.AgentEvolution.Directory.ScopeCount' | translate: { count: row.scopeCount })
+                        : '—'
+                    }}
+                  </td>
+                  <td class="md:px-4">
+                    <span class="block text-xs text-text-secondary md:hidden">{{
+                      'XP.AgentEvolution.Risk' | translate
+                    }}</span
+                    ><z-badge zType="outline" class="rounded-md text-[12px] text-text-secondary">{{
+                      row.target.riskLevel
+                    }}</z-badge>
+                  </td>
+                  <td class="col-span-2 text-right md:px-4">
+                    <a
+                      [routerLink]="[row.target.targetId]"
+                      [attr.aria-label]="('XP.AgentEvolution.ViewTargetDetails' | translate) + ' · ' + row.name"
+                      class="inline-flex min-h-[44px] items-center gap-1.5 rounded-sm text-[14px] font-semibold whitespace-nowrap text-text-accent hover:underline focus-visible:outline-ring"
+                      >{{ 'XP.AgentEvolution.ViewTargetDetails' | translate
+                      }}<i class="ri-arrow-right-line" aria-hidden="true"></i
+                    ></a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <div role="status" class="border-t border-border px-4 py-10 text-center">
+            <p>{{ 'XP.AgentEvolution.NoTargetOptions' | translate }}</p>
+            @if (filtered()) {
+              <button z-button zType="outline" class="mt-3 min-h-[44px]" (click)="resetFilters()">
+                {{ 'XP.AgentEvolution.Directory.Clear' | translate }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+      <p class="mt-[14px] flex items-start gap-2 text-[13px] leading-5 text-text-secondary">
+        <i class="ri-information-line" aria-hidden="true"></i
+        >{{ 'XP.AgentEvolution.Directory.VersionNote' | translate }}
+      </p>
+    }
+  </div>
 </main>
+<ng-template #statusMenu
+  ><div z-menu-content>
+    @for (status of statuses; track status) {
+      <button z-menu-item type="button" (menuItemTriggered)="update({ status })">
+        {{ 'XP.AgentEvolution.Directory.Status.' + status | translate }}
+        @if (filters().status === status) {
+          <i class="ri-check-line" aria-hidden="true"></i>
+        }
+      </button>
+    }</div
+></ng-template>
+<ng-template #sortMenu
+  ><div z-menu-content>
+    @for (sort of sorts; track sort) {
+      <button z-menu-item type="button" (menuItemTriggered)="update({ sort })">
+        {{
+          (sort === 'displayName' ? 'XP.AgentEvolution.SortTargetsByName' : 'XP.AgentEvolution.SortTargetsById')
+            | translate
+        }}
+        @if (filters().sort === sort) {
+          <i class="ri-check-line" aria-hidden="true"></i>
+        }
+      </button>
+    }</div
+></ng-template>

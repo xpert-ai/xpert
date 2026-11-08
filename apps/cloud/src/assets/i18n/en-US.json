@@ -1159,6 +1159,31 @@
       }
     },
     "AgentEvolution": {
+      "Directory": {
+        "Intro": "View registered capabilities, production versions and the scopes where they apply.",
+        "Scope": "Target scope",
+        "Search": "Search names, IDs or providers",
+        "Name": "Target name",
+        "Registration": "Registration status",
+        "Version": "Platform production version",
+        "EffectiveScope": "Effective scope",
+        "ScopeCount": "{{count}} scope(s)",
+        "VersionCount": "{{count}} versions",
+        "NoVersion": "No platform version",
+        "Clear": "Clear page filters",
+        "VersionNote": "Platform versions reflect production pointers in the current scope. Check the owning application for adoption.",
+        "Group": {
+          "all": "All targets",
+          "live": "With a production version",
+          "unversioned": "Without a production version"
+        },
+        "Status": {
+          "all": "All registration states",
+          "active": "Available",
+          "disabled": "Disabled",
+          "provider_unavailable": "Provider unavailable"
+        }
+      },
       "Overview": {
         "More": "More actions",
         "ShowDemo": "Show demo data",

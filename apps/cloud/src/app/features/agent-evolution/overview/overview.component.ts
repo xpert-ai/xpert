@@ -2,25 +2,18 @@ import { CommonModule } from '@angular/common'
 import { Component, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent } from '@xpert-ai/headless-ui'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { resolveI18nText, type EvolutionLifecycleRecord } from '@xpert-ai/contracts'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
+import { targetLabel } from '../targets/target-directory'
 import { percent } from '../agent-evolution.types'
 import { activeImprovement, overviewLabel, overviewRate, overviewTasks } from './overview-presentation'
 
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-overview',
-  imports: [
-    CommonModule,
-    RouterLink,
-    TranslateModule,
-    ZardBadgeComponent,
-    ZardButtonComponent,
-    ZardComboboxComponent,
-    ...ZardMenuImports
-  ],
+  imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent],
   templateUrl: './overview.component.html',
   host: { class: 'flex min-h-0 flex-1 overflow-hidden' }
 })
@@ -32,7 +25,9 @@ export class AgentEvolutionOverviewComponent implements OnDestroy {
     this.languageChange()
     return [
       { value: 'all', label: this.translate.instant(overviewLabel('AllTargets')) },
-      ...this.facade.visibleTargets().map((t) => ({ value: t.targetId, label: t.displayName || t.targetId }))
+      ...this.facade
+        .visibleTargets()
+        .map((t) => ({ value: t.targetId, label: targetLabel(t, this.translate.currentLang) }))
     ]
   })
   recordTitle(record: EvolutionLifecycleRecord) {

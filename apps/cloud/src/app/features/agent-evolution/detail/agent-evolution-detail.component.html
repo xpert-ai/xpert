@@ -5,13 +5,42 @@
         {{ 'XP.AgentEvolution.Title' | translate }} /
         {{ 'XP.AgentEvolution.DetailKind.' + kind | translate: { Default: kind } }}
       </div>
-      <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ resourceId() }}</h2>
+      <h2 class="mt-1 text-xl font-semibold text-text-primary">
+        {{ kind === 'target' ? targetName() : resourceId() }}
+      </h2>
+      @if (kind === 'target' && targetName() !== resourceId()) {
+        <p class="mt-1 break-all font-mono text-xs text-text-secondary">{{ resourceId() }}</p>
+      }
     </div>
     <a z-button zType="outline" [routerLink]="kind === 'target' ? '/agent-evolution/targets' : '../../'"
       ><i class="ri-arrow-left-line"></i>{{ 'XP.AgentEvolution.Back' | translate }}</a
     >
   </div>
   @if (kind === 'target') {
+    @if (target(); as descriptor) {
+      <section class="rounded-lg border border-border bg-card p-4">
+        <header class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="font-semibold">{{ 'XP.AgentEvolution.Directory.Version' | translate }}</h3>
+          <span class="break-all text-xs text-text-secondary"
+            >{{ 'XP.AgentEvolution.Provider' | translate }} · {{ descriptor.providerKey }}@{{
+              descriptor.providerVersion
+            }}</span
+          >
+        </header>
+        @if (production().length) {
+          <dl class="mt-3 divide-y divide-border">
+            @for (pointer of production(); track pointer.pointerId) {
+              <div class="grid gap-1 py-2 text-sm sm:grid-cols-2">
+                <dt class="break-all text-text-secondary">{{ scopeLabel(pointer.scope) }}</dt>
+                <dd class="break-all font-mono">{{ pointer.activeVersionId }}</dd>
+              </div>
+            }
+          </dl>
+        } @else {
+          <p class="mt-2 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.NoVersion' | translate }}</p>
+        }
+      </section>
+    }
     <xp-evolution-baseline-panel [targetId]="resourceId()" />
   }
   <z-card class="border border-divider-regular bg-components-card-bg shadow-none">

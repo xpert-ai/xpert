@@ -1396,6 +1396,31 @@
       "OAuthTestPassed": "OAuth 发现配置测试通过。"
     },
     "AgentEvolution": {
+      "Directory": {
+        "Intro": "查看已接入的能力、平台生产版本及生效范围。",
+        "Scope": "目标范围",
+        "Search": "搜索名称、标识或提供方",
+        "Name": "目标名称",
+        "Registration": "注册状态",
+        "Version": "平台生产版本",
+        "EffectiveScope": "生效范围",
+        "ScopeCount": "{{count}} 个范围",
+        "VersionCount": "{{count}} 个版本",
+        "NoVersion": "暂无平台版本",
+        "Clear": "清除本页筛选",
+        "VersionNote": "平台生产版本按当前范围的生产指针统计，业务应用中的采用情况请在对应应用查看。",
+        "Group": {
+          "all": "全部目标",
+          "live": "有生产版本",
+          "unversioned": "无生产版本"
+        },
+        "Status": {
+          "all": "全部注册状态",
+          "active": "可用",
+          "disabled": "已禁用",
+          "provider_unavailable": "提供方不可用"
+        }
+      },
       "Overview": {
         "More": "更多操作",
         "ShowDemo": "显示演示数据",

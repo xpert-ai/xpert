@@ -1,0 +1,54 @@
+<header
+  class="flex h-[64px] shrink-0 items-center justify-between gap-2 border-b border-border px-3 sm:px-6 xl:px-[32px]"
+>
+  <div class="flex min-w-0 items-center gap-2 text-[14px]">
+    <span class="text-text-secondary">{{ 'XP.AgentEvolution.Title' | translate }}</span
+    ><i class="ri-arrow-right-s-line text-muted-foreground" aria-hidden="true"></i>{{ titleKey() | translate }}
+  </div>
+  <div class="flex shrink-0 items-center gap-2">
+    <button
+      z-button
+      type="button"
+      zType="outline"
+      class="min-h-[44px] min-w-[44px] gap-2 px-3 text-[15px]"
+      [zDisabled]="facade.loading()"
+      (click)="facade.load()"
+      [attr.aria-label]="'XP.AgentEvolution.Refresh' | translate"
+    >
+      <i class="ri-refresh-line text-[20px] leading-none" aria-hidden="true"></i
+      ><span class="hidden sm:inline">{{ 'XP.AgentEvolution.Refresh' | translate }}</span>
+    </button>
+    <button
+      type="button"
+      z-button
+      zType="outline"
+      class="min-h-[44px] min-w-[44px] gap-2 px-3 text-[15px]"
+      z-menu
+      [zMenuTriggerFor]="more"
+      zPlacement="bottomRight"
+      [attr.aria-label]="'XP.AgentEvolution.Overview.More' | translate"
+    >
+      <i class="ri-more-line text-[20px] leading-none" aria-hidden="true"></i
+      ><span class="hidden sm:inline">{{ 'XP.AgentEvolution.Overview.More' | translate }}</span>
+    </button>
+  </div>
+</header>
+<ng-template #more
+  ><div z-menu-content>
+    <button z-menu-item type="button" (menuItemTriggered)="facade.setShowFixtures(!facade.showFixtures())">
+      <i [class]="facade.showFixtures() ? 'ri-checkbox-line' : 'ri-checkbox-blank-line'" aria-hidden="true"></i
+      >{{
+        (facade.showFixtures() ? 'XP.AgentEvolution.Overview.HideDemo' : 'XP.AgentEvolution.Overview.ShowDemo')
+          | translate
+      }}
+    </button>
+    <button
+      z-menu-item
+      type="button"
+      [zDisabled]="facade.synchronizing() || facade.mutating()"
+      (menuItemTriggered)="facade.synchronize()"
+    >
+      <i class="ri-focus-3-line" aria-hidden="true"></i>{{ 'XP.AgentEvolution.SyncTargets' | translate }}
+    </button>
+  </div></ng-template
+>

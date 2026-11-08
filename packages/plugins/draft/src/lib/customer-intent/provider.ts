@@ -41,6 +41,7 @@ export class CustomerIntentProvider implements EvolutionTargetProvider {
     targetId: intentTarget,
     targetType: 'routing_policy',
     displayName: 'Customer service intent',
+    label: { en_US: 'Customer service intent', zh_Hans: '客服意图路由', zh_Hant: '客服意圖路由' },
     providerKey: intentTarget,
     providerVersion: '3',
     artifactSchemaVersion: '2',
