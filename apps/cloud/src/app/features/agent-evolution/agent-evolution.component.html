@@ -67,7 +67,7 @@
       </div>
     }
 
-    @if (facade.activeJob(); as job) {
+    @if (pageHeader() !== 'XP.AgentEvolution.TabEvaluation' && facade.activeJob(); as job) {
       <section
         class="mx-4 mt-4 rounded-xl border border-primary-300/60 bg-primary-50/60 px-4 py-3 lg:mx-6 dark:bg-primary-950/20"
       >

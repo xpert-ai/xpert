@@ -1,9 +1,10 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import type {
   ImprovementProposal,
+  EvolutionCandidate,
   EvolutionTargetDescriptor,
   EvolutionCandidateChangeFieldDescriptor
 } from '@xpert-ai/contracts'
@@ -35,6 +36,9 @@ export class LearningCandidateFormComponent {
   readonly facade = inject(AgentEvolutionFacade)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
+  readonly nextStepHint = input(false)
+  readonly built = output<EvolutionCandidate>()
+  private readonly destroy = inject(DestroyRef)
   readonly selectedProposal = input.required<ImprovementProposal>()
   readonly candidateTarget = input<EvolutionTargetDescriptor>()
   readonly candidateDraft = signal<Record<string, string | number | boolean | string[]>>({})
@@ -49,8 +53,17 @@ export class LearningCandidateFormComponent {
     this.candidateFields().every((field) => !field.required || hasFieldValue(this.candidateDraft()[field.key]))
   )
 
+  private draftKey = ''
   readonly #candidateDraftEffect = effect(() => {
     const fields = this.candidateFields()
+    const proposal = this.selectedProposal()
+    const key = JSON.stringify([
+      proposal.proposalId,
+      proposal.revision,
+      fields.map((f) => [f.key, f.type, f.defaultValue])
+    ])
+    if (this.draftKey === key) return
+    this.draftKey = key
     this.candidateDraft.set(
       Object.fromEntries(fields.map((field) => [field.key, cloneDefaultValue(field.defaultValue)])) as Record<
         string,
@@ -95,7 +108,7 @@ export class LearningCandidateFormComponent {
 
   async buildCandidate() {
     const proposal = this.selectedProposal()
-    if (!proposal || !this.canBuildCandidate() || !this.candidateDraftValid()) return
+    if (this.facade.mutating() || !proposal || !this.canBuildCandidate() || !this.candidateDraftValid()) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
         layout: 'standard',
@@ -105,7 +118,20 @@ export class LearningCandidateFormComponent {
         cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
-    if (confirmed) await this.facade.buildCandidate(proposal, this.candidateDraft())
+    if (!confirmed || this.destroy.destroyed || this.selectedProposal() !== proposal) return
+    // A previous response may have been lost after the server built this immutable revision.
+    const findExisting = () =>
+      this.facade
+        .contextCandidates()
+        .find((c) => c.proposalId === proposal.proposalId && c.proposalRevision === proposal.revision)
+    let candidate = findExisting() ?? (await this.facade.buildCandidate(proposal, this.candidateDraft()))
+    if (!candidate && !this.destroy.destroyed) {
+      const error = this.facade.error()
+      await this.facade.load({ silent: true })
+      candidate = findExisting() ?? null
+      if (!candidate && error) this.facade.error.set(error)
+    }
+    if (candidate && !this.destroy.destroyed) this.built.emit(candidate)
   }
 }
 

@@ -422,7 +422,11 @@
                     ><i class="ri-arrow-right-line"></i>{{ prefix + 'ViewCandidate' | translate }}</a
                   >
                 } @else if (p.status === 'ready') {
-                  <xp-learning-candidate-form [selectedProposal]="p" [candidateTarget]="targets().get(p.targetId)" />
+                  <xp-learning-candidate-form
+                    (built)="openCandidate($event)"
+                    [selectedProposal]="p"
+                    [candidateTarget]="targets().get(p.targetId)"
+                  />
                 }
               </section>
             }

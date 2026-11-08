@@ -1,0 +1,73 @@
+<section class="border-y border-border">
+  <header class="py-3">
+    <h3 class="font-semibold">{{ 'XP.AgentEvolution.CreateImmutableDataset' | translate }}</h3>
+    <p class="mt-1 text-sm text-text-secondary">{{ 'XP.AgentEvolution.ImmutableDatasetDescription' | translate }}</p>
+  </header>
+  <div class="space-y-4 pb-4">
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <label class="text-sm text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.DatasetId' | translate }}</span>
+        <input
+          z-input
+          class="w-full"
+          [ngModel]="datasetId()"
+          (ngModelChange)="datasetId.set($event)"
+          [placeholder]="'XP.AgentEvolution.DatasetIdPlaceholder' | translate"
+        />
+      </label>
+      <label class="text-sm text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.Name' | translate }}</span>
+        <input
+          z-input
+          class="w-full"
+          [ngModel]="datasetName()"
+          (ngModelChange)="datasetName.set($event)"
+          [placeholder]="'XP.AgentEvolution.DatasetNamePlaceholder' | translate"
+        />
+      </label>
+      <label class="text-sm text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.EvaluatorVersion' | translate }}</span>
+        <input z-input class="w-full" [ngModel]="evaluatorVersion()" (ngModelChange)="evaluatorVersion.set($event)" />
+      </label>
+      <label class="text-sm text-text-secondary">
+        <span class="mb-1.5 block font-medium">{{ 'XP.AgentEvolution.MetricDefinition' | translate }}</span>
+        <input
+          z-input
+          class="w-full"
+          [ngModel]="metricDefinitionVersion()"
+          (ngModelChange)="metricDefinitionVersion.set($event)"
+          [placeholder]="candidateTarget()?.metricSetId || 'metrics-v1'"
+        />
+      </label>
+    </div>
+    <div class="block text-sm text-text-secondary">
+      <span class="mb-1.5 flex flex-wrap items-center justify-between gap-2 font-medium">
+        {{ 'XP.AgentEvolution.GoldenCasesJson' | translate }}
+        <label class="cursor-pointer text-primary-600 hover:text-primary-700">
+          <i class="ri-upload-2-line"></i> {{ 'XP.AgentEvolution.ImportJsonFile' | translate }}
+          <input type="file" accept="application/json,.json" class="hidden" (change)="importDatasetFile($event)" />
+        </label>
+      </span>
+      <textarea
+        z-input
+        class="min-h-56 w-full resize-y py-3 font-mono text-sm leading-5"
+        [ngModel]="datasetCasesJson()"
+        (ngModelChange)="datasetCasesJson.set($event)"
+        [placeholder]="'XP.AgentEvolution.GoldenCasesJsonPlaceholder' | translate"
+      ></textarea>
+    </div>
+    <div
+      class="flex flex-col gap-3 rounded-lg bg-background-default-subtle p-3 text-sm text-text-secondary lg:flex-row lg:items-center lg:justify-between"
+    >
+      <span>{{ 'XP.AgentEvolution.DefaultGoldenGateHint' | translate }}</span>
+      <div class="flex gap-2">
+        <button z-button zType="ghost" type="button" (click)="closed.emit()">
+          {{ 'XP.ACTIONS.Cancel' | translate }}
+        </button>
+        <button z-button type="button" [zLoading]="facade.mutating()" (click)="createDataset()">
+          {{ 'XP.AgentEvolution.CreateSnapshot' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

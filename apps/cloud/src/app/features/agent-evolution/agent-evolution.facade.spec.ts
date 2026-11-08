@@ -3,6 +3,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   FEEDBACK_LEARNING_STRATEGY,
   evidenceDrivenStrategy,
+  type DatasetSnapshot,
+  type EvaluationRun,
+  type EvolutionCandidate,
   type EvolutionChange,
   type EvolutionLifecycleRecord
 } from '@xpert-ai/contracts'
@@ -83,6 +86,7 @@ const record = (status: string): EvolutionLifecycleRecord => ({
 
 let facade: AgentEvolutionFacade
 let api: {
+  evaluateChange: jest.Mock
   decideChange: jest.Mock
   publishChange: jest.Mock
   listChanges: jest.Mock
@@ -92,6 +96,7 @@ let api: {
 beforeEach(() => {
   jest.clearAllMocks()
   api = {
+    evaluateChange: jest.fn(),
     decideChange: jest.fn(() => of(record('approved'))),
     publishChange: jest.fn(() => of(record('published'))),
     listChanges: jest.fn(() => of([change])),
@@ -228,4 +233,53 @@ it('discards both refresh responses when the organization changes', async () => 
   await pending
   expect(facade.changes()).toEqual([])
   expect(facade.lifecycleRecords()).toEqual([])
+})
+
+describe('isolated replay submission', () => {
+  const candidate = {
+    candidateId: change.changeId,
+    targetId: change.targetId,
+    targetScope: change.scope,
+    status: 'ready',
+    strategy: { definition: { evaluations: [{ key: 'replay', kind: 'golden_replay' }] } }
+  } as EvolutionCandidate
+  const dataset = { snapshotId: 'chosen', targetId: change.targetId, scope: change.scope } as DatasetSnapshot
+  const run = (runId: string, snapshotId: string) =>
+    ({ runId, datasetSnapshotId: snapshotId, candidateId: candidate.candidateId }) as EvaluationRun
+  beforeEach(() => {
+    facade.changes.set([{ ...change, evaluation: undefined, datasetSnapshotIds: { other: 'preserved' } }])
+    facade.dashboard.update((d) => ({ ...d, evaluations: [run('unrelated', 'chosen'), run('returned', 'chosen')] }))
+    api.evaluateChange.mockReturnValue(
+      of({
+        ...record('pending_approval'),
+        evaluation: {
+          ...change.evaluation,
+          checks: [{ evidenceRefs: ['returned'] }]
+        }
+      })
+    )
+  })
+  it('pins the selected snapshot and opens only the replay cited by this assessment', async () => {
+    expect((await facade.evaluateCandidate(candidate, dataset))?.runId).toBe('returned')
+    expect(api.evaluateChange).toHaveBeenCalledWith(candidate.candidateId, { other: 'preserved', replay: 'chosen' })
+    expect(facade.pendingReplay()).toBeNull()
+  })
+  it('never substitutes another run when the cited run uses a different snapshot', async () => {
+    facade.dashboard.update((d) => ({ ...d, evaluations: [run('unrelated', 'chosen'), run('returned', 'other')] }))
+    expect(await facade.evaluateCandidate(candidate, dataset)).toBeNull()
+    expect(facade.selectedEvaluationRunId()).toBeNull()
+    expect(facade.pendingReplay()).toBeNull()
+  })
+  it('prevents duplicate submission and clears pending state on failure', async () => {
+    const response = new Subject<EvolutionLifecycleRecord>()
+    api.evaluateChange.mockReturnValue(response)
+    const pending = facade.evaluateCandidate(candidate, dataset)
+    expect(facade.pendingReplay()).toEqual({ candidateId: candidate.candidateId, snapshotId: 'chosen' })
+    expect(await facade.evaluateCandidate(candidate, dataset)).toBeNull()
+    expect(api.evaluateChange).toHaveBeenCalledTimes(1)
+    response.error(new Error('replay failed'))
+    expect(await pending).toBeNull()
+    expect(facade.pendingReplay()).toBeNull()
+    expect(facade.error()).toBe('replay failed')
+  })
 })

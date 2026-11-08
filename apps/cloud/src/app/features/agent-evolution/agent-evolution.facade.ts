@@ -18,6 +18,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 import { EMPTY_EVOLUTION_DASHBOARD, sameEvolutionScope, type AgentEvolutionDashboard } from './agent-evolution.types'
+import { selectedReplayEvaluation } from './shared/evolution-change-presentation'
 import { loadAllEvolutionPages } from './shared/evolution-pagination'
 
 const EMPTY_PAGE = { items: [], total: 0, page: 1, pageSize: 20 }
@@ -49,6 +50,7 @@ export class AgentEvolutionFacade {
   readonly synchronizing = signal(false)
   readonly mutating = signal(false)
   readonly error = signal<string | null>(null)
+  readonly pendingReplay = signal<{ candidateId: string; snapshotId: string } | null>(null)
   readonly activeJob = signal<EvolutionJob | null>(null)
   readonly loadedAt = signal<Date | null>(null)
   readonly directoryFilters = signal<TargetFilters>({ ...defaultTargetFilters })
@@ -140,6 +142,7 @@ export class AgentEvolutionFacade {
     this.candidatePage.set(EMPTY_PAGE)
     this.releasePage.set(EMPTY_PAGE)
     this.activeJob.set(null)
+    this.pendingReplay.set(null)
     this.selectedTargetId.set('all')
     this.clearResourceSelections()
     this.loadedAt.set(null)
@@ -202,11 +205,11 @@ export class AgentEvolutionFacade {
         firstValueFrom(this.#api.listLearningEvents({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listDiagnoses({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listClusters({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listProposals({ page: 1, pageSize: 50 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listProposals({ page, pageSize: 50 }))),
         firstValueFrom(this.#api.listExperiences({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listCandidates({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listDatasets({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listEvaluations({ page: 1, pageSize: 50 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listCandidates({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDatasets({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listEvaluations({ page, pageSize: 50 }))),
         firstValueFrom(this.#api.listReleases({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listDeployments({ page: 1, pageSize: 100 })),
         firstValueFrom(this.#api.listChanges())
@@ -219,7 +222,7 @@ export class AgentEvolutionFacade {
       this.changes.set(providerRecords.value)
       this.providerError.set(providerRecords.error)
       this.eventPage.set(events)
-      this.candidatePage.set(candidates)
+      this.candidatePage.set({ items: candidates, total: candidates.length, page: 1, pageSize: candidates.length })
       this.releasePage.set(releases)
       this.dashboard.set({
         ...EMPTY_EVOLUTION_DASHBOARD,
@@ -231,11 +234,11 @@ export class AgentEvolutionFacade {
         events: events.items,
         diagnoses: diagnoses.items,
         clusters: clusters.items,
-        proposals: proposals.items,
+        proposals,
         experiences: experiences.items,
-        candidates: candidates.items,
-        datasets: datasets.items,
-        evaluations: evaluations.items,
+        candidates,
+        datasets,
+        evaluations,
         releases: releases.items,
         deployments: deployments.items
       })
@@ -296,6 +299,8 @@ export class AgentEvolutionFacade {
   }
 
   async buildCandidate(proposal: ImprovementProposal, changeSet: Record<string, string | number | boolean | string[]>) {
+    if (this.mutating()) return null
+    const scope = this.#scopeRevision
     return this.withMutation(async () => {
       const candidate = await firstValueFrom(
         this.#api.buildCandidate({
@@ -304,7 +309,9 @@ export class AgentEvolutionFacade {
           changeSet
         })
       )
+      if (scope !== this.#scopeRevision) return null
       await this.load({ silent: true })
+      if (scope !== this.#scopeRevision) return null
       this.selectedCandidateId.set(candidate.candidateId)
       return candidate
     })
@@ -331,30 +338,40 @@ export class AgentEvolutionFacade {
       this.#toastr.warning('XP.AgentEvolution.CandidateDatasetScopeMismatch')
       return null
     }
-    return this.withMutation(async () => {
-      const step = candidate.strategy.definition.evaluations.find((item) => item.kind === 'golden_replay')
-      if (!step) return null
-      const current = this.contextChanges().find((item) => item.changeId === candidate.candidateId)
-      const record = await firstValueFrom(
-        this.#api.evaluateChange(candidate.candidateId, {
-          ...current?.datasetSnapshotIds,
-          [step.key]: dataset.snapshotId
-        })
-      )
-      if (record.job) await this.waitForJob(record.job)
-      await this.load({ silent: true })
-      const evaluation = this.dashboard().evaluations.find((item) => item.candidateId === candidate.candidateId)
-      this.selectedEvaluationRunId.set(evaluation?.runId ?? null)
-      return record
-    })
+    const step = candidate.strategy.definition.evaluations.find((item) => item.kind === 'golden_replay')
+    const current = this.contextChanges().find((item) => item.changeId === candidate.candidateId)
+    if (!step || !current || current.evaluation || this.mutating() || this.pendingReplay()) return null
+    const scope = this.#scopeRevision
+    this.pendingReplay.set({ candidateId: candidate.candidateId, snapshotId: dataset.snapshotId })
+    try {
+      return await this.withMutation(async () => {
+        // The evaluate endpoint returns the committed assessment. Only its evidence identifies this replay.
+        const record = await firstValueFrom(
+          this.#api.evaluateChange(candidate.candidateId, {
+            ...current.datasetSnapshotIds,
+            [step.key]: dataset.snapshotId
+          })
+        )
+        if (scope !== this.#scopeRevision) return null
+        await this.load({ silent: true })
+        if (scope !== this.#scopeRevision) return null
+        const run = selectedReplayEvaluation(
+          this.dashboard().evaluations.filter((item) => item.datasetSnapshotId === dataset.snapshotId),
+          record.evaluation,
+          candidate.candidateId
+        )
+        if (!run) throw new Error(this.#translate.instant('XP.AgentEvolution.ReplayWorkbench.MissingResult'))
+        this.selectedEvaluationRunId.set(run.runId)
+        return run
+      })
+    } finally {
+      if (scope === this.#scopeRevision) this.pendingReplay.set(null)
+    }
   }
 
   async evaluateLatestCandidate() {
     const candidate = this.latestCandidate()
-    const dataset =
-      this.contextDatasets().find((item) => item.snapshotId === this.selectedDatasetSnapshotId()) ??
-      this.contextDatasets()[0] ??
-      null
+    const dataset = this.contextDatasets().find((item) => item.snapshotId === this.selectedDatasetSnapshotId()) ?? null
     return this.evaluateCandidate(candidate, dataset)
   }
 

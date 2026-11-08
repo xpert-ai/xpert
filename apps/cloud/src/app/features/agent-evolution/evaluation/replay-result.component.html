@@ -1,0 +1,285 @@
+@let r = run();
+@if (caseId()) {
+  @if (selected(); as item) {
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+      <div>
+        <h2 class="flex flex-wrap items-center gap-2 text-lg font-semibold">
+          {{ prefix + 'Case' | translate }} <code>{{ item.caseId.slice(0, 8) }}</code
+          ><span
+            class="rounded bg-muted px-2 text-sm"
+            [class.text-text-success]="outcome(item) === 'improved'"
+            [class.text-text-destructive]="outcome(item) === 'regressed'"
+            >{{ prefix + outcome(item) | translate }}</span
+          >
+        </h2>
+        <p class="mt-1 text-sm text-text-secondary">
+          {{ title() }} / {{ prefix + 'Run' | translate }} <code [title]="r.runId">{{ short(r.runId) }}</code>
+        </p>
+      </div>
+      <button z-button zType="outline" (click)="openCase(null)">
+        <i class="ri-arrow-left-line"></i>{{ prefix + 'BackResult' | translate }}
+      </button>
+    </div>
+    <div class="border-b border-border p-5">
+      <h3 class="font-semibold">{{ prefix + 'Compare' | translate }}</h3>
+      <div
+        class="my-3 grid gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-3 sm:divide-x sm:divide-border"
+      >
+        @for (field of ['baseline', 'candidate', 'expected']; track field) {
+          @let valueMap =
+            field === 'baseline'
+              ? item.baselineOutput
+              : field === 'candidate'
+                ? item.candidateOutput
+                : item.expectedOutput;
+          <div class="min-w-0 sm:px-3">
+            <div class="text-sm text-text-secondary">{{ prefix + field | translate }}</div>
+            <div class="mt-1 break-words font-medium">
+              {{ value(valueMap) }}
+              @if (value(valueMap, true) !== value(valueMap)) {
+                <code class="ml-1 text-sm font-normal text-text-secondary">{{ value(valueMap, true) }}</code>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <p class="text-sm text-text-secondary">{{ prefix + 'why_' + outcome(item) | translate }}</p>
+    </div>
+    <section class="p-5">
+      <h3 class="font-semibold">{{ prefix + 'Evidence' | translate }}</h3>
+      <dl
+        class="mt-3 grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] items-baseline gap-x-8 gap-y-3 text-sm [&_dt]:text-text-secondary"
+      >
+        <dt>{{ prefix + 'SnapshotRevision' | translate }}</dt>
+        <dd>
+          <code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code> /
+          {{ frozen() ? (prefix + 'Revision' | translate: { n: frozen()!.revision }) : '—' }}
+        </dd>
+        <dt>{{ prefix + 'SliceRisk' | translate }}</dt>
+        <dd>{{ frozen()?.slice || '—' }} / {{ frozen() ? (prefix + 'risk_' + frozen()!.risk | translate) : '—' }}</dd>
+        <dt>{{ 'XP.AgentEvolution.SevereErrors' | translate }}</dt>
+        <dd>{{ prefix + (item.severeError ? 'Yes' : 'No') | translate }}</dd>
+        <dt>{{ prefix + 'Latency' | translate }}</dt>
+        <dd>{{ item.latencyMs | number: '1.0-3' }} ms</dd>
+        @if (frozen(); as version) {
+          <dt>{{ prefix + 'FrozenInput' | translate }}</dt>
+          <dd class="break-all font-mono">
+            @for (pair of version.input | keyvalue; track pair.key) {
+              <div>{{ pair.key }}: {{ pair.value }}</div>
+            }
+          </dd>
+        }
+        @if (item.traceRef) {
+          <dt>{{ prefix + 'Trace' | translate }}</dt>
+          <dd class="flex min-w-0 flex-wrap items-center gap-2">
+            <code class="break-all" [title]="item.traceRef">{{ item.traceRef }}</code
+            ><button z-button zType="outline" (click)="copyTrace(item.traceRef)">
+              <i class="ri-file-copy-line"></i>{{ prefix + 'Copy' | translate }}</button
+            ><span role="status">{{ copyStatus() ? (prefix + copyStatus() | translate) : '' }}</span>
+          </dd>
+        }
+      </dl>
+    </section>
+  } @else {
+    <div class="p-5">
+      {{ prefix + 'Unavailable' | translate }}
+      <button z-button zType="outline" (click)="openCase(null)">{{ prefix + 'BackResult' | translate }}</button>
+    </div>
+  }
+} @else {
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+    <div>
+      <h2 class="flex flex-wrap items-center gap-2 text-lg font-semibold">
+        {{ title() }}
+        <span
+          class="rounded px-2 py-0.5 text-sm font-medium"
+          [class]="
+            r.gate.passed
+              ? 'bg-state-success-hover/20 text-text-success'
+              : 'bg-state-error-hover/20 text-text-destructive'
+          "
+          >{{ prefix + (r.gate.passed ? 'Passed' : 'Blocked') | translate }}</span
+        >
+      </h2>
+      <p class="mt-1 flex flex-wrap gap-x-2 text-sm text-text-secondary">
+        {{ prefix + 'ThisSnapshot' | translate }} <span>{{ snapshot()?.name }}</span
+        ><code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code>
+        {{ prefix + 'Cases' | translate: { n: r.metrics.totalCases } }}
+        <time>{{ r.completedAt || r.startedAt | date: 'yyyy-MM-dd HH:mm' }}</time>
+      </p>
+    </div>
+    <button z-button zType="outline" (click)="switchRun.emit()">
+      <i class="ri-history-line"></i>{{ prefix + 'SwitchRun' | translate }}
+    </button>
+  </div>
+  <div class="flex flex-wrap gap-x-5 gap-y-1 border-b border-border bg-muted/35 px-5 py-2 text-sm text-text-secondary">
+    <span
+      >{{ prefix + 'Run' | translate }} <code [title]="r.runId">{{ short(r.runId) }}</code></span
+    >
+    <span
+      >{{ 'XP.AgentEvolution.Baseline' | translate }}
+      <code [title]="version(r, 'baselineBundle')">{{
+        short(version(r, 'baselineBundle').split(':').pop() || version(r, 'baselineBundle'))
+      }}</code></span
+    ><span
+      >{{ 'XP.AgentEvolution.Candidate' | translate }}
+      <code [title]="version(r, 'candidateBundle')">{{ short(version(r, 'candidateBundle')) }}</code></span
+    >
+  </div>
+  <div
+    class="grid grid-cols-2 gap-y-3 border-b border-border py-5 md:grid-cols-4 [&>div]:border-r [&>div]:border-border [&>div]:px-5 [&>div:last-child]:border-0 [&_b]:block [&_b]:text-[1.43rem] [&_b]:font-semibold [&_p]:text-sm [&_p]:text-text-secondary"
+  >
+    <div>
+      <p>{{ prefix + 'BaseCorrect' | translate }}</p>
+      <b
+        >{{ baselinePassed() }}
+        <small class="text-sm font-normal text-text-secondary">/ {{ r.metrics.totalCases }}</small></b
+      >
+      <p>{{ prefix + 'Accuracy' | translate }} {{ pct(r.metrics.baselineAccuracy) }}</p>
+    </div>
+    <div>
+      <p>{{ prefix + 'CandCorrect' | translate }}</p>
+      <b
+        >{{ r.metrics.passedCases }}
+        <small class="text-sm font-normal text-text-secondary">/ {{ r.metrics.totalCases }}</small></b
+      >
+      <p>{{ prefix + 'Accuracy' | translate }} {{ pct(r.metrics.candidateAccuracy) }}</p>
+    </div>
+    <div>
+      <p>{{ prefix + 'Delta' | translate }}</p>
+      <b
+        [class.text-text-success]="r.metrics.accuracyDelta > 0"
+        [class.text-text-destructive]="r.metrics.accuracyDelta < 0"
+        >{{ delta() }}
+      </b>
+      <p>{{ prefix + 'Points' | translate }}</p>
+    </div>
+    <div>
+      <p>{{ 'XP.AgentEvolution.SevereErrors' | translate }}</p>
+      <b [class.text-text-destructive]="r.metrics.severeErrors > 0">{{ r.metrics.severeErrors }}</b>
+      <p>{{ prefix + (r.gate.passed ? 'GatePassed' : 'GateBlocked') | translate }}</p>
+    </div>
+  </div>
+  @if (!r.gate.passed) {
+    <div class="border-b border-border bg-state-error-hover/10 px-5 py-3 text-sm text-text-destructive">
+      <strong><i class="ri-error-warning-line"></i> {{ prefix + 'BlockReasons' | translate }}</strong>
+      @for (reason of r.gate.blockingReasons; track $index) {
+        <p>{{ this.reason(reason) }}</p>
+      }
+    </div>
+  }
+  <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+    <h3 class="font-semibold">{{ prefix + 'CaseResults' | translate }}</h3>
+    <div class="flex flex-wrap gap-1 rounded-md bg-muted p-1">
+      @for (f of filters(); track f) {
+        <button
+          type="button"
+          class="rounded px-2 py-0.5 text-sm hover:text-foreground"
+          [class]="filter() === f ? 'bg-background font-medium text-foreground shadow-sm' : 'text-text-secondary'"
+          [attr.aria-pressed]="filter() === f"
+          (click)="setFilter(f)"
+        >
+          {{ prefix + f | translate }} {{ count(f) }}
+        </button>
+      }
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[680px] table-fixed text-base">
+      <colgroup>
+        <col class="w-[17%]" />
+        <col class="w-[16%]" />
+        <col class="w-[16%]" />
+        <col class="w-[15%]" />
+        <col class="w-[14%]" />
+        <col class="w-[11%]" />
+        <col class="w-[11%]" />
+      </colgroup>
+      <thead
+        class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+      >
+        <tr>
+          @for (k of ['Case', 'baseline', 'candidate', 'expected', 'Outcome', 'Severe', 'Action']; track k) {
+            <th [class.text-right]="$last">{{ prefix + k | translate }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of visible(); track item) {
+          <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
+            <td class="font-mono text-sm" [title]="item.caseId">{{ item.caseId.slice(0, 8) }}</td>
+            <td class="break-words text-text-secondary">{{ value(item.baselineOutput) }}</td>
+            <td class="break-words font-medium">{{ value(item.candidateOutput) }}</td>
+            <td class="break-words">{{ value(item.expectedOutput) }}</td>
+            <td class="text-sm">
+              <span
+                class="rounded px-1.5 py-0.5 font-medium"
+                [class]="
+                  outcome(item) === 'improved'
+                    ? 'bg-state-success-hover/20 text-text-success'
+                    : outcome(item) === 'regressed'
+                      ? 'bg-state-error-hover/20 text-text-destructive'
+                      : 'bg-muted text-text-secondary'
+                "
+                >{{ prefix + outcome(item) | translate }}</span
+              >
+            </td>
+            <td [class.text-text-destructive]="item.severeError">
+              {{ prefix + (item.severeError ? 'Yes' : 'No') | translate }}
+            </td>
+            <td class="text-right">
+              <button
+                type="button"
+                class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+                (click)="openCase(item)"
+              >
+                {{ prefix + 'ViewCase' | translate }} <i class="ri-arrow-right-line" aria-hidden="true"></i>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="p-6 text-center text-sm text-text-secondary">
+              {{ prefix + 'EmptyCases' | translate }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <footer
+    class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-2 text-sm text-text-secondary"
+  >
+    <span>{{
+      prefix + 'Range'
+        | translate
+          : {
+              start: rows().length ? (page() - 1) * 5 + 1 : 0,
+              end: (page() - 1) * 5 + visible().length,
+              total: rows().length
+            }
+    }}</span>
+    <div class="flex items-center gap-2">
+      {{ page() }} / {{ pages() }}
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon-sm"
+        [attr.aria-label]="prefix + 'Previous' | translate"
+        [zDisabled]="page() <= 1"
+        (click)="page.set(page() - 1)"
+      >
+        <i class="ri-arrow-left-s-line"></i></button
+      ><button
+        z-button
+        zType="ghost"
+        zSize="icon-sm"
+        [attr.aria-label]="prefix + 'Next' | translate"
+        [zDisabled]="page() >= pages()"
+        (click)="page.set(page() + 1)"
+      >
+        <i class="ri-arrow-right-s-line"></i>
+      </button>
+    </div>
+  </footer>
+}

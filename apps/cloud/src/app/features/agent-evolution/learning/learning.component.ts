@@ -193,6 +193,11 @@ export class AgentEvolutionLearningComponent {
     })
     this.destroy.onDestroy(() => this.checkRef?.close())
   }
+  openCandidate(candidate: import('@xpert-ai/contracts').EvolutionCandidate) {
+    void this.router.navigate(['/agent-evolution/evaluation'], {
+      queryParams: { target: candidate.targetId, changeId: candidate.candidateId }
+    })
+  }
   name(id: string) {
     this.lang()
     const target = this.targets().get(id)

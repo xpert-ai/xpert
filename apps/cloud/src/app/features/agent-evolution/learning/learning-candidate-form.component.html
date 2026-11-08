@@ -69,16 +69,23 @@
         }
       </label>
     }
-    <button
-      z-button
-      zSize="default"
-      type="button"
-      [zLoading]="facade.mutating()"
-      [zDisabled]="!candidateDraftValid()"
-      (click)="buildCandidate()"
+    <div
+      [class]="nextStepHint() ? 'flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3' : ''"
     >
-      <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.BuildIsolatedCandidate' | translate }}
-    </button>
+      @if (nextStepHint()) {
+        <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.ReplayWorkbench.AfterBuild' | translate }}</p>
+      }
+      <button
+        z-button
+        zSize="default"
+        type="button"
+        [zLoading]="facade.mutating()"
+        [zDisabled]="!candidateDraftValid()"
+        (click)="buildCandidate()"
+      >
+        <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.BuildIsolatedCandidate' | translate }}
+      </button>
+    </div>
   } @else {
     <div
       class="rounded-lg border border-state-warning-hover bg-state-warning-hover/10 p-3 text-sm leading-5 text-text-warning"
