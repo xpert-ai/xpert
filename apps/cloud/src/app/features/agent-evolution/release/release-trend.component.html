@@ -1,0 +1,82 @@
+<div class="space-y-4">
+  <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-lg border border-border px-4 py-3">
+      <dt class="text-sm text-text-secondary">{{ prefix + 'LatestAccuracy' | translate }}</dt>
+      <dd class="mt-1 text-xl font-semibold">
+        {{ points().length ? (points().at(-1)!.point.candidateAccuracy | percent: '1.0-1') : '—' }}
+      </dd>
+    </div>
+    <div class="rounded-lg border border-border px-4 py-3">
+      <dt class="text-sm text-text-secondary">{{ prefix + 'AllSamples' | translate }}</dt>
+      <dd class="mt-1 text-xl font-semibold">{{ samples() }}</dd>
+    </div>
+    <div class="rounded-lg border border-border px-4 py-3">
+      <dt class="text-sm text-text-secondary">{{ prefix + 'AllSevere' | translate }}</dt>
+      <dd class="mt-1 text-xl font-semibold">{{ errors() }}</dd>
+    </div>
+  </dl>
+  <section class="rounded-lg border border-border p-4">
+    <h3 class="font-semibold">{{ prefix + 'AccuracyTrend' | translate }}</h3>
+    <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'TrendHint' | translate }}</p>
+    @if (points().length) {
+      @if (!hasBaseline()) {
+        <p class="mt-2 text-sm text-text-secondary">{{ 'XP.AgentEvolution.NoPairedBaseline' | translate }}</p>
+      }
+      @if (hasBaseline() && points().at(-1)?.baseline == null) {
+        <p class="mt-2 text-sm text-text-secondary">{{ prefix + 'LatestUnpaired' | translate }}</p>
+      }
+      <div
+        echarts
+        class="h-64 w-full"
+        [options]="options()"
+        role="img"
+        [attr.aria-label]="prefix + 'AccuracyTrend' | translate"
+      ></div>
+    } @else {
+      <p class="py-8 text-center text-text-secondary">{{ 'XP.AgentEvolution.NoRuntimeObservations' | translate }}</p>
+    }
+  </section>
+  <section class="overflow-hidden rounded-lg border border-border">
+    <h3 class="px-4 py-3 font-semibold">{{ 'XP.AgentEvolution.TrafficSlices' | translate }}</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[740px]">
+        <thead class="bg-muted/40 text-left text-sm text-text-secondary [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium">
+          <tr>
+            @for (
+              k of ['Stage', 'Status', 'Source', 'TrafficShare', 'Samples', 'Accuracy', 'Severe', 'Started'];
+              track k
+            ) {
+              <th scope="col">{{ prefix + k | translate }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border [&_td]:px-3 [&_td]:py-2.5">
+          @for (s of stages(); track s.deploymentId) {
+            <tr>
+              <td>
+                <button z-button zType="link" (click)="inspect.emit(s.deploymentId)">{{ label(s) }}</button>
+              </td>
+              <td>
+                {{
+                  s.completedAt
+                    ? (prefix + 'StageEnded' | translate)
+                    : ('XP.AgentEvolution.Status.' + s.status | translate: { Default: s.status })
+                }}
+              </td>
+              <td>{{ 'XP.AgentEvolution.DataSourceType.' + s.dataSource | translate }}</td>
+              <td>{{ s.canaryPercent }}%</td>
+              <td>{{ s.sampleCount }}</td>
+              <td>{{ s.sampleCount ? (s.candidateAccuracy | percent: '1.0-1') : '—' }}</td>
+              <td>{{ s.severeErrors }}</td>
+              <td>{{ s.startedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="text-center text-text-secondary">{{ prefix + 'NoStage' | translate }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

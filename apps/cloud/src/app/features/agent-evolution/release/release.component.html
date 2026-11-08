@@ -150,6 +150,34 @@
         </p>
       }
       @switch (view()) {
+        @case ('details') {
+          <section>
+            <header class="mb-3 flex items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold">{{ prefix + 'ReleaseDetails' | translate }}</h2>
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+              </button>
+            </header>
+            <xp-release-details
+              [release]="item"
+              [pointer]="ptr()"
+              [stages]="stages()"
+              [record]="selected()!"
+              [change]="resource()"
+            />
+          </section>
+        }
+        @case ('trend') {
+          <section>
+            <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold">{{ prefix + 'Trend' | translate }}</h2>
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+              </button>
+            </header>
+            <xp-release-trend [stages]="stages()" (inspect)="goto('observations', selected()?.id, $event)" />
+          </section>
+        }
         @case ('observations') {
           <section class="overflow-hidden rounded-lg border border-border bg-card">
             <header class="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -157,9 +185,14 @@
                 <h2 class="text-lg font-semibold">{{ prefix + 'Observations' | translate }}</h2>
                 <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'ObservationsIntro' | translate }}</p>
               </div>
-              <button z-button zType="ghost" (click)="goto('history')">
-                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
-              </button>
+              <div class="flex flex-wrap gap-2">
+                <button z-button zType="outline" (click)="goto('trend')">
+                  <i class="ri-line-chart-line"></i>{{ prefix + 'Trend' | translate }}
+                </button>
+                <button z-button zType="ghost" (click)="goto('history')">
+                  <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+                </button>
+              </div>
             </header>
             <div class="flex flex-wrap items-center gap-3 border-y border-border px-4 py-3">
               <span class="text-sm text-text-secondary">{{ prefix + 'Stage' | translate }}</span
@@ -332,19 +365,24 @@
                       <th scope="col">{{ prefix + 'Action' | translate }}</th>
                       <th scope="col">{{ prefix + 'Summary' | translate }}</th>
                       <th scope="col">{{ prefix + 'Actor' | translate }}</th>
+                      <th scope="col">{{ 'XP.AgentEvolution.AuditId' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2.5">
                     @for (a of audits().items; track a.auditId) {
                       <tr>
-                        <td class="whitespace-nowrap text-sm">{{ a.occurredAt | date: 'MM-dd HH:mm:ss' }}</td>
+                        <td class="whitespace-nowrap text-sm">{{ a.occurredAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
                         <td>{{ 'XP.AgentEvolution.AuditAction.' + a.action | translate: { Default: a.action } }}</td>
                         <td class="break-words text-sm">{{ auditSummary(a) }}</td>
-                        <td class="text-sm" [title]="a.actorId">{{ a.actorRole || a.actorId }}</td>
+                        <td class="min-w-28 break-all text-sm">
+                          <div>{{ a.actorId }}</div>
+                          <div class="text-text-secondary">{{ a.actorRole }}</div>
+                        </td>
+                        <td class="min-w-32 break-all font-mono text-sm">{{ a.auditId }}</td>
                       </tr>
                     } @empty {
                       <tr>
-                        <td colspan="4" class="text-center text-text-secondary">
+                        <td colspan="5" class="text-center text-text-secondary">
                           {{ 'XP.AgentEvolution.NoAuditEvents' | translate }}
                         </td>
                       </tr>
@@ -383,7 +421,7 @@
         @case ('test') {
           <section class="rounded-lg border border-border p-4">
             <header class="flex items-center justify-between gap-2">
-              <h2 class="text-lg font-semibold">{{ 'XP.AgentEvolution.CanaryTestOverrideTitle' | translate }}</h2>
+              <h2 class="text-lg font-semibold">{{ prefix + 'TestHistory' | translate }}</h2>
               <button z-button zType="ghost" (click)="goto('history')">
                 <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
               </button>
@@ -417,6 +455,8 @@
                   {{ 'XP.AgentEvolution.CreateCanaryTestOverride' | translate }}
                 </button>
               </div>
+            }
+            @if (canReadTestHistory()) {
               <h3 class="mt-5 font-medium">{{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}</h3>
               @if (evidenceStatus() === 'loading') {
                 <p class="p-6 text-sm text-text-secondary" role="status">{{ prefix + 'Loading' | translate }}</p>
@@ -429,9 +469,22 @@
                 </p>
               } @else {
                 @for (v of evidence().overrides; track v.overrideId) {
-                  <div class="border-b border-border py-2 text-sm">
+                  <div class="break-words border-b border-border py-2 text-sm">
                     <strong>{{ v.subjectKey }}</strong> ·
                     {{ 'XP.AgentEvolution.CanaryTestOverrideStatus.' + v.status | translate }} · {{ v.reason }}
+                    <div class="mt-1 break-all text-sm text-text-secondary">
+                      <span class="font-mono">{{ v.overrideId }}</span> ·
+                      {{ v.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}
+                    </div>
+                    @if (v.consumedByExecutionId) {
+                      <div class="break-all text-sm">
+                        {{ 'XP.AgentEvolution.Execution' | translate }}: {{ v.consumedByExecutionId }}
+                      </div>
+                    } @else {
+                      <div class="text-sm">
+                        {{ 'XP.AgentEvolution.ExpiresAt' | translate }}: {{ v.expiresAt | date: 'yyyy-MM-dd HH:mm:ss' }}
+                      </div>
+                    }
                   </div>
                 } @empty {
                   <p class="py-2 text-sm text-text-secondary">{{ prefix + 'NoRecords' | translate }}</p>
@@ -567,6 +620,8 @@
       <i class="ri-list-check"></i>{{ prefix + 'Directory' | translate }}
     </button>
     <button z-menu-item (menuItemTriggered)="goto('history')">{{ prefix + 'History' | translate }}</button>
+    <button z-menu-item (menuItemTriggered)="goto('details')">{{ prefix + 'ReleaseDetails' | translate }}</button>
+    <button z-menu-item (menuItemTriggered)="goto('trend')">{{ prefix + 'Trend' | translate }}</button>
     <a
       z-menu-item
       routerLink="/agent-evolution/evaluation"
@@ -578,9 +633,9 @@
         {{ prefix + 'action_experience' | translate }}
       </button>
     }
-    @if (allowTest()) {
+    @if (canReadTestHistory()) {
       <button z-menu-item (menuItemTriggered)="goto('test')">
-        {{ 'XP.AgentEvolution.CanaryTestOverrideTitle' | translate }}
+        {{ prefix + (allowTest() ? 'TestManage' : 'TestHistory') | translate }}
       </button>
     }
     @if (allowPause()) {

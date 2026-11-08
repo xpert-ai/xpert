@@ -1,3 +1,5 @@
+import { ReleaseDetailsComponent } from './release-details.component'
+import { ReleaseTrendComponent } from './release-trend.component'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -38,7 +40,7 @@ import {
   nextReleaseStep
 } from './release-presentation'
 
-type View = 'history' | 'directory' | 'observations' | 'audit' | 'test'
+type View = 'history' | 'directory' | 'observations' | 'audit' | 'test' | 'trend' | 'details'
 type LoadStatus = 'loading' | 'ready' | 'error'
 const emptyEvidence = { rows: [] as EvolutionRuntimeObservation[], overrides: [] as EvolutionCanaryTestOverride[] }
 @Component({
@@ -54,7 +56,9 @@ const emptyEvidence = { rows: [] as EvolutionRuntimeObservation[], overrides: []
     ZardInputDirective,
     ZardSearchInputComponent,
     ...ZardMenuImports,
-    EvolutionChangePanelComponent
+    EvolutionChangePanelComponent,
+    ReleaseTrendComponent,
+    ReleaseDetailsComponent
   ],
   templateUrl: './release.component.html',
   host: { class: 'flex min-h-0 min-w-0 flex-1 overflow-hidden' }
@@ -91,7 +95,14 @@ export class AgentEvolutionReleaseComponent {
   readonly correct = reviewedCorrect
   readonly view = computed<View>(() => {
     const v = this.q().get('view') || this.fragment()
-    return v === 'directory' || v === 'audit' || v === 'observations' || v === 'test' ? v : 'history'
+    return v === 'directory' ||
+      v === 'audit' ||
+      v === 'observations' ||
+      v === 'test' ||
+      v === 'trend' ||
+      v === 'details'
+      ? v
+      : 'history'
   })
   readonly entries = computed(() =>
     evolutionEntries(this.facade.contextLifecycleRecords(), this.facade.visibleTargets(), 'release')
@@ -190,19 +201,17 @@ export class AgentEvolutionReleaseComponent {
       this.canManage() &&
       (this.release()?.gatePolicy?.profile !== 'manual_test' || this.admin() || this.step()?.command === 'install')
   )
+  readonly canReadTestHistory = computed(() => this.admin() && this.release()?.gatePolicy?.profile === 'manual_test')
   readonly allowTest = computed(
-    () =>
-      this.canManage() &&
-      this.admin() &&
-      this.release()?.gatePolicy?.profile === 'manual_test' &&
-      this.release()?.status === 'canary'
+    () => this.canManage() && this.canReadTestHistory() && this.release()?.status === 'canary'
   )
   readonly allowRollback = computed(
     () =>
       this.canManage() &&
       this.serving() &&
       !!this.target()?.capabilities.rollback &&
-      this.release()?.rollbackVersionId === this.ptr()?.rollbackVersionId
+      !!this.release()?.rollbackVersionId &&
+      (!this.ptr()?.rollbackVersionId || this.release()?.rollbackVersionId === this.ptr()?.rollbackVersionId)
   )
   readonly allowPause = computed(() => this.canManage() && ['shadow', 'canary'].includes(this.release()?.status ?? ''))
   readonly testValid = computed(
