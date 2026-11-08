@@ -22,6 +22,18 @@ export function createWorkbenchHandler(
   return async (request: ChatKitWorkbenchClientCommandRequest) => {
     const { commandKey, payload } = request
     try {
+      if (commandKey === 'artifact.use-grants.manage') {
+        const assistantId = connection?.assistantId()
+        if (!assistantId || request.hostType !== 'agent' || request.hostId !== assistantId)
+          return { success: false, code: 'stale_context' }
+        const result = await invoke('manageArtifactGrant', {
+          botId,
+          hostId: assistantId,
+          viewKey: request.viewKey,
+          payload
+        })
+        return connection?.assistantId() === assistantId ? result : { success: false, code: 'stale_context' }
+      }
       if (commandKey === 'workspace.connector.connect') {
         if (!connection) return { success: false, code: 'unsupported' }
         const provider = value(payload, 'provider')

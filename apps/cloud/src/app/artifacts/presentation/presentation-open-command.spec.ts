@@ -7,6 +7,8 @@ import {
 } from '../../@shared/view-extension/view-client-command-registry.service'
 import { registerArtifactPresentationOpenCommand } from './presentation-open-command'
 import { provideArtifactPresentationCommands } from './presentation.providers'
+import { ViewExtensionApiService } from '../../@core/services/view-extension-api.service'
+jest.mock('../../@core/services/view-extension-api.service', () => ({ ViewExtensionApiService: class {} }))
 
 describe('Artifact presentation opening', () => {
   const context = {
@@ -65,7 +67,11 @@ describe('Artifact presentation opening', () => {
       code: 'unsupported'
     })
     const injector = createEnvironmentInjector(
-      [{ provide: ViewClientCommandRegistry, useValue: commands }, provideArtifactPresentationCommands()],
+      [
+        { provide: ViewClientCommandRegistry, useValue: commands },
+        { provide: ViewExtensionApiService, useValue: {} },
+        provideArtifactPresentationCommands()
+      ],
       TestBed.inject(EnvironmentInjector)
     )
     try {
