@@ -1,15 +1,15 @@
 <div class="flex min-w-0 flex-1 flex-col bg-background text-foreground">
   <main #scroll class="min-h-0 flex-1 overflow-y-auto">
-    <div class="mx-auto max-w-[1430px] p-4 sm:p-[24px] xl:px-[32px]">
+    <div class="mx-auto max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-3xl leading-tight font-semibold tracking-tight xl:text-[35px]">
+          <h1 class="xp-page-title">
             {{ 'XP.AgentEvolution.TabOverview' | translate }}
           </h1>
-          <p class="mt-1.5 text-[14px] leading-6 text-text-secondary">{{ key('Intro') | translate }}</p>
+          <p class="mt-1 text-sm text-text-secondary">{{ key('Intro') | translate }}</p>
         </div>
         <z-combobox
-          class="w-full min-w-0 sm:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-[15px]"
+          class="w-full min-w-0 sm:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-base"
           zWidth="full"
           [value]="facade.selectedTargetId()"
           [options]="targetOptions()"
