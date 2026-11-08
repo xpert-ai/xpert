@@ -70,6 +70,7 @@ export class AgentEvolutionComponent {
     ),
     { initialValue: this.#router.url }
   )
+  readonly isOverview = computed(() => this.currentUrl().split(/[?#]/)[0].endsWith('/overview'))
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly activeSubtitleKey = computed(() => {
     const url = this.currentUrl()
@@ -140,13 +141,5 @@ export class AgentEvolutionComponent {
 
   selectTarget(value: string | null) {
     this.facade.selectTarget(value || 'all')
-  }
-
-  setShowFixtures(value: boolean) {
-    const selected = this.facade
-      .dashboard()
-      .targets.find((target) => target.targetId === this.facade.selectedTargetId())
-    this.facade.showFixtures.set(value)
-    if (!value && selected?.targetType === 'test_fixture') this.facade.selectTarget('all')
   }
 }

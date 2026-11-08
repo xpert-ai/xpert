@@ -1,299 +1,296 @@
-<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
-  <section
-    class="flex flex-col gap-3 rounded-xl border border-state-success-hover bg-state-success-hover/10 px-4 py-3 lg:flex-row lg:items-center"
+<div class="flex min-w-0 flex-1 flex-col bg-background text-foreground">
+  <header
+    class="flex h-[64px] shrink-0 items-center justify-between gap-2 border-b border-border px-3 sm:px-6 xl:px-[32px]"
   >
-    <span
-      class="flex size-9 shrink-0 items-center justify-center rounded-full bg-state-success-hover/20 text-text-success"
-    >
-      <i class="ri-shield-check-line text-lg"></i>
-    </span>
-    <div class="min-w-0 flex-1">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="font-semibold text-text-primary">{{ 'XP.AgentEvolution.OverallHealth' | translate }}</span>
-        <z-badge zType="outline" class="border-state-success-hover text-text-success">{{
-          'XP.AgentEvolution.AllBlockingGatesHealthy' | translate
-        }}</z-badge>
-      </div>
-      <p class="mt-0.5 text-xs text-text-secondary">
-        {{ 'XP.AgentEvolution.HealthSummary' | translate: { pending: todos().length, severe: severeErrors() } }}
-      </p>
+    <div class="flex min-w-0 items-center gap-2 text-[14px]">
+      <span class="text-text-secondary">{{ 'XP.AgentEvolution.Title' | translate }}</span
+      ><i class="ri-arrow-right-s-line text-muted-foreground" aria-hidden="true"></i
+      >{{ 'XP.AgentEvolution.TabOverview' | translate }}
     </div>
-    @if (todos().length) {
-      <a z-button zType="secondary" [routerLink]="todos()[0].route" [queryParams]="todos()[0].queryParams">{{
-        'XP.AgentEvolution.ProcessTodo' | translate
-      }}</a>
-    }
-  </section>
-
-  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-secondary">
-          <span>{{ 'XP.AgentEvolution.ProductionCapabilities' | translate }}</span
-          ><i class="ri-box-3-line text-base"></i>
-        </div>
-        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
-          {{ facade.contextPointers().length }}
-        </div>
-        <p class="mt-1 text-xs text-text-secondary">{{ 'XP.AgentEvolution.ActiveImmutablePointers' | translate }}</p>
-      </z-card-content>
-    </z-card>
-    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-secondary">
-          <span>{{ 'XP.AgentEvolution.ActiveCandidates' | translate }}</span
-          ><i class="ri-flask-line text-base"></i>
-        </div>
-        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
-          {{ facade.contextLifecycleRecords().length }}
-        </div>
-        <p class="mt-1 text-xs text-text-success">
-          {{ 'XP.AgentEvolution.ProposalsInValidation' | translate: { count: facade.contextProposals().length } }}
-        </p>
-      </z-card-content>
-    </z-card>
-    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-secondary">
-          <span>{{ 'XP.AgentEvolution.EvaluationPassRate' | translate }}</span
-          ><i class="ri-checkbox-circle-line text-base"></i>
-        </div>
-        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ percent(passRate()) }}</div>
-        <p class="mt-1 text-xs text-text-success">
-          {{ 'XP.AgentEvolution.PassedBlockingGates' | translate: { count: passedEvaluations() } }}
-        </p>
-      </z-card-content>
-    </z-card>
-    <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-content class="p-4">
-        <div class="flex items-center justify-between text-xs text-text-secondary">
-          <span>{{ 'XP.AgentEvolution.SevereErrors' | translate }}</span
-          ><i class="ri-error-warning-line text-base"></i>
-        </div>
-        <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">{{ severeErrors() }}</div>
-        <p
-          class="mt-1 text-xs"
-          [class.text-text-success]="severeErrors() === 0"
-          [class.text-text-destructive]="severeErrors() > 0"
-        >
-          {{
-            (severeErrors() === 0
-              ? 'XP.AgentEvolution.WithinSafetyThreshold'
-              : 'XP.AgentEvolution.RequiresImmediateAction'
-            ) | translate
-          }}
-        </p>
-      </z-card-content>
-    </z-card>
-  </section>
-
-  <section class="grid min-h-80 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]">
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-header class="border-b border-divider-subtle px-5 py-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <z-card-title>{{ 'XP.AgentEvolution.TodayTodos' | translate }}</z-card-title>
-            <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.TodayTodosDescription' | translate }}</z-card-subtitle>
-          </div>
-          <z-badge zType="secondary" zShape="pill">{{ todos().length }}</z-badge>
-        </div>
-      </z-card-header>
-      <z-card-content class="p-0">
-        @if (todos().length) {
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[620px] text-left text-sm">
-              <thead class="bg-background-default-subtle text-xs text-text-secondary">
-                <tr>
-                  <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Item' | translate }}</th>
-                  <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.EvolutionTarget' | translate }}</th>
-                  <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
-                  <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.Actions' | translate }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-divider-subtle">
-                @for (todo of todos(); track todo.typeKey + todo.title) {
-                  <tr class="hover:bg-background-default-subtle/60">
-                    <td class="px-5 py-3.5">
-                      <div class="flex items-center gap-3">
-                        <span
-                          class="flex size-8 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
-                        >
-                          <i [class]="todo.icon"></i>
-                        </span>
-                        <div>
-                          <div class="font-medium text-text-primary">
-                            {{ todo.titleKey ? (todo.titleKey | translate: todo.titleParams) : todo.title }}
-                          </div>
-                          <div class="text-xs text-text-secondary">{{ todo.typeKey | translate }}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">{{ todo.target }}</td>
-                    <td class="px-4 py-3.5">
-                      <z-badge zType="outline">{{
-                        'XP.AgentEvolution.Status.' + todo.status | translate: { Default: todo.status }
-                      }}</z-badge>
-                    </td>
-                    <td class="px-5 py-3.5 text-right">
-                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route" [queryParams]="todo.queryParams">{{
-                        'XP.AgentEvolution.View' | translate
-                      }}</a>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <div class="flex min-h-56 flex-col items-center justify-center px-6 text-center">
-            <span
-              class="flex size-12 items-center justify-center rounded-full bg-state-success-hover/10 text-text-success"
-            >
-              <i class="ri-check-double-line text-2xl"></i>
-            </span>
-            <div class="mt-3 font-medium text-text-primary">{{ 'XP.AgentEvolution.NoPendingTodos' | translate }}</div>
-            <p class="mt-1 max-w-sm text-xs text-text-secondary">
-              {{ 'XP.AgentEvolution.NoPendingTodosDescription' | translate }}
-            </p>
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-
-    <div class="flex flex-col gap-4">
-      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-        <z-card-header class="px-5 py-4">
-          <z-card-title>{{ 'XP.AgentEvolution.EvolutionLoop' | translate }}</z-card-title>
-          <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.EvolutionLoopDescription' | translate }}</z-card-subtitle>
-        </z-card-header>
-        <z-card-content class="px-5 pb-5">
-          <div class="space-y-1">
-            @for (stage of loopStages(); track stage.labelKey; let last = $last) {
-              <div class="flex items-center gap-3">
-                <div class="flex w-8 flex-col items-center self-stretch">
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-default-subtle"
-                    [class]="stage.tone"
-                  >
-                    <i [class]="stage.icon"></i>
-                  </span>
-                  @if (!last) {
-                    <span class="my-1 w-px flex-1 bg-divider-regular"></span>
-                  }
-                </div>
-                <div class="flex min-w-0 flex-1 items-center justify-between gap-3 py-1">
-                  <span class="text-sm text-text-secondary">{{ stage.labelKey | translate }}</span>
-                  <span class="text-lg font-semibold tabular-nums text-text-primary">{{ stage.value }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        </z-card-content>
-      </z-card>
-
-      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-        <z-card-content class="flex items-start gap-3 p-4">
-          <span
-            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-state-warning-hover/10 text-text-warning"
-          >
-            <i class="ri-shield-keyhole-line"></i>
-          </span>
-          <div>
-            <div class="text-sm font-semibold text-text-primary">
-              {{ 'XP.AgentEvolution.GovernanceAdvice' | translate }}
-            </div>
-            <p class="mt-1 text-xs leading-5 text-text-secondary">
-              {{ 'XP.AgentEvolution.GovernanceAdviceDescription' | translate }}
-            </p>
-          </div>
-        </z-card-content>
-      </z-card>
+    <div class="flex shrink-0 items-center gap-2">
+      <button
+        z-button
+        type="button"
+        zType="outline"
+        class="min-h-[44px] min-w-[44px] gap-2 px-3 text-[15px]"
+        [zDisabled]="facade.loading()"
+        (click)="facade.load()"
+        [attr.aria-label]="'XP.AgentEvolution.Refresh' | translate"
+      >
+        <i class="ri-refresh-line text-[20px] leading-none" aria-hidden="true"></i
+        ><span class="hidden sm:inline">{{ 'XP.AgentEvolution.Refresh' | translate }}</span>
+      </button>
+      <button
+        type="button"
+        z-button
+        zType="outline"
+        class="min-h-[44px] min-w-[44px] gap-2 px-3 text-[15px]"
+        z-menu
+        [zMenuTriggerFor]="more"
+        zPlacement="bottomRight"
+        [attr.aria-label]="key('More') | translate"
+      >
+        <i class="ri-more-line text-[20px] leading-none" aria-hidden="true"></i
+        ><span class="hidden sm:inline">{{ key('More') | translate }}</span>
+      </button>
     </div>
-  </section>
-
-  <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-    <z-card-header class="border-b border-divider-subtle px-5 py-4">
-      <div class="flex items-center justify-between">
+  </header>
+  <main #scroll class="min-h-0 flex-1 overflow-y-auto">
+    <div class="mx-auto max-w-[1430px] p-4 sm:p-[24px] xl:px-[32px]">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <z-card-title>{{ 'XP.AgentEvolution.TargetHealth' | translate }}</z-card-title>
-          <z-card-subtitle class="mt-1">{{ 'XP.AgentEvolution.TargetHealthDescription' | translate }}</z-card-subtitle>
+          <h1 class="text-3xl leading-tight font-semibold tracking-tight xl:text-[35px]">
+            {{ 'XP.AgentEvolution.TabOverview' | translate }}
+          </h1>
+          <p class="mt-1.5 text-[14px] leading-6 text-text-secondary">{{ key('Intro') | translate }}</p>
         </div>
-        <z-badge zType="outline">{{
-          'XP.AgentEvolution.TargetCount' | translate: { count: facade.contextTargets().length }
-        }}</z-badge>
+        <z-combobox
+          class="w-full min-w-0 sm:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-[15px]"
+          zWidth="full"
+          [value]="facade.selectedTargetId()"
+          [options]="targetOptions()"
+          [ariaLabel]="'XP.AgentEvolution.Target' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
+          [emptyText]="'XP.AgentEvolution.NoTargetOptions' | translate"
+          (zValueChange)="selectTarget($event)"
+        />
       </div>
-    </z-card-header>
-    <z-card-content class="p-0">
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[760px] text-left text-sm">
-          <thead class="bg-background-default-subtle text-xs text-text-secondary">
-            <tr>
-              <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Target' | translate }}</th>
-              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Type' | translate }}</th>
-              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Risk' | translate }}</th>
-              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Capabilities' | translate }}</th>
-              <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Provider' | translate }}</th>
-              <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-divider-subtle">
-            @for (target of facade.contextTargets(); track target.targetId) {
-              <tr>
-                <td class="px-5 py-3.5">
-                  <div class="font-medium text-text-primary">{{ target.displayName }}</div>
-                  <div class="font-mono text-[11px] text-text-secondary">{{ target.targetId }}</div>
-                </td>
-                <td class="px-4 py-3.5 text-text-secondary">
-                  {{ 'XP.AgentEvolution.TargetType.' + target.targetType | translate: { Default: target.targetType } }}
-                </td>
-                <td class="px-4 py-3.5">
-                  <z-badge zType="outline">{{ target.riskLevel }}</z-badge>
-                </td>
-                <td class="px-4 py-3.5 text-xs text-text-secondary">
-                  @if (target.capabilities.replay) {
-                    <span>{{ 'XP.AgentEvolution.Replay' | translate }}</span>
-                  }
-                  @if (target.capabilities.shadow) {
-                    <span> · {{ 'XP.AgentEvolution.Shadow' | translate }}</span>
-                  }
-                  @if (target.capabilities.canary) {
-                    <span> · {{ 'XP.AgentEvolution.Canary' | translate }}</span>
-                  }
-                </td>
-                <td class="px-4 py-3.5 font-mono text-xs text-text-secondary">
-                  {{ target.providerKey }}@{{ target.providerVersion }}
-                </td>
-                <td class="px-5 py-3.5 text-right">
-                  <z-badge zType="outline" [class.text-text-success]="target.status === 'active'">{{
-                    'XP.AgentEvolution.Status.' + target.status | translate: { Default: target.status }
-                  }}</z-badge>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="px-5 py-10 text-center text-sm text-text-secondary">
-                  {{ 'XP.AgentEvolution.NoSynchronizedTargets' | translate }}
-                </td>
-              </tr>
+      @if (!facade.loadedAt()) {
+        <p role="status" class="mt-6 rounded-lg border border-border p-8 text-center text-[14px] text-text-secondary">
+          {{ key(facade.error() ? 'LoadFailed' : 'Loading') | translate }}
+        </p>
+      } @else if (!facade.contextTargets().length) {
+        <div class="mt-6 rounded-lg border border-dashed border-border p-8 text-center">
+          <p>{{ key('NoTargets') | translate }}</p>
+          <button
+            z-button
+            zType="outline"
+            class="mt-3"
+            [zLoading]="facade.synchronizing()"
+            [zDisabled]="facade.mutating()"
+            (click)="facade.synchronize()"
+          >
+            {{ 'XP.AgentEvolution.SyncTargets' | translate }}
+          </button>
+        </div>
+      } @else {
+        <div
+          class="mt-[22px] grid grid-cols-1 divide-y divide-border rounded-lg border border-border bg-card py-1 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:py-[13px]"
+        >
+          @for (
+            metric of [
+              { label: 'Targets', icon: 'ri-focus-3-line', value: facade.contextTargets().length, note: 'Synced' },
+              { label: 'Pointers', icon: 'ri-git-branch-line', value: productionPointers().length, note: 'Effective' },
+              {
+                label: 'PassRate',
+                icon: 'ri-checkbox-circle-line',
+                value: rate().total ? percent(rate().passed / rate().total) : '—',
+                note: rate().total ? 'PassCount' : 'NotEvaluated'
+              }
+            ];
+            track metric.label
+          ) {
+            <div class="px-4 py-2 sm:px-5 sm:py-0">
+              <div class="flex items-center gap-1.5 text-[13px] font-medium text-text-secondary">
+                <i [class]="metric.icon" aria-hidden="true"></i>{{ key(metric.label) | translate }}
+              </div>
+              <div class="mt-1 flex flex-wrap items-baseline gap-x-3">
+                <strong class="text-[29px] leading-9 font-semibold tracking-tight tabular-nums">{{
+                  metric.value
+                }}</strong>
+                <span class="text-[12px] text-text-secondary">{{ key(metric.note) | translate: rate() }}</span>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="mt-[22px] grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_298px]">
+          <section
+            class="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
+            aria-labelledby="overview-queue"
+          >
+            <div class="px-[17px] pt-[16px] pb-[13px]">
+              <h2 id="overview-queue" class="text-[19px] font-semibold">{{ key('Queue') | translate }}</h2>
+              <p class="mt-0.5 text-[13px] text-text-secondary">
+                {{ key('QueueCount') | translate: { count: tasks().length } }}
+              </p>
+            </div>
+            @if (tasks().length) {
+              <div
+                class="hidden grid-cols-[minmax(0,1fr)_100px_112px] gap-2 border-t border-border bg-sidebar px-4 py-1.5 text-[12px] text-text-secondary lg:grid"
+                aria-hidden="true"
+              >
+                <span>{{ key('ItemTarget') | translate }}</span
+                ><span>{{ key('State') | translate }}</span
+                ><span class="text-right">{{ key('Next') | translate }}</span>
+              </div>
+              <ul>
+                @for (row of tasks(); track row.id) {
+                  <li
+                    class="grid min-h-[64px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 border-t border-border px-4 py-2 hover:bg-muted/30 lg:grid-cols-[minmax(0,1fr)_100px_112px]"
+                  >
+                    <div class="col-span-2 flex min-w-0 items-center gap-2.5 lg:col-span-1">
+                      <span
+                        class="grid size-[32px] shrink-0 place-items-center rounded-md border border-border bg-sidebar text-text-secondary"
+                        ><i [class]="row.icon" aria-hidden="true"></i
+                      ></span>
+                      <div class="min-w-0">
+                        <p class="truncate text-[16px] font-semibold" [title]="row.detailTitle || row.title">
+                          {{ row.title }}
+                        </p>
+                        <p class="truncate text-[13px] text-text-secondary" [title]="row.target">
+                          {{ row.target }} · {{ key(row.group) | translate }}
+                        </p>
+                      </div>
+                    </div>
+                    <z-badge
+                      zType="secondary"
+                      class="max-w-full justify-self-start rounded-md border-0 px-2 text-[12px]"
+                      [ngClass]="tones[row.tone]"
+                    >
+                      <i class="ri-circle-fill text-[6px]" aria-hidden="true"></i
+                      >{{
+                        (row.status === 'shadow' || row.status === 'test_failed'
+                          ? key(row.status)
+                          : 'XP.AgentEvolution.Status.' + row.status
+                        ) | translate: { Default: row.status }
+                      }}</z-badge
+                    >
+                    <a
+                      class="inline-flex min-h-8 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring justify-self-end px-0 text-[14px] font-semibold text-text-accent"
+                      [routerLink]="row.route"
+                      [queryParams]="row.query"
+                      [fragment]="row.fragment"
+                      >{{ key(row.action) | translate }}<i class="ri-arrow-right-line" aria-hidden="true"></i
+                    ></a>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="border-t border-border p-8 text-center text-[14px] text-text-secondary">
+                {{ 'XP.AgentEvolution.NoPendingTodos' | translate }}
+              </p>
             }
-          </tbody>
-        </table>
-      </div>
-    </z-card-content>
-  </z-card>
-
-  <footer
-    class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
-  >
-    <span>{{ 'XP.AgentEvolution.DataIsolation' | translate }}</span>
-    <span
-      >{{ 'XP.AgentEvolution.LastRefresh' | translate }}：{{
-        facade.loadedAt() ? (facade.loadedAt() | date: 'yyyy-MM-dd HH:mm:ss') : '—'
-      }}</span
+          </section>
+          <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <section class="min-w-0 rounded-lg border border-border bg-card p-[16px]">
+              <h2 class="flex items-center gap-2 text-[16px] font-semibold">
+                <i class="ri-pulse-line" aria-hidden="true"></i>{{ key('Live') | translate }}
+              </h2>
+              @if (live(); as active) {
+                <div class="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-text-secondary">
+                  <span>{{ targetNames().get(active.record.targetId) || active.record.targetId }}</span
+                  ><z-badge zType="secondary" class="border-0 bg-success/10 text-text-success">{{
+                    key('Full') | translate
+                  }}</z-badge>
+                </div>
+                <p class="mt-1.5 line-clamp-2 font-semibold" [title]="active.record.title">
+                  {{ recordTitle(active.record) }}
+                </p>
+                <dl class="my-3 grid grid-cols-2 gap-x-2 border-y border-border py-2.5">
+                  <div>
+                    <dd class="text-[23px] leading-7 font-semibold tabular-nums">100%</dd>
+                    <dt class="text-[12px] text-text-secondary">{{ key('Traffic') | translate }}</dt>
+                  </div>
+                  <div>
+                    <dd class="text-[23px] leading-7 font-semibold tabular-nums">
+                      {{ active.samples ? active.passed + ' / ' + active.samples : '—' }}
+                    </dd>
+                    <dt class="text-[12px] text-text-secondary">
+                      {{ key(active.samples ? 'ObservedPass' : 'NoProductionSamples') | translate }}
+                    </dt>
+                  </div>
+                </dl>
+                <a
+                  class="inline-flex min-h-8 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring h-auto px-0 text-[14px] font-semibold text-text-accent"
+                  routerLink="../release"
+                  [queryParams]="{ changeId: active.record.id }"
+                  fragment="observations"
+                  >{{ key('ViewProduction') | translate }}<i class="ri-arrow-right-line" aria-hidden="true"></i
+                ></a>
+              } @else {
+                <p class="mt-4 text-[14px] text-text-secondary">{{ key('NoLive') | translate }}</p>
+              }
+            </section>
+            <section class="min-w-0 rounded-lg border border-border bg-card p-[16px]">
+              <h2 class="flex items-center gap-2 text-[16px] font-semibold">
+                <i class="ri-history-line text-text-secondary" aria-hidden="true"></i>{{ key('History') | translate }}
+              </h2>
+              @if (runs().length) {
+                <p class="mt-1.5 flex items-baseline gap-2 text-[14px]">
+                  <strong class="text-2xl font-semibold tabular-nums">{{ severe() }}</strong
+                  >{{ key('Severe') | translate }}
+                </p>
+                <p class="mt-1 text-[12px] leading-5 text-text-secondary">{{ key('HistoricalScope') | translate }}</p>
+                <button
+                  z-button
+                  zType="link"
+                  zSize="sm"
+                  class="mt-1 h-auto px-0 text-[14px] font-semibold text-text-accent"
+                  [attr.aria-expanded]="historyOpen()"
+                  aria-controls="overview-history"
+                  (click)="historyOpen.set(!historyOpen())"
+                >
+                  {{ key(historyOpen() ? 'HideHistory' : 'ViewHistory') | translate
+                  }}<i [class]="historyOpen() ? 'ri-arrow-up-s-line' : 'ri-arrow-right-line'" aria-hidden="true"></i>
+                </button>
+                @if (historyOpen()) {
+                  <ul id="overview-history" class="mt-2 max-h-64 overflow-auto border-t border-border">
+                    @for (run of runs(); track run.runId) {
+                      <li class="border-b border-border py-2 text-[12px]">
+                        <a
+                          class="block rounded-sm text-text-accent hover:underline focus-visible:outline-ring"
+                          [routerLink]="['../evaluations', run.runId]"
+                          >{{ targetNames().get(run.targetId || '') || (run.startedAt | date: 'short') }} ·
+                          {{ key('ErrorCount') | translate: { count: run.metrics.severeErrors } }}</a
+                        ><time class="text-text-secondary">{{ run.startedAt | date: 'short' }}</time>
+                      </li>
+                    }
+                  </ul>
+                }
+              } @else {
+                <p class="mt-4 text-[14px] text-text-secondary">{{ key('NoHistory') | translate }}</p>
+              }
+            </section>
+          </div>
+        </div>
+        <section class="mt-5">
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="text-[19px] font-semibold">{{ key('Flow') | translate }}</h2>
+            <span class="text-[12px] text-text-secondary">{{ key('StageCounts') | translate }}</span>
+          </div>
+          <ol
+            class="grid divide-y divide-border rounded-lg border border-border bg-card sm:grid-cols-5 sm:divide-x sm:divide-y-0 sm:py-[13px]"
+          >
+            @for (stage of stages(); track stage.name; let last = $last) {
+              <li class="flex items-center justify-between gap-1 px-3 py-2 sm:py-0">
+                <span class="flex items-center gap-1.5 text-[13px] text-text-secondary"
+                  ><i [class]="stage.icon" aria-hidden="true"></i
+                  >{{ 'XP.AgentEvolution.' + stage.name | translate }}</span
+                ><strong class="ml-auto text-xl font-semibold tabular-nums">{{ stage.value }}</strong>
+                @if (!last) {
+                  <i class="ri-arrow-right-s-line hidden text-muted-foreground lg:inline" aria-hidden="true"></i>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </div>
+  </main>
+</div>
+<ng-template #more
+  ><div z-menu-content>
+    <button z-menu-item type="button" (menuItemTriggered)="facade.setShowFixtures(!facade.showFixtures())">
+      <i [class]="facade.showFixtures() ? 'ri-checkbox-line' : 'ri-checkbox-blank-line'" aria-hidden="true"></i
+      >{{ key(facade.showFixtures() ? 'HideDemo' : 'ShowDemo') | translate }}
+    </button>
+    <button
+      z-menu-item
+      type="button"
+      [zDisabled]="facade.synchronizing() || facade.mutating()"
+      (menuItemTriggered)="facade.synchronize()"
     >
-    <span
-      >{{ 'XP.AgentEvolution.ReleasePointer' | translate }}：CAS revision
-      {{ facade.contextPointers()[0]?.revision ?? '—' }}</span
-    >
-  </footer>
-</main>
+      <i class="ri-focus-3-line" aria-hidden="true"></i>{{ 'XP.AgentEvolution.SyncTargets' | translate }}
+    </button>
+  </div></ng-template
+>

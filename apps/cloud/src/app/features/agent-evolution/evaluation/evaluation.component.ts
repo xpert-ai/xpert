@@ -1,3 +1,4 @@
+import { EvolutionLandingDirective } from '../shared/evolution-landing.directive'
 import { ActivatedRoute, Router } from '@angular/router'
 import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
 import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
@@ -36,6 +37,7 @@ import { evolutionApprovalGatePresentation, percent, shortId } from '../agent-ev
   standalone: true,
   selector: 'xp-agent-evolution-evaluation',
   imports: [
+    EvolutionLandingDirective,
     EvolutionChangePickerComponent,
     EvolutionChangePanelComponent,
     CommonModule,
@@ -75,7 +77,7 @@ export class AgentEvolutionEvaluationComponent {
     this.selectedCaseId.set(null)
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { changeId: id },
+      queryParams: { changeId: id, runId: null, caseId: null },
       queryParamsHandling: 'merge',
       replaceUrl: true
     })
@@ -83,7 +85,7 @@ export class AgentEvolutionEvaluationComponent {
   filterChanges(type: EvolutionChangeFilter) {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { changeStatus: type, changeType: null, changeId: null },
+      queryParams: { changeStatus: type, changeType: null, changeId: null, runId: null, caseId: null },
       queryParamsHandling: 'merge',
       replaceUrl: true
     })
@@ -108,15 +110,12 @@ export class AgentEvolutionEvaluationComponent {
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly currentUser = toSignal(this.#store.user$, { initialValue: this.#store.user })
 
-  readonly evaluation = computed(
-    () =>
-      this.facade
-        .contextEvaluations()
-        .filter((item) => item.candidateId === this.candidate()?.candidateId)
-        .find((item) => item.runId === this.facade.selectedEvaluationRunId()) ??
-      this.facade.contextEvaluations().find((item) => item.candidateId === this.candidate()?.candidateId) ??
-      null
-  )
+  readonly evaluation = computed(() => {
+    const runs = this.facade.contextEvaluations().filter((r) => r.candidateId === this.candidate()?.candidateId)
+    const requested = this.query().get('runId')
+    if (requested) return runs.find((r) => r.runId === requested) ?? null
+    return runs.find((r) => r.runId === this.facade.selectedEvaluationRunId()) ?? runs[0] ?? null
+  })
   readonly candidate = computed(
     () => this.facade.contextCandidates().find((item) => item.candidateId === this.selection()?.id) ?? null
   )
@@ -176,7 +175,9 @@ export class AgentEvolutionEvaluationComponent {
   )
   readonly selectedCase = computed<ReplayCaseResult | null>(() => {
     const cases = this.evaluation()?.caseResults ?? []
-    return cases.find((item) => item.caseId === this.selectedCaseId()) ?? cases[0] ?? null
+    return (
+      cases.find((item) => item.caseId === (this.selectedCaseId() ?? this.query().get('caseId'))) ?? cases[0] ?? null
+    )
   })
 
   readonly comparisonOptions = computed<EChartsOption>(() => {

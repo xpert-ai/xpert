@@ -50,6 +50,7 @@ export class AgentEvolutionFacade {
   readonly error = signal<string | null>(null)
   readonly activeJob = signal<EvolutionJob | null>(null)
   readonly loadedAt = signal<Date | null>(null)
+  overviewScrollTop = 0
   readonly selectedTargetId = signal('all')
   readonly showFixtures = signal(false)
   readonly selectedCandidateId = signal<string | null>(null)
@@ -123,6 +124,7 @@ export class AgentEvolutionFacade {
   )
 
   resetScopeContext() {
+    this.overviewScrollTop = 0
     this.#scopeRevision++
     this.#loadRevision++
     this.dashboard.set(EMPTY_EVOLUTION_DASHBOARD)
@@ -559,7 +561,14 @@ export class AgentEvolutionFacade {
     return this.activeJob() ?? initial
   }
 
+  setShowFixtures(value: boolean) {
+    const selected = this.dashboard().targets.find((target) => target.targetId === this.selectedTargetId())
+    this.showFixtures.set(value)
+    if (!value && selected?.targetType === 'test_fixture') this.selectTarget('all')
+  }
+
   selectTarget(targetId: string) {
+    this.overviewScrollTop = 0
     this.selectedTargetId.set(targetId)
     this.clearResourceSelections()
   }

@@ -310,6 +310,9 @@
       </z-card-header>
       <z-card-content class="space-y-5 p-5">
         @if (selectedProposal(); as proposal) {
+          @if (requestedProposalId()) {
+            <h3 xpEvolutionLanding="proposal" class="font-semibold">{{ proposal.title }}</h3>
+          }
           @let problem = summaryPresentation(proposal.problemStatement);
           <div class="flex items-center justify-between rounded-lg bg-state-success-hover/10 px-3 py-2">
             <span class="text-xs font-medium text-text-success">{{

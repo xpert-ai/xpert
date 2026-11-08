@@ -1,3 +1,4 @@
+import { EvolutionLandingDirective } from '../shared/evolution-landing.directive'
 import { ActivatedRoute } from '@angular/router'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { injectActiveScope } from '@cloud/app/@core/state'
@@ -30,6 +31,7 @@ type EventLookupState = { item: LearningEvent | null; loading: boolean; error: b
   standalone: true,
   selector: 'xp-agent-evolution-learning',
   imports: [
+    EvolutionLandingDirective,
     CommonModule,
     FormsModule,
     TranslateModule,
@@ -62,6 +64,9 @@ export class AgentEvolutionLearningComponent {
   private readonly route = inject(ActivatedRoute, { optional: true })
   private readonly requestedEventId = toSignal(
     this.route?.queryParamMap.pipe(map((params) => params.get('eventId'))) ?? of(null)
+  )
+  readonly requestedProposalId = toSignal(
+    this.route?.queryParamMap.pipe(map((params) => params.get('proposalId'))) ?? of(null)
   )
   private readonly scope = injectActiveScope()
   private readonly api = inject(AgentEvolutionApiService)
@@ -138,6 +143,7 @@ export class AgentEvolutionLearningComponent {
   readonly selectedProposal = computed(() => {
     const event = this.selectedEvent()
     const proposals = this.facade.contextProposals()
+    if (this.requestedProposalId()) return proposals.find((p) => p.proposalId === this.requestedProposalId()) ?? null
     return (
       proposals.find((proposal) => event && proposal.evidenceEventIds.includes(event.eventId)) ??
       proposals.find((proposal) => !event || proposal.targetId === event.targetId) ??

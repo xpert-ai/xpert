@@ -1,3 +1,4 @@
+import { EvolutionLandingDirective } from '../shared/evolution-landing.directive'
 import { ActivatedRoute, Router } from '@angular/router'
 import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
 import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
@@ -48,6 +49,7 @@ interface ReleaseAction {
   standalone: true,
   selector: 'xp-agent-evolution-release',
   imports: [
+    EvolutionLandingDirective,
     EvolutionChangePickerComponent,
     EvolutionChangePanelComponent,
     CommonModule,

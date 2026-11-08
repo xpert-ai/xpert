@@ -390,7 +390,10 @@
               ></z-card-content>
             </z-card>
 
-            <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+            <z-card
+              xpEvolutionLanding="samples"
+              class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none"
+            >
               <z-card-header class="border-b border-divider-subtle px-5 py-4"
                 ><div class="flex items-center justify-between">
                   <div>
@@ -405,6 +408,11 @@
                 </div></z-card-header
               >
               <z-card-content class="p-0">
+                @if (!run.caseResults.length) {
+                  <p role="status" class="p-4 text-sm text-text-secondary">
+                    {{ 'XP.AgentEvolution.Overview.NoCases' | translate }}
+                  </p>
+                }
                 <div class="overflow-x-auto">
                   <table class="w-full min-w-[760px] text-left text-xs">
                     <thead class="bg-background-default-subtle text-text-secondary">
