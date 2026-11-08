@@ -1,5 +1,14 @@
 # @xpert-ai/server-core
 
+## 3.33.1
+
+### Patch Changes
+
+- @xpert-ai/server-common@3.33.1
+- @xpert-ai/server-config@3.33.1
+- @xpert-ai/contracts@3.33.1
+- @xpert-ai/plugin-sdk@3.33.1
+
 ## 3.33.0
 
 ### Patch Changes
