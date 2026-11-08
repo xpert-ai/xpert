@@ -258,7 +258,9 @@ export class GroupRuntimeService {
                     (row) =>
                         row.id !== source.id &&
                         row.groupCommunication?.senderId !== member.id &&
-                        !row.groupCommunication?.recipientIds.includes(member.id)
+                        (!row.groupCommunication?.recipientIds.includes(member.id) ||
+                            (row.groupCommunication?.intent === 'reply' &&
+                                row.groupCommunication.replyStage === 'progress'))
                 )
                 .map((row) => ({
                     id: row.id,
@@ -506,20 +508,29 @@ export class GroupRuntimeService {
             order: { createdAt: 'ASC' }
         })
         const visible = outputs.filter((output) => chatMessageText(output.content))
-        const replyTarget = completed ? await this.automaticReplyTarget(member, source) : undefined
+        const reply = completed ? await this.automaticReply(member, source) : { kind: 'message' as const }
         let publicationBlocked = false
         for (const [index, output] of visible.entries()) {
             if (!member.active) break
             const text = chatMessageText(output.content)
             const publicationId = `output:${output.id}`
-            const isAnswer = completed && index === visible.length - 1 && !!replyTarget
+            const isLast = index === visible.length - 1
+            // A durable tool final already answered this request. Keep earlier visible progress,
+            // but do not downgrade the redundant final output into an ordinary group message.
+            if (isLast && reply.kind === 'tool-final') continue
             try {
                 await this.resourceTools.validateAnalysisDelivery(receipt, member, group, root.rootUserId)
                 await this.messages.publish(
                     group,
                     member,
-                    isAnswer
-                        ? { intent: 'reply', replyToMessageId: replyTarget, text, clientMessageId: output.id }
+                    isLast && reply.kind === 'reply'
+                        ? {
+                              intent: 'reply',
+                              replyStage: 'final',
+                              replyToMessageId: reply.messageId,
+                              text,
+                              clientMessageId: output.id
+                          }
                         : { intent: 'message', recipientIds: [], text, clientMessageId: output.id },
                     root,
                     publicationId,
@@ -575,7 +586,10 @@ export class GroupRuntimeService {
         await this.outbox.flush(receipt.groupId)
     }
     /** A turn that asks E/B for help posts progress. Their correlated reply returns to the still-open parent request. */
-    private async automaticReplyTarget(member: GroupParticipant, source: ChatMessage): Promise<string | undefined> {
+    private async automaticReply(
+        member: GroupParticipant,
+        source: ChatMessage
+    ): Promise<{ kind: 'reply'; messageId: string } | { kind: 'message' | 'tool-final' }> {
         const messages = this.db.getRepository(ChatMessage)
         const receipts = this.db.getRepository(GroupMessageRecipient)
         const root = parseGroupCommunication(source.groupCommunication)
@@ -603,10 +617,23 @@ export class GroupRuntimeService {
                 })
             else break
         }
-        if (!target) return undefined
+        if (!target) return { kind: 'message' }
         const receipt = await receipts.findOneBy({ messageId: target, participantId: member.id })
-        if (!receipt || receipt.replyMessageId || ['blocked', 'canceled', 'failed'].includes(receipt.status))
-            return undefined
+        if (!receipt) return { kind: 'message' }
+        if (receipt.replyMessageId) {
+            const answer = await messages.findOneBy({ id: receipt.replyMessageId, conversationId: member.groupId })
+            const communication = answer ? parseGroupCommunication(answer.groupCommunication) : undefined
+            // Completion belongs to this request and recipient, not the whole run or root causal chain.
+            // Legacy replies without replyStage were final. Automatic projections retain their retry path.
+            const toolFinal =
+                answer?.groupPublicationId?.startsWith('tool:') &&
+                communication?.intent === 'reply' &&
+                communication.replyStage !== 'progress' &&
+                communication.senderId === member.id &&
+                communication.replyToMessageId === target
+            return { kind: toolFinal ? 'tool-final' : 'message' }
+        }
+        if (['blocked', 'canceled', 'failed'].includes(receipt.status)) return { kind: 'message' }
         const outgoing = await messages
             .createQueryBuilder('message')
             .where('message.conversationId = :groupId', { groupId: member.groupId })
@@ -622,8 +649,8 @@ export class GroupRuntimeService {
                 status: Not(In(['blocked', 'canceled', 'failed']))
             }))
         )
-            return undefined
-        return target
+            return { kind: 'message' }
+        return { kind: 'reply', messageId: target }
     }
 }
 

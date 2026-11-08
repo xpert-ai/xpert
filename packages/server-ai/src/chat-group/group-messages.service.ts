@@ -216,7 +216,8 @@ export class GroupMessagesService {
                             !isEqual(communication.runtimeResult, hostContext.runtimeResult)) ||
                         !isEqual(communication.composer, input.composer) ||
                         (input.intent === 'reply'
-                            ? communication.replyToMessageId !== input.replyToMessageId
+                            ? communication.replyToMessageId !== input.replyToMessageId ||
+                              (communication.replyStage ?? 'final') !== (input.replyStage ?? 'final')
                             : JSON.stringify(communication.recipientIds) !== JSON.stringify(recipients))
                     )
                         throw groupConflict()
@@ -291,7 +292,9 @@ export class GroupMessagesService {
                 intent: input.intent,
                 senderId: sender.id,
                 recipientIds: targets,
-                ...(input.intent === 'reply' ? { replyToMessageId: input.replyToMessageId } : {}),
+                ...(input.intent === 'reply'
+                    ? { replyToMessageId: input.replyToMessageId, replyStage: input.replyStage ?? 'final' }
+                    : {}),
                 ...(causedByMessageId ? { causedByMessageId } : {}),
                 rootMessageId: inherited?.rootMessageId ?? id,
                 rootUserId,
@@ -340,6 +343,12 @@ export class GroupMessagesService {
                 })
             )
             if (existing) await manager.delete(GroupMessageRecipient, { messageId: id })
+            // Partial replies remain public background; only final replies continue the requester.
+            // Formal task replies use the persisted Invocation result to wake their caller.
+            const canWake =
+                hostContext?.runtimeResult ||
+                input.intent === 'request' ||
+                (input.intent === 'reply' && input.replyStage !== 'progress' && !inherited?.projectTask)
             const receipts = await manager.save(
                 GroupMessageRecipient,
                 members.map((member) =>
@@ -349,23 +358,12 @@ export class GroupMessagesService {
                         groupId: group.id,
                         messageId: id,
                         participantId: member.id,
-                        // Formal task replies stay visible, but only the persisted Invocation result wakes the caller.
-                        wake:
-                            member.kind === 'assistant' &&
-                            (hostContext?.runtimeResult ||
-                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
-                                ? true
-                                : false,
-                        status:
-                            member.kind === 'assistant' &&
-                            (hostContext?.runtimeResult ||
-                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
-                                ? 'pending'
-                                : 'consumed'
+                        wake: member.kind === 'assistant' && !!canWake,
+                        status: member.kind === 'assistant' && canWake ? 'pending' : 'consumed'
                     })
                 )
             )
-            if (replyReceipt) {
+            if (replyReceipt && input.intent === 'reply' && input.replyStage !== 'progress') {
                 replyReceipt.replyMessageId = id
                 await manager.save(replyReceipt)
             }

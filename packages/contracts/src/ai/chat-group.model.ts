@@ -16,6 +16,13 @@ import type { XpertProjectTypeRef } from './xpert-project-type.model'
  * routes back to its sender; `message` publishes information without waking addressed Assistants.
  */
 export type ChatGroupIntent = 'request' | 'reply' | 'message'
+/**
+ * Completion intent for one sender's reply to one group request, independent of delivery/run status.
+ * `progress` publishes a partial answer without completing the request or waking its requester.
+ * `final` completes this sender's answer only after successful publication and may wake the requester.
+ * It does not complete a Project task, accept its result, or complete other recipients' answers.
+ */
+export type ChatGroupReplyStage = 'progress' | 'final'
 /** Per-recipient delivery progress, independent of the overall Assistant run status. */
 export type ChatGroupDeliveryStatus =
   /** Accepted for delivery; dispatch may still be pending. */
@@ -152,6 +159,13 @@ export interface ChatGroupCommunication {
   recipientIds: string[]
   /** Public group request being answered; a protocol relationship, not a required UI quote. */
   replyToMessageId?: string
+  /**
+   * Valid only for `intent: 'reply'`. New Assistant tool calls must explicitly choose a stage.
+   * Absent on legacy replies means `final`; new publications persist the resolved stage.
+   * A successfully published final tool reply suppresses the automatic final answer for the same
+   * request and sender. Progress replies, ordinary messages and requests do not suppress it.
+   */
+  replyStage?: ChatGroupReplyStage
   /** Public group message that caused this runtime output; independent of explicit reply intent. */
   causedByMessageId?: string
   /** First public message ID in the causal chain, inherited across Assistant handoffs/replies. */

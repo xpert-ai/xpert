@@ -1,6 +1,7 @@
 import { GroupResourceToolsService } from './group-resource-tools.service'
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
 import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
+import { groupReplyStageCases } from './testing/group-reply-stage.postgres.cases'
 import { groupProjectPreflightCases } from './group-project/testing/group-project-preflight.postgres.cases'
 import i18next from 'i18next'
 import { GroupProjectService } from './group-project/group-project.service'
@@ -206,6 +207,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     let db: DataSource
     let messages: GroupMessagesService
     let runtime: GroupRuntimeService
+    let tools: GroupToolsService
     let projects: GroupProjectService
     const binding = { addXpert: jest.fn(), ensureDirectProject: jest.fn() }
     const projectAccess = {
@@ -247,7 +249,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
                 GroupRuntimeService,
                 { provide: DataSource, useValue: db },
                 { provide: GroupAccessService, useValue: access },
-                { provide: GroupToolsService, useValue: { create: () => undefined } },
+                GroupToolsService,
                 {
                     provide: GroupResourceToolsService,
                     useValue: { createAnalysisTools: () => [], validateAnalysisDelivery: async () => {} }
@@ -261,6 +263,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         projects = module.get(GroupProjectService)
         messages = module.get(GroupMessagesService)
         runtime = module.get(GroupRuntimeService)
+        tools = module.get(GroupToolsService)
         interactions = module.get(GroupInteractionsService)
     })
     groupTaskResultCases(() => ({
@@ -281,6 +284,17 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         c,
         e,
         prepare: (receipt, queue) => runtime.prepare(job(receipt, queue))
+    }))
+    groupReplyStageCases(() => ({
+        db,
+        messages,
+        runtime,
+        tools,
+        group,
+        a,
+        c,
+        e,
+        prepare: (receipt) => runtime.prepare(job(receipt))
     }))
     groupProjectPreflightCases(() => ({
         db,

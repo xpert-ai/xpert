@@ -62,6 +62,47 @@ describe('group request boundaries', () => {
         }
     })
 
+    it('accepts explicit reply stages and legacy replies, but not stages on other intents', () => {
+        const communication = {
+            intent: 'reply',
+            senderId: participantId,
+            recipientIds: [randomUUID()],
+            replyToMessageId: randomUUID(),
+            rootMessageId: randomUUID(),
+            rootUserId: randomUUID(),
+            hop: 1
+        }
+        for (const stage of [{}, { replyStage: 'progress' }, { replyStage: 'final' }]) {
+            expect(parseGroupCommunication({ ...communication, ...stage })).toEqual({ ...communication, ...stage })
+            expect(
+                groupSendSchema.safeParse({
+                    intent: 'reply',
+                    replyToMessageId: communication.replyToMessageId,
+                    clientMessageId,
+                    text: 'Answer',
+                    ...stage
+                }).success
+            ).toBe(true)
+        }
+        for (const invalid of [
+            { replyStage: 'done' },
+            { intent: 'message', replyStage: 'final' },
+            { intent: 'request', replyStage: 'progress' }
+        ])
+            expect(() => parseGroupCommunication({ ...communication, ...invalid })).toThrow()
+        for (const intent of ['message', 'request']) {
+            expect(
+                groupSendSchema.safeParse({
+                    intent,
+                    replyStage: 'final',
+                    recipientIds: [participantId],
+                    clientMessageId,
+                    text: 'Hi'
+                }).success
+            ).toBe(false)
+        }
+    })
+
     it('normalizes pagination and candidate queries while rejecting unbounded history requests', () => {
         expect(groupHistorySchema.parse({ before: '42', limit: '20' })).toEqual({ before: 42, limit: 20 })
         expect(groupHistorySchema.parse({})).toEqual({ limit: 50 })

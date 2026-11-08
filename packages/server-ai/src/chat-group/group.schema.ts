@@ -49,7 +49,15 @@ export const groupSendSchema = z.discriminatedUnion('intent', [
                 .refine((items) => new Set(items).size === items.length)
         })
         .strict(),
-    z.object({ ...base, intent: z.literal('reply'), replyToMessageId: z.string().uuid() }).strict(),
+    z
+        .object({
+            ...base,
+            intent: z.literal('reply'),
+            replyToMessageId: z.string().uuid(),
+            // Existing human/internal callers retain final-reply semantics; model tools require an explicit stage.
+            replyStage: z.enum(['progress', 'final']).optional()
+        })
+        .strict(),
     z.object({ ...base, intent: z.literal('message'), recipientIds: ids }).strict()
 ])
 export const groupCreateSchema = z
@@ -114,12 +122,17 @@ export const groupCommunicationSchema = z
         senderId: z.string().uuid(),
         recipientIds: ids,
         replyToMessageId: z.string().uuid().optional(),
+        replyStage: z.enum(['progress', 'final']).optional(),
         causedByMessageId: z.string().uuid().optional(),
         rootMessageId: z.string().uuid(),
         rootUserId: z.string().uuid(),
         hop: z.number().int().min(0).max(8)
     })
     .strict()
+    .refine((value) => value.replyStage === undefined || value.intent === 'reply', {
+        path: ['replyStage'],
+        message: 'replyStage is only valid for replies'
+    })
 export type GroupSendInput = z.output<typeof groupSendSchema>
 
 export function parseGroupCommunication(value: unknown): ChatGroupCommunication {
