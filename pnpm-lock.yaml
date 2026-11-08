@@ -163,6 +163,9 @@ importers:
       '@xpert-ai/desktop-protocol':
         specifier: workspace:*
         version: link:packages/desktop-protocol
+      '@xpert-ai/plugin-sdk':
+        specifier: workspace:*
+        version: link:packages/plugin-sdk/dist
       axios:
         specifier: 1.6.8
         version: 1.6.8

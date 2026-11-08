@@ -38,6 +38,7 @@
     "@metad/contracts": "workspace:@xpert-ai/contracts@*",
     "@swc/helpers": "0.5.3",
     "@xpert-ai/chatkit-types": "catalog:",
+    "@xpert-ai/plugin-sdk": "workspace:*",
     "langchain": "0.3.31",
     "lodash-es": "^4.17.21",
     "react": "^18.2.0",
