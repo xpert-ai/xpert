@@ -229,6 +229,15 @@ describe('PluginMcpServerService', () => {
             const provider = {}
             const providerRegistry = {
                 listRegistrations: jest.fn(() => [
+                    // The same component key in another plugin must not capture this publication.
+                    {
+                        strategy: {},
+                        source: {
+                            kind: 'plugin',
+                            pluginName: '@xpert-ai/plugin-other',
+                            scopeKey: 'tenant:tenant-1:global'
+                        }
+                    },
                     {
                         strategy: provider,
                         source: {

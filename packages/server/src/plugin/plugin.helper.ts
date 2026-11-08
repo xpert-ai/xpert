@@ -15,14 +15,22 @@ import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PLUGIN_LEVEL, PluginLevel, PluginSdkCompatibilityWarning, PluginSourceConfig } from '@xpert-ai/contracts'
+import {
+	PLUGIN_LEVEL,
+	PluginLevel,
+	PluginSdkCompatibilityWarning,
+	PluginSourceConfig,
+	IRuntimePluginFailureIsolation
+} from '@xpert-ai/contracts'
 import {
 	getErrorMessage,
+	resolveStrategyMetadataTarget,
 	GLOBAL_ORGANIZATION_SCOPE,
 	ORGANIZATION_METADATA_KEY,
 	PLUGIN_METADATA,
 	PLUGIN_METADATA_KEY,
 	PLUGIN_VERSION_METADATA_KEY,
+	XPERT_TOOL_PROVIDER_METADATA,
 	PluginLifecycleMethods
 } from '@xpert-ai/plugin-sdk'
 import {
@@ -56,6 +64,12 @@ import {
 	assertCompatiblePluginEntities
 } from './plugin-entity-policy'
 import { assertPluginArtifactNamespaceAvailable } from './plugin-install-policy'
+import { resolvePluginRuntimeRevision } from './plugin-runtime-revision'
+import {
+	declaredPluginProviders,
+	PluginProviderPreflightError,
+	preflightPluginProviders
+} from './plugin-provider-preflight'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -184,6 +198,7 @@ export interface PluginLoadFailureRecord {
 	pluginName: string
 	packageName?: string
 	code?: string
+	isolation?: IRuntimePluginFailureIsolation
 	error: string
 }
 
@@ -213,7 +228,9 @@ function appendStageWorkspacePluginError(message: string, stageError?: string) {
 }
 
 function getPluginLoadFailureCode(error: unknown) {
-	return error instanceof PluginLoadRejectedError ? error.code : undefined
+	return error instanceof PluginLoadRejectedError || error instanceof PluginProviderPreflightError
+		? error.code
+		: undefined
 }
 
 function resolveLoadedSourceConfig(
@@ -551,6 +568,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	}
 
 	for (const { name, runtimeName, level, source, sourceConfig, stageError } of pluginNames) {
+		let preflightIdentity: IRuntimePluginFailureIsolation | undefined
 		try {
 			if ((source !== 'code' || sourceConfig?.immutableRuntime) && stageError) throw new Error(stageError)
 			const pluginPathName = runtimeName ?? name
@@ -615,6 +633,17 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				scopeKey
 			})
 			const mod = await runPluginStartupStep(name, 'register', () => plugin.register(ctx))
+			preflightIdentity = {
+				stage: 'provider-preflight',
+				version: plugin.meta.version,
+				runtimeRevision: resolvePluginRuntimeRevision({ source, sourceConfig, baseDir: pluginBaseDir })
+			}
+			const providerClaims = preflightPluginProviders(
+				mod,
+				normalizePluginName(name),
+				scopeKey,
+				loaded.flatMap((item) => (item.providerClaims ? [item.providerClaims] : []))
+			)
 			const entities = getEntitiesFromPlugins([mod])
 			const entityNamespace = validatePluginEntityTableNames({
 				pluginName: plugin.meta.name,
@@ -642,6 +671,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 			}
 			clearPluginLoadFailure(scopeKey, plugin.meta.name, name)
 			loaded.push({
+				providerClaims,
 				tenantId: scope.tenantId,
 				organizationId,
 				scopeKey,
@@ -670,6 +700,9 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				pluginName: normalizePluginName(name),
 				packageName: normalizePluginName(name),
 				...(code ? { code } : {}),
+				...(error instanceof PluginProviderPreflightError && preflightIdentity
+					? { isolation: preflightIdentity }
+					: {}),
 				error: message
 			}
 			if (code !== PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE) {
@@ -700,6 +733,14 @@ function tagModuleWithPluginScope(mod: DynamicModule, scopeKey: string, pluginNa
 	Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, target)
 	Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, pluginVersion, target)
 	tagModuleProvidersWithPluginScope(mod, scopeKey, pluginName, pluginVersion)
+	// Value providers and class-token factories are discovered through their instance constructor.
+	for (const declaration of declaredPluginProviders(mod)) {
+		const provider = resolveStrategyMetadataTarget(declaration)
+		if (!provider || !Reflect.getMetadata(XPERT_TOOL_PROVIDER_METADATA, provider)) continue
+		Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, scopeKey, provider)
+		Reflect.defineMetadata(PLUGIN_METADATA_KEY, pluginName, provider)
+		Reflect.defineMetadata(PLUGIN_VERSION_METADATA_KEY, pluginVersion, provider)
+	}
 }
 
 function tagModuleProvidersWithPluginScope(

@@ -59,7 +59,14 @@ const stateSchema = z.object({
 				z.object({
 					scopeKey: z.string(),
 					pluginName: z.string(),
-					packageName: z.string().optional()
+					packageName: z.string().optional(),
+					isolation: z
+						.object({
+							stage: z.literal('provider-preflight'),
+							version: z.string(),
+							runtimeRevision: z.string().optional()
+						})
+						.optional()
 				})
 			)
 		})
@@ -151,7 +158,12 @@ export class PluginStartupState {
 			) &&
 			state.failures.every((failure) =>
 				this.state.goodRuntime.failures.some(
-					(known) => known.scopeKey === failure.scopeKey && known.pluginName === failure.pluginName
+					(known) =>
+						known.scopeKey === failure.scopeKey &&
+						known.pluginName === failure.pluginName &&
+						known.isolation?.stage === failure.isolation?.stage &&
+						known.isolation?.version === failure.isolation?.version &&
+						known.isolation?.runtimeRevision === failure.isolation?.runtimeRevision
 				)
 			)
 		)
@@ -162,10 +174,11 @@ export class PluginStartupState {
 			this.state.goodRuntime = runtime
 				? {
 						plugins: runtime.plugins,
-						failures: runtime.failures.map(({ scopeKey, pluginName, packageName }) => ({
+						failures: runtime.failures.map(({ scopeKey, pluginName, packageName, isolation }) => ({
 							scopeKey,
 							pluginName,
-							packageName
+							packageName,
+							...(isolation ? { isolation: { ...isolation } } : {})
 						}))
 					}
 				: undefined

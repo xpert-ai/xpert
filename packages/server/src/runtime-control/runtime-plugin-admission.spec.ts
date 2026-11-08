@@ -1,4 +1,5 @@
 import { RuntimePluginAdmission, RestartRegistry } from './runtime-plugin-admission'
+import { evaluateRuntimeRequirements } from './plugin-runtime-requirements'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
 import type { RuntimePluginState } from '../managed-connection/instance-registry.service'
@@ -183,5 +184,107 @@ describe('RuntimePluginAdmission', () => {
 		expect(lifecycle.readiness().admission?.lastCheckFailed).toBe(true)
 		await admission.refresh(generations)
 		expect(lifecycle.readiness().admission?.lastCheckFailed).toBe(false)
+	})
+	const isolatedState: RuntimePluginState = {
+		reportedAt: '',
+		plugins: [],
+		failures: [
+			{
+				scopeKey: 'global',
+				pluginName: 'test',
+				error: 'conflicting provider',
+				isolation: { stage: 'provider-preflight', version: '2', runtimeRevision: 'runtime:candidate' }
+			}
+		]
+	}
+
+	it.each(['in_progress', 'completed', 'failed'] as const)(
+		'serves with an exact preflight rejection while %s convergence remains failed',
+		async (status) => {
+			const requirements = [{ ...desired.requirements[0], runtimeRevision: 'runtime:candidate' }]
+			readDesired.mockResolvedValue({ ...desired, status, requirements })
+			jest.mocked(registry.getPluginState).mockReturnValue(isolatedState)
+			await admission.refresh(generations)
+			expect(lifecycle.readiness().status).toBe('ready')
+			expect(evaluateRuntimeRequirements(requirements, isolatedState).status).toBe('failed')
+			jest.mocked(registry.isLeaseValid).mockReturnValue(false)
+			expect(lifecycle.trackRequest()).toBeNull()
+			jest.mocked(registry.isLeaseValid).mockReturnValue(true)
+			await jest.advanceTimersByTimeAsync(5_001)
+			expect(lifecycle.trackRequest()).toBeNull()
+		}
+	)
+
+	it.each([
+		[
+			'an unattested failure',
+			{ ...isolatedState, failures: [{ ...isolatedState.failures[0], isolation: undefined }] }
+		],
+		['a missing plugin', { ...isolatedState, failures: [] }],
+		['a stale loaded plugin', { ...isolatedState, plugins: state.plugins }],
+		[
+			'a failure in another scope',
+			{ ...isolatedState, failures: [{ ...isolatedState.failures[0], scopeKey: 'other' }] }
+		],
+		[
+			'the wrong version',
+			{
+				...isolatedState,
+				failures: [
+					{
+						...isolatedState.failures[0],
+						isolation: {
+							...isolatedState.failures[0].isolation!,
+							version: '1'
+						}
+					}
+				]
+			}
+		],
+		[
+			'the wrong source revision',
+			{
+				...isolatedState,
+				failures: [
+					{
+						...isolatedState.failures[0],
+						isolation: {
+							...isolatedState.failures[0].isolation!,
+							runtimeRevision: 'runtime:old'
+						}
+					}
+				]
+			}
+		]
+	] satisfies [string, RuntimePluginState][])(
+		'does not admit %s as an isolated candidate',
+		async (_name, runtime) => {
+			readDesired.mockResolvedValue({
+				...desired,
+				status: 'completed',
+				requirements: [{ ...desired.requirements[0], runtimeRevision: 'runtime:candidate' }]
+			})
+			jest.mocked(registry.getPluginState).mockReturnValue(runtime)
+			await admission.refresh(generations)
+			expect(lifecycle.readiness().status).toBe('unready')
+		}
+	)
+
+	it('still requires every other plugin and does not count an isolated failure as an uninstall', async () => {
+		jest.mocked(registry.getPluginState).mockReturnValue(isolatedState)
+		readDesired.mockResolvedValue({
+			...desired,
+			status: 'completed',
+			requirements: [...desired.requirements, { scopeKey: 'global', pluginName: 'other', state: 'loaded' }]
+		})
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().status).toBe('unready')
+		readDesired.mockResolvedValue({
+			...desired,
+			status: 'completed',
+			requirements: [{ ...desired.requirements[0], state: 'absent' }]
+		})
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().status).toBe('unready')
 	})
 })
