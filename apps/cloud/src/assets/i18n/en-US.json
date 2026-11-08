@@ -1519,6 +1519,22 @@
         "Immutable": "Once frozen, this snapshot cannot be edited. Create another snapshot to change its cases.",
         "ContinueEdit": "Continue editing"
       },
+      "ReplayHistory": {
+        "ReadOnly": "Read-only record of this run.",
+        "Title": "Historical evaluation",
+        "BackOverview": "Back to replay history",
+        "BackRuns": "Back to replay runs",
+        "Raw": "Original run record",
+        "RawOnly": "The original run record is available. Its associated candidate or structured results are unavailable.",
+        "missing": "This replay run was not found in the current scope.",
+        "denied": "This account cannot read this evaluation in the current scope.",
+        "failed": "The replay record could not be loaded. Try again.",
+        "Snapshot": "Frozen dataset snapshot",
+        "SnapshotMissing": "This run records a snapshot ID. The snapshot contents are unavailable in the current scope.",
+        "Frozen": "Frozen at",
+        "Hash": "Snapshot hash",
+        "Samples": "Frozen cases ({{n}})"
+      },
       "ReplayWorkbench": {
         "AfterBuild": "After building, select a replay snapshot for this candidate.",
         "Progress": "View progress",

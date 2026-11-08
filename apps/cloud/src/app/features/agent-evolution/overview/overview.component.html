@@ -189,7 +189,6 @@
                 <p class="mt-1 text-sm leading-5 text-text-secondary">{{ key('HistoricalScope') | translate }}</p>
                 <button
                   z-button
-                  zSize="sm"
                   zType="link"
                   zSize="sm"
                   class="mt-1 px-0 text-sm font-medium text-text-accent"
@@ -207,6 +206,8 @@
                         <a
                           class="block rounded-sm text-text-accent hover:underline focus-visible:outline-ring"
                           [routerLink]="['../evaluations', run.runId]"
+                          [attr.id]="'history-' + run.runId"
+                          [queryParams]="{ from: 'overview', historyTarget: facade.selectedTargetId() }"
                           >{{ targetNames().get(run.targetId || '') || (run.startedAt | date: 'short') }} ·
                           {{ key('ErrorCount') | translate: { count: run.metrics.severeErrors } }}</a
                         ><time class="text-text-secondary">{{ run.startedAt | date: 'short' }}</time>

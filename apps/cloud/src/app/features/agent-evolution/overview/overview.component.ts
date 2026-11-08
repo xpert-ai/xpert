@@ -1,6 +1,17 @@
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, OnDestroy, afterNextRender, computed, inject, signal, viewChild } from '@angular/core'
-import { RouterLink } from '@angular/router'
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild
+} from '@angular/core'
+import { ActivatedRoute, RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent } from '@xpert-ai/headless-ui'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -40,7 +51,10 @@ export class AgentEvolutionOverviewComponent implements OnDestroy {
   }
   readonly key = overviewLabel
   readonly percent = percent
-  readonly historyOpen = signal(false)
+  private readonly route = inject(ActivatedRoute)
+  private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  private readonly loaded = computed(() => !!this.facade.loadedAt())
+  readonly historyOpen = signal(this.query().get('history') === 'open')
   readonly scroll = viewChild.required<ElementRef<HTMLElement>>('scroll')
   readonly targetNames = computed(() => new Map(this.facade.contextTargets().map((t) => [t.targetId, t.displayName])))
   readonly productionPointers = computed(() => this.facade.contextPointers().filter((p) => p.channel === 'production'))
@@ -90,6 +104,27 @@ export class AgentEvolutionOverviewComponent implements OnDestroy {
     { name: 'ProductionPointers', value: this.productionPointers().length, icon: 'ri-git-branch-line' }
   ])
   constructor() {
+    effect((cleanup) => {
+      const query = this.query()
+      if (query.get('history') !== 'open' || !this.loaded()) return
+      untracked(() => {
+        const selected = query.get('target') || 'all'
+        if (
+          (selected === 'all' || this.facade.visibleTargets().some((t) => t.targetId === selected)) &&
+          selected !== this.facade.selectedTargetId()
+        )
+          this.facade.selectTarget(selected)
+        this.historyOpen.set(true)
+        const runId = query.get('focusRun')
+        if (runId) {
+          const frame = requestAnimationFrame(() => {
+            const entry = document.getElementById('history-' + runId)
+            if (entry && this.scroll().nativeElement.contains(entry)) entry.scrollIntoView({ block: 'nearest' })
+          })
+          cleanup(() => cancelAnimationFrame(frame))
+        }
+      })
+    })
     afterNextRender(() => {
       this.scroll().nativeElement.scrollTop = this.facade.overviewScrollTop
     })

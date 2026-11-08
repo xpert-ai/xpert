@@ -47,16 +47,20 @@ export function findEvolutionResource(
         (item) => item.candidateId === id
       )
     case 'evaluation':
-      return exactResource(
-        (page) => api.listEvaluations(query(page)),
-        (item) => item.runId === id
-      )
+      return findHistoricalRun(api, id)
     case 'deployment':
       return exactResource(
         (page) => api.listDeployments(query(page)),
         (item) => item.deploymentId === id
       )
   }
+}
+
+export function findHistoricalRun(api: AgentEvolutionApiService, runId: string): Observable<EvaluationRun | null> {
+  return exactResource(
+    (page) => api.listEvaluations({ page, pageSize: 20, search: runId }),
+    (item) => item.runId === runId
+  )
 }
 
 export function findLearningEvent(api: AgentEvolutionApiService, id: string): Observable<LearningEvent | null> {

@@ -44,9 +44,7 @@ export const routes: Routes = [
       },
       {
         path: 'evaluations/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'evaluation' }
+        loadComponent: () => import('./evaluation/historical-run.component').then((m) => m.HistoricalRunComponent)
       },
       {
         path: 'deployments/:resourceId',

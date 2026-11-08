@@ -460,6 +460,9 @@
                     [snapshot]="runSnapshot()"
                     [target]="byTarget().get(candidate()?.targetId || r.targetId || '')"
                     [title]="title(r.candidateId)"
+                    [historyBack]="historyBack()"
+                    (back)="backFromHistory()"
+                    (inspectSnapshot)="inspectEvidence('snapshot')"
                     [caseId]="q().get('caseId')"
                     [caseIndex]="q().get('caseIndex')"
                     (caseChanged)="setCase($event)"
@@ -497,6 +500,16 @@
           >{{ prefix + (stage() === 'result' ? 'HistoryNote' : 'DirectoryNote') | translate }}
         </p>
         <div class="flex flex-wrap items-center gap-3">
+          @if (stage() === 'result' && run()?.status !== 'running') {
+            <button
+              type="button"
+              class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+              (click)="inspectEvidence('raw')"
+            >
+              <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+              {{ 'XP.AgentEvolution.ReplayHistory.Raw' | translate }}
+            </button>
+          }
           @if (resource() && (stage() === 'result' || stage() === 'prepare')) {
             <button
               class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"

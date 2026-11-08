@@ -102,15 +102,34 @@
         >
       </h2>
       <p class="mt-1 flex flex-wrap gap-x-2 text-sm text-text-secondary">
-        {{ prefix + 'ThisSnapshot' | translate }} <span>{{ snapshot()?.name }}</span
-        ><code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code>
+        {{ prefix + 'ThisSnapshot' | translate }}
+        <button
+          type="button"
+          (click)="inspectSnapshot.emit()"
+          class="inline-flex flex-wrap items-center gap-x-1 font-medium text-text-accent hover:underline focus-visible:underline"
+          [attr.aria-label]="'XP.AgentEvolution.ReplayHistory.Snapshot' | translate"
+        >
+          {{ snapshot()?.name }} <code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code>
+        </button>
         {{ prefix + 'Cases' | translate: { n: r.metrics.totalCases } }}
         <time>{{ r.completedAt || r.startedAt | date: 'yyyy-MM-dd HH:mm' }}</time>
       </p>
     </div>
-    <button z-button zType="outline" (click)="switchRun.emit()">
-      <i class="ri-history-line"></i>{{ prefix + 'SwitchRun' | translate }}
-    </button>
+    <div class="flex flex-wrap items-center gap-3">
+      @if (historyBack(); as source) {
+        <button
+          type="button"
+          class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+          (click)="back.emit()"
+        >
+          <i class="ri-arrow-left-line" aria-hidden="true"></i
+          >{{ 'XP.AgentEvolution.ReplayHistory.' + (source === 'overview' ? 'BackOverview' : 'BackRuns') | translate }}
+        </button>
+      }
+      <button z-button zType="outline" (click)="switchRun.emit()">
+        <i class="ri-history-line"></i>{{ prefix + 'SwitchRun' | translate }}
+      </button>
+    </div>
   </div>
   <div class="flex flex-wrap gap-x-5 gap-y-1 border-b border-border bg-muted/35 px-5 py-2 text-sm text-text-secondary">
     <span

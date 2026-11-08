@@ -1017,6 +1017,22 @@
         "Immutable": "冻结后不能就地修改，调整案例须另建快照。",
         "ContinueEdit": "继续编辑"
       },
+      "ReplayHistory": {
+        "ReadOnly": "本次冻结的只读记录。",
+        "Title": "历史评测详情",
+        "BackOverview": "返回历史回放",
+        "BackRuns": "返回回放记录",
+        "Raw": "原始运行记录",
+        "RawOnly": "可查看本次运行的原始记录。关联的候选或结构化评测结果暂不可用。",
+        "missing": "在当前范围内没有找到这条回放记录。",
+        "denied": "当前账号无权在此范围读取这条评测记录。",
+        "failed": "读取回放记录失败，请重试。",
+        "Snapshot": "冻结数据集快照",
+        "SnapshotMissing": "本次运行记录了快照标识，当前范围无法读取快照正文。",
+        "Frozen": "冻结时间",
+        "Hash": "快照指纹",
+        "Samples": "冻结样本（{{n}}）"
+      },
       "ReplayWorkbench": {
         "AfterBuild": "构建成功后可为这份候选选择回放快照。",
         "Progress": "查看进度",

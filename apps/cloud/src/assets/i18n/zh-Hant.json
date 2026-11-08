@@ -1321,6 +1321,22 @@
         "Immutable": "凍結後無法就地修改，調整案例須另建快照。",
         "ContinueEdit": "繼續編輯"
       },
+      "ReplayHistory": {
+        "ReadOnly": "本次凍結的唯讀紀錄。",
+        "Title": "歷史評測詳情",
+        "BackOverview": "返回歷史回放",
+        "BackRuns": "返回回放紀錄",
+        "Raw": "原始執行紀錄",
+        "RawOnly": "可檢視本次執行的原始紀錄。關聯的候選或結構化評測結果暫不可用。",
+        "missing": "目前範圍內找不到這筆回放紀錄。",
+        "denied": "目前帳號無權在此範圍讀取這筆評測紀錄。",
+        "failed": "讀取回放紀錄失敗，請重試。",
+        "Snapshot": "凍結資料集快照",
+        "SnapshotMissing": "本次執行記錄了快照識別碼，目前範圍無法讀取快照內容。",
+        "Frozen": "凍結時間",
+        "Hash": "快照指紋",
+        "Samples": "凍結樣本（{{n}}）"
+      },
       "ReplayWorkbench": {
         "AfterBuild": "建置成功後可為這份候選選擇回放快照。",
         "Progress": "查看進度",

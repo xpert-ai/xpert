@@ -1,3 +1,4 @@
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, signal, untracked, ViewContainerRef } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -19,6 +20,7 @@ import { sameEvolutionScope } from '../agent-evolution.types'
 import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
 import { LearningCandidateFormComponent } from '../learning/learning-candidate-form.component'
 import { targetLabel } from '../targets/target-directory'
+import { ReplayEvidenceDialog, type ReplayEvidence, type ReplaySelection } from './replay-evidence-dialog.component'
 import { ReplayResultComponent } from './replay-result.component'
 import { compactId } from './replay-presentation'
 import { ConfirmReplayComponent, type ReplayConfirmation } from './confirm-replay.component'
@@ -54,6 +56,8 @@ export class AgentEvolutionEvaluationComponent {
   private readonly dialog = inject(ZardDialogService)
   private readonly container = inject(ViewContainerRef)
   private readonly destroy = inject(DestroyRef)
+  private readonly evidenceDialogs = inject(Dialog)
+  private evidenceRef?: DialogRef<ReplaySelection, ReplayEvidenceDialog>
   private confirmRef?: ZardDialogRef<ConfirmReplayComponent, boolean>
   readonly canManage = toSignal(
     this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.EVOLUTION_MANAGE))),
@@ -107,6 +111,10 @@ export class AgentEvolutionEvaluationComponent {
         r.runId === this.q().get('runId') && (!this.q().get('changeId') || r.candidateId === this.q().get('changeId'))
     )
   )
+  readonly historyBack = computed(() => {
+    const source = this.q().get('from')
+    return source === 'overview' || source === 'history' ? source : null
+  })
   readonly id = computed(() => this.q().get('changeId') || this.run()?.candidateId)
   readonly candidate = computed(() => this.built().find((c) => c.candidateId === this.id()))
   readonly record = computed(() => this.records().find((c) => c.id === this.id()))
@@ -132,9 +140,20 @@ export class AgentEvolutionEvaluationComponent {
       : []
   })
   readonly chosen = computed(() => this.snapshots().find((d) => d.snapshotId === this.q().get('snapshot')))
-  readonly runSnapshot = computed(() =>
-    this.facade.contextDatasets().find((d) => d.snapshotId === this.run()?.datasetSnapshotId)
-  )
+  readonly runSnapshot = computed(() => {
+    const run = this.run()
+    return (
+      run &&
+      this.facade
+        .dashboard()
+        .datasets.find(
+          (d) =>
+            d.snapshotId === run.datasetSnapshotId &&
+            (!d.targetId || !run.targetId || d.targetId === run.targetId) &&
+            (!d.scope || !run.scope || sameEvolutionScope(d.scope, run.scope))
+        )
+    )
+  })
   readonly canRun = computed(
     () =>
       this.canManage() &&
@@ -279,6 +298,11 @@ export class AgentEvolutionEvaluationComponent {
         untracked(() => void this.facade.load({ silent: true }))
       }
     })
+    effect((cleanup) => {
+      this.scope()
+      this.run()?.runId
+      cleanup(() => this.evidenceRef?.close())
+    })
     this.destroy.onDestroy(() => this.confirmRef?.close(false))
   }
   t(key: string) {
@@ -331,9 +355,42 @@ export class AgentEvolutionEvaluationComponent {
       void this.go({
         changeId: r.candidateId,
         runId: r.runId,
+        from: this.historyBack(),
+        historyTarget: this.historyBack() === 'overview' ? this.q().get('historyTarget') : null,
         caseId: selection?.id ?? null,
         caseIndex: selection?.index ?? null
       })
+  }
+  backFromHistory() {
+    if (this.historyBack() !== 'overview') return this.directory('runs')
+    void this.router.navigate(['/agent-evolution/overview'], {
+      queryParams: {
+        history: 'open',
+        target: this.q().get('historyTarget') || 'all',
+        focusRun: this.run()?.runId
+      }
+    })
+  }
+  inspectEvidence(kind: ReplayEvidence['kind']) {
+    const run = this.run()
+    if (!run || this.evidenceRef) return
+    const scope = this.scope()
+    const ref = this.evidenceDialogs.open<ReplaySelection, ReplayEvidence, ReplayEvidenceDialog>(ReplayEvidenceDialog, {
+      viewContainerRef: this.container,
+      width: kind === 'raw' ? '800px' : '48rem',
+      maxWidth: 'calc(100vw - 2rem)',
+      maxHeight: '80dvh',
+      autoFocus: 'first-heading',
+      ariaLabel: this.t('XP.AgentEvolution.ReplayHistory.' + (kind === 'raw' ? 'Raw' : 'Snapshot')),
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      data: { kind, run, snapshot: this.runSnapshot() }
+    })
+    this.evidenceRef = ref
+    ref.closed.subscribe((selection) => {
+      if (this.evidenceRef === ref) this.evidenceRef = undefined
+      if (selection && scope === this.scope() && this.run()?.runId === run.runId) this.setCase(selection)
+    })
   }
   choose(snapshot: string) {
     void this.go({ changeId: this.id()!, snapshot }, true)

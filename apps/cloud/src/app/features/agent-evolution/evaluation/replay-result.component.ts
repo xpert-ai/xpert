@@ -29,6 +29,9 @@ export class ReplayResultComponent {
   readonly caseIndex = input<string | null>(null)
   readonly caseChanged = output<{ id: string; index: number | null } | null>()
   readonly switchRun = output<void>()
+  readonly historyBack = input<'overview' | 'history' | null>(null)
+  readonly back = output<void>()
+  readonly inspectSnapshot = output<void>()
   readonly prefix = 'XP.AgentEvolution.ReplayWorkbench.'
   private readonly translate = inject(TranslateService)
   private readonly language = toSignal(this.translate.onLangChange)
