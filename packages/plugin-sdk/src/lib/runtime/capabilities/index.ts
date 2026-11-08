@@ -1,6 +1,7 @@
 export * from './actor-token'
 export * from './artifacts'
 export * from './artifact-library'
+export * from './artifact-use-grants'
 export * from './artifact-drafts'
 export * from './artifact-content'
 export * from './workspace-files'

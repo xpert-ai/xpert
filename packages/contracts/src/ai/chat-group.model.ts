@@ -93,8 +93,44 @@ export interface ChatGroupComposerInput {
   runtimeCapabilities?: RuntimeCapabilitiesSelection
 }
 
+/**
+ * Server-authored clickable resource entry persisted with a group message.
+ * History replay may show the entry but must not auto-open it; opening always reauthorizes the group reference.
+ */
+export interface ChatGroupResourceLink {
+  /** Accepted group reference ID, not the source Artifact ID or a public share token. */
+  referenceId: string
+  /** Receiving group's runtime Project; must not switch the conversation into the source authoring Project. */
+  projectId: string
+  /** Display label only; never use it to resolve identity or infer resource type. */
+  title: string
+}
+/** Live, requester-addressed navigation request derived from a resource link; not a durable open-on-load instruction. */
+export interface ChatGroupResourceOpenRequest extends ChatGroupResourceLink {
+  /** Server-generated deduplication ID; consumers must not repeat an already handled navigation request. */
+  requestId: string
+  /** Initiating message's client correlation ID, or its message ID fallback; used to match the current sender. */
+  clientMessageId: string
+}
 /** Server-authored routing and causality metadata; public senders cannot supply or override identity. */
 export interface ChatGroupCommunication {
+  /** Inert resource entries for message rendering, including history; these alone never trigger navigation. */
+  resourceLinks?: ChatGroupResourceLink[]
+  /**
+   * Server-only instruction to derive a fresh resource_open event for one human participant.
+   * Stream adapters check audience, connection freshness and request deduplication; replayed messages remain inert.
+   */
+  resourceNavigation?: {
+    /** Unique navigation request ID, carried into ChatGroupResourceOpenRequest. */
+    requestId: string
+    /** Server emission time in Unix epoch milliseconds; used to reject stale/replayed instructions. */
+    issuedAt: number
+    /** Client correlation ID of the initiating message, with server message ID as fallback. */
+    clientMessageId: string
+    /** Intended viewer's group membership ID, not a User Account or Assistant ID. */
+    participantId: string
+  }
+
   /** Host-only task routing metadata; never accepted by group send APIs or model tools. */
   projectTask?: { invocationId: string; projectId: string; projectTaskId: string; taskExecutionId: string }
   /** Durable Invocation result notification, delivered through the group queue. */
@@ -274,6 +310,8 @@ export interface ChatGroupRun {
  * Extend this union together with stream validation and reducers; private runtime events do not belong here.
  */
 export type ChatGroupEvent =
+  /** Live navigation for the addressed requester; clients reauthorize the reference before opening it. */
+  | { type: 'resource_open'; request: ChatGroupResourceOpenRequest }
   /** Refresh public state and reconcile its history page by message ID. */
   | { type: 'snapshot'; snapshot: ChatGroupSnapshot }
   /** Append a text delta to a runtime output; messageId is the runtime output ID, not yet the group message ID. */
