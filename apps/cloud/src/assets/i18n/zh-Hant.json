@@ -1174,6 +1174,94 @@
         "state_closed": "已關閉",
         "state_blocked": "已阻止"
       },
+      "TargetDetail": {
+        "PointerRevision": "指標修訂號",
+        "Title": "目標詳情",
+        "Breadcrumb": "導覽路徑",
+        "Back": "返回進化目標",
+        "Technical": "技術詳情",
+        "ActiveVersion": "目前生效版本",
+        "Live": "生效中",
+        "Scope": "作用範圍",
+        "Revision": "第 {{n}} 次",
+        "Updated": "更新時間",
+        "Source": "規則來源",
+        "Mode": "規則檢視方式",
+        "Compare": "規則比對",
+        "Raw": "原始內容",
+        "Rule": "規則項目",
+        "Active": "目前生效",
+        "Preview": "目前來源",
+        "CannotExport": "無法匯出",
+        "Snapshot": "生效版本快照",
+        "ProviderPreview": "提供方來源預覽",
+        "Diagnostics": "來源診斷",
+        "UnavailableBody": "沒有可讀取的規則正文。",
+        "NoRows": "沒有可逐項比對的規則欄位，可在「原始內容」中檢視提供方回傳的內容。",
+        "UnsupportedBody": "提供方尚未提供基線預覽介面。",
+        "OpenRelease": "檢視生效版本的發布紀錄",
+        "Retry": "重新讀取",
+        "TargetId": "目標識別碼",
+        "VersionId": "生效版本識別碼",
+        "ActiveHash": "生效內容指紋",
+        "SourceHash": "來源內容指紋",
+        "BlockedHash": "來源受阻，無可用的規則指紋",
+        "Descriptor": "原始目標描述",
+        "Close": "關閉",
+        "NotRecorded": "未記錄",
+        "Yes": "是",
+        "No": "否",
+        "Items": "{{count}} 項",
+        "Status": {
+          "current": "與生效規則一致",
+          "blocked": "來源受阻",
+          "unsupported": "不支援基線預覽",
+          "denied": "無權讀取預覽",
+          "failed": "預覽讀取失敗",
+          "missing": "尚無生產基線",
+          "managed_release": "受控發布管理",
+          "update_available": "來源已有變更"
+        },
+        "Hint": {
+          "current": "提供方目前匯出的規則與生效快照內容指紋一致。",
+          "blocked": "提供方暫時無法匯出可用規則，既有生效快照不受影響。",
+          "unsupported": "提供方不支援規則比對。目前範圍的生效版本見上方生產紀錄。",
+          "denied": "目前帳號或範圍無權讀取基線。請核對所選組織及存取權限。",
+          "failed": "無法讀取規則基線，請重新讀取。",
+          "missing": "目前組織尚未建立生產基線；可檢視提供方的來源預覽。",
+          "managed_release": "生產指標由受控發布管理，來源預覽不會覆蓋已發布版本。",
+          "update_available": "來源規則與目前生效版本的內容指紋不同，可檢視兩者差異。"
+        },
+        "Fields": {
+          "recommendationThreshold": "推薦閾值",
+          "defaultFeatureWeight": "預設特徵權重",
+          "requiredMismatchPolicy": "必要特徵不相符",
+          "missingRequiredPolicy": "缺少必要特徵",
+          "developmentOverrideAllowed": "允許開發覆寫",
+          "algorithmVersion": "演算法版本",
+          "bindings": "欄位綁定",
+          "generatedFrom": "關聯模型版本"
+        },
+        "Values": {
+          "block": "阻斷"
+        },
+        "Units": {
+          "bindings": "{{count}} 條",
+          "generatedFrom": "{{count}} 個"
+        },
+        "Sources": {
+          "bom": {
+            "pbom_matching_policy": "BOM 生命週期 · PBOM 比對策略",
+            "feature_binding": "BOM 生命週期 · 已發布的超級 BOM 模型"
+          },
+          "assistant": {
+            "customer_service_intent": "客服意圖路由提供方"
+          }
+        },
+        "Issues": {
+          "published_super_bom_incompatible": "已發布的超級 BOM 模型與欄位綁定規則格式不相容。"
+        }
+      },
       "DatasetEditor": {
         "Title": "建立資料集快照",
         "Crumb": "建立快照",

@@ -870,6 +870,94 @@
         "state_closed": "已关闭",
         "state_blocked": "已阻止"
       },
+      "TargetDetail": {
+        "PointerRevision": "指针修订号",
+        "Title": "目标详情",
+        "Breadcrumb": "面包屑",
+        "Back": "返回进化目标",
+        "Technical": "技术详情",
+        "ActiveVersion": "当前生效版本",
+        "Live": "生效中",
+        "Scope": "作用范围",
+        "Revision": "第 {{n}} 次",
+        "Updated": "更新时间",
+        "Source": "规则来源",
+        "Mode": "规则查看方式",
+        "Compare": "规则对照",
+        "Raw": "原始内容",
+        "Rule": "规则项",
+        "Active": "当前生效",
+        "Preview": "当前来源",
+        "CannotExport": "无法导出",
+        "Snapshot": "生效版本快照",
+        "ProviderPreview": "提供方来源预览",
+        "Diagnostics": "来源诊断",
+        "UnavailableBody": "没有可读取的规则正文。",
+        "NoRows": "没有可逐项对照的规则字段，可在「原始内容」中查看提供方返回的内容。",
+        "UnsupportedBody": "提供方尚未提供基线预览接口。",
+        "OpenRelease": "查看生效版本的发布记录",
+        "Retry": "重新读取",
+        "TargetId": "目标标识",
+        "VersionId": "生效版本标识",
+        "ActiveHash": "生效内容指纹",
+        "SourceHash": "来源内容指纹",
+        "BlockedHash": "来源受阻，无可用的规则指纹",
+        "Descriptor": "原始目标描述",
+        "Close": "关闭",
+        "NotRecorded": "未记录",
+        "Yes": "是",
+        "No": "否",
+        "Items": "{{count}} 项",
+        "Status": {
+          "current": "与生效规则一致",
+          "blocked": "来源受阻",
+          "unsupported": "不支持基线预览",
+          "denied": "无权读取预览",
+          "failed": "预览读取失败",
+          "missing": "尚无生产基线",
+          "managed_release": "受控发布管理",
+          "update_available": "来源已有变化"
+        },
+        "Hint": {
+          "current": "提供方当前导出的规则与生效快照内容指纹一致。",
+          "blocked": "提供方暂时无法导出可用规则，已有生效快照不受影响。",
+          "unsupported": "提供方不支持规则对照。当前范围的生效版本见上方生产记录。",
+          "denied": "当前账号或范围无权读取基线。请核对所选组织及访问权限。",
+          "failed": "未能读取规则基线，请重新读取。",
+          "missing": "当前组织尚未建立生产基线；可查看提供方的来源预览。",
+          "managed_release": "生产指针由受控发布管理，来源预览不会覆盖已发布版本。",
+          "update_available": "来源规则与当前生效版本的内容指纹不同，查看两者差异。"
+        },
+        "Fields": {
+          "recommendationThreshold": "推荐阈值",
+          "defaultFeatureWeight": "默认特征权重",
+          "requiredMismatchPolicy": "必需特征不匹配",
+          "missingRequiredPolicy": "缺少必需特征",
+          "developmentOverrideAllowed": "允许开发覆盖",
+          "algorithmVersion": "算法版本",
+          "bindings": "字段绑定",
+          "generatedFrom": "关联模型版本"
+        },
+        "Values": {
+          "block": "阻断"
+        },
+        "Units": {
+          "bindings": "{{count}} 条",
+          "generatedFrom": "{{count}} 个"
+        },
+        "Sources": {
+          "bom": {
+            "pbom_matching_policy": "BOM 生命周期 · PBOM 匹配策略",
+            "feature_binding": "BOM 生命周期 · 已发布的超级 BOM 模型"
+          },
+          "assistant": {
+            "customer_service_intent": "客服意图路由提供方"
+          }
+        },
+        "Issues": {
+          "published_super_bom_incompatible": "已发布的超级 BOM 模型与字段绑定规则格式不兼容。"
+        }
+      },
       "DatasetEditor": {
         "Title": "创建数据集快照",
         "Crumb": "创建快照",

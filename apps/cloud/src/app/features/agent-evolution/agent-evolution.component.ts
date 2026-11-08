@@ -79,6 +79,7 @@ export class AgentEvolutionComponent {
     if (path === '/agent-evolution/release') return 'XP.AgentEvolution.TabRelease'
     if (path.startsWith('/agent-evolution/evaluation/approval/')) return 'XP.AgentEvolution.Approval.Title'
     if (path === '/agent-evolution/evaluation') return 'XP.AgentEvolution.TabEvaluation'
+    if (path.startsWith('/agent-evolution/targets/')) return 'XP.AgentEvolution.TargetDetail.Title'
     if (path === '/agent-evolution/targets') return 'XP.AgentEvolution.TabTargets'
     return null
   })

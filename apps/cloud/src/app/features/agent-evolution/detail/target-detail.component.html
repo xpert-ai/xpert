@@ -1,0 +1,143 @@
+<header
+  class="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2 sm:px-6 xl:px-8"
+>
+  <nav [attr.aria-label]="p + 'Breadcrumb' | translate" class="flex items-center gap-2 text-sm text-text-secondary">
+    <span>{{ 'XP.AgentEvolution.Title' | translate }}</span
+    ><i class="ri-arrow-right-s-line" aria-hidden="true"></i
+    ><a class="hover:underline" routerLink="/agent-evolution/targets">{{
+      'XP.AgentEvolution.TabTargets' | translate
+    }}</a
+    ><i class="ri-arrow-right-s-line" aria-hidden="true"></i
+    ><strong aria-current="page" class="font-medium text-foreground">{{ p + 'Title' | translate }}</strong>
+  </nav>
+  <div class="flex items-center gap-2">
+    <a z-button zType="outline" zSize="lg" routerLink="/agent-evolution/targets"
+      ><i class="ri-arrow-left-line" aria-hidden="true"></i>{{ p + 'Back' | translate }}</a
+    >
+    <button type="button" z-button zType="outline" zSize="lg" [zDisabled]="!descriptor()" (click)="openTechnical()">
+      <i class="ri-braces-line" aria-hidden="true"></i>{{ p + 'Technical' | translate }}
+    </button>
+  </div>
+</header>
+<main class="min-h-0 flex-1 overflow-y-auto">
+  <div class="mx-auto w-full max-w-[1430px] space-y-6 px-4 py-7 sm:px-8">
+    <div>
+      <h1 class="xp-page-title">{{ name() }}</h1>
+      <p class="mt-1 break-all font-mono text-sm text-text-secondary">{{ id() }}</p>
+    </div>
+    @if (!facade.loadedAt()) {
+      <div role="status" class="text-sm text-text-secondary">
+        {{ (facade.error() ? 'XP.AgentEvolution.ResourceLoadFailed' : 'XP.Common.Loading') | translate }}
+        @if (facade.error()) {
+          <button z-button zType="outline" (click)="facade.load()">{{ p + 'Retry' | translate }}</button>
+        }
+      </div>
+    } @else if (!descriptor()) {
+      <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.ResourceNotFoundInCurrentPage' | translate }}</p>
+    } @else {
+      <section aria-labelledby="prod-heading" class="rounded-lg border border-border bg-card text-card-foreground">
+        <h2 id="prod-heading" class="px-4 py-3.5 text-lg font-semibold">
+          {{ 'XP.AgentEvolution.Directory.Version' | translate }}
+        </h2>
+        @for (r of production(); track r.pointer.pointerId) {
+          <dl
+            class="grid grid-cols-1 gap-4 px-4 pb-5 pt-1 text-base sm:grid-cols-2 lg:grid-cols-[1fr_1.2fr_.8fr_1.26fr] [&+dl]:border-t [&+dl]:border-border [&+dl]:pt-4 [&_dd]:mt-1 [&_dd]:font-medium [&_dt]:text-text-secondary"
+          >
+            <div>
+              <dt>{{ p + 'ActiveVersion' | translate }}</dt>
+              <dd class="flex flex-wrap items-center gap-2">
+                <span class="break-all font-mono text-xl font-semibold">{{
+                  r.version?.semanticVersion ? 'v' + r.version?.semanticVersion : r.pointer.activeVersionId
+                }}</span
+                ><span class="inline-flex items-center gap-1 text-xs"
+                  ><i class="ri-circle-fill text-[0.5rem] text-text-success" aria-hidden="true"></i
+                  >{{ p + 'Live' | translate }}</span
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>{{ p + 'Scope' | translate }}</dt>
+              <dd class="break-words">
+                {{ r.place }} · {{ 'XP.AgentEvolution.ScopeType.' + r.pointer.scope.type | translate }}
+                @if (r.dimensions) {
+                  · {{ r.dimensions }}
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>{{ p + 'PointerRevision' | translate }}</dt>
+              <dd>{{ p + 'Revision' | translate: { n: r.pointer.revision } }}</dd>
+            </div>
+            <div>
+              <dt>{{ p + 'Updated' | translate }} · {{ timezone() }}</dt>
+              <dd class="tabular-nums">{{ formatDate(r.pointer) }}</dd>
+            </div>
+          </dl>
+        } @empty {
+          <p class="px-4 pb-4 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.NoVersion' | translate }}</p>
+        }
+      </section>
+      <xp-evolution-baseline-panel
+        class="block min-w-0"
+        [targetId]="id()"
+        [descriptor]="descriptor()"
+        [releaseCandidate]="releaseCandidate()"
+      />
+    }
+  </div>
+</main>
+<ng-template #technical>
+  <section xpDialogLayout="standard" class="max-h-[86dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ p + 'Technical' | translate }}</h2>
+      <p xpDialogDescription>{{ name() }}</p>
+    </header>
+    <div xpDialogBody class="space-y-3 text-sm">
+      <dl
+        class="divide-y divide-border [&>div]:grid [&>div]:grid-cols-[8rem_minmax(0,1fr)] [&>div]:gap-3 [&>div]:py-2 [&_dt]:text-text-secondary [&_dd]:break-all [&_dd]:font-mono"
+      >
+        <div>
+          <dt>{{ p + 'TargetId' | translate }}</dt>
+          <dd>{{ id() }}</dd>
+        </div>
+        @for (r of production(); track r.pointer.pointerId) {
+          <div>
+            <dt>{{ p + 'VersionId' | translate }}</dt>
+            <dd>
+              {{ r.pointer.activeVersionId }}
+              @if (production().length > 1) {
+                · {{ r.place }} · {{ 'XP.AgentEvolution.ScopeType.' + r.pointer.scope.type | translate }}
+                {{ r.dimensions }}
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>{{ p + 'ActiveHash' | translate }}</dt>
+            <dd>{{ r.version?.artifact?.hash ?? (p + 'NotRecorded' | translate) }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ p + 'SourceHash' | translate }}</dt>
+          <dd>
+            {{
+              inspection()?.preview?.ready
+                ? inspection()?.preview?.hash
+                : (p + (inspection()?.preview?.ready === false ? 'BlockedHash' : 'NotRecorded') | translate)
+            }}
+          </dd>
+        </div>
+      </dl>
+      <details>
+        <summary class="cursor-pointer py-1 font-medium">{{ p + 'Descriptor' | translate }}</summary>
+        <pre
+          tabindex="0"
+          class="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted/60 p-3 text-xs"
+          >{{ descriptor() | json }}</pre
+        >
+      </details>
+    </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" (click)="closeTechnical()">{{ p + 'Close' | translate }}</button>
+    </footer>
+  </section>
+</ng-template>

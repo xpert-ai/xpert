@@ -1453,6 +1453,94 @@
         "state_closed": "Closed",
         "state_blocked": "Blocked"
       },
+      "TargetDetail": {
+        "PointerRevision": "Pointer revision",
+        "Title": "Target details",
+        "Breadcrumb": "Breadcrumb",
+        "Back": "Back to evolution targets",
+        "Technical": "Technical details",
+        "ActiveVersion": "Active version",
+        "Live": "Active",
+        "Scope": "Scope",
+        "Revision": "Revision {{n}}",
+        "Updated": "Updated",
+        "Source": "Rule source",
+        "Mode": "Rule view",
+        "Compare": "Compare rules",
+        "Raw": "Raw content",
+        "Rule": "Rule",
+        "Active": "Active rules",
+        "Preview": "Current source",
+        "CannotExport": "Unavailable for export",
+        "Snapshot": "Active version snapshot",
+        "ProviderPreview": "Provider source preview",
+        "Diagnostics": "Source diagnostics",
+        "UnavailableBody": "No rule content was returned.",
+        "NoRows": "No fields are available for comparison. Open Raw content to inspect the provider response.",
+        "UnsupportedBody": "The provider does not offer a baseline preview.",
+        "OpenRelease": "View release for the active version",
+        "Retry": "Retry",
+        "TargetId": "Target ID",
+        "VersionId": "Active version ID",
+        "ActiveHash": "Active content hash",
+        "SourceHash": "Source content hash",
+        "BlockedHash": "Source blocked; no usable rule hash",
+        "Descriptor": "Original target descriptor",
+        "Close": "Close",
+        "NotRecorded": "Not recorded",
+        "Yes": "Yes",
+        "No": "No",
+        "Items": "{{count}} items",
+        "Status": {
+          "current": "Matches active rules",
+          "blocked": "Source blocked",
+          "unsupported": "Preview unsupported",
+          "denied": "Preview access denied",
+          "failed": "Could not load preview",
+          "missing": "No production baseline",
+          "managed_release": "Managed release",
+          "update_available": "Source has changed"
+        },
+        "Hint": {
+          "current": "The current source and active snapshot have the same content hash.",
+          "blocked": "The provider cannot export usable rules at present. Existing active snapshots are unaffected.",
+          "unsupported": "Rule comparison is unavailable. The production records above show the versions active in this scope.",
+          "denied": "This account or scope cannot read the baseline. Check the selected organization and its permissions.",
+          "failed": "The rule baseline could not be read. Retry the request.",
+          "missing": "There is no production baseline for this organization yet. The provider source is available for inspection.",
+          "managed_release": "The production pointer is managed by a governed release. Previewing source rules does not replace the released version.",
+          "update_available": "The source and active version have different content hashes. Compare their contents below."
+        },
+        "Fields": {
+          "recommendationThreshold": "Recommendation threshold",
+          "defaultFeatureWeight": "Default feature weight",
+          "requiredMismatchPolicy": "Required feature mismatch",
+          "missingRequiredPolicy": "Missing required feature",
+          "developmentOverrideAllowed": "Development overrides allowed",
+          "algorithmVersion": "Algorithm version",
+          "bindings": "Field bindings",
+          "generatedFrom": "Related model versions"
+        },
+        "Values": {
+          "block": "Block"
+        },
+        "Units": {
+          "bindings": "{{count}} bindings",
+          "generatedFrom": "{{count}} versions"
+        },
+        "Sources": {
+          "bom": {
+            "pbom_matching_policy": "BOM lifecycle · PBOM matching policy",
+            "feature_binding": "BOM lifecycle · Published Super BOM models"
+          },
+          "assistant": {
+            "customer_service_intent": "Customer service intent routing provider"
+          }
+        },
+        "Issues": {
+          "published_super_bom_incompatible": "The published Super BOM model is incompatible with the field binding rule format."
+        }
+      },
       "DatasetEditor": {
         "Title": "Create dataset snapshot",
         "Crumb": "Create snapshot",

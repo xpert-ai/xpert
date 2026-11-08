@@ -34,9 +34,7 @@ export const routes: Routes = [
       },
       {
         path: 'targets/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'target' }
+        loadComponent: () => import('./detail/target-detail.component').then((m) => m.EvolutionTargetDetailComponent)
       },
       {
         path: 'candidates/:resourceId',

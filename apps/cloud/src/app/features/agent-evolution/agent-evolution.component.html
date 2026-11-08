@@ -1,6 +1,10 @@
 <div class="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden bg-background-default">
   @if (pageHeader(); as titleKey) {
-    @if (titleKey !== 'XP.AgentEvolution.Approval.Title' && titleKey !== 'XP.AgentEvolution.TabEvaluation') {
+    @if (
+      titleKey !== 'XP.AgentEvolution.TargetDetail.Title' &&
+      titleKey !== 'XP.AgentEvolution.Approval.Title' &&
+      titleKey !== 'XP.AgentEvolution.TabEvaluation'
+    ) {
       <xp-evolution-page-header [titleKey]="titleKey" />
     }
   } @else {
@@ -70,7 +74,8 @@
     }
 
     @if (
-      pageHeader() !== 'XP.AgentEvolution.Approval.Title' &&
+      pageHeader() !== 'XP.AgentEvolution.TargetDetail.Title' &&
+        pageHeader() !== 'XP.AgentEvolution.Approval.Title' &&
         pageHeader() !== 'XP.AgentEvolution.TabEvaluation' &&
         pageHeader() !== 'XP.AgentEvolution.TabRelease' &&
         facade.activeJob();
