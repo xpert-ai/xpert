@@ -88,4 +88,33 @@ describe('PluginStartupState', () => {
 		const reordered = [{ configs: candidate[0].configs, plugins: candidate[0].plugins, scopeKey: 'global' }]
 		expect(() => new PluginStartupState(file).select(reordered)).toThrow(PluginStartupRecoveryRequiredError)
 	})
+	it('persists an isolated failure identity without permitting a later unknown or different-artifact failure', () => {
+		const baseline = new PluginStartupState(file)
+		baseline.select(old)
+		const failure = {
+			scopeKey: 'global',
+			pluginName: 'optional',
+			error: 'provider rejected',
+			isolation: { stage: 'provider-preflight' as const, version: '2', runtimeRevision: 'runtime:candidate' }
+		}
+		const isolated = { ...runtime, failures: [failure] }
+		baseline.commit(isolated)
+		const restored = new PluginStartupState(file)
+		expect(restored.canRestore(isolated)).toBe(true)
+		expect(restored.canRestore({ ...runtime, failures: [{ ...failure, isolation: undefined }] })).toBe(false)
+		expect(
+			restored.canRestore({
+				...runtime,
+				failures: [
+					{
+						...failure,
+						isolation: {
+							...failure.isolation,
+							runtimeRevision: 'runtime:other'
+						}
+					}
+				]
+			})
+		).toBe(false)
+	})
 })

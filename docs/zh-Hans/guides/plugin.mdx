@@ -459,7 +459,14 @@ Assistant template 也可以声明 `dependencies`。通过 template 安装 Xpert
 
 ## 相关文档
 
+- [插件安装、更新与失败隔离](/zh-Hans/guides/plugin-installation-publication)
 - [统一文件上传架构](/zh-Hans/guides/file-upload-architecture)
 - [MinIO 文件存储插件](/zh-Hans/guides/minio-file-storage)
 - [RustFS 文件存储插件](/zh-Hans/guides/rustfs-file-storage)
 - [Agent Middleware](/zh-Hans/guides/agent-middleware)
+
+## 组件命名与加载失败
+
+装饰器 Tool Provider 的 `componentKey` 在**插件及其安装作用域内**唯一。两个不同插件可以都使用 `tools`；同一作用域内，不同插件的 Provider 名称和公开 Tool 名称仍需保持不同。
+
+宿主会在 Nest 实例化前检查根模块的 Provider 声明。发现冲突或无效描述时，拒绝整个插件并记录加载失败；运行时确认其余要求后，健康插件和平台 API 仍可继续服务。失败插件的部署状态仍为失败。修正声明后，需要明确刷新或重新安装。请将装饰器 Provider 直接声明在插件根模块中；此检查不隔离任意 JavaScript 导入、构造函数或生命周期钩子的故障。

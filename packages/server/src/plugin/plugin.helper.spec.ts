@@ -5,6 +5,7 @@ import { markImmutableArtifact } from './installation/immutable-artifact'
 import 'reflect-metadata'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+	resolveStrategyMetadataTarget: jest.requireActual('@xpert-ai/plugin-sdk').resolveStrategyMetadataTarget,
 	isPluginArtifactNamespace: jest.requireActual('@xpert-ai/plugin-sdk').isPluginArtifactNamespace,
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
@@ -32,7 +33,8 @@ jest.mock('./organization-plugin.store', () => ({
 	getOrganizationPluginRoot: jest.fn((organizationId: string) => `/tmp/plugins/${organizationId}`),
 	installOrganizationPlugins: jest.fn(),
 	stagePackageDirectoryPlugin: jest.fn(),
-	stageWorkspacePlugin: jest.fn()
+	stageWorkspacePlugin: jest.fn(),
+	readWorkspacePluginRuntimeRevision: jest.fn()
 }))
 
 jest.mock('./plugin-loader', () => ({

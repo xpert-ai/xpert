@@ -1,4 +1,8 @@
-import type { IRuntimeInstanceRegistration, IRuntimeInstanceRetirementResult } from '@xpert-ai/contracts'
+import type {
+	IRuntimeInstanceRegistration,
+	IRuntimeInstanceRetirementResult,
+	IRuntimePluginFailureIsolation
+} from '@xpert-ai/contracts'
 import {
 	executionControlCapabilitiesSchema,
 	type ExecutionControlCapabilities,
@@ -60,6 +64,7 @@ export interface RuntimePluginStateItem {
 }
 
 export interface RuntimePluginFailureItem {
+	isolation?: IRuntimePluginFailureIsolation
 	scopeKey: string
 	pluginName: string
 	packageName?: string
@@ -283,7 +288,10 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 			? {
 					...this.pluginState,
 					plugins: this.pluginState.plugins.map((plugin) => ({ ...plugin })),
-					failures: this.pluginState.failures.map((failure) => ({ ...failure }))
+					failures: this.pluginState.failures.map((failure) => ({
+						...failure,
+						...(failure.isolation ? { isolation: { ...failure.isolation } } : {})
+					}))
 				}
 			: null
 	}
@@ -292,7 +300,10 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 		this.pluginState = {
 			reportedAt: new Date().toISOString(),
 			plugins: state.plugins.map((plugin) => ({ ...plugin })),
-			failures: state.failures.map((failure) => ({ ...failure }))
+			failures: state.failures.map((failure) => ({
+				...failure,
+				...(failure.isolation ? { isolation: { ...failure.isolation } } : {})
+			}))
 		}
 	}
 

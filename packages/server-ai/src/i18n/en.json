@@ -58,6 +58,10 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
+        "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",
+        "PluginProviderClaimDuplicate": "Duplicate {{kind}} '{{key}}' inside the plugin",
+        "PluginProviderClaimConflict": "{{kind}} '{{key}}' is already registered by '{{pluginName}}' in scope '{{scopeKey}}'",
         "ImmutableStorageProviderUnavailable": "The configured file storage provider is unavailable.",
         "ImmutableContentPathInvalid": "Invalid immutable content path.",
         "ImmutableContentBytesInvalid": "Invalid immutable content bytes or content exceeds 50 MiB.",
