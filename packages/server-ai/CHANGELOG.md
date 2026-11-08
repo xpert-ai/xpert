@@ -1,5 +1,20 @@
 # @xpert-ai/server-ai
 
+## 3.33.1
+
+### Patch Changes
+
+- bf142ad: Allow an Assistant runtime credential to search knowledgebases bound to its published Assistant while preserving workspace authoring and content-resource permissions.
+- d6ae139: Register the child execution of each legacy iteration item before its workflow tools start.
+- d7bbbb0: Remember workspace pet visibility in the browser for each signed-in user and organization. Closing the pet turns off the personal switch and removes the workspace launcher. Members can turn it back on in their profile when the workspace assistant is available.
+    - @xpert-ai/server-auth@3.33.1
+    - @xpert-ai/server-common@3.33.1
+    - @xpert-ai/server-config@3.33.1
+    - @xpert-ai/contracts@3.33.1
+    - @xpert-ai/plugin-sdk@3.33.1
+    - @xpert-ai/server-core@3.33.1
+    - @xpert-ai/desktop-protocol@0.4.9
+
 ## 3.33.0
 
 ### Patch Changes
