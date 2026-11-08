@@ -1,0 +1,41 @@
+team:
+  name: Customer Intent Pilot
+  title: 客服意图路由
+  description: 将客服请求分为订单查询、退款或其他意图。使用当前组织审核发布的路由版本。
+  type: agent
+  version: '2'
+  agent:
+    key: Agent_CustomerIntent
+  features:
+    opener: { enabled: true, message: '', questions: ['订单状态', '申请退款'] }
+  options:
+    agent:
+      Agent_CustomerIntent: { position: { x: 60, y: 60 } }
+    workflow:
+      Trigger_Chat: { position: { x: 60, y: 240 } }
+      Intent_Route: { position: { x: 360, y: 240 } }
+      Answer_Intent: { position: { x: 660, y: 240 } }
+nodes:
+  - type: agent
+    key: Agent_CustomerIntent
+    entity:
+      key: Agent_CustomerIntent
+      name: Customer Intent Pilot
+      options: { hidden: true }
+  - type: workflow
+    key: Trigger_Chat
+    entity: { key: Trigger_Chat, type: trigger, from: chat, title: Chat }
+  - type: workflow
+    key: Intent_Route
+    entity: { key: Intent_Route, type: customer-service-intent, title: 客服意图路由 }
+  - type: workflow
+    key: Answer_Intent
+    entity:
+      key: Answer_Intent
+      type: answer
+      title: 分类结果
+      promptTemplate: '{{ intent_route_channel.intent }}'
+connections:
+  - { type: workflow, key: Agent_CustomerIntent/Trigger_Chat, from: Agent_CustomerIntent, to: Trigger_Chat }
+  - { type: edge, key: Trigger_Chat/Intent_Route, from: Trigger_Chat, to: Intent_Route }
+  - { type: edge, key: Intent_Route/Answer_Intent, from: Intent_Route, to: Answer_Intent }

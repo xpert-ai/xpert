@@ -470,6 +470,9 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
             baseArtifact: baseline.value.artifact,
             changeSet: change.candidateInput,
             evidenceEventIds: change.learningEventIds,
+            evidenceEvents: (await this.store.findLearningEvents(context, change.learningEventIds)).map(
+                ({ value }) => value
+            ),
             dependencyVersionIds: baseline.value.dependencyVersionIds,
             actorId: context.actor.actorId,
             idempotencyKey: `${change.changeId}:build`

@@ -37,7 +37,13 @@ export function changeDetailPresentation(change: EvolutionChange, record?: Evolu
           status = 'not_applicable'
         else if (change.evaluation) status = change.evaluation.passed ? 'passed' : 'failed'
       }
-      if (key === 'approval' && change.approval) status = change.approval.decision === 'approved' ? 'passed' : 'failed'
+      if (key === 'approval' && change.approval)
+        status =
+          change.approval.decision === 'rejected'
+            ? 'failed'
+            : change.status === 'pending_approval'
+              ? 'pending'
+              : 'passed'
       if (key === 'publication' && published) status = 'passed'
       else if (key === 'publication' && stagedRelease) {
         status =

@@ -1,3 +1,4 @@
+import { learningCheckFingerprint } from '../learning/learning-check-fingerprint'
 import { EvolutionChangeService, digest } from '../changes/change.service'
 import { isEvidenceProposal } from '@xpert-ai/contracts'
 import {
@@ -33,6 +34,7 @@ import type {
     EvolutionCanaryTestOverride,
     EvolutionCandidate,
     EvolutionExperience,
+    EvolutionReleaseEvidenceQuery,
     EvolutionPageQuery,
     EvolutionProviderContext,
     EvolutionReleaseGatePolicy,
@@ -45,7 +47,7 @@ import type {
     StartDeploymentRequest
 } from '@xpert-ai/contracts'
 import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { t } from 'i18next'
 import { hashEvolutionValue } from '../domain/evolution-hash'
 import { AgentEvolutionReleaseGatePolicyService } from './agent-evolution-release-gate-policy.service'
@@ -246,11 +248,11 @@ export class AgentEvolutionGovernanceService {
         return this.store.createCanaryTestOverride(tenant, override, audit)
     }
 
-    listRuntimeObservations(context: EvolutionCommandContext, query: EvolutionPageQuery) {
+    listRuntimeObservations(context: EvolutionCommandContext, query: EvolutionReleaseEvidenceQuery) {
         return this.store.listRuntimeObservations(toTenantScope(context), query)
     }
 
-    listAuditEvents(context: EvolutionCommandContext, query: EvolutionPageQuery) {
+    listAuditEvents(context: EvolutionCommandContext, query: EvolutionReleaseEvidenceQuery) {
         return this.store.listAuditEvents(toTenantScope(context), query)
     }
 
@@ -267,21 +269,46 @@ export class AgentEvolutionGovernanceService {
         return this.store.reviewLearningEvent(toTenantScope(context), eventId, reviewStatus)
     }
 
-    async createProposal(context: EvolutionCommandContext, request: CreateImprovementProposalRequest) {
+    async createProposal(
+        context: EvolutionCommandContext,
+        request: CreateImprovementProposalRequest,
+        checked?: { seedId: string; snapshot: string; baseVersionId: string }
+    ) {
         if (context.actorType === 'agent' && request.riskLevel === 'R4') changeError('agent_proposal_risk_forbidden')
         const identity = this.changeIdentity(context)
         const pointer = await this.store.findPointer(identity, request.targetId, request.scope)
         if (!pointer) changeError('production_baseline_required')
         const baseline = await this.store.findVersion(identity, pointer.activeVersionId)
         if (!baseline) changeError('candidate_baseline_mismatch')
-        const events = await this.store.findLearningEvents(identity, [...new Set(request.eventIds)])
+        if (checked && baseline.value.versionId !== checked.baseVersionId)
+            throw new ConflictException('learning_review_changed')
+        const events = (await this.store.findLearningEvents(identity, [...new Set(request.eventIds)])).sort((a, b) =>
+            a.eventId.localeCompare(b.eventId)
+        )
+
+        if (checked) {
+            const target = this.providers.get(request.targetId, context.organizationId ?? undefined).descriptor
+            const strategy = target.strategies.find((s) => s.id === request.strategyId)
+            if (
+                !strategy ||
+                target.status !== 'active' ||
+                learningCheckFingerprint(
+                    checked.seedId,
+                    events.map((row) => row.value),
+                    strategy,
+                    target.riskLevel,
+                    baseline.value
+                ) !== checked.snapshot
+            )
+                throw new ConflictException('learning_review_changed')
+        }
         const change = await this.changes.prepare(
             {
                 ...identity,
                 strategyId: request.strategyId,
                 sourceKind: 'learning_events',
                 targetId: request.targetId,
-                requestId: `PROP-REQUEST-${randomUUID()}`,
+                requestId: checked ? `PROP-REVIEW-${checked.snapshot}` : `PROP-REQUEST-${randomUUID()}`,
                 scope: request.scope,
                 baseline: {
                     resourceId: baseline.value.versionId,
@@ -303,14 +330,15 @@ export class AgentEvolutionGovernanceService {
         if (!prior) changeError('change_not_found')
         const proposal: ImprovementProposal = {
             ...prior.value,
+            status: checked && prior.value.status === 'draft' ? 'ready' : prior.value.status,
             title: request.title,
             problemStatement: request.problemStatement,
             rootCause: request.rootCause,
             changeHypothesis: request.changeHypothesis,
             riskLevel: request.riskLevel
         }
-        await this.store.saveProposal(identity, proposal)
-        return proposal
+        const saved = await this.store.saveProposal(identity, proposal, !!checked)
+        return saved.value
     }
 
     async buildCandidate(context: EvolutionCommandContext, command: BuildCandidateCommand) {
@@ -349,13 +377,11 @@ export class AgentEvolutionGovernanceService {
             evaluatorVersion: request.evaluatorVersion,
             metricDefinitionVersion: request.metricDefinitionVersion,
             cases: request.cases,
-            snapshotHash: hashEvolutionValue(
-                request.cases.map((item) => ({
-                    caseId: item.caseId,
-                    revision: item.revision,
-                    evidenceRef: item.evidenceRef
-                }))
-            ),
+            snapshotHash: hashEvolutionValue({
+                cases: request.cases.map((item) => ({ ...item })),
+                evaluatorVersion: request.evaluatorVersion,
+                metricDefinitionVersion: request.metricDefinitionVersion
+            }),
             createdAt: now
         }
         await this.store.saveDataset(toTenantScope(context), snapshot)
@@ -694,6 +720,11 @@ export class AgentEvolutionGovernanceService {
         const entity = await this.store.findRelease(tenant, releasePackageId)
         if (!entity) throw new NotFoundException('Release Package was not found')
         const release = entity.value
+        if (operation === 'shadow' || operation === 'canary') {
+            const pointer = await this.store.findPointer(tenant, release.targetId, release.scope, 'production')
+            if (!pointer || pointer.activeVersionId !== release.rollbackVersionId)
+                throw new ConflictException('Production pointer no longer matches the approved rollback version')
+        }
         const provider = this.providers.get(release.targetId, context.organizationId ?? undefined)
         const releaseProvider = provider.releaseProvider
         if (!releaseProvider) throw new BadRequestException(`Release Provider is required for ${operation}`)

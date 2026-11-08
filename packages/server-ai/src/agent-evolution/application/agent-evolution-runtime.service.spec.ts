@@ -78,7 +78,7 @@ describe('AgentEvolutionRuntimeService one-time Candidate override', () => {
         const store = {
             findPointer: async () => ({
                 activeVersionId: 'bom.feature_binding:v1',
-                value: { releasePackageId: 'RP-BASELINE' }
+                value: { releasePackageId: 'RP-BASELINE', scope }
             }),
             listDeploymentsForTarget: async () => [{ value: deployment }],
             findRelease: async () => ({ value: release }),
@@ -144,6 +144,29 @@ describe('AgentEvolutionRuntimeService one-time Candidate override', () => {
         })
         expect(followingPlan.manualTestOverrides).toBeUndefined()
         expect(consumeCanaryTestOverride).toHaveBeenCalledTimes(2)
+
+        for (const channel of ['shadow', 'canary'] as const) {
+            release.status = channel
+            deployment.channel = channel
+            for (const foreignScope of [
+                { type: 'project' as const, key: 'other-project' },
+                { ...scope, dimensions: { plant: 'other' } }
+            ]) {
+                release.scope = foreignScope
+                deployment.scope = foreignScope
+                const isolated = await service.resolveExecutionPlan({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    scope,
+                    targetIds: [release.targetId],
+                    subjectKey,
+                    executionId: 'isolated'
+                })
+                expect(isolated.assignments[0].versionId).toBe(release.rollbackVersionId)
+                expect(isolated.shadowBundle).toBeUndefined()
+                expect(consumeCanaryTestOverride).toHaveBeenCalledTimes(2)
+            }
+        }
     })
 })
 

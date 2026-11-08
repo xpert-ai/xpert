@@ -1,6 +1,7 @@
 import { signal } from '@angular/core'
 import { fakeAsync, flushMicrotasks, TestBed } from '@angular/core/testing'
-import { Subject } from 'rxjs'
+import { Subject, EMPTY } from 'rxjs'
+import { TranslateService } from '@ngx-translate/core'
 import type { EvolutionBaselineInspection } from '@xpert-ai/contracts'
 import { ScopeService } from '@cloud/app/@core'
 import { AgentEvolutionApiService } from '../agent-evolution-api.service'
@@ -18,6 +19,7 @@ describe('EvolutionBaselinePanelComponent', () => {
       imports: [EvolutionBaselinePanelComponent],
       providers: [
         { provide: ScopeService, useValue: { activeScope } },
+        { provide: TranslateService, useValue: { onLangChange: EMPTY } },
         { provide: AgentEvolutionApiService, useValue: { getRuleBaseline } }
       ]
     }).overrideComponent(EvolutionBaselinePanelComponent, { set: { template: '', imports: [] } })
@@ -38,11 +40,11 @@ describe('EvolutionBaselinePanelComponent', () => {
     expect(fixture.componentInstance.data()).toBeNull()
     expect(fixture.componentInstance.loading()).toBe(true)
 
-    second.error(new Error('Permission denied in the new scope'))
+    second.error({ status: 403 })
     flushMicrotasks()
     expect(fixture.componentInstance.data()).toBeNull()
     expect(fixture.componentInstance.loading()).toBe(false)
-    expect(fixture.componentInstance.error()).toBe(true)
+    expect(fixture.componentInstance.failure()).toBe('denied')
     expect(getRuleBaseline).toHaveBeenCalledTimes(2)
     fixture.destroy()
   }))

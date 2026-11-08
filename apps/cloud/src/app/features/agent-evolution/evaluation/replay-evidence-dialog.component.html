@@ -1,0 +1,85 @@
+<section xpDialogLayout="standard" class="max-h-[80dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ p + (data.kind === 'raw' ? 'Raw' : 'Snapshot') | translate }}</h2>
+    <p xpDialogDescription class="break-all">
+      @if (data.kind === 'raw') {
+        <span [title]="data.run.runId">{{ short(data.run.runId) }}</span> · {{ p + 'ReadOnly' | translate }}
+      } @else {
+        {{ data.run.datasetSnapshotId }}
+      }
+    </p>
+  </header>
+  <div xpDialogBody>
+    @if (data.kind === 'raw') {
+      <pre tabindex="0" class="overflow-auto whitespace-pre-wrap break-all font-mono text-sm leading-relaxed">{{
+        data.run | json
+      }}</pre>
+    } @else if (data.snapshot; as s) {
+      <h3 class="font-semibold">{{ s.name }}</h3>
+      <dl
+        class="my-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm [&_dt]:text-text-secondary [&_dd]:break-all"
+      >
+        <dt>{{ 'XP.AgentEvolution.DatasetId' | translate }}</dt>
+        <dd>{{ s.datasetId }}</dd>
+        <dt>
+          {{ 'XP.AgentEvolution.EvaluatorVersion' | translate }} /
+          {{ 'XP.AgentEvolution.DatasetEditor.MetricVersion' | translate }}
+        </dt>
+        <dd>{{ s.evaluatorVersion }} / {{ s.metricDefinitionVersion }}</dd>
+        <dt>{{ p + 'Frozen' | translate }}</dt>
+        <dd>{{ s.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</dd>
+        <dt>{{ p + 'Hash' | translate }}</dt>
+        <dd class="font-mono text-xs">{{ s.snapshotHash }}</dd>
+      </dl>
+      <div class="my-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 class="font-medium">{{ p + 'Samples' | translate: { n: s.cases.length } }}</h3>
+        <div class="flex items-center gap-1 text-sm text-text-secondary">
+          {{ page() }} / {{ pages()
+          }}<button
+            z-button
+            zType="ghost"
+            zSize="icon-sm"
+            [attr.aria-label]="'XP.AgentEvolution.ReplayWorkbench.Previous' | translate"
+            [zDisabled]="page() === 1"
+            (click)="page.set(page() - 1)"
+          >
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon-sm"
+            [attr.aria-label]="'XP.AgentEvolution.ReplayWorkbench.Next' | translate"
+            [zDisabled]="page() >= pages()"
+            (click)="page.set(page() + 1)"
+          >
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </div>
+      <ul class="divide-y divide-border rounded-md border border-border text-sm">
+        @for (row of samples(); track $index) {
+          <li class="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <span
+              ><code [title]="row.sample.caseId">{{ row.sample.caseId.slice(0, 8) }}</code> ·
+              {{ 'XP.AgentEvolution.ReplayWorkbench.Revision' | translate: { n: row.sample.revision } }} ·
+              {{ 'XP.AgentEvolution.ReplayWorkbench.risk_' + row.sample.risk | translate }}</span
+            >
+            @if (row.result; as result) {
+              <button z-button zSize="sm" zType="link" (click)="ref.close(result)">
+                {{ 'XP.AgentEvolution.ReplayWorkbench.ViewCase' | translate }}
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="text-sm text-text-secondary">{{ p + 'SnapshotMissing' | translate }}</p>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="link" (click)="ref.close()">
+      {{ 'XP.AgentEvolution.ReplayWorkbench.BackResult' | translate }}
+    </button>
+  </footer>
+</section>

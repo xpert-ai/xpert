@@ -6,7 +6,7 @@ import type {
   LearningEvent,
   ReleaseDeployment
 } from '@xpert-ai/contracts'
-import { EMPTY, Observable, expand, last, map, take } from 'rxjs'
+import { EMPTY, Observable, expand, last, map, of, take } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 
 export type EvolutionDetailKind = 'target' | 'candidate' | 'evaluation' | 'deployment'
@@ -37,26 +37,45 @@ export function findEvolutionResource(
   const query = (page: number) => ({ page, pageSize: 20, search: id })
   switch (kind) {
     case 'target':
-      return exactResource(
-        (page) => api.listTargets(query(page)),
-        (item) => item.targetId === id
-      )
+      return findEvolutionTarget(api, id)
     case 'candidate':
       return exactResource(
         (page) => api.listCandidates(query(page)),
         (item) => item.candidateId === id
       )
     case 'evaluation':
-      return exactResource(
-        (page) => api.listEvaluations(query(page)),
-        (item) => item.runId === id
-      )
+      return findHistoricalRun(api, id)
     case 'deployment':
-      return exactResource(
-        (page) => api.listDeployments(query(page)),
-        (item) => item.deploymentId === id
-      )
+      return findHistoricalDeployment(api, id)
   }
+}
+
+export function findEvolutionTarget(
+  api: AgentEvolutionApiService,
+  targetId: string
+): Observable<EvolutionTargetDescriptor | null> {
+  return exactResource(
+    (page) => api.listTargets({ page, pageSize: 20, search: targetId }),
+    (target) => target.targetId === targetId
+  )
+}
+
+export function findHistoricalRun(api: AgentEvolutionApiService, runId: string): Observable<EvaluationRun | null> {
+  return exactResource(
+    (page) => api.listEvaluations({ page, pageSize: 20, search: runId }),
+    (item) => item.runId === runId
+  )
+}
+
+export function findHistoricalDeployment(
+  api: AgentEvolutionApiService,
+  deploymentId: string
+): Observable<ReleaseDeployment | null> {
+  if (!deploymentId) return of(null)
+  return exactResource(
+    (page) => api.listDeployments({ page, pageSize: 20, search: deploymentId }),
+    (item) => item.deploymentId === deploymentId
+  )
 }
 
 export function findLearningEvent(api: AgentEvolutionApiService, id: string): Observable<LearningEvent | null> {

@@ -13,7 +13,12 @@ import type {
 } from '@xpert-ai/contracts'
 import { AgentEvolutionStore } from '../application/agent-evolution.store'
 import { AgentEvolutionQualityGovernanceService } from '../application/agent-evolution-quality-governance.service'
-import { aggregateMetrics, sameScope } from '../application/evolution-governance.helpers'
+import {
+    aggregateMetrics,
+    blockingMetricReasons,
+    scoredReplayCase,
+    sameScope
+} from '../application/evolution-governance.helpers'
 import { hashEvolutionValue } from '../domain/evolution-hash'
 import { validateChangeEvaluation } from './change.validation'
 import { changeError } from './change.errors'
@@ -136,15 +141,19 @@ export class EvolutionEvaluationExecutor {
                 caseRevision,
                 baselineBundle,
                 candidateBundle,
+                baselineArtifact: baseline.value.artifact,
+                candidateArtifact: change.candidate!.artifact,
+                evaluatorVersion: dataset.evaluatorVersion,
+                metricDefinitionVersion: dataset.metricDefinitionVersion,
                 randomSeed: 42,
                 repeatIndex: 0
             }
             const result = await target.replayEvaluator!.runReplayCase(request)
-            await target.replayEvaluator!.evaluateResult(request, result)
-            caseResults.push(result)
+            const observations = await target.replayEvaluator!.evaluateResult(request, result)
+            caseResults.push(scoredReplayCase(caseRevision.caseId, result, observations))
         }
         const metrics = aggregateMetrics(caseResults)
-        const gate = this.quality.reviewGoldenReplay(dataset.cases, metrics)
+        const gate = this.quality.reviewGoldenReplay(dataset.cases, metrics, blockingMetricReasons(caseResults))
         const raw: EvaluationRun = {
             evaluatorKind: 'golden_replay',
             runId,

@@ -1,109 +1,140 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
-import { RouterLink } from '@angular/router'
-import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild
+} from '@angular/core'
+import { ActivatedRoute, RouterLink } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent } from '@xpert-ai/headless-ui'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { resolveI18nText, type EvolutionLifecycleRecord } from '@xpert-ai/contracts'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { percent, shortId } from '../agent-evolution.types'
-
-interface TodoRow {
-  typeKey: string
-  title: string
-  titleKey?: string
-  titleParams?: Record<string, string>
-  target: string
-  status: string
-  route: string
-  queryParams?: { changeId: string }
-  icon: string
-}
+import { targetLabel } from '../targets/target-directory'
+import { percent } from '../agent-evolution.types'
+import { activeImprovement, overviewLabel, overviewRate, overviewTasks } from './overview-presentation'
 
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-overview',
-  imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ...ZardCardImports],
+  imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ZardComboboxComponent],
   templateUrl: './overview.component.html',
-  host: { class: 'block' }
+  host: { class: 'flex min-h-0 flex-1 overflow-hidden' }
 })
-export class AgentEvolutionOverviewComponent {
+export class AgentEvolutionOverviewComponent implements OnDestroy {
   readonly facade = inject(AgentEvolutionFacade)
-  readonly percent = percent
-  readonly shortId = shortId
-
-  readonly passedEvaluations = computed(
-    () => this.facade.contextLifecycleRecords().filter((record) => record.evaluation?.passed).length
-  )
-  readonly passRate = computed(() => {
-    const evaluations = this.facade.contextLifecycleRecords().filter((record) => !!record.evaluation)
-    return evaluations.length ? this.passedEvaluations() / evaluations.length : 0
-  })
-  readonly severeErrors = computed(() =>
-    this.facade.contextEvaluations().reduce((total, evaluation) => total + evaluation.metrics.severeErrors, 0)
-  )
-  readonly activeReleases = computed(
-    () => this.facade.contextReleases().filter((release) => release.status === 'active').length
-  )
-  readonly todos = computed<TodoRow[]>(() => {
-    const proposals = this.facade
-      .contextProposals()
-      .filter((proposal) => proposal.status === 'draft' || proposal.status === 'ready')
-      .slice(0, 2)
-      .map<TodoRow>((proposal) => ({
-        typeKey: 'XP.AgentEvolution.Proposal',
-        title: proposal.title,
-        target: proposal.targetId,
-        status: proposal.status === 'ready' ? 'waiting_build' : 'needs_details',
-        route: '../learning',
-        icon: 'ri-lightbulb-flash-line'
-      }))
-    const changes = this.facade
-      .contextLifecycleRecords()
-      .filter((record) => !['effective', 'closed'].includes(record.phase))
-      .slice(0, 4)
-      .map<TodoRow>((record) => ({
-        typeKey: record.phase === 'publication' ? 'XP.AgentEvolution.Release' : 'XP.AgentEvolution.Candidate',
-        title: record.presentation?.title || record.title,
-        target: record.targetId,
-        status: record.status,
-        route: record.phase === 'publication' ? '../release' : '../evaluation',
-        queryParams: { changeId: record.id },
-        icon: record.phase === 'publication' ? 'ri-rocket-line' : 'ri-flask-line'
-      }))
-    return [...proposals, ...changes]
-  })
-
-  readonly loopStages = computed(() => {
+  private readonly translate = inject(TranslateService)
+  private readonly languageChange = toSignal(this.translate.onLangChange)
+  readonly targetOptions = computed(() => {
+    this.languageChange()
     return [
-      {
-        labelKey: 'XP.AgentEvolution.LearningSignals',
-        value: this.facade.contextEvents().length,
-        icon: 'ri-radar-line',
-        tone: 'text-text-accent'
-      },
-      {
-        labelKey: 'XP.AgentEvolution.ImprovementProposals',
-        value: this.facade.contextProposals().length,
-        icon: 'ri-lightbulb-flash-line',
-        tone: 'text-text-warning'
-      },
-      {
-        labelKey: 'XP.AgentEvolution.CandidateVersions',
-        value: this.facade.contextLifecycleRecords().filter((record) => !!record.candidate).length,
-        icon: 'ri-flask-line',
-        tone: 'text-text-accent'
-      },
-      {
-        labelKey: 'XP.AgentEvolution.ReleaseRuns',
-        value: this.facade.contextLifecycleRecords().filter((record) => !!record.publication).length,
-        icon: 'ri-rocket-line',
-        tone: 'text-text-success'
-      },
-      {
-        labelKey: 'XP.AgentEvolution.ProductionPointers',
-        value: this.facade.contextPointers().length,
-        icon: 'ri-focus-3-line',
-        tone: 'text-text-primary'
-      }
+      { value: 'all', label: this.translate.instant(overviewLabel('AllTargets')) },
+      ...this.facade
+        .visibleTargets()
+        .map((t) => ({ value: t.targetId, label: targetLabel(t, this.translate.currentLang) }))
     ]
   })
+  recordTitle(record: EvolutionLifecycleRecord) {
+    this.languageChange()
+    return (
+      resolveI18nText(record.presentation?.business?.title, this.translate.currentLang) ||
+      record.presentation?.title ||
+      record.title
+    )
+  }
+  readonly key = overviewLabel
+  readonly percent = percent
+  private readonly route = inject(ActivatedRoute)
+  private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  private readonly loaded = computed(() => !!this.facade.loadedAt())
+  readonly historyOpen = signal(this.query().get('history') === 'open')
+  readonly scroll = viewChild.required<ElementRef<HTMLElement>>('scroll')
+  readonly targetNames = computed(() => new Map(this.facade.contextTargets().map((t) => [t.targetId, t.displayName])))
+  readonly productionPointers = computed(() => this.facade.contextPointers().filter((p) => p.channel === 'production'))
+  readonly rate = computed(() => overviewRate(this.facade.contextLifecycleRecords()))
+  readonly runs = computed(() =>
+    [...this.facade.contextEvaluations()].sort(
+      (a, b) => b.metrics.severeErrors - a.metrics.severeErrors || b.startedAt.localeCompare(a.startedAt)
+    )
+  )
+  readonly severe = computed(() => this.runs().reduce((n, r) => n + r.metrics.severeErrors, 0))
+  readonly tasks = computed(() =>
+    overviewTasks(
+      this.facade.contextLifecycleRecords(),
+      this.facade.contextProposals(),
+      this.facade.contextTargets(),
+      this.runs(),
+      (record) => this.recordTitle(record)
+    )
+  )
+  readonly live = computed(() =>
+    activeImprovement(
+      this.productionPointers(),
+      this.facade.contextReleases(),
+      this.facade.dashboard().deployments,
+      this.facade.contextLifecycleRecords()
+    )
+  )
+  readonly tones = {
+    muted: 'bg-muted text-muted-foreground',
+    danger: 'bg-destructive/10 text-text-destructive',
+    warning: 'bg-warning/10 text-text-warning',
+    info: 'bg-accent text-accent-foreground'
+  }
+  readonly stages = computed(() => [
+    { name: 'LearningSignals', value: this.facade.contextEvents().length, icon: 'ri-radar-line' },
+    { name: 'ImprovementProposals', value: this.facade.contextProposals().length, icon: 'ri-lightbulb-line' },
+    {
+      name: 'CandidateVersions',
+      value: this.facade.contextLifecycleRecords().filter((r) => r.candidate).length,
+      icon: 'ri-flask-line'
+    },
+    {
+      name: 'ReleaseRuns',
+      value: this.facade.contextLifecycleRecords().filter((r) => r.publication).length,
+      icon: 'ri-rocket-line'
+    },
+    { name: 'ProductionPointers', value: this.productionPointers().length, icon: 'ri-git-branch-line' }
+  ])
+  constructor() {
+    effect((cleanup) => {
+      const query = this.query()
+      if (query.get('history') !== 'open' || !this.loaded()) return
+      untracked(() => {
+        const selected = query.get('target') || 'all'
+        if (
+          (selected === 'all' || this.facade.visibleTargets().some((t) => t.targetId === selected)) &&
+          selected !== this.facade.selectedTargetId()
+        )
+          this.facade.selectTarget(selected)
+        this.historyOpen.set(true)
+        const runId = query.get('focusRun')
+        if (runId) {
+          const frame = requestAnimationFrame(() => {
+            const entry = document.getElementById('history-' + runId)
+            if (entry && this.scroll().nativeElement.contains(entry)) entry.scrollIntoView({ block: 'nearest' })
+          })
+          cleanup(() => cancelAnimationFrame(frame))
+        }
+      })
+    })
+    afterNextRender(() => {
+      this.scroll().nativeElement.scrollTop = this.facade.overviewScrollTop
+    })
+  }
+  ngOnDestroy() {
+    this.facade.overviewScrollTop = this.scroll().nativeElement.scrollTop
+  }
+  selectTarget(id: string | null) {
+    this.facade.selectTarget(id || 'all')
+    this.historyOpen.set(false)
+    this.scroll().nativeElement.scrollTop = 0
+  }
 }

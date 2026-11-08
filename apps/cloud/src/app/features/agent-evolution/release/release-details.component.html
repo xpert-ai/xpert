@@ -1,0 +1,126 @@
+<div class="space-y-4">
+  <section class="rounded-lg border border-border p-4">
+    <h3 class="font-semibold">{{ 'XP.AgentEvolution.ReleaseDecision' | translate }}</h3>
+    <p class="mt-2 font-medium">
+      {{ 'XP.AgentEvolution.' + (verified() ? 'KeepActive' : 'WaitingForGates') | translate }}
+    </p>
+    <p class="mt-1 text-sm text-text-secondary">
+      {{
+        'XP.AgentEvolution.' + (verified() ? 'ReleaseDecisionPassedDetail' : 'ReleaseDecisionPendingDetail') | translate
+      }}
+    </p>
+  </section>
+  <section class="rounded-lg border border-border p-4">
+    <h3 class="font-semibold">{{ prefix + 'Milestones' | translate }}</h3>
+    <ol class="mt-3 space-y-2 text-sm">
+      <li>
+        {{ 'XP.AgentEvolution.' + (release().approvalIds.length ? 'ApprovalPassed' : 'Approvals') | translate }} ·
+        {{ release().approvalIds.length }}
+      </li>
+      @for (s of stages(); track s.deploymentId) {
+        <li>
+          <span class="font-medium">{{
+            s.channel === 'canary'
+              ? (prefix + 'Canary' | translate: { n: s.canaryPercent })
+              : (prefix + (s.channel === 'shadow' ? 'Shadow' : 'Production') | translate)
+          }}</span>
+          · {{ prefix + 'SampleCount' | translate: { n: s.sampleCount } }} ·
+          {{
+            s.completedAt ? (prefix + 'StageEnded' | translate) : ('XP.AgentEvolution.Status.' + s.status | translate)
+          }}
+          @if (s.completedAt) {
+            <time class="text-text-secondary">{{ s.completedAt | date: 'yyyy-MM-dd HH:mm' }}</time>
+          }
+        </li>
+      }
+      <li>
+        {{ 'XP.AgentEvolution.Production' | translate }} ·
+        {{
+          serving()
+            ? ('XP.AgentEvolution.PointerSwitched' | translate)
+            : release().status === 'rolled_back' || release().status === 'superseded'
+              ? ('XP.AgentEvolution.Status.' + release().status | translate)
+              : release().status === 'active'
+                ? (prefix + 'NotServing' | translate)
+                : ('XP.AgentEvolution.PendingActivation' | translate)
+        }}
+      </li>
+    </ol>
+  </section>
+  <section class="overflow-hidden rounded-lg border border-border">
+    <header class="flex flex-wrap items-center justify-between gap-2 p-4">
+      <h3 class="font-semibold">{{ 'XP.AgentEvolution.ReleaseGateThresholds' | translate }}</h3>
+      @if (release().gatePolicy; as p) {
+        <span class="rounded border border-border px-2 py-0.5 text-sm text-text-secondary">{{
+          'XP.AgentEvolution.GateProfile.' + p.profile | translate
+        }}</span>
+      }
+    </header>
+    @if (release().gatePolicy) {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[320px]">
+          <thead class="bg-muted/40 text-left text-sm text-text-secondary [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium">
+            <tr>
+              @for (k of ['Stage', 'MinSamples', 'MinHours', 'MaxSevere']; track k) {
+                <th scope="col">{{ prefix + k | translate }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border [&_td]:px-3 [&_td]:py-2">
+            @for (g of gates(); track g.label) {
+              <tr>
+                <td>{{ prefix + g.label | translate }}</td>
+                <td>{{ g.n }}</td>
+                <td>{{ g.h }}</td>
+                <td>0</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (release().gatePolicy?.profile === 'manual_test') {
+        <p class="border-t border-border px-4 py-2 text-sm text-text-secondary">
+          {{ 'XP.AgentEvolution.ManualTestGateWarning' | translate }}
+        </p>
+      }
+    } @else {
+      <p class="px-4 pb-4 text-sm text-text-secondary">{{ prefix + 'MissingPolicy' | translate }}</p>
+    }
+  </section>
+  <section class="rounded-lg border border-border p-4">
+    <h3 class="font-semibold">{{ 'XP.AgentEvolution.VersionsAndPointers' | translate }}</h3>
+    <dl class="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      @for (f of fields(); track f.key) {
+        <div class="min-w-0">
+          <dt class="text-sm text-text-secondary">
+            {{ (f.key === 'TargetVersion' ? prefix + 'TargetVersion' : 'XP.AgentEvolution.' + f.key) | translate }}
+          </dt>
+          <dd class="mt-0.5 break-all font-mono text-sm">{{ f.value ?? '—' }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+  <section class="rounded-lg border border-border p-4">
+    <h3 class="font-semibold">{{ 'XP.AgentEvolution.Approvals' | translate }} · {{ release().approvalIds.length }}</h3>
+    @for (id of release().approvalIds; track id) {
+      <div class="mt-2">
+        <span class="break-all font-mono text-sm">{{ id }}</span>
+        @for (a of record().approvals; track a.approvalId) {
+          @if (a.approvalId === id) {
+            <p class="mt-0.5 text-sm text-text-secondary">
+              {{ a.actorRoleName || a.actorRole }} · {{ a.decidedAt | date: 'yyyy-MM-dd HH:mm:ss' }} · {{ a.reason }}
+            </p>
+          }
+        }
+      </div>
+    }
+  </section>
+  @if (change(); as c) {
+    <details class="rounded-lg border border-border">
+      <summary class="cursor-pointer px-4 py-3 font-medium">{{ prefix + 'ChangeEvidence' | translate }}</summary>
+      <div class="border-t border-border p-4">
+        <xp-evolution-change-panel [change]="c" [lifecycle]="record()" mode="release" />
+      </div>
+    </details>
+  }
+</div>

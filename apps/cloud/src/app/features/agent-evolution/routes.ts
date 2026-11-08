@@ -16,13 +16,17 @@ export const routes: Routes = [
         loadComponent: () => import('./learning/learning.component').then((m) => m.AgentEvolutionLearningComponent)
       },
       {
+        path: 'evaluation/approval/:changeId',
+        loadComponent: () => import('./approval/approval.component').then((m) => m.EvolutionApprovalComponent)
+      },
+      {
         path: 'evaluation',
         loadComponent: () =>
           import('./evaluation/evaluation.component').then((m) => m.AgentEvolutionEvaluationComponent)
       },
       {
         path: 'release',
-        loadComponent: () => import('./release/release.component').then((m) => m.AgentEvolutionReleaseComponent)
+        loadComponent: () => import('./release/release-page.component').then((m) => m.EvolutionReleasePageComponent)
       },
       {
         path: 'targets',
@@ -30,9 +34,7 @@ export const routes: Routes = [
       },
       {
         path: 'targets/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'target' }
+        loadComponent: () => import('./detail/target-detail.component').then((m) => m.EvolutionTargetDetailComponent)
       },
       {
         path: 'candidates/:resourceId',
@@ -42,15 +44,11 @@ export const routes: Routes = [
       },
       {
         path: 'evaluations/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'evaluation' }
+        loadComponent: () => import('./evaluation/historical-run.component').then((m) => m.HistoricalRunComponent)
       },
       {
         path: 'deployments/:resourceId',
-        loadComponent: () =>
-          import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),
-        data: { kind: 'deployment' }
+        loadComponent: () => import('./release/deployment-history.component').then((m) => m.DeploymentHistoryComponent)
       }
     ]
   }

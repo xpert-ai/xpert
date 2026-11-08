@@ -1,3 +1,6 @@
+import { CheckedProposalService } from './learning/checked-proposal.service'
+import { LearningDirectoryService } from './learning/learning-directory.service'
+import { EvolutionFeedbackController } from './controllers/evolution-feedback.controller'
 import { EvolutionStrategyService } from './changes/strategy.service'
 import { EvolutionBaselineService } from './application/evolution-baseline.service'
 import { EvolutionBaselineController } from './controllers/evolution-baseline.controller'
@@ -36,9 +39,16 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         CqrsModule,
         DiscoveryModule
     ],
-    controllers: [EvolutionBaselineController, EvolutionLifecycleController, AgentEvolutionController],
+    controllers: [
+        EvolutionFeedbackController,
+        EvolutionBaselineController,
+        EvolutionLifecycleController,
+        AgentEvolutionController
+    ],
     providers: [
         EvolutionBaselineService,
+        LearningDirectoryService,
+        CheckedProposalService,
         EvolutionChangeService,
         EvolutionStrategyService,
         EvolutionEvaluationExecutor,

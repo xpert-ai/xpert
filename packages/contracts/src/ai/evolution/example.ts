@@ -1,3 +1,4 @@
+/** Persistence surfaces covered by the synthetic evolution example, not an exhaustive schema. */
 export type EvolutionPersistenceTable =
   | 'agent_evolution_target'
   | 'agent_evolution_capability_version'
@@ -13,6 +14,7 @@ export type EvolutionPersistenceTable =
   | 'agent_evolution_release_deployment'
   | 'agent_evolution_audit_event'
 
+/** Expected versus observed record identities for one table in a simulation. */
 export interface EvolutionPersistenceTableEvidence {
   table: EvolutionPersistenceTable
   expectedCount: number
@@ -21,12 +23,14 @@ export interface EvolutionPersistenceTableEvidence {
   missingRecordIds: string[]
 }
 
+/** Evidence that the expected simulation records exist, distinct from the simulated release gate result. */
 export interface EvolutionPersistenceEvidence {
   verified: boolean
   rowCount: number
   tables: EvolutionPersistenceTableEvidence[]
 }
 
+/** Identifies an example using synthetic evidence; its results do not represent live traffic. */
 export interface EvolutionExampleDescriptor {
   key: string
   name: string
@@ -34,6 +38,7 @@ export interface EvolutionExampleDescriptor {
   dataClassification: 'synthetic_test_fixture'
 }
 
+/** Trace of the versions, decisions and persistence evidence produced by a single synthetic run. */
 export interface EvolutionSimulationResult {
   example: EvolutionExampleDescriptor
   simulationId: string

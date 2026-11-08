@@ -23,6 +23,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs/operators'
+import { EvolutionPageHeaderComponent } from './shared/evolution-page-header.component'
 import { AgentEvolutionFacade } from './agent-evolution.facade'
 import { changeFilter } from './shared/evolution-change-presentation'
 
@@ -35,6 +36,7 @@ import { changeFilter } from './shared/evolution-change-presentation'
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    EvolutionPageHeaderComponent,
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
@@ -70,6 +72,24 @@ export class AgentEvolutionComponent {
     ),
     { initialValue: this.#router.url }
   )
+  readonly pageHeader = computed(() => {
+    const path = this.currentUrl().split(/[?#]/)[0].replace(/\/$/, '')
+    if (path === '/agent-evolution/overview') return 'XP.AgentEvolution.TabOverview'
+    if (path === '/agent-evolution/learning') return 'XP.AgentEvolution.TabLearning'
+    const query = this.#router.parseUrl(this.currentUrl()).queryParamMap
+    if (
+      path.startsWith('/agent-evolution/deployments/') ||
+      (path === '/agent-evolution/release' && query.get('view') === 'observations' && query.has('stage'))
+    )
+      return 'XP.AgentEvolution.DeploymentHistory.Title'
+    if (path === '/agent-evolution/release') return 'XP.AgentEvolution.TabRelease'
+    if (path.startsWith('/agent-evolution/evaluation/approval/')) return 'XP.AgentEvolution.Approval.Title'
+    if (path === '/agent-evolution/evaluation' || path.startsWith('/agent-evolution/evaluations/'))
+      return 'XP.AgentEvolution.TabEvaluation'
+    if (path.startsWith('/agent-evolution/targets/')) return 'XP.AgentEvolution.TargetDetail.Title'
+    if (path === '/agent-evolution/targets') return 'XP.AgentEvolution.TabTargets'
+    return null
+  })
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly activeSubtitleKey = computed(() => {
     const url = this.currentUrl()
@@ -129,7 +149,10 @@ export class AgentEvolutionComponent {
         if (refreshing || this.facade.loading() || document.hidden) return
         refreshing = true
         try {
-          await this.facade.refreshChanges()
+          await this.facade.refreshChanges(
+            this.pageHeader() === 'XP.AgentEvolution.TabRelease' ||
+              this.pageHeader() === 'XP.AgentEvolution.DeploymentHistory.Title'
+          )
         } finally {
           refreshing = false
         }
@@ -140,13 +163,5 @@ export class AgentEvolutionComponent {
 
   selectTarget(value: string | null) {
     this.facade.selectTarget(value || 'all')
-  }
-
-  setShowFixtures(value: boolean) {
-    const selected = this.facade
-      .dashboard()
-      .targets.find((target) => target.targetId === this.facade.selectedTargetId())
-    this.facade.showFixtures.set(value)
-    if (!value && selected?.targetType === 'test_fixture') this.facade.selectTarget('all')
   }
 }

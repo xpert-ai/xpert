@@ -1,0 +1,32 @@
+<main class="mx-auto w-full max-w-[1430px] space-y-4 px-4 py-6 sm:px-8">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h1 class="xp-page-title">{{ p + 'Title' | translate }}</h1>
+      <p class="mt-1 break-all font-mono text-sm text-text-secondary">{{ id() }}</p>
+    </div>
+    <a
+      z-button
+      zType="outline"
+      zSize="lg"
+      [routerLink]="overview() ? '/agent-evolution/overview' : '/agent-evolution/evaluation'"
+      [queryParams]="returnQuery()"
+    >
+      <i class="ri-arrow-left-line" aria-hidden="true"></i
+      >{{ p + (overview() ? 'BackOverview' : 'BackRuns') | translate }}</a
+    >
+  </div>
+  @if (lookup().status === 'loading' || (lookup().run && !facade.loadedAt() && !facade.error())) {
+    <p role="status">{{ 'XP.Common.Loading' | translate }}</p>
+  } @else if (lookup().run; as r) {
+    <section class="rounded-lg border border-border bg-card p-4">
+      <h2 class="font-semibold">{{ p + 'Raw' | translate }}</h2>
+      <p class="my-2 text-sm text-text-secondary">{{ p + 'RawOnly' | translate }}</p>
+      <pre tabindex="0" class="max-h-[65dvh] overflow-auto rounded-md bg-muted/50 p-3 text-xs">{{ r | json }}</pre>
+    </section>
+  } @else {
+    <p role="status" class="text-text-secondary">{{ p + lookup().status | translate }}</p>
+    @if (lookup().status !== 'missing') {
+      <button z-button zType="outline" (click)="retry()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
+    }
+  }
+</main>

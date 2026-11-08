@@ -9,22 +9,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { EvolutionBaselinePanelComponent } from './evolution-baseline-panel.component'
 
 type ResourceState = { loading: boolean; error: boolean; item: EvolutionDetailResource | null }
 
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-detail',
-  imports: [
-    EvolutionBaselinePanelComponent,
-    CommonModule,
-    RouterLink,
-    TranslateModule,
-    ZardBadgeComponent,
-    ZardButtonComponent,
-    ...ZardCardImports
-  ],
+  imports: [CommonModule, RouterLink, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ...ZardCardImports],
   templateUrl: './agent-evolution-detail.component.html',
   host: { class: 'block' }
 })

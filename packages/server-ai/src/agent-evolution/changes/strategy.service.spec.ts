@@ -48,6 +48,20 @@ it('retains the trusted multi-subject learning gate only for strategies which re
         }) as LearningEvent
     const events = [event('1', 'a', 'L2'), event('2', 'b', 'L3'), event('3', 'b', 'L2')]
     expect(qualifiesLearning(events, FEEDBACK_LEARNING_STRATEGY, now)).toBe(true)
+    expect(
+        qualifiesLearning(
+            events.map((item) => ({ ...item, reviewStatus: 'ignored' })),
+            FEEDBACK_LEARNING_STRATEGY,
+            now
+        )
+    ).toBe(false)
+    expect(
+        qualifiesLearning(
+            [...events, { ...events[0], eventId: '4', reviewStatus: 'ignored' }],
+            FEEDBACK_LEARNING_STRATEGY,
+            now
+        )
+    ).toBe(false)
     expect(qualifiesLearning(events.slice(1), FEEDBACK_LEARNING_STRATEGY, now)).toBe(false)
     expect(
         qualifiesLearning(

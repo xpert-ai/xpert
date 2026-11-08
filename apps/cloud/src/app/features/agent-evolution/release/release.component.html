@@ -1,569 +1,670 @@
-<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
-  <xp-evolution-change-picker
-    [items]="entries()"
-    [filter]="changeType()"
-    [selectedId]="selection()?.id ?? null"
-    (filterChange)="filterChanges($event)"
-    (selectionChange)="selectChange($event)"
-  />
-  @if (facade.providerError()) {
-    <div role="alert" class="flex items-center justify-between gap-3 text-sm text-destructive">
-      {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
-      <button z-button zType="outline" (click)="facade.load()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
-    </div>
-  }
-  @if (facade.loading()) {
-    <p role="status" class="py-12 text-center text-text-secondary">
-      {{ 'XP.AgentEvolution.LoadingChanges' | translate }}
-    </p>
-  } @else if (selection()) {
-    @for (change of resource() ? [resource()!] : []; track change.changeId) {
-      <xp-evolution-change-panel [change]="change" [lifecycle]="selection()" mode="release" />
+<main class="@container/release min-h-0 min-w-0 flex-1 overflow-y-auto bg-background text-foreground">
+  <div class="mx-auto w-full max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="xp-page-title">{{ 'XP.AgentEvolution.TabRelease' | translate }}</h1>
+        <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'Intro' | translate }}</p>
+      </div>
+      <label class="flex w-full items-center gap-2.5 @2xl/release:w-auto"
+        ><span class="shrink-0 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.Scope' | translate }}</span
+        ><z-combobox
+          zSize="lg"
+          class="min-w-0 flex-1 @2xl/release:w-[180px] [&_button]:text-base"
+          zWidth="full"
+          [options]="targetOptions()"
+          [value]="facade.selectedTargetId()"
+          [ariaLabel]="'XP.AgentEvolution.Directory.Scope' | translate"
+          [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
+          (zValueChange)="selectTarget($event)"
+      /></label>
+    </header>
+    @if (facade.providerError()) {
+      <p role="alert" class="mt-4 text-sm text-text-destructive">
+        {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
+        <button z-button zType="outline" (click)="facade.load()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
+      </p>
     }
-    @if (selection()?.capabilities?.stagedRollout) {
-      @if (release(); as item) {
-        <section
-          class="flex flex-col gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-5 lg:flex-row lg:items-start lg:justify-between"
-        >
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
-              <span>{{ 'XP.AgentEvolution.TabRelease' | translate }}</span
-              ><i class="ri-arrow-right-s-line"></i><span class="font-mono">{{ item.releasePackageId }}</span>
-            </div>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <h2 class="text-xl font-semibold text-text-primary">{{ targetName() }} · {{ item.targetVersionId }}</h2>
-              <z-badge zType="outline" class="border-state-success-hover bg-state-success-hover/10 text-text-success">{{
-                'XP.AgentEvolution.Status.' + item.status | translate: { Default: item.status }
-              }}</z-badge>
-            </div>
-            <p class="mt-1 text-sm text-text-secondary">
-              {{ 'XP.AgentEvolution.Candidate' | translate }} {{ item.candidateId }} ·
-              {{ 'XP.AgentEvolution.Rollback' | translate }} {{ item.rollbackVersionId }} ·
-              {{ 'XP.AgentEvolution.ScopeType.' + item.scope.type | translate: { Default: item.scope.type } }}
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            @if (primaryAction(); as action) {
-              <button
-                z-button
-                type="button"
-                [zLoading]="facade.mutating()"
-                [zDisabled]="!action.enabled"
-                [title]="
-                  action.enabled ? action.description : ('XP.AgentEvolution.ReleaseGateActionDisabled' | translate)
-                "
-                (click)="performPrimaryAction()"
-              >
-                <i class="ri-arrow-right-circle-line"></i>{{ action.label }}
-              </button>
-            }
-            <button
+    @if (facade.loading() || (!facade.loadedAt() && !facade.error())) {
+      <p role="status" class="py-10 text-center text-text-secondary">
+        {{ 'XP.AgentEvolution.LoadingChanges' | translate }}
+      </p>
+    } @else if (view() === 'directory') {
+      <section class="mt-5 overflow-hidden rounded-lg border border-border bg-card">
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <h2 class="text-lg font-semibold">{{ prefix + 'Directory' | translate }}</h2>
+          @if (selected()) {
+            <button z-button zType="ghost" (click)="goto('history')">
+              <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+            </button>
+          }
+        </div>
+        <div class="flex flex-wrap gap-2 border-y border-border px-4 py-3">
+          <z-search-input
+            class="min-w-[160px] flex-1"
+            [value]="term()"
+            [placeholder]="prefix + 'Search' | translate"
+            (valueChange)="term.set($event)"
+          /><z-combobox
+            zSize="lg"
+            class="w-44"
+            zWidth="full"
+            [options]="statusOptions()"
+            [value]="q().get('changeStatus') || 'all'"
+            [ariaLabel]="prefix + 'AllStatus' | translate"
+            (zValueChange)="filterStatus($event)"
+          />
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[570px]">
+            <thead class="bg-muted/45 text-left text-sm text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium">
+              <tr>
+                <th scope="col">{{ prefix + 'Record' | translate }}</th>
+                <th scope="col">{{ prefix + 'Target' | translate }}</th>
+                <th scope="col">{{ prefix + 'Status' | translate }}</th>
+                <th scope="col">{{ prefix + 'Details' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-3">
+              @for (rec of directory(); track rec.id) {
+                <tr>
+                  <td>
+                    <button
+                      type="button"
+                      class="text-left font-medium hover:underline"
+                      (click)="goto('history', rec.id)"
+                    >
+                      {{ title(rec) }}
+                    </button>
+                    <div class="mt-1 font-mono text-sm text-text-secondary">{{ short(rec.id) }}</div>
+                  </td>
+                  <td>{{ name(rec.targetId) }}</td>
+                  <td>{{ status(rec.publicationStatus) }}</td>
+                  <td>
+                    <button z-button zType="ghost" (click)="goto('history', rec.id)">
+                      {{ prefix + 'Open' | translate }} <i class="ri-arrow-right-line"></i>
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="text-center text-text-secondary">{{ prefix + 'NoRecords' | translate }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @else if (!selected()) {
+      <section class="mt-5 rounded-lg border border-border p-8 text-center">
+        <p class="text-text-secondary">{{ prefix + 'NoRecords' | translate }}</p>
+        <button z-button class="mt-3" zType="outline" (click)="filterStatus('all')">
+          {{ prefix + 'Directory' | translate }}
+        </button>
+      </section>
+    } @else if (!release()) {
+      <div class="mb-3 mt-5 flex justify-end">
+        <button z-button zType="outline" (click)="goto('directory')">{{ prefix + 'Directory' | translate }}</button>
+      </div>
+      @if (resource(); as c) {
+        @if (
+          c.candidate?.artifact?.hash &&
+          c.evaluation &&
+          ['pending_approval', 'test_failed', 'approved', 'publishing', 'published', 'rejected', 'stale'].includes(
+            c.status
+          )
+        ) {
+          <div class="mb-4">
+            <a
               z-button
               zType="outline"
-              type="button"
-              [zDisabled]="item.status !== 'shadow' && item.status !== 'canary'"
-              [title]="'XP.AgentEvolution.PauseOnlyDuringStagedRelease' | translate"
-              (click)="pause()"
+              [routerLink]="['/agent-evolution/evaluation/approval', c.changeId]"
+              [queryParams]="{ target: c.targetId }"
             >
-              <i class="ri-pause-line"></i>{{ 'XP.AgentEvolution.Pause' | translate }}
-            </button>
-            @if (item.status === 'active') {
-              <button z-button zType="destructive" type="button" [zLoading]="facade.mutating()" (click)="rollback()">
-                <i class="ri-arrow-go-back-line"></i>{{ 'XP.AgentEvolution.Rollback' | translate }}
+              {{ 'XP.AgentEvolution.Approval.Title' | translate }} <i class="ri-arrow-right-line" aria-hidden="true"></i
+            ></a>
+          </div>
+        }
+        <xp-evolution-change-panel [change]="c" [lifecycle]="selected()" mode="release" [readOnly]="true" />
+      } @else {
+        <p class="p-5 text-text-secondary">{{ prefix + 'NoPackage' | translate }}</p>
+      }
+    } @else if (release(); as item) {
+      <section class="my-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 class="text-lg font-semibold">{{ title(selected()!) }}</h2>
+            <span class="text-sm text-text-secondary">{{ name(item.targetId) }}</span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-text-secondary">
+            <span [title]="ptr()?.activeVersionId || ''"
+              >{{ prefix + 'CurrentVersion' | translate }}
+              <span class="font-mono">{{ version(ptr()?.activeVersionId) }}</span></span
+            ><span class="border-l border-border pl-3"
+              >{{ prefix + 'Revision' | translate }} {{ ptr()?.revision ?? '—' }}</span
+            >
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            z-button
+            zSize="lg"
+            [zType]="view() === 'observations' ? 'secondary' : 'default'"
+            [zDisabled]="!stages().length"
+            (click)="goto('observations', selected()?.id, (production() ?? stages().at(-1))?.deploymentId)"
+          >
+            {{ prefix + (production() ? 'ViewProduction' : 'ViewObservations') | translate }}</button
+          ><button z-button zSize="lg" zType="ghost" (click)="goto('audit')">{{ prefix + 'Audit' | translate }}</button
+          ><button z-button zSize="lg" zType="outline" z-menu [zMenuTriggerFor]="actions">
+            {{ prefix + 'More' | translate }} <i class="ri-arrow-down-s-line"></i>
+          </button>
+        </div>
+      </section>
+      @if (job(); as j) {
+        <p role="status" class="mb-4 rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm">
+          {{ 'XP.AgentEvolution.JobType.' + j.jobType | translate: { Default: j.jobType } }} · {{ status(j.status) }}
+          @if (j.errorMessage) {
+            · {{ j.errorMessage }}
+          }
+        </p>
+      }
+      @switch (view()) {
+        @case ('details') {
+          <section>
+            <header class="mb-3 flex items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold">{{ prefix + 'ReleaseDetails' | translate }}</h2>
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
               </button>
-            }
-          </div>
-        </section>
-
-        <section class="overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg px-5 py-5">
-          <div class="flex min-w-[780px] items-start">
-            @for (step of timeline(); track step.label; let last = $last) {
-              <div class="flex flex-1 items-start">
-                <div class="flex min-w-24 flex-col items-center text-center">
-                  <span
-                    class="flex size-8 items-center justify-center rounded-full border"
-                    [ngClass]="
-                      step.done
-                        ? 'border-state-success-hover bg-state-success-hover/20 text-text-success'
-                        : 'border-divider-deep bg-components-card-bg text-text-secondary'
-                    "
-                    ><i [class]="step.done ? 'ri-check-line' : 'ri-time-line'"></i
-                  ></span>
-                  <div
-                    class="mt-2 text-xs font-medium"
-                    [class.text-text-primary]="step.done"
-                    [class.text-text-secondary]="!step.done"
-                  >
-                    {{ step.label }}
-                  </div>
-                  <div class="mt-0.5 text-[10px] text-text-secondary">{{ step.detail }}</div>
-                </div>
-                @if (!last) {
-                  <div
-                    class="mt-4 h-px flex-1"
-                    [ngClass]="step.done ? 'bg-state-success-hover' : 'bg-divider-regular'"
-                  ></div>
-                }
+            </header>
+            <xp-release-details
+              [release]="item"
+              [pointer]="ptr()"
+              [stages]="stages()"
+              [record]="selected()!"
+              [change]="resource()"
+            />
+          </section>
+        }
+        @case ('trend') {
+          <section>
+            <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold">{{ prefix + 'Trend' | translate }}</h2>
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+              </button>
+            </header>
+            <xp-release-trend [stages]="stages()" (inspect)="goto('observations', selected()?.id, $event)" />
+          </section>
+        }
+        @case ('observations') {
+          <section class="overflow-hidden rounded-lg border border-border bg-card">
+            <header class="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <h2 class="text-lg font-semibold">{{ prefix + 'Observations' | translate }}</h2>
+                <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'ObservationsIntro' | translate }}</p>
               </div>
-            }
-          </div>
-        </section>
-
-        <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.CandidateAccuracy' | translate }}</div>
-              <div class="mt-2 text-2xl font-semibold text-text-primary">{{ percent(latestAccuracy()) }}</div>
-              <div class="mt-1 text-[11px] text-text-success">
-                {{ 'XP.AgentEvolution.PersistedObservationsHealthy' | translate }}
-              </div></z-card-content
-            ></z-card
-          >
-          <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.SevereErrors' | translate }}</div>
-              <div class="mt-2 text-2xl font-semibold text-text-primary">{{ severeErrors() }}</div>
-              <div class="mt-1 text-[11px] text-text-success">
-                {{ 'XP.AgentEvolution.ThresholdZero' | translate }}
-              </div></z-card-content
-            ></z-card
-          >
-          <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.TotalRuntimeSamples' | translate }}</div>
-              <div class="mt-2 text-2xl font-semibold text-text-primary">{{ totalSamples() }}</div>
-              <div class="mt-1 text-[11px] text-text-secondary">
-                {{ 'XP.AgentEvolution.PersistedShadowCanary' | translate }}
-              </div></z-card-content
-            ></z-card
-          >
-          <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.CanaryTraffic' | translate }}</div>
-              <div class="mt-2 text-2xl font-semibold text-text-primary">{{ item.canaryPercent }}%</div>
-              <div class="mt-1 text-[11px] text-text-secondary">
-                {{ 'XP.AgentEvolution.DeterministicSlice' | translate }}
-              </div></z-card-content
-            ></z-card
-          >
-          <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.PointerRevision' | translate }}</div>
-              <div class="mt-2 text-2xl font-semibold text-text-primary">{{ pointer()?.revision ?? '—' }}</div>
-              <div class="mt-1 text-[11px] text-text-secondary">
-                {{ 'XP.AgentEvolution.CasProtected' | translate }}
-              </div></z-card-content
-            ></z-card
-          >
-          <z-card class="border border-state-success-hover bg-state-success-hover/10 shadow-none"
-            ><z-card-content class="p-4"
-              ><div class="text-xs text-text-success">{{ 'XP.AgentEvolution.ReleaseDecision' | translate }}</div>
-              <div class="mt-2 text-xl font-semibold text-text-success">{{ releaseDecision().label }}</div>
-              <div class="mt-1 text-[11px] text-text-success">{{ releaseDecision().detail }}</div></z-card-content
-            ></z-card
-          >
-        </section>
-
-        <section class="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,.75fr)]">
-          <div class="flex min-w-0 flex-col gap-4">
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-              ><z-card-header class="border-b border-divider-subtle px-5 py-4"
-                ><div class="flex items-center justify-between gap-3">
-                  <div>
-                    <z-card-title>{{ 'XP.AgentEvolution.PersistedRuntimeObservations' | translate }}</z-card-title
-                    ><z-card-subtitle class="mt-1">{{
-                      'XP.AgentEvolution.RuntimeObservationDescription' | translate
-                    }}</z-card-subtitle>
+              <div class="flex flex-wrap gap-2">
+                <button z-button zType="outline" (click)="goto('trend')">
+                  <i class="ri-line-chart-line"></i>{{ prefix + 'Trend' | translate }}
+                </button>
+                <button z-button zType="ghost" (click)="goto('history')">
+                  <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+                </button>
+              </div>
+            </header>
+            <div class="flex flex-wrap items-center gap-3 border-y border-border px-4 py-3">
+              <span class="text-sm text-text-secondary">{{ prefix + 'Stage' | translate }}</span
+              ><z-combobox
+                zSize="lg"
+                zWidth="full"
+                class="w-48"
+                [options]="stageOptions()"
+                [value]="focusStage()?.deploymentId || ''"
+                [ariaLabel]="prefix + 'Stage' | translate"
+                (zValueChange)="goto('observations', selected()?.id, $event)"
+              />
+              @if (focusStage(); as s) {
+                <span class="text-sm text-text-secondary"
+                  >{{ 'XP.AgentEvolution.DataSourceType.' + s.dataSource | translate: { Default: s.dataSource } }} ·
+                  {{ prefix + 'SampleCount' | translate: { n: s.sampleCount } }}</span
+                >
+              }
+            </div>
+            @if (focusStage(); as s) {
+              @if (s.dataSource === 'runtime_telemetry') {
+                @if (evidenceStatus() === 'loading') {
+                  <p class="p-6 text-sm text-text-secondary" role="status">{{ prefix + 'Loading' | translate }}</p>
+                } @else if (evidenceStatus() === 'error') {
+                  <p class="p-5 text-sm" role="alert">
+                    {{ prefix + 'LoadError' | translate }}
+                    <button z-button zType="outline" (click)="toggleRetry()">
+                      {{ 'XP.AgentEvolution.Retry' | translate }}
+                    </button>
+                  </p>
+                } @else {
+                  <div class="overflow-x-auto">
+                    <table class="w-full min-w-[660px]">
+                      <thead
+                        class="bg-muted/45 text-left text-sm text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                      >
+                        <tr>
+                          <th scope="col">{{ prefix + 'Time' | translate }}</th>
+                          <th scope="col">{{ prefix + 'Execution' | translate }}</th>
+                          <th scope="col">{{ prefix + 'Outcome' | translate }}</th>
+                          <th scope="col">{{ prefix + 'Baseline' | translate }}</th>
+                          <th scope="col">{{ prefix + 'Severe' | translate }}</th>
+                          <th scope="col">{{ prefix + 'Latency' | translate }}</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2.5">
+                        @for (o of visibleRows(); track o.observationId) {
+                          <tr>
+                            <td>{{ o.observedAt | date: 'MM-dd HH:mm:ss' }}</td>
+                            <td>
+                              <span class="font-mono text-sm" [title]="o.executionId">{{
+                                o.executionId | slice: 0 : 18
+                              }}</span>
+                              @if (s.channel === 'canary') {
+                                <div class="text-sm text-text-secondary">
+                                  {{ 'XP.AgentEvolution.DeploymentHistory.' + hitSource(o) | translate }}
+                                </div>
+                              }
+                            </td>
+                            <td>{{ prefix + (o.success ? 'Correct' : 'Incorrect') | translate }}</td>
+                            <td>
+                              {{
+                                o.baselineSuccess == null
+                                  ? '—'
+                                  : (prefix + (o.baselineSuccess ? 'Correct' : 'Incorrect') | translate)
+                              }}
+                            </td>
+                            <td>{{ prefix + (o.severeError ? 'Yes' : 'No') | translate }}</td>
+                            <td>{{ o.latencyMs | number: '1.0-2' }} ms</td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="6" class="text-center text-text-secondary">
+                              {{ prefix + 'NoObservations' | translate }}
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
                   </div>
-                  <z-badge zType="outline">{{ runtimeDataSource() }}</z-badge>
-                </div></z-card-header
-              ><z-card-content class="p-4"
-                ><div echarts class="h-72 w-full" [options]="runtimeOptions()"></div></z-card-content
-            ></z-card>
-
-            <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-              <z-card-header class="border-b border-divider-subtle px-5 py-4"
-                ><div class="flex items-center justify-between">
-                  <div>
-                    <z-card-title>{{ 'XP.AgentEvolution.TrafficSlices' | translate }}</z-card-title
-                    ><z-card-subtitle class="mt-1">{{
-                      'XP.AgentEvolution.TrafficSlicesDescription' | translate
-                    }}</z-card-subtitle>
-                  </div>
-                  <z-badge zType="outline">{{
-                    'XP.AgentEvolution.DeploymentCount' | translate: { count: deployments().length }
-                  }}</z-badge>
-                </div></z-card-header
-              >
-              <z-card-content class="p-0"
-                ><div class="overflow-x-auto">
-                  <table class="w-full min-w-[720px] text-left text-xs">
-                    <thead class="bg-background-default-subtle text-text-secondary">
+                  <footer
+                    class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm text-text-secondary"
+                  >
+                    <span>{{ prefix + 'Total' | translate: { n: stageRows().length } }}</span>
+                    <div class="flex items-center gap-2">
+                      <span>{{ observationsPage() }}</span
+                      ><button
+                        z-button
+                        zType="ghost"
+                        [attr.aria-label]="prefix + 'Previous' | translate"
+                        [zDisabled]="observationsPage() <= 1"
+                        (click)="observationsPage.set(observationsPage() - 1)"
+                      >
+                        <i class="ri-arrow-left-s-line"></i></button
+                      ><button
+                        z-button
+                        zType="ghost"
+                        [attr.aria-label]="prefix + 'Next' | translate"
+                        [zDisabled]="observationsPage() * pageSize >= stageRows().length"
+                        (click)="observationsPage.set(observationsPage() + 1)"
+                      >
+                        <i class="ri-arrow-right-s-line"></i>
+                      </button>
+                    </div>
+                  </footer>
+                }
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[540px]">
+                    <thead
+                      class="bg-muted/45 text-left text-sm text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                    >
                       <tr>
-                        <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Channel' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.StatusLabel' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.DataSource' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Traffic' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Samples' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Accuracy' | translate }}</th>
-                        <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.SevereErrors' | translate }}</th>
-                        <th class="px-5 py-3 text-right font-medium">
-                          {{ 'XP.AgentEvolution.StartTime' | translate }}
-                        </th>
+                        <th scope="col">{{ prefix + 'Time' | translate }}</th>
+                        <th scope="col">{{ prefix + 'Samples' | translate }}</th>
+                        <th scope="col">{{ prefix + 'Accuracy' | translate }}</th>
+                        <th scope="col">{{ prefix + 'Severe' | translate }}</th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y divide-divider-subtle">
-                      @for (deployment of deployments(); track deployment.deploymentId) {
+                    <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2">
+                      @for (p of s.observations; track p.observationId) {
                         <tr>
-                          <td class="px-5 py-3.5 font-medium text-text-primary">
-                            {{
-                              'XP.AgentEvolution.ChannelType.' + deployment.channel
-                                | translate: { Default: deployment.channel }
-                            }}
-                          </td>
-                          <td class="px-4 py-3.5">
-                            <z-badge zType="outline" class="text-text-success">{{
-                              'XP.AgentEvolution.Status.' + deployment.status
-                                | translate: { Default: deployment.status }
-                            }}</z-badge>
-                          </td>
-                          <td class="px-4 py-3.5 font-mono text-[11px] text-text-secondary">
-                            {{ deployment.dataSource || '—' }}
-                          </td>
-                          <td class="px-4 py-3.5 tabular-nums">{{ deployment.canaryPercent }}%</td>
-                          <td class="px-4 py-3.5 tabular-nums">{{ deployment.sampleCount }}</td>
-                          <td class="px-4 py-3.5 tabular-nums text-text-success">
-                            {{ percent(deployment.candidateAccuracy) }}
-                          </td>
-                          <td class="px-4 py-3.5 tabular-nums">{{ deployment.severeErrors }}</td>
-                          <td class="px-5 py-3.5 text-right text-text-secondary">
-                            {{ deployment.startedAt | date: 'MM-dd HH:mm:ss' }}
-                          </td>
+                          <td>{{ p.observedAt | date: 'MM-dd HH:mm:ss' }}</td>
+                          <td>{{ p.sampleCount }}</td>
+                          <td>{{ p.candidateAccuracy | percent: '1.0-1' }}</td>
+                          <td>{{ p.severeErrors }}</td>
                         </tr>
                       } @empty {
                         <tr>
-                          <td colspan="8" class="px-5 py-10 text-center text-text-secondary">
-                            {{ 'XP.AgentEvolution.NoDeployments' | translate }}
-                          </td>
+                          <td colspan="4">{{ prefix + 'NoObservations' | translate }}</td>
                         </tr>
                       }
                     </tbody>
                   </table>
-                </div></z-card-content
-              >
-            </z-card>
-          </div>
-
-          <div class="flex flex-col gap-4">
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-              ><z-card-header class="border-b border-divider-subtle px-5 py-4"
-                ><div class="flex items-center gap-3">
-                  <span
-                    class="flex size-9 items-center justify-center rounded-lg bg-state-success-hover/10 text-text-success"
-                    ><i class="ri-shield-check-line"></i
-                  ></span>
-                  <div>
-                    <z-card-title>{{ 'XP.AgentEvolution.ReleaseDecision' | translate }}</z-card-title
-                    ><z-card-subtitle class="mt-1">{{
-                      'XP.AgentEvolution.GovernanceEngineRecommendation' | translate
-                    }}</z-card-subtitle>
-                  </div>
-                </div></z-card-header
-              ><z-card-content class="space-y-4 p-5"
-                ><div class="rounded-lg bg-state-success-hover/10 p-4">
-                  <div class="text-sm font-semibold text-text-success">{{ releaseDecision().label }}</div>
-                  <p class="mt-1 text-xs leading-5 text-text-secondary">
-                    {{
-                      'XP.AgentEvolution.ReleaseDecisionObservationSummary'
-                        | translate: { detail: releaseDecision().detail, count: runtimePoints().length }
-                    }}
-                  </p>
                 </div>
-                <dl class="space-y-3 text-xs">
-                  <div class="flex justify-between gap-4">
-                    <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ArtifactHash' | translate }}</dt>
-                    <dd class="break-all text-right font-mono text-text-primary">
-                      {{ shortId(item.artifactHash, 18) }}
-                    </dd>
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Provider' | translate }}</dt>
-                    <dd class="text-right font-mono text-text-primary">
-                      {{ item.providerKey }}@{{ item.providerVersion }}
-                    </dd>
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Approvals' | translate }}</dt>
-                    <dd class="font-semibold text-text-primary">{{ item.approvalIds.length }}</dd>
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ReleaseGatePolicy' | translate }}</dt>
-                    <dd class="font-semibold text-text-primary">
-                      {{ 'XP.AgentEvolution.GateProfile.' + gatePolicy()?.profile | translate }}
-                    </dd>
-                  </div>
-                </dl></z-card-content
-              ></z-card
-            >
-
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-              ><z-card-header class="border-b border-divider-subtle px-5 py-4"
-                ><z-card-title>{{ 'XP.AgentEvolution.ReleaseGateThresholds' | translate }}</z-card-title></z-card-header
-              ><z-card-content class="space-y-2 p-5 text-xs text-text-secondary">
-                <p>
-                  {{
-                    'XP.AgentEvolution.ShadowGateSummary'
-                      | translate
-                        : {
-                            hours: gatePolicy()?.shadowMinimumDurationHours,
-                            samples: gatePolicy()?.shadowMinimumSamples
-                          }
-                  }}
-                </p>
-                <p>
-                  {{
-                    'XP.AgentEvolution.CanaryGateSummary'
-                      | translate
-                        : {
-                            hours: gatePolicy()?.canaryMinimumDurationHours,
-                            samples: gatePolicy()?.canaryMinimumSamples
-                          }
-                  }}
-                </p>
-                @if (gatePolicy()?.profile === 'manual_test') {
-                  <p class="font-medium text-text-warning">
-                    {{ 'XP.AgentEvolution.ManualTestGateWarning' | translate }}
-                  </p>
-                }
-              </z-card-content></z-card
-            >
-
-            @if (showManualTestOverride()) {
-              <z-card class="border border-text-warning/50 bg-text-warning/5 shadow-none"
-                ><z-card-header class="border-b border-text-warning/20 px-5 py-4"
-                  ><div class="flex items-start justify-between gap-3">
-                    <div>
-                      <z-card-title>{{ 'XP.AgentEvolution.CanaryTestOverrideTitle' | translate }}</z-card-title>
-                      <z-card-subtitle class="mt-1">{{
-                        'XP.AgentEvolution.CanaryTestOverrideSubtitle' | translate
-                      }}</z-card-subtitle>
-                    </div>
-                    <z-badge zType="outline" class="shrink-0 border-text-warning/50 text-text-warning">{{
-                      'XP.AgentEvolution.AdministratorOnly' | translate
-                    }}</z-badge>
-                  </div></z-card-header
-                ><z-card-content class="space-y-4 p-5">
-                  <div
-                    class="rounded-lg border border-text-warning/30 bg-components-card-bg p-3 text-xs leading-5 text-text-warning"
-                  >
-                    <i class="ri-error-warning-line mr-1"></i
-                    >{{ 'XP.AgentEvolution.CanaryTestOverrideWarning' | translate }}
-                  </div>
-                  <label class="block space-y-1.5 text-xs">
-                    <span class="font-medium text-text-primary">{{
-                      'XP.AgentEvolution.CanaryTestSubjectKey' | translate
-                    }}</span>
-                    <input
-                      z-input
-                      class="w-full"
-                      [ngModel]="manualTestSubjectKey()"
-                      (ngModelChange)="manualTestSubjectKey.set($event)"
-                      [placeholder]="'XP.AgentEvolution.CanaryTestSubjectKeyPlaceholder' | translate"
-                    />
-                  </label>
-                  <label class="block space-y-1.5 text-xs">
-                    <span class="font-medium text-text-primary">{{
-                      'XP.AgentEvolution.CanaryTestReason' | translate
-                    }}</span>
-                    <textarea
-                      z-input
-                      class="min-h-20 w-full resize-y"
-                      [ngModel]="manualTestReason()"
-                      (ngModelChange)="manualTestReason.set($event)"
-                      [placeholder]="'XP.AgentEvolution.CanaryTestReasonPlaceholder' | translate"
-                    ></textarea>
-                  </label>
-                  <label class="block space-y-1.5 text-xs">
-                    <span class="font-medium text-text-primary">{{
-                      'XP.AgentEvolution.CanaryTestExpiryMinutes' | translate
-                    }}</span>
-                    <input
-                      z-input
-                      class="w-full"
-                      type="number"
-                      min="1"
-                      max="120"
-                      [ngModel]="manualTestExpiresInMinutes()"
-                      (ngModelChange)="manualTestExpiresInMinutes.set(+$event)"
-                    />
-                  </label>
-                  <button
-                    z-button
-                    type="button"
-                    class="w-full"
-                    [zLoading]="facade.mutating()"
-                    [zDisabled]="!canCreateManualTestOverride()"
-                    (click)="createManualTestOverride()"
-                  >
-                    <i class="ri-flask-line"></i>{{ 'XP.AgentEvolution.CreateCanaryTestOverride' | translate }}
-                  </button>
-
-                  @if (manualTestOverrides().length) {
-                    <div class="space-y-2 border-t border-text-warning/20 pt-4">
-                      <div class="text-xs font-medium text-text-primary">
-                        {{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}
-                      </div>
-                      @for (override of manualTestOverrides().slice(0, 3); track override.overrideId) {
-                        <div class="rounded-lg border border-divider-regular bg-components-card-bg p-3 text-[11px]">
-                          <div class="flex items-center justify-between gap-2">
-                            <span class="truncate font-mono text-text-primary" [title]="override.subjectKey">{{
-                              override.subjectKey
-                            }}</span>
-                            <z-badge zType="outline">{{
-                              'XP.AgentEvolution.CanaryTestOverrideStatus.' + override.status
-                                | translate: { Default: override.status }
-                            }}</z-badge>
-                          </div>
-                          <p class="mt-1 line-clamp-2 text-text-secondary">{{ override.reason }}</p>
-                          <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-text-secondary">
-                            <span>{{ shortId(override.overrideId, 18) }}</span>
-                            @if (override.consumedByExecutionId) {
-                              <span
-                                >{{ 'XP.AgentEvolution.Execution' | translate }}
-                                {{ override.consumedByExecutionId }}</span
-                              >
-                            } @else {
-                              <span
-                                >{{ 'XP.AgentEvolution.ExpiresAt' | translate }}
-                                {{ override.expiresAt | date: 'MM-dd HH:mm:ss' }}</span
-                              >
-                            }
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </z-card-content></z-card
-              >
+              }
+            } @else {
+              <p class="p-6 text-sm text-text-secondary">{{ prefix + 'NoStage' | translate }}</p>
             }
-
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none"
-              ><z-card-header class="border-b border-divider-subtle px-5 py-4"
-                ><z-card-title>{{ 'XP.AgentEvolution.VersionsAndPointers' | translate }}</z-card-title></z-card-header
-              ><z-card-content class="space-y-4 p-5"
-                ><div>
-                  <div class="text-[11px] uppercase text-text-secondary">
-                    {{ 'XP.AgentEvolution.ActiveVersion' | translate }}
-                  </div>
-                  <div
-                    class="mt-1 rounded-lg bg-state-success-hover/10 p-3 font-mono text-sm font-semibold text-text-success"
-                  >
-                    {{ pointer()?.activeVersionId || item.targetVersionId }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-[11px] uppercase text-text-secondary">
-                    {{ 'XP.AgentEvolution.RollbackVersion' | translate }}
-                  </div>
-                  <div class="mt-1 rounded-lg bg-background-default-subtle p-3 font-mono text-sm text-text-primary">
-                    {{ pointer()?.rollbackVersionId || item.rollbackVersionId }}
-                  </div>
-                </div>
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-text-secondary">{{ 'XP.AgentEvolution.PointerId' | translate }}</span
-                  ><span class="font-mono text-text-primary">{{ shortId(pointer()?.pointerId, 14) }}</span>
-                </div></z-card-content
-              ></z-card
-            >
-          </div>
-        </section>
-
-        <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-          <z-card-header class="border-b border-divider-subtle px-5 py-4"
-            ><div class="flex items-center justify-between">
+          </section>
+        }
+        @case ('audit') {
+          <section class="overflow-hidden rounded-lg border border-border bg-card">
+            <header class="flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
-                <z-card-title>{{ 'XP.AgentEvolution.ReleaseEvents' | translate }}</z-card-title
-                ><z-card-subtitle class="mt-1">{{
-                  'XP.AgentEvolution.ReleaseEventsDescription' | translate
-                }}</z-card-subtitle>
+                <h2 class="text-lg font-semibold">{{ prefix + 'Audit' | translate }}</h2>
+                <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'AuditIntro' | translate }}</p>
               </div>
-              <z-badge zType="outline">{{
-                'XP.AgentEvolution.EventCount' | translate: { count: auditEvents().length }
-              }}</z-badge>
-            </div></z-card-header
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+              </button>
+            </header>
+            @if (auditStatus() === 'loading') {
+              <p class="p-6 text-sm text-text-secondary" role="status">{{ prefix + 'Loading' | translate }}</p>
+            } @else if (auditStatus() === 'error') {
+              <p class="p-5 text-sm" role="alert">
+                {{ prefix + 'LoadError' | translate }}
+                <button z-button zType="outline" (click)="toggleRetry()">
+                  {{ 'XP.AgentEvolution.Retry' | translate }}
+                </button>
+              </p>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[620px]">
+                  <thead
+                    class="bg-muted/45 text-left text-sm text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                  >
+                    <tr>
+                      <th scope="col">{{ prefix + 'Time' | translate }}</th>
+                      <th scope="col">{{ prefix + 'Action' | translate }}</th>
+                      <th scope="col">{{ prefix + 'Summary' | translate }}</th>
+                      <th scope="col">{{ prefix + 'Actor' | translate }}</th>
+                      <th scope="col">{{ 'XP.AgentEvolution.AuditId' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2.5">
+                    @for (a of audits().items; track a.auditId) {
+                      <tr>
+                        <td class="whitespace-nowrap text-sm">{{ a.occurredAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                        <td>{{ 'XP.AgentEvolution.AuditAction.' + a.action | translate: { Default: a.action } }}</td>
+                        <td class="break-words text-sm">{{ auditSummary(a) }}</td>
+                        <td class="min-w-28 break-all text-sm">
+                          <div>{{ a.actorId }}</div>
+                          <div class="text-text-secondary">{{ a.actorRole }}</div>
+                        </td>
+                        <td class="min-w-32 break-all font-mono text-sm">{{ a.auditId }}</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="5" class="text-center text-text-secondary">
+                          {{ 'XP.AgentEvolution.NoAuditEvents' | translate }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <footer
+                class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm text-text-secondary"
+              >
+                <span>{{ prefix + 'Total' | translate: { n: audits().total } }}</span>
+                <div class="flex items-center gap-2">
+                  <span>{{ auditPage() }}</span
+                  ><button
+                    z-button
+                    zType="ghost"
+                    [attr.aria-label]="prefix + 'Previous' | translate"
+                    [zDisabled]="auditPage() <= 1"
+                    (click)="auditPage.set(auditPage() - 1)"
+                  >
+                    <i class="ri-arrow-left-s-line"></i></button
+                  ><button
+                    z-button
+                    zType="ghost"
+                    [attr.aria-label]="prefix + 'Next' | translate"
+                    [zDisabled]="auditPage() * pageSize >= audits().total"
+                    (click)="auditPage.set(auditPage() + 1)"
+                  >
+                    <i class="ri-arrow-right-s-line"></i>
+                  </button>
+                </div>
+              </footer>
+            }
+          </section>
+        }
+        @case ('test') {
+          <section class="rounded-lg border border-border p-4">
+            <header class="flex items-center justify-between gap-2">
+              <h2 class="text-lg font-semibold">{{ prefix + 'TestHistory' | translate }}</h2>
+              <button z-button zType="ghost" (click)="goto('history')">
+                <i class="ri-arrow-left-line"></i>{{ prefix + 'History' | translate }}
+              </button>
+            </header>
+            @if (allowTest()) {
+              <p class="my-3 max-w-2xl text-sm text-text-secondary">
+                {{ 'XP.AgentEvolution.CanaryTestOverrideWarning' | translate }}
+              </p>
+              <div class="grid max-w-xl gap-3">
+                <label class="grid gap-1 text-sm"
+                  >{{ 'XP.AgentEvolution.CanaryTestSubjectKey' | translate
+                  }}<input z-input [ngModel]="subject()" (ngModelChange)="subject.set($event)" /></label
+                ><label class="grid gap-1 text-sm"
+                  >{{ 'XP.AgentEvolution.CanaryTestReason' | translate
+                  }}<textarea z-input [ngModel]="reason()" (ngModelChange)="reason.set($event)"></textarea></label
+                ><label class="grid gap-1 text-sm"
+                  >{{ 'XP.AgentEvolution.CanaryTestExpiryMinutes' | translate
+                  }}<input
+                    z-input
+                    type="number"
+                    min="1"
+                    max="120"
+                    [ngModel]="minutes()"
+                    (ngModelChange)="minutes.set(+$event)" /></label
+                ><button
+                  z-button
+                  class="justify-self-start"
+                  [zDisabled]="busy() || !testValid()"
+                  (click)="command('test')"
+                >
+                  {{ 'XP.AgentEvolution.CreateCanaryTestOverride' | translate }}
+                </button>
+              </div>
+            }
+            @if (canReadTestHistory()) {
+              <h3 class="mt-5 font-medium">{{ 'XP.AgentEvolution.CanaryTestOverrideHistory' | translate }}</h3>
+              @if (evidenceStatus() === 'loading') {
+                <p class="p-6 text-sm text-text-secondary" role="status">{{ prefix + 'Loading' | translate }}</p>
+              } @else if (evidenceStatus() === 'error' || evidence().overrides === null) {
+                <p class="p-5 text-sm" role="alert">
+                  {{ prefix + 'LoadError' | translate }}
+                  <button z-button zType="outline" (click)="toggleRetry()">
+                    {{ 'XP.AgentEvolution.Retry' | translate }}
+                  </button>
+                </p>
+              } @else {
+                @for (v of evidence().overrides; track v.overrideId) {
+                  <div class="break-words border-b border-border py-2 text-sm">
+                    <strong>{{ v.subjectKey }}</strong> ·
+                    {{ 'XP.AgentEvolution.CanaryTestOverrideStatus.' + v.status | translate }} · {{ v.reason }}
+                    <div class="mt-1 break-all text-sm text-text-secondary">
+                      <span class="font-mono">{{ v.overrideId }}</span> ·
+                      {{ v.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}
+                    </div>
+                    @if (v.consumedByExecutionId) {
+                      <div class="break-all text-sm">
+                        {{ 'XP.AgentEvolution.Execution' | translate }}: {{ v.consumedByExecutionId }}
+                      </div>
+                    } @else {
+                      <div class="text-sm">
+                        {{ 'XP.AgentEvolution.ExpiresAt' | translate }}: {{ v.expiresAt | date: 'yyyy-MM-dd HH:mm:ss' }}
+                      </div>
+                    }
+                  </div>
+                } @empty {
+                  <p class="py-2 text-sm text-text-secondary">{{ prefix + 'NoRecords' | translate }}</p>
+                }
+              }
+            } @else {
+              <p class="py-4 text-sm text-text-secondary">{{ prefix + 'TestUnavailable' | translate }}</p>
+            }
+          </section>
+        }
+        @default {
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3.5"
+            [class.!border-text-success/35]="serving()"
+            [class.!bg-text-success/5]="serving()"
           >
-          <z-card-content class="p-0"
-            ><div class="overflow-x-auto">
-              <table class="w-full min-w-[820px] text-left text-xs">
-                <thead class="bg-background-default-subtle text-text-secondary">
+            <div class="flex items-center gap-3">
+              <i
+                class="text-xl"
+                [class]="serving() ? 'ri-checkbox-circle-line text-text-success' : 'ri-route-line text-text-secondary'"
+              ></i
+              ><strong class="text-lg">{{
+                serving()
+                  ? (prefix + 'Serving' | translate)
+                  : item.status === 'active'
+                    ? (prefix + 'NotServing' | translate)
+                    : status(item.status)
+              }}</strong>
+            </div>
+            @if (step(); as next) {
+              @if (next.command !== 'experience') {
+                <button z-button [zDisabled]="busy() || !allowStep() || !!next.reason" (click)="command('next')">
+                  {{ prefix + 'action_' + next.command | translate }}
+                </button>
+              }
+            }
+          </div>
+          @if (step(); as next) {
+            @if (next.reason || !allowStep()) {
+              <p class="mt-2 text-sm text-text-secondary">
+                {{
+                  prefix + (!allowStep() ? 'NeedAuthority' : next.reason)
+                    | translate: { n: next.samples, h: next.hours, seen: next.observed }
+                }}
+              </p>
+            }
+          }
+          <div class="mt-3 grid gap-3 @lg/release:grid-cols-3">
+            <article class="rounded-lg border border-border bg-card px-4 py-3">
+              <h3 class="text-sm text-text-secondary">{{ prefix + 'Traffic' | translate }}</h3>
+              <p class="mt-1 text-2xl font-semibold tabular-nums">
+                {{ serving() ? 100 : item.status === 'canary' ? item.canaryPercent : 0 }}%
+              </p>
+            </article>
+            <article class="rounded-lg border border-border bg-card px-4 py-3">
+              <h3 class="text-sm text-text-secondary">{{ prefix + 'Reviewed' | translate }}</h3>
+              <p class="mt-1 text-2xl font-semibold tabular-nums" [title]="prefix + 'Ratio' | translate">
+                @if (production(); as s) {
+                  {{ correct(s) }} / {{ s.sampleCount }}
+                } @else {
+                  —
+                }
+              </p>
+            </article>
+            <article class="rounded-lg border border-border bg-card px-4 py-3">
+              <h3 class="text-sm text-text-secondary">{{ prefix + 'Severe' | translate }}</h3>
+              <p class="mt-1 text-2xl font-semibold tabular-nums">{{ production()?.severeErrors ?? '—' }}</p>
+            </article>
+          </div>
+          <section class="mt-5 rounded-lg border border-border bg-card p-4">
+            <h3 class="mb-3 text-lg font-semibold">{{ prefix + 'History' | translate }}</h3>
+            <div class="overflow-x-auto rounded-md">
+              <table class="w-full min-w-[300px] table-fixed">
+                <thead
+                  class="bg-muted/45 text-left text-sm text-text-secondary [&_th]:px-2 @lg/release:[&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                >
                   <tr>
-                    <th class="px-5 py-3 font-medium">{{ 'XP.AgentEvolution.Time' | translate }}</th>
-                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Action' | translate }}</th>
-                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Summary' | translate }}</th>
-                    <th class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Actor' | translate }}</th>
-                    <th class="px-5 py-3 text-right font-medium">{{ 'XP.AgentEvolution.AuditId' | translate }}</th>
+                    <th scope="col">{{ prefix + 'Stage' | translate }}</th>
+                    <th scope="col">{{ prefix + 'Samples' | translate }}</th>
+                    <th scope="col">{{ prefix + 'Correct' | translate }}</th>
+                    <th scope="col">{{ prefix + 'Severe' | translate }}</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-divider-subtle">
-                  @for (audit of auditEvents(); track audit.auditId) {
-                    <tr>
-                      <td class="px-5 py-3.5 text-text-secondary">
-                        {{ audit.occurredAt | date: 'yyyy-MM-dd HH:mm:ss' }}
+                <tbody class="divide-y divide-border [&_td]:px-2 @lg/release:[&_td]:px-4 [&_td]:py-2.5">
+                  @for (s of stages(); track s.deploymentId) {
+                    <tr
+                      [class.bg-text-success/5]="serving() && s.deploymentId === production()?.deploymentId"
+                      [class.font-semibold]="serving() && s.deploymentId === production()?.deploymentId"
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          class="text-left hover:underline focus-visible:underline"
+                          [attr.aria-label]="prefix + 'OpenStage' | translate: { stage: stageName(s) }"
+                          (click)="goto('observations', selected()?.id, s.deploymentId)"
+                        >
+                          {{ stageName(s) }}
+                        </button>
                       </td>
-                      <td class="px-4 py-3.5">
-                        <z-badge zType="outline">{{
-                          'XP.AgentEvolution.AuditAction.' + audit.action | translate: { Default: audit.action }
-                        }}</z-badge>
-                      </td>
-                      <td class="px-4 py-3.5 text-text-primary">{{ auditSummary(audit) }}</td>
-                      <td class="px-4 py-3.5">
-                        <div>{{ audit.actorId }}</div>
-                        <div class="text-[10px] text-text-secondary">{{ audit.actorRole }}</div>
-                      </td>
-                      <td class="px-5 py-3.5 text-right font-mono text-text-secondary">{{ audit.auditId }}</td>
+                      <td>{{ s.sampleCount }}</td>
+                      <td>{{ correct(s) }}</td>
+                      <td>{{ s.severeErrors }}</td>
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="5" class="px-5 py-10 text-center text-text-secondary">
-                        {{ 'XP.AgentEvolution.NoAuditEvents' | translate }}
-                      </td>
+                      <td colspan="4" class="text-center text-text-secondary">{{ prefix + 'NoStage' | translate }}</td>
                     </tr>
                   }
                 </tbody>
               </table>
-            </div></z-card-content
-          >
-        </z-card>
-
-        <footer
-          class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-subtle pt-3 text-[11px] text-text-secondary"
-        >
-          <span>{{ 'XP.AgentEvolution.Release' | translate }} {{ item.releasePackageId }}</span
-          ><span>{{ 'XP.AgentEvolution.Evaluation' | translate }} {{ item.evaluationRunId }}</span
-          ><span
-            >{{ 'XP.AgentEvolution.Scope' | translate }}
-            {{ 'XP.AgentEvolution.ScopeType.' + item.scope.type | translate: { Default: item.scope.type } }} /
-            {{ item.scope.key }}</span
-          ><span>{{ 'XP.AgentEvolution.RollbackTarget' | translate }} {{ item.rollbackVersionId }}</span>
-        </footer>
-      } @else {
-        <section
-          class="flex min-h-[560px] flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
-        >
-          <span
-            class="flex size-14 items-center justify-center rounded-full bg-background-default-subtle text-text-secondary"
-            ><i class="ri-rocket-line text-3xl"></i
-          ></span>
-          <h2 class="mt-4 text-lg font-semibold text-text-primary">
-            {{ 'XP.AgentEvolution.NoReleaseRuns' | translate }}
-          </h2>
-          <p class="mt-2 max-w-md text-sm leading-6 text-text-secondary">
-            {{ 'XP.AgentEvolution.NoReleaseDescription' | translate }}
-          </p>
-        </section>
+            </div>
+            @if (half(); as counts) {
+              <p class="mt-3 text-sm text-text-secondary">
+                {{ prefix + 'Attribution' | translate: { natural: counts.natural, specified: counts.specified } }}
+              </p>
+            } @else if (evidenceStatus() === 'error') {
+              <p class="mt-3 text-sm text-text-secondary">
+                {{ prefix + 'LoadError' | translate }}
+                <button z-button zType="ghost" (click)="toggleRetry()">
+                  {{ 'XP.AgentEvolution.Retry' | translate }}
+                </button>
+              </p>
+            }
+          </section>
+        }
       }
     }
-  } @else {
-    <p class="py-16 text-center text-text-secondary">{{ 'XP.AgentEvolution.NoChanges' | translate }}</p>
-  }
+  </div>
 </main>
+<ng-template #actions
+  ><div z-menu-content>
+    <button z-menu-item (menuItemTriggered)="goto('directory')">
+      <i class="ri-list-check"></i>{{ prefix + 'Directory' | translate }}
+    </button>
+    <button z-menu-item (menuItemTriggered)="goto('history')">{{ prefix + 'History' | translate }}</button>
+    <button z-menu-item (menuItemTriggered)="goto('details')">{{ prefix + 'ReleaseDetails' | translate }}</button>
+    <button z-menu-item (menuItemTriggered)="goto('trend')">{{ prefix + 'Trend' | translate }}</button>
+    <a
+      z-menu-item
+      routerLink="/agent-evolution/evaluation"
+      [queryParams]="{ target: selected()?.targetId, changeId: selected()?.id, runId: run()?.runId }"
+      >{{ prefix + 'SeeEvaluation' | translate }}</a
+    >
+    @if (step()?.command === 'experience' && allowStep()) {
+      <button z-menu-item [disabled]="!!step()?.reason || busy()" (menuItemTriggered)="command('next')">
+        {{ prefix + 'action_experience' | translate }}
+      </button>
+    }
+    @if (canReadTestHistory()) {
+      <button z-menu-item (menuItemTriggered)="goto('test')">
+        {{ prefix + (allowTest() ? 'TestManage' : 'TestHistory') | translate }}
+      </button>
+    }
+    @if (allowPause()) {
+      <button z-menu-item [disabled]="busy()" (menuItemTriggered)="command('pause')">
+        {{ prefix + 'action_pause' | translate }}
+      </button>
+    }
+    @if (allowRollback()) {
+      <button z-menu-item class="text-text-destructive" [disabled]="busy()" (menuItemTriggered)="command('rollback')">
+        {{ prefix + 'action_rollback' | translate }}
+      </button>
+    }
+  </div></ng-template
+>

@@ -1,3 +1,5 @@
+import { changeError } from '../changes/change.errors'
+import { sameScope } from './evolution-governance.helpers'
 import { createHash, randomUUID } from 'crypto'
 import type {
     CapabilityExecutionAssignment,
@@ -53,16 +55,18 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
 
         for (const targetId of [...new Set(request.targetIds)]) {
             const pointer = await this.store.findPointer(tenant, targetId, request.scope, 'production')
-            if (!pointer) {
+            if (!pointer || !sameScope(pointer.value.scope, request.scope)) {
                 throw new NotFoundException(`Production pointer for '${targetId}' was not found`)
             }
             let productionVersionId = pointer.activeVersionId
-            const deployments = await this.store.listDeploymentsForTarget(tenant, targetId)
+            const deployments = await this.store.listDeploymentsForTarget(tenant, targetId, request.scope)
             for (const deploymentEntity of deployments) {
                 const deployment = deploymentEntity.value
                 const releaseEntity = await this.store.findRelease(tenant, deployment.releasePackageId)
                 const release = releaseEntity?.value
-                if (!release || release.status === 'paused' || release.status === 'rolled_back') continue
+                if (!sameScope(deployment.scope, request.scope) || !release || !sameScope(release.scope, request.scope))
+                    continue
+                if (release.status === 'paused' || release.status === 'rolled_back') continue
                 if (deployment.channel === 'shadow' && release.status === 'shadow') {
                     shadowAssignments.push({
                         targetId,
@@ -117,7 +121,12 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
                 if (pointer.value.releasePackageId) {
                     const productionDeployment = (
                         await this.store.listDeploymentsForRelease(tenant, pointer.value.releasePackageId)
-                    ).find((item) => item.channel === 'production' && item.status === 'active')
+                    ).find(
+                        (item) =>
+                            item.channel === 'production' &&
+                            item.status === 'active' &&
+                            sameScope(item.value.scope, request.scope)
+                    )
                     deploymentId = productionDeployment?.deploymentId
                 }
                 productionAssignments.push({
@@ -166,6 +175,8 @@ export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
     async recordRuntimeObservation(input: Parameters<EvolutionRuntimeApi['recordRuntimeObservation']>[0]) {
         const tenant = toTenantScope(input)
         validateScope(tenant, input.observation.scope)
+        if (!Number.isFinite(input.observation.latencyMs) || input.observation.latencyMs < 0)
+            changeError('invalid_observation_latency')
         const observation: EvolutionRuntimeObservation = {
             ...input.observation,
             observationId: input.observation.observationId ?? `OBS-${randomUUID()}`,

@@ -1,3 +1,4 @@
+import { EMPTY, expand, reduce } from 'rxjs'
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_AGENT_EVOLUTION } from '@cloud/app/@core/constants/app.constants'
@@ -24,12 +25,21 @@ import type {
   EvolutionExperience,
   EvolutionCandidate,
   EvolutionCanaryTestOverride,
+  EvolutionAuditEvent,
+  EvolutionReleaseEvidenceQuery,
+  EvolutionRuntimeObservation,
   EvolutionJob,
   EvolutionPage,
   EvolutionPageQuery,
   EvolutionTargetDescriptor,
   ImprovementProposal,
   LearningEvent,
+  EvolutionLearningQuery,
+  EvolutionLearningPage,
+  LearningReviewRow,
+  LearningProposalRow,
+  LearningProposalCheck,
+  ConfirmLearningProposalRequest,
   ReleaseDeployment,
   ReleasePackage,
   ReviewLearningEventRequest,
@@ -63,9 +73,17 @@ export class AgentEvolutionApiService {
     )
   }
   listLifecycleRecords() {
-    return this.#http.get<{ items: EvolutionLifecycleRecord[]; total: number }>(`${API_AGENT_EVOLUTION}/changes`, {
-      params: { pageSize: 200 }
-    })
+    const read = (page: number) =>
+      this.#http.get<EvolutionPage<EvolutionLifecycleRecord>>(`${API_AGENT_EVOLUTION}/changes`, {
+        params: { page, pageSize: 200 }
+      })
+    return read(1).pipe(
+      expand((p) => (p.items.length && p.page * p.pageSize < p.total ? read(p.page + 1) : EMPTY)),
+      reduce((all, p) => ({ items: all.items.concat(p.items), total: p.total }), {
+        items: [] as EvolutionLifecycleRecord[],
+        total: 0
+      })
+    )
   }
 
   listChanges(targetId?: string) {
@@ -118,6 +136,27 @@ export class AgentEvolutionApiService {
     })
   }
 
+  learningReview(query: EvolutionLearningQuery) {
+    return this.#http.get<EvolutionLearningPage<LearningReviewRow>>(`${API_AGENT_EVOLUTION}/learning/events`, {
+      params: queryParams(query)
+    })
+  }
+  learningProposals(query: EvolutionLearningQuery) {
+    return this.#http.get<EvolutionLearningPage<LearningProposalRow>>(`${API_AGENT_EVOLUTION}/learning/proposals`, {
+      params: queryParams(query)
+    })
+  }
+  checkLearningProposal(eventId: string) {
+    return this.#http.get<LearningProposalCheck>(
+      `${API_AGENT_EVOLUTION}/learning/events/${encodeURIComponent(eventId)}/check`
+    )
+  }
+  confirmLearningProposal(eventId: string, request: ConfirmLearningProposalRequest) {
+    return this.#http.post<ImprovementProposal>(
+      `${API_AGENT_EVOLUTION}/learning/events/${encodeURIComponent(eventId)}/proposal`,
+      request
+    )
+  }
   reviewLearningEvent(eventId: string, request: ReviewLearningEventRequest) {
     return this.#http.patch<LearningEvent>(`${API_AGENT_EVOLUTION}/learning-events/${eventId}/review`, request)
   }
@@ -144,9 +183,9 @@ export class AgentEvolutionApiService {
     return this.#http.post<EvolutionExperience>(`${API_AGENT_EVOLUTION}/experiences`, { releasePackageId })
   }
 
-  diagnose(eventIds: string[]) {
+  diagnose(seedEventId: string) {
     return this.#http.post<EvolutionAnalysisResult>(`${API_AGENT_EVOLUTION}/diagnoses`, {
-      eventIds,
+      seedEventId,
       strategyId: 'feedback_learning'
     })
   }
@@ -201,6 +240,16 @@ export class AgentEvolutionApiService {
     })
   }
 
+  listReleaseAudits(query: EvolutionReleaseEvidenceQuery) {
+    return this.#http.get<EvolutionPage<EvolutionAuditEvent>>(`${API_AGENT_EVOLUTION}/audit-events`, {
+      params: queryParams(query)
+    })
+  }
+  listReleaseObservations(query: EvolutionReleaseEvidenceQuery) {
+    return this.#http.get<EvolutionPage<EvolutionRuntimeObservation>>(`${API_AGENT_EVOLUTION}/runtime-observations`, {
+      params: queryParams(query)
+    })
+  }
   listDeployments(query: EvolutionPageQuery = {}) {
     return this.#http.get<EvolutionPage<ReleaseDeployment>>(`${API_AGENT_EVOLUTION}/deployments`, {
       params: queryParams(query)

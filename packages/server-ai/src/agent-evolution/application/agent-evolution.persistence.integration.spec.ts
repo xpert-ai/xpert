@@ -2,6 +2,26 @@ import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { Test, TestingModule } from '@nestjs/testing'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Column, DataSource, Entity, PrimaryColumn } from 'typeorm'
+import {
+    AIPermissionsEnum,
+    FEEDBACK_LEARNING_STRATEGY,
+    type EvolutionChange,
+    type EvolutionTargetProvider,
+    type EvolutionStrategy,
+    type ReleaseDeployment
+} from '@xpert-ai/contracts'
+import { runWithRequestContext } from '@xpert-ai/server-core'
+import { EvolutionChangeStore } from '../changes/change.store'
+import { EvolutionStrategyService, initialStages } from '../changes/strategy.service'
+import { EvolutionEvaluationExecutor } from '../changes/evaluation-executor.service'
+import { EvolutionPublicationExecutor } from '../changes/publication-executor.service'
+import { AgentEvolutionGovernanceService } from './agent-evolution-governance.service'
+import {
+    AgentEvolutionReleaseGatePolicyService,
+    resolveEvolutionReleaseGatePolicy
+} from './agent-evolution-release-gate-policy.service'
+import { AgentEvolutionQualityGovernanceService } from './agent-evolution-quality-governance.service'
+import { EvolutionChangeService } from '../changes/change.service'
 import { AgentEvolutionService } from './agent-evolution.service'
 import { AgentEvolutionStore } from './agent-evolution.store'
 import {
@@ -47,6 +67,13 @@ class User {
     tenantId?: string
 }
 
+const reviewer = '00000000-0000-4000-8000-000000000009'
+
+@Entity('review_business_version_fixture')
+class ReviewBusinessVersion {
+    @PrimaryColumn('varchar') changeId: string
+}
+
 const persistenceDescribe = runPersistenceIntegration ? describe : describe.skip
 
 persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', () => {
@@ -67,13 +94,44 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
 
         const fieldProvider = new ConformanceFieldMappingProvider()
         const routingProvider = new ConformanceIntentRoutingProvider()
+        const plans: EvolutionStrategy[] = (['direct', 'staged'] as const).map((id) => ({
+            ...FEEDBACK_LEARNING_STRATEGY,
+            id,
+            inputs: ['manual'],
+            learning: { mode: 'none' },
+            evaluations: [],
+            publication:
+                id === 'direct'
+                    ? { mode: 'version_write', effect: 'explicit_adoption' }
+                    : { mode: 'staged_rollout', effect: 'activation' }
+        }))
+        const reviewProvider: EvolutionTargetProvider = {
+            descriptor: { ...fieldProvider.descriptor, targetId: 'test.review', strategies: plans },
+            candidateBuilder: fieldProvider,
+            releaseProvider: fieldProvider,
+            versionPublisher: {
+                validateCurrent: async () => ({ valid: true, reasons: [] }),
+                authorizePublication: async () => {},
+                publish: async ({ change }) => {
+                    await dataSource.getRepository(ReviewBusinessVersion).save({ changeId: change.changeId })
+                    return {
+                        receiptId: 'write-' + change.changeId,
+                        changeId: change.changeId,
+                        candidateHash: change.candidate!.artifact.hash,
+                        approvalId: change.approval!.approvalId,
+                        resource: { resourceId: change.targetId, version: '2', hash: change.candidate!.artifact.hash },
+                        completedAt: new Date().toISOString()
+                    }
+                }
+            }
+        }
         moduleRef = await Test.createTestingModule({
             imports: [
                 TypeOrmModule.forRoot({
                     type: 'postgres',
                     ...databaseOptions,
                     schema: schemaName,
-                    entities: [...AGENT_EVOLUTION_ENTITIES, Tenant, Organization, User],
+                    entities: [...AGENT_EVOLUTION_ENTITIES, Tenant, Organization, User, ReviewBusinessVersion],
                     synchronize: true,
                     logging: false
                 }),
@@ -82,11 +140,20 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
             providers: [
                 AgentEvolutionStore,
                 AgentEvolutionService,
+                AgentEvolutionGovernanceService,
+                AgentEvolutionReleaseGatePolicyService,
+                AgentEvolutionQualityGovernanceService,
+                EvolutionChangeService,
+                EvolutionChangeStore,
+                EvolutionStrategyService,
+                EvolutionEvaluationExecutor,
+                EvolutionPublicationExecutor,
                 {
                     provide: EvolutionTargetProviderRegistry,
                     useValue: {
                         listDescriptors: () => [fieldProvider.descriptor, routingProvider.descriptor],
                         get: (targetId: string) => {
+                            if (targetId === reviewProvider.descriptor.targetId) return reviewProvider
                             if (targetId === fieldProvider.descriptor.targetId) return fieldProvider
                             if (targetId === routingProvider.descriptor.targetId) return routingProvider
                             throw new Error(`Unknown target '${targetId}'`)
@@ -162,5 +229,391 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
                     .findOneByOrFail({ pointerId: pointer.pointerId })
             ).value
         ).toMatchObject({ activeVersionId: result.activeVersionId, revision: 2 })
+        const changed = await store.rollbackPointerCas({
+            tenant: { tenantId, organizationId },
+            pointerId: pointer.pointerId,
+            expectedRevision: 2,
+            expectedVersionId: result.activeVersionId,
+            rollbackVersionId: result.previousVersionId,
+            releasePackageId: result.releasePackageId,
+            actorId: '00000000-0000-4000-8000-000000000004',
+            actorRole: 'governance_reviewer',
+            occurredAt: new Date().toISOString()
+        })
+        expect(changed).toMatchObject({ activeVersionId: result.previousVersionId, revision: 3 })
+        const audits = await store.listAuditEvents(
+            { tenantId, organizationId },
+            { releasePackageId: result.releasePackageId }
+        )
+        expect(audits.items.some((a) => a.action === 'active_pointer.cas_rolled_back')).toBe(true)
+        expect(
+            (await store.listAuditEvents({ tenantId, organizationId }, { releasePackageId: 'unrelated' })).total
+        ).toBe(0)
     }, 30000)
+
+    it('aggregates only matching telemetry, preserves unknown baselines and calculates nearest-rank P95', async () => {
+        const store = moduleRef.get(AgentEvolutionStore)
+        const tenant = { tenantId, organizationId }
+        const scope = { type: 'project' as const, key: 'automotive-project', dimensions: { plant: 'north' } }
+        const now = new Date().toISOString()
+        const targetId = 'telemetry-test'
+        const release = await store.saveRelease(tenant, {
+            publicationKind: 'staged_rollout',
+            targetId,
+            scope,
+            releasePackageId: 'telemetry-release',
+            candidateId: 'candidate',
+            candidateHash: 'candidate-hash',
+            targetVersionId: 'v2',
+            rollbackVersionId: 'v1',
+            evaluationRunId: 'eval',
+            status: 'shadow',
+            approvalIds: ['approval'],
+            artifactHash: 'candidate-hash',
+            providerKey: targetId,
+            providerVersion: '1',
+            shadowMinimumSamples: 1,
+            canaryPercent: 0,
+            createdAt: now,
+            createdBy: 'tester'
+        })
+        await store.saveDeployment(tenant, {
+            deploymentId: 'telemetry-deployment',
+            releasePackageId: release.releasePackageId,
+            channel: 'shadow',
+            scope,
+            status: 'shadow',
+            dataSource: 'runtime_telemetry',
+            sampleCount: 0,
+            candidateAccuracy: 0,
+            severeErrors: 0,
+            canaryPercent: 0,
+            observations: [],
+            startedAt: now
+        })
+        for (const foreignScope of [
+            { ...scope, key: 'other-project' },
+            { ...scope, dimensions: { plant: 'south' } }
+        ]) {
+            expect(await store.listDeploymentsForTarget(tenant, targetId, foreignScope)).toEqual([])
+        }
+        await store.saveBundle(tenant, {
+            bundleId: 'bundle',
+            bundleHash: 'hash',
+            executionMode: 'shadow',
+            createdAt: now,
+            items: [
+                {
+                    targetId,
+                    versionId: 'v2',
+                    artifactHash: 'candidate-hash',
+                    providerKey: targetId,
+                    providerVersion: '1'
+                }
+            ]
+        })
+        const sample = {
+            observationId: 'first',
+            executionId: 'run',
+            targetId,
+            scope,
+            bundleId: 'bundle',
+            deploymentId: 'telemetry-deployment',
+            subjectKey: 'motor',
+            channel: 'shadow' as const,
+            success: true,
+            severeError: false,
+            latencyMs: 250,
+            observedAt: now,
+            createdAt: now
+        }
+        await expect(
+            store.saveRuntimeObservation(tenant, { ...sample, scope: { ...scope, key: 'other-project' } })
+        ).rejects.toThrow()
+        await expect(
+            store.saveRuntimeObservation(tenant, { ...sample, bundleId: 'unrelated-bundle' })
+        ).rejects.toThrow()
+        await Promise.all([store.saveRuntimeObservation(tenant, sample), store.saveRuntimeObservation(tenant, sample)])
+        for (let i = 1; i < 20; i++) {
+            await store.saveRuntimeObservation(tenant, {
+                ...sample,
+                observationId: 'sample-' + i,
+                latencyMs: 1,
+                ...(i <= 2 ? { baselineSuccess: i === 1 } : {})
+            })
+        }
+        const scoped = await store.listRuntimeObservations(tenant, {
+            releasePackageId: release.releasePackageId,
+            page: 2,
+            pageSize: 8
+        })
+        expect(scoped.total).toBe(20)
+        expect(scoped.items).toHaveLength(8)
+        expect(scoped.items.every((o) => o.deploymentId === 'telemetry-deployment')).toBe(true)
+        expect((await store.listRuntimeObservations(tenant, { releasePackageId: 'another-release' })).total).toBe(0)
+        expect(
+            (
+                await store.listRuntimeObservations(
+                    { ...tenant, organizationId: null },
+                    { releasePackageId: release.releasePackageId }
+                )
+            ).total
+        ).toBe(0)
+        const [deployment] = await store.listDeploymentsForTarget(tenant, targetId, scope)
+        expect(deployment.value.sampleCount).toBe(20)
+        expect(deployment.value.observations[0]).toMatchObject({ baselineAccuracy: null, pairedBaselineSamples: 0 })
+        expect(deployment.value.observations.at(-1)).toMatchObject({
+            baselineAccuracy: 0.5,
+            pairedBaselineSamples: 2,
+            p95LatencyMs: 1
+        })
+    }, 30000)
+    it('installs, pauses, gates each canary, activates and rolls back a telemetry-backed package', async () => {
+        const store = moduleRef.get(AgentEvolutionStore)
+        const governance = moduleRef.get(AgentEvolutionGovernanceService)
+        const tenant = { tenantId, organizationId }
+        const ctx = {
+            ...tenant,
+            actorId: '00000000-0000-4000-8000-000000000004',
+            actorRole: 'administrator',
+            approvalAuthority: 'administrator' as const
+        }
+        const descriptor = new ConformanceFieldMappingProvider().descriptor
+        const targetId = descriptor.targetId,
+            id = 'release-flow',
+            now = new Date().toISOString()
+        const scope = { type: 'organization' as const, key: 'isolated-rollout-scope' }
+        const policy = resolveEvolutionReleaseGatePolicy({
+            production: false,
+            values: { AGENT_EVOLUTION_GATE_PROFILE: 'manual_test' }
+        })
+        await store.savePointer(tenant, {
+            pointerId: 'flow-ptr',
+            targetId,
+            scope,
+            channel: 'production',
+            revision: 1,
+            activeVersionId: 'flow-base',
+            updatedAt: now,
+            updatedBy: ctx.actorId
+        })
+        await store.saveRelease(tenant, {
+            publicationKind: 'staged_rollout',
+            releasePackageId: id,
+            candidateId: 'flow-candidate',
+            candidateHash: 'flow-hash',
+            targetId,
+            targetVersionId: 'flow-next',
+            rollbackVersionId: 'flow-base',
+            evaluationRunId: 'flow-eval',
+            scope,
+            status: 'approved',
+            approvalIds: ['flow-approval'],
+            artifactHash: 'flow-hash',
+            providerKey: descriptor.providerKey,
+            providerVersion: descriptor.providerVersion,
+            gatePolicy: policy,
+            shadowMinimumSamples: 1,
+            canaryPercent: 0,
+            createdAt: now,
+            createdBy: ctx.actorId
+        })
+        await store.saveBundle(tenant, {
+            bundleId: 'flow-bundle',
+            bundleHash: 'flow-hash',
+            executionMode: 'canary',
+            createdAt: now,
+            items: [
+                {
+                    targetId,
+                    versionId: 'flow-next',
+                    artifactHash: 'flow-hash',
+                    providerKey: descriptor.providerKey,
+                    providerVersion: descriptor.providerVersion
+                }
+            ]
+        })
+        const review = (s: ReleaseDeployment) =>
+            store.saveRuntimeObservation(tenant, {
+                targetId,
+                scope,
+                observationId: 'obs-' + s.deploymentId,
+                executionId: 'exec-' + s.deploymentId,
+                bundleId: 'flow-bundle',
+                deploymentId: s.deploymentId,
+                subjectKey: 'flow-subject',
+                channel: s.channel,
+                success: true,
+                severeError: false,
+                latencyMs: 1,
+                observedAt: now,
+                createdAt: now
+            })
+        await governance.installRelease(ctx, id)
+        await governance.startShadow(ctx, id)
+        await governance.pauseRelease(ctx, id)
+        const shadow = await governance.startShadow(ctx, id)
+        await expect(governance.startCanary(ctx, id, { canaryPercent: 5 })).rejects.toThrow()
+        await review(shadow)
+        await expect(governance.startCanary(ctx, id, { canaryPercent: 25 })).rejects.toThrow()
+        for (const percent of [5, 25, 50] as const) {
+            const stage = await governance.startCanary(ctx, id, { canaryPercent: percent })
+            await expect(governance.activateProduction(ctx, id)).rejects.toThrow()
+            await review(stage)
+        }
+        const active = await governance.activateProduction(ctx, id)
+        expect(active).toMatchObject({ activeVersionId: 'flow-next', revision: 2 })
+        const prior = (await store.findRelease(tenant, id))!.value
+        await store.saveRelease(tenant, { ...prior, releasePackageId: 'obsolete', status: 'paused' })
+        await expect(governance.startShadow(ctx, 'obsolete')).rejects.toThrow('Production pointer no longer matches')
+        const production = (await store.listDeploymentsForRelease(tenant, id)).find(
+            (d) => d.channel === 'production'
+        )!.value
+        await review(production)
+        expect((await store.listRuntimeObservations(tenant, { releasePackageId: id })).total).toBe(5)
+        expect(await governance.rollbackProduction(ctx, id)).toMatchObject({
+            activeVersionId: 'flow-base',
+            revision: 3
+        })
+        expect((await store.findRelease(tenant, id))?.status).toBe('rolled_back')
+    }, 30000)
+    it.each(['direct', 'staged', 'reject'] as const)(
+        'persists the %s signature and only its authorized publication effect',
+        async (mode) => {
+            const id = 'review-' + mode
+            const targetId = 'test.review'
+            const ctx = { tenantId, organizationId, changeId: id }
+            const service = moduleRef.get(EvolutionChangeService)
+            const records = moduleRef.get(EvolutionChangeStore)
+            const strategy = moduleRef
+                .get(EvolutionStrategyService)
+                .freeze(targetId, organizationId, mode === 'staged' ? 'staged' : 'direct', 'manual')
+            const now = new Date().toISOString(),
+                scope = { type: 'organization' as const, key: id }
+            const baseline = { resourceId: 'base', version: '1', hash: 'base-hash' }
+            const change: EvolutionChange = {
+                contractVersion: 3,
+                strategy,
+                sourceKind: 'manual',
+                learningEventIds: [],
+                candidateInput: {},
+                datasetSnapshotIds: {},
+                stages: initialStages(strategy.definition),
+                changeId: id,
+                targetId,
+                requestId: id,
+                scope,
+                baseline,
+                evidence: [],
+                evidenceHash: 'evidence',
+                status: 'pending_approval',
+                jobId: 'job-' + id,
+                createdBy: reviewer,
+                createdAt: now,
+                updatedAt: now,
+                candidate: {
+                    baseline,
+                    artifact: {
+                        uri: 'fixture://' + id,
+                        hash: 'hash-' + id,
+                        schemaVersion: '1',
+                        mediaType: 'application/json'
+                    },
+                    summary: id,
+                    changes: [],
+                    warnings: []
+                },
+                evaluation: {
+                    runId: 'assessment-' + id,
+                    strategyHash: strategy.hash,
+                    candidateHash: 'hash-' + id,
+                    baselineHash: baseline.hash,
+                    evidenceHash: 'evidence',
+                    datasetVersion: 'fixture',
+                    datasetHash: 'data',
+                    passed: true,
+                    checks: [],
+                    readiness: [],
+                    completedAt: now
+                }
+            }
+            await records.save(dataSource.manager, ctx, change, strategy)
+            const store = moduleRef.get(AgentEvolutionStore)
+            const pointer = {
+                pointerId: 'ptr-' + id,
+                targetId,
+                scope,
+                channel: 'production' as const,
+                revision: 1,
+                activeVersionId: 'base',
+                updatedAt: now,
+                updatedBy: reviewer
+            }
+            await store.savePointer(ctx, pointer)
+            const outcome = () => store.findPointer(ctx, targetId, scope)
+            const req = {
+                user: {
+                    id: reviewer,
+                    tenantId,
+                    roleId: reviewer,
+                    role: {
+                        name: 'SUPER_ADMIN',
+                        rolePermissions: [{ permission: AIPermissionsEnum.EVOLUTION_MANAGE, enabled: true }]
+                    }
+                },
+                headers: { 'tenant-id': tenantId, 'organization-id': organizationId, 'x-scope-level': 'organization' }
+            }
+            await new Promise<void>((resolve, reject) =>
+                runWithRequestContext(req, () => {
+                    ;(async () => {
+                        const decision = {
+                            ...ctx,
+                            decision: mode === 'reject' ? ('rejected' as const) : ('approved' as const),
+                            candidateHash: change.candidate!.artifact.hash,
+                            evaluationRunId: change.evaluation!.runId,
+                            reason: 'Reviewed evidence and scope'
+                        }
+                        await expect(
+                            service.decide({ ...decision, evaluationRunId: 'another-assessment' })
+                        ).rejects.toThrow()
+                        expect((await service.decide(decision)).status).toBe(
+                            mode === 'reject' ? 'rejected' : 'approved'
+                        )
+                        expect(await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })).toBe(0)
+                        const intent = await dataSource
+                            .getRepository(ReleasePackageEntity)
+                            .findOneBy({ tenantId, organizationId, releasePackageId: 'PUB-' + id })
+                        expect(intent?.value.publicationKind).not.toBe('staged_rollout')
+                        if (mode === 'reject') {
+                            await expect(service.publish(ctx)).rejects.toThrow()
+                        } else if (mode === 'direct') {
+                            const published = await service.publish(ctx)
+                            expect(published.receipt).toMatchObject({
+                                changeId: id,
+                                candidateHash: decision.candidateHash,
+                                resource: { version: '2' }
+                            })
+                            expect(
+                                await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })
+                            ).toBe(1)
+                        } else {
+                            await service.publish(ctx)
+                            expect((await store.findRelease(ctx, 'PUB-' + id))?.value).toMatchObject({
+                                candidateId: id,
+                                candidateHash: decision.candidateHash,
+                                evaluationRunId: decision.evaluationRunId,
+                                status: 'approved',
+                                canaryPercent: 0
+                            })
+                            expect(
+                                await dataSource.getRepository(ReviewBusinessVersion).countBy({ changeId: id })
+                            ).toBe(0)
+                        }
+                        expect((await outcome())?.value).toMatchObject({ revision: 1, activeVersionId: 'base' })
+                    })().then(resolve, reject)
+                })
+            )
+        },
+        30000
+    )
 })

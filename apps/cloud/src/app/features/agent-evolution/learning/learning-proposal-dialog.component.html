@@ -1,0 +1,84 @@
+<div class="flex items-center justify-between gap-3">
+  <strong>{{ data.targetName }}</strong>
+  @if (check(); as c) {
+    <span class="rounded-md bg-muted px-2 py-1 text-sm font-medium" [class.text-text-success]="c.snapshot">{{
+      prefix + (c.snapshot ? 'Eligible' : 'NotEligible') | translate
+    }}</span>
+  }
+</div>
+<p class="mt-1 text-sm text-text-secondary">
+  {{ 'XP.AgentEvolution.ScopeType.' + data.event.scope.type | translate }} · {{ prefix + 'SameDecision' | translate }} ·
+  {{ data.reason }}
+</p>
+@if (changed()) {
+  <p role="alert" class="mt-3 text-sm text-text-warning">{{ prefix + 'Changed' | translate }}</p>
+}
+@if (check(); as c) {
+  @if (c.policy; as policy) {
+    <div class="my-4 divide-y divide-border rounded-lg border border-border text-sm">
+      <div class="flex min-h-[42px] items-center justify-between gap-2 px-3">
+        <span
+          ><b>{{ prefix + 'Events' | translate }}</b
+          >　{{ prefix + 'MinEvents' | translate: { n: policy.minimumEvents } }}</span
+        ><span [class.text-text-success]="c.eventIds.length >= policy.minimumEvents">{{
+          prefix + 'EventCount' | translate: { n: c.eventIds.length }
+        }}</span>
+      </div>
+      <div class="flex min-h-[42px] items-center justify-between gap-2 px-3">
+        <span
+          ><b>{{ prefix + 'Subjects' | translate }}</b
+          >　{{ prefix + 'MinSubjects' | translate: { n: policy.minimumSubjects } }}</span
+        ><span [class.text-text-success]="c.subjects >= policy.minimumSubjects">{{
+          prefix + 'SubjectCount' | translate: { n: c.subjects }
+        }}</span>
+      </div>
+      <div class="flex min-h-[42px] items-center justify-between gap-2 px-3">
+        <span
+          ><b>{{ prefix + 'Trust' | translate }}</b
+          >　{{ policy.trustLevels.join(' / ') }} ·
+          {{ prefix + 'Days' | translate: { n: policy.maximumAgeDays } }}</span
+        ><span>{{ prefix + 'EligibleEvents' | translate: { n: c.eventIds.length } }}</span>
+      </div>
+      <div class="flex min-h-[42px] items-center justify-between gap-2 px-3">
+        <span
+          ><b>{{ 'XP.AgentEvolution.DataGovernance' | translate }}</b
+          >　{{ prefix + 'Privacy' | translate }}</span
+        ><span>{{ prefix + 'RedactedCount' | translate: { n: c.redacted } }}</span>
+      </div>
+      <div class="flex min-h-[42px] items-center justify-between gap-2 px-3">
+        <b>{{ prefix + 'Baseline' | translate }}</b
+        ><span [class.text-text-success]="c.baseVersionId">{{
+          prefix + (c.baseVersionId ? 'Found' : 'Missing') | translate
+        }}</span>
+      </div>
+    </div>
+    @if (!c.seedEligible) {
+      <p class="text-sm text-text-warning">{{ prefix + 'SeedIneligible' | translate }}</p>
+    }
+  } @else {
+    <p class="my-4 text-sm text-text-secondary">{{ prefix + 'Unsupported' | translate }}</p>
+  }
+  <p class="flex gap-2 text-sm text-text-secondary">
+    <i class="ri-information-line"></i
+    >{{ prefix + (c.snapshot ? 'ConfirmHint' : 'Insufficient') | translate: { n: c.eventIds.length } }}
+  </p>
+} @else if (!error()) {
+  <p role="status" class="py-6 text-sm">{{ prefix + 'Checking' | translate }}</p>
+}
+@if (error()) {
+  <div xpDialogActionGroup="inline" role="alert" class="mt-3 text-sm text-text-destructive">
+    {{ prefix + error() | translate }}
+    @if (!check()) {
+      <button z-button zType="outline" class="ml-2" (click)="refresh()">
+        {{ prefix + 'Retry' | translate }}
+      </button>
+    }
+  </div>
+}
+<div xpDialogActionGroup="footer" class="mt-5 flex justify-end gap-2 border-t border-border pt-3">
+  <button z-button zType="outline" class="text-base" (click)="ref.close()">
+    {{ prefix + 'BackReview' | translate }}</button
+  ><button z-button class="text-base" [zDisabled]="!check()?.snapshot || working()" (click)="confirm()">
+    {{ prefix + 'Create' | translate }}
+  </button>
+</div>

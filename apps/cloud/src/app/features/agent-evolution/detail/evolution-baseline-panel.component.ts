@@ -1,102 +1,85 @@
-import { Component, effect, inject, input, signal } from '@angular/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
-import type { EvolutionBaselineInspection } from '@xpert-ai/contracts'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
+import { RouterLink } from '@angular/router'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { resolveI18nText, type EvolutionBaselineInspection, type EvolutionTargetDescriptor } from '@xpert-ai/contracts'
 import { ScopeService } from '@cloud/app/@core'
 import { AgentEvolutionApiService } from '../agent-evolution-api.service'
+import { compareRules, describeRule, inspectionFailure } from './rule-comparison'
 
 @Component({
   selector: 'xp-evolution-baseline-panel',
-  imports: [TranslateModule],
-  template: `
-    <section class="min-w-0" aria-labelledby="baseline-heading">
-      <h3 id="baseline-heading" class="border-b border-divider-subtle pb-3 text-lg font-semibold">
-        {{ 'XP.AgentEvolution.RuleBaseline' | translate }}
-      </h3>
-      @if (loading()) {
-        <p role="status" class="py-4 text-sm text-text-secondary">{{ 'XP.Common.Loading' | translate }}</p>
-      } @else if (error()) {
-        <p role="status" class="py-4 text-sm text-text-secondary">
-          {{ 'XP.AgentEvolution.RuleBaselineUnavailable' | translate }}
-        </p>
-      } @else if (data(); as state) {
-        <div class="space-y-4 py-4">
-          <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.RuleBaselineReadOnly' | translate }}</p>
-          @if (state.current; as current) {
-            <dl class="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.RuleBaselineVersion' | translate }}</dt>
-                <dd class="break-all">{{ current.version.versionId }}</dd>
-              </div>
-              <div>
-                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.RuleBaselineRevision' | translate }}</dt>
-                <dd>{{ current.pointer.revision }}</dd>
-              </div>
-              <div>
-                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.RuleBaselineUpdated' | translate }}</dt>
-                <dd>{{ current.pointer.updatedAt }}</dd>
-              </div>
-              <div>
-                <dt class="text-text-secondary">{{ 'XP.AgentEvolution.RuleBaselineHash' | translate }}</dt>
-                <dd class="break-all font-mono text-xs">{{ current.version.artifact.hash }}</dd>
-              </div>
-            </dl>
-            <details open>
-              <summary class="cursor-pointer text-sm font-medium">
-                {{ 'XP.AgentEvolution.RuleBaselineCurrent' | translate }}
-              </summary>
-              <pre
-                class="mt-2 max-h-96 overflow-auto rounded-lg bg-background-default-subtle p-4 text-xs text-text-secondary"
-                >{{ current.contentJson }}</pre
-              >
-            </details>
-          } @else {
-            <p>{{ 'XP.AgentEvolution.RuleBaselineMissing' | translate }}</p>
-          }
-          <details>
-            <summary class="cursor-pointer text-sm font-medium">
-              {{ 'XP.AgentEvolution.RuleBaselineSource' | translate }}
-            </summary>
-            <pre
-              class="mt-2 max-h-96 overflow-auto rounded-lg bg-background-default-subtle p-4 text-xs text-text-secondary"
-              >{{ state.preview.contentJson }}</pre
-            >
-          </details>
-        </div>
-      }
-    </section>
-  `
+  imports: [TranslateModule, RouterLink, ZardButtonComponent],
+  templateUrl: './evolution-baseline-panel.component.html'
 })
 export class EvolutionBaselinePanelComponent {
   readonly targetId = input.required<string>()
+  readonly descriptor = input<EvolutionTargetDescriptor>()
+  readonly releaseCandidate = input<string>()
   readonly data = signal<EvolutionBaselineInspection | null>(null)
   readonly loading = signal(true)
-  readonly error = signal(false)
+  readonly failure = signal<ReturnType<typeof inspectionFailure> | null>(null)
+  readonly raw = signal(false)
+  private readonly attempt = signal(0)
+  readonly p = 'XP.AgentEvolution.TargetDetail.'
   readonly #api = inject(AgentEvolutionApiService)
   readonly #scope = inject(ScopeService)
-  #request = 0
-
+  readonly #i18n = inject(TranslateService)
+  readonly #lang = toSignal(this.#i18n.onLangChange)
+  readonly status = computed(() => this.data()?.status ?? this.failure())
+  readonly comparison = computed(() => (this.data() ? compareRules(this.data()!) : null))
+  readonly rows = computed(() => {
+    this.#lang()
+    const fields = this.descriptor()?.candidateForm?.fields ?? []
+    return (this.comparison()?.rows ?? []).map((row) => ({
+      label: this.tx(
+        'Fields.' + row.key,
+        resolveI18nText(fields.find((f) => f.key === row.key)?.label, this.#i18n.currentLang) || row.key
+      ),
+      key: row.key,
+      active: describeRule(row.active, row.key, this.tx),
+      source: describeRule(row.source, row.key, this.tx)
+    }))
+  })
+  readonly sourceLabel = computed(() => {
+    this.#lang()
+    const d = this.descriptor()
+    return d
+      ? this.tx('Sources.' + d.targetId, resolveI18nText(d.label, this.#i18n.currentLang) || d.displayName)
+      : this.targetId()
+  })
+  readonly issues = computed(() => {
+    this.#lang()
+    return this.data()?.preview.issues.map((code) => this.tx('Issues.' + code, code)) ?? []
+  })
+  readonly tx = (key: string, fallback?: string, count?: number): string => {
+    const k = this.p + key,
+      text = this.#i18n.instant(k, { count, Default: fallback ?? k })
+    return text === k ? (fallback ?? k) : text
+  }
+  retry() {
+    this.attempt.update((x) => x + 1)
+  }
   constructor() {
-    effect((onCleanup) => {
+    effect((cleanup) => {
       this.#scope.activeScope()
-      const request = ++this.#request
+      this.attempt()
       this.data.set(null)
+      this.failure.set(null)
       this.loading.set(true)
-      this.error.set(false)
-      let active = true
-      onCleanup(() => {
-        active = false
+      this.raw.set(false)
+      const request = this.#api.getRuleBaseline(this.targetId()).subscribe({
+        next: (data) => {
+          this.data.set(data)
+          this.loading.set(false)
+        },
+        error: (err: unknown) => {
+          this.failure.set(inspectionFailure(err))
+          this.loading.set(false)
+        }
       })
-      void firstValueFrom(this.#api.getRuleBaseline(this.targetId()))
-        .then((data) => {
-          if (active && request === this.#request) this.data.set(data)
-        })
-        .catch(() => {
-          if (active && request === this.#request) this.error.set(true)
-        })
-        .finally(() => {
-          if (active && request === this.#request) this.loading.set(false)
-        })
+      cleanup(() => request.unsubscribe())
     })
   }
 }

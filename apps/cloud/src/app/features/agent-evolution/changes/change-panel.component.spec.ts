@@ -258,7 +258,7 @@ it.each([true, false])(
 )
 
 it('keeps staged rollout review and publication separate', async () => {
-  const approveCandidate = jest.fn()
+  const decideChange = jest.fn()
   const packageRelease = jest.fn()
   const approveAndPublishChange = jest.fn()
   await TestBed.configureTestingModule({
@@ -271,7 +271,7 @@ it('keeps staged rollout review and publication separate', async () => {
         useValue: {
           mutating: signal(false),
           visibleTargets: () => [],
-          approveCandidate,
+          decideChange,
           packageRelease,
           approveAndPublishChange
         }
@@ -299,11 +299,11 @@ it('keeps staged rollout review and publication separate', async () => {
   fixture.detectChanges()
   fixture.componentInstance.reason.set('Reviewed')
   fixture.componentInstance.review('approved')
-  expect(approveCandidate).toHaveBeenCalledWith('staged', 'eval', 'Reviewed')
+  expect(decideChange).toHaveBeenCalledWith(item, 'approved', 'Reviewed')
   expect(approveAndPublishChange).not.toHaveBeenCalled()
   fixture.componentRef.setInput('change', { ...item, status: 'approved' })
   fixture.detectChanges()
   fixture.componentInstance.publish()
-  expect(packageRelease).toHaveBeenCalledWith('staged', 'eval', [])
+  expect(packageRelease).toHaveBeenCalledWith(expect.objectContaining({ changeId: 'staged', status: 'approved' }))
   fixture.destroy()
 })

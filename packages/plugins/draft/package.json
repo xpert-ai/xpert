@@ -13,11 +13,13 @@
     "moment": "^2.29.1",
     "multer-s3": "^2.9.0",
     "uuid": "^10.0.0",
+    "yaml": "^2.6.1",
     "zod": "3.25.67"
   },
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
+    "@langchain/core": "0.3.72",
     "@xpert-ai/contracts": "workspace:^",
     "@nestjs/common": "*",
     "@nestjs/config": "*",
