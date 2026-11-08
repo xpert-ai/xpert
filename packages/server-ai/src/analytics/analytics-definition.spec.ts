@@ -112,6 +112,36 @@ describe('Analytics Definition publication and exact source resolution', () => {
         await app.close()
         jest.restoreAllMocks()
     })
+    it('delegates only an exact private definition approved by its owner, retaining the viewer identity', async () => {
+        definition.userId = 'source-owner'
+        const source = { kind: 'definition' as const, definitionId: id, versionId }
+        await expect(service.resolve(actor, source)).rejects.toThrow()
+        await expect(service.resolveForGroupAnalysis(actor, source, 'other-owner')).rejects.toThrow()
+        const resolved = await service.resolveForGroupAnalysis(actor, source, 'source-owner')
+        expect(resolved.source).toEqual(source)
+        expect(resolved.options).toEqual(input.options)
+        expect(membership).toHaveBeenLastCalledWith(actor)
+        expect(findVersion).toHaveBeenLastCalledWith({
+            id: versionId,
+            definitionId: id,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId
+        })
+        definition.userId = 'new-owner'
+        await expect(resolved.revalidate()).rejects.toThrow()
+    })
+    it('rejects a shared definition after version tampering or organization membership removal', async () => {
+        const source = { kind: 'definition' as const, definitionId: id, versionId }
+        const resolved = await service.resolveForGroupAnalysis(actor, source, actor.userId)
+        version.options = { changed: true }
+        await expect(resolved.revalidate()).rejects.toThrow()
+        version.options = input.options
+        membership.mockResolvedValue(null)
+        await expect(resolved.revalidate()).rejects.toThrow()
+        await expect(
+            service.resolveForGroupAnalysis({ ...actor, userId: 'source-owner' }, source, 'source-owner')
+        ).rejects.toThrow()
+    })
     async function request(path: string, body?: unknown) {
         const response = await fetch(`${await app.getUrl()}/analytics/definitions${path}`, {
             method: body ? 'POST' : 'GET',

@@ -62,8 +62,10 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             const payload = await this.commandBus.execute(new PrepareGroupChatCommand(message))
             if (!payload) return { status: 'ok' }
             dispatchStarted = true
-            const result = await withGroupRuntime(payload.request.conversationId, () =>
-                this.processChat({ ...message, payload }, ctx)
+            const result = await withGroupRuntime(
+                payload.request.conversationId,
+                () => this.processChat({ ...message, payload }, ctx),
+                payload.options.groupDeliveryId
             )
             dispatchFailed = result.status === 'dead'
             return result

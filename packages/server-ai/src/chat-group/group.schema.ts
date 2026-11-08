@@ -73,8 +73,21 @@ export const groupPreferencesSchema = z
     .strict()
     .refine((input) => Object.keys(input).length > 0)
 export const groupJobSchema = z.object({ recipientId: z.string().uuid() }).strict()
+export const groupResourceLinkSchema = z
+    .object({ referenceId: z.string().uuid(), projectId: z.string().uuid(), title: z.string().max(200) })
+    .strict()
 export const groupCommunicationSchema = z
     .object({
+        resourceLinks: z.array(groupResourceLinkSchema).max(10).optional(),
+        resourceNavigation: z
+            .object({
+                requestId: z.string().uuid(),
+                issuedAt: z.number().int().positive(),
+                clientMessageId: z.string().uuid(),
+                participantId: z.string().uuid()
+            })
+            .strict()
+            .optional(),
         projectTask: z
             .object({
                 invocationId: z.string().uuid(),

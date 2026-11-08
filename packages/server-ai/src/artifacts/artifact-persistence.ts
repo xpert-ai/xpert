@@ -23,11 +23,10 @@ import {
     WorkspacePortableFileReference
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import path from 'node:path'
 import { DataSource, EntityManager, Repository } from 'typeorm'
-import { resolveWorkspaceVolumeScope } from '../file-understanding/domain/workspace-file'
-import { artifactContentIdentity, artifactContentStorage } from './artifact-content-storage'
-import { VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { artifactContentIdentity } from './artifact-content-storage'
+import { readArtifactBytes } from './artifact-byte-reader'
+import { VolumeClient } from '../shared/volume'
 import { listAuthorizedArtifacts } from './artifact-authorized-list'
 import { ArtifactContentAccess, assertArtifactAccess, assertArtifactPolicyUnchanged } from './artifact-content-access'
 import { loadArtifactCurrentVersions } from './artifact-current-versions'
@@ -50,7 +49,6 @@ import {
     normalizePositiveInteger,
     normalizeRequiredString,
     normalizeSourceInput,
-    normalizeWorkspaceFilePath,
     normalizeWorkspaceFileReference,
     safeEqualString
 } from './artifact-utils'
@@ -675,30 +673,7 @@ export class ArtifactPersistence {
     }
 
     async readWorkspaceArtifact(ref: WorkspacePortableFileReference) {
-        const filePath = normalizeWorkspaceFilePath(ref.filePath)
-        if (artifactContentIdentity(filePath)) {
-            const location = artifactContentStorage(this.dependencies.volume, ref)
-            return {
-                buffer: await location.storage.read(location.path),
-                name: ref.originalName ?? ref.name ?? path.posix.basename(filePath)
-            }
-        }
-        const resolved = resolveWorkspaceVolumeScope(ref, {
-            tenantId: ref.tenantId,
-            userId: ref.userId,
-            inferUserScope: true
-        })
-        if (!resolved) {
-            throw new BadRequestException('Unable to resolve artifact workspace scope')
-        }
-        const client = new VolumeSubtreeClient(this.dependencies.volume.resolve(resolved.volumeScope), {
-            allowRootWorkspace: true
-        })
-        const buffer = await client.readBuffer('', filePath)
-        return {
-            buffer,
-            name: ref.originalName ?? ref.name ?? path.posix.basename(filePath)
-        }
+        return readArtifactBytes(this.dependencies.volume, ref)
     }
 
     async recordArtifactAccessLog(

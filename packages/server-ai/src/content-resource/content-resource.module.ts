@@ -1,3 +1,5 @@
+import { ResourceAssistantMiddleware } from './middlewares/resource-assistant.middleware'
+import { ResourceAssistantCapabilityProvider } from './capabilities/resource-assistant.capability'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ContentResourceOperation } from './catalog/content-operation.entity'
 import { ContentOperations } from './catalog/content-operations.service'
@@ -51,6 +53,8 @@ import { ContentResourceEntry } from './catalog/content-entry.entity'
         ])
     ],
     providers: [
+        ResourceAssistantCapabilityProvider,
+        ResourceAssistantMiddleware,
         ContentOperations,
         ContentCatalogMaintenance,
         ContentEditorPreferences,

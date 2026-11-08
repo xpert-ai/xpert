@@ -1,3 +1,4 @@
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
 import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
 import { groupProjectPreflightCases } from './group-project/testing/group-project-preflight.postgres.cases'
@@ -89,7 +90,7 @@ const schemas = [
         columns: {
             ...base,
             conversationId: uuid,
-            createdInThreadId: uuid,
+            createdInThreadId: text,
             executionId: uuid,
             role: text,
             content: json,
@@ -247,6 +248,10 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
                 { provide: DataSource, useValue: db },
                 { provide: GroupAccessService, useValue: access },
                 { provide: GroupToolsService, useValue: { create: () => undefined } },
+                {
+                    provide: GroupResourceToolsService,
+                    useValue: { createAnalysisTools: () => [], validateAnalysisDelivery: async () => {} }
+                },
                 { provide: ThreadRunControlService, useValue: control },
                 { provide: QueryBus, useValue: {} },
                 GroupInteractionsService,

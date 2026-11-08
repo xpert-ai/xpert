@@ -29,7 +29,8 @@ export async function consumedGroupReceipts(
             ChatMessage,
             'input',
             'input.conversationId = participant.runtimeConversationId ' +
-                'AND input.createdInThreadId = participant.runtimeThreadId ' +
+                // Message thread IDs are varchar; the group runtime binding is a UUID.
+                'AND input.createdInThreadId = CAST(participant.runtimeThreadId AS text) ' +
                 'AND input.tenantId = receipt.tenantId AND input.organizationId = receipt.organizationId ' +
                 "AND input.role = 'human' AND input.messageEnvelope ->> 'presentation' = 'runtime' " +
                 "AND input.messageEnvelope -> 'correlation' ->> 'messageId' = CAST(receipt.id AS text)"

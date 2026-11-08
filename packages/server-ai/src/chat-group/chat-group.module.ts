@@ -1,6 +1,10 @@
+import { ResolveGroupResourceNavigationToolsHandler } from './commands/handlers/resolve-group-resource-navigation-tools.handler'
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { ResolveGroupRuntimeAccessHandler } from './group-runtime-access.handler'
+import { ResolveGroupProjectAccessHandler } from './commands/handlers/group-project-access.handler'
+import { ListGroupGrantTargetsHandler } from './commands/handlers/group-grant-targets.handler'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ChatConversationModule } from '../chat-conversation/conversation.module'
@@ -50,7 +54,10 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         SseStreamModule
     ],
     providers: [
+        ResolveGroupResourceNavigationToolsHandler,
         ResolveGroupRuntimeAccessHandler,
+        ResolveGroupProjectAccessHandler,
+        ListGroupGrantTargetsHandler,
         AuthorizeGroupTaskCallerHandler,
         GroupTaskTargetService,
         ListGroupTaskTargetsHandler,
@@ -74,7 +81,8 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         FinishGroupChatHandler,
         GroupRuntimeViewService,
         GroupStreamService,
-        GroupToolsService
+        GroupToolsService,
+        GroupResourceToolsService
     ],
     exports: [
         GroupProjectService,

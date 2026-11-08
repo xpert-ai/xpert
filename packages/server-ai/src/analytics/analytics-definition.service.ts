@@ -252,4 +252,49 @@ export class AnalyticsDefinitionService {
             }
         }
     }
+
+    /** The exact private definition can be used when its owner approved this resource's group analysis.
+     * This grants no catalog read, edits, Workspace files or upstream business-data permissions. */
+    async resolveForGroupAnalysis(
+        actor: DataSourceActor,
+        source: Extract<AnalyticsVersionedSourceRef, { kind: 'definition' }>,
+        approvedById: string
+    ): Promise<AnalyticsResolvedSource> {
+        const load = async () => {
+            await this.authorize(actor)
+            const scope = { tenantId: actor.tenantId, organizationId: actor.organizationId }
+            const definition = await this.definitions.findOneBy({ ...scope, id: source.definitionId, status: 'active' })
+            if (
+                !definition ||
+                (definition.visibility !== 'organization' &&
+                    definition.userId !== actor.userId &&
+                    definition.userId !== approvedById)
+            )
+                throw definitionError('unavailable')
+            const version = await this.versions.findOneBy({
+                ...scope,
+                id: source.versionId,
+                definitionId: definition.id
+            })
+            const parsed = analyticsOptionsSchema.safeParse(version?.options)
+            if (!version || !parsed.success || definitionDigest(parsed.data) !== version.sha256)
+                throw definitionError('unavailable')
+            return { definition, version, options: parsed.data }
+        }
+        const selected = await load()
+        return {
+            source,
+            providerIds: [selected.definition.providerId],
+            options: selected.options,
+            revalidate: async () => {
+                const current = await load()
+                if (
+                    current.version.sha256 !== selected.version.sha256 ||
+                    current.definition.providerId !== selected.definition.providerId ||
+                    current.definition.userId !== selected.definition.userId
+                )
+                    throw definitionError('unavailable')
+            }
+        }
+    }
 }

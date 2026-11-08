@@ -1,4 +1,5 @@
 import { AnalyticsAuthoringService } from './analytics-authoring.service'
+import { GroupAnalysisDefinitionHandler } from './commands/handlers/group-analysis-definition.handler'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
@@ -25,6 +26,7 @@ import {
         TypeOrmModule.forFeature([AnalyticsDefinition, AnalyticsDefinitionVersion, Xpert, XpertToolset, Integration])
     ],
     providers: [
+        GroupAnalysisDefinitionHandler,
         AnalyticsDefinitionService,
         AnalyticsAuthoringService,
         AnalyticsArtifactSources,

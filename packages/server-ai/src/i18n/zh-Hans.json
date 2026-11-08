@@ -1223,6 +1223,10 @@
         "TemplateUpgradePending": "请先完成或回退当前待处理的升级。",
         "TemplateUpgradeUnsupported": "此变更需要可移植运行适配器；变更已有例行任务请使用新任务键，变更文件隔离范围请另行安装。",
         "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。",
+        "ArtifactGroupReferenceInvalid": "ARTIFACT_GROUP_REFERENCE_INVALID: 群聊成果引用请求无效。",
+        "ArtifactUseGrantDenied": "ARTIFACT_USE_GRANT_DENIED: 当前群聊无法通过此授权使用该正式版本。",
+        "ArtifactUseGrantNotFound": "ARTIFACT_USE_GRANT_NOT_FOUND: 未找到授权或正式资源版本。",
+        "ArtifactUseGrantConflict": "ARTIFACT_USE_GRANT_CONFLICT: 授权状态已变化，请刷新后重试。",
         "ArtifactDraftAccessDenied": "ARTIFACT_DRAFT_ACCESS_DENIED: 无权访问此草稿。",
         "ArtifactDraftRevisionInvalid": "ARTIFACT_DRAFT_REVISION_INVALID: 草稿修订号无效。",
         "ArtifactDraftMimeInvalid": "ARTIFACT_DRAFT_MIME_INVALID: 此文件类型不能用作 Artifact 草稿。",
@@ -1386,7 +1390,13 @@
         "EmbeddingBatchSizeInvalid": "嵌入批次大小必须为 1–2048 之间的整数。",
         "BusinessAreaAccessDenied": "没有此业务域操作权限",
         "BusinessAreaNotFound": "当前组织中找不到业务域",
-        "BusinessAreaInvalidSubject": "请选择当前组织的有效成员或普通用户组"
+        "BusinessAreaInvalidSubject": "请选择当前组织的有效成员或普通用户组",
+        "ResourceAnalysisDenied": "此资源没有匹配的数据分析授权，请联系源数据管理者和群主授权相应范围。",
+        "ResourceAnalysisUnsupported": "此资源暂不支持授权分析。",
+        "ResourceAnalysisInvalid": "分析查询不符合允许的字段类型或操作。",
+        "ResourceAnalysisIncomplete": "上游数据集不完整，无法据此计算可信的总体汇总。",
+        "ResourceAnalysisBudget": "分析查询超出允许的查询次数、行数或结果大小。",
+        "ResourceAnalysisSourceDenied": "发起成员暂不能查询源数据，请检查当前数据源权限及声明的查询参数。"
     },
     "Mcp": {
         "Test": {

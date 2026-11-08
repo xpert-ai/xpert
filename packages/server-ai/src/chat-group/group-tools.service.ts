@@ -28,7 +28,11 @@ export class GroupToolsService {
     ) {}
 
     /** Bind this run’s public messaging tool; each invocation rechecks the live runtime and membership. */
-    create(recipient: GroupMessageRecipient, member: GroupParticipant) {
+    create(
+        recipient: GroupMessageRecipient,
+        member: GroupParticipant,
+        beforePublish?: (group: ChatConversation, userId: string) => Promise<void>
+    ) {
         return new DynamicStructuredTool({
             name: 'send_group_message',
             description:
@@ -66,6 +70,7 @@ export class GroupToolsService {
                         if (!target) throw groupDenied()
                         if (target.kind === 'assistant') await this.access.assistant(target.subjectId)
                     }
+                    await beforePublish?.(group, root.rootUserId)
                     return this.messages.publish(
                         group,
                         current,

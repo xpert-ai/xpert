@@ -3,8 +3,10 @@ import { GroupsController } from './group.controller'
 import { GroupViewsController, GroupWorkbenchContextController } from './group-workbench.controller'
 import { GroupViewFilesController } from './group-view-files.controller'
 import { GroupProjectController } from './group-project.controller'
+import { GroupArtifactsController } from './group-artifacts.controller'
 
 export const GROUP_CONTROLLERS = [
+    GroupArtifactsController,
     GroupProjectController,
     GroupsController,
     GroupComposerController,

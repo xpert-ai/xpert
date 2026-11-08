@@ -16,7 +16,7 @@ import {
     ResolveGroupDeliveryContextCommand
 } from './group-dispatch.commands'
 import { XpertChatCommand } from '../xpert/commands/chat.command'
-import { hasGroupRuntime } from './group-runtime-context'
+import { hasGroupRuntime, groupRuntimeDeliveryId } from './group-runtime-context'
 
 describe('group common chat dispatch', () => {
     const commands = { execute: jest.fn() },
@@ -73,6 +73,7 @@ describe('group common chat dispatch', () => {
             if (command instanceof PrepareGroupChatCommand) return message.payload
             if (command instanceof XpertChatCommand) {
                 expect(hasGroupRuntime()).toBe(true)
+                expect(groupRuntimeDeliveryId('runtime-c')).toBe('receipt')
                 expect(RequestContext.currentUserId()).toBe('human-a')
                 expect(RequestContext.currentTenantId()).toBe('tenant')
                 expect(RequestContext.getOrganizationId()).toBe('organization')
@@ -84,6 +85,7 @@ describe('group common chat dispatch', () => {
         expect(queue.enqueue.mock.calls[0][0].payload.kind).toBe('complete')
         expect(commands.execute).toHaveBeenLastCalledWith(new FinishGroupChatCommand('receipt', false, true))
         expect(hasGroupRuntime()).toBe(false)
+        expect(groupRuntimeDeliveryId('runtime-c')).toBeUndefined()
         expect(RequestContext.currentUserId()).not.toBe('human-a')
         expect(access.withDeliveryActor).toHaveBeenCalledWith('receipt', 'tenant', 'runtime-c', expect.any(Function))
     })
@@ -115,6 +117,7 @@ describe('group common chat dispatch', () => {
         await expect(processor.process(message, context)).rejects.toThrow('admission unavailable')
         expect(commands.execute).toHaveBeenLastCalledWith(new FinishGroupChatCommand('receipt', true, false))
         expect(hasGroupRuntime()).toBe(false)
+        expect(groupRuntimeDeliveryId('runtime-c')).toBeUndefined()
     })
 
     it('does not execute when delivery authorization is revoked after admission', async () => {
@@ -132,6 +135,7 @@ describe('group common chat dispatch', () => {
         expect(queue.enqueue.mock.calls[0][0].payload.kind).toBe('error')
         expect(commands.execute).toHaveBeenLastCalledWith(new FinishGroupChatCommand('receipt', true, true))
         expect(hasGroupRuntime()).toBe(false)
+        expect(groupRuntimeDeliveryId('runtime-c')).toBeUndefined()
     })
 
     it('executes only the payload rebuilt by group admission', async () => {
@@ -158,6 +162,7 @@ describe('group common chat dispatch', () => {
         commands.execute.mockImplementation((command: unknown) => {
             expect(command).toBeInstanceOf(XpertChatCommand)
             expect(hasGroupRuntime()).toBe(false)
+            expect(groupRuntimeDeliveryId('runtime-c')).toBeUndefined()
             return of({ data: { type: 'message', data: 'token' } })
         })
         expect(await processor.process(ordinary, context)).toEqual({ status: 'ok' })

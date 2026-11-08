@@ -1,6 +1,8 @@
 import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
 import { GroupProjectService } from './group-project/group-project.service'
+import { ArtifactGroupReferenceService } from '../artifacts/group-references/artifact-group-reference.service'
+import { ArtifactGroupViewService } from '../artifacts/group-references/artifact-group-view.service'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
@@ -166,7 +168,12 @@ class FileAccessStubModule {}
         RouterModule.register([{ path: 'ai', module: GroupHttpTestModule }])
     ],
     controllers: GROUP_CONTROLLERS,
-    providers: [GroupScopeGuard, GroupWorkbenchGuard]
+    providers: [
+        GroupScopeGuard,
+        GroupWorkbenchGuard,
+        { provide: ArtifactGroupReferenceService, useValue: {} },
+        { provide: ArtifactGroupViewService, useValue: {} }
+    ]
 })
 class GroupHttpTestModule {}
 

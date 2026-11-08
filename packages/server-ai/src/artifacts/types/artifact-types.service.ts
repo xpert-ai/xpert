@@ -134,6 +134,29 @@ export class ArtifactTypesService {
             definition.sharing.accessModes.includes(link.accessMode)
         )
     }
+    assertGroupUseGrant(source: TypedArtifactSource) {
+        const definition = this.provider(source).definition
+        if (
+            definition.presentation.mode !== 'authenticated' ||
+            definition.useGrants?.audience !== 'group' ||
+            definition.useGrants.permission !== 'read'
+        )
+            throw unavailable()
+    }
+    async assertUseGrant(source: TypedArtifactSource, grant: import('@xpert-ai/plugin-sdk').ArtifactUseGrantPolicy) {
+        this.assertGroupUseGrant(source)
+        const provider = this.provider(source)
+        await provider.assertUseGrant?.(source, {
+            artifactId: grant.artifactId,
+            versionId: grant.versionId,
+            ownerProjectId: grant.ownerProjectId,
+            targetProjectId: grant.targetProjectId,
+            targetGroupId: grant.targetGroupId,
+            permission: grant.permission,
+            expiresAt: new Date(grant.expiresAt)
+        })
+        if (this.provider(source) !== provider) throw unavailable()
+    }
     async assertLink(source: TypedArtifactSource, link: ArtifactTypeLink) {
         const provider = this.provider(source)
         const sharing = provider.definition.sharing

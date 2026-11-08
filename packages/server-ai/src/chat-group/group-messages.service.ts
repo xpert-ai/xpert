@@ -124,7 +124,10 @@ export class GroupMessagesService {
         publicationId?: string,
         projection = false,
         causedByMessageId?: string,
-        hostContext?: Pick<ChatGroupCommunication, 'projectTask' | 'runtimeResult'>
+        hostContext?: Pick<
+            ChatGroupCommunication,
+            'projectTask' | 'runtimeResult' | 'resourceLinks' | 'resourceNavigation'
+        >
     ) {
         if (!author.active || author.groupId !== group.id) throw groupDenied()
         const recipients = input.intent === 'reply' ? [] : input.recipientIds
@@ -208,6 +211,7 @@ export class GroupMessagesService {
                         communication.senderId !== sender.id ||
                         communication.intent !== input.intent ||
                         !isEqual(communication.projectTask, hostContext?.projectTask) ||
+                        !isEqual(communication.resourceLinks, hostContext?.resourceLinks) ||
                         (hostContext?.runtimeResult &&
                             !isEqual(communication.runtimeResult, hostContext.runtimeResult)) ||
                         !isEqual(communication.composer, input.composer) ||

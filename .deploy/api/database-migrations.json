@@ -10,12 +10,15 @@
     "agent_runtime_binding",
     "agent_runtime_delivery",
     "agent_runtime_inbox",
-    "app_platform_storage_relation",
-    "app_platform_storage_usage",
     "announcement",
     "announcement_audit",
     "announcement_dismissal",
+    "app_platform_storage_relation",
+    "app_platform_storage_usage",
     "artifact_draft",
+    "artifact_reference",
+    "artifact_use_grant",
+    "artifact_use_grant_audit",
     "assistant_binding",
     "assistant_template_publication",
     "assistant_template_upgrade",
@@ -50,6 +53,7 @@
     "model_execution_reconciliation",
     "model_gateway_call",
     "notification_outbox",
+    "resource_analysis_execution",
     "shell_cli_execution",
     "shell_process_execution",
     "skill_package",
@@ -104,6 +108,9 @@
     "ai/plugin-resource/app-platform/storage/migrations/checks/20261029100000-account-storage.sql",
     "ai/plugin-resource/app-platform/storage/migrations/checks/20261031120000-approximate-storage.sql",
     "ai/compute-resources/migrations/checks/20261027000100-compute-resource-operations.sql",
-    "ai/user-notification/migrations/checks/20261031010000-user-notifications.sql"
+    "ai/user-notification/migrations/checks/20261031010000-user-notifications.sql",
+    "ai/artifacts/use-grants/migrations/checks/20261107000100-artifact-use-grants.sql",
+    "ai/artifacts/use-grants/migrations/checks/20261107000200-artifact-group-references.sql",
+    "ai/artifacts/use-grants/migrations/checks/20261108000100-resource-analysis.sql"
   ]
 }

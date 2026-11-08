@@ -1,6 +1,9 @@
+import { groupResourceEvents } from './group-resource-events'
 // One observer connection multiplexes public projections of independent runtime streams.
 // Disconnect only disposes readers; it never cancels a model or acknowledges a client tool.
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { GroupAnalysisStreamingCommand } from '../artifacts/analysis/commands/group-analysis-streaming.command'
 import { Observable, Subscription } from 'rxjs'
 import { DataSource } from 'typeorm'
 import { z } from 'zod'
@@ -49,7 +52,8 @@ export class GroupStreamService {
         private readonly messages: GroupMessagesService,
         private readonly access: GroupAccessService,
         private readonly streams: RedisSseStreamService,
-        private readonly db: DataSource
+        private readonly db: DataSource,
+        private readonly commands: CommandBus
     ) {}
 
     /**
@@ -74,6 +78,7 @@ export class GroupStreamService {
             }
         }
         return new Observable<SseMessageEvent>((subscriber) => {
+            const resourceEvents = groupResourceEvents(actor.id, Date.now())
             const readers = new Map<string, Subscription>()
             const finished = new Set<string>()
             let stopped = false
@@ -104,6 +109,8 @@ export class GroupStreamService {
                     if (first || signature !== lastSnapshot) {
                         if (first && resync) emit({ type: 'resync' })
                         emit({ type: 'snapshot', snapshot })
+                        for (const request of resourceEvents(snapshot.messages))
+                            emit({ type: 'resource_open', request })
                         first = false
                         lastSnapshot = signature
                     }
@@ -145,6 +152,8 @@ export class GroupStreamService {
                             }
                         })
                         if (stopped) break
+                        let pendingText = Promise.resolve(),
+                            protectedRun = false
                         const reader = connection.stream.subscribe({
                             next: (event) => {
                                 if (event.id) cursor.runs[run.runId] = { ...cursor.runs[run.runId], cursor: event.id }
@@ -156,8 +165,29 @@ export class GroupStreamService {
                                     }
                                 const messageId = cursor.runs[run.runId]?.messageId
                                 const text = publicGroupDelta(event.data)
-                                if (messageId && text)
-                                    emit({ type: 'text', runId: run.runId, participantId: member.id, messageId, text })
+                                if (messageId && text) {
+                                    pendingText = pendingText
+                                        .then(async () => {
+                                            if (stopped || protectedRun) return
+                                            protectedRun = await this.commands.execute(
+                                                new GroupAnalysisStreamingCommand(
+                                                    member.tenantId,
+                                                    member.organizationId,
+                                                    groupId,
+                                                    run.runId
+                                                )
+                                            )
+                                            if (!protectedRun && !stopped)
+                                                emit({
+                                                    type: 'text',
+                                                    runId: run.runId,
+                                                    participantId: member.id,
+                                                    messageId,
+                                                    text
+                                                })
+                                        })
+                                        .catch((error) => subscriber.error(error))
+                                }
                                 if (
                                     event.data &&
                                     typeof event.data === 'object' &&
