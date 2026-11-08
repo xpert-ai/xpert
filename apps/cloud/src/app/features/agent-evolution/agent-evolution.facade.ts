@@ -330,9 +330,18 @@ export class AgentEvolutionFacade {
   }
 
   async createDataset(request: CreateDatasetSnapshotRequest) {
+    if (this.mutating()) return null
+    const scope = this.#scopeRevision
     return this.withMutation(async () => {
       const dataset = await firstValueFrom(this.#api.createDataset(request))
+      if (scope !== this.#scopeRevision) return null
       await this.load({ silent: true })
+      if (scope !== this.#scopeRevision) return null
+      this.dashboard.update((d) =>
+        d.datasets.some((item) => item.snapshotId === dataset.snapshotId)
+          ? d
+          : { ...d, datasets: [dataset, ...d.datasets] }
+      )
       this.selectedDatasetSnapshotId.set(dataset.snapshotId)
       this.#toastr.success('XP.AgentEvolution.DatasetSnapshotCreated')
       return dataset

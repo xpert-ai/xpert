@@ -22,6 +22,7 @@ import { targetLabel } from '../targets/target-directory'
 import { ReplayResultComponent } from './replay-result.component'
 import { compactId } from './replay-presentation'
 import { ConfirmReplayComponent, type ReplayConfirmation } from './confirm-replay.component'
+import { EvolutionPageHeaderComponent } from '../shared/evolution-page-header.component'
 import { DatasetEditorComponent } from './dataset-editor.component'
 
 @Component({
@@ -37,10 +38,11 @@ import { DatasetEditorComponent } from './dataset-editor.component'
     EvolutionChangePanelComponent,
     LearningCandidateFormComponent,
     ReplayResultComponent,
-    DatasetEditorComponent
+    DatasetEditorComponent,
+    EvolutionPageHeaderComponent
   ],
   templateUrl: './evaluation.component.html',
-  host: { class: 'flex min-h-0 min-w-0 flex-1 overflow-hidden' }
+  host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' }
 })
 export class AgentEvolutionEvaluationComponent {
   readonly facade = inject(AgentEvolutionFacade)
@@ -63,7 +65,6 @@ export class AgentEvolutionEvaluationComponent {
   readonly short = compactId
   readonly term = signal('')
   readonly status = signal('all')
-  readonly editing = signal(false)
   readonly records = this.facade.contextLifecycleRecords
   readonly proposals = this.facade.contextProposals
   readonly built = this.facade.contextCandidates
@@ -171,6 +172,16 @@ export class AgentEvolutionEvaluationComponent {
     }
     return this.resource() ? 'checks' : 'missing'
   })
+  readonly editingCandidate = computed(() =>
+    this.stage() === 'prepare' && this.q().get('view') === 'dataset' && this.canManage() ? this.candidate() : null
+  )
+  editDataset() {
+    if (this.stage() === 'prepare' && this.canManage())
+      void this.go({ changeId: this.id()!, snapshot: this.chosen()?.snapshotId ?? null, view: 'dataset' })
+  }
+  leaveDataset(snapshot = this.chosen()?.snapshotId) {
+    void this.go({ changeId: this.id()!, snapshot: snapshot ?? null }, true)
+  }
   readonly rows = computed(() =>
     this.built()
       .map((c) => {
@@ -219,7 +230,6 @@ export class AgentEvolutionEvaluationComponent {
       untracked(() => {
         if ((target || deep) && this.facade.selectedTargetId() !== (target || 'all'))
           this.facade.selectTarget(target || 'all')
-        this.editing.set(false)
         this.confirmRef?.close(false)
       })
     })
@@ -227,7 +237,6 @@ export class AgentEvolutionEvaluationComponent {
       this.scope()
       untracked(() => {
         this.confirmRef?.close(false)
-        this.editing.set(false)
         this.term.set('')
         this.status.set('all')
       })

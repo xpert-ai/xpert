@@ -1,512 +1,523 @@
-<main class="@container/eval min-h-0 min-w-0 flex-1 overflow-y-auto bg-background text-foreground">
-  <div class="mx-auto w-full max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="xp-page-title">{{ 'XP.AgentEvolution.TabEvaluation' | translate }}</h1>
-        <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'Intro' | translate }}</p>
+@if (editingCandidate(); as cand) {
+  @for (c of [cand]; track c.candidateId) {
+    <xp-replay-dataset-editor
+      [candidate]="c"
+      [candidateTarget]="byTarget().get(c.targetId)"
+      [previous]="snapshots()[0]"
+      (closed)="leaveDataset()"
+      (created)="leaveDataset($event)"
+    />
+  }
+} @else {
+  <xp-evolution-page-header titleKey="XP.AgentEvolution.TabEvaluation" />
+  <main class="@container/eval min-h-0 min-w-0 flex-1 overflow-y-auto bg-background text-foreground">
+    <div class="mx-auto w-full max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="xp-page-title">{{ 'XP.AgentEvolution.TabEvaluation' | translate }}</h1>
+          <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'Intro' | translate }}</p>
+        </div>
+        <label class="flex w-full items-center gap-2.5 @2xl/eval:w-auto"
+          ><span class="shrink-0 text-sm text-text-secondary">{{
+            'XP.AgentEvolution.Directory.Scope' | translate
+          }}</span
+          ><z-combobox
+            zSize="lg"
+            class="min-w-0 flex-1 @2xl/eval:w-[180px] [&_button]:text-base"
+            zWidth="full"
+            [value]="facade.selectedTargetId()"
+            [options]="targetOptions()"
+            [ariaLabel]="'XP.AgentEvolution.Directory.Scope' | translate"
+            [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
+            (zValueChange)="selectTarget($event)"
+        /></label>
       </div>
-      <label class="flex w-full items-center gap-2.5 @2xl/eval:w-auto"
-        ><span class="shrink-0 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.Scope' | translate }}</span
-        ><z-combobox
-          zSize="lg"
-          class="min-w-0 flex-1 @2xl/eval:w-[180px] [&_button]:text-base"
-          zWidth="full"
-          [value]="facade.selectedTargetId()"
-          [options]="targetOptions()"
-          [ariaLabel]="'XP.AgentEvolution.Directory.Scope' | translate"
-          [searchPlaceholder]="'XP.AgentEvolution.SearchTarget' | translate"
-          (zValueChange)="selectTarget($event)"
-      /></label>
-    </div>
-    @if (facade.providerError()) {
-      <p role="alert" class="mt-3 text-sm text-text-destructive">
-        {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
-        <button z-button zType="outline" (click)="facade.load()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
-      </p>
-    }
-    <section class="mt-4 overflow-hidden rounded-lg border border-border bg-card">
-      <nav class="flex gap-5 border-b border-border px-4">
-        @for (v of ['candidates', 'runs']; track v) {
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 border-b-2 border-transparent py-2 text-base font-medium text-text-secondary"
-            [class.!border-foreground]="tab() === v"
-            [class.!text-foreground]="tab() === v"
-            [attr.aria-pressed]="tab() === v"
-            (click)="directory(v)"
-          >
-            {{ prefix + v | translate }}
-            <span class="rounded bg-muted px-1.5 text-sm">{{
-              v === 'runs' ? runs().length + running().size : built().length
-            }}</span>
-          </button>
-        }
-      </nav>
-      @if (facade.loading() || (!facade.loadedAt() && !facade.error())) {
-        <p role="status" class="p-8 text-center text-sm text-text-secondary">
-          {{ 'XP.AgentEvolution.LoadingChanges' | translate }}
+      @if (facade.providerError()) {
+        <p role="alert" class="mt-3 text-sm text-text-destructive">
+          {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
+          <button z-button zType="outline" (click)="facade.load()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
         </p>
-      } @else {
-        @switch (stage()) {
-          @case ('directory') {
-            @if (tab() === 'candidates') {
-              @if (pending().length) {
-                <section class="border-b border-border bg-muted/20 px-5 py-3">
-                  <h2 class="text-base font-semibold">
-                    {{ prefix + 'Pending' | translate }}
-                    <span class="ml-2 rounded bg-muted px-1.5 text-sm font-medium text-text-secondary"
-                      >{{ prefix + 'ToBuild' | translate }} · {{ pending().length }}</span
-                    >
-                  </h2>
-                  @for (p of pending(); track p.proposalId + '@' + p.revision) {
-                    <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
-                      <p class="text-sm text-text-secondary">
-                        {{ p.title }} / {{ prefix + 'Revision' | translate: { n: p.revision } }} /
-                        {{ prefix + 'Citations' | translate: { n: p.evidenceEventIds.length } }}
-                      </p>
-                      <button z-button (click)="showProposal(p)">
-                        {{ prefix + 'GoBuild' | translate }}<i class="ri-arrow-right-line"></i>
-                      </button>
-                    </div>
-                  }
-                </section>
-              }
-              <div class="flex flex-wrap gap-2 border-b border-border px-4 py-3">
-                <z-search-input
-                  class="min-w-[150px] flex-1 [&_input]:text-sm"
-                  [value]="term()"
-                  [placeholder]="prefix + 'Search' | translate"
-                  (valueChange)="term.set($event)"
-                /><z-combobox
-                  zSize="lg"
-                  class="w-44"
-                  zWidth="full"
-                  [options]="filterOptions()"
-                  [value]="status()"
-                  [ariaLabel]="prefix + 'status_all' | translate"
-                  (zValueChange)="status.set($event || 'all')"
-                />
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[690px] table-fixed">
-                  <colgroup>
-                    <col class="w-[34%]" />
-                    <col class="w-[19%]" />
-                    <col class="w-[22%]" />
-                    <col class="w-[10%]" />
-                    <col class="w-[15%]" />
-                  </colgroup>
-                  <thead
-                    class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
-                  >
-                    <tr>
-                      <th>{{ prefix + 'CandidateSource' | translate }}</th>
-                      @for (k of ['BuiltAt', 'LastReplay', 'Severe', 'Action']; track k) {
-                        <th [class.text-right]="$last">{{ prefix + k | translate }}</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of visible(); track row.c.candidateId) {
-                      <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
-                        <td>
-                          <div class="break-words font-medium">{{ row.title }}</div>
-                          <small class="text-sm text-text-secondary"
-                            >{{ name(row.c.targetId) }} ·
-                            {{ prefix + 'Revision' | translate: { n: row.c.proposalRevision } }}</small
-                          >
-                        </td>
-                        <td class="text-sm text-text-secondary">{{ row.c.createdAt | date: 'MM-dd HH:mm' }}</td>
-                        <td>
-                          <span
-                            class="rounded bg-muted px-1.5 py-0.5 text-sm font-medium"
-                            [class.text-text-success]="row.state === 'passed'"
-                            [class.text-text-destructive]="row.state === 'blocked'"
-                            >{{ prefix + 'status_' + row.state | translate }}</span
-                          >
-                          @if (row.r && row.r.status !== 'running') {
-                            <small class="text-sm"
-                              >{{ row.r.metrics.passedCases }} / {{ row.r.metrics.totalCases }}</small
-                            >
-                          }
-                        </td>
-                        <td [class.text-text-destructive]="row.r?.metrics?.severeErrors">
-                          {{ row.r?.metrics?.severeErrors ?? '—' }}
-                        </td>
-                        <td class="text-right">
-                          <button
-                            class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-                            (click)="row.r ? showRun(row.r) : showCandidate(row.c)"
-                          >
-                            {{
-                              prefix +
-                                (row.state === 'blocked'
-                                  ? 'ViewBlock'
-                                  : row.r
-                                    ? 'ViewResult'
-                                    : row.state === 'checks'
-                                      ? 'ViewChecks'
-                                      : 'Prepare') | translate
-                            }}
-                            <i class="ri-arrow-right-line" aria-hidden="true"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    } @empty {
-                      <tr>
-                        <td colspan="5" class="p-8 text-center text-sm text-text-secondary">
-                          {{ prefix + 'EmptyCandidates' | translate }}
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-              <div class="border-t border-border px-5 py-3 text-sm text-text-secondary">
-                {{ prefix + 'BuiltCount' | translate: { n: visible().length } }}
-              </div>
-              @if (other().length) {
-                <details class="border-t border-border px-5 py-3 text-sm">
-                  <summary class="cursor-pointer font-medium">
-                    {{ prefix + 'OtherRecords' | translate }} · {{ other().length }}
-                  </summary>
-                  @for (item of other(); track item.id) {
-                    <div class="mt-2 flex flex-wrap justify-between gap-2">
-                      <span>{{ item.presentation?.title || item.title }}</span
-                      ><button
-                        class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-                        (click)="go({ changeId: item.id, view: 'checks' })"
+      }
+      <section class="mt-4 overflow-hidden rounded-lg border border-border bg-card">
+        <nav class="flex gap-5 border-b border-border px-4">
+          @for (v of ['candidates', 'runs']; track v) {
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 border-b-2 border-transparent py-2 text-base font-medium text-text-secondary"
+              [class.!border-foreground]="tab() === v"
+              [class.!text-foreground]="tab() === v"
+              [attr.aria-pressed]="tab() === v"
+              (click)="directory(v)"
+            >
+              {{ prefix + v | translate }}
+              <span class="rounded bg-muted px-1.5 text-sm">{{
+                v === 'runs' ? runs().length + running().size : built().length
+              }}</span>
+            </button>
+          }
+        </nav>
+        @if (facade.loading() || (!facade.loadedAt() && !facade.error())) {
+          <p role="status" class="p-8 text-center text-sm text-text-secondary">
+            {{ 'XP.AgentEvolution.LoadingChanges' | translate }}
+          </p>
+        } @else {
+          @switch (stage()) {
+            @case ('directory') {
+              @if (tab() === 'candidates') {
+                @if (pending().length) {
+                  <section class="border-b border-border bg-muted/20 px-5 py-3">
+                    <h2 class="text-base font-semibold">
+                      {{ prefix + 'Pending' | translate }}
+                      <span class="ml-2 rounded bg-muted px-1.5 text-sm font-medium text-text-secondary"
+                        >{{ prefix + 'ToBuild' | translate }} · {{ pending().length }}</span
                       >
-                        {{ prefix + 'ViewChecks' | translate }}
-                      </button>
-                    </div>
-                  }
-                </details>
-              }
-            } @else {
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[700px]">
-                  <thead
-                    class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
-                  >
-                    <tr>
-                      @for (
-                        k of ['CandidateSource', 'Run', 'ThisSnapshot', 'Completed', 'Outcome', 'Action'];
-                        track k
-                      ) {
-                        <th [class.text-right]="$last">{{ prefix + k | translate }}</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (job of running() | keyvalue; track job.key) {
-                      <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
-                        <td class="font-medium">{{ title(job.key) }}</td>
-                        <td>—</td>
-                        <td class="font-mono text-sm">{{ short(job.value) }}</td>
-                        <td>—</td>
-                        <td>{{ prefix + 'status_running' | translate }}</td>
-                        <td class="text-right">
-                          <button
-                            class="text-sm font-medium text-text-accent hover:underline"
-                            (click)="go({ changeId: job.key, snapshot: job.value })"
-                          >
-                            {{ prefix + 'Progress' | translate }}
-                          </button>
-                        </td>
-                      </tr>
+                    </h2>
+                    @for (p of pending(); track p.proposalId + '@' + p.revision) {
+                      <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm text-text-secondary">
+                          {{ p.title }} / {{ prefix + 'Revision' | translate: { n: p.revision } }} /
+                          {{ prefix + 'Citations' | translate: { n: p.evidenceEventIds.length } }}
+                        </p>
+                        <button z-button (click)="showProposal(p)">
+                          {{ prefix + 'GoBuild' | translate }}<i class="ri-arrow-right-line"></i>
+                        </button>
+                      </div>
                     }
-                    @for (r of runs(); track r.runId) {
-                      <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
-                        <td class="font-medium">{{ title(r.candidateId) }}</td>
-                        <td class="font-mono text-sm" [title]="r.runId">{{ short(r.runId) }}</td>
-                        <td class="text-sm">
-                          <code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code> ·
-                          {{ prefix + 'Cases' | translate: { n: r.metrics.totalCases } }}
-                        </td>
-                        <td class="text-sm text-text-secondary">
-                          {{ r.completedAt || r.startedAt | date: 'MM-dd HH:mm' }}
-                        </td>
-                        <td class="text-sm" [class.text-text-destructive]="r.status === 'failed'">
-                          {{
-                            prefix + (r.status === 'running' ? 'status_running' : r.gate.passed ? 'Passed' : 'Blocked')
-                              | translate
-                          }}
-                        </td>
-                        <td class="text-right">
-                          <button
-                            class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-                            (click)="showRun(r)"
-                          >
-                            {{ prefix + 'ViewResult' | translate }}
-                          </button>
-                        </td>
-                      </tr>
-                    } @empty {
-                      <tr>
-                        <td
-                          colspan="6"
-                          [hidden]="running().size > 0"
-                          class="p-8 text-center text-sm text-text-secondary"
-                        >
-                          {{ prefix + 'EmptyRuns' | translate }}
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          }
-          @case ('build') {
-            @if (proposal(); as p) {
-              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-                <div>
-                  <h2 class="text-lg font-semibold">
-                    {{ p.title }}
-                    <span class="rounded bg-muted px-2 text-sm font-medium">{{
-                      prefix + (findBuilt(p) ? 'Built' : 'ToBuild') | translate
-                    }}</span>
-                  </h2>
-                  <p class="mt-1 text-sm text-text-secondary">
-                    {{ prefix + 'Source' | translate }} · {{ prefix + 'Revision' | translate: { n: p.revision } }} /
-                    {{ 'XP.AgentEvolution.ScopeType.' + p.scope.type | translate }}
-                  </p>
-                </div>
-                <a
-                  z-button
-                  zType="outline"
-                  routerLink="/agent-evolution/learning"
-                  [queryParams]="{ target: p.targetId, proposalId: p.proposalId, revision: p.revision }"
-                  >{{ prefix + 'ViewSource' | translate }}<i class="ri-arrow-right-up-line"></i
-                ></a>
-              </div>
-              <div class="p-5">
-                <h3 class="font-semibold">{{ prefix + 'BuildBasis' | translate }}</h3>
-                <div class="my-3 flex flex-wrap gap-x-10 gap-y-2 text-sm text-text-secondary">
-                  <span>{{ prefix + 'Citations' | translate: { n: p.evidenceEventIds.length } }}</span
-                  ><span>{{ 'XP.AgentEvolution.Target' | translate }} · {{ name(p.targetId) }}</span>
-                </div>
-                @if (findBuilt(p); as existing) {
-                  <button z-button zType="outline" (click)="showCandidate(existing)">
-                    {{ prefix + 'OpenBuilt' | translate }}
-                  </button>
+                  </section>
                 }
-                @if (canManage() && (p.status === 'ready' || facade.mutating())) {
-                  <xp-learning-candidate-form
-                    [nextStepHint]="true"
-                    [selectedProposal]="p"
-                    [candidateTarget]="byTarget().get(p.targetId)"
-                    (built)="showCandidate($event)"
+                <div class="flex flex-wrap gap-2 border-b border-border px-4 py-3">
+                  <z-search-input
+                    class="min-w-[150px] flex-1 [&_input]:text-sm"
+                    [value]="term()"
+                    [placeholder]="prefix + 'Search' | translate"
+                    (valueChange)="term.set($event)"
+                  /><z-combobox
+                    zSize="lg"
+                    class="w-44"
+                    zWidth="full"
+                    [options]="filterOptions()"
+                    [value]="status()"
+                    [ariaLabel]="prefix + 'status_all' | translate"
+                    (zValueChange)="status.set($event || 'all')"
                   />
-                } @else if (!findBuilt(p)) {
-                  <p class="text-sm text-text-secondary">{{ prefix + 'ReadOnly' | translate }}</p>
-                }
-              </div>
-            }
-          }
-          @case ('prepare') {
-            @if (candidate(); as cand) {
-              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-                <div>
-                  <h2 class="text-lg font-semibold">
-                    {{ title(cand.candidateId) }}
-                    <span class="rounded bg-muted px-2 text-sm font-medium">{{
-                      prefix + 'status_waiting' | translate
-                    }}</span>
-                  </h2>
-                  <p class="mt-1 text-sm text-text-secondary">
-                    {{ prefix + 'Source' | translate }} ·
-                    {{ prefix + 'Revision' | translate: { n: cand.proposalRevision } }}
-                    @if (proposal(); as source) {
-                      / {{ prefix + 'Citations' | translate: { n: source.evidenceEventIds.length } }}
-                    }
-                    / {{ 'XP.AgentEvolution.ScopeType.' + cand.targetScope.type | translate }}
-                  </p>
                 </div>
-                <button z-button zType="outline" (click)="directory('candidates')">
-                  {{ prefix + 'BackCandidates' | translate }}
-                </button>
-              </div>
-              <div class="p-5">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 class="font-semibold">{{ prefix + 'ChooseSnapshot' | translate }}</h3>
-                    <p class="text-sm text-text-secondary">{{ prefix + 'Compatible' | translate }}</p>
-                  </div>
-                  @if (canManage()) {
-                    <button z-button zType="outline" (click)="editing.set(!editing())">
-                      <i class="ri-database-2-line"></i>{{ 'XP.AgentEvolution.CreateDataset' | translate }}
-                    </button>
-                  }
-                </div>
-                @if (editing()) {
-                  <xp-replay-dataset-editor
-                    class="mt-3 block"
-                    [candidate]="cand"
-                    [candidateTarget]="byTarget().get(cand.targetId)"
-                    (closed)="editing.set(false)"
-                    (created)="choose($event); editing.set(false)"
-                  />
-                }
-                <div class="mt-3 overflow-x-auto rounded-lg border border-border">
-                  <table class="w-full min-w-[680px]">
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[690px] table-fixed">
+                    <colgroup>
+                      <col class="w-[34%]" />
+                      <col class="w-[19%]" />
+                      <col class="w-[22%]" />
+                      <col class="w-[10%]" />
+                      <col class="w-[15%]" />
+                    </colgroup>
                     <thead
                       class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
                     >
                       <tr>
-                        @for (k of ['SnapshotName', 'SnapshotId', 'FrozenAt', 'CaseCount', 'Versions']; track k) {
-                          <th>{{ prefix + k | translate }}</th>
+                        <th>{{ prefix + 'CandidateSource' | translate }}</th>
+                        @for (k of ['BuiltAt', 'LastReplay', 'Severe', 'Action']; track k) {
+                          <th [class.text-right]="$last">{{ prefix + k | translate }}</th>
                         }
                       </tr>
                     </thead>
                     <tbody>
-                      @for (d of snapshots(); track d.snapshotId) {
-                        <tr
-                          class="border-t border-border [&_td]:px-4 [&_td]:py-2.5"
-                          [class.bg-muted]="chosen()?.snapshotId === d.snapshotId"
-                        >
+                      @for (row of visible(); track row.c.candidateId) {
+                        <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
                           <td>
-                            <label class="flex cursor-pointer items-center gap-2"
-                              ><input
-                                type="radio"
-                                name="snapshot"
-                                class="accent-foreground"
-                                [checked]="chosen()?.snapshotId === d.snapshotId"
-                                [attr.aria-label]="d.name + ' ' + d.snapshotId"
-                                (change)="choose(d.snapshotId)"
-                              />{{ d.name }}</label
+                            <div class="break-words font-medium">{{ row.title }}</div>
+                            <small class="text-sm text-text-secondary"
+                              >{{ name(row.c.targetId) }} ·
+                              {{ prefix + 'Revision' | translate: { n: row.c.proposalRevision } }}</small
                             >
                           </td>
-                          <td class="font-mono text-sm" [title]="d.snapshotId">{{ short(d.snapshotId) }}</td>
-                          <td class="text-sm">{{ d.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
-                          <td>{{ d.cases.length }}</td>
-                          <td class="text-sm">{{ d.evaluatorVersion || '—' }} / {{ d.metricDefinitionVersion }}</td>
+                          <td class="text-sm text-text-secondary">{{ row.c.createdAt | date: 'MM-dd HH:mm' }}</td>
+                          <td>
+                            <span
+                              class="rounded bg-muted px-1.5 py-0.5 text-sm font-medium"
+                              [class.text-text-success]="row.state === 'passed'"
+                              [class.text-text-destructive]="row.state === 'blocked'"
+                              >{{ prefix + 'status_' + row.state | translate }}</span
+                            >
+                            @if (row.r && row.r.status !== 'running') {
+                              <small class="text-sm"
+                                >{{ row.r.metrics.passedCases }} / {{ row.r.metrics.totalCases }}</small
+                              >
+                            }
+                          </td>
+                          <td [class.text-text-destructive]="row.r?.metrics?.severeErrors">
+                            {{ row.r?.metrics?.severeErrors ?? '—' }}
+                          </td>
+                          <td class="text-right">
+                            <button
+                              class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+                              (click)="row.r ? showRun(row.r) : showCandidate(row.c)"
+                            >
+                              {{
+                                prefix +
+                                  (row.state === 'blocked'
+                                    ? 'ViewBlock'
+                                    : row.r
+                                      ? 'ViewResult'
+                                      : row.state === 'checks'
+                                        ? 'ViewChecks'
+                                        : 'Prepare') | translate
+                              }}
+                              <i class="ri-arrow-right-line" aria-hidden="true"></i>
+                            </button>
+                          </td>
                         </tr>
                       } @empty {
                         <tr>
-                          <td colspan="5" class="p-6 text-sm text-text-secondary">
-                            {{ prefix + 'NoSnapshots' | translate }}
+                          <td colspan="5" class="p-8 text-center text-sm text-text-secondary">
+                            {{ prefix + 'EmptyCandidates' | translate }}
                           </td>
                         </tr>
                       }
                     </tbody>
                   </table>
                 </div>
-              </div>
-              <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-3">
-                <span class="text-sm text-text-secondary">
-                  @if (chosen(); as d) {
-                    {{ prefix + 'Selected' | translate }} <code>{{ short(d.snapshotId) }}</code> ·
-                    {{ prefix + 'Cases' | translate: { n: d.cases.length } }}
-                  } @else {
-                    {{ prefix + 'ExplicitChoice' | translate }}
-                  }</span
-                ><button z-button [zDisabled]="!canRun()" (click)="confirm()">
-                  <i class="ri-play-circle-line"></i>{{ prefix + 'RunReplay' | translate }}
-                </button>
-              </div>
-            }
-          }
-          @case ('running') {
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-              <div>
-                <h2 class="flex items-center gap-2 text-lg font-semibold">
-                  {{ title(id()!) }}
-                  <span class="rounded bg-state-warning-hover/20 px-2 text-sm text-text-warning"
-                    ><i class="ri-loader-4-line inline-block animate-spin"></i>
-                    {{ prefix + 'status_running' | translate }}</span
-                  >
-                </h2>
-                <p class="text-sm text-text-secondary">
-                  {{ prefix + 'ThisSnapshot' | translate }} <span>{{ runningSnapshot()?.name }}</span>
-                  <code>{{ short(runningHere()!) }}</code>
-                  @if (runningSnapshot(); as ds) {
-                    · {{ prefix + 'Cases' | translate: { n: ds.cases.length } }}
-                  }
-                </p>
-              </div>
-              <button z-button zType="outline" (click)="directory('runs')">{{ prefix + 'History' | translate }}</button>
-            </div>
-            <div class="px-5 py-4" role="status">
-              <h3 class="font-semibold">{{ prefix + 'Executing' | translate }}</h3>
-              <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'WorkingHint' | translate }}</p>
-            </div>
-            <footer class="flex flex-wrap justify-between border-t border-border px-5 py-3 text-sm text-text-secondary">
-              <span>{{ prefix + 'Submitted' | translate }}</span
-              ><span
-                >{{ prefix + 'ThisSnapshot' | translate }} ·
-                {{ 'XP.AgentEvolution.ScopeType.' + candidate()?.targetScope?.type | translate }}</span
-              >
-            </footer>
-          }
-          @case ('result') {
-            @for (r of run() ? [run()!] : []; track r.runId) {
-              @if (r.status === 'running') {
-                <p class="p-5" role="status">{{ prefix + 'Executing' | translate }}</p>
+                <div class="border-t border-border px-5 py-3 text-sm text-text-secondary">
+                  {{ prefix + 'BuiltCount' | translate: { n: visible().length } }}
+                </div>
+                @if (other().length) {
+                  <details class="border-t border-border px-5 py-3 text-sm">
+                    <summary class="cursor-pointer font-medium">
+                      {{ prefix + 'OtherRecords' | translate }} · {{ other().length }}
+                    </summary>
+                    @for (item of other(); track item.id) {
+                      <div class="mt-2 flex flex-wrap justify-between gap-2">
+                        <span>{{ item.presentation?.title || item.title }}</span
+                        ><button
+                          class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+                          (click)="go({ changeId: item.id, view: 'checks' })"
+                        >
+                          {{ prefix + 'ViewChecks' | translate }}
+                        </button>
+                      </div>
+                    }
+                  </details>
+                }
               } @else {
-                <xp-replay-result
-                  [run]="r"
-                  [snapshot]="runSnapshot()"
-                  [target]="byTarget().get(candidate()?.targetId || r.targetId || '')"
-                  [title]="title(r.candidateId)"
-                  [caseId]="q().get('caseId')"
-                  [caseIndex]="q().get('caseIndex')"
-                  (caseChanged)="setCase($event)"
-                  (switchRun)="directory('runs')"
-                />
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[700px]">
+                    <thead
+                      class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                    >
+                      <tr>
+                        @for (
+                          k of ['CandidateSource', 'Run', 'ThisSnapshot', 'Completed', 'Outcome', 'Action'];
+                          track k
+                        ) {
+                          <th [class.text-right]="$last">{{ prefix + k | translate }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (job of running() | keyvalue; track job.key) {
+                        <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
+                          <td class="font-medium">{{ title(job.key) }}</td>
+                          <td>—</td>
+                          <td class="font-mono text-sm">{{ short(job.value) }}</td>
+                          <td>—</td>
+                          <td>{{ prefix + 'status_running' | translate }}</td>
+                          <td class="text-right">
+                            <button
+                              class="text-sm font-medium text-text-accent hover:underline"
+                              (click)="go({ changeId: job.key, snapshot: job.value })"
+                            >
+                              {{ prefix + 'Progress' | translate }}
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                      @for (r of runs(); track r.runId) {
+                        <tr class="border-t border-border [&_td]:px-4 [&_td]:py-2.5">
+                          <td class="font-medium">{{ title(r.candidateId) }}</td>
+                          <td class="font-mono text-sm" [title]="r.runId">{{ short(r.runId) }}</td>
+                          <td class="text-sm">
+                            <code [title]="r.datasetSnapshotId">{{ short(r.datasetSnapshotId) }}</code> ·
+                            {{ prefix + 'Cases' | translate: { n: r.metrics.totalCases } }}
+                          </td>
+                          <td class="text-sm text-text-secondary">
+                            {{ r.completedAt || r.startedAt | date: 'MM-dd HH:mm' }}
+                          </td>
+                          <td class="text-sm" [class.text-text-destructive]="r.status === 'failed'">
+                            {{
+                              prefix +
+                                (r.status === 'running' ? 'status_running' : r.gate.passed ? 'Passed' : 'Blocked')
+                                | translate
+                            }}
+                          </td>
+                          <td class="text-right">
+                            <button
+                              class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+                              (click)="showRun(r)"
+                            >
+                              {{ prefix + 'ViewResult' | translate }}
+                            </button>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td
+                            colspan="6"
+                            [hidden]="running().size > 0"
+                            class="p-8 text-center text-sm text-text-secondary"
+                          >
+                            {{ prefix + 'EmptyRuns' | translate }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
               }
             }
-          }
-          @case ('checks') {
-            @if (resource(); as item) {
-              <div class="flex justify-end px-5 pt-3">
+            @case ('build') {
+              @if (proposal(); as p) {
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      {{ p.title }}
+                      <span class="rounded bg-muted px-2 text-sm font-medium">{{
+                        prefix + (findBuilt(p) ? 'Built' : 'ToBuild') | translate
+                      }}</span>
+                    </h2>
+                    <p class="mt-1 text-sm text-text-secondary">
+                      {{ prefix + 'Source' | translate }} · {{ prefix + 'Revision' | translate: { n: p.revision } }} /
+                      {{ 'XP.AgentEvolution.ScopeType.' + p.scope.type | translate }}
+                    </p>
+                  </div>
+                  <a
+                    z-button
+                    zType="outline"
+                    routerLink="/agent-evolution/learning"
+                    [queryParams]="{ target: p.targetId, proposalId: p.proposalId, revision: p.revision }"
+                    >{{ prefix + 'ViewSource' | translate }}<i class="ri-arrow-right-up-line"></i
+                  ></a>
+                </div>
+                <div class="p-5">
+                  <h3 class="font-semibold">{{ prefix + 'BuildBasis' | translate }}</h3>
+                  <div class="my-3 flex flex-wrap gap-x-10 gap-y-2 text-sm text-text-secondary">
+                    <span>{{ prefix + 'Citations' | translate: { n: p.evidenceEventIds.length } }}</span
+                    ><span>{{ 'XP.AgentEvolution.Target' | translate }} · {{ name(p.targetId) }}</span>
+                  </div>
+                  @if (findBuilt(p); as existing) {
+                    <button z-button zType="outline" (click)="showCandidate(existing)">
+                      {{ prefix + 'OpenBuilt' | translate }}
+                    </button>
+                  }
+                  @if (canManage() && (p.status === 'ready' || facade.mutating())) {
+                    <xp-learning-candidate-form
+                      [nextStepHint]="true"
+                      [selectedProposal]="p"
+                      [candidateTarget]="byTarget().get(p.targetId)"
+                      (built)="showCandidate($event)"
+                    />
+                  } @else if (!findBuilt(p)) {
+                    <p class="text-sm text-text-secondary">{{ prefix + 'ReadOnly' | translate }}</p>
+                  }
+                </div>
+              }
+            }
+            @case ('prepare') {
+              @if (candidate(); as cand) {
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      {{ title(cand.candidateId) }}
+                      <span class="rounded bg-muted px-2 text-sm font-medium">{{
+                        prefix + 'status_waiting' | translate
+                      }}</span>
+                    </h2>
+                    <p class="mt-1 text-sm text-text-secondary">
+                      {{ prefix + 'Source' | translate }} ·
+                      {{ prefix + 'Revision' | translate: { n: cand.proposalRevision } }}
+                      @if (proposal(); as source) {
+                        / {{ prefix + 'Citations' | translate: { n: source.evidenceEventIds.length } }}
+                      }
+                      / {{ 'XP.AgentEvolution.ScopeType.' + cand.targetScope.type | translate }}
+                    </p>
+                  </div>
+                  <button z-button zType="outline" (click)="directory('candidates')">
+                    {{ prefix + 'BackCandidates' | translate }}
+                  </button>
+                </div>
+                <div class="p-5">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 class="font-semibold">{{ prefix + 'ChooseSnapshot' | translate }}</h3>
+                      <p class="text-sm text-text-secondary">{{ prefix + 'Compatible' | translate }}</p>
+                    </div>
+                    @if (canManage()) {
+                      <button z-button zType="outline" (click)="editDataset()">
+                        <i class="ri-database-2-line"></i>{{ 'XP.AgentEvolution.CreateDataset' | translate }}
+                      </button>
+                    }
+                  </div>
+                  <div class="mt-3 overflow-x-auto rounded-lg border border-border">
+                    <table class="w-full min-w-[680px]">
+                      <thead
+                        class="bg-muted/40 text-left text-sm font-medium text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium"
+                      >
+                        <tr>
+                          @for (k of ['SnapshotName', 'SnapshotId', 'FrozenAt', 'CaseCount', 'Versions']; track k) {
+                            <th>{{ prefix + k | translate }}</th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (d of snapshots(); track d.snapshotId) {
+                          <tr
+                            class="border-t border-border [&_td]:px-4 [&_td]:py-2.5"
+                            [class.bg-muted]="chosen()?.snapshotId === d.snapshotId"
+                          >
+                            <td>
+                              <label class="flex cursor-pointer items-center gap-2"
+                                ><input
+                                  type="radio"
+                                  name="snapshot"
+                                  class="accent-foreground"
+                                  [checked]="chosen()?.snapshotId === d.snapshotId"
+                                  [attr.aria-label]="d.name + ' ' + d.snapshotId"
+                                  (change)="choose(d.snapshotId)"
+                                />{{ d.name }}</label
+                              >
+                            </td>
+                            <td class="font-mono text-sm" [title]="d.snapshotId">{{ short(d.snapshotId) }}</td>
+                            <td class="text-sm">{{ d.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                            <td>{{ d.cases.length }}</td>
+                            <td class="text-sm">{{ d.evaluatorVersion || '—' }} / {{ d.metricDefinitionVersion }}</td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="5" class="p-6 text-sm text-text-secondary">
+                              {{ prefix + 'NoSnapshots' | translate }}
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-3">
+                  <span class="text-sm text-text-secondary">
+                    @if (chosen(); as d) {
+                      {{ prefix + 'Selected' | translate }} <code>{{ short(d.snapshotId) }}</code> ·
+                      {{ prefix + 'Cases' | translate: { n: d.cases.length } }}
+                    } @else {
+                      {{ prefix + 'ExplicitChoice' | translate }}
+                    }</span
+                  ><button z-button [zDisabled]="!canRun()" (click)="confirm()">
+                    <i class="ri-play-circle-line"></i>{{ prefix + 'RunReplay' | translate }}
+                  </button>
+                </div>
+              }
+            }
+            @case ('running') {
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                <div>
+                  <h2 class="flex items-center gap-2 text-lg font-semibold">
+                    {{ title(id()!) }}
+                    <span class="rounded bg-state-warning-hover/20 px-2 text-sm text-text-warning"
+                      ><i class="ri-loader-4-line inline-block animate-spin"></i>
+                      {{ prefix + 'status_running' | translate }}</span
+                    >
+                  </h2>
+                  <p class="text-sm text-text-secondary">
+                    {{ prefix + 'ThisSnapshot' | translate }} <span>{{ runningSnapshot()?.name }}</span>
+                    <code>{{ short(runningHere()!) }}</code>
+                    @if (runningSnapshot(); as ds) {
+                      · {{ prefix + 'Cases' | translate: { n: ds.cases.length } }}
+                    }
+                  </p>
+                </div>
+                <button z-button zType="outline" (click)="directory('runs')">
+                  {{ prefix + 'History' | translate }}
+                </button>
+              </div>
+              <div class="px-5 py-4" role="status">
+                <h3 class="font-semibold">{{ prefix + 'Executing' | translate }}</h3>
+                <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'WorkingHint' | translate }}</p>
+              </div>
+              <footer
+                class="flex flex-wrap justify-between border-t border-border px-5 py-3 text-sm text-text-secondary"
+              >
+                <span>{{ prefix + 'Submitted' | translate }}</span
+                ><span
+                  >{{ prefix + 'ThisSnapshot' | translate }} ·
+                  {{ 'XP.AgentEvolution.ScopeType.' + candidate()?.targetScope?.type | translate }}</span
+                >
+              </footer>
+            }
+            @case ('result') {
+              @for (r of run() ? [run()!] : []; track r.runId) {
+                @if (r.status === 'running') {
+                  <p class="p-5" role="status">{{ prefix + 'Executing' | translate }}</p>
+                } @else {
+                  <xp-replay-result
+                    [run]="r"
+                    [snapshot]="runSnapshot()"
+                    [target]="byTarget().get(candidate()?.targetId || r.targetId || '')"
+                    [title]="title(r.candidateId)"
+                    [caseId]="q().get('caseId')"
+                    [caseIndex]="q().get('caseIndex')"
+                    (caseChanged)="setCase($event)"
+                    (switchRun)="directory('runs')"
+                  />
+                }
+              }
+            }
+            @case ('checks') {
+              @if (resource(); as item) {
+                <div class="flex justify-end px-5 pt-3">
+                  <button z-button zType="outline" (click)="directory('candidates')">
+                    {{ prefix + 'BackCandidates' | translate }}
+                  </button>
+                </div>
+                <div class="p-5">
+                  <xp-evolution-change-panel [change]="item" [lifecycle]="record() ?? null" mode="evaluation" />
+                </div>
+              }
+            }
+            @case ('missing') {
+              <p class="p-6 text-sm text-text-secondary">
+                {{ prefix + 'Unavailable' | translate }}
                 <button z-button zType="outline" (click)="directory('candidates')">
                   {{ prefix + 'BackCandidates' | translate }}
                 </button>
-              </div>
-              <div class="p-5">
-                <xp-evolution-change-panel [change]="item" [lifecycle]="record() ?? null" mode="evaluation" />
-              </div>
+              </p>
             }
           }
-          @case ('missing') {
-            <p class="p-6 text-sm text-text-secondary">
-              {{ prefix + 'Unavailable' | translate }}
-              <button z-button zType="outline" (click)="directory('candidates')">
-                {{ prefix + 'BackCandidates' | translate }}
-              </button>
-            </p>
-          }
         }
-      }
-    </section>
-    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-text-secondary">
-      <p>
-        <i class="ri-information-line mr-1"></i
-        >{{ prefix + (stage() === 'result' ? 'HistoryNote' : 'DirectoryNote') | translate }}
-      </p>
-      <div class="flex flex-wrap items-center gap-3">
-        @if (resource() && (stage() === 'result' || stage() === 'prepare')) {
-          <button
-            class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-            (click)="go({ changeId: id()!, view: 'checks' })"
-          >
-            {{ prefix + 'Governance' | translate }}<i class="ri-arrow-right-s-line"></i>
-          </button>
-        }
-        @if (record(); as rec) {
-          @if (rec.phase === 'publication' || rec.publication) {
-            <a
+      </section>
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-text-secondary">
+        <p>
+          <i class="ri-information-line mr-1"></i
+          >{{ prefix + (stage() === 'result' ? 'HistoryNote' : 'DirectoryNote') | translate }}
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          @if (resource() && (stage() === 'result' || stage() === 'prepare')) {
+            <button
               class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
-              routerLink="/agent-evolution/release"
-              [queryParams]="{ target: rec.targetId, changeId: rec.id }"
+              (click)="go({ changeId: id()!, view: 'checks' })"
             >
-              {{ 'XP.AgentEvolution.TabRelease' | translate }}<i class="ri-arrow-right-s-line" aria-hidden="true"></i>
-            </a>
+              {{ prefix + 'Governance' | translate }}<i class="ri-arrow-right-s-line"></i>
+            </button>
           }
-        }
+          @if (record(); as rec) {
+            @if (rec.phase === 'publication' || rec.publication) {
+              <a
+                class="text-sm font-medium text-text-accent hover:underline focus-visible:underline"
+                routerLink="/agent-evolution/release"
+                [queryParams]="{ target: rec.targetId, changeId: rec.id }"
+              >
+                {{ 'XP.AgentEvolution.TabRelease' | translate }}<i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+              </a>
+            }
+          }
+        </div>
       </div>
     </div>
-  </div>
-</main>
+  </main>
+}
