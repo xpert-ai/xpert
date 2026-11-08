@@ -9,7 +9,8 @@
           <p class="mt-1 text-sm text-text-secondary">{{ key('Intro') | translate }}</p>
         </div>
         <z-combobox
-          class="w-full min-w-0 @2xl/overview:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-base"
+          zSize="lg"
+          class="w-full min-w-0 @2xl/overview:w-[180px] [&_button]:text-base"
           zWidth="full"
           [value]="facade.selectedTargetId()"
           [options]="targetOptions()"
@@ -28,8 +29,9 @@
           <p>{{ key('NoTargets') | translate }}</p>
           <button
             z-button
+            zSize="default"
             zType="outline"
-            class="mt-3 min-h-[44px]"
+            class="mt-3"
             [zLoading]="facade.synchronizing()"
             [zDisabled]="facade.mutating()"
             (click)="facade.synchronize()"
@@ -118,7 +120,7 @@
                       }}</z-badge
                     >
                     <a
-                      class="inline-flex min-h-[44px] items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring justify-self-end px-0 text-sm font-medium text-text-accent"
+                      class="inline-flex py-2 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring justify-self-end px-0 text-sm font-medium text-text-accent"
                       [routerLink]="row.route"
                       [queryParams]="row.query"
                       [fragment]="row.fragment"
@@ -165,7 +167,7 @@
                   </div>
                 </dl>
                 <a
-                  class="inline-flex min-h-[44px] items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring px-0 text-sm font-medium text-text-accent"
+                  class="inline-flex py-2 items-center gap-1 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-ring px-0 text-sm font-medium text-text-accent"
                   routerLink="../release"
                   [queryParams]="{ changeId: active.record.id }"
                   fragment="observations"
@@ -187,9 +189,10 @@
                 <p class="mt-1 text-sm leading-5 text-text-secondary">{{ key('HistoricalScope') | translate }}</p>
                 <button
                   z-button
+                  zSize="sm"
                   zType="link"
                   zSize="sm"
-                  class="mt-1 min-h-[44px] px-0 text-sm font-medium text-text-accent"
+                  class="mt-1 px-0 text-sm font-medium text-text-accent"
                   [attr.aria-expanded]="historyOpen()"
                   aria-controls="overview-history"
                   (click)="historyOpen.set(!historyOpen())"

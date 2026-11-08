@@ -8,7 +8,8 @@
       <label class="flex w-full items-center gap-2.5 @2xl/learn:w-auto"
         ><span class="shrink-0 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.Scope' | translate }}</span
         ><z-combobox
-          class="min-w-0 flex-1 @2xl/learn:w-[180px] [&_button]:min-h-[44px] [&_button]:text-base"
+          zSize="lg"
+          class="min-w-0 flex-1 @2xl/learn:w-[180px] [&_button]:text-base"
           zWidth="full"
           [value]="facade.selectedTargetId()"
           [options]="options()"
@@ -25,7 +26,7 @@
         @for (v of ['feedback', 'proposals']; track v) {
           <button
             type="button"
-            class="inline-flex min-h-[44px] items-center gap-1.5 border-b-2 border-transparent text-base font-medium"
+            class="inline-flex py-2 items-center gap-1.5 border-b-2 border-transparent text-base font-medium"
             [class.!border-foreground]="view() === v"
             [attr.aria-pressed]="view() === v"
             (click)="navigate(v === 'feedback' ? 'feedback' : 'proposals')"
@@ -48,9 +49,10 @@
             @if (dest().cited; as id) {
               <button
                 z-button
+                zSize="default"
                 type="button"
                 zType="outline"
-                class="min-h-[44px] text-sm"
+                class="text-sm"
                 (click)="navigate('proposals', { proposalId: id, revision: dest().revision ?? 1 })"
               >
                 {{ prefix + 'BackProposal' | translate }}
@@ -59,9 +61,10 @@
             @if (dest().citing; as id) {
               <button
                 z-button
+                zSize="default"
                 type="button"
                 zType="outline"
-                class="min-h-[44px] text-sm"
+                class="text-sm"
                 (click)="navigate('feedback', { eventId: id })"
               >
                 {{ prefix + 'BackEvent' | translate }}
@@ -69,8 +72,9 @@
             }
             <button
               z-button
+              zSize="default"
               type="button"
-              class="min-h-[44px] shrink-0 text-sm"
+              class="shrink-0 text-sm"
               zType="ghost"
               (click)="navigate(view())"
             >
@@ -81,7 +85,7 @@
       }
       <div class="flex flex-wrap gap-2 border-b border-border px-4 py-3">
         <z-search-input
-          class="min-w-[150px] flex-1 [&_[data-slot=input-group]]:min-h-[44px] [&_input]:text-sm"
+          class="min-w-[150px] flex-1 [&_input]:text-sm"
           [value]="filters().search"
           [placeholder]="prefix + (view() === 'feedback' ? 'SearchFeedback' : 'SearchProposals') | translate"
           (valueChange)="setFilter({ search: $event })"
@@ -90,8 +94,9 @@
           <button
             type="button"
             z-button
+            zSize="lg"
             zType="outline"
-            class="min-h-[44px] shrink-0 gap-2 px-3 text-sm"
+            class="shrink-0 text-sm"
             z-menu
             [zMenuTriggerFor]="kindMenu"
           >
@@ -110,8 +115,9 @@
           ><button
             type="button"
             z-button
+            zSize="lg"
             zType="outline"
-            class="min-h-[44px] shrink-0 gap-2 px-3 text-sm"
+            class="shrink-0 text-sm"
             z-menu
             [zMenuTriggerFor]="markMenu"
           >
@@ -132,8 +138,9 @@
           <button
             type="button"
             z-button
+            zSize="lg"
             zType="outline"
-            class="min-h-[44px] shrink-0 gap-2 px-3 text-sm"
+            class="shrink-0 text-sm"
             z-menu
             [zMenuTriggerFor]="historyMenu"
           >
@@ -157,8 +164,9 @@
           {{ prefix + 'LoadFailed' | translate }}
           <button
             z-button
+            zSize="default"
             type="button"
-            class="min-h-[44px] shrink-0"
+            class="shrink-0"
             zType="outline"
             (click)="revision.set(revision() + 1)"
           >
@@ -187,7 +195,7 @@
             >
               <button
                 type="button"
-                class="col-span-full grid min-h-[48px] min-w-0 grid-cols-[18px_1fr] items-center gap-x-3 gap-y-1 py-2 text-left focus-visible:outline-ring @4xl/learn:col-span-5 @4xl/learn:grid-cols-subgrid"
+                class="col-span-full grid min-w-0 grid-cols-[18px_1fr] items-center gap-x-3 gap-y-1 py-3 text-left focus-visible:outline-ring @4xl/learn:col-span-5 @4xl/learn:grid-cols-subgrid"
                 [attr.aria-expanded]="open"
                 (click)="toggle(event.eventId, first)"
               >
@@ -208,7 +216,7 @@
                 @if (row.proposalCount) {
                   <button
                     type="button"
-                    class="min-h-[44px] font-medium text-text-accent"
+                    class="py-1.5 font-medium text-text-accent"
                     (click)="navigate('proposals', { citingEvent: event.eventId })"
                   >
                     {{ prefix + 'Count' | translate: { n: row.proposalCount } }}
@@ -292,8 +300,9 @@
                   @if (event.reviewStatus === 'ignored') {
                     <button
                       z-button
+                      zSize="default"
                       type="button"
-                      class="min-h-[44px] shrink-0 text-sm"
+                      class="shrink-0 text-sm"
                       zType="outline"
                       [zDisabled]="facade.mutating()"
                       (click)="review(event, 'pending')"
@@ -303,8 +312,9 @@
                   } @else {
                     <button
                       z-button
+                      zSize="default"
                       type="button"
-                      class="min-h-[44px] shrink-0 text-sm"
+                      class="shrink-0 text-sm"
                       zType="outline"
                       [zDisabled]="facade.mutating()"
                       (click)="review(event, event.reviewStatus === 'golden' ? 'pending' : 'golden')"
@@ -314,8 +324,9 @@
                     </button>
                     <button
                       z-button
+                      zSize="default"
                       type="button"
-                      class="min-h-[44px] shrink-0 text-sm"
+                      class="shrink-0 text-sm"
                       zType="ghost"
                       [zDisabled]="facade.mutating()"
                       (click)="review(event, 'ignored')"
@@ -325,8 +336,9 @@
                   }
                   <button
                     z-button
+                    zSize="default"
                     type="button"
-                    class="min-h-[44px] shrink-0 ml-auto text-sm"
+                    class="shrink-0 ml-auto text-sm"
                     [zDisabled]="event.reviewStatus === 'ignored' || facade.mutating()"
                     (click)="check(event)"
                   >
@@ -352,7 +364,7 @@
             @let p = row.proposal;@let open = isExpanded(key(row), first);
             <button
               type="button"
-              class="grid min-h-[48px] w-full grid-cols-[18px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b border-border px-4 py-2 text-left hover:bg-muted/50 @4xl/learn:grid-cols-[24px_minmax(12rem,2.4fr)_minmax(8rem,1fr)_4rem_5rem_5rem_7rem]"
+              class="grid w-full grid-cols-[18px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3 text-left hover:bg-muted/50 @4xl/learn:grid-cols-[24px_minmax(12rem,2.4fr)_minmax(8rem,1fr)_4rem_5rem_5rem_7rem]"
               [class.bg-muted]="open"
               [attr.aria-expanded]="open"
               (click)="toggle(key(row), first)"
@@ -402,8 +414,9 @@
                 @if (row.candidateId) {
                   <a
                     z-button
+                    zSize="default"
                     type="button"
-                    class="min-h-[44px] shrink-0 text-sm"
+                    class="shrink-0 text-sm"
                     zType="outline"
                     [routerLink]="['/agent-evolution/candidates', row.candidateId]"
                     ><i class="ri-arrow-right-line"></i>{{ prefix + 'ViewCandidate' | translate }}</a
@@ -421,8 +434,9 @@
             @if (filters().search || filters().kind !== 'all' || filters().status !== 'all') {
               <button
                 z-button
+                zSize="default"
                 type="button"
-                class="min-h-[44px] shrink-0 ml-2"
+                class="shrink-0 ml-2"
                 zType="outline"
                 (click)="setFilter({ search: '', kind: 'all', status: 'all' })"
               >
@@ -431,14 +445,15 @@
             }
           </div>
         }
-        <div class="flex min-h-[44px] items-center justify-between gap-2 px-4 text-sm text-text-secondary">
+        <div class="flex items-center justify-between gap-2 px-4 py-2 text-sm text-text-secondary">
           <span>{{ prefix + 'Total' | translate: { n: result()?.total ?? 0 } }}</span>
           <div class="flex items-center gap-1">
             <span>{{ filters().page }} / {{ maxPage() }}</span
             ><button
               z-button
+              zSize="icon-sm"
               type="button"
-              class="min-h-[44px] shrink-0 min-w-[44px]"
+              class="shrink-0"
               zType="ghost"
               [attr.aria-label]="prefix + 'Previous' | translate"
               [zDisabled]="filters().page <= 1"
@@ -447,8 +462,9 @@
               <i class="ri-arrow-left-s-line"></i></button
             ><button
               z-button
+              zSize="icon-sm"
               type="button"
-              class="min-h-[44px] shrink-0 min-w-[44px]"
+              class="shrink-0"
               zType="ghost"
               [attr.aria-label]="prefix + 'Next' | translate"
               [zDisabled]="filters().page >= maxPage()"

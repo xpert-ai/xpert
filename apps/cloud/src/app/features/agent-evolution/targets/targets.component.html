@@ -16,7 +16,8 @@
       <div class="flex w-full min-w-0 items-center gap-2.5 @2xl/registry:w-auto">
         <span class="shrink-0 text-sm text-text-secondary">{{ 'XP.AgentEvolution.Directory.Scope' | translate }}</span>
         <z-combobox
-          class="min-w-0 flex-1 @2xl/registry:w-[180px] [&_button]:min-h-[44px] [&_button]:px-3 [&_button]:text-base"
+          zSize="lg"
+          class="min-w-0 flex-1 @2xl/registry:w-[180px] [&_button]:text-base"
           zWidth="full"
           [value]="facade.selectedTargetId()"
           [options]="targetOptions()"
@@ -31,7 +32,7 @@
       <div role="status" class="mt-6 rounded-lg border border-border p-8 text-center text-sm text-text-secondary">
         {{ (facade.error() ? 'XP.AgentEvolution.TargetsLoadFailed' : 'XP.AgentEvolution.LoadingTargets') | translate }}
         @if (facade.error()) {
-          <button z-button zType="outline" class="mx-auto mt-3 block min-h-[44px]" (click)="facade.load()">
+          <button z-button zSize="default" zType="outline" class="mx-auto mt-3 block" (click)="facade.load()">
             {{ 'XP.AgentEvolution.Refresh' | translate }}
           </button>
         }
@@ -41,8 +42,9 @@
         <p>{{ 'XP.AgentEvolution.Overview.NoTargets' | translate }}</p>
         <button
           z-button
+          zSize="default"
           zType="outline"
-          class="mt-3 min-h-[44px]"
+          class="mt-3"
           [zLoading]="facade.synchronizing()"
           [zDisabled]="facade.mutating()"
           (click)="facade.synchronize()"
@@ -64,7 +66,7 @@
             <button
               type="button"
               [attr.aria-pressed]="filters().group === group"
-              class="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 border-b-2 px-1 text-base font-normal whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              class="inline-flex py-2 shrink-0 items-center gap-1.5 border-b-2 px-1 text-base font-normal whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
               [class]="
                 filters().group === group
                   ? 'border-primary font-semibold text-foreground'
@@ -79,7 +81,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2 px-3 py-3 sm:px-4">
           <z-search-input
-            class="w-full min-w-0 @2xl/registry:flex-1 [&_[data-slot=input-group]]:min-h-[44px] [&_input]:text-sm"
+            class="w-full min-w-0 @2xl/registry:flex-1 [&_input]:text-sm"
             [placeholder]="'XP.AgentEvolution.Directory.Search' | translate"
             [clearLabel]="'XP.ACTIONS.Clear' | translate"
             [value]="filters().query"
@@ -88,8 +90,9 @@
           <button
             type="button"
             z-button
+            zSize="lg"
             zType="outline"
-            class="min-h-[44px] gap-2 px-3 text-sm"
+            class="text-sm"
             z-menu
             [zMenuTriggerFor]="statusMenu"
             [attr.aria-label]="'XP.AgentEvolution.TargetRegistrationStatus' | translate"
@@ -101,8 +104,9 @@
           <button
             type="button"
             z-button
+            zSize="lg"
             zType="outline"
-            class="min-h-[44px] gap-2 px-3 text-sm"
+            class="text-sm"
             z-menu
             [zMenuTriggerFor]="sortMenu"
             [attr.aria-label]="'XP.AgentEvolution.SortTargets' | translate"
@@ -116,7 +120,7 @@
             }}<i class="ri-arrow-down-s-line" aria-hidden="true"></i>
           </button>
           @if (filtered() && rows().length) {
-            <button z-button type="button" zType="ghost" class="min-h-[44px] px-3 text-sm" (click)="resetFilters()">
+            <button z-button zSize="default" type="button" zType="ghost" class="px-3 text-sm" (click)="resetFilters()">
               {{ 'XP.AgentEvolution.Directory.Clear' | translate }}
             </button>
           }
@@ -228,7 +232,7 @@
                     <a
                       [routerLink]="[row.target.targetId]"
                       [attr.aria-label]="('XP.AgentEvolution.ViewTargetDetails' | translate) + ' · ' + row.name"
-                      class="inline-flex min-h-[44px] items-center gap-1.5 rounded-sm text-sm font-medium whitespace-nowrap text-text-accent hover:underline focus-visible:outline-ring"
+                      class="inline-flex py-2 items-center gap-1.5 rounded-sm text-sm font-medium whitespace-nowrap text-text-accent hover:underline focus-visible:outline-ring"
                       >{{ 'XP.AgentEvolution.ViewTargetDetails' | translate
                       }}<i class="ri-arrow-right-line" aria-hidden="true"></i
                     ></a>
@@ -241,7 +245,7 @@
           <div role="status" class="border-t border-border px-4 py-10 text-center">
             <p>{{ 'XP.AgentEvolution.NoTargetOptions' | translate }}</p>
             @if (filtered()) {
-              <button z-button zType="outline" class="mt-3 min-h-[44px]" (click)="resetFilters()">
+              <button z-button zSize="default" zType="outline" class="mt-3" (click)="resetFilters()">
                 {{ 'XP.AgentEvolution.Directory.Clear' | translate }}
               </button>
             }

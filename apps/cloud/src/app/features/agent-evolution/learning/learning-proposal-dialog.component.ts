@@ -3,7 +3,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import type { ImprovementProposal, LearningEvent, LearningProposalCheck } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardDialogRef, Z_MODAL_DATA } from '@xpert-ai/headless-ui'
+import { XpDialogActionGroupDirective, ZardButtonComponent, ZardDialogRef, Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 import { AgentEvolutionApiService } from '../agent-evolution-api.service'
 
 interface ProposalDialogData {
@@ -16,7 +16,7 @@ interface ProposalDialogData {
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, ZardButtonComponent],
+  imports: [TranslateModule, ZardButtonComponent, XpDialogActionGroupDirective],
   templateUrl: './learning-proposal-dialog.component.html'
 })
 export class LearningProposalDialog {

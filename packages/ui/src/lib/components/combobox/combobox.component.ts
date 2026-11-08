@@ -30,7 +30,7 @@ import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
 import { dialogControlVariants } from '../dialog/dialog-frame.variants'
 
 import { mergeClasses } from '../../utils/merge-classes'
-import { ZardButtonComponent, type ZardButtonTypeVariants } from '../button'
+import { ZardButtonComponent, type ZardButtonTypeVariants, type ZardButtonSizeVariants } from '../button'
 import {
   ZardCommandComponent,
   ZardCommandEmptyComponent,
@@ -98,6 +98,7 @@ export class ZardComboboxOptionTemplateDirective {
       [zContent]="popoverContent"
       [zMatchTriggerWidth]="true"
       [zType]="buttonVariant()"
+      [zSize]="zSize()"
       [class]="buttonClasses()"
       [zDisabled]="disabledState()"
       [attr.aria-expanded]="open()"
@@ -233,6 +234,8 @@ export class ZardComboboxComponent implements ControlValueAccessor {
 
   readonly class = input<ClassValue>('')
   readonly buttonVariant = input<ZardButtonTypeVariants>('outline')
+  /** Size of the trigger, independent of the popup width. */
+  readonly zSize = input<Extract<ZardButtonSizeVariants, 'xs' | 'sm' | 'default' | 'lg'>>('default')
   readonly zWidth = input<ZardComboboxWidthVariants>('default')
   readonly placeholder = input<string>('Select...')
   readonly searchPlaceholder = input<string>('Search...')

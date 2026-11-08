@@ -66,19 +66,19 @@
   <p role="status" class="py-6 text-sm">{{ prefix + 'Checking' | translate }}</p>
 }
 @if (error()) {
-  <div role="alert" class="mt-3 text-sm text-text-destructive">
+  <div xpDialogActionGroup="inline" role="alert" class="mt-3 text-sm text-text-destructive">
     {{ prefix + error() | translate }}
     @if (!check()) {
-      <button z-button zType="outline" class="ml-2 min-h-[44px]" (click)="refresh()">
+      <button z-button zType="outline" class="ml-2" (click)="refresh()">
         {{ prefix + 'Retry' | translate }}
       </button>
     }
   </div>
 }
-<div class="mt-5 flex justify-end gap-2 border-t border-border pt-3">
-  <button z-button zType="outline" class="min-h-[44px] text-base" (click)="ref.close()">
+<div xpDialogActionGroup="footer" class="mt-5 flex justify-end gap-2 border-t border-border pt-3">
+  <button z-button zType="outline" class="text-base" (click)="ref.close()">
     {{ prefix + 'BackReview' | translate }}</button
-  ><button z-button class="min-h-[44px] text-base" [zDisabled]="!check()?.snapshot || working()" (click)="confirm()">
+  ><button z-button class="text-base" [zDisabled]="!check()?.snapshot || working()" (click)="confirm()">
     {{ prefix + 'Create' | translate }}
   </button>
 </div>
