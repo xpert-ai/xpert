@@ -86,6 +86,7 @@ export default {
         '^@xpert-ai/server-core$': '<rootDir>/../server/src/index.ts',
         '^@xpert-ai/cli-model-profiles$': '<rootDir>/../plugins/cli-model-profiles/src/index.ts',
         '^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts',
+        '^@xpert-ai/plugin-sdk/analytics$': '<rootDir>/../plugin-sdk/src/analytics.ts',
         '^@xpert-ai/plugin-sdk$': '<rootDir>/../plugin-sdk/src/index.ts'
     },
     transformIgnorePatterns: [transformPattern]

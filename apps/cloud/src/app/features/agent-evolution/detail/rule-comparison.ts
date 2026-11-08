@@ -37,8 +37,8 @@ export function compareRules(inspection: EvolutionBaselineInspection) {
     source: source.raw,
     rows: keys.map((key) => ({
       key,
-      active: a && Object.hasOwn(a, key) ? a[key] : undefined,
-      source: b && Object.hasOwn(b, key) ? b[key] : undefined
+      active: a && Object.prototype.hasOwnProperty.call(a, key) ? a[key] : undefined,
+      source: b && Object.prototype.hasOwnProperty.call(b, key) ? b[key] : undefined
     }))
   }
 }
