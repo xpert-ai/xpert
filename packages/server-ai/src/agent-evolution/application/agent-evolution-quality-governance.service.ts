@@ -3,8 +3,8 @@ import { Injectable } from '@nestjs/common'
 
 @Injectable()
 export class AgentEvolutionQualityGovernanceService {
-    reviewGoldenReplay(cases: GoldenCaseRevision[], metrics: EvaluationMetrics) {
-        const blockingReasons: string[] = []
+    reviewGoldenReplay(cases: GoldenCaseRevision[], metrics: EvaluationMetrics, metricReasons: string[] = []) {
+        const blockingReasons = [...metricReasons]
         const affectedCount = cases.filter(
             (item) =>
                 item.slice === 'affected' || item.slice.startsWith('affected:') || item.slice.startsWith('affected_')

@@ -6,8 +6,11 @@ import type {
     EvolutionRuntimeObservation
 } from '@xpert-ai/contracts'
 import { isStagedRelease } from '@xpert-ai/contracts'
+import { sameScope } from './evolution-governance.helpers'
+import { changeError } from '../changes/change.errors'
 import { DataSource } from 'typeorm'
 import {
+    CapabilityVersionBundleEntity,
     ActiveCapabilityPointerEntity,
     EvolutionAuditEventEntity,
     EvolutionCanaryTestOverrideEntity,
@@ -168,10 +171,24 @@ export class EvolutionRuntimeStore {
             const deploymentRepository = manager.getRepository(ReleaseDeploymentEntity)
             const releaseRepository = manager.getRepository(ReleasePackageEntity)
             const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                JSON.stringify([tenant.tenantId, tenant.organizationId, observation.observationId])
+            ])
             const existing = await observationRepository.findOne({
                 where: { ...tenantWhere(tenant), observationId: observation.observationId }
             })
-            if (existing) return existing.value
+            if (existing) {
+                if (
+                    !sameScope(existing.value.scope, observation.scope) ||
+                    existing.targetId !== observation.targetId ||
+                    existing.value.channel !== observation.channel ||
+                    existing.value.bundleId !== observation.bundleId ||
+                    existing.value.deploymentId !== observation.deploymentId ||
+                    existing.executionId !== observation.executionId
+                )
+                    changeError('observation_identity_mismatch')
+                return existing.value
+            }
             const saved = await observationRepository.save(
                 observationRepository.create({
                     ...tenantValues(tenant),
@@ -190,7 +207,58 @@ export class EvolutionRuntimeStore {
                     where: { ...tenantWhere(tenant), deploymentId: observation.deploymentId },
                     lock: { mode: 'pessimistic_write' }
                 })
-                if (!deployment) return saved.value
+                if (
+                    !deployment ||
+                    !sameScope(deployment.value.scope, observation.scope) ||
+                    deployment.channel !== observation.channel
+                )
+                    changeError('observation_deployment_mismatch')
+                const release = await releaseRepository.findOne({
+                    where: {
+                        ...tenantWhere(tenant),
+                        releasePackageId: deployment.releasePackageId,
+                        targetId: observation.targetId
+                    },
+                    lock: { mode: 'pessimistic_write' }
+                })
+                if (!release || !isStagedRelease(release.value) || !sameScope(release.value.scope, observation.scope))
+                    changeError('observation_deployment_mismatch')
+                const expectedVersion = release.value.targetVersionId
+                const expectedHash = release.value.artifactHash
+                const bundle = await manager.getRepository(CapabilityVersionBundleEntity).findOneBy({
+                    ...tenantWhere(tenant),
+                    bundleId: observation.bundleId
+                })
+                if (
+                    !bundle?.value.items.some(
+                        (item) =>
+                            item.targetId === observation.targetId &&
+                            item.versionId === expectedVersion &&
+                            item.artifactHash === expectedHash
+                    )
+                )
+                    changeError('observation_bundle_mismatch')
+                const samples = await observationRepository
+                    .createQueryBuilder('obs')
+                    .select("percentile_disc(0.95) WITHIN GROUP (ORDER BY (obs.value ->> 'latencyMs')::float8)", 'p95')
+                    .addSelect("AVG(((obs.value ->> 'baselineSuccess')::boolean)::int)::float8", 'baseline')
+                    .addSelect("COUNT(obs.value ->> 'baselineSuccess')::int", 'paired')
+                    .where({
+                        ...tenantWhere(tenant),
+                        deploymentId: observation.deploymentId,
+                        targetId: observation.targetId,
+                        scopeType: observation.scope.type,
+                        scopeKey: observation.scope.key
+                    })
+                    .andWhere("obs.value ->> 'channel' = :channel", { channel: observation.channel })
+                    .andWhere(
+                        "COALESCE((obs.value -> 'scope' -> 'dimensions')::jsonb, '{}'::jsonb) = CAST(:dimensions AS jsonb)",
+                        {
+                            dimensions: JSON.stringify(observation.scope.dimensions ?? {})
+                        }
+                    )
+                    .getRawOne<{ p95: number; baseline: number | null; paired: number }>()
+                if (!samples || samples.p95 == null) changeError('observation_sample_missing')
                 const previousCount = deployment.value.sampleCount
                 const sampleCount = previousCount + 1
                 const candidateAccuracy =
@@ -202,10 +270,11 @@ export class EvolutionRuntimeStore {
                     observedAt: observation.observedAt,
                     sequence: sampleCount,
                     sampleCount,
-                    baselineAccuracy: previousObservation?.baselineAccuracy ?? candidateAccuracy,
+                    baselineAccuracy: samples.baseline,
+                    pairedBaselineSamples: samples.paired,
                     candidateAccuracy,
                     severeErrors,
-                    p95LatencyMs: Math.max(previousObservation?.p95LatencyMs ?? 0, observation.latencyMs),
+                    p95LatencyMs: samples.p95,
                     averageCost:
                         ((previousObservation?.averageCost ?? 0) * previousCount + (observation.cost ?? 0)) /
                         sampleCount
@@ -219,10 +288,6 @@ export class EvolutionRuntimeStore {
                 }
                 await deploymentRepository.save(deployment)
                 if (observation.severeError) {
-                    const release = await releaseRepository.findOne({
-                        where: { ...tenantWhere(tenant), releasePackageId: deployment.releasePackageId },
-                        lock: { mode: 'pessimistic_write' }
-                    })
                     if (
                         release &&
                         isStagedRelease(release.value) &&

@@ -1353,6 +1353,8 @@
       "StartTime": "開始時間",
       "NoDeployments": "尚無部署記錄",
       "Capability": "能力",
+      "NoPairedBaseline": "無配對基準資料",
+      "InsufficientLearningEvidence": "此類修正尚未累積足夠的合格回饋。",
       "NoRuntimeObservations": "暫無執行觀測",
       "KeepActive": "保持啟用",
       "WaitingForGates": "等待門禁",

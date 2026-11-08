@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
+import { customerIntentTemplates } from './lib/customer-intent/templates'
 import { DraftPluginsModule } from './lib/draft'
 import { readDraftFileStoragePluginEnvDefaults } from './lib/file-storage.config'
 import {
@@ -31,6 +32,7 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
     formSchema: DraftFileStoragePluginConfigFormSchema,
     defaults: readDraftFileStoragePluginEnvDefaults()
   },
+  templates: { listTemplates: customerIntentTemplates },
   register(ctx) {
     ctx.logger.log('register draft file storage providers plugin')
     return { module: DraftPluginsModule, global: true }

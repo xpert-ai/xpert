@@ -1,0 +1,37 @@
+team:
+  name: After-sales Service Assistant
+  title: 售后客服助手
+  type: agent
+  description: 解答订单查询、退款和其他售后问题。
+  version: '3'
+  agent: { key: Agent_ServiceDesk }
+  features:
+    opener:
+      enabled: true
+      message: ''
+      questions: ['我的包裹什么时候送达？', '重复扣款了，怎么申请退款？']
+  options:
+    agent:
+      Agent_ServiceDesk: { position: { x: 400, y: 140 } }
+    workflow:
+      Intent_Route: { position: { x: 80, y: 140 } }
+nodes:
+  - type: workflow
+    key: Intent_Route
+    entity: { key: Intent_Route, type: customer-service-intent, title: 售后意图 }
+  - type: agent
+    key: Agent_ServiceDesk
+    entity:
+      key: Agent_ServiceDesk
+      name: Service Desk
+      title: 售后客服
+      prompt: |
+        你是售后客服。已发布路由给出的本次意图是 {{intent_route_channel.intent}}。
+        对 order_status 请求，指导用户在订单详情或物流通知中查找运单号和承运商进度。
+        对 refund 请求，说明一般退款申请步骤，具体条件和时长以该订单页面为准。
+        对 other 请求，按用户实际问题提供帮助，必要时询问细节。
+        你只能提供咨询，无法代查订单或办理退款。引导用户在订单页或官方客服渠道操作。
+        未获商家政策时不提供具体审核或到账时长。提供通用指引时无需索取手机号或账号。
+        使用用户的语言简洁回答。
+connections:
+  - { type: edge, key: Intent_Route/Agent_ServiceDesk, from: Intent_Route, to: Agent_ServiceDesk }

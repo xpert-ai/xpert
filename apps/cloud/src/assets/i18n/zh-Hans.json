@@ -1922,6 +1922,8 @@
       "StartTime": "开始时间",
       "NoDeployments": "尚无部署记录",
       "Capability": "能力",
+      "NoPairedBaseline": "无配对基线数据",
+      "InsufficientLearningEvidence": "此类纠正尚未积累足够的合格反馈。",
       "NoRuntimeObservations": "暂无运行观测",
       "KeepActive": "保持激活",
       "WaitingForGates": "等待门禁",

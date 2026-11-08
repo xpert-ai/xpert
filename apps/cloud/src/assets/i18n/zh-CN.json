@@ -657,6 +657,8 @@
       }
     },
     "AgentEvolution": {
+      "NoPairedBaseline": "无配对基线数据",
+      "InsufficientLearningEvidence": "此类纠正尚未积累足够的合格反馈。",
       "Provider": "提供方",
       "TabTargets": "进化目标",
       "SubtitleTargets": "查看已注册的进化目标及其生产生效版本",

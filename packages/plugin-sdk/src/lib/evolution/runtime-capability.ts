@@ -3,6 +3,7 @@ import { createRuntimeCapability } from '../core'
 
 export const EVOLUTION_RUNTIME_SERVICE_TOKEN = 'XPERT_EVOLUTION_RUNTIME_SERVICE'
 
+/** Capability for inspecting and publishing source baselines within an authorized organization. */
 export const EvolutionBaselineRuntimeCapability = createRuntimeCapability<EvolutionBaselineRuntimeApi>(
   'platform.agent-evolution.baselines',
   {
@@ -11,10 +12,12 @@ export const EvolutionBaselineRuntimeCapability = createRuntimeCapability<Evolut
   }
 )
 
+/** Capability for version selection and evidence tied to Agent executions. */
 export const EvolutionRuntimeCapability = createRuntimeCapability<EvolutionRuntimeApi>('platform.agent-evolution', {
   description: 'Ingest learning signals and resolve immutable capability versions for domain runtimes.'
 })
 
+/** Capability for scoped preparation, review and publication of versioned changes. */
 export const EvolutionChangeRuntimeCapability = createRuntimeCapability<EvolutionChangeRuntimeApi>(
   'platform.agent-evolution.changes',
   {

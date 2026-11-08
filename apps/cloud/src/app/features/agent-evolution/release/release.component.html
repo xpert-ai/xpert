@@ -170,8 +170,11 @@
               ><z-card-header class="border-b border-divider-subtle px-5 py-4"
                 ><div class="flex items-center justify-between gap-3">
                   <div>
-                    <z-card-title>{{ 'XP.AgentEvolution.PersistedRuntimeObservations' | translate }}</z-card-title
-                    ><z-card-subtitle class="mt-1">{{
+                    <z-card-title>{{ 'XP.AgentEvolution.PersistedRuntimeObservations' | translate }}</z-card-title>
+                    @if (runtimePoints().length && runtimePoints().at(-1)?.baselineAccuracy == null) {
+                      <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.NoPairedBaseline' | translate }}</p>
+                    }
+                    <z-card-subtitle class="mt-1">{{
                       'XP.AgentEvolution.RuntimeObservationDescription' | translate
                     }}</z-card-subtitle>
                   </div>

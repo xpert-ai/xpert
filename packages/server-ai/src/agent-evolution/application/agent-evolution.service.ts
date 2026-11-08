@@ -1,3 +1,4 @@
+import { aggregateMetrics, blockingMetricReasons, scoredReplayCase } from './evolution-governance.helpers'
 import { FEEDBACK_LEARNING_STRATEGY } from '@xpert-ai/contracts'
 import type {
     ActiveCapabilityPointer,
@@ -5,7 +6,6 @@ import type {
     CapabilityVersion,
     CapabilityVersionBundle,
     DatasetSnapshot,
-    EvaluationMetrics,
     EvaluationRun,
     EvolutionAuditEvent,
     EvolutionCandidate,
@@ -645,11 +645,11 @@ export class AgentEvolutionService {
                 repeatIndex: 0
             }
             const result = await evaluator.runReplayCase(request)
-            await evaluator.evaluateResult(request, result)
-            caseResults.push(result)
+            const observations = await evaluator.evaluateResult(request, result)
+            caseResults.push(scoredReplayCase(caseRevision.caseId, result, observations))
         }
         const metrics = aggregateMetrics(caseResults)
-        const blockingReasons: string[] = []
+        const blockingReasons = blockingMetricReasons(caseResults)
         if (metrics.candidateAccuracy < 0.95) blockingReasons.push('candidate_accuracy_below_95_percent')
         if (metrics.accuracyDelta <= 0) blockingReasons.push('no_accuracy_improvement')
         if (metrics.severeErrors > 0) blockingReasons.push('severe_errors_present')
@@ -828,25 +828,6 @@ export class AgentEvolutionService {
             occurredAt: now
         }
         return this.store.saveAudit(tenant, audit)
-    }
-}
-
-function aggregateMetrics(results: ReplayCaseResult[]): EvaluationMetrics {
-    const baselinePassed = results.filter((result) => result.baselinePassed).length
-    const candidatePassed = results.filter((result) => result.candidatePassed).length
-    const latencies = results.map((result) => result.latencyMs).sort((left, right) => left - right)
-    const percentileIndex = Math.max(0, Math.ceil(latencies.length * 0.95) - 1)
-    const baselineAccuracy = results.length ? baselinePassed / results.length : 0
-    const candidateAccuracy = results.length ? candidatePassed / results.length : 0
-    return {
-        baselineAccuracy,
-        candidateAccuracy,
-        accuracyDelta: candidateAccuracy - baselineAccuracy,
-        severeErrors: results.filter((result) => result.severeError).length,
-        p95LatencyMs: latencies[percentileIndex] ?? 0,
-        averageCost: results.length ? results.reduce((sum, result) => sum + result.cost, 0) / results.length : 0,
-        totalCases: results.length,
-        passedCases: candidatePassed
     }
 }
 

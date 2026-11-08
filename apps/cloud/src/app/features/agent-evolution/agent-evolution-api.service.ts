@@ -144,9 +144,9 @@ export class AgentEvolutionApiService {
     return this.#http.post<EvolutionExperience>(`${API_AGENT_EVOLUTION}/experiences`, { releasePackageId })
   }
 
-  diagnose(eventIds: string[]) {
+  diagnose(seedEventId: string) {
     return this.#http.post<EvolutionAnalysisResult>(`${API_AGENT_EVOLUTION}/diagnoses`, {
-      eventIds,
+      seedEventId,
       strategyId: 'feedback_learning'
     })
   }

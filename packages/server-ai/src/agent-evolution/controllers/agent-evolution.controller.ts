@@ -13,8 +13,10 @@ import type {
     ReviewLearningEventRequest,
     StartDeploymentRequest
 } from '@xpert-ai/contracts'
+import { z } from 'zod/v3'
+import { changeError } from '../changes/change.errors'
 import { AIPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
-import { PermissionGuard, Permissions, RequestContext } from '@xpert-ai/server-core'
+import { PermissionGuard, Permissions, RequestContext, ZodValidationPipe } from '@xpert-ai/server-core'
 import { environment } from '@xpert-ai/server-config'
 import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -25,6 +27,11 @@ import {
     AgentEvolutionRuntimeService,
     AgentEvolutionService
 } from '../application'
+
+const diagnosisInput = z.union([
+    z.object({ strategyId: z.string().min(1), seedEventId: z.string().min(1) }).strict(),
+    z.object({ strategyId: z.string().min(1), eventIds: z.array(z.string().min(1)).nonempty() }).strict()
+])
 
 @ApiTags('Agent Evolution')
 @ApiBearerAuth()
@@ -105,7 +112,10 @@ export class AgentEvolutionController {
     @Post('diagnoses')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
-    diagnoseLearningEvents(@Body() body: DiagnoseLearningEventsRequest) {
+    diagnoseLearningEvents(
+        @Body(new ZodValidationPipe(diagnosisInput, () => changeError('invalid_evidence_selection')))
+        body: DiagnoseLearningEventsRequest
+    ) {
         return this.analyst.diagnose(commandContext(), body)
     }
 

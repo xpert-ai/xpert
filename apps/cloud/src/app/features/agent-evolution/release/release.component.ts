@@ -191,25 +191,15 @@ export class AgentEvolutionReleaseComponent {
       if (deployment.observations?.length) {
         return deployment.observations.map((observation) => ({
           ...observation,
+          baselineAccuracy:
+            deployment.dataSource === 'runtime_telemetry' && observation.pairedBaselineSamples === undefined
+              ? null
+              : observation.baselineAccuracy,
           channel: deployment.channel,
           dataSource: deployment.dataSource
         }))
       }
-      return [
-        {
-          observationId: `${deployment.deploymentId}-aggregate`,
-          observedAt: deployment.completedAt ?? deployment.startedAt,
-          sequence: 1,
-          sampleCount: deployment.sampleCount,
-          baselineAccuracy: this.evaluation()?.metrics.baselineAccuracy ?? 0,
-          candidateAccuracy: deployment.candidateAccuracy,
-          severeErrors: deployment.severeErrors,
-          p95LatencyMs: this.evaluation()?.metrics.p95LatencyMs ?? 0,
-          averageCost: this.evaluation()?.metrics.averageCost ?? 0,
-          channel: deployment.channel,
-          dataSource: deployment.dataSource ?? 'deterministic_replay'
-        }
-      ]
+      return []
     })
   )
   readonly latestAccuracy = computed(
@@ -364,7 +354,11 @@ export class AgentEvolutionReleaseComponent {
     this.localeChange()
     const chartTheme = readAgentEvolutionChartTheme(this.#document)
     const points = this.runtimePoints()
-    const accuracies = points.flatMap((point) => [point.baselineAccuracy * 100, point.candidateAccuracy * 100])
+    const accuracies = points.flatMap((point) =>
+      point.baselineAccuracy == null
+        ? [point.candidateAccuracy * 100]
+        : [point.baselineAccuracy * 100, point.candidateAccuracy * 100]
+    )
     const minimumAccuracy = accuracies.length ? Math.min(...accuracies) : 0
     return {
       animationDuration: 350,
@@ -395,7 +389,9 @@ export class AgentEvolutionReleaseComponent {
           type: 'line',
           smooth: true,
           symbolSize: 6,
-          data: points.map((point) => Number((point.baselineAccuracy * 100).toFixed(2)))
+          data: points.map((point) =>
+            point.baselineAccuracy == null ? null : Number((point.baselineAccuracy * 100).toFixed(2))
+          )
         },
         {
           name: this.#translate.instant('XP.AgentEvolution.Candidate'),

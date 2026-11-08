@@ -75,21 +75,27 @@ export function validateStrategy(strategy: EvolutionStrategy, target: EvolutionT
         changeError('invalid_strategy')
 }
 
-export function qualifiesLearning(events: LearningEvent[], strategy: EvolutionStrategy, now = Date.now()) {
-    if (strategy.learning.mode === 'none') return true
+export function eligibleLearningEvent(event: LearningEvent, strategy: EvolutionStrategy, now: number) {
     const policy = strategy.learning
-    const minimumTime = now - policy.maximumAgeDays * 86400000
-    const qualified = events.filter(
-        (event) =>
-            event.trustLevel !== 'L1' &&
-            policy.trustLevels.includes(event.trustLevel) &&
-            new Date(event.eventTime).getTime() >= minimumTime &&
-            new Date(event.eventTime).getTime() <= now &&
-            (event.classification !== 'confidential' || event.redactionStatus === 'redacted')
-    )
+    const occurred = Date.parse(event.eventTime)
     return (
-        qualified.length >= policy.minimumEvents &&
-        new Set(qualified.map((event) => event.subjectRef)).size >= policy.minimumSubjects
+        policy.mode === 'feedback' &&
+        event.reviewStatus !== 'ignored' &&
+        event.trustLevel !== 'L1' &&
+        policy.trustLevels.includes(event.trustLevel) &&
+        occurred >= now - policy.maximumAgeDays * 86400000 &&
+        occurred <= now &&
+        (event.classification !== 'confidential' || event.redactionStatus === 'redacted')
+    )
+}
+
+export function qualifiesLearning(events: LearningEvent[], strategy: EvolutionStrategy, now = Date.now()) {
+    const policy = strategy.learning
+    if (policy.mode === 'none') return true
+    return (
+        events.every((event) => eligibleLearningEvent(event, strategy, now)) &&
+        events.length >= policy.minimumEvents &&
+        new Set(events.map((event) => event.subjectRef)).size >= policy.minimumSubjects
     )
 }
 

@@ -384,7 +384,7 @@
                   }
                 </p>
               </div>
-              @if (candidateTarget()?.capabilities?.candidateBuild && candidateFields().length) {
+              @if (candidateTarget()?.capabilities?.candidateBuild && candidateTarget()?.candidateForm) {
                 @for (field of candidateFields(); track field.key) {
                   <label class="block text-xs text-text-secondary">
                     <span class="mb-1.5 flex items-center gap-1 font-medium">

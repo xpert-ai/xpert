@@ -16,6 +16,13 @@ describe('AgentEvolutionApiService', () => {
 
   afterEach(() => httpMock.verify())
 
+  it('lets the server select evidence across pages from the reviewed event', () => {
+    service.diagnose('event-on-page-two').subscribe()
+    const request = httpMock.expectOne('/api/agent-evolution/diagnoses')
+    expect(request.request.body).toEqual({ seedEventId: 'event-on-page-two', strategyId: 'feedback_learning' })
+    request.flush({ diagnoses: [], clusters: [] })
+  })
+
   it('binds datasets to named evaluation steps in the frozen strategy', () => {
     service.evaluateChange('EVO-1', { functional: 'DS-1', regression: 'DS-2' }).subscribe()
     const request = httpMock.expectOne('/api/agent-evolution/changes/EVO-1/evaluations')

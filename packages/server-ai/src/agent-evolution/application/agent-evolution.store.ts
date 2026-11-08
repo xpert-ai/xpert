@@ -1,3 +1,4 @@
+import { sameScope } from './evolution-governance.helpers'
 import { applyEvolutionSearch } from './evolution-search'
 import { verifyEvolutionPersistence } from './evolution-persistence-proof'
 import { EvolutionRuntimeStore } from './evolution-runtime.store'
@@ -346,15 +347,20 @@ export class AgentEvolutionStore {
         return this.listJsonValues(this.auditRepository, tenant, query, 'audit', undefined, 'action')
     }
 
-    async listDeploymentsForTarget(tenant: EvolutionTenantScope, targetId: string) {
+    async listDeploymentsForTarget(tenant: EvolutionTenantScope, targetId: string, scope: EvolutionScope) {
         const releases = await this.releaseRepository.find({
-            where: { ...tenantWhere(tenant), targetId }
+            where: { ...tenantWhere(tenant), targetId, scopeType: scope.type, scopeKey: scope.key }
         })
-        if (!releases.length) return []
+        const releaseIds = releases
+            .filter((row) => sameScope(row.value.scope, scope))
+            .map((row) => row.releasePackageId)
+        if (!releaseIds.length) return []
         return this.deploymentRepository.find({
             where: {
                 ...tenantWhere(tenant),
-                releasePackageId: In(releases.map((item) => item.releasePackageId))
+                scopeType: scope.type,
+                scopeKey: scope.key,
+                releasePackageId: In(releaseIds)
             },
             order: { createdAt: 'DESC' }
         })
@@ -536,7 +542,7 @@ export class AgentEvolutionStore {
         scope: EvolutionScope,
         channel: EvolutionChannel = 'production'
     ) {
-        return this.pointerRepository.findOne({
+        const row = await this.pointerRepository.findOne({
             where: {
                 ...tenantWhere(tenant),
                 targetId,
@@ -545,6 +551,7 @@ export class AgentEvolutionStore {
                 channel
             }
         })
+        return row && sameScope(row.value.scope, scope) ? row : null
     }
 
     async savePointer(tenant: EvolutionTenantScope, pointer: ActiveCapabilityPointer) {
@@ -566,24 +573,44 @@ export class AgentEvolutionStore {
     }
 
     async saveLearningEvent(tenant: EvolutionTenantScope, event: LearningEvent) {
-        const existing = await this.eventRepository.findOne({
-            where: { ...tenantWhere(tenant), idempotencyKey: event.idempotencyKey }
-        })
-        if (existing) {
-            return existing
-        }
-        return this.eventRepository.save(
-            this.eventRepository.create({
-                ...tenantValues(tenant),
-                scopeType: event.scope.type,
-                scopeKey: event.scope.key,
-                eventId: event.eventId,
-                idempotencyKey: event.idempotencyKey,
-                targetId: event.targetId,
-                bundleHash: event.bundleHash,
-                value: event
+        return this.dataSource.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                JSON.stringify([tenant.tenantId, tenant.organizationId, 'learning', event.idempotencyKey])
+            ])
+            const repository = manager.getRepository(LearningEventEntity)
+            const existing = await repository.findOneBy({
+                ...tenantWhere(tenant),
+                idempotencyKey: event.idempotencyKey
             })
-        )
+            if (existing) return existing
+            return repository.save(
+                repository.create({
+                    ...tenantValues(tenant),
+                    scopeType: event.scope.type,
+                    scopeKey: event.scope.key,
+                    eventId: event.eventId,
+                    idempotencyKey: event.idempotencyKey,
+                    targetId: event.targetId,
+                    bundleHash: event.bundleHash,
+                    value: event
+                })
+            )
+        })
+    }
+
+    async findRelatedLearningEvents(tenant: EvolutionTenantScope, seed: LearningEvent) {
+        return this.eventRepository
+            .createQueryBuilder('event')
+            .where({
+                ...tenantWhere(tenant),
+                targetId: seed.targetId,
+                scopeType: seed.scope.type,
+                scopeKey: seed.scope.key
+            })
+            .andWhere("event.value ->> 'decisionPoint' = :decisionPoint", { decisionPoint: seed.decisionPoint })
+            .andWhere("COALESCE(event.value ->> 'reviewStatus', 'pending') <> 'ignored'")
+            .orderBy('event.eventId', 'ASC')
+            .getMany()
     }
 
     async findLearningEvents(tenant: EvolutionTenantScope, eventIds: string[]) {

@@ -11,7 +11,7 @@ import type {
   EvolutionVersionRef
 } from './change'
 
-/** Evidence requests share Proposal persistence without fabricating trusted learning events. */
+/** Proposal with a pinned baseline and evidence references. Evidence references and learning-event IDs are distinct inputs. */
 export interface EvidenceEvolutionProposal extends Pick<
   ImprovementProposal,
   'problemStatement' | 'rootCause' | 'changeHypothesis' | 'riskLevel' | 'evidenceEventIds' | 'baseVersionId'
@@ -42,14 +42,16 @@ export interface EvidenceEvolutionProposal extends Pick<
   updatedAt: string
   createdBy: string
 }
+/** Persisted proposal in its learning or change-preparation shape; only the latter carries preparation state. */
 export type StoredEvolutionProposal = ImprovementProposal | EvidenceEvolutionProposal
 
+/** Candidate with reviewable baseline and delta information in addition to the immutable artifact. */
 export interface PreparedEvolutionCandidate extends EvolutionCandidate {
   definition: Omit<EvolutionChangeCandidate, 'artifact'>
   evaluationRunId?: string
 }
 
-/** Replay bundles remain required by Replay EvaluationRun, not by every evaluator. */
+/** Strategy assessment carrying a change evaluation; its inputs need not include replay bundles. */
 export interface ProviderEvaluationRun {
   evaluatorKind: 'strategy_checks'
   runId: string
@@ -61,6 +63,7 @@ export interface ProviderEvaluationRun {
   startedAt: string
   completedAt: string
 }
+/** Evaluation record distinguished by evaluatorKind; only golden replay carries paired bundles and per-case outcomes. */
 export type StoredEvaluationRun = EvaluationRun | ProviderEvaluationRun
 
 interface ProviderReleaseBase {
@@ -79,11 +82,13 @@ interface ProviderReleaseBase {
   updatedAt: string
   createdBy: string
 }
+/** Target-owned version write. A published record must identify the resulting version in its receipt. */
 export type ProviderReleasePackage = ProviderReleaseBase &
   (
     | { status: 'approved' | 'publishing'; receipt?: never }
     | { status: 'published'; receipt: EvolutionPublicationReceipt }
   )
+/** Publication record distinguished by publicationKind: staged deployment or target-owned version write. */
 export type StoredReleasePackage = ReleasePackage | ProviderReleasePackage
 
 export function isEvidenceProposal(value: StoredEvolutionProposal): value is EvidenceEvolutionProposal {

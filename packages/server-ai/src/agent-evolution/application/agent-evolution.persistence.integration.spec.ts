@@ -163,4 +163,105 @@ persistenceDescribe('AgentEvolutionService PostgreSQL persistence integration', 
             ).value
         ).toMatchObject({ activeVersionId: result.activeVersionId, revision: 2 })
     }, 30000)
+
+    it('aggregates only matching telemetry, preserves unknown baselines and calculates nearest-rank P95', async () => {
+        const store = moduleRef.get(AgentEvolutionStore)
+        const tenant = { tenantId, organizationId }
+        const scope = { type: 'project' as const, key: 'automotive-project', dimensions: { plant: 'north' } }
+        const now = new Date().toISOString()
+        const targetId = 'telemetry-test'
+        const release = await store.saveRelease(tenant, {
+            publicationKind: 'staged_rollout',
+            targetId,
+            scope,
+            releasePackageId: 'telemetry-release',
+            candidateId: 'candidate',
+            candidateHash: 'candidate-hash',
+            targetVersionId: 'v2',
+            rollbackVersionId: 'v1',
+            evaluationRunId: 'eval',
+            status: 'shadow',
+            approvalIds: ['approval'],
+            artifactHash: 'candidate-hash',
+            providerKey: targetId,
+            providerVersion: '1',
+            shadowMinimumSamples: 1,
+            canaryPercent: 0,
+            createdAt: now,
+            createdBy: 'tester'
+        })
+        await store.saveDeployment(tenant, {
+            deploymentId: 'telemetry-deployment',
+            releasePackageId: release.releasePackageId,
+            channel: 'shadow',
+            scope,
+            status: 'shadow',
+            dataSource: 'runtime_telemetry',
+            sampleCount: 0,
+            candidateAccuracy: 0,
+            severeErrors: 0,
+            canaryPercent: 0,
+            observations: [],
+            startedAt: now
+        })
+        for (const foreignScope of [
+            { ...scope, key: 'other-project' },
+            { ...scope, dimensions: { plant: 'south' } }
+        ]) {
+            expect(await store.listDeploymentsForTarget(tenant, targetId, foreignScope)).toEqual([])
+        }
+        await store.saveBundle(tenant, {
+            bundleId: 'bundle',
+            bundleHash: 'hash',
+            executionMode: 'shadow',
+            createdAt: now,
+            items: [
+                {
+                    targetId,
+                    versionId: 'v2',
+                    artifactHash: 'candidate-hash',
+                    providerKey: targetId,
+                    providerVersion: '1'
+                }
+            ]
+        })
+        const sample = {
+            observationId: 'first',
+            executionId: 'run',
+            targetId,
+            scope,
+            bundleId: 'bundle',
+            deploymentId: 'telemetry-deployment',
+            subjectKey: 'motor',
+            channel: 'shadow' as const,
+            success: true,
+            severeError: false,
+            latencyMs: 250,
+            observedAt: now,
+            createdAt: now
+        }
+        await expect(
+            store.saveRuntimeObservation(tenant, { ...sample, scope: { ...scope, key: 'other-project' } })
+        ).rejects.toThrow()
+        await expect(
+            store.saveRuntimeObservation(tenant, { ...sample, bundleId: 'unrelated-bundle' })
+        ).rejects.toThrow()
+        await Promise.all([store.saveRuntimeObservation(tenant, sample), store.saveRuntimeObservation(tenant, sample)])
+        for (let i = 1; i < 20; i++) {
+            await store.saveRuntimeObservation(tenant, {
+                ...sample,
+                observationId: 'sample-' + i,
+                latencyMs: 1,
+                ...(i <= 2 ? { baselineSuccess: i === 1 } : {})
+            })
+        }
+        const [deployment] = await store.listDeploymentsForTarget(tenant, targetId, scope)
+        expect(deployment.value.sampleCount).toBe(20)
+        expect(deployment.value.observations[0]).toMatchObject({ baselineAccuracy: null, pairedBaselineSamples: 0 })
+        expect(deployment.value.observations.at(-1)).toMatchObject({
+            baselineAccuracy: 0.5,
+            pairedBaselineSamples: 2,
+            p95LatencyMs: 1
+        })
+    }, 30000)
 })

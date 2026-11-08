@@ -289,23 +289,20 @@ export class AgentEvolutionFacade {
   }
 
   async createProposalForEvent(event: LearningEvent) {
-    const evidence = this.dashboard().events.filter(
-      (item) =>
-        item.targetId === event.targetId &&
-        sameEvolutionScope(item.scope, event.scope) &&
-        item.reviewStatus !== 'ignored' &&
-        item.trustLevel !== 'L1'
-    )
     return this.withMutation(async () => {
-      const analysis = await firstValueFrom(this.#api.diagnose(evidence.map((item) => item.eventId)))
+      const analysis = await firstValueFrom(this.#api.diagnose(event.eventId))
       const cluster = analysis.clusters.find((item) => item.eventIds.includes(event.eventId))
       const diagnosis = analysis.diagnoses.find((item) => item.eventIds.includes(event.eventId))
+      if (!cluster || cluster.status !== 'proposal_ready') {
+        this.#toastr.error(this.#translate.instant('XP.AgentEvolution.InsufficientLearningEvidence'))
+        return null
+      }
       const proposal = await firstValueFrom(
         this.#api.createProposal({
           strategyId: 'feedback_learning',
           targetId: event.targetId,
           scope: event.scope,
-          eventIds: cluster?.eventIds ?? evidence.map((item) => item.eventId),
+          eventIds: cluster.eventIds,
           title: this.#translate.instant('XP.AgentEvolution.ImprovementProposalTitle', {
             targetId: event.targetId
           }),

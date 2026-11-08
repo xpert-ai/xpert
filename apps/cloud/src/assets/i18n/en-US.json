@@ -1685,6 +1685,8 @@
       "StartTime": "Start time",
       "NoDeployments": "No deployments",
       "Capability": "Capability",
+      "NoPairedBaseline": "No paired baseline data",
+      "InsufficientLearningEvidence": "More eligible feedback is needed for this correction.",
       "NoRuntimeObservations": "No runtime observations",
       "KeepActive": "Keep Active",
       "WaitingForGates": "Waiting for gates",

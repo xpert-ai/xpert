@@ -162,7 +162,7 @@ export class AgentEvolutionLearningComponent {
     () =>
       this.selectedProposal()?.status === 'ready' &&
       this.candidateTarget()?.capabilities.candidateBuild === true &&
-      this.candidateFields().length > 0
+      !!this.candidateTarget()?.candidateForm
   )
   readonly candidateDraftValid = computed(() =>
     this.candidateFields().every((field) => !field.required || hasFieldValue(this.candidateDraft()[field.key]))

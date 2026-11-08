@@ -18,6 +18,7 @@ import type {
 import type { EvolutionTargetProviderRegistry, ManagedQueueService } from '@xpert-ai/plugin-sdk'
 import type { AgentEvolutionStore } from '../application/agent-evolution.store'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    hashEvolutionValue: jest.requireActual('@xpert-ai/plugin-sdk').hashEvolutionValue,
     EvolutionChangeRuntimeCapability: 'changes',
     EvolutionTargetProviderRegistry: class {},
     MANAGED_QUEUE_SERVICE_TOKEN: 'queue'

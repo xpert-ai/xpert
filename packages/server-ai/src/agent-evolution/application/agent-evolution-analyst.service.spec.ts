@@ -31,6 +31,14 @@ describe('AgentEvolutionAnalystService', () => {
         )
         const store = {
             findLearningEvents: jest.fn().mockResolvedValue(events.map((value) => ({ value }))),
+            findRelatedLearningEvents: jest
+                .fn()
+                .mockResolvedValue([
+                    ...events.map((value) => ({ value })),
+                    { value: { ...events[0], reviewStatus: 'ignored' } },
+                    { value: { ...events[0], scope: { ...events[0].scope, dimensions: { plant: 'other' } } } },
+                    { value: { ...events[0], reasonCodes: ['other'] } }
+                ]),
             saveDiagnosis: jest.fn().mockImplementation(async (_tenant, value) => ({ value })),
             saveEventCluster: jest.fn().mockImplementation(async (_tenant, value) => ({ value }))
         }
@@ -44,6 +52,15 @@ describe('AgentEvolutionAnalystService', () => {
             { strategyId: 'feedback_learning', eventIds: events.map((event) => event.eventId) }
         )
 
+        store.findLearningEvents.mockResolvedValueOnce([{ value: events[0] }])
+        const seeded = await service.diagnose(
+            { tenantId: 'tenant-automotive', organizationId: 'org-automotive' },
+            { strategyId: 'feedback_learning', seedEventId: events[0].eventId }
+        )
+        expect(seeded.clusters[0]).toMatchObject({
+            status: 'proposal_ready',
+            eventIds: events.map((item) => item.eventId)
+        })
         expect(result.clusters).toHaveLength(1)
         expect(result.clusters[0]).toMatchObject({ caseCount: 2, status: 'proposal_ready' })
         expect(result.diagnoses[0]?.rootCause).toBe('repeated_correction_signature:wrong_feature')

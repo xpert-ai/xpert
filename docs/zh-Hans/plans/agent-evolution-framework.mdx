@@ -84,6 +84,30 @@ SDK `platform.agent-evolution.changes` 提供 `prepare/get/list/decide/publish`�
 
 下文章节中的学习事件门槛、Golden Dataset、Shadow／Canary 描述反馈学习预设和运行时能力；不是所有策略都必须执行的固定流程。
 
+## 0.2 客服意图路由试点
+
+组织中启用 Draft 插件后，模板目录中的 **Customer Intent Pilot（客服意图路由）** 用于单独验证路由。导入到可编辑工作空间，选择本组织已配置的主模型，发布 Assistant。在智能体进化页同步目标，使 `assistant.customer_service_intent` 有组织基线。该工作流通过已发布的客服意图路由节点处理请求，返回 `order_status`、`refund` 或 `other`。节点执行记录包含实际使用的版本号和 bundle。使用这个节点的 Assistant 共享同一组织的目标策略。
+
+1. 用不同会话运行需要复核的请求。在执行记录中找到客服意图路由节点的执行 ID。审核者须有进化管理权限和该会话的贡献权限。
+2. 向 `POST /api/agent-evolution/customer-intent/executions/{id}/review` 提交 `{"expectedIntent":"refund"}` 等预期意图。平台从已完成的执行读取原判断、输入指纹和版本，按执行 ID 去重。候选使用有资格的人工纠正。回放保存输入指纹和受控的短语特征，公共回归集固定在代码中。
+3. 在学习页从一条事件生成建议。服务端从相同目标、作用域、决策点和原因码中选出合格证据。构建候选时可勾选“纳入该意图的关联短语”，将相关短语及其排除条件冻结在候选制品内。
+4. `POST /api/agent-evolution/customer-intent/candidates/{id}/dataset` 生成冻结评测集，包括去重后的复核输入和 60 个固定的订单、退款及其他意图案例。通过候选与评测页运行回放。每个案例保存领域指标，任何阻断指标或严重错误都会阻止晋级。一个候选评测失败后，以新建议构建下一版，并选用原数据集进行比较。
+5. 人工审批绑定候选哈希和评测运行。发布与运行页可执行安装、Shadow、Canary、激活和回滚。Shadow 请求同时记录两个版本的判断；同一执行收到人工复核后才计入质量观测。运行图表的 P95 来自原始延迟样本，基线准确率仅使用配对观测。
+
+### 接入由主模型答复的普通 Assistant
+
+`packages/plugins/draft/src/lib/customer-intent/templates/customer-service-assistant.yaml` 是可导入的售后客服示例。导入后选择工作空间可用的主模型并发布。已有 Assistant 可在 Studio 的主 Agent 前连入客服意图路由工作流节点，再发布新版本。示例的节点名为 `Intent_Route`，主 Agent 的提示词通过 `{{intent_route_channel.intent}}` 读取本轮意图。主 Agent 根据意图回答客户，路由节点的日志记录使用的策略版本。
+
+在本地组织的测试工作空间中，用已安装的订单与退款候选验收四种输入，包括中文到货时间、英文物流单号、退款步骤和否定退款的发票请求。在仓库根目录运行：
+
+```sh
+node packages/plugins/draft/tools/verify-intent-assistant.mjs \
+  --api-url "$XPERT_API_URL" --org-id "$XPERT_ORG_ID" \
+  --assistant-id "$XPERT_ASSISTANT_ID" --release-id "$XPERT_RELEASE_ID"
+```
+
+脚本通过发布版聊天接口发送请求，并回读路由和主 Agent 的执行日志。对本地 `manual_test` 灰度，脚本为每个独立会话创建一次性灰度分配，核对消费该分配的执行 ID、意图、版本和模型答复后提交测试复核。活跃版本直接使用正式路由。可通过 `--receipt-file` 指定一个新文件，在本机保存逐条答复、执行 ID 和模型用量。
+
 ## 1. 为什么属于 Platform 通用能力
 
 Agent 的一次生产执行不是由单一 Prompt 决定，而是由一组版本闭包共同决定：

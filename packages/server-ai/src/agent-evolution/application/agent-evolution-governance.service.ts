@@ -349,13 +349,11 @@ export class AgentEvolutionGovernanceService {
             evaluatorVersion: request.evaluatorVersion,
             metricDefinitionVersion: request.metricDefinitionVersion,
             cases: request.cases,
-            snapshotHash: hashEvolutionValue(
-                request.cases.map((item) => ({
-                    caseId: item.caseId,
-                    revision: item.revision,
-                    evidenceRef: item.evidenceRef
-                }))
-            ),
+            snapshotHash: hashEvolutionValue({
+                cases: request.cases.map((item) => ({ ...item })),
+                evaluatorVersion: request.evaluatorVersion,
+                metricDefinitionVersion: request.metricDefinitionVersion
+            }),
             createdAt: now
         }
         await this.store.saveDataset(toTenantScope(context), snapshot)

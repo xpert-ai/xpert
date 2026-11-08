@@ -446,6 +446,20 @@
                                   | translate
                               }}</z-badge
                             >
+                            @for (metric of result.observations; track $index) {
+                              <div
+                                class="mt-1 text-xs"
+                                [class]="metric.blocking ? 'text-destructive' : 'text-text-secondary'"
+                              >
+                                {{ metric.metricKey }} · {{ metric.value }} {{ metric.unit }}
+                                @if (metric.slice) {
+                                  · {{ metric.slice }}
+                                }
+                                @if (metric.blocking) {
+                                  · {{ 'XP.AgentEvolution.Fail' | translate }}
+                                }
+                              </div>
+                            }
                           </td>
                           <td class="px-4 py-3.5 tabular-nums text-text-secondary">{{ result.latencyMs }}ms</td>
                           <td class="px-4 py-3.5 tabular-nums text-text-secondary">${{ result.cost.toFixed(3) }}</td>
