@@ -2,10 +2,10 @@ import type { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { Connection } from '@langchain/mcp-adapters'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { MCP_APP_RESOURCE_MIME_TYPE } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { applicationTracing } from '../../tracing/application-tracing'
+import { mcpAppClientCapabilities } from '../mcp-app-capabilities'
 import { encodeMcpHeaderValue } from '../tools/tool-parameter-headers'
 import {
     MCP_CONSUMER_PROTOCOL_VERSION,
@@ -22,7 +22,6 @@ import {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 const MAX_JSON_RESPONSE_BYTES = 4 * 1024 * 1024
-const MCP_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 
 type McpHttpProtocol = 'modern' | 'legacy'
 
@@ -349,6 +348,7 @@ function modernRequestParams(params?: object) {
             ? clientCapabilities
             : undefined
     const suppliedExtensions = suppliedCapabilities ? Reflect.get(suppliedCapabilities, 'extensions') : undefined
+    const appCapabilities = mcpAppClientCapabilities()
     const traceContext = applicationTracing.injectContext()
     return {
         ...(params ?? {}),
@@ -358,10 +358,11 @@ function modernRequestParams(params?: object) {
             [MCP_PROTOCOL_VERSION_META_KEY]: MCP_CONSUMER_PROTOCOL_VERSION,
             [MCP_CLIENT_INFO_META_KEY]: { name: 'xpert-mcp-consumer', version: '1.0.0' },
             [MCP_CLIENT_CAPABILITIES_META_KEY]: {
+                ...appCapabilities,
                 elicitation: { form: {}, url: {} },
                 ...(suppliedCapabilities ? Object.fromEntries(Object.entries(suppliedCapabilities)) : {}),
                 extensions: {
-                    [MCP_UI_EXTENSION_ID]: { mimeTypes: [MCP_APP_RESOURCE_MIME_TYPE] },
+                    ...appCapabilities.extensions,
                     ...(typeof suppliedExtensions === 'object' &&
                     suppliedExtensions !== null &&
                     !Array.isArray(suppliedExtensions)

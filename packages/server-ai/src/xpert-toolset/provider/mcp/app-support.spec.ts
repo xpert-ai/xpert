@@ -7,6 +7,7 @@ import {
     applyMcpAppInstanceSnapshot,
     callMcpAppTool,
     configureMcpAppInstancePersistence,
+    createMcpToolAppMeta,
     detachMcpAppInstancesForClient,
     getMcpAppInstance,
     listMcpToolAppMetadata,
@@ -23,7 +24,7 @@ import {
 import { mcpStdioRuntimeManager } from './mcp-stdio-runtime'
 import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
 
-function createTool(name: string, resourceUri: string) {
+function createTool(name: string, resourceUri?: string) {
     return {
         name,
         description: `${name} tool`,
@@ -58,6 +59,43 @@ function createToolset(): Pick<
 
 describe('MCP App instance lifecycle', () => {
     const originalFetch = global.fetch
+
+    it.each([
+        { content: [{ type: 'text', text: 'Action completed' }] },
+        { isError: true, content: [{ type: 'text', text: 'Forbidden' }] },
+        { _meta: { 'xpert/visualization': { type: 'unknown' } } }
+    ])('does not create an App without a static or result URI (%j)', (toolResult) => {
+        const app = registerMcpAppInstance({
+            toolset: createToolset(),
+            tool: createTool('execute', undefined),
+            toolMeta: createMcpToolAppMeta('default', 'execute', { name: 'execute', _meta: { ui: {} } }),
+            toolResult
+        })
+        expect(app).toBeNull()
+    })
+
+    it('creates and persists an App from a result URI without a static URI', async () => {
+        const save = jest.fn().mockResolvedValue(true)
+        configureMcpAppInstancePersistence({ save, get: jest.fn(), delete: jest.fn() })
+        const toolResult = {
+            content: [{ type: 'text', text: '0 rows' }],
+            structuredContent: { rows: [] },
+            _meta: { ui: { resourceUri: 'ui://analysis' } }
+        }
+        const app = registerMcpAppInstance({
+            toolset: createToolset(),
+            tool: createTool('execute', undefined),
+            toolMeta: createMcpToolAppMeta('default', 'execute', { name: 'execute', _meta: { ui: {} } }),
+            toolResult
+        })!
+        try {
+            expect(app.resourceUri).toBe('ui://analysis')
+            await waitForMcpAppInstancePersistence(app.appInstanceId)
+            expect(save.mock.calls[0][0].toolResult).toEqual(toolResult)
+        } finally {
+            removeMcpAppInstance(app.appInstanceId)
+        }
+    })
 
     afterEach(() => {
         configureMcpAppInstancePersistence(null)

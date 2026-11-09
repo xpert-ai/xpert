@@ -70,6 +70,7 @@ describe('LangChainMcpConnection', () => {
                         },
                         'io.modelcontextprotocol/clientCapabilities': {
                             elicitation: { form: {}, url: {} },
+                            experimental: { 'ai.xpert/tool-result-ui': { version: 1 } },
                             extensions: {
                                 'io.modelcontextprotocol/ui': {
                                     mimeTypes: ['text/html;profile=mcp-app']

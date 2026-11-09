@@ -4,7 +4,7 @@ import type { MiddlewareAppBackend } from '../../../mcp-app-runtime/middleware-a
 import type { McpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { Client as McpSdkClient, type Client } from '@modelcontextprotocol/sdk/client/index.js'
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
 import { ListResourcesResultSchema, ReadResourceResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import {
@@ -33,10 +33,7 @@ import {
     mcpConsumerCallToolResultSchema
 } from '../../../mcp-consumer/tools/mcp-consumer-call-tool-result'
 import { applicationMetrics } from '../../../metrics/application-metrics'
-import {
-    installMcpToolSchemaBridge,
-    mcpConsumerListToolsResultSchema
-} from '../../../mcp-consumer/tools/mcp-consumer-tool-schema'
+import { mcpConsumerListToolsResultSchema } from '../../../mcp-consumer/tools/mcp-consumer-tool-schema'
 
 function appInstanceTtl(middleware?: MiddlewareAppBackend) {
     return mcpAppSessionTtl(middleware?.source)
@@ -47,9 +44,7 @@ const MCP_APP_MESSAGE_MAX_BYTES = 25 * 1024 * 1024
 const MCP_APP_LOG_MAX_BYTES = 64 * 1024
 const MCP_APP_MESSAGE_MAX_CONTENT_BLOCKS = 100
 const MCP_APP_PERSISTED_TEXT_PREVIEW_LENGTH = 4_096
-const MCP_APP_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 const bridgedMcpAppClients = new WeakSet<MultiServerMCPClient>()
-let mcpUiClientCapabilitiesBridgeInstalled = false
 
 export type McpToolLike = {
     name: string
@@ -72,11 +67,6 @@ type McpLoadToolsOptionsByServer = Record<
 
 type McpClientPrivateState = {
     _loadToolsOptions?: McpLoadToolsOptionsByServer
-}
-
-type McpSdkClientWithCapabilities = Client & {
-    registerCapabilities?: (capabilities: Record<string, unknown>) => void
-    transport?: unknown
 }
 
 export type McpAppInstance = {
@@ -430,35 +420,7 @@ export function isMcpAppTokenRequired() {
     return environment.production || Boolean(raw && ['1', 'true', 'yes', 'on'].includes(raw))
 }
 
-export function installMcpUiClientCapabilitiesBridge(): void {
-    installMcpToolSchemaBridge()
-    if (mcpUiClientCapabilitiesBridgeInstalled) {
-        return
-    }
-    mcpUiClientCapabilitiesBridgeInstalled = true
-
-    const prototype = McpSdkClient.prototype as McpSdkClientWithCapabilities
-    const originalConnect = prototype.connect
-    prototype.connect = async function connectWithMcpAppsCapability(
-        this: McpSdkClientWithCapabilities,
-        ...args: Parameters<Client['connect']>
-    ) {
-        if (!this.transport && typeof this.registerCapabilities === 'function') {
-            this.registerCapabilities({
-                elicitation: {
-                    form: {},
-                    url: {}
-                },
-                extensions: {
-                    [MCP_APP_UI_EXTENSION_ID]: {
-                        mimeTypes: [MCP_APP_RESOURCE_MIME_TYPE]
-                    }
-                }
-            })
-        }
-        return originalConnect.apply(this, args)
-    } as Client['connect']
-}
+export { installMcpUiClientCapabilitiesBridge } from './ui-client-capabilities'
 
 function readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
