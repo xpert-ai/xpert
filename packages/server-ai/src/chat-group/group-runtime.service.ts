@@ -10,7 +10,7 @@ import { GroupOutboxService } from './group-outbox.service'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { Injectable } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { DataSource, MoreThan, In, Not, IsNull } from 'typeorm'
+import { DataSource, MoreThan, In, Not } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import { XpertAgentExecutionStatusEnum, TChatCheckpointReference } from '@xpert-ai/contracts'
@@ -516,7 +516,7 @@ export class GroupRuntimeService {
             }))
             .filter(({ text, display }) => text || display.length)
         const lastTextId = visible.filter(({ text }) => text).at(-1)?.output.id
-        const reply = completed ? await this.automaticReply(member, source) : { kind: 'message' as const }
+        const reply = completed ? await this.automaticReply(member, source, receipt) : { kind: 'message' as const }
         let publicationBlocked = false
         for (const { output, text, display } of visible) {
             if (!member.active) break
@@ -606,7 +606,8 @@ export class GroupRuntimeService {
     /** A turn that asks E/B for help posts progress. Their correlated reply returns to the still-open parent request. */
     private async automaticReply(
         member: GroupParticipant,
-        source: ChatMessage
+        source: ChatMessage,
+        delivery: GroupMessageRecipient
     ): Promise<{ kind: 'reply'; messageId: string } | { kind: 'message' | 'tool-final' }> {
         const messages = this.db.getRepository(ChatMessage)
         const receipts = this.db.getRepository(GroupMessageRecipient)
@@ -659,15 +660,37 @@ export class GroupRuntimeService {
             .andWhere("message.groupCommunication ->> 'senderId' = :sender", { sender: member.id })
             .andWhere("message.groupCommunication ->> 'intent' = 'request'")
             .getMany()
-        if (
-            outgoing.length &&
-            (await receipts.countBy({
+        if (outgoing.length) {
+            const children = await receipts.findBy({
                 messageId: In(outgoing.map((message) => message.id)),
-                replyMessageId: IsNull(),
                 status: Not(In(['blocked', 'canceled', 'failed']))
-            }))
-        )
-            return { kind: 'message' }
+            })
+            if (children.some((child) => !child.replyMessageId)) return { kind: 'message' }
+            const answerIds = children.map((child) => child.replyMessageId).filter((id): id is string => Boolean(id))
+            const awaiting = answerIds.length
+                ? await receipts.findBy({
+                      messageId: In(answerIds),
+                      participantId: member.id,
+                      id: Not(delivery.id),
+                      status: In(['pending', 'starting', 'steering'])
+                  })
+                : []
+            // A child's final being published does not mean the caller has seen it. Otherwise
+            // the first continuation can close the parent while another reply is still queued.
+            for (const answer of awaiting) {
+                const consumedSteer =
+                    answer.executionId === delivery.executionId &&
+                    (await messages
+                        .createQueryBuilder('message')
+                        .where('message.conversationId = :id', { id: member.runtimeConversationId })
+                        .andWhere("message.messageEnvelope -> 'correlation' ->> 'messageId' = :receipt", {
+                            receipt: answer.id
+                        })
+                        .andWhere('message.followUpStatus = :status', { status: 'consumed' })
+                        .getExists())
+                if (!consumedSteer) return { kind: 'message' }
+            }
+        }
         return { kind: 'reply', messageId: target }
     }
 }

@@ -179,6 +179,112 @@ export function groupReplyStageCases(fixture: () => Fixture) {
         expect((await f.completion()).replyMessageId).toBe(messages.at(-1).id)
     })
 
+    it.each(['pending', 'unconsumed-steer', 'consumed-steer'] as const)(
+        'waits for the caller to consume both child answers before automatic completion (%s)',
+        async (secondState) => {
+            const f = await start()
+            const repo = f.db.getRepository(GroupMessageRecipient)
+            for (const text of ['Check inventory', 'Check receivables'])
+                await f.call({ intent: 'request', recipientIds: [f.e.id], text })
+            const questions = (await f.publicMessages()).slice(1)
+            await f.finish('Waiting for both analyses')
+            const answers = []
+            for (const question of questions)
+                answers.push(
+                    await f.messages.publish(f.group, f.e, {
+                        intent: 'reply',
+                        replyStage: 'final',
+                        replyToMessageId: question.id,
+                        text: `Completed: ${question.content}`,
+                        clientMessageId: randomUUID()
+                    })
+                )
+            // Both replies exist, but only the first has entered the caller's next run.
+            const first = await repo.findOneByOrFail({ messageId: answers[0].id })
+            const second = await repo.findOneByOrFail({ messageId: answers[1].id })
+            const run = await f.prepare(first)
+            const executionId = run.options.execution.id
+            if (secondState !== 'pending') {
+                await repo.update(second.id, { status: 'steering', executionId })
+                await f.db.getRepository(ChatMessage).save({
+                    tenantId: f.group.tenantId,
+                    organizationId: f.group.organizationId,
+                    conversationId: f.c.runtimeConversationId,
+                    role: 'human',
+                    content: 'Second answer delivered as a steer',
+                    followUpStatus: secondState === 'consumed-steer' ? 'consumed' : 'pending',
+                    messageEnvelope: {
+                        version: 1,
+                        source: { type: 'user', userId: f.a.subjectId },
+                        presentation: 'runtime',
+                        correlation: { messageId: second.id }
+                    }
+                })
+            }
+            const finishContinuation = async (id: string, receiptId: string, content: string) => {
+                await f.db.getRepository(ChatMessage).save({
+                    tenantId: f.group.tenantId,
+                    organizationId: f.group.organizationId,
+                    conversationId: f.c.runtimeConversationId,
+                    executionId: id,
+                    role: 'ai',
+                    content
+                })
+                await f.db.getRepository(XpertAgentExecution).update(id, {
+                    status: XpertAgentExecutionStatusEnum.SUCCESS
+                })
+                await f.db.getRepository(ChatConversationThread).update(
+                    { threadId: f.c.runtimeThreadId },
+                    {
+                        status: 'idle',
+                        runControl: null
+                    }
+                )
+                await f.runtime.finish(receiptId)
+            }
+            await finishContinuation(
+                executionId,
+                first.id,
+                secondState === 'consumed-steer' ? 'Both results analyzed' : 'Waiting for the second result'
+            )
+            if (secondState === 'consumed-steer') {
+                expect((await f.completion()).replyMessageId).toBeTruthy()
+                expect((await f.publicMessages()).at(-1).groupCommunication).toMatchObject({
+                    intent: 'reply',
+                    replyStage: 'final',
+                    replyToMessageId: f.question.id
+                })
+                return
+            }
+            expect((await f.completion()).replyMessageId).toBeNull()
+            expect((await f.publicMessages()).at(-1).groupCommunication.intent).toBe('message')
+            if (secondState === 'unconsumed-steer') await f.runtime.finish(second.id)
+            const continuation = await f.prepare(await repo.findOneByOrFail({ id: second.id }))
+            const tool = f.tools.create(await repo.findOneByOrFail({ id: second.id }), f.c)
+            await tool.invoke({
+                type: 'tool_call',
+                name: tool.name,
+                id: randomUUID(),
+                args: {
+                    intent: 'reply',
+                    replyStage: 'final',
+                    replyToMessageId: f.question.id,
+                    text: 'Both results analyzed'
+                }
+            })
+            await finishContinuation(continuation.options.execution.id, second.id, 'Restated summary')
+            const finals = (await f.publicMessages()).filter(
+                (message) =>
+                    message.groupCommunication.intent === 'reply' &&
+                    message.groupCommunication.replyStage === 'final' &&
+                    message.groupCommunication.replyToMessageId === f.question.id
+            )
+            expect(finals).toHaveLength(1)
+            expect(finals[0].content).toBe('Both results analyzed')
+            expect((await f.publicMessages()).some((message) => message.content === 'Restated summary')).toBe(false)
+        }
+    )
+
     it('does not suppress another recipient’s answer to the same request', async () => {
         const f = await start(true)
         const repo = f.db.getRepository(GroupMessageRecipient)
