@@ -1,3 +1,4 @@
+import { groupDisplayCases } from './testing/group-display.postgres.cases'
 import { GroupResourceToolsService } from './group-resource-tools.service'
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
 import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
@@ -214,6 +215,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         assertCanManage: jest.fn(async (id) => ({ project: { id, name: 'Test project' } })),
         assertCanRead: jest.fn(async (id) => ({ project: { id, name: 'Test project' } }))
     }
+    let resources: GroupResourceToolsService
     let interactions: GroupInteractionsService
     let group: ChatConversation
     let a: GroupParticipant, b: GroupParticipant, c: GroupParticipant, e: GroupParticipant
@@ -265,6 +267,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         runtime = module.get(GroupRuntimeService)
         tools = module.get(GroupToolsService)
         interactions = module.get(GroupInteractionsService)
+        resources = module.get(GroupResourceToolsService)
     })
     groupTaskResultCases(() => ({
         db,
@@ -284,6 +287,16 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         c,
         e,
         prepare: (receipt, queue) => runtime.prepare(job(receipt, queue))
+    }))
+    groupDisplayCases(() => ({
+        db,
+        messages,
+        runtime,
+        tools,
+        group,
+        c,
+        resources,
+        prepare: (receipt) => runtime.prepare(job(receipt))
     }))
     groupReplyStageCases(() => ({
         db,

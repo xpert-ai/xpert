@@ -1,3 +1,4 @@
+import { ProjectGroupDisplayCommand } from './commands/project-group-display.command'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { UserType } from '@xpert-ai/contracts'
 import { runWithCapturedRequestContext, RequestContextSnapshot } from '../shared/request-context'
@@ -88,6 +89,42 @@ describe('group common chat dispatch', () => {
         expect(groupRuntimeDeliveryId('runtime-c')).toBeUndefined()
         expect(RequestContext.currentUserId()).not.toBe('human-a')
         expect(access.withDeliveryActor).toHaveBeenCalledWith('receipt', 'tenant', 'runtime-c', expect.any(Function))
+    })
+    it('projects typed results through the producer even with a lifecycle-only callback', async () => {
+        const outputId = 'b6a86a5c-7cb7-41dc-8119-aa8f64b94731'
+        commands.execute.mockImplementation((command: unknown) => {
+            if (command instanceof ResolveGroupDeliveryContextCommand) return resolveContext.execute(command)
+            if (command instanceof PrepareGroupChatCommand) return message.payload
+            if (command instanceof XpertChatCommand)
+                return of(
+                    { data: { type: 'event', event: 'on_message_start', data: { id: outputId, role: 'ai' } } },
+                    {
+                        data: {
+                            type: 'message',
+                            data: {
+                                id: 'app',
+                                type: 'component',
+                                data: {
+                                    type: 'McpApp',
+                                    appInstanceToken: 'secret',
+                                    toolResult: { content: [{ type: 'text', text: 'Result' }] }
+                                }
+                            }
+                        }
+                    }
+                )
+        })
+        await processor.process({ ...message, headers: { organizationId: 'organization' } }, context)
+        const projection = commands.execute.mock.calls.find(
+            ([command]) => command instanceof ProjectGroupDisplayCommand
+        )?.[0]
+        expect(projection).toMatchObject({
+            tenantId: 'tenant',
+            organizationId: 'organization',
+            receiptId: 'receipt',
+            outputId
+        })
+        expect(JSON.stringify(projection.content)).not.toContain('secret')
     })
     it('reports dispatch failure for reserved-run cleanup instead of leaving an owned lease running', async () => {
         commands.execute.mockImplementation((command: unknown) => {

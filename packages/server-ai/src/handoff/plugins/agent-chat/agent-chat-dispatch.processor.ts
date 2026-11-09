@@ -1,3 +1,5 @@
+import { ProjectGroupDisplayCommand } from '../../../chat-group/commands/project-group-display.command'
+import { projectGroupDisplayStream } from '../../../chat-group/group-display-stream'
 import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { withGroupRuntime } from '../../../chat-group/group-runtime-context'
 import {
@@ -128,10 +130,26 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
                         streamPersistence: chatOptions.streamPersistence ?? { transport: 'redis-stream' }
                     })
                 )
+                const projected = options.groupDeliveryId
+                    ? projectGroupDisplayStream(
+                          observable,
+                          (outputId, content) =>
+                              this.commandBus.execute(
+                                  new ProjectGroupDisplayCommand(
+                                      message.tenantId,
+                                      message.headers?.organizationId,
+                                      options.groupDeliveryId,
+                                      outputId,
+                                      content
+                                  )
+                              ),
+                          () => this.logger.warn('Group display publication deferred to terminal reconciliation')
+                      )
+                    : observable
                 if (this.isRedisPubSubCallback(callback)) {
-                    await this.forwardRealtimeEvents(message, callback, observable, ctx)
+                    await this.forwardRealtimeEvents(message, callback, projected, ctx)
                 } else {
-                    await this.forwardStreamEvents(message, callback, observable, ctx)
+                    await this.forwardStreamEvents(message, callback, projected, ctx)
                 }
                 return { status: 'ok' }
             })

@@ -1,4 +1,4 @@
-import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import type { RuntimeCapabilitiesSelection, TMessageContentResourceCard } from '@xpert-ai/chatkit-types'
 import type { RuntimeResourcesSelection } from '../agent-plugin'
 import type { TAvatar } from '../types'
 import type { XpertProjectTypeRef } from './xpert-project-type.model'
@@ -176,6 +176,41 @@ export interface ChatGroupCommunication {
   hop: number
 }
 
+/** JSON presentation values only; no executable code, runtime sessions or host credentials. */
+export type ChatGroupDisplayValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ChatGroupDisplayValue[]
+  | {
+      [key: string]: ChatGroupDisplayValue
+    }
+/**
+ * First-phase allowlist of inert tool-result snapshots. This is not a plugin publication API.
+ * Widget uses existing flat A2UI messages; ResourceCard uses the existing card contract.
+ * McpApp carries only a result snapshot, never an App instance, token, input or bridge.
+ * These blocks do not complete a request, wake an Assistant, or authorize resource access.
+ * Consumers must ignore unknown/malformed blocks and must not attach the source run's actions.
+ */
+export type ChatGroupDisplay =
+  | TMessageContentResourceCard
+  | {
+      id: string
+      type: 'component'
+      data: { category: 'Dashboard' } & (
+        | { type: 'Widget'; widgets: { name: string; messages: { [key: string]: ChatGroupDisplayValue }[] }[] }
+        | {
+            type: 'McpApp'
+            toolResult: {
+              content: { type: 'text'; text: string }[]
+              structuredContent?: { [key: string]: ChatGroupDisplayValue }
+              isError?: boolean
+            }
+          }
+      )
+    }
+
 /** Public message in the shared group transcript, separate from private runtime ChatMessages. */
 export interface ChatGroupMessage {
   /** Persisted ChatMessage ID in the group conversation. */
@@ -185,6 +220,12 @@ export interface ChatGroupMessage {
   /** Server-assigned order within this conversation; unchanged when this message is updated. */
   sequence: number
   text: string
+  /**
+   * Server-filtered result snapshots, present even when text is empty. Block IDs are stable
+   * within this public message. Live snapshots and paginated history use the same shape.
+   * Only trusted runtime projection may supply these; public send APIs remain text-only.
+   */
+  display?: ChatGroupDisplay[]
   /** ISO 8601 creation timestamp; sequence, not this timestamp, defines transcript order. */
   createdAt: string
   communication: ChatGroupCommunication

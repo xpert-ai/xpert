@@ -1,3 +1,4 @@
+import { groupDisplayContent } from './group-display'
 import { GroupResourceToolsService } from './group-resource-tools.service'
 import { legacyThreadGraphRevision } from '../chat-conversation/thread-graph-revision'
 // Invariants: reserve exactly one writer per Assistant runtime; never re-execute an ambiguous started run.
@@ -507,19 +508,36 @@ export class GroupRuntimeService {
             where: { conversationId: member.runtimeConversationId, executionId: execution.id, role: 'ai' },
             order: { createdAt: 'ASC' }
         })
-        const visible = outputs.filter((output) => chatMessageText(output.content))
+        const visible = outputs
+            .map((output) => ({
+                output,
+                text: chatMessageText(output.content),
+                display: groupDisplayContent(output.content, output.events)
+            }))
+            .filter(({ text, display }) => text || display.length)
+        const lastTextId = visible.filter(({ text }) => text).at(-1)?.output.id
         const reply = completed ? await this.automaticReply(member, source) : { kind: 'message' as const }
         let publicationBlocked = false
-        for (const [index, output] of visible.entries()) {
+        for (const { output, text, display } of visible) {
             if (!member.active) break
-            const text = chatMessageText(output.content)
             const publicationId = `output:${output.id}`
-            const isLast = index === visible.length - 1
-            // A durable tool final already answered this request. Keep earlier visible progress,
-            // but do not downgrade the redundant final output into an ordinary group message.
-            if (isLast && reply.kind === 'tool-final') continue
+            const isLast = output.id === lastTextId
             try {
                 await this.resourceTools.validateAnalysisDelivery(receipt, member, group, root.rootUserId)
+                if (display.length)
+                    await this.messages.publish(
+                        group,
+                        member,
+                        { intent: 'message', recipientIds: [], text: '', clientMessageId: output.id },
+                        root,
+                        `display:${output.id}`,
+                        true,
+                        source.id,
+                        undefined,
+                        display
+                    )
+                // Final-tool deduplication applies only to text; displays remain independent non-completing messages.
+                if (!text || (isLast && reply.kind === 'tool-final')) continue
                 await this.messages.publish(
                     group,
                     member,

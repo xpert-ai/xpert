@@ -1,3 +1,6 @@
+import { groupDisplayContent } from './group-display'
+import { chatMessageText } from '../shared/chat-message-text'
+import type { ChatGroupDisplay } from '@xpert-ai/contracts'
 import { GroupComposerService } from './group-composer.service'
 import { isEqual } from 'lodash-es'
 // Invariants: authors come from authentication/execution bindings, not message text.
@@ -31,16 +34,18 @@ export function publicMessage(
     failedExecutions: XpertAgentExecution[] = [],
     consumedReceipts: ReadonlySet<string> = new Set()
 ): ChatGroupMessage {
+    const display = groupDisplayContent(message.content)
     return {
         id: message.id,
         clientMessageId: message.messageEnvelope?.correlation?.messageId ?? message.id,
         sequence: message.sequence,
-        text: typeof message.content === 'string' ? message.content : '',
+        text: chatMessageText(message.content) ?? '',
+        ...(display.length ? { display } : {}),
         createdAt: message.createdAt.toISOString(),
         communication: parseGroupCommunication(message.groupCommunication),
         runtimeParticipantIds: [
             ...new Set([
-                ...(message.groupPublicationId?.match(/^(output|tool):/)
+                ...(message.groupPublicationId?.match(/^(output|display|tool):/)
                     ? [parseGroupCommunication(message.groupCommunication).senderId]
                     : []),
                 ...receipts
@@ -127,8 +132,21 @@ export class GroupMessagesService {
         hostContext?: Pick<
             ChatGroupCommunication,
             'projectTask' | 'runtimeResult' | 'resourceLinks' | 'resourceNavigation'
-        >
+        >,
+        display?: ChatGroupDisplay[]
     ) {
+        const blocks = display ? groupDisplayContent(display) : []
+        if (
+            display &&
+            (author.kind !== 'assistant' ||
+                input.intent !== 'message' ||
+                !publicationId?.startsWith('display:') ||
+                !blocks.length)
+        )
+            throw groupDenied()
+        const content = blocks.length
+            ? [...(input.text ? [{ type: 'text' as const, text: input.text }] : []), ...blocks]
+            : input.text
         if (!author.active || author.groupId !== group.id) throw groupDenied()
         const recipients = input.intent === 'reply' ? [] : input.recipientIds
         let authorizedRecipients = recipients
@@ -194,8 +212,8 @@ export class GroupMessagesService {
                 if (projection && sender.kind === 'assistant' && communication.senderId === sender.id) {
                     // A paused/canceled visible answer is durable. Resuming updates that same public message.
                     if (communication.intent === input.intent || communication.intent === 'reply') {
-                        if (existing.content !== input.text) {
-                            existing.content = input.text
+                        if (!isEqual(existing.content, content)) {
+                            existing.content = content
                             await manager.save(existing)
                             await manager.increment(ChatConversation, { id: group.id }, 'revision', 1)
                         }
@@ -207,7 +225,7 @@ export class GroupMessagesService {
                     if (communication.intent !== 'message' || input.intent !== 'reply') throw groupConflict()
                 } else {
                     if (
-                        existing.content !== input.text ||
+                        !isEqual(existing.content, content) ||
                         communication.senderId !== sender.id ||
                         communication.intent !== input.intent ||
                         !isEqual(communication.projectTask, hostContext?.projectTask) ||
@@ -324,7 +342,7 @@ export class GroupMessagesService {
                     createdInThreadId: group.threadId,
                     createdById: sender.kind === 'user' ? sender.subjectId : sender.principalUserId,
                     role: sender.kind === 'user' ? 'human' : 'ai',
-                    content: input.text,
+                    content,
                     sequence: existing?.sequence ?? locked.lastMessageSequence,
                     groupCommunication: communication,
                     groupPublicationId: key,
