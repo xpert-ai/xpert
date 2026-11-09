@@ -9,6 +9,7 @@ import { z } from 'zod/v3'
 import { connectionDeletionLockSql, connectionDeletionReferencesSql } from './connection-deletion.queries'
 
 const connectionRows = z.array(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
+type ConnectionScope = { tenantId: string; organizationId: string | null }
 const referencesRow = z.object({
     defaults: z.number().int().nonnegative(),
     assistants: z.number().int().nonnegative(),
@@ -27,7 +28,7 @@ const referencesRow = z.object({
 export class ConnectionDeletionService {
     constructor(private readonly dataSource: DataSource) {}
 
-    private scope() {
+    private scope(): ConnectionScope {
         if (!RequestContext.hasPermission(AIPermissionsEnum.COPILOT_EDIT, false)) throw new ForbiddenException()
         const tenantId = RequestContext.currentTenantId()
         if (!tenantId || !RequestContext.currentUserId()) throw new ForbiddenException()
@@ -37,7 +38,7 @@ export class ConnectionDeletionService {
     async inspect(id: string): Promise<ConnectionDeletionImpact> {
         const scope = this.scope()
         const connection = await this.connection(this.dataSource.manager, id, scope, false)
-        return this.impact(this.dataSource.manager, connection, scope.tenantId)
+        return this.impact(this.dataSource.manager, connection, scope)
     }
 
     async delete(id: string, target: 'connection' | 'provider' = 'connection'): Promise<DeleteResult> {
@@ -49,7 +50,7 @@ export class ConnectionDeletionService {
                 await manager.query("SET LOCAL statement_timeout = '5s'")
                 await manager.query(connectionDeletionLockSql)
                 const connection = await this.connection(manager, id, scope, true, target)
-                const impact = await this.impact(manager, connection, scope.tenantId)
+                const impact = await this.impact(manager, connection, scope)
                 if (!impact.canDelete) {
                     throw new ConflictException({
                         code: connection.enabled ? 'CONNECTION_MUST_BE_DISABLED' : 'CONNECTION_IN_USE',
@@ -86,7 +87,7 @@ export class ConnectionDeletionService {
     private async connection(
         manager: EntityManager,
         id: string,
-        scope: { tenantId: string; organizationId: string | null },
+        scope: ConnectionScope,
         lock: boolean,
         target: 'connection' | 'provider' = 'connection'
     ) {
@@ -106,9 +107,13 @@ export class ConnectionDeletionService {
     private async impact(
         manager: EntityManager,
         connection: { id: string; enabled: boolean },
-        tenantId: string
+        scope: ConnectionScope
     ): Promise<ConnectionDeletionImpact> {
-        const rows: unknown = await manager.query(connectionDeletionReferencesSql, [tenantId, connection.id])
+        const rows: unknown = await manager.query(connectionDeletionReferencesSql, [
+            scope.tenantId,
+            connection.id,
+            scope.organizationId
+        ])
         const references = z.array(referencesRow).length(1).parse(rows)[0] as Required<z.output<typeof referencesRow>>
         return {
             enabled: connection.enabled,
