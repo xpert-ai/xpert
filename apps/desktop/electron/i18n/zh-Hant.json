@@ -374,7 +374,7 @@
   "Could not load Shell status.": "無法取得 Shell 狀態。",
   "Could not update Desktop Shell.": "無法更新桌面 Shell。",
   "Loading Shell status…": "正在取得 Shell 狀態…",
-  "Desktop Shell requires the native macOS app.": "桌面 Shell 需要在 macOS 原生應用程式中使用。",
+  "Desktop Shell requires the native macOS or Windows app.": "桌面 Shell 需要 macOS 或 Windows 原生應用程式。",
   "Connected": "已連線",
   "Connecting…": "正在連線…",
   "Disabled": "已停用",

@@ -70,7 +70,9 @@ export function ShellSettings({
   }
   if (!state) return <p role={error ? 'alert' : 'status'}>{error || t('Loading Shell status…')}</p>
   if (!state.available || !draft)
-    return <p className="text-sm text-muted-foreground">{t('Desktop Shell requires the native macOS app.')}</p>
+    return (
+      <p className="text-sm text-muted-foreground">{t('Desktop Shell requires the native macOS or Windows app.')}</p>
+    )
   const status = state.enabled ? (state.connected ? t('Connected') : t('Connecting…')) : t('Connects when needed')
   return (
     <div className="space-y-6">
@@ -125,10 +127,14 @@ export function ShellSettings({
           <ThemeSelect
             label={t('Shell')}
             value={draft.shell}
-            options={[
-              { value: '/bin/zsh', label: 'zsh' },
-              { value: '/bin/bash', label: 'bash' }
-            ]}
+            options={
+              state.platform === 'win32'
+                ? [{ value: 'powershell.exe', label: 'Windows PowerShell' }]
+                : [
+                    { value: '/bin/zsh', label: 'zsh' },
+                    { value: '/bin/bash', label: 'bash' }
+                  ]
+            }
             onChange={(shell) => {
               if (!busy) setDraft({ ...draft, shell })
             }}

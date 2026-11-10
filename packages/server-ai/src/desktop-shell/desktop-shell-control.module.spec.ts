@@ -15,14 +15,19 @@ it('declares the control module and resolves the concrete store through construc
         exports: [DataSource]
     })
     class DatabaseTestModule {}
+    const redis = { eval: jest.fn().mockResolvedValue(0) }
     const module = await Test.createTestingModule({
         imports: [DatabaseTestModule, TaskControlModule],
         providers: [
             DesktopShellOperationService,
             { provide: DesktopShellAuthService, useValue: {} },
-            { provide: REDIS_CLIENT, useValue: {} }
+            { provide: REDIS_CLIENT, useValue: redis }
         ]
-    }).compile()
+    })
+        // Replace the imported Redis provider too; this test only verifies module wiring.
+        .overrideProvider(REDIS_CLIENT)
+        .useValue(redis)
+        .compile()
     expect(module.get(TaskControlStore)).toBeInstanceOf(TaskControlStore)
     expect(module.get(DesktopShellOperationService)).toBeInstanceOf(DesktopShellOperationService)
     await module.close()

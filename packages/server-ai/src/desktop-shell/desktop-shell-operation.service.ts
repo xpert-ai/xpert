@@ -6,7 +6,7 @@ import { Interval } from '@nestjs/schedule'
 import { REDIS_CLIENT, TaskControlStore } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import type { ShellExecInput, ShellResult, ShellScope, ShellReport } from '@xpert-ai/contracts'
-import { LIMITS, isFinal, isId } from '@xpert-ai/desktop-protocol'
+import { LIMITS, isFinal, isId, isShellCwd } from '@xpert-ai/desktop-protocol'
 import { DesktopShellAuthService } from './desktop-shell-auth.service'
 import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
 import { shellError, shellMessage } from './desktop-shell.errors'
@@ -75,7 +75,12 @@ export class DesktopShellOperationService {
     async execute(input: ShellExecInput, scope: ShellRunScope): Promise<DesktopShellOperation> {
         const { grant, device } = await this.auth.requireGrant(scope.grantId, scope.threadId, scope)
         const cwd = input.cwd ?? device.cwd
-        if (!cwd.startsWith('/') || !isId(scope.runId) || !scope.toolCallId || scope.toolCallId.length > 255)
+        if (
+            !isShellCwd(cwd, device.platform) ||
+            !isId(scope.runId) ||
+            !scope.toolCallId ||
+            scope.toolCallId.length > 255
+        )
             shellError('INVALID_MESSAGE')
         const timeoutSec = input.timeout_sec ?? LIMITS.timeout
         const argsHash = createHash('sha256')

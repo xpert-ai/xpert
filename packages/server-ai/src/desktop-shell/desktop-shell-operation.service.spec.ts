@@ -99,6 +99,22 @@ function fixture(command = 'pwd') {
 }
 
 describe('Desktop Shell operation delivery', () => {
+    it('dispatches Windows commands with the exact approved drive path and rejects cross-platform paths', async () => {
+        const f = fixture('Get-Location')
+        f.device.platform = 'win32'
+        f.device.shell = 'powershell.exe'
+        f.device.cwd = 'D:\\Project 中文'
+        f.grant.operation.argsHash = createHash('sha256')
+            .update(JSON.stringify(['Get-Location', f.device.cwd, LIMITS.timeout]))
+            .digest('hex')
+        const operation = await f.service.execute({ action: 'exec', command: 'Get-Location' }, f.scope)
+        expect(operation.cwd).toBe(f.device.cwd)
+        for (const cwd of ['/tmp', 'D:relative', '\\relative'])
+            await expect(
+                f.service.execute({ action: 'exec', command: 'Get-Location', cwd }, f.scope)
+            ).rejects.toMatchObject({ status: 400 })
+        expect(f.operations.save).toHaveBeenCalledTimes(1)
+    })
     it.each(['pending', 'rejected'])('never dispatches a %s operation', async (decision) => {
         const f = fixture()
         f.grant.operation.decision = decision
