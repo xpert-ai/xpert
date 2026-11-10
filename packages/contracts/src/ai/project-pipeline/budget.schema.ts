@@ -15,6 +15,28 @@ export const projectPipelineNativeModelBudgetSchema = z
 
 export type ProjectPipelineNativeModelBudget = z.output<typeof projectPipelineNativeModelBudgetSchema>
 
+/** Human management command. maxTokens is the new total ceiling, not an additional allowance. */
+export const projectPipelineModelBudgetIncreaseSchema = z
+  .object({
+    instanceId: z.string().uuid(),
+    requestId: z.string().uuid(),
+    expectedRevision: z.number().int().nonnegative().safe(),
+    maxTokens: z.number().int().min(1).max(1000000000000),
+    reason: z.string().trim().min(1).max(2000)
+  })
+  .strict()
+export type ProjectPipelineModelBudgetIncrease = z.output<typeof projectPipelineModelBudgetIncreaseSchema>
+
+export const projectPipelineModelBudgetIncreaseRecordSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    previousMaxTokens: z.number().int().min(1).max(1000000000000),
+    maxTokens: z.number().int().min(1).max(1000000000000),
+    reason: z.string().trim().min(1).max(2000)
+  })
+  .strict()
+export type ProjectPipelineModelBudgetIncreaseRecord = z.output<typeof projectPipelineModelBudgetIncreaseRecordSchema>
+
 export const projectPipelineNativeModelBudgetStatusSchema = z
   .object({
     scope: z.literal('instance_native_llm'),

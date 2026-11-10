@@ -10,6 +10,8 @@ import { ProjectConfigurationService } from './configuration/project-configurati
 import { ProjectConfigurationController } from './configuration/project-configuration.controller'
 import { ProjectPipelineRuntimeBridgeService } from './pipeline/runtime/pipeline-runtime-bridge.service'
 import { ProjectPipelineModelBudgetStore } from './pipeline/budget/pipeline-model-budget.store'
+import { ProjectPipelineModelBudgetManagementController } from './pipeline/budget/pipeline-model-budget-management.controller'
+import { ProjectPipelineModelBudgetManagementService } from './pipeline/budget/pipeline-model-budget-management.service'
 import {
     AuthorizePipelineNativeExecutionHandler,
     PreparePipelineNativeExecutionHandler,
@@ -206,6 +208,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
     ],
     controllers: [
         ProjectConfigurationController,
+        ProjectPipelineModelBudgetManagementController,
         ProjectPipelineCommandsController,
         ProjectPipelineController,
         ProjectPipelineAnalyticsController,
@@ -220,6 +223,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
     ],
     providers: [
         ProjectConfigurationService,
+        ProjectPipelineModelBudgetManagementService,
         ProjectPipelineSchemaService,
         ProjectPipelineModelBudgetStore,
         AuthorizePipelineNativeExecutionHandler,
