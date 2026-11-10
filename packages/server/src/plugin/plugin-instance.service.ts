@@ -28,6 +28,7 @@ import { normalizePluginSourceConfig } from './source-config'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
 import { resolvePluginScope } from './plugin-scope'
 import { PluginConfigurationReader } from './configuration/plugin-configuration-reader.service'
+import { savePluginConfiguration } from './configuration/save-plugin-configuration'
 
 @Injectable()
 export class PluginInstanceService extends TenantOrganizationAwareCrudService<PluginInstance> {
@@ -43,6 +44,26 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		private readonly configurationReader: PluginConfigurationReader
 	) {
 		super(repo)
+	}
+
+	/** Persist configuration without rewriting installation metadata; identity is used only for the first save. */
+	async saveConfiguration(input: PluginInstance) {
+		const defaultTenantId = await this.getDefaultTenantId()
+		const scope = resolvePluginScope({
+			tenantId: input.tenantId ?? this.getCurrentTenantId(),
+			organizationId: input.organizationId,
+			defaultTenantId,
+			scopeKey: input.level === PLUGIN_LEVEL.SYSTEM ? SYSTEM_GLOBAL_SCOPE : input.scopeKey
+		})
+		const tenantId = scope.isSystem ? null : scope.tenantId
+		const where = await this.buildPluginWhere(tenantId, scope.organizationId, { pluginName: input.pluginName }, scope.scopeKey)
+		await savePluginConfiguration(this.repo, {
+			...input,
+			tenantId,
+			organizationId: this.getOrganizationValue(scope.organizationId),
+			scopeKey: scope.scopeKey
+		}, where)
+		this.syncLoadedPluginConfig(scope.organizationId, input.pluginName, input.config, tenantId, scope.scopeKey)
 	}
 
 	async upsert(

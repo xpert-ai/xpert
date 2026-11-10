@@ -236,13 +236,6 @@ export class PluginController {
 		) {
 			throw new BadRequestException(`Plugin "${body.pluginName}" cannot be configured from the current scope`)
 		}
-
-		const existing = await this.pluginInstanceService.findOneByPluginName(
-			plugin.name,
-			organizationId,
-			undefined,
-			plugin.scopeKey
-		)
 		let config: Record<string, unknown>
 		try {
 			config = buildConfig(plugin.name, body.config ?? {}, plugin.instance.config)
@@ -253,15 +246,16 @@ export class PluginController {
 			throw error
 		}
 
-		await this.pluginInstanceService.upsert({
-			tenantId: this.getCurrentTenantId() ?? existing?.tenantId,
+		await this.pluginInstanceService.saveConfiguration({
+			tenantId: this.getCurrentTenantId() ?? plugin.tenantId,
 			organizationId,
 			scopeKey: plugin.scopeKey,
 			pluginName: plugin.name,
-			packageName: existing?.packageName ?? normalizePluginName(plugin.packageName ?? plugin.name),
-			version: existing?.version ?? plugin.instance.meta?.version,
-			source: existing?.source ?? 'env',
-			level: existing?.level ?? plugin.level ?? resolvePluginLevel(plugin.instance.meta?.level),
+			packageName: normalizePluginName(plugin.packageName ?? plugin.name),
+			version: plugin.instance.meta?.version,
+			source: plugin.source ?? 'env',
+			sourceConfig: plugin.sourceConfig,
+			level,
 			config,
 			configurationStatus: PLUGIN_CONFIGURATION_STATUS.VALID,
 			configurationError: null
