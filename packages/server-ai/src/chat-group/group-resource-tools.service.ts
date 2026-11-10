@@ -15,6 +15,9 @@ import { GroupResourceNavigationCommand } from '../artifacts/group-references/co
 import { createResourceNavigationTools } from '../shared/agent/resource-navigation/tools'
 import { createResourceAnalysisTools } from '../shared/agent/resource-navigation/analysis-tools'
 import { GroupResourceAnalysisCommand } from '../artifacts/analysis/commands/group-resource-analysis.command'
+import { DiscoverConversationResourcesCommand } from '../content-resource/commands/discover-conversation-resources.command'
+import { ResolveProjectResourceNavigationCommand } from '../content-resource/commands/resolve-project-resource-navigation.command'
+import type { ChatGroupResourceLink } from '@xpert-ai/contracts'
 
 /** Only a human-addressed run can request UI navigation. Handoffs/background jobs cannot open another user's UI. */
 @Injectable()
@@ -62,13 +65,25 @@ export class GroupResourceToolsService {
 
     createNavigationTools(receipt: GroupMessageRecipient, member: GroupParticipant): DynamicStructuredTool[] {
         return createResourceNavigationTools({
-            search: async (query, offset) => {
+            search: async (query) => {
                 const { actor, group } = await this.authorize(receipt, member)
                 const page = await this.commands.execute(
-                    new GroupResourceNavigationCommand(actor, group.id, { query, offset })
+                    new DiscoverConversationResourcesCommand(
+                        {
+                            actor,
+                            projectId: group.projectId,
+                            assistantId: member.subjectId,
+                            conversationId: member.runtimeConversationId
+                        },
+                        query
+                    )
                 )
                 await this.authorize(receipt, member)
-                return { ...page, items: page.items.map((item) => ({ ...item, id: item.referenceId })) }
+                return {
+                    nextCursor: page.nextCursor,
+                    hasMore: page.nextCursor !== null,
+                    items: page.items.map((item) => ({ ...item, id: item.resource.id }))
+                }
             },
             present: async (items, autoOpen, config) => {
                 const toolCall = config && 'toolCall' in config ? config.toolCall : undefined
@@ -81,11 +96,32 @@ export class GroupResourceToolsService {
                 )
                     throw groupDenied()
                 const { actor, group, current, source, communication } = await this.authorize(receipt, member)
-                const page = await this.commands.execute(
-                    new GroupResourceNavigationCommand(actor, group.id, {
-                        referenceIds: items.map((item) => item.id)
-                    })
-                )
+                const links: ChatGroupResourceLink[] = []
+                for (const item of items) {
+                    if (item.resource.kind === 'group-reference') {
+                        const page = await this.commands.execute(
+                            new GroupResourceNavigationCommand(actor, group.id, { referenceIds: [item.id] })
+                        )
+                        links.push(...page.items)
+                    } else {
+                        const resolved = await this.commands.execute(
+                            new ResolveProjectResourceNavigationCommand(
+                                {
+                                    actor,
+                                    projectId: group.projectId,
+                                    assistantId: member.subjectId,
+                                    conversationId: member.runtimeConversationId
+                                },
+                                item.id
+                            )
+                        )
+                        links.push({
+                            resource: item.resource,
+                            projectId: group.projectId,
+                            title: resolved.title
+                        })
+                    }
+                }
                 await this.authorize(receipt, member)
                 const requestId = randomUUID()
                 await this.access.withRootUser(group, actor.userId, () =>
@@ -94,7 +130,7 @@ export class GroupResourceToolsService {
                         current,
                         {
                             intent: 'message',
-                            text: page.items.map((item) => item.title).join('\n'),
+                            text: links.map((item) => item.title).join('\n'),
                             recipientIds: [],
                             clientMessageId: requestId
                         },
@@ -103,7 +139,7 @@ export class GroupResourceToolsService {
                         false,
                         source.id,
                         {
-                            resourceLinks: page.items,
+                            resourceLinks: links,
                             ...(autoOpen
                                 ? {
                                       resourceNavigation: {

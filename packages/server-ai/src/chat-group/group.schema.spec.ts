@@ -138,3 +138,33 @@ describe('group request boundaries', () => {
         }
     })
 })
+
+it('normalizes historical resource identities at the persistence boundary and rejects mixed locators', () => {
+    const id = randomUUID()
+    const base = { projectId: id, title: 'Inventory' }
+    const communication = {
+        intent: 'message',
+        senderId: id,
+        recipientIds: [],
+        rootMessageId: id,
+        rootUserId: id,
+        hop: 0
+    }
+    for (const kind of ['group-reference', 'project-content'] as const) {
+        const canonical = { ...base, resource: { kind, id } }
+        const legacy = kind === 'group-reference' ? { ...base, referenceId: id } : { ...base, kind, contentId: id }
+        for (const link of [legacy, { ...legacy, kind }, canonical]) {
+            expect(parseGroupCommunication({ ...communication, resourceLinks: [link] }).resourceLinks).toEqual([
+                canonical
+            ])
+        }
+    }
+    for (const link of [
+        { ...base, resource: { kind: 'dashboard', id } },
+        { ...base, resource: { kind: 'project-content', id }, referenceId: id },
+        { ...base, referenceId: id, contentId: id },
+        { ...base, kind: 'project-content', referenceId: id },
+        { ...base, resource: { kind: 'group-reference', id, projectId: id } }
+    ])
+        expect(() => parseGroupCommunication({ ...communication, resourceLinks: [link] })).toThrow()
+})

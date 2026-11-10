@@ -10,7 +10,7 @@ import {
 import { z } from 'zod'
 import { ResolveGroupResourceNavigationToolsCommand } from '../../chat-group/commands/resolve-group-resource-navigation-tools.command'
 import { createProjectResourceNavigationTools } from '../../shared/agent/resource-navigation/project'
-import { ContentCatalogService } from '../catalog/content-catalog.service'
+import { ConversationResourceService } from '../discovery/conversation-resource.service'
 import { ContentEditorsService } from '../content-editors.service'
 import { RESOURCE_ASSISTANT_MIDDLEWARE } from '../resource-assistant.constants'
 
@@ -35,7 +35,7 @@ export class ResourceAssistantMiddleware implements IAgentMiddlewareStrategy {
     }
 
     constructor(
-        private readonly catalog: ContentCatalogService,
+        private readonly discovery: ConversationResourceService,
         private readonly editors: ContentEditorsService,
         private readonly commands: CommandBus
     ) {}
@@ -64,7 +64,7 @@ export class ResourceAssistantMiddleware implements IAgentMiddlewareStrategy {
             tools:
                 resolved.scope === 'group'
                     ? resolved.tools
-                    : createProjectResourceNavigationTools(context, this.catalog, this.editors)
+                    : createProjectResourceNavigationTools(context, this.discovery, this.editors)
         }
     }
 }

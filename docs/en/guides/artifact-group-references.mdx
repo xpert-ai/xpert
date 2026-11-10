@@ -79,6 +79,16 @@ If the owner leaves the analysis checkbox unchecked, the group accepts viewing o
 
 Each shared reference has its own Workbench tab. Reopening the same reference focuses its existing tab and preserves the current filters. The shared view supports viewing and interactive queries; it does not expose source draft editing, publication, export or onward grants. Authoring remains in the source project's authoring view.
 
+### Find dashboards in the Workbench
+
+Open **Live Dashboard → Select project and dashboard** and filter the available dashboards by source:
+
+- **All**: dashboards in the current project and valid shared references accepted by this group.
+- **This project**: dashboards owned by the selected project, labeled editable or read only according to current permissions.
+- **Shared with this group**: this group's valid references, with their fixed published version and accepted query or analysis permissions.
+
+Search by title and scroll to load more results. Opening a shared dashboard creates a separate Workbench tab without changing the group's project. Browsing another project does not carry this group's references into that project; groups sharing the same project still have separate grants. Browsing project and dashboard lists does not change the group's project binding.
+
 ## Open and analyze through conversation
 
 ### Enable Resource Assistant
@@ -87,10 +97,11 @@ Select **Resource Assistant** when creating an Assistant, or enable it in Bosi u
 
 Once enabled, it does not need to be selected again in each conversation's plugin picker. Disabling it removes its automatically added configuration; manually authored Studio workflows retain their existing management behavior.
 
-Resource Assistant searches for and opens resources. Project conversations can use content types integrated with the current project's resource catalog. Groups search only their accepted, still-valid shared references. The capability itself does not grant content reading, editing or data analysis.
+Resource Assistant searches for and opens resources. Project conversations can use content types integrated with the current project's resource catalog. Groups discover both available content in their project and their own accepted, still-valid references. This matches the Workbench's discovery scope and distinguishes source, version and permissions. The capability itself does not grant content reading, editing or data analysis.
 
 ### Example requests
 
+- **Find**: “Which dashboards are available to this group? Check both this project and dashboards shared with this group.”
 - **Open**: “Open ‘Inventory Overview | Plant Count and Value’ in the Workbench for viewing.”
 - **Query a declared dataset**: “Query the authorized inventory dataset in the shared dashboard and explain the result scope.”
 - **Analyze further**: “Summarize inventory value by plant, show the top five, and explain whether the data is complete.”

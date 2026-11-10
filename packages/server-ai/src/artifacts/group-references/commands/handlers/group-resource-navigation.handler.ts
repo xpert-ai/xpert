@@ -10,7 +10,7 @@ export class GroupResourceNavigationHandler implements ICommandHandler<GroupReso
         const link = (
             reference: Awaited<ReturnType<ArtifactGroupReferenceService['resolve']>>['descriptor']
         ): ChatGroupResourceLink => ({
-            referenceId: reference.id,
+            resource: { kind: 'group-reference', id: reference.id },
             projectId: reference.runtimeProjectId,
             title: reference.title
         })

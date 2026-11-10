@@ -9,7 +9,7 @@ import {
 import {
     emitResourceCard,
     type IAgentMiddlewareContext,
-    type ContentCatalogApi,
+    type ConversationResourcesApi,
     type ContentEditorsApi
 } from '@xpert-ai/plugin-sdk'
 import { createResourceNavigationTools } from './tools'
@@ -21,28 +21,29 @@ type NavigationContext = Pick<
 >
 export function createProjectResourceNavigationTools(
     context: NavigationContext,
-    catalog: Pick<ContentCatalogApi, 'list'>,
+    discovery: ConversationResourcesApi,
     editors: Pick<ContentEditorsApi, 'resolve'>
 ) {
     if (!context.projectId || !context.conversationId || !context.organizationId || !context.xpertId) return []
     const scope = {
         actor: { tenantId: context.tenantId, organizationId: context.organizationId, userId: context.userId },
         projectId: context.projectId,
+        conversationId: context.conversationId,
         assistantId: context.xpertId
     }
     const conversationId = context.conversationId
     return createResourceNavigationTools({
-        search: async (query, offset) => {
-            const page = await catalog.list({ ...scope, search: query, offset, limit: 10 })
+        search: async (query) => {
+            const page = await discovery.list(scope, query)
             return {
-                ...page,
-                items: page.items
-                    .filter((item) => !item.availability)
-                    .map((item) => ({ id: item.contentId, title: item.title }))
+                nextCursor: page.nextCursor,
+                hasMore: page.nextCursor !== null,
+                items: page.items.map((item) => ({ ...item, id: item.resource.id }))
             }
         },
         present: async (items, autoOpen, config) => {
             for (const item of items) {
+                if (item.resource.kind !== 'project-content') throw new Error('Invalid Project resource target')
                 const resolved = await editors.resolve({
                     ...scope,
                     source: { providerKey: CONTENT_CATALOG_PROVIDER, resourceId: item.id }

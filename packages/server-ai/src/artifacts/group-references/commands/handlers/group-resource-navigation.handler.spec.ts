@@ -30,7 +30,7 @@ describe('group navigation metadata', () => {
         expect(
             await handler.execute(new GroupResourceNavigationCommand(actor, 'group', { query: 'inventory', offset: 0 }))
         ).toEqual({
-            items: [{ referenceId: 'ref', projectId: 'B', title: 'Inventory' }],
+            items: [{ resource: { kind: 'group-reference', id: 'ref' }, projectId: 'B', title: 'Inventory' }],
             hasMore: false
         })
         expect(list.mock.calls.map((call) => call[2].offset)).toEqual([0, 100])

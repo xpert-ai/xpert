@@ -46,6 +46,8 @@ export type ArtifactUseGrantPolicy = Pick<
 >
 /** Declarative type capabilities validated by the host; opt-in metadata never substitutes for per-operation authorization. */
 export interface ArtifactTypeDefinition {
+  /** Semantic catalog type for cross-surface discovery. Metadata only; does not register a Project-owned copy. */
+  contentTypeId?: string
   /** Localized semantic type name shown by libraries independently of the storage/rendering kind. */
   title?: I18nObject
   kinds: readonly ArtifactKind[]

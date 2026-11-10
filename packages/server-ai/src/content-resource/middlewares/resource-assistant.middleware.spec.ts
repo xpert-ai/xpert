@@ -14,14 +14,14 @@ import {
 import { getAgentMiddlewares } from '../../shared/agent/middleware'
 import { createResourceNavigationTools } from '../../shared/agent/resource-navigation/tools'
 import type { TXpertAgentRuntimeOptions } from '../../shared/agent/state'
-import { ContentCatalogService } from '../catalog/content-catalog.service'
+import { ConversationResourceService } from '../discovery/conversation-resource.service'
 import { ContentEditorsService } from '../content-editors.service'
 import { ResourceAssistantMiddleware } from './resource-assistant.middleware'
 import { RESOURCE_ASSISTANT_MIDDLEWARE } from '../resource-assistant.constants'
 
 async function fixture() {
     const execute = jest.fn().mockResolvedValue({ scope: 'project' })
-    const list = jest.fn().mockResolvedValue({ items: [], hasMore: false })
+    const list = jest.fn().mockResolvedValue({ items: [], nextCursor: null, sharedAvailable: false })
     const resolve = jest.fn()
     const module = await Test.createTestingModule({
         imports: [DiscoveryModule],
@@ -30,7 +30,7 @@ async function fixture() {
             AgentMiddlewareRegistry,
             StrategyBus,
             { provide: CommandBus, useValue: { execute } },
-            { provide: ContentCatalogService, useValue: { list } },
+            { provide: ConversationResourceService, useValue: { list } },
             { provide: ContentEditorsService, useValue: { resolve } }
         ]
     }).compile()
@@ -92,7 +92,8 @@ it('selects Project navigation through the regular middleware path without query
                 organizationId: 'org',
                 userId: 'human'
             }
-        })
+        }),
+        expect.objectContaining({ search: 'Inventory' })
     )
     await f.module.close()
 })
@@ -130,11 +131,11 @@ it.each(['project', 'group'] as const)('honors configured and per-user disabled 
 
 it('keeps group adapters scoped, including empty toolsets; never falls back after denial', async () => {
     const f = await fixture()
-    const search = jest.fn().mockResolvedValue({ items: [], hasMore: false })
+    const search = jest.fn().mockResolvedValue({ items: [], nextCursor: null, sharedAvailable: false })
     const tools = createResourceNavigationTools({ search, present: jest.fn() })
     f.execute.mockResolvedValue({ scope: 'group', tools })
     await (await f.run())[0].tools[0].invoke({ query: 'Inventory' })
-    expect(search).toHaveBeenCalledWith('Inventory', 0)
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ search: 'Inventory', origin: 'all', limit: 10 }))
     expect(f.list).not.toHaveBeenCalled()
     f.execute.mockResolvedValue({ scope: 'group', tools: [] })
     expect((await f.run())[0].tools).toEqual([])
