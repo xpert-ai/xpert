@@ -36,7 +36,12 @@ import {
     UpdateArtifactLinkAccessInput
 } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { RequestContext as ServerRequestContext, UserOrganizationService, UserService } from '@xpert-ai/server-core'
+import {
+    verifyAccessJwt,
+    RequestContext as ServerRequestContext,
+    UserOrganizationService,
+    UserService
+} from '@xpert-ai/server-core'
 import { sign, verify } from 'jsonwebtoken'
 import { DataSource, Repository } from 'typeorm'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
@@ -418,13 +423,13 @@ export class ArtifactsService implements ArtifactsApi {
         return { link, artifact, version }
     }
 
-    resolvePrincipalFromRequest(request: ArtifactHttpRequest): ArtifactAccessPrincipal {
+    async resolvePrincipalFromRequest(request: ArtifactHttpRequest): Promise<ArtifactAccessPrincipal> {
         const token = extractBearerToken(request.headers)
         if (!token) {
             return {}
         }
         try {
-            const payload = verify(token, environment.JWT_SECRET) as ArtifactJwtPayload
+            const payload = await verifyAccessJwt(this.artifactRepository.manager, token, environment.JWT_SECRET)
             return {
                 userId: normalizeOptionalString(payload.id),
                 tenantId: normalizeOptionalString(payload.tenantId)
@@ -441,7 +446,11 @@ export class ArtifactsService implements ArtifactsApi {
         const bearerToken = extractBearerToken(request.headers)
         if (bearerToken) {
             try {
-                const payload = verify(bearerToken, environment.JWT_SECRET) as ArtifactJwtPayload
+                const payload = await verifyAccessJwt(
+                    this.artifactRepository.manager,
+                    bearerToken,
+                    environment.JWT_SECRET
+                )
                 const user = await this.loadAuthenticatedUser(payload)
                 if (user?.id && user.tenantId) {
                     return {

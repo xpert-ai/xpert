@@ -14,11 +14,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { buildQueryString } from '@xpert-ai/server-common'
 import {
+	type AccessTokenClaims,
 	CurrenciesEnum,
 	DefaultValueDateTypeEnum,
 	IChangePasswordRequest,
 	ID,
-	IPasswordReset,
 	IResetPasswordRequest,
 	IRolePermission,
 	ITenant,
@@ -33,12 +33,15 @@ import {
 import type { VerifiedEmailLoginInput } from '@xpert-ai/plugin-sdk'
 import { SocialAuthService } from '@xpert-ai/server-auth'
 import { environment as env, environment, getConfig, IEnvironment } from '@xpert-ai/server-config'
+import type { PasswordReset } from '../password-reset/password-reset.entity'
+import { invalidResetLink } from '../password-reset/reset-token'
+import { ACCESS_TOKEN_PURPOSE, isAccessJwtAllowed, verifyAccessJwt } from './access-jwt'
 import { ensureRegistrationOrganization } from './registration-organization'
 import bcrypt from 'bcryptjs'
 import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
-import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
+import { JsonWebTokenError, sign } from 'jsonwebtoken'
 import { t } from 'i18next'
 import { DataSource, EntityManager, FindOptionsWhere, QueryFailedError, Repository } from 'typeorm'
 import { EmailService } from '../email/email.service'
@@ -46,7 +49,11 @@ import { UserOrganizationService } from '../user-organization/user-organization.
 import { User } from '../user/user.entity'
 import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
-import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
+import {
+	PasswordResetApplyCommand,
+	PasswordResetCreateCommand,
+	PasswordResetGetCommand
+} from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
 import { OrganizationService } from '../organization/organization.service'
 import { Organization } from '../organization/organization.entity'
@@ -481,43 +488,25 @@ export class AuthService extends SocialAuthService {
 		originUrl?: string
 	): Promise<boolean | BadRequestException> {
 		try {
-			const user = await this.userService.findOneByOptions({
-				where: request,
-				relations: ['role', 'employee']
-			})
-			try {
-				/**
-				 * Create password reset request
-				 */
-				const { token } = await this.createToken(user)
-				if (token) {
-					await this.commandBus.execute(
-						new PasswordResetCreateCommand({
-							email: user.email,
-							token
-						})
-					)
-
-					const url = `${environment.clientBaseUrl}/auth/reset-password?token=${token}`
-					const { organizationId } = await this.userOrganizationService.findOneByOptions({
-						where: {
-							user
-						}
-					})
-
-					this.emailService.requestPassword(user, url, languageCode, organizationId, originUrl)
-
-					// Return success status
-					return true
-				}
-			} catch (error) {
-				console.log(error)
-				throw new InternalServerErrorException()
-			}
-		} catch (error) {
-			console.log(error)
+			const user = await this.userService.findOneByOptions({ where: request })
+			const token = await this.issuePasswordReset(user)
+			const url = `${environment.clientBaseUrl}/auth/reset-password?token=${token}`
+			const { organizationId } = await this.userOrganizationService.findOneByOptions({ where: { user } })
+			await this.emailService.requestPassword(user, url, languageCode, organizationId, originUrl)
+			return true
+		} catch {
 			throw new NotFoundException('Email is not correct, please try again.')
 		}
+	}
+
+	private issuePasswordReset(user: User): Promise<string> {
+		return this.commandBus.execute(
+			new PasswordResetCreateCommand({
+				userId: user.id,
+				tenantId: user.tenantId,
+				email: user.email
+			})
+		)
 	}
 
 	/**
@@ -551,32 +540,10 @@ export class AuthService extends SocialAuthService {
 			// Iterate through users and generate reset links
 			for await (const user of users) {
 				const { email, tenantId } = user
-				const { token } = await this.createToken(user)
-
-				// Proceed if a valid token and email are obtained
-				if (!!token && !!email) {
-					try {
-						// Create a password reset request and generate a reset link
-						await this.commandBus.execute(
-							new PasswordResetCreateCommand({
-								email,
-								tenantId,
-								token
-							})
-						)
-
-						// Initialize Base URL
-						const baseURL = `${environment.clientBaseUrl}/auth/reset-password`
-
-						// Generate the reset link using the helper function
-						const resetLink = this.generateResetLink(baseURL, token, email, tenantId)
-
-						// Add the reset link, tenant, and user to the tenantUsersMap array
-						tenantUsersMap.push({ resetLink, tenant: user.tenant ?? undefined, user })
-					} catch (error) {
-						throw new BadRequestException('Forgot password request failed!')
-					}
-				}
+				const token = await this.issuePasswordReset(user)
+				const baseURL = `${environment.clientBaseUrl}/auth/reset-password`
+				const resetLink = this.generateResetLink(baseURL, token, email, tenantId)
+				tenantUsersMap.push({ resetLink, tenant: user.tenant ?? undefined, user })
 			}
 
 			// If there is only one user, send a password reset email
@@ -586,7 +553,7 @@ export class AuthService extends SocialAuthService {
 
 				if (tenantUserMap) {
 					const { resetLink } = tenantUserMap
-					this.emailService.requestPassword(user, resetLink, languageCode, null, originUrl)
+					await this.emailService.requestPassword(user, resetLink, languageCode, null, originUrl)
 				}
 			} else {
 				// If multiple users are found, send a multi-tenant password reset email
@@ -647,41 +614,16 @@ export class AuthService extends SocialAuthService {
 	 * @param request
 	 */
 	async resetPassword(request: IChangePasswordRequest) {
+		const { token, password } = request
 		try {
-			const { password, token } = request
-			const record: IPasswordReset = await this.commandBus.execute(
-				new PasswordResetGetCommand({
-					token
-				})
+			const ticket = await this.commandBus.execute<PasswordResetGetCommand, PasswordReset>(
+				new PasswordResetGetCommand({ token })
 			)
-			if (record.expired) {
-				throw new BadRequestException('Password Reset Failed (code: 1).')
-			}
-			const { id, tenantId } = verify(token, environment.JWT_SECRET) as {
-				id: string
-				tenantId: string
-			}
-			try {
-				const user = await this.userService.findOneByIdString(id, {
-					where: {
-						tenantId
-					},
-					relations: ['tenant']
-				})
-				if (user) {
-					const hash = await this.getPasswordHash(password)
-					await this.userService.changePassword(user.id, hash)
-					// Confirm email verified when changed password
-					if (!user.emailVerified) {
-						await this.userService.update(user.id, { emailVerified: true })
-					}
-					return true
-				}
-			} catch (error) {
-				throw new BadRequestException('Password Reset Failed (code: 2).')
-			}
-		} catch (error) {
-			throw new BadRequestException('Password Reset Failed (code: 3).')
+			return await this.commandBus.execute(
+				new PasswordResetApplyCommand(ticket, await this.getPasswordHash(password))
+			)
+		} catch {
+			throw invalidResetLink()
 		}
 	}
 
@@ -776,10 +718,14 @@ export class AuthService extends SocialAuthService {
 
 			const existingUser = where.length
 				? await userRepository.findOne({
-						where, relations: { emailVerification: true }
+						where,
+						relations: { emailVerification: true }
 					})
 				: null
-			const isUpdatingPendingSignup = existingUser && !existingUser.emailVerified && options?.emailVerified === false &&
+			const isUpdatingPendingSignup =
+				existingUser &&
+				!existingUser.emailVerified &&
+				options?.emailVerified === false &&
 				((!!input.user.id && existingUser.id === input.user.id) ||
 					(options.independentOrganization && existingUser.roleId === input.user.roleId))
 			if (existingUser && !isUpdatingPendingSignup) {
@@ -803,7 +749,9 @@ export class AuthService extends SocialAuthService {
 					...(options?.emailVerificationToken
 						? {
 								emailVerification: {
-									...(isUpdatingPendingSignup && existingUser.emailVerification?.id ? { id: existingUser.emailVerification.id } : {}),
+									...(isUpdatingPendingSignup && existingUser.emailVerification?.id
+										? { id: existingUser.emailVerification.id }
+										: {}),
 									tenantId,
 									token: options.emailVerificationToken,
 									validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2)
@@ -830,8 +778,10 @@ export class AuthService extends SocialAuthService {
 			const managedOrganization = options?.independentOrganization
 				? await ensureRegistrationOrganization(manager, tenantId, String(hydratedUser.id), normalizedEmail)
 				: null
-			const organizationId = managedOrganization?.organizationId ??
-				input.organizationId ?? (await this.resolveDefaultOrganizationIdWithManager(manager, tenantId))
+			const organizationId =
+				managedOrganization?.organizationId ??
+				input.organizationId ??
+				(await this.resolveDefaultOrganizationIdWithManager(manager, tenantId))
 			let membershipCreation: {
 				organizationId: string
 				tenantId: string
@@ -868,8 +818,10 @@ export class AuthService extends SocialAuthService {
 			await this.userOrganizationService.completeMembershipCreation(registration.membershipCreation)
 		}
 		if (registration.createdOrganizationId) {
-			this.eventEmitter.emit(EVENT_ORGANIZATION_CREATED,
-				new OrganizationCreatedEvent(tenantId, registration.createdOrganizationId, String(registration.user.id)))
+			this.eventEmitter.emit(
+				EVENT_ORGANIZATION_CREATED,
+				new OrganizationCreatedEvent(tenantId, registration.createdOrganizationId, String(registration.user.id))
+			)
 		}
 
 		return registration.user
@@ -906,8 +858,17 @@ export class AuthService extends SocialAuthService {
 		return organization?.id
 	}
 
-	async getAuthenticatedUser(id: string, thirdPartyId?: string): Promise<User> {
-		const user = await (thirdPartyId ? this.userService.getIfExistsThirdParty(thirdPartyId) : this.userService.getIfExists(id))
+	async getAuthenticatedUser(
+		id: string,
+		thirdPartyId?: string,
+		jwt?: { token: string | null; purpose?: AccessTokenClaims['purpose'] }
+	): Promise<User> {
+		if (jwt && !(await isAccessJwtAllowed(this.dataSource.manager, jwt.token, jwt.purpose))) {
+			throw new UnauthorizedException()
+		}
+		const user = await (thirdPartyId
+			? this.userService.getIfExistsThirdParty(thirdPartyId)
+			: this.userService.getIfExists(id))
 		if (user?.isActive === false) throw new UnauthorizedException('unauthorized')
 		return user
 	}
@@ -915,10 +876,7 @@ export class AuthService extends SocialAuthService {
 	async isAuthenticated(token: string): Promise<boolean> {
 		try {
 			const JWT_SECRET = this._configService.get('JWT_SECRET', { infer: true })
-			const { id, thirdPartyId } = verify(token, JWT_SECRET) as {
-				id: string
-				thirdPartyId: string
-			}
+			const { id, thirdPartyId } = await verifyAccessJwt(this.dataSource.manager, token, JWT_SECRET)
 
 			let result: Promise<boolean>
 
@@ -941,10 +899,7 @@ export class AuthService extends SocialAuthService {
 	async hasRole(token: string, roles: string[] = []): Promise<boolean> {
 		try {
 			const JWT_SECRET = this._configService.get('JWT_SECRET', { infer: true })
-			const { role } = verify(token, JWT_SECRET) as {
-				id: string
-				role: string
-			}
+			const { role } = await verifyAccessJwt(this.dataSource.manager, token, JWT_SECRET)
 			return role ? roles.includes(role) : false
 		} catch (err) {
 			if (err instanceof JsonWebTokenError) {
@@ -1155,7 +1110,7 @@ export class AuthService extends SocialAuthService {
 			})
 		}
 
-		const payload: any = {
+		const payload: Omit<AccessTokenClaims, 'purpose'> = {
 			id: user.id,
 			tenantId: user.tenantId,
 			employeeId: user.employee ? user.employee.id : null
@@ -1181,7 +1136,8 @@ export class AuthService extends SocialAuthService {
 			infer: true
 		})
 
-		const token: string = sign(payload, JWT_SECRET, {
+		const accessClaims: AccessTokenClaims = { ...payload, purpose: ACCESS_TOKEN_PURPOSE }
+		const token: string = sign(accessClaims, JWT_SECRET, {
 			expiresIn: jwtExpiresIn
 		})
 		const refreshToken = sign(payload, JWT_REFRESH_SECRET, {

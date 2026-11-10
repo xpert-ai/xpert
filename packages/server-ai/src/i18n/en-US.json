@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PasswordResetInvalid": "Password reset link is invalid or expired.",
         "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
         "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",
         "PluginProviderClaimDuplicate": "Duplicate {{kind}} '{{key}}' inside the plugin",
