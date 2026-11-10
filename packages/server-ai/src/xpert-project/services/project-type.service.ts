@@ -4,6 +4,7 @@ import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { projectApplicationDefinitions } from './project-type-metadata'
 import {
     GENERAL_PROJECT_TYPE,
+    projectTaskConfigurationSchema,
     SPACE_PROJECT_TYPE,
     IXpert,
     XpertProjectClassification,
@@ -52,6 +53,7 @@ export class XpertProjectTypeService {
                 ...GENERAL_PROJECT_TYPE,
                 applicationTitle: { en_US: 'Platform', zh_Hans: '平台' },
                 title: { en_US: 'General project', zh_Hans: '通用项目' },
+                configuration: { schema: projectTaskConfigurationSchema() },
                 binding: { kind: 'project' },
                 available: true
             },
@@ -59,6 +61,7 @@ export class XpertProjectTypeService {
                 ...SPACE_PROJECT_TYPE,
                 applicationTitle: { en_US: 'Platform', zh_Hans: '平台' },
                 title: { en_US: 'Writing space', zh_Hans: '协作空间' },
+                configuration: { schema: projectTaskConfigurationSchema() },
                 binding: { kind: 'project' },
                 available: true
             }
@@ -88,6 +91,7 @@ export class XpertProjectTypeService {
                         icon: definition.icon,
                         binding: definition.binding,
                         taskConcurrency: definition.taskConcurrency,
+                        configuration: definition.configuration,
                         available: true,
                         pluginName,
                         appName: app.name,

@@ -24,6 +24,11 @@ interface AgentRunnerReceiptBase {
   tool: { id: string; version: string }
   /** Effective policy pinned when this process started; absent on historical receipts. */
   permissionMode?: CliPermissionMode
+  executionBudget?: {
+    maxDurationSeconds: number
+    deadline: string
+    project?: import('@xpert-ai/contracts').ProjectTaskDurationConfiguration
+  }
 }
 
 /** V1 retains its original cwd; V2 separates per-invocation records from the business cwd. */

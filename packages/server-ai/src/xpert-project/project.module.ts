@@ -1,3 +1,7 @@
+import { ModelExecutionModule } from '../model-execution/model-execution.module'
+import { XpertProjectConfiguration } from './configuration/project-configuration.entity'
+import { ProjectConfigurationService } from './configuration/project-configuration.service'
+import { ProjectConfigurationController } from './configuration/project-configuration.controller'
 import { ProjectPipelineRuntimeBridgeService } from './pipeline/runtime/pipeline-runtime-bridge.service'
 import { ProjectPipelineModelBudgetStore } from './pipeline/budget/pipeline-model-budget.store'
 import {
@@ -161,6 +165,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
             XpertProjectAutomationRun,
             XpertProjectTaskConversation,
             XpertProjectTaskExecution,
+            XpertProjectConfiguration,
             XpertAgentExecution,
             XpertProjectSprint,
             XpertProjectSwimlane,
@@ -174,6 +179,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
             Feature,
             FeatureOrganization
         ]),
+        forwardRef(() => ModelExecutionModule),
         TenantModule,
         RedisModule,
         FeatureModule,
@@ -191,6 +197,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         forwardRef(() => XpertModule)
     ],
     controllers: [
+        ProjectConfigurationController,
         ProjectPipelineCommandsController,
         ProjectPipelineController,
         ProjectPipelineAnalyticsController,
@@ -204,6 +211,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectConfigurationService,
         ProjectPipelineSchemaService,
         ProjectPipelineModelBudgetStore,
         AuthorizePipelineNativeExecutionHandler,

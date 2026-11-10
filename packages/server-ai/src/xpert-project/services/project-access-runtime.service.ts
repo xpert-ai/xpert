@@ -146,6 +146,13 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
             await this.assertManage(input)
             return
         }
+        return this.assertHumanManageWithinTransaction(input, manager)
+    }
+
+    /** Recheck an already-authorized human manager using only the lock-owning connection. */
+    async assertHumanManageWithinTransaction(
+        input: { actor: ProjectAccessActor; projectId: string }, manager: EntityManager
+    ) {
         const access = await this.readableQuery(
             { actor: input.actor, projectIds: [input.projectId] },
             manager.getRepository(XpertProject)

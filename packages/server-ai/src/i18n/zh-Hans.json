@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ProjectConfigurationInvalid": "项目类型配置无效",
+        "ProjectConfigurationConflict": "项目配置已更新，请刷新后重试",
         "PluginProviderPreflightFailed": "插件“{{pluginName}}”注册预检失败：{{cause}}",
         "PluginProviderMetadataInvalid": "插件 Provider 声明元数据无效",
         "PluginProviderClaimDuplicate": "插件内部存在重复的 {{kind}}“{{key}}”",
