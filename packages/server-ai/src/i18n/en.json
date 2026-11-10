@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PluginArchiveDeploymentInput": "Archive deployment requires a host-verified package directory and valid digest. Save plugin configuration through the configuration API separately.",
+    "PluginDeploymentConflict": "A different plugin archive is already installed. Replacement was not authorized.",
         "PluginConfigurationSaveConflict": "The plugin installation changed while saving configuration. Reload and try again.",
         "PluginPortableResourceManifestMissing": "Loaded plugin '{{pluginName}}' does not expose a portable resource manifest.",
         "PluginFilesystemResourceRootRequired": "A portable plugin resource root is required for filesystem resources.",

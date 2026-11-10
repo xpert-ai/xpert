@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto'
 import { rm } from 'node:fs/promises'
 import type { PluginStoreLease } from './installation/plugin-store-lock'
+import { canReusePluginArchive, prepareArchiveSourceConfig, type PluginInstallOptions } from './installation/plugin-archive-installation'
 import {
 	publishCommittedPlugin,
 	replayPluginPublications,
@@ -228,7 +229,7 @@ export class PluginManagementService {
 
 	async installPlugin(
 		body: PluginInstallInput,
-		options: { allowPackageDir?: boolean; deferActivation?: boolean; requiredLevel?: PluginLevel } = {}
+		options: PluginInstallOptions = {}
 	): Promise<PluginInstallResult> {
 		return withOrganizationPluginStoreLock({}, async (lease) => {
 			if (!(await replayPluginPublications(this.pluginInstanceService, this.runtimeControl, lease))) {
@@ -240,7 +241,7 @@ export class PluginManagementService {
 
 	private async installPluginUnderLease(
 		body: PluginInstallInput,
-		options: { allowPackageDir?: boolean; deferActivation?: boolean; requiredLevel?: PluginLevel },
+		options: PluginInstallOptions,
 		lease: PluginStoreLease
 	): Promise<PluginInstallResult> {
 		if (!body?.pluginName) {
@@ -257,6 +258,7 @@ export class PluginManagementService {
 		} catch (error) {
 			throw new BadRequestException(getErrorMessage(error))
 		}
+		sourceConfig = prepareArchiveSourceConfig(source, sourceConfig, options, body.config !== undefined)
 		const workspacePath = getCodeWorkspacePath(sourceConfig)
 		const packageDir = getCodePackageDir(sourceConfig)
 		if (source === 'code' && packageDir && !options.allowPackageDir) {
@@ -401,14 +403,29 @@ export class PluginManagementService {
 				allowSystemPlugins = false
 			}
 
-			replacing = Boolean(
-				await this.pluginInstanceService.findOneByPluginName(
-					packageName,
-					targetOrganizationId,
-					targetTenantId,
-					scope.scopeKey
-				)
+			const existingInstallation = await this.pluginInstanceService.findOneByPluginName(
+				packageName,
+				targetOrganizationId,
+				targetTenantId,
+				scope.scopeKey
 			)
+			replacing = Boolean(existingInstallation)
+			const installedRuntimeName = getCodeRuntimeName(existingInstallation?.sourceConfig)
+			if (existingInstallation && options.archiveDeployment && canReusePluginArchive(
+				existingInstallation, options.archiveDeployment, normalizePluginName(packageName), compatibilityInfo.version,
+				installedRuntimeName ? getOrganizationPluginPath(targetOrganizationId, installedRuntimeName, scopeStoreOptions) : undefined
+			)) {
+				await lease.assertOwned()
+				return {
+					success: true, name: packageName, packageName, organizationId: targetOrganizationId,
+					currentVersion: existingInstallation.version, restartRequired: existingInstallation.pendingRestart,
+					runtimeRequirements: [{ scopeKey: scope.scopeKey, pluginName: normalizePluginName(packageName),
+						version: existingInstallation.version, runtimeRevision: `runtime:${installedRuntimeName}`, state: 'loaded' }]
+				}
+			}
+			if (existingInstallation && options.archiveDeployment) {
+				body = { ...body, config: this.pluginInstanceService.getConfig(existingInstallation) }
+			}
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const runtimePluginName = this.createCodeRuntimePluginName(packageName)
 			sourceConfig = { ...sourceConfig, runtimeName: runtimePluginName, immutableRuntime: true }
