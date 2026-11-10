@@ -6,6 +6,13 @@ import { McpAppHistory } from './mcp-app-history.entity'
 import { parseMiddlewareAppSource } from './middleware-app-source'
 import { readMcpAppExecutionContext } from './mcp-app-execution-context'
 import { parseMcpAppInstanceSnapshot, type McpAppInstanceSnapshot } from './mcp-app-instance-store.service'
+import {
+    projectToolHistoryVisualization,
+    readHistoryVisualization,
+    type McpAppHistoryVisualization
+} from './mcp-app-history-visualization'
+
+export type McpAppHistoricalSnapshot = McpAppInstanceSnapshot & { historyVisualization?: McpAppHistoryVisualization }
 
 export const MCP_APP_HISTORY_MAX_BYTES = 40 * 1024 * 1024
 
@@ -18,8 +25,14 @@ export class McpAppHistoryStoreService {
 
     async preserve(snapshot: McpAppInstanceSnapshot): Promise<void> {
         if (!snapshot.tenantId || !snapshot.organizationId || !snapshot.executionContext) return
-        const durable = initialSnapshot(snapshot)
-        if (!durable.executionContext || !serializedWithinLimit(durable)) {
+        const durable = initialSnapshot(snapshot, projectToolHistoryVisualization(snapshot.toolResult))
+        let withinLimit = serializedWithinLimit(durable)
+        if (!withinLimit && durable.historyVisualization) {
+            // Keep the business result when only the additional presentation exceeds the limit.
+            delete durable.historyVisualization
+            withinLimit = serializedWithinLimit(durable)
+        }
+        if (!durable.executionContext || !withinLimit) {
             this.logger.warn('MCP App initial history was not persisted: invalid or oversized snapshot')
             return
         }
@@ -40,7 +53,7 @@ export class McpAppHistoryStoreService {
             .execute()
     }
 
-    async find(appInstanceId: string): Promise<McpAppInstanceSnapshot | null> {
+    async find(appInstanceId: string): Promise<McpAppHistoricalSnapshot | null> {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         if (!tenantId || !organizationId) return null
@@ -72,11 +85,14 @@ export class McpAppHistoryStoreService {
             return null
 
         // The original lease can be expired. Resume must obtain current access before minting a new lease.
-        return initialSnapshot(snapshot)
+        return initialSnapshot(snapshot, readHistoryVisualization(row.snapshot.historyVisualization))
     }
 }
 
-function initialSnapshot(snapshot: McpAppInstanceSnapshot): McpAppInstanceSnapshot {
+function initialSnapshot(
+    snapshot: McpAppInstanceSnapshot,
+    visualization?: McpAppHistoryVisualization
+): McpAppHistoricalSnapshot {
     return {
         version: 1,
         stateVersion: snapshot.stateVersion,
@@ -94,6 +110,7 @@ function initialSnapshot(snapshot: McpAppInstanceSnapshot): McpAppInstanceSnapsh
         resourceUri: snapshot.resourceUri,
         toolCallId: snapshot.toolCallId,
         toolInput: snapshot.toolInput,
+        ...(visualization ? { historyVisualization: visualization } : {}),
         toolResult: withoutResultPrivateMeta(snapshot.toolResult),
         createdAt: snapshot.createdAt,
         expiresAt: snapshot.expiresAt

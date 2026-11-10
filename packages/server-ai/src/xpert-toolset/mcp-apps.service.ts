@@ -1,3 +1,11 @@
+import { toolResultForHistoryResume } from '../mcp-app-runtime/mcp-app-history-visualization'
+import type { ActorTokenRuntimeFactory } from '@xpert-ai/plugin-sdk'
+import { ActorTokenRuntimeService } from '../actor-token/actor-token-runtime.service'
+import {
+    assertMcpAppActorScope,
+    prepareMcpAppActorConnection,
+    type McpAppActorLease
+} from '../mcp-app-runtime/mcp-app-actor-connection'
 import { mcpAppSessionTtl } from '../mcp-app-runtime/mcp-app-session'
 import { collectMcpAppComponentData, matchesExpectedValue } from '../mcp-app-runtime/mcp-app-history-component'
 import { McpAppHistoryService, mcpAppSessionUnavailable } from '../mcp-app-runtime/mcp-app-history.service'
@@ -40,6 +48,7 @@ import {
     applyMcpAppInstanceSnapshot,
     callMcpAppTool,
     configureMcpAppInstancePersistence,
+    detachMcpAppInstancesForClient,
     getInitialMcpAppToolInput,
     getInitialMcpAppToolResult,
     getMcpAppToolMetadata,
@@ -78,6 +87,8 @@ export type { McpAppReviveQuery, JsonRpcRequest } from '../mcp-app-runtime/mcp-a
 export class McpAppsService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(McpAppsService.name)
 
+    private readonly actorConnections = new WeakMap<NonNullable<McpAppInstance['client']>, McpAppActorLease>()
+
     constructor(
         private readonly toolsetService: XpertToolsetService,
         private readonly commandBus: CommandBus,
@@ -88,6 +99,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         private readonly approvals: McpAppToolApprovalService,
         private readonly history: McpAppHistoryService,
         private readonly historyStore: McpAppHistoryStoreService,
+        @Inject(ActorTokenRuntimeService) private readonly actorTokens: ActorTokenRuntimeFactory,
         @Optional() @Inject('XpertRuntimeResourceService') private readonly runtimeResources?: RuntimeResourceService,
         @Optional() private readonly middlewareApps?: MiddlewareMcpAppsService
     ) {}
@@ -125,7 +137,18 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             await this.assertAccessForInstance(instance, normalizedQuery, options)
             if (instance.middleware) await instance.middleware.assertAccess()
             else await this.runtimeResources?.assertToolsetAccess(instance.toolset)
-            return instance
+            const actor = instance.client && this.actorConnections.get(instance.client)
+            if (!instance.client || !actor) return instance
+            assertMcpAppActorScope(actor.scope)
+            if (actor.expiresAt > Date.now() + 30_000) return instance
+            // Reconnect before the next operation; never replay an already dispatched tool call.
+            if (detachMcpAppInstancesForClient(instance.client)) {
+                try {
+                    await instance.destroy?.()
+                } finally {
+                    await instance.client.close()
+                }
+            }
         }
 
         const snapshot = await this.instanceStore.get(appInstanceId)
@@ -370,17 +393,31 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         await this.runtimeResources?.assertToolsetAccess(toolset)
         const schema = JSON.parse(toolset.schema) as TMCPSchema
         const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
-        const { client, destroy } = this.toolsetService.isPro()
-            ? await createProMCPClient(toolset, null, this.commandBus, schema, envState)
-            : await createMCPClient(toolset, schema, envState, undefined, {
-                  ...snapshot?.executionContext,
-                  appInstanceId,
-                  userId: snapshot?.userId
-              })
+        const runtimeContext = { ...snapshot?.executionContext, appInstanceId, userId: snapshot?.userId }
+        const pro = this.toolsetService.isPro()
+        if (pro && snapshot && (toolset.id !== snapshot.toolsetId || query.serverName !== snapshot.serverName)) {
+            throw new ForbiddenException(t('server-ai:Error.ActorTokenRuntimeIdentityMismatch'))
+        }
+        const connection =
+            pro && snapshot
+                ? await prepareMcpAppActorConnection(toolset, schema, envState, snapshot, this.actorTokens)
+                : { schema, environment: envState, actor: undefined }
+        const { client, destroy } = pro
+            ? await createProMCPClient(
+                  toolset,
+                  null,
+                  this.commandBus,
+                  connection.schema,
+                  connection.environment,
+                  snapshot?.executionContext?.xpertId,
+                  runtimeContext
+              )
+            : await createMCPClient(toolset, schema, envState, undefined, runtimeContext)
         if (!client) {
             return null
         }
 
+        if (connection.actor) this.actorConnections.set(client, connection.actor)
         try {
             const toolMeta = await this.findRevivedToolMeta(client, query)
             if (!toolMeta) {
@@ -466,11 +503,18 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         this.assertInstanceUser(snapshot.userId)
         await assertMcpAppAssistantAudience(snapshot.executionContext, this.queryBus)
         return runMcpAppInstanceMutation(appInstanceId, async () => {
-            const query = reviveQueryFromSnapshot({ messageId }, snapshot)
+            const { historyVisualization, ...initial } = snapshot
+            const query = reviveQueryFromSnapshot({ messageId }, initial)
             // Repeated resumes reuse a valid lease; Redis arbitrates simultaneous API replicas.
             const instance =
                 getMcpAppInstance(appInstanceId) ??
-                (await this.reviveInstance(appInstanceId, query, { allowMessageBootstrap: true }, snapshot, true))
+                (await this.reviveInstance(
+                    appInstanceId,
+                    query,
+                    { allowMessageBootstrap: true },
+                    { ...initial, toolResult: toolResultForHistoryResume(initial.toolResult, historyVisualization) },
+                    true
+                ))
             if (!instance) throw mcpAppSessionUnavailable(false)
             this.assertInstanceUser(instance.userId)
             await assertMcpAppAssistantAudience(instance.executionContext, this.queryBus)

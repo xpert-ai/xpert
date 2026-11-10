@@ -1,3 +1,4 @@
+import { ActorTokenRuntimeModule } from '../actor-token/actor-token-runtime.module'
 import { McpRemoteOperation } from '../mcp-consumer/execution/mcp-operation.entity'
 import { McpOperationStore } from '../mcp-consumer/execution/mcp-operation.store'
 import { McpOperationService } from '../mcp-consumer/execution/mcp-operation.service'
@@ -51,6 +52,7 @@ import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runt
 @Module({
     imports: [
         TaskControlModule,
+        ActorTokenRuntimeModule,
         RouterModule.register([{ path: '/xpert-toolset', module: XpertToolsetModule }]),
         TypeOrmModule.forFeature([
             XpertToolset,

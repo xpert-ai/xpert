@@ -1,3 +1,4 @@
+import { RequestContext as ActorRequestContext } from '@xpert-ai/plugin-sdk'
 import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
 import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
 import { ForbiddenException, GoneException, NotFoundException } from '@nestjs/common'
@@ -37,6 +38,7 @@ jest.mock('./provider/mcp/app-support', () => ({
         }
     })),
     getMcpAppToolMetadata: jest.fn(),
+    detachMcpAppInstancesForClient: jest.fn(() => 1),
     isMcpAppTokenRequired: jest.fn(() => false),
     listMcpAppVisibleToolMetadata: jest.fn(),
     listMcpToolAppMetadata: jest.fn(),
@@ -67,6 +69,7 @@ import {
     restoreMcpAppInstance
 } from './provider/mcp/app-support'
 import { createMCPClient } from './provider/mcp/types'
+import { createProMCPClient } from './provider/mcp/pro'
 
 const mockCallMcpAppTool = jest.mocked(callMcpAppTool)
 const mockCreateMcpClient = jest.mocked(createMCPClient)
@@ -81,6 +84,8 @@ const mockRefreshMcpAppInstanceToken = jest.mocked(refreshMcpAppInstanceToken)
 const mockRestoreMcpAppInstance = jest.mocked(restoreMcpAppInstance)
 
 describe('McpAppsService RPC approval orchestration', () => {
+    const mint = jest.fn()
+    const actorTokens = { createScopedApi: jest.fn(() => ({ getToken: mint })) }
     let approvals: {
         risk: jest.Mock
         request: jest.Mock
@@ -127,7 +132,8 @@ describe('McpAppsService RPC approval orchestration', () => {
             instanceStore as unknown as McpAppInstanceStoreService,
             approvals as unknown as McpAppToolApprovalService,
             history as unknown as McpAppHistoryService,
-            historyStore as unknown as McpAppHistoryStoreService
+            historyStore as unknown as McpAppHistoryStoreService,
+            actorTokens
         )
         mockGetMcpAppToolMetadata.mockResolvedValue({
             serverName: 'default',
@@ -418,6 +424,7 @@ describe('McpAppsService RPC approval orchestration', () => {
                 interruptAfter: false
             },
             executionContext: { xpertId: 'assistant', executionId: 'run', conversationId: 'conversation' },
+            toolResult: { structuredContent: { rows: [{ amount: 12 }] } },
             expiresAt: 1
         }
         const active = mockGetMcpAppInstance('app-1')!
@@ -442,7 +449,17 @@ describe('McpAppsService RPC approval orchestration', () => {
         })
         Object.assign(service, { middlewareApps: { restore } })
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
-        history.load.mockResolvedValue({ snapshot: original, history: { canResume: true } })
+        const presentation = {
+            version: 1,
+            type: 'chart',
+            title: 'Recorded amount',
+            target: { entityId: 'sales', entityTypeCode: 'cube', externalKey: 'sales' },
+            visualizationSpec: { fields: [], view: { kind: 'bar' } }
+        }
+        history.load.mockResolvedValue({
+            snapshot: { ...original, historyVisualization: presentation },
+            history: { canResume: true }
+        })
         instanceStore.resume.mockResolvedValue({ ...original, stateVersion: 10, expiresAt: Date.now() + 1000 })
         messageService.findOneAuthorized.mockResolvedValue({
             content: [{ type: 'McpApp', appInstanceId: 'app-resume' }]
@@ -455,7 +472,13 @@ describe('McpAppsService RPC approval orchestration', () => {
             appInstanceToken: 'refreshed-token'
         })
         expect(history.load).toHaveBeenCalledWith('app-resume', 'message')
-        expect(instanceStore.resume).toHaveBeenCalledWith(original, expect.any(Number))
+        expect(instanceStore.resume).toHaveBeenCalledWith(
+            {
+                ...original,
+                toolResult: { ...original.toolResult, _meta: { 'xpertai/history-visualization': presentation } }
+            },
+            expect.any(Number)
+        )
         expect(assertAccess).toHaveBeenCalled()
         expect(mockCallMcpAppTool).not.toHaveBeenCalled()
     })
@@ -500,6 +523,90 @@ describe('McpAppsService RPC approval orchestration', () => {
         await expect(service.resume('app', 'message')).rejects.toBeInstanceOf(ForbiddenException)
         expect(instanceStore.resume).not.toHaveBeenCalled()
         expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('renews the Pro HTTP actor after approval without replaying the call or persisting the bearer', async () => {
+        const now = Date.now()
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('caller')
+        jest.spyOn(ActorRequestContext, 'currentUserId').mockReturnValue('caller')
+        jest.spyOn(ActorRequestContext, 'currentTenantId').mockReturnValue('tenant')
+        jest.spyOn(ActorRequestContext, 'getOrganizationId').mockReturnValue('org')
+        const toolset = {
+            id: 'tools',
+            name: 'reports',
+            tenantId: 'tenant',
+            organizationId: 'org',
+            workspaceId: 'ws',
+            tools: [],
+            schema: JSON.stringify({
+                mcpServers: { reports: { type: 'http', headers: { 'x-uose-actor-token': '{{env.oidc_token}}' } } }
+            })
+        }
+        const toolMeta: TMcpToolAppMeta = {
+            serverName: 'reports',
+            name: 'report',
+            displayName: 'report',
+            visibility: ['app'],
+            ui: { resourceUri: 'ui://report' }
+        }
+        const snapshot = {
+            ...toolMeta,
+            toolName: 'report',
+            resourceUri: 'ui://report',
+            tenantId: 'tenant',
+            organizationId: 'org',
+            workspaceId: 'ws',
+            toolsetId: 'tools',
+            userId: 'caller',
+            executionContext: { xpertId: 'xpert', conversationId: 'convo', executionId: 'run' }
+        }
+        const client = { close: jest.fn(async () => undefined) } as unknown as MultiServerMCPClient
+        const restored: McpAppInstance = {
+            id: 'app',
+            userId: 'caller',
+            toolMeta,
+            toolset,
+            client,
+            executionContext: snapshot.executionContext,
+            messages: [],
+            logs: [],
+            createdAt: now,
+            expiresAt: now + 180_000,
+            stateVersion: 1
+        }
+        instanceStore.get.mockResolvedValue(snapshot)
+        toolsetService.isPro.mockReturnValue(true)
+        toolsetService.findOne.mockResolvedValue(toolset)
+        mockGetMcpAppInstance.mockReturnValueOnce(null).mockReturnValueOnce(restored)
+        mockRestoreMcpAppInstance.mockReturnValue(restored)
+        mockListMcpToolAppMetadata.mockResolvedValue([toolMeta])
+        const connect = jest.mocked(createProMCPClient)
+        connect.mockResolvedValue({ client, destroy: jest.fn(async () => undefined), logs: [] })
+        mint.mockResolvedValueOnce({
+            token: 'first',
+            expiresAt: new Date(now + 60_000).toISOString()
+        }).mockResolvedValueOnce({ token: 'renewed', expiresAt: new Date(now + 120_000).toISOString() })
+        const request = {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: { name: 'write_file', arguments: { path: 'notes.txt' } }
+        }
+        expect(await service.handleRpc('app', request)).toMatchObject({ error: { code: -32001 } })
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+        clock.mockReturnValue(now + 61_000)
+        expect(
+            await service.handleRpc('app', { ...request, params: { ...request.params, approvalId: 'approval-1' } })
+        ).toMatchObject({ result: { content: [{ type: 'text', text: 'done' }] } })
+        expect(approvals.consume).toHaveBeenCalledTimes(1)
+        expect(mockCallMcpAppTool).toHaveBeenCalledTimes(1)
+        expect(connect.mock.calls.map((call) => call[4])).toEqual([
+            { env: { oidc_token: 'first' } },
+            { env: { oidc_token: 'renewed' } }
+        ])
+        expect(connect.mock.calls[1][5]).toBe('xpert')
+        expect(JSON.stringify(mockRestoreMcpAppInstance.mock.calls)).not.toContain('renewed')
     })
 
     it.each([true])('restores an unexpired Redis lease with persisted execution context: %s', async (withContext) => {

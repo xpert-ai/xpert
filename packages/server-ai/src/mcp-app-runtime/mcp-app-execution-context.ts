@@ -3,6 +3,7 @@ import { z } from 'zod'
 /** Host-created execution identity, persisted only in the server-side App snapshot. */
 const executionContextSchema = z.object({
     xpertId: z.string().min(1),
+    organizationId: z.string().min(1).nullable().optional(),
     conversationId: z.string().min(1),
     executionId: z.string().min(1),
     threadId: z.string().min(1).optional(),
