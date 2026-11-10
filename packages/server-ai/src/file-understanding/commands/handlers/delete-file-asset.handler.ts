@@ -7,6 +7,7 @@ export class DeleteFileAssetHandler implements ICommandHandler<DeleteFileAssetCo
     constructor(private readonly deletion: FileAssetDeletionService) {}
 
     async execute(command: DeleteFileAssetCommand): Promise<void> {
+        if (command.purge) return this.deletion.purgeProjectFile(command.fileAssetId, command.purge.purgeProjectId)
         await this.deletion.delete(command.fileAssetId)
     }
 }

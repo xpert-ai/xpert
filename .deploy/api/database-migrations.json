@@ -76,6 +76,7 @@
     "xpert_project_pipeline_round",
     "xpert_project_pipeline_run",
     "xpert_project_pipeline_task_link",
+    "xpert_project_purge",
     "xpert_project_task",
     "xpert_project_task_execution",
     "xpert_task_execution"
@@ -113,6 +114,7 @@
     "ai/artifacts/use-grants/migrations/checks/20261107000200-artifact-group-references.sql",
     "ai/artifacts/use-grants/migrations/checks/20261108000100-resource-analysis.sql",
     "ai/artifacts/use-grants/migrations/checks/20261108000200-artifact-grant-uuid-extension.sql",
-    "core/password-reset/migrations/checks/20261110000200-bound-reset-tickets.sql"
+    "core/password-reset/migrations/checks/20261110000200-bound-reset-tickets.sql",
+    "ai/xpert-project/migrations/checks/20261110000300-project-purge-receipts.sql"
   ]
 }

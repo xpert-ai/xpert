@@ -64,6 +64,8 @@ export interface ProjectProvisioningApi {
   }): Promise<{ projectId: string }>
   /** Create or reconcile a Chat Project without changing its caller-supplied id. */
   ensure(input: ProjectEnsureInput): Promise<ProjectEnsureResult>
+  /** Check the permanent-deletion fence while the caller holds its business record lock, before restoring. */
+  assertRestorable?(input: { projectId: string; xpertId: string }): Promise<void>
   /** Owner-only physical deletion of an archived plugin-bound Project and its workspace. */
   purge?(input: { projectId: string; xpertId: string }): Promise<{ projectId: string; deleted: boolean }>
 }

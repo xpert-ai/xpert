@@ -538,6 +538,7 @@
         "ActorTokenRuntimeIdentityMismatch": "令牌运行时的身份缺失或与当前调用者不一致。",
         "ActorTokenProviderUnavailable": "尚未配置对外调用令牌服务。",
         "ProjectPurgeFileMismatch": "文件不属于正在永久删除的项目。",
+        "ProjectPurgeInProgress": "项目正在永久删除或已删除，无法恢复。请刷新后重试。",
         "ProjectPurgeOwnerRequired": "只有项目所有者才能永久删除已归档的项目。",
         "ContextCompressionSummaryInvalid": "摘要格式无效，未应用此摘要。",
         "ContextCompressionSummaryInputBudget": "待摘要历史超过摘要模型的输入预算，未发起摘要请求。",

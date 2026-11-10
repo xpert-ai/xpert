@@ -57,15 +57,23 @@ export class FileAssetDeletionService {
                 })
             )
         }
-        await this.cleanup(asset)
+        await this.cleanup(asset, 'purge')
     }
 
-    private async cleanup(asset: FileAsset): Promise<void> {
+    private async cleanup(asset: FileAsset, mode: 'ordinary' | 'purge' = 'ordinary'): Promise<void> {
         const fileAssetId = asset.id
         const pageImageStorageKeys = await this.listPageImageStorageKeys(fileAssetId)
-        const storageProvider = await this.resolveStorageProvider(asset)
+        const storageProvider =
+            mode === 'purge' && asset.storageFileId
+                ? (await this.storageFileService.findOne(asset.storageFileId))?.storageProvider
+                : await this.resolveStorageProvider(asset)
 
-        await this.fileVectorService.deleteFileVectors(fileAssetId, asset)
+        // Keep keys and vector IDs until external deletion succeeds, so a retry can find the remaining objects.
+        if (mode === 'purge') {
+            await this.deletePageImageStorageKeys(storageProvider, pageImageStorageKeys, mode)
+            await this.deleteDerivedRootIfLocal(storageProvider, asset)
+        }
+        await this.fileVectorService.deleteFileVectors(fileAssetId, asset, mode === 'purge' ? 'throw' : 'warn')
         await this.fileCitationAnchorRepository.delete({ fileAssetId: fileAssetId })
         await this.fileEmbeddingRepository.delete({ fileAssetId: fileAssetId })
         await this.fileChunkRepository.delete({ fileAssetId: fileAssetId })
@@ -73,8 +81,10 @@ export class FileAssetDeletionService {
         await this.conversationFileLinkRepository.delete({ fileAssetId: fileAssetId })
         await this.fileAssetRepository.delete({ id: fileAssetId })
 
-        await this.deletePageImageStorageKeys(storageProvider, pageImageStorageKeys)
-        await this.deleteDerivedRootIfLocal(storageProvider, asset)
+        if (mode === 'ordinary') {
+            await this.deletePageImageStorageKeys(storageProvider, pageImageStorageKeys, mode)
+            await this.deleteDerivedRootIfLocal(storageProvider, asset).catch(() => undefined)
+        }
     }
 
     private async listPageImageStorageKeys(fileAssetId: string) {
@@ -102,12 +112,23 @@ export class FileAssetDeletionService {
             .catch(() => undefined)
     }
 
-    private async deletePageImageStorageKeys(storageProvider: string | undefined, storageKeys: string[]) {
+    private async deletePageImageStorageKeys(
+        storageProvider: string | undefined,
+        storageKeys: string[],
+        mode: 'ordinary' | 'purge'
+    ) {
         if (!storageKeys.length) {
             return
         }
         const provider = new FileStorage().getProvider(storageProvider)
-        await Promise.all(storageKeys.map((storageKey) => provider.deleteFile(storageKey).catch(() => undefined)))
+        for (const key of storageKeys) {
+            try {
+                await provider.deleteFile(key)
+            } catch (error) {
+                if (mode === 'purge' && !(error instanceof Error && 'code' in error && error.code === 'ENOENT'))
+                    throw error
+            }
+        }
     }
 
     private async deleteDerivedRootIfLocal(storageProvider: string | undefined, asset: FileAsset | null) {
@@ -120,6 +141,6 @@ export class FileAssetDeletionService {
         if (!fullPath || !path.isAbsolute(fullPath)) {
             return
         }
-        await fsPromises.rm(fullPath, { recursive: true, force: true }).catch(() => undefined)
+        await fsPromises.rm(fullPath, { recursive: true, force: true })
     }
 }
