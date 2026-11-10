@@ -1,7 +1,11 @@
+import base64
 import os
 import pathlib
+import subprocess
+import sys
 import tempfile
 import unittest
+from unittest import mock
 from bounded_workspace import Entry, StorageBudget, StorageBudgetError, manifest, parse_budget, publish, run_bounded
 
 
@@ -48,6 +52,135 @@ class BoundedWorkspaceMountTest(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+
+    def test_copy_up_preserves_consumer_ownership_without_relaxing_private_modes(self):
+        (self.workspace / 'original').chmod(0o600)
+        def inspect(staged, scratch):
+            info = (staged / 'original').stat()
+            self.assertEqual((info.st_uid, info.st_gid), (10001, 10001))
+            self.assertEqual(info.st_mode & 0o777, 0o600)
+            self.assertEqual(staged.stat().st_uid, 10001)
+            return False
+        # Emulate Docker Desktop: root sees root ownership; the consumer sees its UID.
+        with mock.patch('bounded_workspace.workspace_ownership', return_value={'': [10001, 10001], 'original': [10001, 10001]}):
+            run_bounded(self.workspace, self.root, StorageBudget(100, 1024 * 1024), inspect, bool, (10001, 10001))
+        self.assertEqual((self.workspace / 'original').stat().st_uid, 0)
+        self.assertEqual((self.workspace / 'original').stat().st_mode & 0o777, 0o600)
+
+    def test_private_subtree_stays_inaccessible_while_public_write_commits(self):
+        identity = (10001, 10001)
+        self.root.chmod(0o711)
+        os.chown(self.workspace, *identity)
+        private = self.workspace / 'private'
+        private.mkdir(mode=0o700)
+        secret = private / 'material'
+        secret.write_bytes(b'x' * (2 * 1024 * 1024))
+        secret.chmod(0o600)
+
+        def write(staged, scratch):
+            self.assertFalse((scratch / 'upper' / 'private').exists())
+            subprocess.run([sys.executable, '-I', '-c', """
+import pathlib, sys
+root = pathlib.Path(sys.argv[1])
+for mode in ('rb', 'r+b'):
+    try:
+        with (root / 'private' / 'material').open(mode):
+            raise AssertionError('private file is accessible')
+    except PermissionError:
+        pass
+(root / 'public').write_text('ok')
+""", str(staged)], user=identity[0], group=identity[1], extra_groups=[], check=True)
+            return True
+
+        self.assertTrue(run_bounded(self.workspace, self.root, StorageBudget(3 * 1024 * 1024, 1024 * 1024),
+                                    write, bool, identity))
+        self.assertEqual((self.workspace / 'public').read_text(), 'ok')
+        self.assertEqual((private.stat().st_uid, private.stat().st_mode & 0o777), (0, 0o700))
+        self.assertEqual(secret.read_bytes(), b'x' * (2 * 1024 * 1024))
+
+    def test_search_only_directory_preserves_access_to_known_files(self):
+        identity = (10001, 10001)
+        self.root.chmod(0o711)
+        folder = self.workspace / 'drop'
+        folder.mkdir(mode=0o711)
+        draft = folder / 'draft'
+        draft.write_text('first')
+        draft.chmod(0o600)
+        os.chown(draft, *identity)
+
+        def edit(staged, scratch):
+            self.assertTrue((scratch / 'upper' / 'drop' / 'draft').is_file())
+            subprocess.run([sys.executable, '-I', '-c', """
+import pathlib, sys
+folder = pathlib.Path(sys.argv[1])
+try:
+    list(folder.iterdir())
+    raise AssertionError('search-only directory can be listed')
+except PermissionError:
+    pass
+(folder / 'draft').write_text('edited')
+""", str(staged / 'drop')], user=identity[0], group=identity[1], extra_groups=[], check=True)
+            return True
+
+        self.assertTrue(run_bounded(self.workspace, self.root, StorageBudget(100, 1024 * 1024), edit, bool, identity))
+        self.assertEqual(draft.read_text(), 'edited')
+        self.assertEqual((draft.stat().st_uid, draft.stat().st_mode & 0o777), (identity[0], 0o600))
+
+    def test_bounded_upload_checks_jail_permissions_and_rolls_back_the_batch(self):
+        import runner
+
+        identity = (10001, 10001)
+        self.root.chmod(0o711)
+        os.chown(self.workspace, *identity)
+        private = self.workspace / 'private'
+        private.mkdir(mode=0o700)
+        secret = private / 'secret'
+        secret.write_bytes(b'original')
+        drop = self.workspace / 'drop'
+        drop.mkdir(mode=0o711)
+        draft = drop / 'draft'
+        draft.write_bytes(b'first')
+        draft.chmod(0o600)
+        os.chown(draft, *identity)
+
+        runtime = runner.Runtime('test-upload', self.workspace, '/workspace')
+        handler = mock.Mock()
+        budget = {'maxWorkspaceBytes': 1024, 'maxTemporaryBytes': 1024 * 1024}
+
+        def upload(*paths):
+            files = [{'path': path, 'contentBase64': base64.b64encode(b'edited').decode()} for path in paths]
+            runner.RunnerHandler._handle_runtime(handler, 'POST', runtime, ['files', 'upload'], '',
+                                                 {'storageBudget': budget, 'files': files})
+
+        with mock.patch.multiple(runner, STATE_ROOT=self.root, JAIL_UID=identity[0], JAIL_GID=identity[1]):
+            with self.assertRaises(StorageBudgetError) as denied:
+                upload('/workspace/public', '/workspace/private/secret')
+            self.assertEqual(denied.exception.status, 403)
+            self.assertFalse((self.workspace / 'public').exists())
+            self.assertEqual(secret.read_bytes(), b'original')
+            upload('/workspace/public', '/workspace/drop/draft')
+
+        self.assertEqual((self.workspace / 'public').read_bytes(), b'edited')
+        self.assertEqual(draft.read_bytes(), b'edited')
+        self.assertEqual((draft.stat().st_uid, draft.stat().st_mode & 0o777), (identity[0], 0o600))
+
+    def test_unchanged_directories_do_not_consume_overlay_inodes(self):
+        identity = (10001, 10001)
+        self.root.chmod(0o711)
+        os.chown(self.workspace, *identity)
+        # The private tmpfs has 32,768 inodes. Materializing these empty directories would exhaust it.
+        for index in range(32768):
+            (self.workspace / f'empty-{index}').mkdir()
+
+        def write(staged, scratch):
+            subprocess.run([sys.executable, '-I', '-c',
+                            "import pathlib, sys; pathlib.Path(sys.argv[1]).write_text('ok')",
+                            str(staged / 'public')], user=identity[0], group=identity[1], extra_groups=[], check=True)
+            self.assertEqual({p.name for p in (scratch / 'upper').iterdir()}, {'original', 'public'})
+            return True
+
+        self.assertTrue(run_bounded(self.workspace, self.root, StorageBudget(100, 1024 * 1024), write, bool, identity))
+        self.assertEqual((self.workspace / 'public').read_text(), 'ok')
 
     def test_over_limit_rolls_back_overwrite_and_new_files(self):
         def write(staged, scratch):

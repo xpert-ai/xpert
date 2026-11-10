@@ -41,6 +41,7 @@ from typing import Any, BinaryIO, Callable, Iterator
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from network import EgressConfig, NetworkLease, NetworkManager
+from bounded_upload import upload_as_workspace_user
 from bounded_workspace import StorageBudget, StorageBudgetError, parse_budget, run_bounded
 from workspace_identity import WorkspaceIdentity
 
@@ -753,7 +754,8 @@ def execute_command(
             return run_bounded(runtime.workspace_path, STATE_ROOT, storage_budget,
                 lambda workspace, scratch: _execute_command(runtime, command, timeout_ms, max_output_bytes,
                                                               on_line, workspace, scratch),
-                lambda result: result.get('exitCode') == 0 and not result.get('timedOut'))
+                lambda result: result.get('exitCode') == 0 and not result.get('timedOut'),
+                identity=(JAIL_UID, JAIL_GID))
         return _execute_command(runtime, command, timeout_ms, max_output_bytes, on_line)
 
 
@@ -792,18 +794,15 @@ def workspace_parts(path_value: Any, *, allow_root: bool = False) -> list[str]:
     return parts
 
 
-def is_protected_project_content_path(runtime: Runtime, parts: list[str]) -> bool:
-    return runtime.protect_project_content and bool(parts) and parts[0] in ("project.md", "skills")
-
-
-def open_parent_dir(runtime: Runtime, parts: list[str], *, create: bool, workspace_path: pathlib.Path | None = None) -> tuple[int, str]:
+def open_parent_dir(workspace: pathlib.Path, parts: list[str], *, create: bool) -> tuple[int, str]:
     if not parts:
         raise RunnerError("Sandbox path must identify a file")
-    current_fd = os.open(workspace_path or runtime.workspace_path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    access = getattr(os, 'O_PATH', os.O_RDONLY) if create else os.O_RDONLY
+    current_fd = os.open(workspace, access | os.O_DIRECTORY | os.O_NOFOLLOW)
     identity = WorkspaceIdentity(JAIL_UID, JAIL_GID)
     try:
         for part in parts[:-1]:
-            next_fd = (identity.open_directory(current_fd, part) if create else
+            next_fd = (identity.open_directory(current_fd, part, search_only=True) if create else
                        os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current_fd))
             os.close(current_fd)
             current_fd = next_fd
@@ -824,17 +823,21 @@ def file_error(error: OSError) -> str:
 
 
 def upload_file(runtime: Runtime, path_value: Any, content_value: Any, workspace_path: pathlib.Path | None = None) -> dict[str, Any]:
+    return upload_workspace_file(workspace_path or runtime.workspace_path, runtime.protect_project_content, path_value, content_value)
+
+
+def upload_workspace_file(workspace: pathlib.Path, protected: bool, path_value: Any, content_value: Any) -> dict[str, Any]:
     original_path = str(path_value)
     try:
         parts = workspace_parts(path_value)
-        if is_protected_project_content_path(runtime, parts):
+        if protected and parts and parts[0] in ("project.md", "skills"):
             raise OSError(errno.EPERM, "Project Content is read-only in this runtime")
         if not isinstance(content_value, str):
             raise RunnerError("File content must be base64 encoded")
         content = base64.b64decode(content_value, validate=True)
         if len(content) > MAX_FILE_BYTES:
             raise RunnerError("File exceeds the Runner file size limit")
-        parent_fd, filename = open_parent_dir(runtime, parts, create=True, workspace_path=workspace_path)
+        parent_fd, filename = open_parent_dir(workspace, parts, create=True)
         try:
             created = False
             try:
@@ -878,9 +881,14 @@ def upload_file(runtime: Runtime, path_value: Any, content_value: Any, workspace
         return {"error": file_error(error) if isinstance(error, OSError) else "invalid_path", "path": original_path}
 
 
+def upload_workspace_files(workspace: pathlib.Path, protected: bool, files: list) -> list[dict[str, Any]]:
+    return [upload_workspace_file(workspace, protected, entry.get('path'), entry.get('contentBase64'))
+            if isinstance(entry, dict) else {'error': 'invalid_path', 'path': ''} for entry in files]
+
+
 def read_file_content(runtime: Runtime, path_value: Any) -> bytes:
     parts = workspace_parts(path_value)
-    parent_fd, filename = open_parent_dir(runtime, parts, create=False)
+    parent_fd, filename = open_parent_dir(runtime.workspace_path, parts, create=False)
     try:
         file_fd = os.open(filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=parent_fd)
         try:
@@ -1679,17 +1687,21 @@ class RunnerHandler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict) or not isinstance(payload.get("files"), list):
                 raise RunnerError("Invalid upload request")
             budget = parse_budget(payload.get('storageBudget'))
-            def upload(workspace: pathlib.Path, _scratch: pathlib.Path) -> list[dict[str, Any]]:
-                results = [upload_file(runtime, entry.get('path'), entry.get('contentBase64'), workspace)
-                           if isinstance(entry, dict) else {'error': 'invalid_path', 'path': ''} for entry in payload['files']]
-                if budget and any(result['error'] for result in results):
-                    raise StorageBudgetError('Workspace upload could not be committed')
-                return results
             if budget:
+                def upload(workspace: pathlib.Path, _scratch: pathlib.Path) -> list[dict[str, Any]]:
+                    results = upload_as_workspace_user(workspace, runtime.protect_project_content,
+                                                       payload['files'], JAIL_UID, JAIL_GID, MAX_FILE_BYTES)
+                    if any(result['error'] == 'permission_denied' for result in results):
+                        raise StorageBudgetError('Workspace upload permission denied', HTTPStatus.FORBIDDEN)
+                    if any(result['error'] for result in results):
+                        raise StorageBudgetError('Workspace upload could not be committed')
+                    return results
+
                 with execution_slot(runtime):
-                    results = run_bounded(runtime.workspace_path, STATE_ROOT, budget, upload, lambda _result: True)
+                    results = run_bounded(runtime.workspace_path, STATE_ROOT, budget, upload, lambda _result: True,
+                                          identity=(JAIL_UID, JAIL_GID))
             else:
-                results = upload(runtime.workspace_path, STATE_ROOT)
+                results = upload_workspace_files(runtime.workspace_path, runtime.protect_project_content, payload['files'])
             self._write_json(results)
             return
         if parts == ["files", "download"] and method == "POST":
