@@ -1,0 +1,50 @@
+import { t } from 'i18next'
+
+const messages: Record<string, string> = {
+  CODING_SOURCE_ACCEPTANCE_CHANGED: 'The source task acceptance changed. Start a new delivery from its current accepted result.',
+  CODING_GIT_HOST_NOT_ALLOWED: 'This stage is not authorized for fixed GitHub delivery.',
+  CODING_GIT_CONNECTOR_REQUIRED: 'Authorize the configured GitHub Connector in this Assistant before Git delivery.',
+  CODING_GIT_CANDIDATE_REQUIRED: 'GitHub delivery requires an approved Git bundle and accepted target deployment.',
+  CODING_GIT_BRANCH_CONFLICT: 'The delivery branch contains another commit. It will not be overwritten.',
+  CODING_HOST_DEPLOYMENT_NOT_ALLOWED: 'This stage is not authorized to deploy to the current platform.',
+  CODING_APPROVAL_SUPERSEDED: 'This approval belongs to an earlier delivery round.',
+  CODING_APPROVED_CANDIDATE_CHANGED: 'The submitted result does not match the approved candidate.',
+  CODING_ARTIFACT_DIGEST_CHANGED: 'The restored artifact does not match its recorded checksum.',
+  CODING_ARTIFACT_SCOPE_MISMATCH: 'This artifact belongs to a different project or organization.',
+  CODING_CONFIGURE_AUTHORIZED_TARGET_AND_REPOSITORY: 'Configure an authorized target and repository for this project before starting delivery.',
+  CODING_DELIVERY_NOT_FOUND: 'The delivery was not found in this project.',
+  CODING_DEPLOYMENT_IDENTITY_MISMATCH: 'The installed package, loaded version or target does not match the approved delivery.',
+  CODING_DESTINATION_CHANGED_NEW_ROUND_REQUIRED: 'The destination configuration changed. Start a new round for approval.',
+  CODING_DESTINATION_NOT_AUTHORIZED: 'The destination is no longer authorized for this project.',
+  CODING_EVIDENCE_ALREADY_SEALED: 'This operation already has a different accepted result.',
+  CODING_EVIDENCE_IDENTITY_MISMATCH: 'The evidence reference does not match the stored result.',
+  CODING_EVIDENCE_STALE: 'This evidence belongs to an earlier delivery round.',
+  CODING_EXECUTOR_SCOPE_MISMATCH: 'Only the assigned stage conversation and executor can submit this result.',
+  CODING_FILE_NOT_IN_ACCEPTED_ARTIFACTS: 'A referenced file or checksum is missing from the accepted task artifacts.',
+  CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED: 'Submit a formally accepted task result before completing this stage.',
+  CODING_GIT_IDENTITY_MISMATCH: 'The source commit, branch or repository does not match the approved delivery.',
+  CODING_HUMAN_APPROVAL_REQUIRED: 'Human release approval is required before this stage.',
+  CODING_HUMAN_FEEDBACK_REQUIRED: 'A current human rework decision is required.',
+  CODING_INPUT_EVIDENCE_REQUIRED: 'Required evidence from the preceding stage is missing.',
+  CODING_MANIFEST_NOT_ACCEPTED: 'The manifest must be an artifact of the accepted task.',
+  CODING_MANIFEST_TOO_LARGE: 'The delivery manifest exceeds 64 KiB.',
+  CODING_MANIFEST_WORK_MISMATCH: 'The manifest belongs to a different stage operation.',
+  CODING_NEW_ROUND_REQUIRED: 'Record the feedback and start a new delivery round.',
+  CODING_OPERATION_IDENTITY_CONFLICT: 'This operation was already assigned to a different executor or stage.',
+  CODING_OPERATION_NOT_ACTIVE: 'This delivery operation is no longer active.',
+  CODING_OPERATION_NOT_FOUND: 'The delivery operation was not found in this project.',
+  CODING_PIPELINE_NOT_STARTED: 'The delivery pipeline has not started.',
+  CODING_PROJECT_CONVERSATION_REQUIRED: 'Open an Assistant conversation in a Coding Project.',
+  CODING_PROJECT_TYPE_REQUIRED: 'This workflow requires a Coding Project.',
+  CODING_REQUIREMENT_CONFLICT: 'This delivery name already has a different requirement or destination.',
+  CODING_REQUIREMENT_REQUIRED: 'One versioned delivery requirement is required.',
+  CODING_REQUIREMENT_SUPERSEDED: 'The delivery requirement has changed. Read the current round.',
+  CODING_REVISION_CONFLICT: 'Another action updated this delivery. Read its current revision.',
+  CODING_REWORK_REQUIRES_ORIGINAL_COORDINATOR: 'The original coordinating Assistant or a project manager must start rework.',
+  CODING_REWORK_STALE: 'This rework request no longer matches the current delivery revision.',
+  CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.'
+}
+
+export function codingError(code: string) {
+  return { code, message: t(`coding_project:Error.${code}`, { defaultValue: messages[code] ?? code }) }
+}
