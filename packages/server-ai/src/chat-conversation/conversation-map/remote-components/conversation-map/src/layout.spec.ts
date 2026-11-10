@@ -1,8 +1,17 @@
 import { layout, visibleNodes, outlineNodes } from './layout'
-import type { MapNode } from '../../../schema'
+import { mapHierarchy } from './map-model'
+import type { MapNode, MapEdge } from '../../../schema'
 const nodes: MapNode[] = [
-    { id: 'p', kind: 'project', parentId: null, title: 'Project', preview: '', expandable: true },
-    { id: 'conversation:a', kind: 'conversation', parentId: 'p', title: 'A', preview: '', expandable: true },
+    { id: 'p', kind: 'project', parentId: null, title: 'Project', preview: '', capabilities: [], expandable: true },
+    {
+        id: 'conversation:a',
+        kind: 'conversation',
+        parentId: 'p',
+        title: 'A',
+        preview: '',
+        capabilities: [],
+        expandable: true
+    },
     {
         id: 'thread:main',
         kind: 'thread',
@@ -10,6 +19,7 @@ const nodes: MapNode[] = [
         threadId: 'main',
         title: 'Main',
         preview: '',
+        capabilities: [],
         expandable: true
     },
     {
@@ -20,6 +30,7 @@ const nodes: MapNode[] = [
         parentThreadId: 'main',
         title: 'Side',
         preview: '',
+        capabilities: [],
         expandable: true
     },
     {
@@ -29,6 +40,7 @@ const nodes: MapNode[] = [
         sourceConversationId: 'a',
         title: 'B',
         preview: '',
+        capabilities: [],
         expandable: true
     }
 ]
@@ -73,6 +85,7 @@ describe('topic map layout semantics', () => {
                 parentId: 'thread:main',
                 title: 'Question',
                 preview: '',
+                capabilities: [],
                 expandable: false
             }
         ]
@@ -132,8 +145,12 @@ describe('topic map layout semantics', () => {
     )
     it('uses ancestry only in relation mode and never treats independent provenance as containment', () => {
         const expanded = new Set(nodes.map((n) => n.id))
-        const tree = layout(nodes, expanded, prefs),
-            graph = layout(nodes, expanded, { ...prefs, mode: 'graph' })
+        const edges: MapEdge[] = [
+            { id: 'branch:side', kind: 'branch', source: 'thread:main', target: 'thread:side' },
+            { id: 'source:conversation:b', kind: 'source', source: 'conversation:a', target: 'conversation:b' }
+        ]
+        const tree = layout(mapHierarchy(nodes, edges), expanded, prefs),
+            graph = layout(mapHierarchy(nodes, edges, true), expanded, { ...prefs, mode: 'graph' }, new Map(), edges)
         expect(tree.edges.find((e) => e.target === 'thread:side')?.source).toBe('conversation:a')
         expect(graph.edges.find((e) => e.target === 'thread:side')?.source).toBe('thread:main')
         expect(graph.edges.find((e) => e.id === 'source:conversation:b')?.style?.strokeDasharray).toBe('5 5')
@@ -142,7 +159,9 @@ describe('topic map layout semantics', () => {
             layout(
                 nodes.filter((n) => n.id !== 'conversation:a'),
                 expanded,
-                { ...prefs, mode: 'graph' }
+                { ...prefs, mode: 'graph' },
+                new Map(),
+                edges
             ).edges.some((e) => e.id === 'source:conversation:b')
         ).toBe(false)
     })

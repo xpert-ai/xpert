@@ -1,4 +1,5 @@
 import { ProjectGroupDisplayHandler } from './commands/handlers/project-group-display.handler'
+import { ReadGroupMapHandler } from './commands/handlers/read-group-map.handler'
 import { ResolveConversationResourceScopeHandler } from './commands/handlers/conversation-resource-scope.handler'
 import { ResolveGroupResourceNavigationToolsHandler } from './commands/handlers/resolve-group-resource-navigation-tools.handler'
 import { GroupResourceToolsService } from './group-resource-tools.service'
@@ -59,6 +60,7 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         SseStreamModule
     ],
     providers: [
+        ReadGroupMapHandler,
         ResolveConversationResourceScopeHandler,
         ProjectGroupDisplayHandler,
         ResolveGroupResourceNavigationToolsHandler,

@@ -12,6 +12,7 @@ const threadInfo = branches.map((branch) => ({
 const segment = (start, end, question, reply, threads, parentId = conversation.id) => ({
     id: `segment:${conversation.conversationId}:${messageId(start)}`,
     kind: 'segment',
+    capabilities: ['locate', 'copy', 'rename', 'side-chat'],
     parentId,
     conversationId: conversation.conversationId,
     conversationTitle: conversation.title,
@@ -70,6 +71,12 @@ export default {
                 !message.query?.search
             ) {
                 result.data.item.nodes = segments
+                result.data.item.edges = segments.map((node) => ({
+                    id: `contains:${node.id}`,
+                    source: node.parentId,
+                    target: node.id,
+                    kind: 'contains'
+                }))
                 result.data.item.total = segments.length
             }
         }

@@ -1,6 +1,6 @@
 import React from 'react'
-import { MessagesSquare, Network, Search, List, Sprout, Loader2 } from 'lucide-react'
-import { InputGroup, InputGroupAddon, InputGroupInput, TabsList, TabsTrigger } from '@xpert-ai/shadcn-ui'
+import { MessagesSquare, Network, Search, List, Sprout, Loader2, RefreshCw } from 'lucide-react'
+import { Button, InputGroup, InputGroupAddon, InputGroupInput, TabsList, TabsTrigger } from '@xpert-ai/shadcn-ui'
 import type { MapPage } from '../../../schema'
 import { preferredMapMode, readOptions, type Prefs } from './bridge'
 import type { Labels } from './i18n'
@@ -51,33 +51,44 @@ export function MapHeader({
                     )
                 })}
             </TabsList>
-            <SearchSelect
-                key={revision}
-                cache={optionCache}
-                label={l.project}
-                placeholder={l.searchProjects}
-                value={projectId ?? 'unassigned'}
-                selectedLabel={
-                    projectId
-                        ? (page?.projects?.find((project) => project.id === projectId)?.name ??
-                          page?.projectTitle ??
-                          l.project)
-                        : l.unassigned
-                }
-                scopeKey="projects"
-                labels={l}
-                className="w-52 max-w-full"
-                fixedChoices={[{ value: 'unassigned', label: l.unassigned }]}
-                load={(search, offset) => readOptions({ kind: 'projects', search, offset })}
-                onChange={(value) =>
-                    update({
-                        projectId: value === 'unassigned' ? null : value,
-                        trailConversationId: undefined,
-                        trailThreadId: undefined,
-                        trailMessageId: undefined
-                    })
-                }
-            />
+            {page?.capabilities.includes('select-project') ? (
+                <SearchSelect
+                    key={revision}
+                    cache={optionCache}
+                    label={l.project}
+                    placeholder={l.searchProjects}
+                    value={projectId ?? 'unassigned'}
+                    selectedLabel={
+                        projectId
+                            ? (page?.projects?.find((project) => project.id === projectId)?.name ??
+                              page?.projectTitle ??
+                              l.project)
+                            : l.unassigned
+                    }
+                    scopeKey="projects"
+                    labels={l}
+                    className="w-52 max-w-full"
+                    fixedChoices={[{ value: 'unassigned', label: l.unassigned }]}
+                    load={(search, offset) => readOptions({ kind: 'projects', search, offset })}
+                    onChange={(value) =>
+                        update({
+                            projectId: value === 'unassigned' ? null : value,
+                            trailConversationId: undefined,
+                            trailThreadId: undefined,
+                            trailMessageId: undefined
+                        })
+                    }
+                />
+            ) : (
+                page && (
+                    <span
+                        className="max-w-64 truncate rounded-md border px-3 py-1.5 text-sm text-muted-foreground"
+                        title={`${page.projectTitle} · ${page.scope.title}`}
+                    >
+                        {page.projectTitle}
+                    </span>
+                )
+            )}
             <InputGroup className="min-w-40 flex-1">
                 <InputGroupAddon>
                     <Search aria-hidden />
@@ -99,8 +110,20 @@ export function MapToolbar({
     labels: l,
     searching,
     segments,
-    busy
-}: Controls & { searching: boolean; segments: boolean; busy: boolean }) {
+    busy,
+    page,
+    participantId,
+    setParticipantId,
+    refresh
+}: Controls & {
+    searching: boolean
+    segments: boolean
+    busy: boolean
+    page: MapPage | null
+    participantId: string
+    setParticipantId: (id: string) => void
+    refresh: () => void
+}) {
     const map = prefs.mode === 'tree' || prefs.mode === 'graph'
     return (
         <div data-testid="map-toolbar" className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2">
@@ -114,7 +137,10 @@ export function MapToolbar({
                             if (mode === 'tree' || mode === 'graph') update({ mode })
                         }}
                         choices={[
-                            { value: 'tree', label: l.branchPaths },
+                            {
+                                value: 'tree',
+                                label: page?.capabilities.includes('participants') ? l.publicDiscussion : l.branchPaths
+                            },
                             { value: 'graph', label: l.conversationRelations }
                         ]}
                     />
@@ -131,17 +157,46 @@ export function MapToolbar({
                     />
                 </>
             )}
-            {(!map || searching) && <h2 className="text-sm font-medium">{searching ? l.matching : l.list}</h2>}
-            <HistoryToggle prefs={prefs} update={update} labels={l} className="hidden sm:flex" />
+            {(!map || searching) && (
+                <h2 className="text-sm font-medium">
+                    {searching ? l.matching : prefs.mode === 'growth' ? l.growth : l.list}
+                </h2>
+            )}
+            {page?.capabilities.includes('history') && (
+                <HistoryToggle prefs={prefs} update={update} labels={l} className="hidden sm:flex" />
+            )}
+            {page?.capabilities.includes('participants') && (
+                <ChoiceSelect
+                    label={l.participants}
+                    value={participantId || 'all'}
+                    onChange={(id) => setParticipantId(id === 'all' ? '' : id)}
+                    choices={[
+                        { value: 'all', label: l.allParticipants },
+                        ...page.participants.map((member) => ({ value: member.id, label: member.name }))
+                    ]}
+                />
+            )}
+            {page?.scope.kind === 'group' && (
+                <span className="max-w-64 truncate text-sm text-muted-foreground" title={l.publicHint}>
+                    {page.scope.title}
+                </span>
+            )}
             <span className="flex-1" />
             {busy && <Loader2 className="size-4 animate-spin" aria-label={l.loading} />}
-            <DisplaySettings
-                labels={l}
-                prefs={prefs}
-                update={update}
-                segments={segments}
-                nodeStyles={map && !searching}
-            />
+            <Button variant="ghost" size="sm" disabled={busy} onClick={refresh}>
+                <RefreshCw aria-hidden />
+                {l.refresh}
+            </Button>
+            {((map && !searching) || page?.capabilities.includes('history')) && (
+                <DisplaySettings
+                    labels={l}
+                    prefs={prefs}
+                    update={update}
+                    history={page?.capabilities.includes('history') ?? false}
+                    segments={segments}
+                    nodeStyles={map && !searching}
+                />
+            )}
         </div>
     )
 }
