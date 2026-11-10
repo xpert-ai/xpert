@@ -1,3 +1,4 @@
+import { buildConnectorCallbackUrl as buildCallbackUrl } from './connector-oauth-url'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from '@xpert-ai/server-core'
 import {
@@ -323,14 +324,6 @@ export class ConnectorController {
         }
         return context
     }
-}
-
-function buildCallbackUrl(request: HttpRequestLike) {
-    const forwardedProto = request.headers?.['x-forwarded-proto']
-    const forwardedHost = request.headers?.['x-forwarded-host']
-    const proto = forwardedProto || request.protocol || 'http'
-    const host = forwardedHost || request.get?.('host') || request.headers?.host
-    return `${proto}://${host}/api/connector/oauth/callback`
 }
 
 function requestProtocol(request: HttpRequestLike) {

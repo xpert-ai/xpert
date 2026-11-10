@@ -1,3 +1,9 @@
+import { XpertTaskModule } from '../xpert-task/xpert-task.module'
+import { ProjectConfigurationEditorsAdapter } from './configuration/runtime/project-configuration-editors.adapter'
+import { ProjectConfigurationAutomationAdapter } from './configuration/runtime/project-configuration-automation.adapter'
+import { ProjectConfigurationConnectorsAdapter } from './configuration/runtime/project-configuration-connectors.adapter'
+import { ProjectConfigurationPluginModule } from './plugins/project-configuration/project-configuration.module'
+import { ProjectConfigurationRuntimeService } from './configuration/runtime/project-configuration-runtime.service'
 import { ModelExecutionModule } from '../model-execution/model-execution.module'
 import { XpertProjectConfiguration } from './configuration/project-configuration.entity'
 import { ProjectConfigurationService } from './configuration/project-configuration.service'
@@ -147,6 +153,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 @Module({
     imports: [
         DiscoveryModule,
+        ProjectConfigurationPluginModule,
         AgentInvocationModule,
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
@@ -194,6 +201,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         forwardRef(() => SkillRepositoryIndexModule),
         XpertProjectAccessModule,
         forwardRef(() => XpertAgentModule),
+        forwardRef(() => XpertTaskModule),
         forwardRef(() => XpertModule)
     ],
     controllers: [
@@ -269,6 +277,10 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTaskProjectionStore,
         ProjectTaskProjectionService,
         ProjectTasksViewProvider,
+        ProjectConfigurationRuntimeService,
+        ProjectConfigurationEditorsAdapter,
+        ProjectConfigurationAutomationAdapter,
+        ProjectConfigurationConnectorsAdapter,
         ProjectPipelineWorkspaceService,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,

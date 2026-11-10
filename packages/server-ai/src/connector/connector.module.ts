@@ -1,3 +1,6 @@
+import { ConnectorOAuthLaunchController } from './oauth-launch/connector-oauth-launch.controller'
+import { ConnectorOAuthLaunchService } from './oauth-launch/connector-oauth-launch.service'
+import { RedisModule } from '@xpert-ai/server-core'
 import { ConnectorDocumentsService } from './connector-documents.service'
 import { ResolveTemplateConnectorsHandler } from './template-connectors.handler'
 import { Module } from '@nestjs/common'
@@ -21,6 +24,7 @@ import { ConnectorIntegrationService } from './integrations/connector-integratio
 
 @Module({
     imports: [
+        RedisModule,
         RouterModule.register([{ path: '/connector', module: ConnectorModule }]),
         TypeOrmModule.forFeature([
             Connector,
@@ -37,15 +41,16 @@ import { ConnectorIntegrationService } from './integrations/connector-integratio
         CqrsModule,
         XpertWorkspaceModule
     ],
-    controllers: [ConnectorIntegrationController, ConnectorController],
+    controllers: [ConnectorIntegrationController, ConnectorController, ConnectorOAuthLaunchController],
     providers: [
         ConnectorDocumentsService,
         ConnectorService,
+        ConnectorOAuthLaunchService,
         ConnectorProviderService,
         ConnectorStrategyRegistry,
         ConnectorIntegrationService,
         ResolveTemplateConnectorsHandler
     ],
-    exports: [ConnectorService, ConnectorStrategyRegistry]
+    exports: [ConnectorService, ConnectorStrategyRegistry, ConnectorOAuthLaunchService]
 })
 export class ConnectorModule {}
