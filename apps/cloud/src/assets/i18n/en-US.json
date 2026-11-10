@@ -5638,6 +5638,7 @@
       "UsageCenter": "Usage Center",
       "TotalTokens": "Total Tokens",
       "TotalTokensTooltip": "Tokens used in the selected period.",
+      "ExecutionChargedPoints": "Points charged to this execution",
       "MembershipPointsUsed": "Membership Points Used",
       "MembershipPointsUsedTooltip": "Membership points consumed in the selected period.",
       "TokenAndPointsUsage": "Token and membership point usage",

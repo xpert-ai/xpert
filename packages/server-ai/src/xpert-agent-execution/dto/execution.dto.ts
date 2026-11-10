@@ -5,10 +5,15 @@ import { Expose, Transform } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
 import { XpertIdentiDto } from '../../xpert/dto'
 
+import { publicExecution } from '../public-execution'
+
 @Expose()
 export class XpertAgentExecutionDTO {
     @Expose()
     tokens?: number
+
+    @Expose()
+    chargedPoints?: IXpertAgentExecution['chargedPoints']
 
     @Expose()
     messages?: StoredMessage[]
@@ -43,6 +48,6 @@ export class XpertAgentExecutionDTO {
     xpert?: IXpert
 
     constructor(partial: Partial<XpertAgentExecutionDTO>) {
-        Object.assign(this, partial)
+        Object.assign(this, publicExecution(partial))
     }
 }

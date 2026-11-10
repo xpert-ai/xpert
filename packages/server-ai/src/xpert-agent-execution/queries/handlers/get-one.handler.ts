@@ -27,8 +27,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
         })
         const executionTree = await this.expandExecutionTree(expandedExecution, agents)
         const executionIds = collectExecutionIds(executionTree)
-        const details = await this.copilotUsage.getModelUsages(executionIds, execution.tenantId)
-        return attachModelUsageDetails(executionTree, details)
+        const [details, chargedPoints] = await Promise.all([
+            this.copilotUsage.getModelUsages(executionIds, execution.tenantId),
+            this.service.getChargedPoints(execution.tenantId, executionIds)
+        ])
+        return attachModelUsageDetails(executionTree, details, chargedPoints)
     }
 
     private async expandExecutionTree(

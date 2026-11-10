@@ -1,56 +1,53 @@
+import { MembershipLedgerSourceEnum, USAGE_HOUR_FORMAT } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { Repository } from 'typeorm'
+import { Repository, type WhereExpressionBuilder } from 'typeorm'
+import { MembershipPointLedger } from '../../../membership/membership-point-ledger.entity'
+import { formatInUTC0 } from '../../../shared/utils'
 import { CopilotUser } from '../../copilot-user.entity'
 import { CopilotUserUsageQuery } from '../copilot-user-usage.query'
-import { USAGE_HOUR_FORMAT } from '@xpert-ai/contracts'
-import { formatInUTC0 } from '../../../shared/utils'
 
 @QueryHandler(CopilotUserUsageQuery)
 export class CopilotUserUsageHandler implements IQueryHandler<CopilotUserUsageQuery> {
-	constructor(
-		@InjectRepository(CopilotUser)
-		private readonly repository: Repository<CopilotUser>
-	) {}
+    constructor(@InjectRepository(CopilotUser) private readonly repository: Repository<CopilotUser>) {}
 
-	public async execute(command: CopilotUserUsageQuery) {
-		const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const { userId, xpertId, start, end, threadId } = command.params
-		const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
+    public async execute(command: CopilotUserUsageQuery) {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const { userId, xpertId, start, end, threadId } = command.params
+        const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
+        const scope = (query: WhereExpressionBuilder, organization: string) => {
+            query.andWhere('usage.tenantId = :tenantId', { tenantId })
+            query.andWhere('usage.usageHour <= :endHour', { endHour })
+            if (organizationId) query.andWhere(`${organization} = :organizationId`, { organizationId })
+            else query.andWhere(`${organization} IS NULL`)
+            if (userId) query.andWhere('usage.userId = :userId', { userId })
+            if (xpertId) query.andWhere('usage.xpertId = :xpertId', { xpertId })
+            if (threadId) query.andWhere('usage.threadId = :threadId', { threadId })
+            if (start) query.andWhere('usage.usageHour >= :start', { start })
+        }
 
-		const query = this.repository
-			.createQueryBuilder('copilot_user')
-			.select("COALESCE(copilot_user.currency, '')", 'currency')
-			.addSelect('COALESCE(SUM(copilot_user.tokenUsed), 0)', 'tokenUsed')
-			.addSelect('COALESCE(SUM(copilot_user.priceUsed), 0)', 'priceUsed')
-			.where('copilot_user.tenantId = :tenantId', { tenantId })
-			.andWhere('copilot_user.usageHour <= :end', { end: endHour })
-			.groupBy("COALESCE(copilot_user.currency, '')")
-
-		if (organizationId) {
-			query.andWhere('copilot_user.organizationId = :organizationId', { organizationId })
-		} else {
-			query.andWhere('copilot_user.organizationId IS NULL')
-		}
-
-		if (userId) {
-			query.andWhere('copilot_user.userId = :userId', { userId })
-		}
-
-		if (xpertId) {
-			query.andWhere('copilot_user.xpertId = :xpertId', { xpertId })
-		}
-
-		if (threadId) {
-			query.andWhere('copilot_user.threadId = :threadId', { threadId })
-		}
-
-		if (start) {
-			query.andWhere('copilot_user.usageHour >= :start', { start })
-		}
-
-		return await query.getRawMany()
-	}
+        const tokens = this.repository.createQueryBuilder('usage').select('SUM(usage.tokenUsed)', 'total')
+        const debits = this.repository.manager
+            .getRepository(MembershipPointLedger)
+            .createQueryBuilder('usage')
+            .select('-SUM(usage.pointsDelta)', 'total')
+            .where('usage.source IN (:...sources)', {
+                sources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
+            })
+        scope(tokens, 'usage.organizationId')
+        scope(debits, 'COALESCE(usage.runtimeOrganizationId, usage.organizationId)')
+        const [tokenRow, debitRow] = await Promise.all([
+            tokens.getRawOne<{ total: string | null }>(),
+            debits.getRawOne<{ total: string | null }>()
+        ])
+        if (tokenRow?.total == null && debitRow?.total == null) return []
+        return [
+            {
+                tokenUsed: Number(tokenRow?.total ?? 0),
+                chargedPoints: debitRow?.total == null ? null : Number(debitRow.total)
+            }
+        ]
+    }
 }

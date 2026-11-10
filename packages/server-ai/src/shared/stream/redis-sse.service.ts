@@ -525,7 +525,7 @@ export class RedisSseStreamService {
             return null
         }
         try {
-            return JSON.parse(raw)
+            return serializeRunStreamPayload(JSON.parse(raw))
         } catch (error) {
             return raw
         }

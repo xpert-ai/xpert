@@ -10,6 +10,7 @@ import { t } from 'i18next'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import type { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
+import { publicExecution } from './public-execution'
 import { XpertAgentExecutionDTO } from './dto'
 import {
     AssertXpertAgentExecutionAccessQuery,
@@ -85,7 +86,20 @@ export class XpertAgentExecutionController {
                 })
             )
         }
-        return this.service.findAllByXpertAgent(xpertId, agentKey, data, isAdmin ? undefined : currentUserId)
+        const page = await this.service.findAllByXpertAgent(
+            xpertId,
+            agentKey,
+            data,
+            isAdmin ? undefined : currentUserId
+        )
+        const points = await this.service.getChargedPoints(
+            RequestContext.currentTenantId(),
+            page.items.map((item) => item.id)
+        )
+        return {
+            ...page,
+            items: page.items.map((item) => publicExecution({ ...item, chargedPoints: points.get(item.id) ?? null }))
+        }
     }
 }
 

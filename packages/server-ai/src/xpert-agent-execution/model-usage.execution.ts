@@ -10,13 +10,17 @@ export function collectExecutionIds(execution: IXpertAgentExecution): string[] {
 
 export function attachModelUsageDetails(
     execution: IXpertAgentExecution,
-    usages: IModelUsageDetails[]
+    usages: IModelUsageDetails[],
+    chargedPoints: ReadonlyMap<string, number>
 ): IXpertAgentExecution {
-    const children = (execution.subExecutions ?? []).map((child) => attachModelUsageDetails(child, usages))
+    const children = (execution.subExecutions ?? []).map((child) =>
+        attachModelUsageDetails(child, usages, chargedPoints)
+    )
     const directUsages = execution.id ? usages.filter((usage) => usage.originExecutionId === execution.id) : []
     return {
         ...execution,
         subExecutions: children,
+        chargedPoints: chargedPoints.get(execution.id) ?? null,
         totalTokens:
             (execution.tokens ?? 0) +
             modelUsageTokens(directUsages) +

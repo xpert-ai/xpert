@@ -4226,6 +4226,7 @@
       "UsageCenter": "用量中心",
       "TotalTokens": "总 Tokens",
       "TotalTokensTooltip": "所选时间范围内的 Token 使用量。",
+      "ExecutionChargedPoints": "本次执行已扣积点",
       "MembershipPointsUsed": "已用会员积点",
       "MembershipPointsUsedTooltip": "所选时间范围内消耗的会员积点。",
       "TokenAndPointsUsage": "Token 与会员积点使用量",

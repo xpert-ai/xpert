@@ -5423,6 +5423,7 @@
       "TotalMessagesTooltip": "每個專家回答的消息數，專家作者和調試者對話除外",
       "TotalTokens": "總 Tokens",
       "TotalTokensTooltip": "每個專家消耗 Tokens 總量，專家作者和調試者對話除外",
+      "ExecutionChargedPoints": "本次執行已扣積點",
       "MembershipPointsUsed": "已用會員積點",
       "MembershipPointsUsedTooltip": "所選時間範圍內消耗的會員積點。",
       "TokenAndPointsUsage": "Token 與會員積點使用量",
