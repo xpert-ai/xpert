@@ -424,6 +424,25 @@ export function assertResponseOk(action, response) {
   throw new LocalPluginCliError(`${action} failed with HTTP ${response.status}${message ? `: ${message}` : '.'}`)
 }
 
+/** Preserve the platform's installation target without copying config or credentials. */
+export function summarizePluginRuntimeTarget(body) {
+  const target = {}
+  const generation = body?.runtimeConvergence?.generation
+  if (Number.isSafeInteger(generation) && generation > 0) {
+    target.runtimeConvergence = { generation }
+  }
+  if (Array.isArray(body?.runtimeRequirements)) {
+    target.runtimeRequirements = body.runtimeRequirements.map((requirement) => {
+      const summary = {}
+      for (const key of ['scopeKey', 'pluginName', 'version', 'runtimeRevision', 'state']) {
+        if (typeof requirement?.[key] === 'string') summary[key] = requirement[key]
+      }
+      return summary
+    })
+  }
+  return target
+}
+
 export function summarizePluginResponse(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return null

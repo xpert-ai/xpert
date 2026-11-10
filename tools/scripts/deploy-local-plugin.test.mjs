@@ -12,6 +12,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const DEPLOY_SCRIPT_PATH = path.join(scriptDir, 'deploy-local-plugin.mjs')
 const INSTALL_SCRIPT_PATH = path.join(scriptDir, 'install-local-plugin.mjs')
 const REINSTALL_SCRIPT_PATH = path.join(scriptDir, 'reinstall-local-plugin.mjs')
+const VERIFY_RUNTIME_SCRIPT_PATH = path.join(scriptDir, 'verify-plugin-runtime.mjs')
 
 function createPluginWorkspace(packageJson = {}) {
   const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-plugin-deploy-'))
@@ -466,10 +467,19 @@ for (const loadStatus of ['loaded', 'pending_restart']) {
     })
     t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
     const manifestPath = path.join(workspacePath, 'deployment.json')
+    const runtimeRequirement = { pluginName: '@xpert-ai/plugin-test-deploy', scopeKey: 'system:global',
+      state: 'loaded', version: '0.1.0', runtimeRevision: 'runtime:fixture-new' }
     const server = await listen(async (request, response) => {
       response.setHeader('content-type', 'application/json')
       if (request.url === '/api/plugin/refresh') {
-        response.end(JSON.stringify({ success: true }))
+        response.end(JSON.stringify({ success: true, runtimeConvergence: { generation: 7, token: 'response-secret' },
+          runtimeRequirements: [{ ...runtimeRequirement, config: { password: 'response-secret' } }] }))
+        return
+      }
+      if (request.url === '/api/system/runtime/plugin-convergence/7') {
+        assert.equal(request.method, 'GET')
+        response.end(JSON.stringify({ generation: 7, status: loadStatus === 'loaded' ? 'completed' : 'awaiting_restart',
+          targetReplicaCount: 1, completedReplicaCount: loadStatus === 'loaded' ? 1 : 0, failedReplicaCount: 0 }))
         return
       }
       response.end(
@@ -514,7 +524,24 @@ for (const loadStatus of ['loaded', 'pending_restart']) {
     assert.equal(manifest.validation.test, 'skipped')
     assert.equal(manifest.deployment.descriptor.loadStatus, loadStatus)
     assert.equal(manifest.deployment.restartRequired, loadStatus === 'pending_restart')
+    assert.equal(manifest.deployment.pluginEndpoint, `${server.url}/api/plugin`)
+    assert.deepEqual(manifest.deployment.runtimeConvergence, { generation: 7 })
+    assert.deepEqual(manifest.deployment.runtimeRequirements, [runtimeRequirement])
     if (loadStatus === 'pending_restart') assert.match(result.stdout, /API restart required before activation/)
-    assert.doesNotMatch(JSON.stringify(manifest), /manifest-secret-token/)
+    assert.doesNotMatch(JSON.stringify(manifest), /manifest-secret-token|response-secret/)
+    const verification = await runCli(VERIFY_RUNTIME_SCRIPT_PATH, [
+      '--manifest-file', manifestPath, '--plugin-name', runtimeRequirement.pluginName,
+      '--scope-key', runtimeRequirement.scopeKey, '--expected-revision', runtimeRequirement.runtimeRevision,
+      '--api-url', server.url, '--scope', 'tenant', '--tenant-id', 'tenant-test', '--no-keychain'
+    ], { XPERT_TOKEN: 'manifest-secret-token' })
+    if (loadStatus === 'loaded') {
+      assert.equal(verification.code, 0, verification.stderr)
+      assert.equal(JSON.parse(verification.stdout).runtimeConvergenceVerified, true)
+      assert.equal(JSON.parse(verification.stdout).businessAcceptance, false)
+    } else {
+      assert.notEqual(verification.code, 0)
+      assert.match(verification.stderr, /not completed: awaiting_restart/)
+    }
+    assert.doesNotMatch(verification.stdout + verification.stderr, /manifest-secret-token|response-secret/)
   })
 }
