@@ -183,6 +183,7 @@ namespace Bosi {
                         Receipt(writer, "exited", unchecked((int)code));
                         return 0;
                     } catch (Exception exception) {
+                        Console.Error.WriteLine(exception.Message);
                         // A suspended child has never executed command code; terminate and wait before certifying it.
                         if (!resumed) {
                             if (child.Process != IntPtr.Zero) {
@@ -192,7 +193,6 @@ namespace Bosi {
                             Receipt(writer, "not_started", 127);
                             return 0;
                         }
-                        Console.Error.WriteLine(exception.Message);
                         return 1; // No completion evidence if a native lifecycle check failed.
                     } finally {
                         if (job != IntPtr.Zero) CloseHandle(job);

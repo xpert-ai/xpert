@@ -34,10 +34,10 @@ const copy = (source, target) => {
   manifest.push({ source, target, sha256: createHash('sha256').update(content).digest('hex') })
 }
 for (const file of files) copy(file, file)
-for (const file of ['index.js', 'audio-capture.js', 'process-supervisor.js'])
+for (const file of ['package.json', 'index.js', 'audio-capture.js', 'process-supervisor.js'])
   copy(`packages/desktop-protocol/${file}`, `node_modules/@xpert-ai/desktop-protocol/${file}`)
-// The protocol's own tests resolve require('..'); retain the same runtime files there too.
-for (const file of ['index.js', 'audio-capture.js'])
+// Preserve the CommonJS boundary even when the kit is nested inside a type:module workspace.
+for (const file of ['package.json', 'index.js', 'audio-capture.js'])
   copy(`packages/desktop-protocol/${file}`, `packages/desktop-protocol/${file}`)
 fs.writeFileSync(path.join(destination, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 fs.writeFileSync(
@@ -48,7 +48,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 if (process.platform !== 'win32') throw new Error('Run this kit on native Windows')
 const tests = ${JSON.stringify(files.filter((name) => name.endsWith('.test.cjs')))}
-const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', ...tests], {
+const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', '--test-concurrency=1', ...tests], {
   cwd: __dirname, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
   env: { ...process.env, ELECTRON_RUN_AS_NODE: '1',
     BOSI_SHELL_TEST_APP_ROOT: path.join(__dirname, '../resources/app.asar/electron') }

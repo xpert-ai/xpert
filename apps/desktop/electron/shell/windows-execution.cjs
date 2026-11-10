@@ -9,6 +9,9 @@ const { shellEnvironment, windowsPowerShell } = require('./platform.cjs')
 
 const bootstrap = `
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 try {
   $config = [Console]::In.ReadLine() | ConvertFrom-Json
   Add-Type -TypeDefinition ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($config.source)))

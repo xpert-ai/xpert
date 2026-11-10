@@ -78,6 +78,7 @@ test('Windows PowerShell executes Unicode source in a space/Unicode cwd and repo
   assert.ok(output(result).includes(f.root))
   assert.ok(output(result).includes('中文 🚀'))
   assert.ok(output(result, 'stderr').includes('错误'))
+  assert.doesNotMatch(output(result, 'stderr'), /CLIXML/)
 })
 
 test('Windows commands preserve multiline source, quotes, here strings and the maximum command length', async (t) => {
