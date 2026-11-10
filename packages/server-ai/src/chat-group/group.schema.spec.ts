@@ -4,12 +4,27 @@ import {
     groupHistorySchema,
     groupHumanSendSchema,
     groupSendSchema,
+    groupResourceLinkSchema,
     parseGroupCommunication
 } from './group.schema'
 
 describe('group request boundaries', () => {
     const participantId = randomUUID()
     const clientMessageId = randomUUID()
+    it('preserves type icons and falls back for malformed optional metadata without losing a resource', () => {
+        const link = {
+            projectId: randomUUID(),
+            title: 'Inventory',
+            resource: { kind: 'group-reference', id: randomUUID() }
+        }
+        const icon = { type: 'svg', value: '<svg viewBox="0 0 24 24"/>', alt: 'Inventory' }
+        expect(groupResourceLinkSchema.parse({ ...link, icon })).toEqual({ ...link, icon })
+        expect(groupResourceLinkSchema.parse(link)).toEqual(link)
+        for (const invalid of [null, '📊', { type: 'custom', value: 'x' }, { ...icon, size: -1 }]) {
+            expect(groupResourceLinkSchema.parse({ ...link, icon: invalid })).toMatchObject(link)
+            expect(groupResourceLinkSchema.parse({ ...link, icon: invalid }).icon).toBeUndefined()
+        }
+    })
 
     it('preserves human text offsets and does not accept client-authored routing or identity', () => {
         const input = {

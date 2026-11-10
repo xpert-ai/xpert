@@ -1,7 +1,7 @@
 import type { ConversationResourceTarget } from '../conversation-resource.model'
 import type { RuntimeCapabilitiesSelection, TMessageContentResourceCard } from '@xpert-ai/chatkit-types'
 import type { RuntimeResourcesSelection } from '../agent-plugin'
-import type { TAvatar } from '../types'
+import type { IconDefinition, TAvatar } from '../types'
 import type { XpertProjectTypeRef } from './xpert-project-type.model'
 
 /**
@@ -106,6 +106,8 @@ export interface ChatGroupComposerInput {
  * History replay may show the entry but must not auto-open it; opening always reauthorizes the resource in the current group and Project.
  */
 export interface ChatGroupResourceLink {
+  /** Public type icon captured by the host when publishing. Optional for legacy links; never an access grant. */
+  icon?: IconDefinition
   /** Canonical locator shared with discovery and Workbench. Contains no access grant. */
   resource: ConversationResourceTarget
   /** Receiving group's runtime Project; checked before opening, never a source Project override. */

@@ -158,3 +158,4 @@ export * from './user-notification.schema'
 
 export * from './business-area-access.model'
 export * from './conversation-resource.model'
+export { iconDefinitionSchema } from './icon-definition.schema'

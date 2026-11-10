@@ -118,7 +118,8 @@ export class GroupResourceToolsService {
                         links.push({
                             resource: item.resource,
                             projectId: group.projectId,
-                            title: resolved.title
+                            title: resolved.title,
+                            ...(resolved.icon ? { icon: resolved.icon } : {})
                         })
                     }
                 }

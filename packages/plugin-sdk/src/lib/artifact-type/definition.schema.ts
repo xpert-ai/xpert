@@ -1,9 +1,11 @@
 import { z } from 'zod/v3'
+import { iconDefinitionSchema } from '@xpert-ai/contracts'
 
 /** Package exports are a runtime boundary; reject malformed declarations before registration. */
 export const artifactTypeDefinitionSchema = z
   .object({
     contentTypeId: z.string().trim().min(1).max(200).optional(),
+    icon: iconDefinitionSchema.optional(),
     title: z
       .object({
         en_US: z.string().trim().min(1).max(200),

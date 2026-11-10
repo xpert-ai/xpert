@@ -19,6 +19,13 @@ export class ResolveProjectResourceNavigationHandler implements ICommandHandler<
             ...scope,
             source: { providerKey: CONTENT_CATALOG_PROVIDER, resourceId: contentId }
         })
-        return { title: item.title, navigation }
+        const type = (await this.catalog.types(scope)).find(
+            (type) =>
+                type.providerKey === item.resourceRef.providerKey &&
+                type.typeId === item.typeId &&
+                type.modelId === item.modelId &&
+                type.schemaVersion === item.schemaVersion
+        )
+        return { title: item.title, ...(type?.icon ? { icon: type.icon } : {}), navigation }
     }
 }

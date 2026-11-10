@@ -5,7 +5,8 @@ import type {
   ArtifactLinkVersionMode,
   ArtifactTypeReference,
   IArtifactUseGrant,
-  I18nObject
+  I18nObject,
+  IconDefinition
 } from '@xpert-ai/contracts'
 import type { ContentOperation } from '../content-resource'
 import type { ArtifactLinkAccessInput } from '../runtime/capabilities/artifacts'
@@ -50,6 +51,8 @@ export interface ArtifactTypeDefinition {
   contentTypeId?: string
   /** Localized semantic type name shown by libraries independently of the storage/rendering kind. */
   title?: I18nObject
+  /** Public type icon for resource cards. Display metadata only; never conveys access or navigation. */
+  icon?: IconDefinition
   kinds: readonly ArtifactKind[]
   /** Copying bytes into another Project changes their lifecycle and sharing boundary. Custom views must opt in. */
   collection?: { allowCopy: boolean }
